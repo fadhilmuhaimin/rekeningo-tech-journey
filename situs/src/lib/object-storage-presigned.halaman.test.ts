@@ -125,6 +125,7 @@ const lamaD = cari(/^dibuat (\d+) menit lalu, umur (\d+) detik \(sudah lewat 5 m
 const depanD = cari(/^dibuat dengan tanggal (\d+) menit di depan, umur (\d+) detik: HTTP (\d+)$/, PD, "depan D");
 const maksD = cari(/^X-Amz-Expires (\d+) \((\d+) hari, batas atas dokumentasi SigV4\): HTTP (\d+)$/, PD, "maks D");
 const lebihD = cari(/^X-Amz-Expires (\d+): HTTP (\d+) AuthorizationQueryParametersError$/, PD, "lebih D");
+const tolakGET = cari(/^GET objek tanpa tanda tangan \(bucket privat\): HTTP (\d+) AccessDenied$/, PE, "GET tanpa tanda tangan")[1];
 const tolakE = PE.filter((b) => /HTTP 403 (SignatureDoesNotMatch|AccessDenied)$/.test(b)).length;
 const lima = num(cari(/^PUT ([\d.]+) byte lewat URL tanpa ukuran ditandatangani: HTTP 200$/, PF, "5 MiB")[1]!);
 const ukuranTtd = num(cari(/\{"ukuran_kartu":(\d+)\}/, PF, "ukuran ditandatangani")[1]!);
@@ -461,6 +462,7 @@ describe("object-storage-presigned.mdx: tiap angka turunan dari rekaman, kode, n
     harus("Membuat ukuran wajib adalah keputusan produk yang belum diambil.");
     harus("Karena server tetap membaca tiap file, byte tetap melewati server sekali.");
     harus("kecepatan unggah dari HP tidak diukur");
+    harus(`Bucket adalah wadah objek di penyimpanan, dan bucket privat menolak GET tanpa tanda tangan dengan ${tolakGET} (\`presign.txt\` bagian E).`);
   });
   test("Snippet: rentang diturunkan dari fungsi dan bagian rekaman, tanpa komentar lab internal", () => {
     const hasil = tag.map((t) => ({ file: t.match(/file=\{?[`"]([^`"]+)[`"]/)?.[1], files: t.match(/files=\{\[([^\]]+)\]\}/)?.[1], lines: t.match(/lines="([^"]+)"/)?.[1], judul: t.match(/title=\{?[`"]([^`"]+)[`"]/)?.[1] }));
@@ -910,3 +912,147 @@ import {
   JumlahRekamanLab, JumlahTidakDijalankan, JumlahAsumsi, JumlahIlustrasi, JumlahHitungan, JumlahPerluVerifikasi, JumlahPenulis, JumlahDibuka, JumlahTanggal,
   SIDIK_RISET, SIDIK_BERKAS, SIDIK_HALAMAN, SIDIK_RANTAI, SIDIK_TEBAK, SIDIK_BANDING, SIDIK_ISTILAH, SIDIK_STRUKTUR, SIDIK_ANGKA,
 } from "./object-storage-presigned.halaman.sidik";
+
+// ---- tambahan tinjauan (keputusan 1325): celah turunan yang di putaran tanpa kunci hanya tertutup kunci baris ----------------------
+// Mutan tinjauan yang lolos putaran tanpa kunci baris dan tanpa sidik: versi di kepala rekaman, baris rekaman yang dikutip tetapi tidak dibaca,
+// huruf bagian dan nama berkas rekaman di kutipan, ID di tautan [[id]], dan bahasa Snippet.
+describe("tinjauan: versi rekaman, baris yang dikutip, kutipan bagian, tautan per ID, dan bahasa Snippet", () => {
+  test("versi PostgreSQL, Go, dan SeaweedFS di halaman diturunkan dari kepala empat rekaman dan README", () => {
+    const pg = presignTxt.match(/PostgreSQL ([\d.]+) \(/)![1]!, go = presignTxt.match(/go([\d.]+) /)![1]!, sw = presignTxt.match(/SeaweedFS ([\d.]+) di container/)![1]!;
+    for (const t of [presignTxt, unggahTxt, unduhTxt, retensiTxt]) {
+      const b = t.split("\n");
+      expect(b[1]).toContain(`PostgreSQL ${pg} (`);
+      expect(b[1]).toContain(`go${go} `);
+      expect(b[3]).toContain(`SeaweedFS ${sw} di container`);
+    }
+    expect(readme).toContain(`chrislusf/seaweedfs:${sw}`);
+    harus(`*Dijalankan: lab api-t4 dan t4-storage, PostgreSQL ${pg}, Go ${go}, dan SeaweedFS ${sw} (rekaman \`presign.txt\`).*`);
+    for (const m of halaman.matchAll(/SeaweedFS (\d+\.\d+)/g)) expect(m[1], "SeaweedFS di halaman").toBe(sw);
+    for (const m of halaman.matchAll(/PostgreSQL (\d+\.\d+)/g)) expect(m[1], "PostgreSQL di halaman").toBe(pg);
+    for (const m of halaman.matchAll(/\bGo (\d+\.\d+\.\d+)/g)) expect(m[1], "Go di halaman").toBe(go);
+  });
+  test("baris rekaman yang dikutip tabel hasil dibaca: kedua objek terhapus (unggah B dan C) dan 2, 4, 8 pengajuan di bawah 0,01 (ukuran C)", () => {
+    const hilang = "objek di penyimpanan sesudah penolakan (HEAD): kartu tidak ada, swafoto tidak ada";
+    expect(GB).toContain(hilang);
+    expect(GC).toContain(hilang);
+    const c = KC.map((b) => b.match(/^(\d) pengajuan \(([\d.]+) byte file di penyimpanan\): rasio dump\/file di bawah 0,01: ya$/)).filter((m) => m !== null);
+    expect(c.map((m) => Number(m![1]))).toEqual(pengajuanA);
+    for (const m of c) expect(num(m![2]!)).toBe(Number(m![1]) * 2 * byteUnduh);
+  });
+  test("tautan [[id]]: jumlah per tujuan, prasyarat dari registry, dan judul tujuan memuat topik kalimatnya", () => {
+    const semua = [...halaman.matchAll(/\[\[([A-Za-z0-9.-]+)\]\]/g)].map((m) => m[1]!);
+    const hitung = Object.fromEntries([...new Set(semua)].sort().map((id) => [id, semua.filter((x) => x === id).length]));
+    expect(hitung).toEqual({ berikutnya: 1, "t3-dua-instance": 1, "t4-infra-secret": 2, "t4-m33": 3, "t4-m34": 2, "t4-m38": 1, "t4-prd": 1, "t4-topup-verifikasi": 2 });
+    harus(`Prasyarat: [[${dari("t4-storage").prasyarat![0]}]]`);
+    const topik: [string, string, string][] = [
+      ["t4-m33", "uji pulih", "[[t4-m33]] menunjukkan uji pulih yang makin lama"],
+      ["t4-prd", "prd v4", "([[t4-prd]])"],
+      ["t4-topup-verifikasi", "verifikasi identitas", "dari tiap pendaftar ([[t4-topup-verifikasi]])"],
+      ["t3-dua-instance", "instance", "penalaran penulis, [[t3-dua-instance]]"],
+      ["t4-m34", "pindah hosting", "pindah hosting ([[t4-m34]])"],
+      ["t4-infra-secret", "secret", "[[t4-infra-secret]] memindahkan kredensial penyimpanan ke secret manager"],
+      ["t4-m38", "membuka data budi", "[[t4-m38]] bertanya siapa yang membuka data Budi"],
+    ];
+    for (const [id, kata, kalimat] of topik) {
+      expect(dari(id).judul.toLowerCase(), id).toContain(kata);
+      harus(kalimat);
+    }
+    harus("karena file terikat pada satu server, dan [[t4-m34]] memindahkan infrastruktur");
+  });
+  test("Snippet dan tab: bahasa cocok dengan ekstensi berkas dan dengan stack tab", () => {
+    for (const b of halaman.split("\n").filter((x) => x.startsWith("<Snippet") && /file=|files=/.test(x))) {
+      const berkas = b.match(/labs\/[\w./-]+?\.(go|txt)/)![1]!;
+      if (berkas === "go") expect(b, b.slice(0, 80)).toContain('lang="go"');
+      else expect(b, b.slice(0, 80)).not.toMatch(/lang=/);
+    }
+    const lang: Record<string, string> = { t1: "js", t2: "php", t4: "dart" };
+    for (const [slot, l] of Object.entries(lang)) {
+      const blok = halaman.slice(halaman.indexOf(`<Fragment slot="${slot}">`), halaman.indexOf("</Fragment>", halaman.indexOf(`<Fragment slot="${slot}">`)));
+      expect(blok, slot).toContain(`<Snippet lang="${l}" code={`);
+    }
+  });
+  test("kutipan bagian: angka dan isi kode di satuan yang menyebut bagian ada di bagian rekaman yang disebut, bukan di bagian lain", () => {
+    const mentah: Record<string, string> = { "presign.txt": presignTxt, "unggah.txt": unggahTxt, "unduh.txt": unduhTxt, "retensi.txt": retensiTxt, "ukuran.txt": ukuranTxt };
+    const rekaman: Record<string, Record<string, Bagian>> = { "presign.txt": P, "unggah.txt": G, "unduh.txt": U, "retensi.txt": T, "ukuran.txt": K };
+    const teksBagian = (nama: string, h: string): string => { const b = rekaman[nama]![h]!; return mentah[nama]!.split("\n").slice(b.awal - 1, b.akhir).join("\n").toLowerCase(); };
+    const norm = (x: string): string => x.replace(/(\d)\.(?=\d{3}\b)/g, "$1").replace(/(\d)\.(?=\d{3}\b)/g, "$1");
+    const angkaDari = (s: string): string[] => {
+      const bersih = s.replace(/SHA-\d+/g, "SHA").replace(/\]\([^)]*\)/g, "]").replace(/https?:\/\/\S+/g, "").replace(/\d[\d.]*,\d+/g, "").replace(/\b\d{4}-\d{2}-\d{2}\b/g, "")
+        .replace(/\b\d+(?:\.\d+){2,}\b/g, "").replace(/\b\d{1,2}\.\d{1,2}\b/g, "").replace(/`[^`]*`/g, (x) => (/^`[\w.-]+\.txt`$/.test(x) ? x : ""));
+      return (bersih.match(/\b\d{1,3}(?:\.\d{3})+\b|\b\d{3,}\b/g) ?? []).map((x) => x.replace(/\./g, "")).filter((x) => x !== "2026");
+    };
+    // kata khas: isi kode dalam backtick (bukan nama berkas atau jalur), nama tokoh, dan kata camelCase seperti AccessDenied
+    const kataDari = (s: string): string[] => {
+      const keluar = new Set<string>();
+      for (const m of s.matchAll(/`([^`]{4,})`/g)) { const t = m[1]!.toLowerCase(); if (!/\.txt$|^labs\/|\.go$/.test(t)) keluar.add(t); }
+      for (const m of s.matchAll(/\b(Dina|Eko|Ratih)\b/g)) keluar.add(m[1]!.toLowerCase());
+      for (const m of s.matchAll(/\b[A-Za-z]*[a-z][A-Z][A-Za-z]+\b/g)) keluar.add(m[0].toLowerCase());
+      return [...keluar];
+    };
+    const periksa = (unit: string, ctx: string | null, asal: string): string | null => {
+      let file = ctx;
+      const sitasi: { nama: string | null; huruf: string[] }[] = [];
+      for (const m of unit.matchAll(/(?:([\w-]+\.txt)`?,? )?bagian ([A-H])(?: (dan|sampai) ([A-H]))?/g)) {
+        const sebelum = unit.slice(0, m.index!).match(/([\w-]+\.txt)`?[^`]*$/);
+        const nama = m[1] ?? sebelum?.[1] ?? file;
+        if (m[1]) file = m[1];
+        if (nama && !rekaman[nama]) continue; // berkas lain (mis. verifikasi.txt): bukan rekaman lab ini
+        const huruf = m[3] === "sampai" ? Array.from({ length: m[4]!.charCodeAt(0) - m[2]!.charCodeAt(0) + 1 }, (_, i) => String.fromCharCode(m[2]!.charCodeAt(0) + i)) : [m[2]!, ...(m[4] ? [m[4]] : [])];
+        sitasi.push({ nama, huruf });
+      }
+      if (!sitasi.length) return null;
+      const namaPasti = [...new Set(sitasi.map((x) => x.nama))];
+      const sumber: string[] = [];
+      for (const st of sitasi) for (const h of st.huruf) {
+        const kandidat = st.nama ? [st.nama] : Object.keys(rekaman).filter((n) => rekaman[n]![h]);
+        if (!kandidat.some((n) => rekaman[n]![h])) return `${asal}: bagian ${h} tidak ada di ${st.nama ?? "rekaman mana pun"}`;
+        for (const n of kandidat) if (rekaman[n]![h]) sumber.push(teksBagian(n, h));
+      }
+      const gabung = norm(sumber.join("\n"));
+      const hilang = angkaDari(unit).filter((a) => !new RegExp(`(?<![\\d])${a}(?![\\d])`).test(gabung));
+      if (hilang.length) return `${asal}: angka ${hilang.join(", ")} tidak ada di bagian yang dikutip: ${unit.slice(0, 110)}`;
+      // kata khas yang ada di rekaman itu harus ada di salah satu bagian yang dikutip
+      if (namaPasti.length === 1 && namaPasti[0]) {
+        const nama = namaPasti[0];
+        const dikutip = new Set(sitasi.flatMap((x) => x.huruf));
+        const semua = Object.keys(rekaman[nama]!);
+        const salah = kataDari(unit).filter((k) => {
+          const di = semua.filter((h) => teksBagian(nama, h).includes(k));
+          return di.length > 0 && !di.some((h) => dikutip.has(h));
+        });
+        if (salah.length) return `${asal}: ${salah.join(", ")} ada di ${nama} tetapi bukan di bagian yang dikutip: ${unit.slice(0, 110)}`;
+      }
+      return null;
+    };
+    const unit: [string, string | null, string][] = [];
+    let ctx: string | null = null;
+    for (const [i, b] of badanHalaman.split("\n").entries()) {
+      if (!b.trim() || /^(<Snippet|<Fragment|<TabSet|<\/|import )/.test(b)) continue;
+      if (b.startsWith("|")) {
+        const sel = b.split("|").slice(1, -1);
+        const berkutip = sel.filter((x) => /bagian [A-H]/.test(x));
+        if (berkutip.length === 1 && /bagian [A-H]/.test(sel[sel.length - 1]!)) unit.push([sel.join(" | "), ctx, `mdx baris ${i + 1} (baris tabel)`]);
+        else for (const x of berkutip) unit.push([x, ctx, `mdx baris ${i + 1} (sel)`]);
+        if (berkutip.length === 1) { const f = sel.join(" ").match(/([\w-]+\.txt)/g); if (f) ctx = f[f.length - 1]!; } // baris berikutnya di tabel yang sama memakai berkas yang sama
+        continue;
+      }
+      ctx = null;
+      for (const kal of b.split(/(?<=[.!?:])\s+(?=[A-Z*`\[(|])/)) {
+        unit.push([kal, ctx, `mdx baris ${i + 1}`]);
+        const f = kal.match(/([\w-]+\.txt)/g);
+        if (f) ctx = f[f.length - 1]!;
+      }
+    }
+    const tekstual = (x: unknown, keluar: string[] = []): string[] => {
+      if (typeof x === "string") keluar.push(x);
+      else if (Array.isArray(x)) for (const y of x) tekstual(y, keluar);
+      else if (x && typeof x === "object") for (const y of Object.values(x)) tekstual(y, keluar);
+      return keluar;
+    };
+    for (const [nama, data] of [["rantai", rantaiMentah], ["tebak", tebakMentah], ["banding", banding], ["kartu", kartuSemua.filter((k) => k.halaman === "t4-storage")]] as [string, unknown][])
+      for (const s of tekstual(data)) unit.push([s, null, `${nama}`]);
+    const gagal = unit.map(([u, c, a]) => periksa(u, c, a)).filter((x) => x !== null);
+    expect(gagal).toEqual([]);
+    expect(unit.filter(([u]) => /bagian [A-H]/.test(u)).length).toBeGreaterThan(50);
+  });
+});

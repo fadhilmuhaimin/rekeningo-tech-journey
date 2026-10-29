@@ -34,7 +34,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "<noscript>",
  "<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: PUT kedua diterima dan menimpa objek, jadi isinya 90.000 byte milik pemegang lain (presign.txt bagian B).</p>",
  "</noscript>",
- "Widget perbandingan menaruh dua cara membuka file berdampingan: URL GET bertanda tangan, dan endpoint server pilihan ADR 38. Pilih satu kejadian, lalu baca catatan di tiap sisi. Semua catatan memakai `unduh.txt`, kecuali satu yang berlabel Tidak dijalankan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).",
+ "Widget perbandingan menaruh dua cara membuka file berdampingan: URL GET bertanda tangan, dan endpoint server pilihan ADR 38. Bucket adalah wadah objek di penyimpanan, dan bucket privat menolak GET tanpa tanda tangan dengan 403 (`presign.txt` bagian E). Pilih satu kejadian, lalu baca catatan di tiap sisi. Semua catatan memakai `unduh.txt`, kecuali satu yang berlabel Tidak dijalankan. Arti label ada di [Label sumber](/cara-pakai/#label-sumber).",
  "<WidgetLama nama=\"banding\" src=\"data/t4-storage-banding.json\" />",
  "<noscript>",
  "<p>Tanpa JavaScript widget perbandingan tidak tampil. Isinya ada di tabel hasil di blok Paham dan di tabel ADR 38 di blok Putuskan.</p>",
