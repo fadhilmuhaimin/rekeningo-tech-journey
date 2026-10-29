@@ -69,6 +69,7 @@ const rentang = (n: number, panjang: number): string => `${n}:${n + panjang - 1}
 const harus = (kalimat: string, n = 1): void => expect(halaman.split(kalimat).length - 1, `kemunculan "${kalimat.slice(0, 80)}"`).toBe(n);
 const koma = (n: number, d: number): string => n.toFixed(d).replace(".", ",");
 const titik = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const huruf1 = (x: string): string => x[0]!.toUpperCase() + x.slice(1);
 const BILANGAN = ["nol", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan"];
 
 const AL = pecah(alamat);
@@ -600,6 +601,14 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
     const pertanyaan = halaman.split('<details class="question">')[1]!.split("</details>")[0]!.match(/^\d\. /gm) ?? [];
     harus(`Cek ${pertanyaan.length} pertanyaan`);
     harus("seperti base64,");
+    const jendelaDump = Number(naskah.match(/berjendela sampai (\d+) jam/)![1]);
+    harus(`harian berjendela sampai ${jendelaDump} jam`);
+    const aturan = halaman.split("**Keputusan: opsi C.** Enam aturan:")[1]!.split("**Kenapa C")[0]!.split("\n").filter((b) => /^\d\. /.test(b));
+    const nomorKonfigurasi = aturan.findIndex((b) => b.includes("Konfigurasi IaC tidak memuat nilai secret")) + 1;
+    harus(`Pencegahannya aturan ${nomorKonfigurasi}, review PR atas konfigurasi`);
+    const preMortem = halaman.split("**Pre-mortem.**")[1]!.split("**Kapan keputusan ini salah.**")[0]!.match(/^\d\. /gm) ?? [];
+    harus(`Bayangkan keputusan ini gagal 6 bulan lagi. ${huruf1(BILANGAN[preMortem.length]!)} penyebab yang paling mungkin:`);
+    harus(`dari rekaman \`${entri("t4-infra-secret")!.lab![0]}\` dan dari ADR`);
   });
   test("Snippet: file ada, judul memuat path, judul rekaman memuat bagian yang benar, dan bahasa sesuai ekstensi", () => {
     const semua = [...halaman.matchAll(/<Snippet file="([^"]+)" lines="(\d+):(\d+)"(?: lang="(\w+)")? title="([^"]+)" \/>/g)];
