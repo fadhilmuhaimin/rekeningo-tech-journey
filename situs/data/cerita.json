@@ -3297,8 +3297,9 @@
       "lab": [
         "api-t4"
       ],
-      "ada": false,
-      "nomor": "4.3"
+      "ada": true,
+      "nomor": "4.3",
+      "menit": 16
     },
     {
       "id": "t4-dua-arah",

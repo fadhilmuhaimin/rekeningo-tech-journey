@@ -1,0 +1,288 @@
+{
+  "versi": 2,
+  "judul": "Budi mengisi Rp200.000 dari rekening bank, saldonya naik sesudah gateway memberi tahu",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t4/output/topup.txt",
+    "fileVarian": "labs/api-t4/output/topup.txt",
+    "catatan": "Server Go, worker, gateway tiruan, dan layanan push tiruan lokal dengan PostgreSQL 17.11 dari database bersih (make -C labs/api-t4 run). Jalur utama: topup.txt bagian A dan B. Ubah satu hal: bagian G dan H, yang memakai top-up Rp70.000 lain. Rekaman memakai batas waktu client gateway 500 ms supaya cepat; bawaan server 3 detik. Baris diawali tanda panah diringkas dari tabel PostgreSQL di rekaman yang sama, bukan baris log. Pembayaran di app bank diperankan perintah lab ke gateway tiruan, dan layar HP digambar dari isi rekaman: lab api-t4 tidak punya app Flutter."
+  },
+  "pengantar": "Budi mengisi Rp200.000 dari rekening banknya. Tebak dulu, lalu ikuti satu top-up dari HP Budi sampai saldonya naik. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "app",
+      "label": "App Budi"
+    },
+    {
+      "id": "api",
+      "label": "Server Go"
+    },
+    {
+      "id": "gw",
+      "label": "Gateway (tiruan)"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    },
+    {
+      "id": "worker",
+      "label": "Worker"
+    }
+  ],
+  "perangkat": [
+    {
+      "id": "budi",
+      "label": "HP Budi"
+    }
+  ],
+  "layarAwal": {
+    "budi": {
+      "judul": "Top-up",
+      "sinyal": 3,
+      "saldo": 250000,
+      "saldoLabel": "Saldo Budi",
+      "isi": [
+        {
+          "jenis": "input",
+          "label": "Nominal",
+          "nilai": "Rp200.000"
+        },
+        {
+          "jenis": "tombol",
+          "teks": "Top-up dari bank"
+        }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Server menjawab Budi dengan 201 dan tujuan bayar. Pada saat itu, berapa jurnal top-up yang sudah ditulis, dan berapa saldo Budi?",
+    "options": [
+      "Satu jurnal, saldo Rp450.000: uang dicatat begitu Budi memilih nominal",
+      "Satu jurnal, saldo Rp450.000: uang dicatat begitu gateway membuat order",
+      "Nol jurnal, saldo tetap Rp250.000: uang baru dicatat saat gateway memberi tahu",
+      "Nol jurnal, saldo Rp450.000: saldo naik lebih dulu, jurnalnya menyusul"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Rekaman topup.txt bagian A: satu baris topup_bank berstatus menunggu, tidak ada jurnal topup_bank, dan saldo Budi tetap Rp250.000. Jurnalnya baru ditulis di langkah 7, sesudah webhook dari gateway."
+  },
+  "langkah": [
+    {
+      "dari": "app",
+      "judul": "Budi memilih nominal",
+      "kirim": "app  Budi memilih Top-up dari bank\napp  nominal: Rp200.000",
+      "jelas": "App mengirim satu request. Di server, saldo Budi masih Rp250.000.",
+      "layar": {
+        "budi": {
+          "judul": "Top-up",
+          "sinyal": 3,
+          "saldo": 250000,
+          "saldoLabel": "Saldo Budi",
+          "isi": [
+            {
+              "jenis": "input",
+              "label": "Nominal",
+              "nilai": "Rp200.000"
+            },
+            {
+              "jenis": "proses",
+              "teks": "Membuat order..."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "app",
+      "ke": "api",
+      "judul": "Request top-up dikirim",
+      "kirim": "POST /topup-bank\n{\"jumlah\": 200000}",
+      "jelas": "Server memeriksa nominal, status akun, batas laju, dan batas saldo menurut tingkat tanpa mengunci apa pun. Pemeriksaan batas saldo yang menentukan baru terjadi saat kredit."
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Satu baris topup_bank, status menunggu",
+      "kirim": "→ topup_bank 1: akun 419, Rp200.000, menunggu, jurnal kosong",
+      "jelas": "Baris ditulis lebih dulu, sebelum gateway dipanggil. Belum ada jurnal, jadi saldo Budi tidak berubah.",
+      "nada": "good"
+    },
+    {
+      "dari": "api",
+      "ke": "gw",
+      "judul": "Server meminta gateway membuat order",
+      "kirim": "POST /orders\nIdempotency-Key: <order_id>\n→ tujuan bayar dari gateway",
+      "jelas": "Panggilan ke gateway ada di luar transaction, dengan batas waktu 3 detik. Gateway di lab adalah tiruan lokal."
+    },
+    {
+      "dari": "api",
+      "ke": "app",
+      "judul": "Budi mendapat 201 dan tujuan bayar",
+      "kirim": "201 {\"id\":1,\"jumlah\":200000,\"status\":\"menunggu\",\"tujuan_bayar\":\"<tujuan bayar>\"}\n→ jurnal topup_bank: 0, saldo Budi: Rp250.000",
+      "jelas": "201 berarti order sudah dibuat, bukan uang sudah masuk. Status top-up masih menunggu.",
+      "layar": {
+        "budi": {
+          "judul": "Top-up",
+          "sinyal": 3,
+          "saldo": 250000,
+          "saldoLabel": "Saldo Budi",
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Nominal",
+              "kanan": "Rp200.000"
+            },
+            {
+              "jenis": "baris",
+              "kiri": "Status",
+              "kanan": "Menunggu pembayaran"
+            },
+            {
+              "jenis": "teks",
+              "teks": "Bayar ke tujuan bayar di app bank"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "gw",
+      "ke": "api",
+      "judul": "Budi membayar di app bank, gateway mengirim webhook",
+      "kirim": "POST /webhooks/pembayaran\nevent evt-100, order <order 1>, bertanda tangan",
+      "jelas": "Pembayaran di app bank terjadi di luar Rekeningo dan tidak direkam: lab memerintahkan gateway tiruan mengirim webhook. Server memeriksa tanda tangan dan timestamp sebelum JSON diurai."
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Satu transaction: event, status, jurnal, dan outbox",
+      "kirim": "→ webhook_event evt-100: settlement, diproses, jurnal 10201\n→ topup_bank 1: dibayar, jurnal 10201\n→ jurnal 10201 topup_bank: bank −200000, karyawan +200000\n→ outbox: akun 419, kelas 0, topup, push, menunggu",
+      "jelas": "Empat hal ditulis sebelum COMMIT. Kalau salah satunya gagal, tidak ada yang tersimpan.",
+      "nada": "good"
+    },
+    {
+      "dari": "api",
+      "ke": "gw",
+      "judul": "Server menjawab 200 sesudah COMMIT",
+      "kirim": "hasil kiriman: 200 diproses",
+      "jelas": "Balasan 2xx dikirim hanya sesudah COMMIT. Bila balasan ini hilang di jalan, gateway mengirim lagi: itulah masalah 29."
+    },
+    {
+      "dari": "worker",
+      "ke": "app",
+      "judul": "Worker mengirim pemberitahuan, saldo Budi naik",
+      "kirim": "$ ./api-t4 -peran worker -sekali\nworker: diklaim 1, terkirim 1, dilewati 0, ditunda 0, mati 0\npush tiruan menerima: 1 pesan\nGET /akun/419 → saldo 450000",
+      "jelas": "Pemberitahuan lewat layanan push tiruan, seperti di Tahap 3. Saldo Rp450.000 dibaca dari server, bukan dihitung app.",
+      "nada": "good",
+      "layar": {
+        "budi": {
+          "judul": "Top-up",
+          "sinyal": 3,
+          "saldo": 450000,
+          "saldoLabel": "Saldo Budi",
+          "nada": "good",
+          "isi": [
+            {
+              "jenis": "toast",
+              "teks": "Rp200.000 dari Bank",
+              "nada": "good"
+            },
+            {
+              "jenis": "baris",
+              "kiri": "Status",
+              "kanan": "Dibayar"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "gateway membuat order, tetapi jawabannya tidak pernah sampai",
+    "mulai": 4,
+    "langkah": [
+      {
+        "dari": "api",
+        "judul": "Jawaban gateway tidak pernah sampai",
+        "kirim": "gateway mode setelah-buat-menggantung: order dibuat, jawaban tidak dikirim\nclient server berhenti sesudah 500 ms",
+        "jelas": "Varian ini memakai top-up Rp70.000 lain di rekaman yang sama. Server tidak tahu apakah order sudah ada di gateway.",
+        "nada": "warn"
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Status tidak_pasti, bukan gagal",
+        "kirim": "→ topup_bank 6: Rp70.000, tidak_pasti, tanpa tujuan_bayar",
+        "jelas": "Timeout berarti order mungkin sudah ada di gateway, jadi statusnya bukan gagal.",
+        "nada": "warn"
+      },
+      {
+        "dari": "api",
+        "ke": "app",
+        "judul": "Budi mendapat 202, tanpa tujuan bayar",
+        "kirim": "202 {\"id\":6,\"jumlah\":70000,\"status\":\"tidak_pasti\"}",
+        "jelas": "Tidak ada tujuan bayar yang bisa ditampilkan. Layar hanya bisa menunggu keputusan server.",
+        "nada": "warn",
+        "layar": {
+          "budi": {
+            "judul": "Top-up",
+            "sinyal": 3,
+            "isi": [
+              {
+                "jenis": "baris",
+                "kiri": "Nominal",
+                "kanan": "Rp70.000"
+              },
+              {
+                "jenis": "baris",
+                "kiri": "Status",
+                "kanan": "Sedang dicek"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "gw",
+        "judul": "Budi sudah membayar, webhook tidak pernah dikirim",
+        "kirim": "gateway pulih\nBudi sudah membayar di app bank; webhook hilang",
+        "jelas": "Tanpa kabar masuk, tidak ada jurnal, dan statusnya masih tidak_pasti.",
+        "nada": "warn"
+      },
+      {
+        "dari": "api",
+        "ke": "gw",
+        "judul": "Job cek status menanyakan gateway",
+        "kirim": "$ ./api-t4 -cek-topup -cek-umur 0s\ncek top-up: diperiksa 1, dikredit 1, selesai tanpa kredit 0, masih menunggu 0, galat 0",
+        "jelas": "Job bawaan hanya menanyakan top-up yang menunggu lebih dari 30 menit (Asumsi); rekaman memakai 0 detik. Hasilnya diterapkan lewat fungsi yang sama dengan webhook."
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Top-up dibayar, jurnal ditulis",
+        "kirim": "→ topup_bank 6: dibayar, ada jurnal\n$ ./api-t4 -cek-topup -cek-umur 0s\ncek top-up: diperiksa 0, dikredit 0, selesai tanpa kredit 0, masih menunggu 0, galat 0",
+        "jelas": "Dijalankan lagi, job tidak menemukan top-up yang tersisa. Kabar yang hilang ditemukan jalur kedua.",
+        "nada": "good",
+        "layar": {
+          "budi": {
+            "judul": "Top-up",
+            "sinyal": 3,
+            "isi": [
+              {
+                "jenis": "baris",
+                "kiri": "Nominal",
+                "kanan": "Rp70.000"
+              },
+              {
+                "jenis": "baris",
+                "kiri": "Status",
+                "kanan": "Dibayar"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
