@@ -2880,6 +2880,30 @@
   "jawab": "Belum. Dump tidak membawa file, jadi file perlu cadangan sendiri. Pencadangan penyimpanan objek Tidak dijalankan di lab (`ukuran.txt` bagian C)."
  },
  {
+  "id": "t4-m34-1",
+  "halaman": "t4-m34",
+  "judul": "4.16 M34: Semua verifikasi ditolak sesudah pindah hosting",
+  "url": "tahap-4/m34-verifikasi-ditolak/",
+  "tanya": "Semua permintaan ke vendor ditolak, tetapi breaker ADR 36 tidak pernah terbuka. Kenapa?",
+  "jawab": "ADR 36 menghitung jawaban 4xx sebagai sukses, dan 403 termasuk 4xx. Delapan pekerjaan menghabiskan 8 × 5 = 40 penolakan dan delapan pengajuan berstatus `gagal`, tanpa satu pun perpindahan status breaker (`alamat.txt` bagian C)."
+ },
+ {
+  "id": "t4-m34-2",
+  "halaman": "t4-m34",
+  "judul": "4.16 M34: Semua verifikasi ditolak sesudah pindah hosting",
+  "url": "tahap-4/m34-verifikasi-ditolak/",
+  "tanya": "Kenapa halaman ini tidak menyimpulkan bahwa vendor mati lagi?",
+  "jawab": "Vendor menjawab setiap permintaan dari host baru dengan 403, dan sebelum pindahan ia meluluskan tiga pendaftar dari host lama. Yang berubah adalah alamat sumber host, yang belum didaftarkan (`alamat.txt` bagian A)."
+ },
+ {
+  "id": "t4-m34-3",
+  "halaman": "t4-m34",
+  "judul": "4.16 M34: Semua verifikasi ditolak sesudah pindah hosting",
+  "url": "tahap-4/m34-verifikasi-ditolak/",
+  "tanya": "Breaker bawaan pustaka terbuka sesudah enam penolakan. Apa yang ia ubah dan apa yang tidak?",
+  "jawab": "Tujuh pekerjaan menunggu, bukan mati, dan tujuh dari delapan lulus sesudah alamat didaftarkan. Penyebabnya tetap sampai operator mendaftarkan alamat. Pada satu slot worker, satu pekerjaan sudah mati karena ambang 6 lebih tinggi daripada batas lima percobaan (`alamat.txt` bagian C)."
+ },
+ {
   "id": "t4-infra-secret-1",
   "halaman": "t4-infra-secret",
   "judul": "4.17 Secret manager, IaC, alamat keluar tetap + ADR 39",
