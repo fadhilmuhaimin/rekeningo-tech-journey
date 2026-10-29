@@ -766,6 +766,60 @@ describe("tanpa kunci baris: angka, nama, dan versi yang dipakai kalimat diturun
   });
 });
 
+describe("baris riset: angka dan versi diturunkan dari rekaman, registry, naskah, dan hitungan (tanpa sidik)", () => {
+  const r178 = (): string => barisRiset("R4-178");
+  const r179 = (): string => barisRiset("R4-179");
+  test("R4-178: rasio, jumlah, batas, versi, dan bagian rekaman sama dengan ukuran.txt, unggah.txt, README, dan kepala rekaman", () => {
+    const r = r178();
+    expect(r).toContain(`rasio dump terhadap file ${fmt(RASIO, 1)} pada 2, 4, dan 8 pengajuan; dump teks ${fmt(RASIO_TEKS, 1)}`);
+    expect(r).toContain("pulih ke database lain: 16 baris, 8.000.000 byte, md5 tiap baris sama; waktu tidak direkam, batas 120 detik untuk 8 MB");
+    expect(r).toContain("rasio di bawah 0,01; kunci paling pendek 48 dan checksum 64 karakter");
+    expect(r).toContain("`unggah.txt` bagian C (1 MiB diterima, 1 MiB + 1 byte ditolak 422)");
+    expect(r).toContain("(hitungan 28 hari)");
+    const versi = cocok(ukuran, /# PostgreSQL ([\d.]+) \(Debian[^·]*· go([\d.]+) ·/);
+    expect(r).toContain(`PostgreSQL ${versi[1]}, go${versi[2]}, SeaweedFS ${cocok(readme, /SeaweedFS \| ([\d.]+) \(Apache-2\.0\)/)[1]}`);
+    expect(bagB).toContain("dalam 120 detik");
+    expect(bagC).toMatch(/ 8 +\| 48 +\| 64\n/);
+    expect(cocok(UC.teks(ucC, UC.baris.length - 1), /HTTP (\d+)\nbadan: [^\n]*"status":(\d+)/).slice(1, 3)).toEqual(["422", "422"]);
+    expect(r).toContain("bagian \"Selisih dengan naskah\" butir 6 dan 7");
+    expect(readme).toContain("6. **Angka M33 yang tidak direproduksi lab.**");
+    expect(readme).toContain("7. **\"Ikut transaction\".**");
+  });
+  test("R4-179: setiap hasil hitungan dihitung ulang dari registry, naskah, dan rasio rekaman, dan sama dengan baris riset", () => {
+    const h = r179();
+    const gb2 = fmt(POSTING_GB, 2), pbyte = fmt(POSTING_BYTE);
+    expect(h).toContain(`(upload ${fmt(asumsi.upload!)} per hari, fileKB ${asumsi.fileKB})`.replace(/\./g, "."));
+    expect(h).toContain(`${fmt(POSTING_TAHUN)} posting per tahun = ${fmt(TRANSAKSI_HARI)} × 2 × 365`);
+    expect(h).toContain(`${BYTE_POSTING} byte per posting; ${HARI} hari pada laju penuh; ${fmt(TRANSAKSI_HARI)} transaksi uang + 5.000 top-up per hari`);
+    expect(h).toContain(`file per hari ${fmt(asumsi.upload!)} × ${asumsi.fileKB} KB = ${fmt(KB_HARI)} KB = ${fmt(GB_HARI)} GB`);
+    expect(h).toContain(`${HARI} × ${fmt(GB_HARI)} = ${fmt(FILE_HARI)} GB`);
+    expect(h).toContain(`posting per hari ${fmt(POSTING_TAHUN)} ÷ 365 = ${fmt(POSTING_HARI)}`);
+    expect(h).toContain(`${fmt(POSTING_HARI)} × ${HARI} × ${BYTE_POSTING} = ${pbyte} byte = ${gb2} GB`);
+    expect(h).toContain(`${FILE_HARI} ÷ ${gb2} = ${fmt(FILE_HARI / POSTING_GB, 2)}`);
+    expect(h).toContain(`${FILE_HARI} ÷ ${fmt(FILE_HARI + POSTING_GB, 2)} = ${fmt((FILE_HARI / (FILE_HARI + POSTING_GB)) * 100, 2)}%`);
+    expect(h).toContain(`${HARI} × ${fmt(RASIO, 1)} = ${fmt(HARI * GB_HARI * RASIO, 1)} GB`);
+    expect(h).toContain(`${fmt(asumsi.upload!)} × ${fmt(MIB)} = ${fmt(asumsi.upload! * MIB)} byte = ${fmt((asumsi.upload! * MIB) / 1e9, 2)} GB per hari`);
+    expect(h).toContain(`${fmt((asumsi.upload! * MIB) / 1e9 / GB_HARI, 2)} kali`);
+    expect(h).toContain(`60.000 + 5.000 = ${fmt(60000 + 5000)}`);
+    expect(h).toContain(`220 ÷ 12 = ${fmt(220 / MENIT_LAMA, 1)} kali`);
+    expect(h).toContain(`file dalam tiga minggu naik ±${fmt(FILE_HARI / (FILE_HARI - 21 * GB_HARI), 0)} kali bila ${fmt(FILE_HARI)} GB sekarang dan ±${fmt(FILE_HARI - 21 * GB_HARI)} GB tiga minggu lalu`);
+    expect(220).toBe(3 * 60 + 40);
+    expect(JAM_BARU[1]).toBe("3");
+  });
+  test("R4-175, R4-176, R4-177: tanggal akses, versi, bagian dokumen, dan tahun wiki sama dengan halaman dan tidak lebih kuat dari sumber", () => {
+    expect(barisRiset("R4-175")).toContain("PostgreSQL 17, bagian 8.4.1 bytea Hex Format");
+    expect(barisRiset("R4-175")).toContain("rasio 2,0, batas diperiksa 1,95 sampai 2,10");
+    expect(runLab).toContain("harap(1.95 <= rasio_teks <= 2.10, True,");
+    expect(barisRiset("R4-176")).toContain("PostgreSQL 17 docs, pg_dump");
+    expect(barisRiset("R4-176")).toContain(`navigasi halaman menulis ${cocok(ukuran, /# PostgreSQL ([\d.]+) \(Debian/)[1]}`);
+    expect(barisRiset("R4-177")).toContain("PostgreSQL wiki, \"BinaryFilesInDB\"");
+    expect(barisRiset("R4-177")).toContain("sumber tingkat 3 sampai 4");
+    expect(barisRiset("R4-175")).toContain("Berubah".slice(0, 0) + "Tidak berubah |");
+    for (const id of IDS) expect(barisRiset(id).split(" | ")).toHaveLength(5);
+    expect(IDS.map((id) => Number(id.slice(3)))).toEqual([175, 176, 177, 178, 179]);
+  });
+});
+
 function sidikRiset(): string[] {
   return IDS.map((id) => sidik(barisRiset(id)));
 }
