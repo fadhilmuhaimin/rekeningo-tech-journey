@@ -18,6 +18,7 @@ import { DataRantai } from "./rantai";
 import { HalamanIstilah } from "./istilah";
 import { daftarBlok, cekTemplat } from "./blok";
 import { KALIMAT_TERKUNCI, SIDIK } from "./rekonsiliasi-gateway.halaman.nilai";
+import { ANGKA, LABEL, NEGASI, TAUTAN } from "./rekonsiliasi-gateway.halaman.kata";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -834,5 +835,26 @@ describe("struktur halaman: tingkat heading, nomor daftar, dan setiap baris terk
     harus("**Empat opsi.**");
     harus("**Pre-mortem: tiga cara keputusan ini gagal dalam enam bulan.**");
     expect(barisRiset("R4-154")).toContain("20 ÷ 5.000 = 0,4%; 1% × 5.000 = 50 top-up per hari");
+  });
+});
+
+// ---- kunci kata di luar berkas nilai: tidak ikut dibangkitkan ulang, jadi menangkap kalimat yang berubah makna walau kunci baris dibangkitkan ulang ----
+describe("kunci kata: negasi, angka, label sumber, dan tautan (berkas kata.ts, ditulis sekali)", () => {
+  const bersih = badan.split("\n").filter((b) => !/^(import |<Snippet |<WidgetLama |<SkripLama |<Rantai )/.test(b.trim())).join("\n");
+  test("kalimat yang memuat tidak, bukan, belum, atau tanpa sama dengan daftar: satu kata negasi disisipkan atau dihapus menggagalkan tes", () => {
+    const kalimat = bersih.split("\n").flatMap((b) => b.split(/(?<=[.:;?!])\s+/)).map((s) => s.trim()).filter(Boolean);
+    expect(kalimat.filter((s) => /\b(tidak|bukan|belum|tanpa)\b/i.test(s))).toEqual(NEGASI);
+    // tiap klaim negatif berlingkup dijaga tes sumbernya di atas (RekonHarian tanpa fungsi penulis jurnal, TutupInsiden satu pemanggil, lab tanpa rekonsiliasi atas handler pertama)
+    expect(NEGASI.length).toBeGreaterThan(20);
+  });
+  test("deret angka di badan (di luar Snippet) sama dengan daftar; tiap angka diturunkan dari rekaman, naskah, atau hitungan di tes lain", () => {
+    expect([...bersih.matchAll(/\d[\d.,]*\d|\d/g)].map((m) => m[0])).toEqual(ANGKA);
+  });
+  test("deret label sumber (Rekaman lab, Tidak dijalankan, Asumsi, Hitungan, Simulasi, Ilustrasi) sama dengan daftar", () => {
+    expect([...bersih.matchAll(/Rekaman lab|Tidak dijalankan|Asumsi|Hitungan|Simulasi|Ilustrasi|\[perlu verifikasi\]/g)].map((m) => m[0])).toEqual(LABEL);
+    expect(LABEL).not.toContain("Ilustrasi"); // halaman tanpa Ilustrasi: semua angka dari rekaman, hitungan, atau asumsi berlabel
+  });
+  test("deret tautan [[id]] sama dengan daftar", () => {
+    expect([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1])).toEqual(TAUTAN);
   });
 });
