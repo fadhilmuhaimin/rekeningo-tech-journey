@@ -819,6 +819,26 @@ describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", 
     expect(Number(r[2])).toBeGreaterThanOrEqual(pilih);
     expect(Number(r[2])).toBeLessThan(mulai + 14);
   });
+  test("Snippet: bahasa mengikuti ekstensi berkas; sebab 1 mengikuti naskah ('bukan skema tim lain')", () => {
+    expect(tag).toHaveLength((badan.match(/<Snippet /g) ?? []).length);
+    expect(tag.length).toBeGreaterThanOrEqual(5);
+    for (const t of tag) {
+      const f = cocok(t, /file="([^"]+)"/)[1]!;
+      const l = t.match(/lang="([^"]+)"/)?.[1];
+      if (f.endsWith(".go")) expect(l, f).toBe("go");
+      else expect(l, f).toBeUndefined();
+    }
+    expect(barisM32).toContain("tes pembayaran memakai data tiruan, bukan skema tim lain");
+    harus("1. Tes tiap tim memakai data tiruan, jadi tidak membawa skema tim lain.");
+  });
+  test("langkah 4 skenario dan definisi modul: 'satu baris untuk perintah apa pun' dari komentar driver tiruan; modul dipegang satu tim dari 'CODEOWNERS per modul' di naskah", () => {
+    const komentar = notifTes.replace(/\n\/\/ /g, " ");
+    expect(komentar).toContain("Driver tiruan membalas satu baris untuk perintah apa pun");
+    expect(notifTes).toContain("func (stmtTiruan) Query(args []driver.Value) (driver.Rows, error) { return &barisTiruan{}, nil }");
+    expect(skenario.langkah[3]!.jelas).toContain("Driver tiruan membalas satu baris untuk perintah apa pun.");
+    harus("Modul adalah sekelompok kode di satu codebase yang dipegang satu tim.");
+    expect(naskah).toContain("CODEOWNERS per modul");
+  });
   test("tes lain di paket pembayaran memakai PostgreSQL dan dilewati tanpa TEST_DATABASE_URL (bullet 'Yang tidak direkam')", () => {
     const pembTes = baca("labs/api-t4/internal/modul/pembayaran/pembayaran_test.go");
     const testing = baca("labs/t4-modul/output/testing.txt");
