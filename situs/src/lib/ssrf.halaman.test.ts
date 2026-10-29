@@ -21,7 +21,7 @@ import { HalamanIstilah } from "./istilah";
 import { KALIMAT_TERKUNCI, KUNCI_JSON } from "./ssrf.halaman.nilai";
 import {
   JumlahRekamanLab, JumlahTidakDijalankan, JumlahAsumsi, JumlahIlustrasi, JumlahHitungan, JumlahPerluVerifikasi, JumlahPenulis, JumlahDibuka, JumlahTanggal,
-  SIDIK_RISET, SIDIK_BERKAS, SIDIK_HALAMAN, SIDIK_RANTAI, SIDIK_CARIBUG, SIDIK_ISTILAH, SIDIK_STRUKTUR, SIDIK_ANGKA,
+  SIDIK_RISET, SIDIK_BERKAS, SIDIK_HALAMAN, SIDIK_TOKEN, SIDIK_TABEL, SIDIK_RANTAI, SIDIK_CARIBUG, SIDIK_ISTILAH, SIDIK_STRUKTUR, SIDIK_ANGKA,
 } from "./ssrf.halaman.sidik";
 
 const akar = path.resolve(__dirname, "../../..");
@@ -742,7 +742,9 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
 
 const sidik = (teks: string, kata: string[]): Record<string, number> =>
   Object.fromEntries(kata.map((k) => [k, (teks.toLowerCase().match(new RegExp(`(?<![\\w-])${k}(?![\\w-])`, "g")) ?? []).length]));
-const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling besar", "paling lama", "selalu", "sama", "sampai", "tetap", "tiap"];
+const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling besar", "paling lama", "selalu", "sama", "sampai", "tetap", "tiap", "sisi", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan"];
+const TOKEN = ["ControlContext", "IsPrivate", "IsLoopback", "IsLinkLocalUnicast", "alamat.txt", "batas.txt", "testing.txt", "README", "go1.27.1", "go1.27.2", "go1.27.3", "go1.27.4", "RFC", "loopback", "multicast", "link-local", "CGNAT", "IDNA", "NAT64", "OWASP", "allowlist", "deny-list"];
+const hitungToken = (teks: string): Record<string, number> => Object.fromEntries(TOKEN.map((k) => [k, (teks.match(new RegExp(`(?<![\\w-])${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`, "g")) ?? []).length]));
 const SPLIT = /(?<=[.!?])\s+(?=[A-Z0-9"(\[*_`])/;
 const prosaBaris = badanHalaman.split("\n").filter((b) => b.trim() !== "" && !b.startsWith("<Snippet"));
 const struktur = prosaBaris.map((b) => {
@@ -774,6 +776,7 @@ const hitungLabel = {
   JumlahTanggal: (halaman.match(/2026-10-30/g) ?? []).length,
 };
 const h16 = (t: string): string => createHash("sha256").update(t).digest("hex").slice(0, 16);
+const barisTabel = badanHalaman.split("\n").filter((b) => b.startsWith("|")).map((b) => h16(b));
 const barisGlosarium = glosarium.split("\n").filter((b) => b.includes("[[t4-ssrf]]"));
 const sidikSekarang = {
   SIDIK_RISET: ["R4-210", "R4-211", "R4-212", "R4-213", "R4-214"].map((id) => h16(baris(id))),
@@ -784,6 +787,8 @@ const sidikSekarang = {
     cariBugBerkas: h16(baca(caribugBerkas)),
   },
   SIDIK_HALAMAN: sidik(halaman, KATA),
+  SIDIK_TOKEN: hitungToken(halaman),
+  SIDIK_TABEL: barisTabel,
   SIDIK_RANTAI: sidik(nilaiString(rantaiMentah).join("\n"), KATA),
   SIDIK_CARIBUG: sidik(nilaiString(caribugMentah).join("\n"), KATA),
   SIDIK_ISTILAH: sidik(nilaiString(istilah).join("\n"), KATA),
@@ -833,6 +838,8 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, dan a
   });
   test("sidik kata penentu halaman, diagram, cari-bug, dan halaman istilah (kunci agregat)", () => {
     expect(sidikSekarang.SIDIK_HALAMAN).toEqual(SIDIK_HALAMAN);
+    expect(sidikSekarang.SIDIK_TOKEN).toEqual(SIDIK_TOKEN);
+    expect(sidikSekarang.SIDIK_TABEL).toEqual(SIDIK_TABEL);
     expect(sidikSekarang.SIDIK_RANTAI).toEqual(SIDIK_RANTAI);
     expect(sidikSekarang.SIDIK_CARIBUG).toEqual(SIDIK_CARIBUG);
     expect(sidikSekarang.SIDIK_ISTILAH).toEqual(SIDIK_ISTILAH);
@@ -855,7 +862,12 @@ describe("tinjauan: versi rekaman, kutipan bagian, tautan per ID, dan bahasa Sni
     expect(batasTxt.split("\n")[1]).toContain(`go${go} `);
     expect(readme).toContain(`go${go}`);
     for (const m of halaman.matchAll(/\bGo (\d+\.\d+\.\d+)/g)) expect(m[1], "Go di halaman").toBe(go);
-    for (const t of [alamatTxt, batasTxt]) expect(t).toContain("# Rekaman: make -C labs/t4-ssrf run.");
+    const docGo = baris("R4-211").match(/Dokumentasi Go go(\d+\.\d+\.\d+)/)![1]!;
+    for (const m of halaman.matchAll(/\bgo(\d+\.\d+\.\d+)/g)) expect([go, docGo], `versi ${m[0]} di halaman`).toContain(m[1]);
+    const tautanGo = [...halaman.matchAll(/\(https:\/\/pkg\.go\.dev\/[^)]+\), go(\d+\.\d+\.\d+), dibuka 2026-10-30\)/g)];
+    expect(tautanGo, "tautan dokumentasi Go bernomor versi").toHaveLength(3);
+    expect(tautanGo.every((m) => m[1] === docGo)).toBe(true);
+    expect(halaman.match(new RegExp(`\\bgo${docGo.replace(/\./g, "\\.")}`, "g"))?.length ?? 0, "versi dokumentasi di halaman").toBe(tautanGo.length + 2); // tiga tautan, kalimat netip.Prefix.Contains tanpa tautan, dan kalimat tab Go    for (const t of [alamatTxt, batasTxt]) expect(t).toContain("# Rekaman: make -C labs/t4-ssrf run.");
     expect(readme).toContain("Rekaman ulang identik per byte");
   });
   test("Snippet: bahasa cocok dengan ekstensi berkas dan dengan stack tab", () => {
