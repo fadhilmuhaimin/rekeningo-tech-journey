@@ -792,6 +792,32 @@ describe("nilai terkunci terpisah dari kalimat: baris riset, daun diagram dan sk
   });
 });
 
+describe("tambahan peninjau: kalimat prosa yang tidak punya turunan lain (mutan lolos tanpa kunci baris)", () => {
+  test("Gejala: Senin pagi dan laporan yang dicocokkan Pak Hadi sama dengan naskah dan 4.6; tujuh top-up dari naskah", () => {
+    expect(barisM30).toContain("Senin pagi laporan settlement gateway berisi tujuh top-up");
+    harus("Senin pagi Pak Hadi mencocokkan laporan gateway dengan ledger, seperti tiap hari. Laporan itu memuat tujuh top-up yang sudah dibayar di bank.");
+    expect(baca("situs/src/content/docs/tahap-4/m29-topup-dua-kali.mdx")).toContain("Paginya Pak Hadi mencocokkan laporan gateway dengan jurnal di ledger, seperti tiap hari.");
+  });
+  test("jadwal tiruan datang dari gateway kedua (tautan Midtrans, jeda di jadwal.go), rotasi dari gateway pertama (tautan Stripe)", () => {
+    harus("Jadwal tiruan datang dari dokumentasi gateway kedua. Perilaku rotasi yang berbeda ada di dokumentasi gateway pertama");
+    expect(barisRiset("R4-146")).toContain("docs.midtrans.com");
+    expect(barisRiset("R4-145")).toContain("docs.stripe.com");
+    expect(baca("labs/t4-webhook/README.md")).toContain("docs.midtrans.com/docs/https-notification-webhooks");
+    expect(jadwalGo).toContain("2 * time.Minute, 10 * time.Minute, 30 * time.Minute, 90 * time.Minute, 210 * time.Minute");
+  });
+  test("gateway memainkan jadwal atas perintah skrip lab (run.py memanggil /lab/jadwal di gateway), bukan atas perintah api-t4", () => {
+    harus("Gateway memainkan jadwal ulangnya atas perintah skrip lab.");
+    expect(runWebhook).toContain('s, h = gw("/lab/jadwal", {"event_id": event_id');
+    expect(jadwalGo).toContain("func (g *gateway) jadwal(");
+  });
+  test("skenario: kiriman terakhir disebut dengan bilangan urut yang sama dengan jumlah kiriman di retry.txt bagian B", () => {
+    const urut = ["", "pertama", "kedua", "ketiga", "keempat", "kelima", "keenam"][MENIT_KIRIMAN.length]!;
+    expect(urut).toBe("keenam");
+    expect(skenarioMentah).toContain(`Kiriman ${urut} adalah yang terakhir.`);
+    expect(skenarioMentah).toContain(`kiriman ke-${MENIT_KIRIMAN.length} pada menit ${JADWAL_TERPANJANG}`);
+  });
+});
+
 describe("kalimat terkunci: setiap baris badan halaman sama dengan nilai yang dibangkitkan", () => {
   test("baris badan, tidak kosong, sama dengan KALIMAT_TERKUNCI (urutan dan isi)", () => {
     const baris = badan.split("\n").map((b) => b.trim()).filter((b) => b !== "");
