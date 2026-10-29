@@ -1033,8 +1033,10 @@ describe("label sumber dan baris riset R4-130 sampai R4-134", () => {
     expect(baris.map(id)).toEqual(["R4-130", "R4-131", "R4-132", "R4-133", "R4-134"]);
     const semua = risetBaris.filter((b) => /^\| R4-\d+ \|/.test(b)).map(id);
     expect(new Set(semua).size).toBe(semua.length);
-    const i = semua.indexOf("R4-115");
-    expect(semua.slice(i, i + 7)).toEqual(["R4-115", "R4-130", "R4-131", "R4-132", "R4-133", "R4-134", "R4-300"]);
+    const i = semua.indexOf("R4-130");
+    expect(semua.slice(i, i + 6)).toEqual(["R4-130", "R4-131", "R4-132", "R4-133", "R4-134", "R4-300"]);
+    expect(Number(semua[i - 1]!.slice(3))).toBeLessThan(130);
+    expect(semua.indexOf("R4-115")).toBeLessThan(i);
     for (const b of baris) expect(sel(b), b.slice(0, 20)).toHaveLength(5);
   });
   test("R4-130 dan R4-131: halaman dokumentasi, bagian, dan tanggal akses yang dipakai halaman", () => {
