@@ -214,7 +214,7 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect(TD.some((b) => b.includes("yang menahannya adalah event_id (ganda.txt)"))).toBe(true);
     expect(TD.some((b) => b.includes("[perlu verifikasi]: bentuk satu gateway nyata tidak dibuka ulang"))).toBe(true);
   });
-  test("urutan.txt: kabar mundur diparkir, ditanya 0 dan 1 kali, settlement sesudah expire, tiga lapis dan key 24 jam", () => {
+  test("urutan.txt: kabar mundur diparkir, ditanya 0 dan 1 kali, settlement sesudah expire, dua lapis lain dan key 24 jam", () => {
     expect(UF1).toContain("kabar pending sesudah settlement: 200 diparkir");
     expect(UF1.filter((b) => b === " dibayar")).toHaveLength(1);
     expect(UF1.some((b) => /^ evt-f2\s+\| pending\s+\| diparkir$/.test(b))).toBe(true);
@@ -334,7 +334,7 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     harus("Kabar diperiksa tanda tangannya, dicatat satu kali, dan tidak memundurkan status.");
     harus(`handler versi pertama menerima event \`${eventId}\` dua kali dan menulis dua jurnal. Saldo Budi naik ${rp(saldoNaik)} untuk ${rp(bayar)} yang dibayar.`);
     harus(`handler versi ADR 34 menjawab \`${hasilB2}\` untuk kiriman kedua, dan jurnalnya satu.`);
-    harus("kabar `pending` yang datang sesudah `settlement` dijawab `200 diparkir`, dan status tetap `dibayar`.");
+    harus("kabar `pending` yang datang sesudah `settlement` dijawab `200 diparkir`: kabar dicatat, tetapi status tetap `dibayar`.");
     harus(`Isi yang diubah atau timestamp ${detikLalu("lalu")[1]} detik lalu dijawab \`401\` (\`tandatangan.txt\` bagian B).`);
     const simpul = rantai.baris.map((b) => [b.label, b.sub, b.simpul.map((s) => [s.teks, s.sub])]);
     expect(simpul).toEqual([
@@ -400,7 +400,7 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     harus("Dokumentasi Stripe menulis bahwa kadang dua objek Event dikirim untuk satu kejadian.");
   });
 
-  test("Status hanya maju: ditanya 0 dan 1 kali, tiga lapis, tabel urutan.txt G, key 24 jam", () => {
+  test("Status hanya maju: ditanya 0 dan 1 kali, dua lapis lain, tabel urutan.txt G, key 24 jam", () => {
     harus(`dijawab \`200 diparkir\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali.`);
     harus(`membuat gateway ditanya ${ditanyaF2} kali di luar transaction, dan kreditnya tetap ditolak.`);
     harus("Kabar `settlement` sesudah `expire` diparkir, status tetap `kedaluwarsa`, dan tidak ada jurnal; di lab ini hanya rekonsiliasi harian yang menemukan uang itu ([[t4-rekonsiliasi]]).");
@@ -424,7 +424,7 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     expect(t).toEqual([["5 detik", `L = ${lPuncakW5[2]} koneksi`, `L = ${lW5[2]} koneksi`]]);
     expect(lPuncak[5]).toBe("0,579");
     expect(lBatas[4]).toBe("3,47");
-    harus(`Pool pembayaran ${poolPenuh[1]} koneksi (Asumsi) penuh sejak W > ${poolPenuh[2]} ÷ ${lBatas[4]} = ${poolPenuh[4]} detik pada badai ulang. Pada laju puncak ${lPuncakW5[1]} per detik, W = 5 detik memakai ${lPuncakW5[2]} koneksi.`);
+    harus(`Pool pembayaran ${poolPenuh[1]} koneksi (Asumsi) penuh bila L melebihi ${poolPenuh[1]} − 1 = ${poolPenuh[2]}, aturan [[t3-pool]] untuk kedatangan berjadwal tetap. Pada badai ulang λ = ${lBatas[4]}, jadi itu terjadi bila W > ${poolPenuh[2]} ÷ ${lBatas[4]} = ${poolPenuh[4]} detik. Pada laju puncak ${lPuncakW5[1]} per detik, W = 5 detik memakai ${lPuncakW5[2]} koneksi.`);
     harus("Sumber tabel: `retry.txt` bagian D, Hitungan atas Asumsi dan Tidak dijalankan, karena lab tidak menahan koneksi 5 detik per kabar.");
     harus("L = λ × W adalah rata-rata koneksi terpakai ([[t3-pool]] membahas rumusnya).");
     expect(naskah).toContain("pool penuh sejak W > 9 ÷ 3,47 = ±2,6 detik");
@@ -671,6 +671,7 @@ describe("rujukan [[ID]] dan registry", () => {
       "dan Idempotency-Key ledger sebesar `order_id` ([[t2-idempotency]]).",
       "Itu bahan [[t4-m30]].",
       "([[t3-pool]] membahas rumusnya)",
+      "aturan [[t3-pool]] untuk kedatangan berjadwal tetap.",
       "**Status:** diterima sesudah M29, dan dibaca ulang di [[t4-m30]] dan [[t4-rekonsiliasi]].",
       "lewat webhook atau job cek status ([[t4-rekonsiliasi]]).",
       "dan 2xx dibalas sesudah COMMIT ([[t4-modul]]).",
@@ -679,7 +680,7 @@ describe("rujukan [[ID]] dan registry", () => {
       "| Jalur pengembalian dana untuk top-up yang tertahan | PRD v4 belum menjawabnya | [[t4-rekonsiliasi]] |",
     ]) harus(kalimat);
     const hitung = Object.fromEntries([...new Set(semua)].map((id) => [id, semua.filter((x) => x === id).length]));
-    expect(hitung).toEqual({ "t4-m29": 2, "t4-dua-arah": 2, "t4-rekonsiliasi": 5, "t2-idempotency": 2, "t4-m30": 2, "t3-pool": 1, "t4-modul": 2 });
+    expect(hitung).toEqual({ "t4-m29": 2, "t4-dua-arah": 2, "t4-rekonsiliasi": 5, "t2-idempotency": 2, "t4-m30": 2, "t3-pool": 2, "t4-modul": 2 });
     expect(semua[0]).toBe("t4-m29");
   });
   test("tiap janji 'dibahas di' menunjuk halaman yang judulnya memuat topiknya", () => {
@@ -861,7 +862,7 @@ describe("penutup tahap dua: kalimat klaim dihitung kemunculannya, kata bilangan
     H(`Di \`urutan.txt\` bagian F, kabar \`pending\` sesudah \`settlement\` dijawab \`${UF1.find((b) => b.startsWith("kabar pending sesudah settlement: "))!.split(": ")[1]}\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali.`);
     H(`Kabar dijawab \`200 diparkir\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali.`);
     H(`Pada top-up yang masih \`menunggu\`, kabar yang diparkir karena batas saldo tingkat membuat gateway ditanya ${ditanyaF2} kali di luar transaction, dan kreditnya tetap ditolak.`);
-    H("Dua event berbeda untuk satu kejadian ditahan oleh tiga lapis: `event_id`, status top-up, dan Idempotency-Key ledger sebesar `order_id`");
+    H("Dua event berbeda untuk satu kejadian punya `event_id` berbeda, jadi kunci utama tidak menahan yang kedua. Dua lapis lain menahannya: status top-up, dan Idempotency-Key ledger sebesar `order_id`");
     H("| Kasus | Event kedua datang | Jawaban event kedua | Jurnal untuk satu order |");
     H("Fungsi itu mencatat event, mengunci baris top-up, menerapkan status, dan menutup event dalam satu transaction.");
     H("Bila transaction gagal, ROLLBACK membuang event dan jurnal bersama, dan handler menjawab galat, bukan 2xx.");
@@ -979,6 +980,47 @@ const TidakDijalankan = 10;
 const JumlahAsumsi = 10;
 const JumlahIlustrasi = 7;
 const JumlahHitungan = 6;
-const SIDIK_HALAMAN: Record<string, number> = { tidak: 57, bukan: 19, belum: 9, hanya: 27, tanpa: 15, sesudah: 26, sebelum: 9, juga: 3, setiap: 0, semua: 5, "lebih dari": 2, "paling banyak": 0, selalu: 1, sama: 19 };
+const SIDIK_HALAMAN: Record<string, number> = { tidak: 58, bukan: 20, belum: 9, hanya: 26, tanpa: 15, sesudah: 26, sebelum: 9, juga: 3, setiap: 0, semua: 5, "lebih dari": 2, "paling banyak": 0, selalu: 1, sama: 19 };
 const SIDIK_RANTAI: Record<string, number> = { tidak: 1, bukan: 1, belum: 0, hanya: 0, tanpa: 1, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 0 };
 const SIDIK_ISTILAH: Record<string, number> = { tidak: 5, bukan: 0, belum: 0, hanya: 0, tanpa: 1, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 1 };
+
+// Tinjauan independen (keputusan 1293): "tiga lapis" menahan DUA event berbeda di draf pertama, padahal `event_id` berbeda tidak ditahan
+// kunci utama (urutan.txt G memakai evt-g-<n>a dan evt-g-<n>b, ganda-serentak.txt B menulisnya). Asal angka 9 di ambang pool dan kalimat yang
+// menyebut Rekeningo "hanya menerima kabar" (padahal gateway juga ditanya) ditutup di sini; semuanya diturunkan dari rekaman dan kode lab.
+describe("tinjauan 1293: event berbeda, asal angka 9, ambang 5 detik, dan klaim 'hanya menerima kabar'", () => {
+  const runLab = baca("labs/t4-webhook/run.py");
+  test("urutan.txt G: event kedua selalu memakai event_id yang berbeda, jadi kunci utama bukan lapisnya", () => {
+    const a = runLab.match(/kirim_webhook\(event_id=f"(evt-g-\{len\(varian\)\})a"/);
+    const b = runLab.match(/kirim_webhook\(event_id=f"(evt-g-\{len\(varian\)\})b"/);
+    expect(a, "event pertama kasus G").not.toBeNull();
+    expect(b, "event kedua kasus G").not.toBeNull();
+    expect(serentak).toContain("Kunci utama hanya mengenali event yang sama. Dua Event berbeda untuk satu kejadian ditahan lapis lain");
+    expect(UG.join("\n")).toContain("Idempotency-Key = order_id");
+    // Kasus 1 sampai 4: jawaban "ganda" datang dari status (kasus 1, 2) atau dari key ledger (kasus 3), bukan dari event_id.
+    expect(barisG.map((x) => x[3]).join(",")).toBe("1,1,1,2");
+    H1("**Status hanya maju, dan dua lapis lain menahan jurnal kedua.**");
+    H1("Dua event berbeda untuk satu kejadian punya `event_id` berbeda, jadi kunci utama tidak menahan yang kedua. Dua lapis lain menahannya: status top-up, dan Idempotency-Key ledger sebesar `order_id`");
+    expect(halaman).not.toContain("tiga lapis");
+    expect(halaman).not.toContain("ditahan oleh tiga lapis");
+  });
+  test("ambang pool: 10 − 1 = 9 ditulis, dan 5 detik aman di laju puncak tetapi tidak di badai ulang", () => {
+    const n = Number(poolPenuh[1]);
+    expect(halaman).toContain(`penuh bila L melebihi ${n} − 1 = ${n - 1}, aturan [[t3-pool]] untuk kedatangan berjadwal tetap.`);
+    expect(num(lPuncakW5[2]!)).toBeLessThanOrEqual(n - 1);
+    expect(num(lW5[2]!)).toBeGreaterThan(n - 1);
+    H1("Jadi ambang 5 detik berlaku untuk laju puncak, bukan untuk badai ulang.");
+    expect(naskah).toContain("jadi ambang 5 detik berlaku untuk laju puncak, bukan untuk badai ulang");
+  });
+  test("Rekeningo tidak 'hanya menerima kabar': job cek status menanyakan gateway, dan kalimat itu diganti", () => {
+    expect(halaman).not.toContain("hanya menerima kabar");
+    H1("Gateway tidak ikut COMMIT, jadi kabar dari luar adalah klaim, bukan fakta.");
+    expect(kodeService).toContain("s.t4.Gateway.Status(ctx, tp.OrderID)");
+  });
+  test("arti diparkir di pemakaian pertama, dan kalimat Snippet tanda tangan memuat perbandingannya", () => {
+    H1("dijawab `200 diparkir`: kabar dicatat, tetapi status tetap `dibayar`.");
+    expect(halaman.indexOf("`200 diparkir`: kabar dicatat")).toBe(halaman.indexOf("`200 diparkir`"));
+    expect(UF1.join("\n")).toMatch(/evt-f2\s+\| pending\s+\| diparkir/);
+    H1("Rekeningo menghitung nilai yang sama dengan fungsi ini, lalu membandingkannya dengan tanda tangan di header:");
+  });
+  const H1 = (fragmen: string): void => expect(halaman.split(fragmen).length - 1, `kemunculan "${fragmen.slice(0, 70)}"`).toBe(1);
+});
