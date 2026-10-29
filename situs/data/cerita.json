@@ -3347,8 +3347,9 @@
         "api-t3",
         "api-t4"
       ],
-      "ada": false,
-      "nomor": "4.5"
+      "ada": true,
+      "nomor": "4.5",
+      "menit": 19
     },
     {
       "id": "t4-m29",
@@ -3397,8 +3398,9 @@
       "lab": [
         "t4-webhook"
       ],
-      "ada": false,
-      "nomor": "4.7"
+      "ada": true,
+      "nomor": "4.7",
+      "menit": 21
     },
     {
       "id": "t4-m30",

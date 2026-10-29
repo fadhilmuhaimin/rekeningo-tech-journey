@@ -26,6 +26,8 @@
 // - 2.9 Skema data (keputusan 632): ErdTumbuh Tahap 1 dan 2 di blok Coba yang terbuka, mulai di Tahap 2; versi
 //   statis bawaan tanpa JS; Bandingkan dengan Tahap 1 = 13 node dan 18 edge tanpa luapan; CLS saat di-hydrate;
 //   ukuran JS saat dimuat dan sesudah semua blok dibuka dicetak.
+// - Pemilih tahap dan Bandingkan di setiap halaman ber-ErdTumbuh (keputusan 1285): memilih tahap pertama 3.5 atau 4.5 tidak
+//   melepas widget, tanpa JavaScript pemilih tidak tampil, sebelum hydrate tersembunyi dan menempati ruangnya.
 //   node tools/ukur-erd.mjs --url http://127.0.0.1:4321
 //   node tools/ukur-erd.mjs --url ... --axe   # + axe-core, gelap dan terang
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -818,6 +820,89 @@ for (const [lebar, tinggi] of [
   const buka = await js(HAL2, true);
   lapor(tutup.flow && buka.flow, `${HAL2} React Flow ${tutup.flow ? "dimuat" : "TIDAK dimuat"} saat dimuat (blok Coba terbuka), ${buka.flow ? "dimuat" : "TIDAK dimuat"} sesudah semua blok dibuka`);
   console.log(`info JS ${HAL2}: saat dimuat ${tutup.file} file, ${kb(tutup.mentah)} tanpa kompresi, ${kb(tutup.gzip)} gzip; semua blok dibuka ${buka.file} file, ${kb(buka.mentah)}, ${kb(buka.gzip)} gzip`);
+}
+
+// 12. Pemilih tahap dan Bandingkan di setiap halaman ber-ErdTumbuh yang punya pemilih (keputusan 1285). Memilih tahap pertama
+// halaman (Tahap 2 di 3.5, Tahap 3 di 4.5) pernah melempar "ERD Tahap N tidak ada di data widget" dan melepas seluruh widget,
+// karena status tahap itu dihitung terhadap tahap yang tidak ada di data halaman; bagian 1 sampai 11 tidak pernah menekan
+// tombol itu di 3.5 dan 4.5. Sebelum hydrate pemilih tersembunyi tetapi menempati ruangnya, dan tanpa JavaScript tidak tampil
+// (tombol yang tidak berfungsi tidak boleh terlihat).
+{
+  const keadaan = (page) =>
+    page.evaluate((FIG) => {
+      const f = document.querySelector(FIG);
+      return {
+        figure: document.querySelectorAll(FIG).length,
+        node: f ? f.querySelectorAll(".react-flow__node").length : 0,
+        tertekan: f ? [...f.querySelectorAll(".erd-tumbuh__pilih button")].filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.textContent.trim()) : [],
+        bandingTertekan: f?.querySelector(".erd-tumbuh__banding")?.getAttribute("aria-pressed") ?? null,
+      };
+    }, FIG);
+  const MODUL4 = JSON.parse(readFileSync(path.resolve("data/erd/modul-tahap-4.json"), "utf8")).modul.length;
+  let diklik = 0;
+  for (const h of daftarErd.filter((x) => x !== HAL)) {
+    const masalah = [];
+    // a. JavaScript hidup: setiap tombol tahap, lalu Bandingkan bila ada; widget tetap ada, tanpa galat.
+    const ctx = await browser.newContext({ viewport: { width: 1366, height: 657 }, reducedMotion: "reduce" });
+    const page = await ctx.newPage();
+    const galat = [];
+    page.on("pageerror", (e) => galat.push(e.message.split("\n")[0]));
+    await page.goto(BASE + h, { waitUntil: "networkidle" });
+    await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
+    const fig = page.locator(FIG).first();
+    await fig.scrollIntoViewIfNeeded();
+    await page.waitForFunction((FIG) => document.querySelector(`${FIG} .react-flow__node .erd-tumbuh__node`), FIG, { timeout: 15000 });
+    const tombol = fig.locator(".erd-tumbuh__pilih button");
+    const n = await tombol.count();
+    if (n < 2) masalah.push(`pemilih ${n} tombol`);
+    // Pembagian modul ERD4 dipasang ErdHalaman untuk tahap yang ditampilkan: 4.5 membuka Tahap 4, jadi tabelnya ada sejak awal.
+    if (h === "/tahap-4/skema-data/") {
+      const barisModul = await page.locator(`${FIG} .erd-tumbuh__modul tbody tr`).count();
+      if (barisModul !== MODUL4) masalah.push(`tabel pembagian modul ${barisModul} baris, seharusnya ${MODUL4}`);
+    }
+    for (let i = 0; i < n; i++) {
+      const nama = (await tombol.nth(i).innerText({ timeout: 3000 })).trim();
+      try { await tombol.nth(i).click({ timeout: 3000 }); } catch { masalah.push(`${nama}: widget lepas`); break; }
+      await page.waitForTimeout(300);
+      const k = await keadaan(page);
+      diklik++;
+      if (k.figure !== 1 || k.node === 0 || k.tertekan.join() !== nama) masalah.push(`${nama}: ${k.figure} figure, ${k.node} node, tertekan ${JSON.stringify(k.tertekan)}`);
+      if (k.figure !== 1) break; // widget lepas: tombol berikutnya tidak ada lagi, jangan menunggu batas waktu
+      const banding = fig.locator(".erd-tumbuh__banding");
+      if (await banding.count()) {
+        try { await banding.click({ timeout: 3000 }); } catch { masalah.push(`${nama} + Bandingkan: widget lepas`); break; }
+        await page.waitForTimeout(300);
+        const kb2 = await keadaan(page);
+        if (kb2.figure !== 1 || kb2.node === 0 || kb2.bandingTertekan !== "true") masalah.push(`${nama} + Bandingkan: ${kb2.figure} figure, ${kb2.node} node, aria-pressed ${kb2.bandingTertekan}`);
+        await banding.click({ timeout: 3000 });
+      }
+    }
+    if (galat.length) masalah.push(`galat halaman: ${galat[0]}`);
+    await ctx.close();
+    // b. Tanpa JavaScript: pemilih dan Bandingkan tidak tampil.
+    const ctxNo = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 375, height: 667 } });
+    const pageNo = await ctxNo.newPage();
+    await pageNo.goto(BASE + h);
+    const noJs = await pageNo.evaluate(() => {
+      const k = document.querySelector("figure.erd-tumbuh .erd-tumbuh__kontrol");
+      return k ? getComputedStyle(k).display : "tidak ada";
+    });
+    if (noJs === "block" || noJs === "flex") masalah.push(`tanpa JavaScript pemilih tampil (${noJs})`);
+    await ctxNo.close();
+    // c. JavaScript lambat: sebelum hydrate pemilih tersembunyi dan menempati ruangnya, supaya hydrate tidak menggeser isi.
+    const ctxLambat = await browser.newContext({ viewport: { width: 1366, height: 657 } });
+    await ctxLambat.route(/\/_astro\/.*\.js/, async (r) => { await new Promise((x) => setTimeout(x, 800)); await r.continue(); });
+    const pageLambat = await ctxLambat.newPage();
+    await pageLambat.goto(BASE + h, { waitUntil: "domcontentloaded" });
+    const belum = await pageLambat.evaluate(() => {
+      const k = document.querySelector("figure.erd-tumbuh .erd-tumbuh__kontrol");
+      return k ? { visibility: getComputedStyle(k).visibility, tinggi: k.getBoundingClientRect().height } : null;
+    });
+    if (!belum || belum.visibility !== "hidden" || belum.tinggi < 20) masalah.push(`sebelum hydrate pemilih ${belum ? `${belum.visibility}, ${Math.round(belum.tinggi)} px` : "tidak ada"}`);
+    await ctxLambat.close();
+    lapor(masalah.length === 0, `${h}: ${n} tombol tahap dipilih satu per satu (dan Bandingkan), widget tetap ada tanpa galat; tanpa JavaScript pemilih ${noJs}; sebelum hydrate ${belum ? belum.visibility : "?"}${masalah.length ? " · " + masalah.join(" | ") : ""}`);
+  }
+  lapor(daftarErd.includes("/tahap-3/skema-data/") && daftarErd.includes("/tahap-4/skema-data/") && diklik >= 8, `pemilih tahap diperiksa di 3.5 dan 4.5 (${diklik} tombol dipilih; pagar: 3.5 dan 4.5 ada di dist/ dan paling sedikit 8 tombol)`);
 }
 
 await browser.close();

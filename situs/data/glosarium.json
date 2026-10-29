@@ -612,6 +612,15 @@
   "h": "/istilah/health-check/"
  },
  {
+  "t": "HMAC (hash-based message authentication code)",
+  "d": "Nilai yang dihitung dari isi pesan dan rahasia bersama, supaya penerima bisa memeriksa bahwa pesan tidak diubah dan berasal dari pemegang rahasia.",
+  "b": "t4-webhook",
+  "n": "4.7 Webhook masuk",
+  "u": "/tahap-4/webhook-masuk/",
+  "s": "istilah-hmac",
+  "h": "/istilah/hmac/"
+ },
+ {
   "t": "HSTS (HTTP Strict Transport Security)",
   "d": "Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.",
   "b": "t3-tls-pinning",
@@ -1631,9 +1640,9 @@
  {
   "t": "Webhook",
   "d": "HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.",
-  "b": "B10.2",
-  "n": "Webhook dan outbox (versi lama)",
-  "u": "/b-fondasi/b10-2-webhook-outbox/",
+  "b": "t4-webhook",
+  "n": "4.7 Webhook masuk",
+  "u": "/tahap-4/webhook-masuk/",
   "s": "istilah-webhook",
   "h": null
  },
