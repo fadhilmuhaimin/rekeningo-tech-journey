@@ -576,6 +576,30 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
     const jumlahTanggal = Object.fromEntries(RISET_ID.map((id) => [id, (barisRiset(id).match(/2026-10-30/g) ?? []).length]));
     expect(jumlahTanggal).toEqual({ "R4-190": 2, "R4-191": 1, "R4-192": 1, "R4-193": 1, "R4-194": 1 });
   });
+  test("semua tanggal, jeda baca, laju pendaftar, versi dokumen rotasi, dan PRD v4 diturunkan dari sumber", () => {
+    const tanggal = [...halaman.matchAll(/\b(2026-\d{2}-\d{2})\b/g)].map((m) => m[1]);
+    expect(tanggal.length).toBe(16);
+    expect(tanggal.filter((t) => t === "2026-10-30").length).toBe(15);
+    expect(tanggal.filter((t) => t === "2026-10-28").length).toBe(1);
+    harus("hanya dicek ke dokumentasi pada 2026-10-30. Kode di tab lain adalah Ilustrasi.");
+    const prd = halaman.match(/PRD v\d+/g) ?? [];
+    expect(prd.length).toBe(4);
+    expect(new Set(prd)).toEqual(new Set([`PRD v${entri("t4-prd")!.judul.match(/PRD v(\d+)/)![1]}`]));
+    const pendaftar = Number(naskah.match(/([\d.]+) pendaftar per hari \(Asumsi\)/)![1]!.replace(".", ""));
+    harus(`Pendaftar baru datang ${titik(pendaftar)} per hari (Asumsi).`);
+    const puncak = koma(topupPuncak, 3);
+    harus(`Jeda baca bawaan ${jedaBaca} detik adalah Asumsi`);
+    harus(`melebihi ${jedaBaca} detik atau laju puncak melebihi ${puncak} top-up per detik`);
+    harus(`menolak sampai ±${Math.round(Number(puncak.replace(",", ".")) * jedaBaca)} kabar pada laju puncak`);
+    const versiDokumen = Number(cari(bagian(RO, "C").baris, /^service sesudah rotasi: jumlah rahasia \d+, versi dokumen (\d+)/)[1]);
+    harus(`operator menulis versi ${versiDokumen}, dan service yang sama membaca dua rahasia`);
+    const kvVersi = Number(bagian(RO, "A").baris.join("\n").match(/options\.version (\d+)/)![1]);
+    harus(`Dokumentasi KV versi ${kvVersi} menulis bahwa versi sebelumnya tetap terbaca`);
+    expect(halaman).toContain(`(https://openbao.org/docs/secrets/kv/kv-v${kvVersi}/)`);
+    const pertanyaan = halaman.split('<details class="question">')[1]!.split("</details>")[0]!.match(/^\d\. /gm) ?? [];
+    harus(`Cek ${pertanyaan.length} pertanyaan`);
+    harus("seperti base64,");
+  });
   test("Snippet: file ada, judul memuat path, judul rekaman memuat bagian yang benar, dan bahasa sesuai ekstensi", () => {
     const semua = [...halaman.matchAll(/<Snippet file="([^"]+)" lines="(\d+):(\d+)"(?: lang="(\w+)")? title="([^"]+)" \/>/g)];
     expect(semua.length).toBe(12);
