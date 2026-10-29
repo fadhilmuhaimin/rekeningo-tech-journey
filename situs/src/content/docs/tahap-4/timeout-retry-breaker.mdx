@@ -15,7 +15,7 @@ import intiDiagram from "../../../../data/diagram/t4-breaker-inti.json";
 
 ## Inti
 
-Vendor yang mati berhenti dipanggil, dan pekerjaan menunggu tanpa kehilangan percobaan.
+Vendor yang mati berhenti dipanggil, dan pekerjaan yang belum dicoba menunggu tanpa memakai percobaan.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -36,7 +36,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 </Blok>
 
-<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: breaker membuka sesudah kegagalan keenam, jadi pekerjaan pertama sudah habis lima percobaan, dan pekerjaan lain menunggu tanpa memakai percobaan.">
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: breaker membuka sesudah kegagalan keenam, jadi pekerjaan pertama sudah habis lima percobaan, dan pekerjaan yang belum dicoba menunggu tanpa memakai percobaan.">
 
 Widget ini mensimulasikan satu vendor selama 180 detik, di jalur sinkron atau jalur queue. Tebak dulu: berapa dari 10 pekerjaan sudah mati ketika breaker membuka? Lalu ubah satu pengaturan dan baca akibatnya.
 
@@ -88,7 +88,7 @@ Bila vendor menagih per objek, pendaftar itu ditagih dua kali (Asumsi: tiruan ti
 
 Di half-open, sejumlah terbatas permintaan lewat sebagai percobaan. Bila berhasil breaker menutup, dan bila gagal ia membuka lagi (Azure, di atas).
 
-Pustaka `sony/gobreaker` v2.4.0 dengan pengaturan bawaan membuka sesudah lebih dari 5 gagal berturut-turut. Breaker tetap terbuka 60 detik, lalu mengizinkan satu permintaan di half-open ([gobreaker v2.4.0](https://pkg.go.dev/github.com/sony/gobreaker/v2@v2.4.0), terbit 2026-01-01, dibuka 2026-10-29). Jam di rekaman berikut diperankan, karena pustaka tidak punya jam yang bisa disuntikkan:
+Pustaka `sony/gobreaker` v2.4.0 dengan pengaturan bawaan membuka sesudah lebih dari 5 gagal berturut-turut. Breaker tetap terbuka 60 detik, lalu mengizinkan satu permintaan di half-open ([gobreaker v2.4.0](https://pkg.go.dev/github.com/sony/gobreaker/v2@v2.4.0), terbit 2026-01-01, dibuka 2026-10-29). Pustaka menamai lama terbuka itu Timeout, berbeda dari timeout client 3 detik di atas. Jam di rekaman berikut diperankan, karena pustaka tidak punya jam yang bisa disuntikkan:
 
 <Snippet file="labs/t4-integrasi/output/breaker.txt" lines="7:20" title="Rekaman lab: labs/t4-integrasi/output/breaker.txt (bagian A, jam diperankan)" />
 
@@ -122,22 +122,22 @@ Di bagian B, lajur verifikasi dijeda, dan keempat pemberitahuan sampai kurang da
 
 <Snippet file="labs/t4-integrasi/output/worker.txt" lines="5:25" title="Rekaman lab: labs/t4-integrasi/output/worker.txt (bagian A dan B)" />
 
-Tiap percobaan yang menggantung ditahan antara 2,9 dan 3,6 detik sampai client menyerah (batas yang diperiksa, batas waktu client 3 detik). Hanya dua masukan yang terukur di lab, yaitu 4 slot dan timeout 3 detik. Laju 0,116 verifikasi per detik, 7,52 pemberitahuan per detik, dan 0,3 detik tiap pemberitahuan adalah Asumsi:
+Tiap percobaan yang menggantung ditahan antara 2,9 dan 3,6 detik sampai client menyerah (batas yang diperiksa, batas waktu client 3 detik). Hanya dua masukan yang terukur di lab, yaitu 4 slot dan timeout 3 detik. Masukan lain adalah Asumsi: 1.000 pendaftar per hari, faktor puncak 10, 7,52 pemberitahuan uang per detik, dan 0,3 detik tiap pemberitahuan:
 
 | Besaran | Rumus | Hasil |
 |---|---|---|
 | Laju puncak verifikasi | 1.000 ÷ 86.400 × 10 | 0,116 per detik |
 | Slot untuk pekerjaan yang pasti gagal | 0,116 × 5 × 3 | 1,74 dari 4 |
 | Slot pemberitahuan uang | 7,52 × 0,3 | 2,26 dari 4 |
-| Keduanya bersama | 1,74 + 2,26 | 4,0 dari 4 |
+| Keduanya bersama | 1,74 + 2,26 | 4,00 dari 4 |
 
-Sumber tabel: `worker.txt` bagian C, Hitungan atas Asumsi. Premisnya tiap percobaan menunggu sampai timeout 3 detik, dan vendor mati sepanjang puncak. Bila lajur verifikasi dijeda, pekerjaan yang pasti gagal tidak memegang slot.
+Sumber tabel: `worker.txt` bagian C, Hitungan atas Asumsi. Hasil 4,00 adalah 3,99 tanpa pembulatan, sama dengan [[t4-m31]]. Premisnya tiap percobaan menunggu sampai timeout 3 detik, dan vendor mati sepanjang puncak. Bila lajur verifikasi dijeda, pekerjaan yang pasti gagal tidak memegang slot.
 
 **Celah yang lab temukan.** Lima hal tidak sesuai dengan kalimat "pekerjaan menunggu dan selesai sesudah vendor pulih":
 
 1. Ambang breaker (kegagalan keenam) lebih tinggi daripada batas percobaan satu pekerjaan (lima). Di bagian B, pekerjaan pertama mati sebelum breaker membuka: satu dari sepuluh `gagal`. Dengan 4 slot (bagian C, 8 pekerjaan, backoff 1 ms) tidak ada yang mati dan tiap pekerjaan paling banyak 2 percobaan.
 2. Rekaman B memakai backoff 0. Dengan jadwal produksi, klaim hanya mengambil pekerjaan yang waktu ulangnya sudah lewat. Kegagalan menyebar ke pekerjaan lain, dan angka satu mendekati nol (penalaran dari kode, Tidak dijalankan).
-3. Permintaan percobaan di half-open memakai percobaan pekerjaan terdepan. Satu tes Go memakunya: lima permintaan percobaan mematikan satu pekerjaan walau lajur dijeda di antaranya (`testing.txt` bagian A memuat nama tes itu, bukan keluarannya). Pada gangguan 12.600 detik ada paling banyak 12.600 ÷ 60 = 210 permintaan percobaan. Lalu 210 ÷ 5 = sampai 42 dari 146 pekerjaan mati sebelum vendor pulih (Hitungan atas angka cerita, Tidak dijalankan).
+3. Permintaan percobaan di half-open memakai percobaan pekerjaan terdepan. Satu tes Go memakunya: lima permintaan percobaan mematikan satu pekerjaan walau lajur dijeda di antaranya (`testing.txt` bagian A memuat nama tes itu, bukan keluarannya). Gangguan di cerita berlangsung 3 jam 30 menit, yaitu 12.600 detik, dan pada laju rata-rata 0,0116 × 12.600 = 146 pekerjaan masuk ([[t4-m31]]). Ada paling banyak 12.600 ÷ 60 = 210 permintaan percobaan. Lalu 210 ÷ 5 = sampai 42 dari 146 pekerjaan mati sebelum vendor pulih (Hitungan atas angka cerita, Tidak dijalankan).
 4. Jawaban 4xx tetap diulang lima kali. Di bagian E, 10 pengajuan menghasilkan 34 permintaan: 6 × 5 + 4. Kode lab menghitung semua status 400 sampai 499 sebagai sukses bagi breaker, termasuk 401, 403, 408, dan 429.
 5. `tidak_pasti` tidak bertahan sampai dead-letter. Di `retry.txt` bagian D, lima timeout berturut-turut mengakhiri pekerjaan di dead-letter dan menandai pengajuan `gagal`, padahal vendor menyimpan satu objek. Job yang memeriksa status vendor belum ada.
 
@@ -168,7 +168,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
   signal: AbortSignal.timeout(3000),
 });`} />
 
-**Yang berbeda di stack ini:** `AbortSignal.timeout(ms)` menghasilkan sinyal yang membatalkan dengan `TimeoutError`, dan MDN menulis bahwa waktunya dihitung dari waktu aktif, bukan waktu berlalu. Breaker datang dari library, mis. opossum. README-nya membandingkan persentase kegagalan dengan ambang, dari statistik jendela bergulir yang bawaannya 10 detik dalam 10 slot. Jadi aturan gagal berturut-turut ke-6 milik gobreaker tidak ada di sana (penalaran dari README, Tidak dijalankan).
+**Yang berbeda di stack ini:** `AbortSignal.timeout(ms)` menghasilkan sinyal yang membatalkan dengan `TimeoutError`, dan MDN menulis bahwa waktunya dihitung dari waktu aktif, bukan waktu berlalu. Breaker datang dari library, mis. opossum. README-nya membandingkan persentase kegagalan dengan ambang, dari statistik jendela bergulir yang bawaannya 10 detik dalam 10 bucket. Jadi aturan gagal berturut-turut ke-6 milik gobreaker tidak ada di sana (penalaran dari README, Tidak dijalankan).
 
 </Fragment>
 <Fragment slot="t2">
@@ -228,8 +228,8 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 | Cara kerja | Tiap percobaan memakai Idempotency-Key baru, atau tanpa key | Breaker membungkus panggilan di sinkron dan di worker. Penolakan breaker tetap lewat jalur gagal ADR 25 | Tiap vendor punya service dan queue sendiri | Semua client lewat satu fungsi dengan timeout 3 detik. Key dari id pengajuan. Lajur per `tujuan` dijeda selagi breaker terbuka, tanpa menghitung percobaan |
 | Kelebihan | Tidak ada key untuk dikelola | Panggilan ke vendor yang mati berhenti | Satu vendor mati hanya menjatuhkan service-nya | Pekerjaan tidak memakai percobaan saat vendor jelas mati, dan retry tidak membuat objek kedua |
 | Kekurangan | Percobaan yang hasilnya tidak diketahui bisa membuat objek kedua di vendor | Klaim ke lajur yang terbuka menaikkan percobaan tanpa memanggil vendor (penalaran dari kode) | Service tambahan per vendor: deploy, pemantauan, dan versi dependency sendiri-sendiri | Satu komponen lagi, dengan keadaan di memori satu proses worker dan lima celah yang lab temukan |
-| Biaya operasional | Rendah, tetapi objek ganda baru terlihat di rekonsiliasi | Status breaker per proses, dan ambang yang harus dipilih | Tinggi: Segment menulis lebih dari 140 service | Alert untuk breaker yang terbuka lebih dari 10 menit (Asumsi) |
-| Bukti | Rekaman lab `retry.txt` B: dua objek untuk satu pendaftar | Tidak dijalankan. Dokumentasi Azure menulis pola ini mungkin kurang cocok bila ada dead-letter | Tidak dijalankan. Kasus Segment di bawah | Rekaman lab `retry.txt` A dan C, `breaker.txt` A sampai C, `lajur.txt` B, `worker.txt` B. Jalur sinkron Tidak dijalankan |
+| Biaya operasional | Rendah, tetapi Rekeningo tidak melihat objek kedua di vendor (`retry.txt` bagian B) | Status breaker per proses, dan ambang yang harus dipilih | Tinggi: Segment menulis lebih dari 140 service | Alert untuk breaker yang terbuka lebih dari 10 menit (Asumsi) |
+| Bukti | Rekaman lab `retry.txt` B: dua objek untuk satu pendaftar | Tidak dijalankan. Dokumentasi Azure menulis pola ini mungkin kurang cocok untuk arsitektur berbasis pesan | Tidak dijalankan. Kasus Segment di bawah | Rekaman lab `retry.txt` A dan C, `breaker.txt` A sampai C, `lajur.txt` B, `worker.txt` B. Jalur sinkron Tidak dijalankan |
 
 **Keputusan: opsi D.** Enam aturan:
 
@@ -243,7 +243,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 **Kenapa D, bukan A, B, atau C.**
 
 - **A ditolak** karena balasan yang terpotong membuat vendor menyimpan objek yang tidak dikenali oleh retry berikutnya (`retry.txt` bagian B). Polanya sama dengan [[t4-m29]], dari arah keluar: kiriman ulang tanpa kunci menghasilkan efek kedua.
-- **B ditolak** karena klaim ke lajur yang terbuka tetap menaikkan percobaan. Kode lab menaikkan percobaan saat klaim, dan `LepasOutbox` mengurangi lagi hanya untuk baris yang ditolak breaker sesudah diklaim (penalaran dari kode, Tidak dijalankan). Dokumentasi Azure menulis bahwa pola breaker mungkin kurang cocok untuk arsitektur berbasis pesan, karena dead-letter dan retry bawaan sering memadai. Di lab, dead-letter saja menghabiskan 10 dari 10 pekerjaan sebelum vendor pulih (`lajur.txt` bagian A). Yang dipakai D bukan breaker yang menghitung, tetapi lajur yang dijeda.
+- **B ditolak** karena klaim ke lajur yang terbuka tetap menaikkan percobaan. Kode lab menaikkan percobaan saat klaim, dan `LepasOutbox` mengurangi lagi hanya untuk baris yang ditolak breaker sesudah diklaim (penalaran dari kode, Tidak dijalankan). Dokumentasi Azure menulis bahwa pola breaker mungkin kurang cocok untuk arsitektur berbasis pesan atau event. Alasannya, pesan yang gagal sering masuk dead-letter queue, dan isolasi kegagalan serta retry bawaan sering memadai. Di lab, dead-letter saja menghabiskan 10 dari 10 pekerjaan sebelum vendor pulih (`lajur.txt` bagian A). Yang dipakai D bukan breaker yang menghitung, tetapi lajur yang dijeda.
 - **C ditolak** karena isolasi per vendor tidak butuh service per vendor. Lajur per `tujuan` dalam satu queue mengisolasi percobaan, dan service terpisah hanya menambah biaya yang dibahas di kasus berikut.
 
 **Kasus industri: Segment (2018).** Alexandra Noonan, engineer Segment, menulis di blog perusahaannya (kini di blog Twilio, 2018-07-10) bahwa satu queue untuk semua tujuan membuat tujuan yang lambat menahan yang lain. Ulangan tujuan itu memenuhi queue dan menunda pengiriman ke tujuan lain, yang ia sebut head-of-line blocking.
@@ -255,15 +255,15 @@ Batasnya: ini tulisan engineer perusahaan itu tentang pipeline pengiriman event 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
 1. Pendaftar tetap mati di awal gangguan. Ambang keenam lebih tinggi daripada batas lima percobaan, jadi pekerjaan yang dicoba satu per satu habis sebelum breaker membuka: satu dari sepuluh `gagal` di `lajur.txt` bagian B. Pencegahannya ambang di bawah batas percobaan, atau job yang mengantre ulang pekerjaan yang mati selama gangguan. Keduanya belum diputuskan.
-2. Gangguan panjang menghabiskan pekerjaan lewat permintaan percobaan. Tiap permintaan percobaan di half-open memakai percobaan pekerjaan terdepan, jadi pada gangguan 12.600 detik sampai 42 dari 146 pekerjaan mati (Hitungan, Tidak dijalankan, rumus di blok Paham). Dokumentasi Azure menyebut pencegahannya: breaker menguji vendor lewat operasi pemeriksaan kesehatan, bukan lewat pekerjaan nyata. Tiruan lab tidak punya endpoint status, jadi opsi itu belum ada.
+2. Gangguan panjang menghabiskan pekerjaan lewat permintaan percobaan. Tiap permintaan percobaan di half-open memakai percobaan pekerjaan terdepan, jadi pada gangguan 12.600 detik sampai 42 dari 146 pekerjaan mati (Hitungan, Tidak dijalankan, rumus di blok Paham). Dokumentasi Azure menulis bahwa breaker bisa menguji vendor dengan ping, baik lewat operasi yang tadi gagal maupun lewat operasi pemeriksaan kesehatan khusus. Hanya cara kedua tidak memakai percobaan pekerjaan nyata (penalaran dari dokumentasi, Tidak dijalankan). Tiruan lab tidak punya endpoint status, jadi opsi itu belum ada.
 3. Pengajuan yang timeout lima kali ditandai `gagal` walau vendor menyimpan objeknya (`retry.txt` bagian D). Pendaftar boleh mengajukan lagi, dan pengajuan baru punya id baru, jadi key baru. Vendor bisa menyimpan dua objek untuk satu orang (penalaran dari kode, Tidak dijalankan). Pencegahannya job yang memeriksa status vendor. Itu keputusan produk dan belum diambil.
 
 **Kapan keputusan ini salah.**
 
 - Saat vendor hanya punya satu endpoint kritis tanpa alternatif. Breaker hanya mempercepat kegagalan, dan pendaftar tetap tidak terverifikasi.
-- Saat breaker menghitung semua error sebagai gagal. Di `lajur.txt` bagian D, enam dokumen rusak (jawaban 422) membuka breaker bawaan dan menjeda 4 pengajuan sehat selagi vendor sehat. Penilaian kustom D menghindarinya, dengan harga 34 permintaan untuk 10 pengajuan di bagian E.
+- Saat breaker menghitung semua error sebagai gagal. Di `lajur.txt` bagian D, enam dokumen rusak (jawaban 422) membuka breaker bawaan dan menjeda 4 pengajuan sehat selagi vendor sehat. Penilaian kustom opsi D menghindarinya, dengan harga 34 permintaan untuk 10 pengajuan di bagian E.
 - Saat jawaban 4xx berarti vendor sakit. Kode lab menghitung 401, 403, 408, dan 429 sukses, jadi breaker tidak membuka atas penolakan seperti itu. [[t4-m34]] membahas satu jawaban 403 yang tidak membuka breaker.
-- Saat pembandingnya berubah. Pada laju puncak 0,116 verifikasi per detik, pekerjaan yang pasti gagal memegang 1,74 dari 4 slot, dan 4,0 dari 4 bersama pemberitahuan uang. Premisnya tiap percobaan menunggu sampai timeout 3 detik (Hitungan atas Asumsi). Pada laju rata-rata 0,0116 per detik pemakaiannya 0,174 slot. Bila gangguan hanya terjadi di luar puncak, breaker melindungi percobaan pekerjaan, bukan slot.
+- Saat pembandingnya berubah. Pada laju puncak 0,116 verifikasi per detik, pekerjaan yang pasti gagal memegang 1,74 dari 4 slot, dan 4,00 dari 4 bersama pemberitahuan uang. Premisnya tiap percobaan menunggu sampai timeout 3 detik (Hitungan atas Asumsi). Pada laju rata-rata 0,0116 per detik pemakaiannya 0,174 slot. Bila gangguan hanya terjadi di luar puncak, breaker melindungi percobaan pekerjaan, bukan slot.
 - Saat worker lebih dari satu. Breaker hidup di memori satu proses worker (dibaca dari kode, tidak direkam). Dua worker tidak berbagi hitungan, jadi tiap proses menunggu enam kegagalannya sendiri, dan worker yang dimulai ulang mulai dari closed.
 
 **Yang akan merevisinya.** [[t4-m34]] menunjukkan satu jawaban 403 yang tidak membuka breaker, dan memaksa penilaian 401 dan 403 ditinjau ulang. [[t4-modul]] memecah service pembayaran dari ledger, dan panggilan antar kedua service ikut aturan 1 dan 2.

@@ -331,7 +331,7 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
 
 describe("timeout-retry-breaker.mdx: tiap angka turunan dari rekaman, kode, dan naskah", () => {
   test("Inti dan Rantai", () => {
-    harus("Vendor yang mati berhenti dipanggil, dan pekerjaan menunggu tanpa kehilangan percobaan.");
+    harus("Vendor yang mati berhenti dipanggil, dan pekerjaan yang belum dicoba menunggu tanpa memakai percobaan.");
     harus(`Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) \`lajur.txt\` bagian A, layanan verifikasi tiruan mati dan ${pendaftarA} pendaftar masuk.`);
     harus(`Worker mengulang tiap pekerjaan sampai ${bilangan(R.lajur.percobaan)} percobaan, lalu memindahkannya ke dead-letter ([[t3-at-least-once]]).`);
     harus(`Hasilnya ${permintaanA} permintaan ke vendor, ${matiA} pekerjaan mati, dan ${gagalA} pengajuan berstatus \`gagal\`.`);
@@ -385,7 +385,7 @@ describe("timeout-retry-breaker.mdx: tiap angka turunan dari rekaman, kode, dan 
     expect(R.worker.serentak).toBe(4);
     harus("Slot adalah tempat satu pekerjaan yang sedang berjalan di worker.");
     harus("Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini. Asumsi adalah angka pilihan penulis tanpa rekaman, dan Ilustrasi adalah skenario yang bukan hasil sistem. Tidak dijalankan berarti dicek ke kode atau dokumentasi, tanpa menjalankannya.");
-    expect(halaman).toContain('aman="Kalau berhenti di sini, kamu sudah tahu: breaker membuka sesudah kegagalan keenam, jadi pekerjaan pertama sudah habis lima percobaan, dan pekerjaan lain menunggu tanpa memakai percobaan."');
+    expect(halaman).toContain('aman="Kalau berhenti di sini, kamu sudah tahu: breaker membuka sesudah kegagalan keenam, jadi pekerjaan pertama sudah habis lima percobaan, dan pekerjaan yang belum dicoba menunggu tanpa memakai percobaan."');
   });
   test("Client: timeout 3 detik, satu pembuat, dua tempat membuat client di internal, tes pemindai", () => {
     harus("Client HTTP Go bawaan tidak punya batas waktu: dokumentasi menulis bahwa Timeout nol berarti tanpa batas.");
@@ -458,17 +458,21 @@ describe("timeout-retry-breaker.mdx: tiap angka turunan dari rekaman, kode, dan 
     harus(`keempat pemberitahuan sampai kurang dari ${kurangB} detik sesudah dibayar:`);
     harus(`Tiap percobaan yang menggantung ditahan antara ${tahan[1]} dan ${tahan[2]} detik sampai client menyerah (batas yang diperiksa, batas waktu client ${tahan[3]} detik).`);
     harus(`Hanya dua masukan yang terukur di lab, yaitu ${R.worker.serentak} slot dan timeout ${R.worker.timeoutClient} detik.`);
-    harus(`Laju ${koma(R.worker.laju, 3)} verifikasi per detik, ${koma(R.worker.lajuUang, 2)} pemberitahuan per detik, dan ${koma(R.worker.detikUang, 1)} detik tiap pemberitahuan adalah Asumsi:`);
+    harus(`Masukan lain adalah Asumsi: 1.000 pendaftar per hari, faktor puncak 10, ${koma(R.worker.lajuUang, 2)} pemberitahuan uang per detik, dan ${koma(R.worker.detikUang, 1)} detik tiap pemberitahuan:`);
+    expect(titik(1000) + " ÷ " + titik(86400) + " × 10").toBe("1.000 ÷ 86.400 × 10");
     const t = tabel("| Besaran | Rumus | Hasil |", 3);
     expect(t.map((x) => x.slice(1))).toEqual([
       ["Rumus", "Hasil"], ["---", "---"],
       ["1.000 ÷ 86.400 × 10", `${koma(R.worker.laju, 3)} per detik`],
       [`${koma(R.worker.laju, 3)} × ${R.worker.percobaan} × ${R.worker.detik}`, `${koma(R.worker.slot, 2)} dari ${R.worker.kapasitas}`],
       [`${koma(R.worker.lajuUang, 2)} × ${koma(R.worker.detikUang, 1)}`, `${koma(R.worker.slotUang, 2)} dari ${R.worker.kapasitas}`],
-      [`${koma(R.worker.slot, 2)} + ${koma(R.worker.slotUang, 2)}`, `${koma(R.worker.bersama, 1)} dari ${R.worker.kapasitas}`],
+      [`${koma(R.worker.slot, 2)} + ${koma(R.worker.slotUang, 2)}`, `${koma(R.worker.bersama, 2)} dari ${R.worker.kapasitas}`],
     ]);
     expect(t.map((x) => x[0])).toEqual(["Besaran", "---", "Laju puncak verifikasi", "Slot untuk pekerjaan yang pasti gagal", "Slot pemberitahuan uang", "Keduanya bersama"]);
-    harus("Sumber tabel: `worker.txt` bagian C, Hitungan atas Asumsi. Premisnya tiap percobaan menunggu sampai timeout 3 detik, dan vendor mati sepanjang puncak.");
+    harus("Sumber tabel: `worker.txt` bagian C, Hitungan atas Asumsi. Hasil 4,00 adalah 3,99 tanpa pembulatan, sama dengan [[t4-m31]]. Premisnya tiap percobaan menunggu sampai timeout 3 detik, dan vendor mati sepanjang puncak.");
+    // 3,99 dihitung dari angka di halaman tanpa pembulatan 0,116, dan kalimat yang sama ada di halaman M31 (satu bentuk per angka)
+    expect(bulat((1000 / 86400) * 10 * R.worker.percobaan * R.worker.detik + R.worker.lajuUang * R.worker.detikUang, 2)).toBe(3.99);
+    expect(baca("situs/src/content/docs/tahap-4/m31-verifikasi-tertahan.mdx")).toContain("Hasil 4,00 adalah 3,99 tanpa pembulatan.");
     expect(bulat(1000 / 86400 * 10, 3)).toBe(R.worker.laju);
   });
   test("Celah: ambang ke-6 lawan 5, backoff 0, 210 dan 42 dari 146, 34 permintaan, 4xx sukses, tidak_pasti menjadi gagal", () => {
@@ -478,7 +482,9 @@ describe("timeout-retry-breaker.mdx: tiap angka turunan dari rekaman, kode, dan 
     harus(`satu dari sepuluh \`gagal\`. Dengan ${R.worker.serentak} slot (bagian C, ${pekerjaanC} pekerjaan, backoff 1 ms) tidak ada yang mati dan tiap pekerjaan paling banyak 2 percobaan.`);
     harus("Rekaman B memakai backoff 0. Dengan jadwal produksi, klaim hanya mengambil pekerjaan yang waktu ulangnya sudah lewat.");
     harus("Kegagalan menyebar ke pekerjaan lain, dan angka satu mendekati nol (penalaran dari kode, Tidak dijalankan).");
-    harus(`Pada gangguan ${titik(R.outage.detik)} detik ada paling banyak ${titik(R.outage.detik)} ÷ ${A.bukaDetik} = ${R.outage.probe} permintaan percobaan. Lalu ${R.outage.probe} ÷ ${R.lajur.percobaan} = sampai ${R.outage.matiMaks} dari ${R.outage.pekerjaan} pekerjaan mati sebelum vendor pulih (Hitungan atas angka cerita, Tidak dijalankan).`);
+    harus(`Gangguan di cerita berlangsung 3 jam 30 menit, yaitu ${titik(R.outage.detik)} detik, dan pada laju rata-rata ${koma(R.outage.lajuRataRata, 4)} × ${titik(R.outage.detik)} = ${R.outage.pekerjaan} pekerjaan masuk ([[t4-m31]]). Ada paling banyak ${titik(R.outage.detik)} ÷ ${A.bukaDetik} = ${R.outage.probe} permintaan percobaan. Lalu ${R.outage.probe} ÷ ${R.lajur.percobaan} = sampai ${R.outage.matiMaks} dari ${R.outage.pekerjaan} pekerjaan mati sebelum vendor pulih (Hitungan atas angka cerita, Tidak dijalankan).`);
+    expect(3 * 3600 + 30 * 60).toBe(R.outage.detik);
+    expect(Math.round(R.outage.lajuRataRata * R.outage.detik)).toBe(R.outage.pekerjaan);
     harus("Satu tes Go memakunya: lima permintaan percobaan mematikan satu pekerjaan walau lajur dijeda di antaranya (`testing.txt` bagian A memuat nama tes itu, bukan keluarannya).");
     harus(`Di bagian E, ${pendaftarA} pengajuan menghasilkan ${permintaanE} permintaan: ${rusakE} × ${R.lajur.percobaan} + ${lulusE}.`);
     harus("Kode lab menghitung semua status 400 sampai 499 sebagai sukses bagi breaker, termasuk 401, 403, 408, dan 429.");
@@ -499,7 +505,7 @@ describe("timeout-retry-breaker.mdx: tiap angka turunan dari rekaman, kode, dan 
     expect((halaman.match(/dibuka 2026-10-29/g) ?? []).length).toBe(TanggalDibuka);
     harus("`AbortSignal.timeout(ms)` menghasilkan sinyal yang membatalkan dengan `TimeoutError`, dan MDN menulis bahwa waktunya dihitung dari waktu aktif, bukan waktu berlalu.");
     harus("10.0.0 (npm, terbit 2026-06-24)");
-    harus("statistik jendela bergulir yang bawaannya 10 detik dalam 10 slot");
+    harus("statistik jendela bergulir yang bawaannya 10 detik dalam 10 bucket");
     harus("timeout bawaannya 30 detik dan batas koneksi bawaannya 10 detik");
     harus("Halaman itu tidak membahas Idempotency-Key maupun circuit breaker.");
     harus("timeout=(3.05, 3)");
@@ -512,7 +518,7 @@ describe("timeout-retry-breaker.mdx: tiap angka turunan dari rekaman, kode, dan 
     expect(150 / R.worker.timeoutClient).toBe(50);
     harus("Apakah runtime fungsi mendukung `AbortSignal.timeout` tidak dibaca [perlu verifikasi].");
     const r164 = baris("R4-164");
-    for (const k of ["TimeoutError", "10.0.0", "2026-06-24", "10 detik dalam 10 slot", "timeout bawaan 30 detik", "connectTimeout bawaan 10 detik", "tanpa bahasan Idempotency-Key atau breaker", "bukan wall clock", "Dart 3.13.7", "null (batas OS)", "150 detik (504)", "400 detik di plan berbayar", "CPU 2 detik", "[perlu verifikasi]"]) expect(r164, k).toContain(k);
+    for (const k of ["TimeoutError", "10.0.0", "2026-06-24", "10 detik dalam 10 bucket", "timeout bawaan 30 detik", "connectTimeout bawaan 10 detik", "tanpa bahasan Idempotency-Key atau breaker", "bukan wall clock", "Dart 3.13.7", "null (batas OS)", "150 detik (504)", "400 detik di plan berbayar", "CPU 2 detik", "[perlu verifikasi]"]) expect(r164, k).toContain(k);
     expect(baris("R4-161")).toContain("A Timeout of zero means no timeout.");
     expect(baris("R4-161")).toContain("Go 1.27.3");
     harus("halaman Go 1.27.3 sedangkan lab memakai Go 1.27.1, dibuka 2026-10-29");
@@ -526,7 +532,7 @@ describe("ADR 36: tabel opsi, enam aturan, kasus industri, pre-mortem, kapan sal
     expect(t[0]!.map((x) => x.split(". ")[0])).toEqual(["", "A", "B", "C", "D"]);
     expect(t.slice(2).map((x) => x[0])).toEqual(["Cara kerja", "Kelebihan", "Kekurangan", "Biaya operasional", "Bukti"]);
     expect(t[6]![1]).toBe("Rekaman lab `retry.txt` B: dua objek untuk satu pendaftar");
-    expect(t[6]![2]).toBe("Tidak dijalankan. Dokumentasi Azure menulis pola ini mungkin kurang cocok bila ada dead-letter");
+    expect(t[6]![2]).toBe("Tidak dijalankan. Dokumentasi Azure menulis pola ini mungkin kurang cocok untuk arsitektur berbasis pesan");
     expect(t[6]![3]).toBe("Tidak dijalankan. Kasus Segment di bawah");
     expect(t[6]![4]).toBe("Rekaman lab `retry.txt` A dan C, `breaker.txt` A sampai C, `lajur.txt` B, `worker.txt` B. Jalur sinkron Tidak dijalankan");
     expect(t[5]![3]).toContain(`Segment menulis lebih dari ${140} service`);
@@ -574,10 +580,10 @@ describe("ADR 36: tabel opsi, enam aturan, kasus industri, pre-mortem, kapan sal
     harus("**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:");
     harus(`Ambang keenam lebih tinggi daripada batas ${bilangan(R.lajur.percobaan)} percobaan, jadi pekerjaan yang dicoba satu per satu habis sebelum breaker membuka: satu dari sepuluh \`gagal\` di \`lajur.txt\` bagian B.`);
     harus(`jadi pada gangguan ${titik(R.outage.detik)} detik sampai ${R.outage.matiMaks} dari ${R.outage.pekerjaan} pekerjaan mati (Hitungan, Tidak dijalankan, rumus di blok Paham).`);
-    harus("Dokumentasi Azure menyebut pencegahannya: breaker menguji vendor lewat operasi pemeriksaan kesehatan, bukan lewat pekerjaan nyata. Tiruan lab tidak punya endpoint status, jadi opsi itu belum ada.");
+    harus("Dokumentasi Azure menulis bahwa breaker bisa menguji vendor dengan ping, baik lewat operasi yang tadi gagal maupun lewat operasi pemeriksaan kesehatan khusus. Hanya cara kedua tidak memakai percobaan pekerjaan nyata (penalaran dari dokumentasi, Tidak dijalankan). Tiruan lab tidak punya endpoint status, jadi opsi itu belum ada.");
     harus("Pendaftar boleh mengajukan lagi, dan pengajuan baru punya id baru, jadi key baru. Vendor bisa menyimpan dua objek untuk satu orang (penalaran dari kode, Tidak dijalankan).");
-    harus(`Di \`lajur.txt\` bagian D, enam dokumen rusak (jawaban 422) membuka breaker bawaan dan menjeda ${menungguD / 2} pengajuan sehat selagi vendor sehat. Penilaian kustom D menghindarinya, dengan harga ${permintaanE} permintaan untuk ${pendaftarA} pengajuan di bagian E.`);
-    harus(`Pada laju puncak ${koma(R.worker.laju, 3)} verifikasi per detik, pekerjaan yang pasti gagal memegang ${koma(R.worker.slot, 2)} dari ${R.worker.kapasitas} slot, dan ${koma(R.worker.bersama, 1)} dari ${R.worker.kapasitas} bersama pemberitahuan uang.`);
+    harus(`Di \`lajur.txt\` bagian D, enam dokumen rusak (jawaban 422) membuka breaker bawaan dan menjeda ${menungguD / 2} pengajuan sehat selagi vendor sehat. Penilaian kustom opsi D menghindarinya, dengan harga ${permintaanE} permintaan untuk ${pendaftarA} pengajuan di bagian E.`);
+    harus(`Pada laju puncak ${koma(R.worker.laju, 3)} verifikasi per detik, pekerjaan yang pasti gagal memegang ${koma(R.worker.slot, 2)} dari ${R.worker.kapasitas} slot, dan ${koma(R.worker.bersama, 2)} dari ${R.worker.kapasitas} bersama pemberitahuan uang.`);
     harus(`Premisnya tiap percobaan menunggu sampai timeout ${R.worker.timeoutClient} detik (Hitungan atas Asumsi). Pada laju rata-rata ${koma(R.outage.lajuRataRata, 4)} per detik pemakaiannya ${koma(R.outage.lajuRataRata * R.worker.percobaan * R.worker.timeoutClient, 3)} slot.`);
     harus("Dua worker tidak berbagi hitungan, jadi tiap proses menunggu enam kegagalannya sendiri, dan worker yang dimulai ulang mulai dari closed.");
     expect(readme).toContain("Worker yang dimulai ulang memulai dari tertutup, dan dua worker tidak berbagi hitungan.");
@@ -670,13 +676,15 @@ describe("rujukan [[ID]] dan registry", () => {
       "ke transaction yang memegang lock ([[t3-pool]]).".replace("ke transaction", "di dalam transaction"),
       "Dibaca ulang di [[t4-m34]].",
       "ditentukan lewat cek status atau webhook ([[t4-m29]]).",
+      "Hasil 4,00 adalah 3,99 tanpa pembulatan, sama dengan [[t4-m31]].",
+      "pada laju rata-rata 0,0116 × 12.600 = 146 pekerjaan masuk ([[t4-m31]]).",
       "Polanya sama dengan [[t4-m29]], dari arah keluar",
       "[[t4-m34]] membahas satu jawaban 403 yang tidak membuka breaker.",
       "**Yang akan merevisinya.** [[t4-m34]] menunjukkan satu jawaban 403 yang tidak membuka breaker, dan memaksa penilaian 401 dan 403 ditinjau ulang. [[t4-modul]] memecah service pembayaran dari ledger, dan panggilan antar kedua service ikut aturan 1 dan 2.",
       "| Hasil netral (`IsExcluded`) untuk 401, 403, 408, 429 | Penilaian jawaban ini belum diputuskan | [[t4-m34]] |",
     ]) harus(kalimat);
     const hitung = Object.fromEntries([...new Set(semua)].map((id) => [id, semua.filter((x) => x === id).length]));
-    expect(hitung).toEqual({ "t4-m31": 3, "t3-at-least-once": 2, "t4-dua-arah": 2, "t3-pool": 3, "t2-idempotency": 1, "t4-topup-verifikasi": 1, "t4-m34": 4, "t4-m29": 2, "t4-modul": 1 });
+    expect(hitung).toEqual({ "t4-m31": 5, "t3-at-least-once": 2, "t4-dua-arah": 2, "t3-pool": 3, "t2-idempotency": 1, "t4-topup-verifikasi": 1, "t4-m34": 4, "t4-m29": 2, "t4-modul": 1 });
     expect(semua[0]).toBe("t4-m31");
   });
   test("tiap janji 'dibahas di' menunjuk halaman yang judulnya memuat topiknya", () => {
@@ -696,7 +704,7 @@ describe("struktur: lima blok, heading, dan template", () => {
     const blok = [...halaman.matchAll(/<Blok ([^>]*)>/g)].map((m) => m[1]!);
     expect(blok).toEqual([
       'nama="Mulai" buka',
-      'nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: breaker membuka sesudah kegagalan keenam, jadi pekerjaan pertama sudah habis lima percobaan, dan pekerjaan lain menunggu tanpa memakai percobaan."',
+      'nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: breaker membuka sesudah kegagalan keenam, jadi pekerjaan pertama sudah habis lima percobaan, dan pekerjaan yang belum dicoba menunggu tanpa memakai percobaan."',
       'nama="Paham"',
       'nama="Putuskan"',
       'nama="Kunci"',
@@ -922,8 +930,8 @@ describe("penutup tahap dua: sidik struktur, sidik angka, versi di sumber, sel t
       ["Cara kerja", "Tiap percobaan memakai Idempotency-Key baru, atau tanpa key", "Breaker membungkus panggilan di sinkron dan di worker. Penolakan breaker tetap lewat jalur gagal ADR 25", "Tiap vendor punya service dan queue sendiri", "Semua client lewat satu fungsi dengan timeout 3 detik. Key dari id pengajuan. Lajur per `tujuan` dijeda selagi breaker terbuka, tanpa menghitung percobaan"],
       ["Kelebihan", "Tidak ada key untuk dikelola", "Panggilan ke vendor yang mati berhenti", "Satu vendor mati hanya menjatuhkan service-nya", "Pekerjaan tidak memakai percobaan saat vendor jelas mati, dan retry tidak membuat objek kedua"],
       ["Kekurangan", "Percobaan yang hasilnya tidak diketahui bisa membuat objek kedua di vendor", "Klaim ke lajur yang terbuka menaikkan percobaan tanpa memanggil vendor (penalaran dari kode)", "Service tambahan per vendor: deploy, pemantauan, dan versi dependency sendiri-sendiri", "Satu komponen lagi, dengan keadaan di memori satu proses worker dan lima celah yang lab temukan"],
-      ["Biaya operasional", "Rendah, tetapi objek ganda baru terlihat di rekonsiliasi", "Status breaker per proses, dan ambang yang harus dipilih", "Tinggi: Segment menulis lebih dari 140 service", "Alert untuk breaker yang terbuka lebih dari 10 menit (Asumsi)"],
-      ["Bukti", "Rekaman lab `retry.txt` B: dua objek untuk satu pendaftar", "Tidak dijalankan. Dokumentasi Azure menulis pola ini mungkin kurang cocok bila ada dead-letter", "Tidak dijalankan. Kasus Segment di bawah", "Rekaman lab `retry.txt` A dan C, `breaker.txt` A sampai C, `lajur.txt` B, `worker.txt` B. Jalur sinkron Tidak dijalankan"],
+      ["Biaya operasional", "Rendah, tetapi Rekeningo tidak melihat objek kedua di vendor (`retry.txt` bagian B)", "Status breaker per proses, dan ambang yang harus dipilih", "Tinggi: Segment menulis lebih dari 140 service", "Alert untuk breaker yang terbuka lebih dari 10 menit (Asumsi)"],
+      ["Bukti", "Rekaman lab `retry.txt` B: dua objek untuk satu pendaftar", "Tidak dijalankan. Dokumentasi Azure menulis pola ini mungkin kurang cocok untuk arsitektur berbasis pesan", "Tidak dijalankan. Kasus Segment di bawah", "Rekaman lab `retry.txt` A dan C, `breaker.txt` A sampai C, `lajur.txt` B, `worker.txt` B. Jalur sinkron Tidak dijalankan"],
     ]);
     const kepala = tabel("| | A. Retry bebas tanpa key |", 5)[0]!;
     expect(kepala).toEqual(["", "A. Retry bebas tanpa key", "B. Breaker di semua jalur, termasuk queue, tanpa penjeda klaim", "C. Satu service per vendor", "D. Satu pembuat client, key dari id, breaker sinkron, lajur dijeda"]);
@@ -1003,15 +1011,15 @@ describe("penutup tahap dua: sidik struktur, sidik angka, versi di sumber, sel t
 });
 
 const JumlahRekamanLab = 10;
-const JumlahTidakDijalankan = 18;
+const JumlahTidakDijalankan = 19;
 const JumlahAsumsi = 7;
 const JumlahIlustrasi = 6;
 const JumlahHitungan = 7;
-const JumlahPenalaran = 5;
+const JumlahPenalaran = 6;
 const TanggalDibuka = 10;
 const TanggalAkses = 11;
-const SIDIK_STRUKTUR = "<Blok ## p:1 <Rantai p:4 p:4 <details <summary 1.:3 2.:3 3.:2 p:2 </details </Blok <Blok p:3 p:2 p:4 <CircuitBreaker p:2 p:3 </Blok <Blok ### p:3 p:2 ### p:5 <Snippet p:3 p:2 <Snippet p:4 p:2 p:2 <Snippet <Snippet p:4 p:3 p:2 p:3 <Snippet p:4 p:4 <Snippet p:3 p:3 <Snippet p:3 p:2 <Snippet p:3 <Snippet p:2 p:3 p:1 <Snippet p:3 |:3 |:3 |:3 |:3 |:3 |:3 p:3 p:1 1.:4 2.:4 3.:5 4.:4 5.:4 ### p:2 p:3 <TabSet <Fragment p:1 <Snippet p:3 </Fragment <Fragment p:3 p:4 </Fragment <Fragment p:3 p:3 </Fragment <Fragment p:4 p:4 </Fragment <Fragment p:2 p:5 </Fragment <Fragment p:2 p:5 </Fragment </TabSet </Blok <Blok ### p:4 p:3 |:5 |:5 |:5 |:5 |:5 |:5 |:5 p:1 1.:3 2.:3 3.:5 4.:4 5.:3 6.:4 p:1 -:2 -:5 -:2 p:2 p:2 p:4 p:2 1.:5 2.:5 3.:6 p:1 -:2 -:3 -:3 -:5 -:3 p:2 ### |:3 |:3 |:3 |:3 |:3 |:3 </Blok <Blok ### **1**:2 <details <summary p:2 </details **2**:2 <details <summary p:2 </details **3**:1 <details <summary p:3 </details **4**:2 <details <summary p:3 </details ### -:1 -:1 -:1 -:1 -:1 -:1 ### -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 </Blok";
-const SIDIK_ANGKA = "10 50 10 10 9 10 1 3 1 10 2 3 10 180 10 1 10 50 4 8 10 2025 02 05 2026 10 29 3 1.27.3 1.27.1 2026 10 29 3 22 300 3 2 1 503 503 200 2 1 36 2 255 500 24 2026 10 29 5 60 2026 01 01 2026 10 29 59,999 60,001 60 60 60 10 3 8 6 0,5 9 1 9 3 3 30 60 2,0 2,0 2,9 3,6 3 4 3 0,116 7,52 0,3 1.000 86.400 10 0,116 0,116 5 3 1,74 4 7,52 0,3 2,26 4 1,74 2,26 4,0 4 3 1 4 8 1 2 2 0 3 12.600 12.600 60 210 210 5 42 146 4 10 34 6 5 4 400 499 401 403 408 429 5 2026 10 29 17.11 1.27.1 25 10.0.0 2026 06 24 2026 10 29 10 10 6 13 2026 10 29 30 10 2026 10 29 3.13.7 2026 10 29 2026 10 29 150 504 150 400 2 150 50 3 36 10 10 0,116 7,52 4 22 25 25 3 140 10 1 3 22 2 3 6 60 4 5 6 401 403 408 429 10 10 2018 2018 07 10 140 2026 10 29 140 6 1 2 12.600 42 146 3 422 4 34 10 401 403 408 429 403 0,116 1,74 4 4,0 4 3 0,0116 0,174 403 401 403 1 2 401 403 408 429 140 1 10 50 5 10 0 2 2 1 3 10 4 422 36 4 36 4 10 34 13";
-const SIDIK_HALAMAN: Record<string, number> = { tidak: 90, bukan: 17, belum: 13, hanya: 16, tanpa: 30, sesudah: 27, sebelum: 6, juga: 3, setiap: 2, semua: 7, "lebih dari": 6, "paling banyak": 2, selalu: 1, sama: 18, "lebih tinggi": 2, sampai: 13 };
+const SIDIK_STRUKTUR = "<Blok ## p:1 <Rantai p:4 p:4 <details <summary 1.:3 2.:3 3.:2 p:2 </details </Blok <Blok p:3 p:2 p:4 <CircuitBreaker p:2 p:3 </Blok <Blok ### p:3 p:2 ### p:5 <Snippet p:3 p:2 <Snippet p:4 p:2 p:2 <Snippet <Snippet p:4 p:3 p:2 p:4 <Snippet p:4 p:4 <Snippet p:3 p:3 <Snippet p:3 p:2 <Snippet p:3 <Snippet p:2 p:3 p:1 <Snippet p:3 |:3 |:3 |:3 |:3 |:3 |:3 p:4 p:1 1.:4 2.:4 3.:6 4.:4 5.:4 ### p:2 p:3 <TabSet <Fragment p:1 <Snippet p:3 </Fragment <Fragment p:3 p:4 </Fragment <Fragment p:3 p:3 </Fragment <Fragment p:4 p:4 </Fragment <Fragment p:2 p:5 </Fragment <Fragment p:2 p:5 </Fragment </TabSet </Blok <Blok ### p:4 p:3 |:5 |:5 |:5 |:5 |:5 |:5 |:5 p:1 1.:3 2.:3 3.:5 4.:4 5.:3 6.:4 p:1 -:2 -:6 -:2 p:2 p:2 p:4 p:2 1.:5 2.:6 3.:6 p:1 -:2 -:3 -:3 -:5 -:3 p:2 ### |:3 |:3 |:3 |:3 |:3 |:3 </Blok <Blok ### **1**:2 <details <summary p:2 </details **2**:2 <details <summary p:2 </details **3**:1 <details <summary p:3 </details **4**:2 <details <summary p:3 </details ### -:1 -:1 -:1 -:1 -:1 -:1 ### -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 -:1 </Blok";
+const SIDIK_ANGKA = "10 50 10 10 9 10 1 3 1 10 2 3 10 180 10 1 10 50 4 8 10 2025 02 05 2026 10 29 3 1.27.3 1.27.1 2026 10 29 3 22 300 3 2 1 503 503 200 2 1 36 2 255 500 24 2026 10 29 5 60 2026 01 01 2026 10 29 3 59,999 60,001 60 60 60 10 3 8 6 0,5 9 1 9 3 3 30 60 2,0 2,0 2,9 3,6 3 4 3 1.000 10 7,52 0,3 1.000 86.400 10 0,116 0,116 5 3 1,74 4 7,52 0,3 2,26 4 1,74 2,26 4,00 4 4,00 3,99 3 1 4 8 1 2 2 0 3 3 30 12.600 0,0116 12.600 146 12.600 60 210 210 5 42 146 4 10 34 6 5 4 400 499 401 403 408 429 5 2026 10 29 17.11 1.27.1 25 10.0.0 2026 06 24 2026 10 29 10 10 6 13 2026 10 29 30 10 2026 10 29 3.13.7 2026 10 29 2026 10 29 150 504 150 400 2 150 50 3 36 10 10 0,116 7,52 4 22 25 25 3 140 10 1 3 22 2 3 6 60 4 5 6 401 403 408 429 10 10 2018 2018 07 10 140 2026 10 29 140 6 1 2 12.600 42 146 3 422 4 34 10 401 403 408 429 403 0,116 1,74 4 4,00 4 3 0,0116 0,174 403 401 403 1 2 401 403 408 429 140 1 10 50 5 10 0 2 2 1 3 10 4 422 36 4 36 4 10 34 13";
+const SIDIK_HALAMAN: Record<string, number> = { tidak: 93, bukan: 16, belum: 15, hanya: 17, tanpa: 31, sesudah: 27, sebelum: 6, juga: 3, setiap: 2, semua: 7, "lebih dari": 6, "paling banyak": 2, selalu: 1, sama: 19, "lebih tinggi": 2, sampai: 13 };
 const SIDIK_RANTAI: Record<string, number> = { tidak: 0, bukan: 1, belum: 0, hanya: 0, tanpa: 3, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 0, "lebih tinggi": 0, sampai: 0 };
 const SIDIK_ISTILAH: Record<string, number> = { tidak: 2, bukan: 0, belum: 1, hanya: 0, tanpa: 1, sesudah: 7, sebelum: 1, juga: 0, setiap: 1, semua: 0, "lebih dari": 1, "paling banyak": 0, selalu: 0, sama: 0, "lebih tinggi": 1, sampai: 1 };
