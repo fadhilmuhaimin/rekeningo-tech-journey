@@ -37,6 +37,8 @@
 *[ACID]: Empat jaminan transaction di database relasional: atomicity, consistency, isolation, durability.
 *[ADR]: Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.
 *[Architecture Decision Record]: Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.
+*[Alamat keluar]: Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.
+*[alamat keluar]: Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.
 *[Alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
 *[alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
 *[API gateway]: Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing.

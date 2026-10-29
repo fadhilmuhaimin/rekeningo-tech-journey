@@ -1,0 +1,180 @@
+---
+title: "4.16 M34: Semua verifikasi ditolak sesudah pindah hosting"
+description: Minggu 8. Sesudah Rekeningo pindah ke infrastruktur PT, setiap pendaftar baru gagal diverifikasi, karena vendor menolak alamat keluar yang baru dan breaker tidak menolong.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import alamatBerubah from "../../../../data/diagram/t4-m34-alamat-berubah.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t4-breaker]], [[t1-secret]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 8 Tahap 4. Senin pukul 07.50 menjadi hari kerja pertama sesudah Rekeningo dipindah ke infrastruktur PT pada akhir pekan. Semua pendaftar baru melihat "Verifikasi gagal".
+
+Pendaftar yang gagal mencoba lagi, rata-rata ±42 orang per jam. Log vendor menolak dengan 403. Laras, dari tim security, berkata: "Ini bukan pemadaman."
+
+*Angka cerita (Ilustrasi):* hari, jam, dan kutipan Laras berasal dari cerita, bukan dari rekaman. Laju ±42 per jam berasal dari 1.000 pendaftar per hari ÷ 24 jam = 41,67. Itu Hitungan, yaitu angka yang dihitung dari angka lain di halaman, dan 1.000 per hari termasuk Asumsi. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Layar pendaftar sama dengan layar M31 di minggu 5 ([[t4-m31]]): "Verifikasi gagal". Raka menduga vendor mati lagi dan M31 terulang.
+
+Dugaan itu masuk akal. Pada M31 layanan verifikasi tidak menjawab, dan tiap pekerjaan menghabiskan lima percobaan. Sesudah M31, ADR 36 menambah breaker per vendor ([[t4-breaker]]). Apakah breaker itu ikut bekerja di M34, rekaman di blok berikutnya yang menjawab.
+
+<details class="question">
+<summary>Tebak dulu: vendor menjawab setiap permintaan dengan 403, bukan 503 dan bukan timeout. Apa yang ditolaknya?</summary>
+
+Yang ditolak bukan isi permintaan dan bukan vendor yang mati: yang ditolak pemanggilnya. RFC 9110 bagian 15.5.4 menulis bahwa 403 berarti server memahami permintaan dan menolak memenuhinya ([RFC 9110, 403 Forbidden](https://www.rfc-editor.org/rfc/rfc9110.html#name-403-forbidden), dibuka 2026-10-30, Tidak dijalankan). Akhir pekan itu Rekeningo berpindah tempat, jadi yang berubah adalah alamat IP yang dilihat vendor (Rekaman lab, bagian A di blok berikutnya).
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Vendor hidup dan menjawab. Yang ditolak adalah alamat tempat Rekeningo memanggilnya.
+
+**Alamat keluar.** Alamat keluar adalah alamat IP yang dilihat server tujuan saat service Rekeningo memanggilnya. Vendor di cerita memakai allowlist, yaitu daftar alamat yang boleh memanggilnya. Alamat di luar daftar dijawab 403, dan mendaftarkan satu alamat butuh dua hari kerja (Asumsi dari cerita).
+
+Layanan verifikasi tiruan di lab memeriksa alamat ujung koneksi TCP, bukan header. Ia menjawab 403 sebelum membaca isi permintaan (Tidak dijalankan: dibaca dari kode):
+
+<Snippet file="labs/api-t4/cmd/tiruan/main.go" lines="475:478" lang="go" title="Kode lab: labs/api-t4/cmd/tiruan/main.go baris 475 sampai 478 (alamat tidak terdaftar dijawab 403)" />
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.1, dan pgx v5.11.0, dari database bersih. Satu jaringan Docker lab memuat layanan verifikasi tiruan dan host aplikasi, yaitu worker `api-t4` yang dikompilasi untuk Linux. Pindahan diperankan dengan menyalakan host baru sebelum host lama dimatikan, dan lab memeriksa bahwa alamat keduanya berbeda. Alamat itu milik container di jaringan lab, bukan milik akun cloud.
+
+**Sebelum pindahan.** Host lama terdaftar, dan tiga pendaftar lulus:
+
+<Snippet file="labs/t4-infra/output/alamat.txt" lines="19:23" title="Rekaman lab: labs/t4-infra/output/alamat.txt, bagian A (sebelum pindahan)" />
+
+**Sesudah pindahan.** Tidak ada yang mendaftarkan alamat host baru. Tiga pendaftar baru mengajukan verifikasi:
+
+<Snippet file="labs/t4-infra/output/alamat.txt" lines="26:27" title="Rekaman lab: labs/t4-infra/output/alamat.txt, bagian A (host baru, alamat berbeda)" />
+
+<Snippet file="labs/t4-infra/output/alamat.txt" lines="28:43" title="Rekaman lab: labs/t4-infra/output/alamat.txt, bagian A (sesudah pindahan: 403 di tiap percobaan)" />
+
+Tiga pekerjaan dikali lima percobaan menghasilkan 15 penolakan. Lima percobaan adalah batas ADR 25 ([[t3-at-least-once]]), dan worker mengulang jawaban yang tidak akan berubah. Vendor tidak mati: ia menjawab, dan sebelum pindahan ia meluluskan tiga pendaftar dari host lama.
+
+<Rantai data={alamatBerubah} />
+
+**Kenapa breaker tidak menolong.** Rekaman bagian C menjalankan pindahan yang sama untuk delapan pekerjaan, dengan breaker ADR 36 dan Timeout 3 detik (ADR 36 memakai 60 detik). Breaker tidak pernah terbuka: 8 × 5 = 40 penolakan, dan delapan pengajuan berstatus `gagal`:
+
+<Snippet file="labs/t4-infra/output/alamat.txt" lines="102:108" title="Rekaman lab: labs/t4-infra/output/alamat.txt, bagian C (aturan ADR 36: breaker tidak terbuka)" />
+
+Sebabnya satu aturan. ADR 36 menghitung jawaban 4xx sebagai sukses, supaya permintaan yang salah tidak membuka breaker ([[t4-breaker]]), dan 403 termasuk 4xx. Kode lab menandai setiap jawaban 4xx vendor sebagai penolakan, lalu breaker menghitung penolakan itu sukses (Tidak dijalankan: dibaca dari kode):
+
+<Snippet file="labs/api-t4/internal/verifikasi/verifikasi.go" lines="84:86" lang="go" title="Kode lab: labs/api-t4/internal/verifikasi/verifikasi.go baris 84 sampai 86 (jawaban 4xx menjadi penolakan vendor)" />
+
+<Snippet file="labs/api-t4/internal/lajur/lajur.go" lines="60:63" lang="go" title="Kode lab: labs/api-t4/internal/lajur/lajur.go baris 60 sampai 63 (penolakan dihitung sukses)" />
+
+Rekaman yang sama menjalankan pengaturan bawaan pustaka, yang menghitung 403 gagal. Breaker terbuka sesudah enam penolakan beruntun. Tujuh pekerjaan menunggu, dan satu pekerjaan sudah mati:
+
+<Snippet file="labs/t4-infra/output/alamat.txt" lines="125:129" title="Rekaman lab: labs/t4-infra/output/alamat.txt, bagian C (bawaan pustaka: breaker terbuka)" />
+
+Terbuka tidak memperbaiki penyebabnya. Lajur pulih sesudah operator mendaftarkan alamat host baru:
+
+<Snippet file="labs/t4-infra/output/alamat.txt" lines="146:151" title="Rekaman lab: labs/t4-infra/output/alamat.txt, bagian C (alamat didaftarkan, lajur pulih)" />
+
+Tiga hal terbaca dari rekaman itu:
+
+1. Breaker bawaan membuat tujuh pekerjaan menunggu, bukan mati. Aturan ADR 36 membuat delapan pekerjaan mati.
+2. Menunggu berlangsung sampai alamat didaftarkan. Di lab pendaftaran seketika. Di cerita butuh dua hari kerja (Asumsi), dan rekaman tidak menjalankan selama itu.
+3. Satu pekerjaan tetap mati. Ambang breaker 6 lebih tinggi daripada batas lima percobaan, jadi pekerjaan pertama habis sebelum breaker terbuka. Pendaftarnya tetap gagal, dan tidak ada yang mengantrekannya ulang, seperti di M31.
+
+**Penilaian 401 dan 403 belum diputuskan.** ADR 36 menulis bahwa apakah 401, 403, 408, dan 429 dihitung netral belum diputuskan ([[t4-breaker]]). Lab mengusulkan 401 dan 403 dihitung gagal, dan 400 dan 422 tetap sukses (usul lab, bukan keputusan). Usul itu mengubah pekerjaan yang mati menjadi menunggu, tetapi tidak mendaftarkan alamat.
+
+**Tiga hal lain dari pindahan yang sama.** Pemeriksaan sesudah M34 menemukan tiga hal lain. Kejadian di Rekeningo berasal dari cerita (Ilustrasi), dan mekanismenya direkam lab bila disebut.
+
+**State IaC memuat secret.** IaC (infrastructure as code) mendeskripsikan infrastruktur dalam file yang dijalankan alat seperti OpenTofu. Alat itu mencatat sumber daya yang dibuatnya di state, yaitu file yang menyimpan atribut tiap sumber daya, termasuk password.
+
+Dokumentasi OpenTofu menulis bahwa state memuat semua atribut sumber daya. State lokal berupa file JSON teks biasa ([OpenTofu: Sensitive Data in State](https://opentofu.org/docs/language/state/sensitive-data/), versi 1.13.x, dibuka 2026-10-30, Tidak dijalankan).
+
+Lab merekam mekanismenya dengan OpenTofu v1.13.2. Password dari `random_password` dan kunci dari variabel masuk state, walau keluaran CLI menulis "(sensitive value)". Data source `local_sensitive_file` yang membaca file rahasia juga memasukkan isinya. Konfigurasi yang hanya menulis alamat dan path secret manager tidak memuat nilai (Rekaman lab, `state.txt` bagian A sampai C).
+
+Data source milik provider Vault atau OpenBao Tidak dijalankan [perlu verifikasi]. State Rekeningo sendiri hanya ada di cerita.
+
+**Staging memakai kunci gateway produksi.** Lab tidak merekam kejadian ini. Lab hanya merekam pemindai atas dua file contoh, yang menemukan dua kunci produksi (Rekaman lab, `staging.txt` bagian B). Pemisahan secret staging dan produksi ada di [[t4-infra-secret]], dan pemindaian di pipeline ada di [[t4-tim-infra]].
+
+**Pin ADR 31 harus ditinjau sebelum pindah.** Pindahan mengganti server tepi dan mungkin kunci TLS-nya (penalaran dari cerita, tidak dijalankan lab Tahap 4). App memakai pin SPKI, yaitu hash kunci publik server yang disimpan app, dengan satu cadangan ([[t3-tls-pinning]]).
+
+Di Tahap 3, app dengan pin A dan B menolak koneksi saat server memakai kunci C. App dengan pin B dan C terhubung (Rekaman lab, `labs/t3-mitm/output/pin.txt` bagian C). Di M34 penolakan datang dari vendor, bukan dari pin app.
+
+**Yang tidak direkam.**
+
+- Hosting terkelola, akun cloud PT, dan alamat IP publik nyata Tidak dijalankan. Alamat di rekaman adalah alamat container.
+- Layar "Verifikasi gagal", Senin 07.50, kutipan Laras, dan dua hari kerja pendaftaran hanya ada di cerita (Ilustrasi atau Asumsi). Rekaman hanya mencatat status `gagal` di database.
+- Perilaku vendor nyata atas alamat yang tidak terdaftar Tidak dijalankan. Jawaban 403 adalah pilihan tiruan lab.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `alamat.txt` bagian A dan C, dengan satu varian dari bagian B. Tebak dulu apa yang dijawab vendor atas permintaan host baru, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t4-m34.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: permintaan keluar lewat proxy keluar bertetap**. Proxy keluar adalah server perantara yang meneruskan panggilan keluar Rekeningo ke vendor, jadi vendor selalu melihat alamat proxy itu. Yang didaftarkan sekali adalah alamat proxy, dan pindahan host tidak mengubahnya: enam permintaan diterima dari satu alamat, tanpa penolakan (Rekaman lab, bagian B).
+
+Batasnya: proxy keluar menjadi titik gagal tunggal baru, dan lab tidak merekam matinya proxy. NAT dengan IP tetap di cloud Tidak dijalankan. Cara memilihnya ada di [[t4-infra-secret]].
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: sesudah pindahan, vendor menolak 15 percobaan dari host baru dengan 403, dan tiga pengajuan berstatus `gagal`.
+
+Bila permintaan keluar lewat proxy keluar bertetap, vendor menerima enam permintaan dari satu alamat dan tidak menolak satu pun. Rekaman bagian B ada di lipatan di bawah.
+</noscript>
+
+<details>
+<summary>Rekaman bagian B (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t4-infra/output/alamat.txt" lines="80:86" title="Rekaman lab: labs/t4-infra/output/alamat.txt, bagian B (proxy keluar: alamat host baru tidak sampai ke vendor)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t4-infra-secret]]: alamat keluar tetap, secret manager, dan IaC tanpa nilai secret di state. Keputusannya ADR 39.
+- [[t4-breaker]]: penilaian 401 dan 403 di breaker, yang belum diputuskan.
+- [[t4-tim-infra]]: pemindaian kunci produksi di pipeline. Keputusannya ADR 44.
+- [[t3-tls-pinning]]: pin ADR 31, yang dibaca ulang sebelum pindah.
+
+Di M34 breaker sudah ada dan tidak menyelesaikan masalah. Yang diperlukan sebelum pindah adalah alamat keluar yang tidak berubah atau sudah didaftarkan lebih dulu.
+
+### Cek diri
+
+**1.** Semua permintaan ke vendor ditolak, tetapi breaker ADR 36 tidak pernah terbuka. Kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+ADR 36 menghitung jawaban 4xx sebagai sukses, dan 403 termasuk 4xx. Delapan pekerjaan menghabiskan 8 × 5 = 40 penolakan dan delapan pengajuan berstatus `gagal`, tanpa satu pun perpindahan status breaker (`alamat.txt` bagian C).
+
+</details>
+
+**2.** Kenapa halaman ini tidak menyimpulkan bahwa vendor mati lagi?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Vendor menjawab setiap permintaan dengan 403, dan sebelum pindahan ia meluluskan tiga pendaftar dari host lama. Yang berubah adalah alamat sumber host, yang belum didaftarkan (`alamat.txt` bagian A).
+
+</details>
+
+**3.** Breaker bawaan pustaka terbuka sesudah enam penolakan. Apa yang ia ubah dan apa yang tidak?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tujuh pekerjaan menunggu, bukan mati, dan tujuh dari delapan lulus sesudah alamat didaftarkan. Penyebabnya tetap sampai operator mendaftarkan alamat, dan satu pekerjaan sudah mati karena ambang 6 lebih tinggi daripada batas lima percobaan (`alamat.txt` bagian C).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

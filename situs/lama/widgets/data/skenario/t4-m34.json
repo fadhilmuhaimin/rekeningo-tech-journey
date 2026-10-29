@@ -1,0 +1,114 @@
+{
+  "versi": 2,
+  "judul": "Pindahan host: vendor menolak alamat baru",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-infra/output/alamat.txt",
+    "fileVarian": "labs/t4-infra/output/alamat.txt",
+    "catatan": "Lab t4-infra, PostgreSQL 17.11, dari database bersih (make -C labs/t4-infra run BAGIAN=alamat). Jalur utama: bagian A (tanpa proxy, tanpa breaker) dan bagian C (breaker per lajur). Alamat host adalah alamat container Docker di satu jaringan lab, bukan alamat akun cloud. Pendaftaran alamat di vendor tiruan seketika; dua hari kerja di cerita adalah Asumsi. Ubah satu hal: bagian B, permintaan keluar lewat proxy keluar bertetap. Baris diawali tanda pagar atau panah diringkas dari rekaman yang sama, bukan baris log."
+  },
+  "pengantar": "Rekeningo pindah host, dan layanan verifikasi hanya menerima alamat yang didaftarkan. Tebak dulu apa yang dijawab layanan itu, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "host", "label": "Host aplikasi" },
+    { "id": "brk", "label": "Breaker lajur verifikasi" },
+    { "id": "vnd", "label": "Layanan verifikasi (tiruan)" },
+    { "id": "prx", "label": "Proxy keluar" }
+  ],
+  "predict": {
+    "q": "Host aplikasi pindah ke alamat baru. Layanan verifikasi hanya menerima alamat yang didaftarkan, dan alamat host baru belum didaftarkan. Apa jawaban layanan atas permintaan host baru?",
+    "options": [
+      "Timeout: layanan tidak menjawab sampai batas 3 detik",
+      "503: layanan sedang mati, seperti M31",
+      "403: layanan menjawab, tetapi menolak alamat sumber host baru",
+      "200 dengan status ditolak: layanan menilai foto pendaftar buram"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Layanan memeriksa alamat sumber koneksi, bukan isi permintaan dan bukan foto. Alamat host baru tidak ada di daftar, jadi tiap permintaan dijawab 403. Rekaman alamat.txt bagian A: ditolak 403 per alamat sumber {'host baru': 15}."
+  },
+  "langkah": [
+    {
+      "dari": "host",
+      "ke": "vnd",
+      "judul": "Sebelum pindahan: host lama terdaftar, tiga pendaftar lulus",
+      "kirim": "daftar alamat di vendor: host lama\nditerima, per alamat sumber yang dilihat vendor: {'host lama': 3}\nditolak 403, per alamat sumber: (tidak ada)\nverifikasi: lulus 3",
+      "jelas": "Vendor menerima alamat host lama karena sudah didaftarkan. Tiga pekerjaan lulus dengan satu percobaan tiap pekerjaan."
+    },
+    {
+      "dari": "host",
+      "judul": "Akhir pekan: host baru menyala, host lama dimatikan",
+      "kirim": "# alamat host baru berbeda dari alamat host lama: ya\n# host lama dimatikan. Senin pagi tiga pendaftar baru mengajukan verifikasi",
+      "jelas": "Host baru dinyalakan sebelum host lama dimatikan, dan lab memeriksa bahwa alamatnya berbeda. Tidak ada yang mendaftarkan alamat host baru di vendor."
+    },
+    {
+      "dari": "host",
+      "ke": "vnd",
+      "judul": "Senin: tiap percobaan dijawab 403",
+      "kirim": "daftar alamat di vendor: host lama\nditerima, per alamat sumber yang dilihat vendor: {'host lama': 3}\nditolak 403, per alamat sumber: {'host baru': 15}",
+      "jelas": "Tiga pekerjaan dikali lima percobaan menghasilkan 15 penolakan. Vendor menjawab setiap permintaan, jadi penyebabnya alamat sumber, bukan vendor yang mati.",
+      "nada": "warn"
+    },
+    {
+      "dari": "host",
+      "judul": "Lima percobaan habis, tiga pengajuan gagal",
+      "kirim": "verifikasi: gagal 3 (tingkat belum)\noutbox verifikasi: mati 3 (5 percobaan)",
+      "jelas": "Worker mengulang jawaban 403 sampai batas lima percobaan (ADR 25). Status ketiga pengajuan menjadi gagal.",
+      "nada": "warn"
+    },
+    {
+      "dari": "brk",
+      "judul": "Breaker dengan aturan ADR 36 tidak terbuka",
+      "kirim": "delapan pekerjaan, 4xx dihitung sukses:\nditolak 403, per alamat sumber: {'host baru': 40}\nverifikasi: gagal 8; outbox: mati 8 (5 percobaan)\n# breaker tidak pernah terbuka",
+      "jelas": "403 adalah jawaban 4xx, dan aturan ADR 36 menghitungnya sukses. Delapan pekerjaan dikali lima percobaan menghabiskan 40 percobaan.",
+      "nada": "warn"
+    },
+    {
+      "dari": "brk",
+      "ke": "vnd",
+      "judul": "Aturan bawaan pustaka: breaker terbuka sesudah enam penolakan",
+      "kirim": "delapan pekerjaan, 4xx dihitung gagal:\nditolak 403, per alamat sumber: {'host baru': 6}\nverifikasi: diajukan 7, gagal 1; outbox: menunggu 7, mati 1\nlog breaker: closed -> open",
+      "jelas": "Tujuh pekerjaan menunggu dan vendor tidak dihubungi lagi. Satu pekerjaan sudah mati, karena ambang breaker 6 lebih tinggi daripada batas lima percobaan."
+    },
+    {
+      "dari": "vnd",
+      "ke": "host",
+      "judul": "Alamat host baru didaftarkan: lajur pulih, satu pekerjaan tidak",
+      "kirim": "daftar alamat di vendor: host baru\nverifikasi: lulus 7, gagal 1\nlog breaker: open -> half-open, half-open -> closed",
+      "jelas": "Sesudah Timeout breaker (3 detik di lab) satu permintaan percobaan lulus, dan breaker menutup. Tujuh dari delapan pekerjaan lulus. Pekerjaan yang sudah mati tetap gagal, karena tidak ada yang mengantrekannya ulang.",
+      "nada": "good"
+    }
+  ],
+  "varian": {
+    "label": "permintaan keluar lewat proxy keluar bertetap",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "host",
+        "ke": "prx",
+        "judul": "Sebelum pindahan: yang didaftarkan adalah alamat proxy",
+        "kirim": "daftar alamat di vendor: proxy keluar\nditerima, per alamat sumber yang dilihat vendor: {'proxy keluar': 3}\nditolak 403, per alamat sumber: (tidak ada)\nverifikasi: lulus 3",
+        "jelas": "Host lama memakai proxy lewat variabel lingkungan HTTP_PROXY, tanpa perubahan kode aplikasi. Vendor hanya melihat alamat proxy."
+      },
+      {
+        "dari": "host",
+        "judul": "Akhir pekan: host baru memakai proxy yang sama",
+        "kirim": "# tiga alamat berbeda satu sama lain (host lama, host baru, proxy): ya",
+        "jelas": "Host baru dinyalakan dengan HTTP_PROXY yang sama, dan host lama dimatikan. Alamat host baru tidak pernah didaftarkan."
+      },
+      {
+        "dari": "prx",
+        "ke": "vnd",
+        "judul": "Senin: tiga pendaftar lulus lagi",
+        "kirim": "verifikasi: lulus 3\nditerima, per alamat sumber yang dilihat vendor: {'proxy keluar': 6}\nditolak 403, per alamat sumber: (tidak ada)",
+        "jelas": "Enam permintaan diterima dari satu alamat, dan tidak ada yang ditolak. Alamat host baru tidak pernah sampai ke vendor.",
+        "nada": "good"
+      },
+      {
+        "dari": "prx",
+        "judul": "Batasnya: proxy menjadi titik gagal tunggal baru",
+        "kirim": "# alamat proxy hanya tetap selama proxy itu sendiri tidak dipindah\n# NAT dengan IP tetap di cloud: Tidak dijalankan",
+        "jelas": "Vendor tidak perlu didaftari lagi saat host berpindah, selama proxy tetap di alamat yang sama. Lab tidak merekam matinya proxy."
+      }
+    ]
+  }
+}

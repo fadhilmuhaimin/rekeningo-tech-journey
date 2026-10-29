@@ -32,6 +32,15 @@ window.ISTILAH = {
   "t": "API gateway",
   "u": "c-operasional/c4-security-dasar/"
  },
+ "Alamat keluar": {
+  "b": "t4-m34",
+  "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
+  "h": "istilah/alamat-keluar/",
+  "n": "4.16 M34",
+  "s": "istilah-alamat-keluar",
+  "t": "Alamat keluar",
+  "u": "tahap-4/m34-verifikasi-ditolak/"
+ },
  "Alert": {
   "b": "t3-tim-infra",
   "d": "Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.",
@@ -1713,6 +1722,15 @@ window.ISTILAH = {
   "s": "istilah-xss",
   "t": "XSS (cross-site scripting)",
   "u": "tahap-3/m25-kotak-peringatan/"
+ },
+ "alamat keluar": {
+  "b": "t4-m34",
+  "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
+  "h": "istilah/alamat-keluar/",
+  "n": "4.16 M34",
+  "s": "istilah-alamat-keluar",
+  "t": "Alamat keluar",
+  "u": "tahap-4/m34-verifikasi-ditolak/"
  },
  "alert": {
   "b": "t3-tim-infra",
