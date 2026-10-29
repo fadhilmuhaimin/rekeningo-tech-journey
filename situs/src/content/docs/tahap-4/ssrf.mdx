@@ -1,0 +1,328 @@
+---
+title: "4.21 Keamanan 8: SSRF + ADR 41"
+description: Server yang mengunduh gambar dari alamat milik merchant menghubungi alamat itu atas nama server. ADR 41 memeriksa alamat yang dihubungi, bukan teks URL, menimbang tiga cara lain, dan menulis kapan pilihan itu salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import CariBug from "../../../widgets/cari-bug/CariBug.tsx";
+import intiDiagram from "../../../../data/diagram/t4-ssrf-inti.json";
+import caribug from "../../../../data/widget/t4-ssrf-caribug.json";
+
+<p class="meta">Baca 17 menit · coba 3 menit · Prasyarat: [[t4-m36]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Server yang mengunduh alamat dari merchant menghubunginya atas nama server, jadi yang diperiksa adalah alamat yang dihubungi, bukan teks URL.
+
+<Rantai data={intiDiagram} ringkas />
+
+SSRF (server-side request forgery) adalah serangan yang membuat server mengirim permintaan ke alamat pilihan pihak lain, dengan hak jaringan server. Fetcher adalah fungsi yang mengunduh isi sebuah URL, di sini gambar produk. Alamat terlarang adalah alamat yang tidak boleh dijadikan tujuan, seperti alamat server itu sendiri dan alamat jaringan dalam.
+
+`IsPrivate` adalah metode bawaan Go yang menjawab apakah alamat ada di rentang private. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)), fetcher versi aman menolak 32 dari 32 alamat terlarang. Lima alamat publik sebagai kontrol lolos (`alamat.txt`). `IsPrivate` hanya menolak 3 dari 32 alamat itu, jadi 29 lolos bila ia satu-satunya pemeriksaan. Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini: 32 − 3 = 29.
+
+Versi aman hanya menerima https, memeriksa alamat saat dihubungi, dan tidak mengikuti pengalihan. Isinya dibatasi 2 MiB (2.097.152 byte) dan waktunya 3 detik, dan hanya status 200 yang diterima (`batas.txt`). Pesan galatnya tidak memuat isi respons.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Fetcher hanya memeriksa dengan `IsPrivate`. Berapa dari 32 alamat terlarang yang lolos, dan dari angka apa?
+2. Server yang dituju membalas dengan pengalihan ke server lain. Apa jawaban versi aman, dan berapa kali server tujuan pengalihan disentuh?
+3. Gambar sah berukuran 2.097.152 byte dan gambar lain 2.097.153 byte. Mana yang diterima?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: tiga baris membuat alamat dalam bisa dijangkau atau membocorkan isinya, dan perbaikannya memeriksa alamat yang dihubungi, bukan teks URL.">
+
+Fungsi di bawah adalah versi pertama minggu 9 yang dipakai [[t4-m36]], tanpa komentar. Ia mengunduh gambar untuk pratinjau impor katalog. Kode ini hanya dibaca, tidak dijalankan: Tidak dijalankan berarti dicek ke kode dan dokumentasi, bukan diuji di lab.
+
+<CariBug client:visible data={caribug} />
+
+<noscript>
+<p>Tanpa JavaScript, baris di atas tidak bisa ditandai. Tiga baris yang bermasalah adalah baris 2, baris 11, dan baris 26.</p>
+</noscript>
+
+Baris lain wajar sebagai potongan kode, termasuk yang tampak berbahaya: batas waktu, batas ukuran, dan pembacaan tipe isi. Ketiganya tidak menentukan alamat mana yang dihubungi.
+
+**Ubah satu hal:** tekan Lihat versi benar sesudah memeriksa. Baris pemeriksaan teks hilang, dan pemeriksaan pindah ke `ControlContext`, yang dipanggil dengan alamat yang akan dihubungi sebelum koneksi benar-benar dibuat.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t4-m36]] adalah masalahnya: pratinjau gambar sebuah toko memuat JSON dari layanan dalam, karena server mengunduh alamat yang diisi merchant. Halaman ini memutuskan apa yang diperiksa sebelum server mengunduh alamat dari pihak luar.
+
+PRD v4 membuka Rekeningo untuk merchant luar yang membawa katalog sendiri ([[t4-prd]]). Impor katalog memakai kolom `gambar_url`, dan server mengunduh tiap URL untuk membuat pratinjau ([[t4-skema]]). Penyerang di halaman ini adalah pihak yang mencoba, bukan peretas yang sudah masuk ke server.
+
+### Cara kerjanya
+
+**SSRF memakai hak jaringan server.** OWASP menulis bahwa SSRF menyalahgunakan aplikasi untuk berinteraksi dengan jaringan internal, jaringan luar, atau mesin itu sendiri. Gambar dari server luar yang URL-nya diisi user adalah contoh pertama yang ia sebut ([OWASP: SSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html), dibuka 2026-10-30).
+
+Server berada di dalam jaringan, jadi ia bisa menjangkau layanan yang tidak terlihat dari luar. Permintaan yang ia kirim memakai hak server, bukan hak merchant.
+
+**Teks URL bukan tujuan.** Pemeriksaan di baris 2 membaca teks. Yang dihubungi server adalah alamat hasil resolusi nama, yaitu proses DNS yang mengubah nama menjadi alamat. Satu alamat punya beberapa penulisan, dan satu nama bisa menunjuk ke alamat dalam, jadi daftar kata tidak mencakup tujuan sebenarnya.
+
+OWASP menyebut daftar tolak (deny-list) rawan dilewati dan menganjurkan daftar izin (allowlist). Allowlist adalah daftar tujuan yang boleh, dan semua yang lain ditolak. Di api-t4, satu tes unit memastikan versi pertama meloloskan bentuk alamat lain sedangkan versi aman menolaknya, dan nama tesnya tercatat lulus (`testing.txt` api-t4). Bentuk yang lolos bergantung resolver platform, jadi halaman ini tidak menyalin satu pun.
+
+**Pemeriksaan di ControlContext melihat alamat yang dihubungi.** `Dialer.ControlContext` adalah hook di `net.Dialer` yang dipanggil sesudah koneksi dibuat dan sebelum benar-benar dihubungi. Dokumentasi Go menulis bahwa parameter alamat yang diterimanya belum tentu sama dengan yang diberikan ke Dial ([Go: package net](https://pkg.go.dev/net#Dialer), go1.27.3, dibuka 2026-10-30). Kode lab memeriksa alamat itu:
+
+<Snippet file="labs/api-t4/internal/unduh/unduh.go" region="control-context" lang="go" title="labs/api-t4/internal/unduh/unduh.go (ControlContext)" />
+
+Fetcher juga memeriksa tiap alamat jawaban resolver sebelum dial, sebagai penyaring awal, tetapi yang menentukan tetap pemeriksaan di `ControlContext`. DNS rebinding adalah nama yang dijawab alamat publik saat diperiksa dan alamat dalam saat dihubungi. Di tes unit api-t4, resolver buatan menjawab alamat publik lalu loopback. Fetcher menolak dengan "tujuan tidak diizinkan" tanpa menyentuh server uji (`TestAmanDNSRebindingDitolakDiControlContext`, tercatat lulus di `testing.txt` api-t4; angka 0 dibaca dari kode tes).
+
+OWASP menulis hal yang sama: validasi nama saja tidak mencegah DNS rebinding, dan pencarian DNS kedua yang tidak diperiksa antara validasi dan koneksi melewatkan pemeriksaan.
+
+**Alamat terlarang lebih banyak daripada yang dikira.** Tabel ini memakai `alamat.txt`, yaitu keputusan fungsi `alamatDilarang` atas alamat contoh, tanpa membuat koneksi. Alamat contoh adalah angka karangan lab, dan alamat link-local di tabel bukan alamat metadata layanan cloud.
+
+| Alamat contoh | Kelas | `IsPrivate` | Fetcher aman |
+|---|---|---|---|
+| `127.0.0.1` | loopback | tidak | tolak |
+| `10.0.0.1` | private (RFC 1918) | ya | tolak |
+| `169.254.77.7` | link-local | tidak | tolak |
+| `fd00::5` | ULA IPv6 (RFC 4193) | ya | tolak |
+| `100.64.0.1` | CGNAT (RFC 6598) | tidak | tolak |
+| `::ffff:10.0.0.1` | IPv4-mapped ke private | ya | tolak |
+| `::ffff:100.64.0.1` | IPv4-mapped ke CGNAT | tidak | tolak |
+| `64:ff9b::a00:1` | NAT64 (RFC 6052) | tidak | tolak |
+| `2002:a00:1::1` | 6to4 (RFC 3056) | tidak | tolak |
+| `2001::1` | Teredo (RFC 4380) | tidak | tolak |
+| `198.18.0.1` | benchmark (RFC 2544) | tidak | tolak |
+| `192.0.2.7` | dokumentasi TEST-NET-1 (RFC 5737) | tidak | tolak |
+| `239.255.0.1` | multicast IPv4 | tidak | tolak |
+| `93.184.216.34` | publik (kontrol) | tidak | lolos |
+
+Loopback adalah alamat server itu sendiri, dan link-local hanya berlaku di satu segmen jaringan. ULA adalah alamat private IPv6. CGNAT adalah blok yang dipakai operator untuk berbagi alamat. NAT64, 6to4, dan Teredo adalah awalan IPv6 yang membawa alamat IPv4 di dalamnya.
+
+`IsPrivate` menolak 3 dari 32 alamat terlarang: 10.0.0.1, fd00::5, dan ::ffff:10.0.0.1. Jadi 29 lolos bila ia satu-satunya pemeriksaan. Bila empat penanda bawaan Go (`IsPrivate`, `IsLoopback`, `IsLinkLocalUnicast`, `IsUnspecified`) dipakai bersama, 6 alamat ditolak dan 26 tetap lolos (`alamat.txt`).
+
+Dokumentasi `netip.Addr.IsPrivate` menulis bahwa metode itu tidak menggambarkan sifat keamanan alamat dan tidak boleh dipakai untuk kontrol akses ([Go: package net/netip](https://pkg.go.dev/net/netip), go1.27.3, dibuka 2026-10-30). Usul memperluas `IsPrivate` ditutup tanpa rencana pada 2026-07-11 (golang/go#79925, status dibaca 2026-10-30).
+
+**Daftar alamat ditulis tangan, jadi dicocokkan dengan registri.** Lab membandingkan daftar `alamatKhusus` dengan registri alamat khusus IANA bertanggal 2025-10-09. Kode lama menolak 24 dari 32 alamat uji, dan delapan alamat lolos sebelum daftar dilengkapi. Angka itu dicatat README lab, dan rekaman halaman ini hanya memuat kode sesudah perbaikan: Tidak dijalankan di halaman ini.
+
+Sesudah perbaikan, tepi 27 blok registri diuji dari dua sisi. Sebanyak 54 tepi dalam ditolak (54 dari 54), dan 39 tepi luar lolos (39 dari 39). Empat alamat yang terjangkau global menurut registri juga lolos (`alamat.txt`, bagian tepi blok registri).
+
+**Zona IPv6 melewati daftar bila tidak dibuang.** Zona adalah akhiran seperti `%1` atau `%eth0` yang menunjuk antarmuka jaringan. Dokumentasi `netip.Prefix.Contains` menulis bahwa metode itu menjawab false untuk alamat berzona, karena prefix membuang zona (go1.27.3, dibuka 2026-10-30).
+
+Kode kini membuang zona sebelum mencocokkan. Rekaman memuat 19 alamat IPv6 terlarang dalam tiga bentuk: tanpa zona, `%1`, dan `%eth0`. Semuanya ditolak (19 dari 19), dan 2 alamat publik berzona lolos (`alamat.txt`, bagian alamat berzona). Pada kode sebelum perbaikan, 13 dari 19 alamat berzona lolos (README lab, Tidak dijalankan di halaman ini).
+
+**Pengalihan tidak diikuti.** Pengalihan (redirect) adalah jawaban yang menyuruh client pindah ke alamat lain. Client HTTP bawaan Go berhenti sesudah 10 permintaan berturut-turut, jadi pengalihan diikuti secara bawaan ([Go: package net/http](https://pkg.go.dev/net/http#Client), go1.27.3, dibuka 2026-10-30). Pemeriksaan teks di muka tidak berlaku untuk tujuan pengalihan.
+
+Fetcher aman tidak mengikutinya. OWASP juga meminta pengalihan dimatikan di client. Tujuh kode yang diuji, 300, 301, 302, 303, 304, 307, dan 308, semuanya ditolak, dan server tujuan pengalihan tidak tersentuh:
+
+<Snippet file="labs/t4-ssrf/output/batas.txt" lines="12:18" title="Rekaman lab: labs/t4-ssrf/output/batas.txt, bagian redirect" />
+
+**Isi, waktu, status, dan tipe punya batas dari dua sisi.** Tiap batas diuji dengan satu nilai yang diterima dan satu yang ditolak (`batas.txt`). Batas header jawaban 64 KiB adalah Asumsi lab: header gambar yang sehat jauh di bawahnya.
+
+| Batas | Diterima | Ditolak |
+|---|---|---|
+| Ukuran isi 2 MiB | 2.097.152 byte, dengan dan tanpa Content-Length | 2.097.153 byte, 3 MiB, dan gzip yang jadi 32 MiB sesudah dekompresi |
+| Waktu 3 detik | menjawab sesudah 1 detik | tidak pernah menjawab, dan isi yang menetes 1 byte per 100 milidetik: berhenti di antara 3 dan 5 detik |
+| Status | 200 | 201, 202, 203, 204, 206, dan delapan status 4xx dan 5xx, semuanya dengan isi PNG sah |
+| Tipe isi | PNG, JPEG, GIF, WebP menurut byte awal | BMP, ICO, PDF, ZIP, teks, dan SVG; header `Content-Type` tidak dipercaya |
+| Header jawaban | 32 KiB dan 60 KiB | 68 KiB, 128 KiB, dan 11 MiB |
+
+Batas 2 MiB berlaku untuk byte sesudah dekompresi (`batas.txt`, bagian jawaban gzip), dan potongan kode ini yang menjaganya:
+
+<Snippet file="labs/api-t4/internal/unduh/unduh.go" region="batas-ukuran" lang="go" title="labs/api-t4/internal/unduh/unduh.go (batas ukuran)" />
+
+**Pesan galat tidak membawa isi respons.** Jawaban 200 berisi JSON layanan dalam dijawab "bukan gambar", dan jawaban 403, 404, dan 500 dijawab "gambar tidak bisa diunduh". Delapan penolakan karena alamat literal memakai satu pesan, "tujuan tidak diizinkan" (`batas.txt`, bagian pesan galat). Versi pertama sebaliknya: pesan galatnya memuat sampai 200 byte pertama isi respons.
+
+Satu batas belum tertutup. Nama yang diselesaikan ke alamat terlarang dijawab "tujuan tidak diizinkan", sedangkan nama yang tidak ada dijawab "tidak menjawab". Pemanggil yang mencoba banyak nama bisa membedakan nama dalam yang ada dari yang tidak (`batas.txt`, bagian batas yang belum tertutup). Ini belum diperbaiki, dan tes menetapkan perilaku sekarang.
+
+**Nama IDNA ditolak di go1.27.1, dan isunya masih terbuka.** IDNA adalah cara menulis nama domain berkarakter non-ASCII sebagai nama ASCII. Versi aman menolak dua URL bernama IDNA tanpa satu pun permintaan sampai (`batas.txt`, bagian nama IDNA). Satu URL memakai angka dan titik lebar penuh, dan satu memakai titik ideografis.
+
+Isu golang/go#80417 menulis bahwa alamat yang dihubungi client HTTP Go bisa berbeda dari `url.Hostname()` dan header Host. Isu itu masih terbuka pada 2026-10-30, dengan label NeedsInvestigation. Penyebab penolakan di lab bergantung jalur: diamati tangan sekali, tidak direkam. Perilaku di versi Go sesudah go1.27.1 adalah [perlu verifikasi], yaitu klaim yang belum bisa dicek ke sumber primer.
+
+**Yang tidak bisa dijaga kode.** Awalan NAT64 khusus operator berasal dari ruang alamat operator itu dan tidak bisa didaftar di kode (RFC 6052 bagian 2.2, dibaca dari README lab). Yang menutupnya adalah penempatan jaringan: proses pengunduh tidak diberi rute ke layanan dalam. OWASP menyebut pemisahan jaringan sangat dianjurkan, tetapi lab tidak punya jaringan container untuk ini: Tidak dijalankan.
+
+**Di cloud, metadata instance menambah dampak SSRF.** OWASP menulis bahwa SSRF sering dipakai untuk mengambil kredensial dari layanan metadata. IMDSv2 adalah lapis tambahan di sisi layanan itu. Lab tidak menjalankan metadata cloud, dan halaman ini tidak menulis alamat metadata sebagai tujuan: Tidak dijalankan.
+
+### Di stack lain
+
+**Skenario:** server mengunduh gambar dari URL yang diisi merchant. Yang ditanyakan: apakah client mengikuti pengalihan secara bawaan, dan di mana alamat yang dihubungi bisa diperiksa.
+
+Tab Go dijalankan di lab. Tab lain Tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-30. Hasilnya berbeda per stack, jadi tidak ada satu aturan "bawaan" untuk semuanya.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab api-t4 dan t4-ssrf, Go 1.27.1 (rekaman `batas.txt` dan `alamat.txt`).*
+
+**Yang berbeda di stack ini:** `http.Client` bawaan mengikuti pengalihan sampai 10 permintaan berturut-turut. Lab memasang client yang tidak mengikutinya, dan satu hook `ControlContext` di `net.Dialer` yang menerima alamat yang akan dihubungi. Dokumentasi dibaca pada go1.27.3, sedangkan lab berjalan di go1.27.1.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke dokumentasi Node.js v26.13.0 ([fetch](https://nodejs.org/api/globals.html#fetch) dan [net](https://nodejs.org/api/net.html)) dan [MDN: Request.redirect](https://developer.mozilla.org/en-US/docs/Web/API/Request/redirect), dibuka 2026-10-30.*
+
+**Yang berbeda di stack ini:** `fetch` adalah implementasi yang kompatibel dengan browser dan berbasis undici. MDN menulis bahwa mode pengalihan `Request` bawaannya `follow`, dengan pilihan `error` dan `manual`. Titik periksa alamat yang disebut dokumentasi `net` adalah opsi `lookup` di `socket.connect`, bawaannya `dns.lookup()`. Apakah `lookup` dipanggil untuk alamat yang ditulis langsung, dan apakah ia setara `ControlContext`: [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: HTTP Client](https://laravel.com/docs/13.x/http-client) dan [Guzzle: request options](https://docs.guzzlephp.org/en/stable/request-options.html), dibuka 2026-10-30.*
+
+**Yang berbeda di stack ini:** Guzzle mengikuti pengalihan secara bawaan sampai 5 kali, dengan protokol http dan https. Laravel 13.x menunjukkan `Http::globalOptions(['allow_redirects' => false])` untuk mematikannya di semua request. Halaman HTTP Client yang dibuka tidak menyebut SSRF.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dokumentasi Django tidak dibuka. Yang dicek adalah dua library client Python, [Requests: quickstart](https://requests.readthedocs.io/en/latest/user/quickstart/) dan [HTTPX: compatibility](https://www.python-httpx.org/compatibility/), dibuka 2026-10-30. Kedua halaman tidak menulis nomor versi.*
+
+**Yang berbeda di stack ini:** Requests mengikuti pengalihan secara bawaan untuk semua metode kecuali HEAD, dan `allow_redirects` mematikannya. HTTPX sebaliknya: ia tidak mengikuti pengalihan secara bawaan, dan `follow_redirects=True` menyalakannya. Kedua halaman tidak membahas titik periksa alamat saat dihubungi [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Dart: HttpClientRequest.followRedirects](https://api.dart.dev/stable/latest/dart-io/HttpClientRequest/followRedirects.html), Dart 3.13.7, dan ke dokumentasi Serverpod lewat [llms-full.txt](https://docs.serverpod.dev/llms-full.txt), dibuka 2026-10-30.*
+
+**Yang berbeda di stack ini:** `followRedirects` di `dart:io` bawaannya `true`. Pencarian teks `SSRF`, `followRedirects`, dan `server-side request` di llms-full.txt Serverpod tidak menemukan apa pun, jadi dokumentasi Serverpod tidak membahasnya.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke Supabase Edge Functions, halaman [architecture](https://supabase.com/docs/guides/functions/architecture) dan [limits](https://supabase.com/docs/guides/functions/limits), dibuka 2026-10-30.*
+
+**Yang berbeda di stack ini:** runtime Edge Functions berbasis Deno, dengan fungsi dibundel dalam format ESZip. Halaman limits memuat batas memori, durasi, waktu CPU, dan ukuran fungsi. Pembatasan keluar yang ia tulis hanya koneksi ke port 25 dan 587, dan pembatasan alamat tujuan tidak dibahas di kedua halaman [perlu verifikasi]. Perilaku pengalihan `fetch` di runtime itu tidak dibuka.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 41: satu fungsi unduh gambar, hanya https, alamat diperiksa saat dihubungi, tanpa pengalihan
+
+**Kebutuhan.** Merchant luar membawa katalog sendiri, dan server mengunduh tiap `gambar_url` untuk pratinjau ([[t4-skema]]). Naskah memberi ±400 merchant luar (Asumsi). Di lab, satu impor paling banyak 50 produk (Asumsi lab) dan 8 unduhan berjalan serentak (kode `katalog_impor.go`). [[t4-m36]] menunjukkan akibatnya bila server mengunduh tanpa memeriksa tujuan.
+
+**Status:** diterima sesudah M36 (minggu 9). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
+
+| | A. Allowlist domain | B. Deny-list teks URL | C. Tanpa URL, merchant mengunggah gambar | D. Satu fungsi unduh, alamat diperiksa saat dihubungi |
+|---|---|---|---|---|
+| Cara kerja | Hanya domain di daftar yang boleh diunduh | URL yang memuat kata seperti `localhost` ditolak | Merchant mengunggah file gambar, dan server tidak mengunduh dari alamat luar | Fungsi unduh dengan https, pemeriksaan alamat di `ControlContext`, tanpa pengalihan, dan batas ukuran dan waktu |
+| Kelebihan | Paling sempit, dan OWASP menyebutnya pilihan bila tujuan dikenal | Satu baris kode | Tidak ada fungsi unduh yang bisa disalahgunakan | Tidak bergantung pada penulisan URL, dan berlaku untuk merchant yang bebas memilih domain |
+| Kekurangan | Merchant bebas memilih domain, jadi daftarnya tidak diketahui di muka | Yang diperiksa teks, bukan tujuan, dan pengalihan tidak diperiksa | Impor katalog ratusan produk menjadi pekerjaan tangan (Asumsi naskah) | Daftar alamat ditulis tangan dan pernah tidak lengkap: kode lama menolak 24 dari 32 alamat uji |
+| Biaya operasional | Daftar dirawat tiap merchant baru | Nyaris nol, tetapi memberi rasa aman yang palsu | Penyimpanan objek ([[t4-storage]]) dan alur unggah per gambar | Daftar dicocokkan dengan registri IANA dan diuji dari tepi tiap blok |
+| Bukti | OWASP, kasus 1 dan 2 | `testing.txt` api-t4: satu tes unit, tanpa rekaman endpoint | Tidak dijalankan, alasan dari Asumsi naskah | `alamat.txt` dan `batas.txt` |
+
+**Keputusan: opsi D.** Delapan aturan:
+
+1. Hanya https. Skema http ditolak sebelum permintaan dibuat (`batas.txt`, bagian https saja). Di lab, flag `-unduh-izinkan-http` membuka http untuk tiruan lokal tanpa TLS, dan kode produksi tidak menyalakannya.
+2. Nama diselesaikan, lalu alamat diperiksa di penyaring awal dan di `ControlContext`. Yang ditolak: loopback, private, link-local, ULA IPv6, IPv4-mapped, dan lebih banyak, yaitu CGNAT, benchmark, dokumentasi, NAT64, 6to4, Teredo, dan multicast. Zona dibuang sebelum alamat dicocokkan (`alamat.txt`). Daftar itu bukan daftar lengkap.
+3. Pengalihan tidak diikuti (`batas.txt`, bagian redirect).
+4. Isi paling besar 2 MiB (2.097.152 byte), waktu total 3 detik, dan header jawaban 64 KiB (Asumsi lab).
+5. Hanya status 200 yang diterima, termasuk saat status 2xx lain membawa gambar sah.
+6. Tipe isi diperiksa dari byte, dan header `Content-Type` tidak dipercaya.
+7. Pesan galat tanpa isi respons, alamat, atau port. Perbedaan pesan antara nama yang ada dan yang tidak ada belum diperbaiki.
+8. Proses pengunduh tidak diberi akses jaringan ke layanan dalam yang tidak perlu. Aturan ini keputusan penempatan, dan Tidak dijalankan di lab.
+
+**Kenapa D, bukan A sampai C.**
+
+- **A ditolak** karena merchant bebas memilih domain. OWASP menulis bahwa allowlist tidak bisa dipakai bila daftar tujuan tidak diketahui di muka.
+- **B ditolak** karena yang diperiksa teks, bukan tujuan. Pemeriksaan yang sama dilewati bentuk alamat lain dan tidak berlaku untuk tujuan pengalihan.
+- **C ditolak** karena impor katalog ratusan produk menjadi unggahan satu per satu (Asumsi naskah). Opsi ini kembali bila fitur impor URL jarang dipakai.
+- **D juga daftar blokir.** Bedanya, daftar itu dipakai pada alamat yang dihubungi, dan diuji dari dua sisi tepi tiap blok. OWASP memakai pendekatan itu untuk kasus tanpa allowlist, dan tetap menyebut daftar blokir rawan dilewati. Sejarah daftar di lab menunjukkan alasannya: kode lama menolak 24 dari 32 alamat, dan 13 dari 19 alamat berzona lolos (README lab, Tidak dijalankan di halaman ini).
+
+**Kasus industri: IMDSv2.** Tulisan AWS Security Blog tertanggal 2019-11-19 menjelaskan bahwa IMDSv2 memulai sesi dengan permintaan PUT, mengembalikan token, dan meminta token itu di permintaan berikutnya. Layanan itu juga tidak memberi token kepada pemanggil yang membawa header `X-Forwarded-For` ([AWS Security Blog](https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service/), dibuka 2026-10-30).
+
+Batasnya: itu tulisan vendor tentang layanannya sendiri, untuk satu layanan metadata, tanpa angka kerugian. Ia melindungi sumber yang dituju SSRF, bukan fungsi unduh di aplikasi. Karena itu ADR 41 tetap memeriksa tujuan di aplikasi, dan IMDSv2 hanya menjadi lapis tambahan bila Rekeningo berjalan di cloud yang memilikinya (Tidak dijalankan).
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Daftar alamat tidak lengkap lagi, karena registri IANA berubah atau ada kelas yang terlewat. Pencegahannya tes tepi dari registri (27 blok, `alamat.txt`) dan pembacaan ulang registri saat berubah. Pengunduhan ulang registri otomatis belum dibuat (usul penulis).
+2. Pesan galat membedakan nama dalam yang ada dari yang tidak, sehingga pemanggil bisa mendaftar nama layanan dalam (`batas.txt`). Pencegahannya menyamakan kedua pesan, dan tes yang menetapkan perilaku sekarang diubah bersamanya (usul penulis, belum dikerjakan).
+3. Perilaku Go untuk nama IDNA berubah di versi baru, sedangkan isu golang/go#80417 masih terbuka. Pencegahannya menjalankan tes IDNA yang sama di tiap versi Go sebelum dipakai (usul penulis, belum dikerjakan).
+
+**Kapan keputusan ini salah.**
+
+- Saat satu impor 50 produk (Asumsi lab) membawa gambar yang semuanya menggantung sampai batas. Dengan 8 unduhan serentak, 50 ÷ 8 = 6,25 menjadi 7 gelombang, dan 7 × 3 detik = 21 detik dalam satu request (Hitungan atas Asumsi lab). Di atas itu, unduhan pindah ke queue, dan itu Tidak dijalankan di lab.
+- Saat header jawaban tidak dibatasi. Bawaan `http.Transport` menerima header sampai 10 MiB (kode go1.27.1, dibaca dari README lab), jadi 8 × 10 MiB = 80 MiB dalam satu impor. Dengan batas 64 KiB, 8 × 64 KiB = 512 KiB (Hitungan atas Asumsi lab). Memori sebenarnya tidak diukur.
+- Saat server merchant yang sah sering lebih lambat dari 3 detik. Gambar sah ditolak dengan "tidak menjawab", dan frekuensinya tidak diukur lab.
+- Saat fitur impor URL jarang dipakai. Opsi C lebih aman dan lebih ringan dipelihara.
+- Saat hosting memakai NAT64 milik operator. Awalan itu tidak bisa didaftar di kode, dan penempatan jaringan menjadi satu-satunya penutup (Tidak dijalankan).
+
+**Yang akan merevisinya.** [[t4-tim-infra]] memasang govulncheck dan grype di pipeline tiap merge per modul (ADR 44). Pemindai itu menilai versi Go yang dipakai, dan versi itu menentukan kapan perubahan perilaku dial di pustaka standar sampai ke fetcher (penalaran penulis).
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Metadata cloud dan IMDSv2 | Lab tidak menjalankan cloud, dan halaman ini tidak menulis alamat metadata sebagai tujuan | Belum dijadwalkan |
+| Pemisahan jaringan proses pengunduh | Lab tidak punya jaringan container untuk membuktikannya | Belum dijadwalkan |
+| Unduhan lewat queue | 50 gambar yang menggantung menahan satu request 21 detik, dan lab tidak menjalankan queue untuk ini | Belum dijadwalkan |
+| Pesan galat yang menyamakan nama ada dan tidak ada | Belum diperbaiki, dan tes menetapkan perilaku sekarang | Belum dijadwalkan |
+| Pencocokan ulang otomatis dengan registri IANA | Daftar dicocokkan sekali, dengan file bertanggal 2025-10-09 | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Fetcher hanya memeriksa dengan `IsPrivate`. Berapa dari 32 alamat terlarang yang lolos, dan dari angka apa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+29. `IsPrivate` menolak 3 dari 32 alamat itu, jadi 32 − 3 = 29 (Hitungan atas `alamat.txt`).
+
+</details>
+
+**2.** Server yang dituju membalas dengan pengalihan ke server lain. Apa jawaban versi aman, dan berapa kali server tujuan pengalihan disentuh?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Ditolak dengan "tujuan tidak diizinkan" untuk ketujuh kode pengalihan yang diuji, dan server tujuan pengalihan disentuh 0 kali (`batas.txt`, bagian redirect).
+
+</details>
+
+**3.** Gambar sah berukuran 2.097.152 byte dan gambar lain 2.097.153 byte. Mana yang diterima?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+2.097.152 byte, yaitu tepat 2 MiB, diterima. 2.097.153 byte ditolak "terlalu besar" (`batas.txt`, bagian batas 2 MiB).
+
+</details>
+
+**4.** Kenapa memeriksa teks URL seperti `localhost` tidak menutup SSRF, dan di mana pemeriksaan seharusnya berjalan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil sebelum koneksi benar-benar dibuat dengan alamat yang akan dihubungi (dokumentasi Go).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Alamat diperiksa pada alamat yang dihubungi, bukan pada teks URL.
+- [ ] Pengalihan dimatikan di client, atau tiap tujuan diperiksa ulang.
+- [ ] Hanya https, hanya status 200, tipe isi dari byte, dan batas ukuran, waktu, dan header.
+- [ ] Pesan galat tidak memuat isi respons, alamat, atau port.
+- [ ] Daftar alamat memuat IPv4-mapped, alamat berzona, dan awalan transisi IPv6, dan dicocokkan dengan registri IANA.
+- [ ] `IsPrivate` bukan satu-satunya pemeriksaan.
+
+### Bacaan lanjut
+
+- [OWASP: Server-Side Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)
+- [Go: package net, Dialer](https://pkg.go.dev/net#Dialer)
+- [Go: package net/netip](https://pkg.go.dev/net/netip)
+- [golang/go#80417: net/http, Client dials an IDNA-mapped host](https://github.com/golang/go/issues/80417)
+- [golang/go#79925: IP.IsPrivate is widely misused as a security primitive](https://github.com/golang/go/issues/79925)
+- [AWS Security Blog: defense in depth for the EC2 Instance Metadata Service](https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service/)
+- [IANA: IPv4 Special-Purpose Address Registry](https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml)
+- [IANA: IPv6 Special-Purpose Address Registry](https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml)
+
+</Blok>

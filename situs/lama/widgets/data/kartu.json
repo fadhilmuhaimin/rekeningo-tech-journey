@@ -2976,6 +2976,38 @@
   "jawab": "App berhenti selama mesin diganti. VPS kedua ditunda ADR 33, karena PRD v4 belum menulis batas waktu pulih atau jendela kehilangan data."
  },
  {
+  "id": "t4-ssrf-1",
+  "halaman": "t4-ssrf",
+  "judul": "4.21 Keamanan 8: SSRF + ADR 41",
+  "url": "tahap-4/ssrf/",
+  "tanya": "Fetcher hanya memeriksa dengan `IsPrivate`. Berapa dari 32 alamat terlarang yang lolos, dan dari angka apa?",
+  "jawab": "29. `IsPrivate` menolak 3 dari 32 alamat itu, jadi 32 − 3 = 29 (Hitungan atas `alamat.txt`)."
+ },
+ {
+  "id": "t4-ssrf-2",
+  "halaman": "t4-ssrf",
+  "judul": "4.21 Keamanan 8: SSRF + ADR 41",
+  "url": "tahap-4/ssrf/",
+  "tanya": "Server yang dituju membalas dengan pengalihan ke server lain. Apa jawaban versi aman, dan berapa kali server tujuan pengalihan disentuh?",
+  "jawab": "Ditolak dengan \"tujuan tidak diizinkan\" untuk ketujuh kode pengalihan yang diuji, dan server tujuan pengalihan disentuh 0 kali (`batas.txt`, bagian redirect)."
+ },
+ {
+  "id": "t4-ssrf-3",
+  "halaman": "t4-ssrf",
+  "judul": "4.21 Keamanan 8: SSRF + ADR 41",
+  "url": "tahap-4/ssrf/",
+  "tanya": "Gambar sah berukuran 2.097.152 byte dan gambar lain 2.097.153 byte. Mana yang diterima?",
+  "jawab": "2.097.152 byte, yaitu tepat 2 MiB, diterima. 2.097.153 byte ditolak \"terlalu besar\" (`batas.txt`, bagian batas 2 MiB)."
+ },
+ {
+  "id": "t4-ssrf-4",
+  "halaman": "t4-ssrf",
+  "judul": "4.21 Keamanan 8: SSRF + ADR 41",
+  "url": "tahap-4/ssrf/",
+  "tanya": "Kenapa memeriksa teks URL seperti `localhost` tidak menutup SSRF, dan di mana pemeriksaan seharusnya berjalan?",
+  "jawab": "Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil sebelum koneksi benar-benar dibuat dengan alamat yang akan dihubungi (dokumentasi Go)."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

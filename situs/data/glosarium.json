@@ -171,6 +171,15 @@
   "h": "/istilah/alert/"
  },
  {
+  "t": "Allowlist",
+  "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
+  "b": "t4-ssrf",
+  "n": "4.21 SSRF",
+  "u": "/tahap-4/ssrf/",
+  "s": "istilah-allowlist",
+  "h": null
+ },
+ {
   "t": "API gateway",
   "d": "Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing.",
   "b": "C4",
@@ -475,6 +484,15 @@
   "u": "/tahap-2/ledger/",
   "s": "istilah-debit",
   "h": "/istilah/debit/"
+ },
+ {
+  "t": "Deny-list",
+  "d": "Daftar yang ditolak; yang tidak ada di daftar diterima, jadi daftar itu harus memuat semua yang terlarang.",
+  "b": "t4-ssrf",
+  "n": "4.21 SSRF",
+  "u": "/tahap-4/ssrf/",
+  "s": "istilah-deny-list",
+  "h": null
  },
  {
   "t": "Double-entry",
@@ -1564,6 +1582,15 @@
   "u": "/e-mobile/e4-push-real-time/",
   "s": "istilah-sse",
   "h": null
+ },
+ {
+  "t": "SSRF (server-side request forgery)",
+  "d": "Serangan yang membuat server mengirim permintaan ke alamat pilihan pihak lain, dengan hak jaringan server.",
+  "b": "t4-ssrf",
+  "n": "4.21 SSRF",
+  "u": "/tahap-4/ssrf/",
+  "s": "istilah-ssrf",
+  "h": "/istilah/ssrf/"
  },
  {
   "t": "Staging",

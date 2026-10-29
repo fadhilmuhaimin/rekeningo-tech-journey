@@ -1,0 +1,92 @@
+{
+  "id": "t4-ssrf-caribug",
+  "judul": "Fungsi unduh gambar versi pertama minggu 9",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Salinan fungsi Rentan di labs/api-t4/internal/unduh/unduh.go tanpa komentar. Perilakunya hanya diperiksa tes unit api-t4 (nama tes tercatat lulus di labs/api-t4/output/testing.txt); tidak ada rekaman tingkat endpoint dan lab t4-ssrf tidak menjalankannya."
+  },
+  "bahasa": "go",
+  "baris": [
+    "func Rentan(ctx context.Context, alamat string) (Gambar, error) {",
+    "\tif strings.Contains(alamat, \"localhost\") || strings.Contains(alamat, \"127.0.0.1\") {",
+    "\t\treturn Gambar{}, errors.New(\"alamat tidak diizinkan\")",
+    "\t}",
+    "\tctx, batal := context.WithTimeout(ctx, 10*time.Second)",
+    "\tdefer batal()",
+    "\treq, err := http.NewRequestWithContext(ctx, http.MethodGet, alamat, nil)",
+    "\tif err != nil {",
+    "\t\treturn Gambar{}, fmt.Errorf(\"alamat tidak valid: %v\", err)",
+    "\t}",
+    "\tresp, err := (&http.Client{}).Do(req)",
+    "\tif err != nil {",
+    "\t\treturn Gambar{}, fmt.Errorf(\"gagal mengunduh: %v\", err)",
+    "\t}",
+    "\tdefer resp.Body.Close()",
+    "\tisi, err := io.ReadAll(io.LimitReader(resp.Body, batasRentan))",
+    "\tif err != nil {",
+    "\t\treturn Gambar{}, fmt.Errorf(\"gagal membaca: %v\", err)",
+    "\t}",
+    "\ttipe := http.DetectContentType(isi)",
+    "\tif resp.StatusCode != http.StatusOK || !strings.HasPrefix(tipe, \"image/\") {",
+    "\t\tawal := isi",
+    "\t\tif len(awal) > awalGalatRentan {",
+    "\t\t\tawal = awal[:awalGalatRentan]",
+    "\t\t}",
+    "\t\treturn Gambar{}, fmt.Errorf(\"bukan gambar (status %d): %s\", resp.StatusCode, awal)",
+    "\t}",
+    "\treturn Gambar{Tipe: tipe, Ukuran: len(isi)}, nil",
+    "}"
+  ],
+  "bug": [
+    1,
+    10,
+    25
+  ],
+  "alasan": {
+    "1": "Yang diperiksa adalah teks URL, bukan alamat yang dihubungi. Satu alamat punya beberapa penulisan, dan satu nama bisa menunjuk ke alamat dalam, jadi daftar kata tidak mencakup tujuan sebenarnya. OWASP menulis bahwa deny-lists are bypass-prone. Satu tes unit api-t4 lulus dan memastikan versi ini meloloskan bentuk lain sedangkan versi aman menolaknya (`testing.txt`, tanpa rekaman tingkat endpoint). Bentuk yang lolos bergantung resolver platform, jadi halaman ini tidak menyalinnya.",
+    "10": "Client bawaan Go berhenti sesudah 10 permintaan berturut-turut, jadi pengalihan diikuti. Pemeriksaan teks di baris 2 tidak diulang untuk tujuan pengalihan, dan tidak ada yang memeriksa alamat yang benar-benar dihubungi. Di tes unit api-t4 yang lulus, server dalam tersentuh tepat 1 kali lewat pengalihan (dibaca dari kode tes).",
+    "25": "Pesan galat memuat sampai 200 byte pertama isi respons. Pesan itu sampai ke merchant lewat kolom `galat` baris impor. Satu tes unit api-t4 lulus dan memastikan isi layanan dalam muncul di pesan (dibaca dari kode tes, tanpa rekaman tingkat endpoint)."
+  },
+  "aman": {
+    "4": "Batas waktu ada, tetapi 10 detik, bukan 3 detik seperti di ADR 41. Batas ini membatasi lamanya unduhan, bukan tujuannya, jadi ia bukan sumber masalah ini.",
+    "6": "Request dibuat dari alamat apa adanya. Itu wajar, karena alamat yang dihubungi baru ditentukan saat dial, dan di sanalah pemeriksaan seharusnya berada.",
+    "15": "Ukuran isi dibatasi 10 MiB, sedangkan ADR 41 memakai 2 MiB. Batas ini menahan memori, bukan jalan ke alamat dalam.",
+    "19": "Tipe isi dibaca dari byte, bukan dari header, dan itu benar. Tetapi baris ini berjalan sesudah permintaan terkirim, jadi ia tidak mencegah server menghubungi alamat dalam."
+  },
+  "tebak": {
+    "q": "Tiga baris di fungsi ini membuat alamat dalam bisa dijangkau atau membuat isinya sampai ke merchant. Baris mana?",
+    "petunjuk": "Untuk tiap baris, tanya dua hal: apa yang diperiksa, dan apakah itu alamat yang benar-benar dihubungi? Lalu tanya apa yang dikirim balik ke merchant."
+  },
+  "perbaikan": {
+    "label": "Versi benar: alamat diperiksa saat dihubungi",
+    "baris": [
+      "\tdialer := &net.Dialer{",
+      "\t\tTimeout: waktu,",
+      "\t\tControlContext: func(_ context.Context, _, address string, _ syscall.RawConn) error {",
+      "\t\t\th, _, err := net.SplitHostPort(address)",
+      "\t\t\tif err != nil {",
+      "\t\t\t\treturn ErrTujuan",
+      "\t\t\t}",
+      "\t\t\tip, err := netip.ParseAddr(h)",
+      "\t\t\tif err != nil || a.alamatDilarang(ip) {",
+      "\t\t\t\treturn ErrTujuan",
+      "\t\t\t}",
+      "\t\t\treturn nil",
+      "\t\t},",
+      "\t}"
+    ],
+    "catatan": "Pemeriksaan pindah ke alamat yang akan dihubungi, dan baris teks URL hilang. Versi aman juga hanya menerima https, tidak mengikuti pengalihan, membatasi isi 2 MiB dan waktu 3 detik, hanya menerima status 200, membaca tipe dari byte, dan memakai pesan galat tanpa isi respons (`batas.txt`). Seluruh fungsinya ada di `labs/api-t4/internal/unduh/unduh.go`."
+  },
+  "label": {
+    "sumber": "Tidak dijalankan: dibaca dari kode lab api-t4",
+    "tebakDulu": "Tebak dulu:",
+    "perintah": "Klik baris yang membuat alamat dalam bisa dijangkau atau isinya sampai ke merchant, lalu Periksa.",
+    "periksa": "Periksa tanda saya",
+    "ulang": "Ulang",
+    "benar": "sumber masalah",
+    "lewat": "terlewat",
+    "salahTanda": "baris ini tidak salah",
+    "perbaikanTombol": "Lihat versi benar",
+    "ringkas": "Kamu menandai {benar} dari {bug} baris yang bermasalah, dan {salah} baris lain ikut ditandai."
+  }
+}
