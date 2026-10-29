@@ -3,16 +3,16 @@
 // ulang pembangkit, dan baca selisihnya sebelum commit: sidik hanya menandai bahwa sesuatu berubah, bukan bahwa ia benar.
 export const SIDIK = {
   frontmatter: "f1015e9d246eddcc",
-  riset: ["9c12202ae3f0d282","4f0a7d6a105cdf7b"],
+  riset: ["9c12202ae3f0d282","1d1645f35f34ad44"],
   diagram: "ba4c7cc2370a8387",
-  skenario: "921763da081f4cf3",
+  skenario: "cd86146b9a80e8cc",
 };
 
 // Nilai terpisah dari kalimat terkunci: dua baris riset utuh, tiap daun diagram dan skenario, dan profil kata penentu
 // per baris badan (polaritas, urutan waktu, bilangan, tokoh, hari, urutan gateway, label sumber).
 export const RISET_TERKUNCI: string[] = [
   "| R4-145 | Rotasi secret penanda tangan: secret lama tetap aktif sampai 24 jam (gateway nyata pertama, dibuka untuk halaman 4.8) | Stripe docs, \"Receive Stripe events in your webhook endpoint\" (docs.stripe.com/webhooks, dibuka 2026-10-29), bagian Roll endpoint signing secrets periodically: \"You can choose to immediately expire the current secret or delay its expiration for up to 24 hours to allow yourself time to update the verification code on your server. During this time, multiple secrets are active for the endpoint. Stripe generates one signature per secret until expiration.\"; bagian Preventing replay attacks: \"we generate a new signature and timestamp for the new delivery attempt\"; bagian Automatic retries: \"for up to three days with an exponential back off in live mode\" | 4.8 (Yang sebenarnya, tabel Dua gateway nyata): secret lama bisa tetap aktif sampai 24 jam dengan satu tanda tangan per secret, dan kiriman yang gagal diulang sampai tiga hari di mode live; ditulis tanpa merek sebagai gateway pertama | Tidak berubah dari R4-08 dan R4-126 (dicek ulang 2026-10-29) |",
-  "| R4-146 | Kegagalan lain lima kali, 401 dan rotasi tidak disebut, dan anjuran menanyakan status (gateway nyata kedua, dibuka untuk halaman 4.8) | Midtrans docs, \"HTTP(S) Notification / Webhooks\" (docs.midtrans.com/docs/https-notification-webhooks, dibuka 2026-10-29), seluruh halaman terbaca (100.000 karakter pertama dan sisa 6.898 karakter): tabel status memuat \"2XX\" (\"No retries\"), \"500\" (\"Retry only once\"), \"503\" (\"Retry four times\"), \"400/404\" (\"Retry two times\"), \"301/302/303\" (\"No retries\"), dan \"Other\" (\"Retry five times\"); \"Midtrans retry at most 5 times\"; \"Midtrans put a random time shift for each attempt based on above interval\" dengan contoh \"the first retry time might be 33s (up to 2m) after previous attempt\"; \"you should use the GET Status API\" bila notifikasi terlambat; halaman tidak menyebut kode 401 atau 403 sendiri dan tidak menyebut rotasi atau penggantian server key | 4.8: kode 401 jatuh ke baris \"Other\" lima kali (pembacaan, bukan kutipan; Asumsi untuk tiruan); jeda dihitung sejak percobaan sebelumnya (tersirat dari contoh geseran); dokumentasi tidak menyebut rotasi; dokumentasi menyarankan menanyakan status bila notifikasi terlambat | Tidak berubah dari R4-08, R4-125, dan R4-136 (dicek ulang 2026-10-29) |"
+  "| R4-146 | Kegagalan lain lima kali, 401 dan rotasi tidak disebut, dan anjuran menanyakan status (gateway nyata kedua, dibuka untuk halaman 4.8) | Midtrans docs, \"HTTP(S) Notification / Webhooks\" (docs.midtrans.com/docs/https-notification-webhooks, dibuka 2026-10-29), seluruh halaman terbaca (100.000 karakter pertama dan sisa 6.898 karakter): tabel status memuat \"2XX\" (\"No retries\"), \"500\" (\"Retry only once\"), \"503\" (\"Retry four times\"), \"400/404\" (\"Retry two times\"), \"301/302/303\" (\"No retries\"), dan \"Other\" (\"Retry five times\"); \"Midtrans retry at most 5 times\"; \"Midtrans put a random time shift for each attempt based on above interval\" dengan contoh \"the first retry time might be 33s (up to 2m) after previous attempt\"; \"you should use the GET Status API\" bila notifikasi terlambat; isi halaman (tabel dan teks) tidak menyebut kode 401 atau 403 sendiri dan tidak menyebut rotasi atau penggantian server key; judul FAQ lain di menu samping halaman itu menyebut galat 401 untuk client key atau server key yang salah, bukan jawaban penerima notifikasi (HTML mentah dibaca dengan curl, 2026-10-29) | 4.8: kode 401 jatuh ke baris \"Other\" lima kali (pembacaan, bukan kutipan; Asumsi untuk tiruan); jeda dihitung sejak percobaan sebelumnya (tersirat dari contoh geseran); dokumentasi tidak menyebut rotasi; dokumentasi menyarankan menanyakan status bila notifikasi terlambat | Tidak berubah dari R4-08, R4-125, dan R4-136 (dicek ulang 2026-10-29) |",
 ];
 export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  [
@@ -467,7 +467,7 @@ export const SKENARIO_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".varian.langkah[1].jelas",
-  "Satu-satunya yang berubah adalah secret di api-t4: yang baru dipakai, yang lama masih diterima. Isi kiriman dan jam maya sama."
+  "Daftar secret di api-t4 berubah: yang baru dipakai, yang lama masih diterima. Isi kiriman sama, dan jam maya dipasang sebelum tiap kiriman."
  ],
  [
   ".varian.langkah[2].dari",
@@ -618,13 +618,13 @@ export const PROFIL_BARIS: string[] = [
  "",
  "",
  "sama:1 tiga:1 lima:1 pertama:1 kedua:1 tanpa:1 gagal:1",
- "tidak:1 tetap:1 satu:1 pertama:1 kedua:1 tanpa:1",
+ "tidak:2 tetap:1 satu:1 pertama:1 kedua:1",
  "satu:1 dua:1 kedua:1 bukan:1 tanpa:1",
  "tidak:1 sebelum:2 sesudah:1 Bayu:1 Minggu:1 pertama:1 Ilustrasi:1",
  "tidak:1 hanya:1 sesudah:2 Citra:1 Sabtu:2 Minggu:1 pertama:1",
  "tidak:1 sebelum:1 Citra:1 Raka:2",
  "tujuh:1 Senin:1 kedua:1 tanpa:1 Ilustrasi:1",
- "hanya:1 sama:1 sebelum:2 satu:1 bukan:1 Tidak dijalankan:1",
+ "sama:1 sebelum:2 bukan:1 Tidak dijalankan:1",
  "tidak:1 belum:2 sesudah:1 kedua:1 Tidak dijalankan:1 habis:1",
  "sesudah:1",
  "tidak:1 sama:1 Citra:1 Senin:1 kedua:1 Tidak dijalankan:1",
@@ -666,7 +666,7 @@ export const PROFIL_BARIS: string[] = [
  "tidak:1 tiga:1 lima:1 pertama:1 kedua:2 Tidak dijalankan:1",
  "",
  "",
- ""
+ "",
 ];
 
 export const KALIMAT_TERKUNCI: string[] = [
@@ -689,7 +689,7 @@ export const KALIMAT_TERKUNCI: string[] = [
   "Dugaan ketiga: gateway sedang lambat. Raka memutuskan menunggu sehari.",
   "<details class=\"question\">",
   "<summary>Tebak dulu: gateway sudah mengirim kabar \"dibayar\" untuk top-up Citra, tetapi database tidak memuat satu pun event. Kenapa tidak ada event?</summary>",
-  "Kabarnya sampai ke Rekeningo, tetapi ditolak sebelum satu pun baris event ditulis. Penolakannya 401, karena tanda tangan di kiriman tidak cocok dengan secret yang dipegang Rekeningo. Kenapa tidak cocok ada di blok berikutnya.",
+  "Kabarnya sampai ke Rekeningo, tetapi ditolak sebelum satu pun baris event ditulis. Penolakannya 401, karena tanda tangan di kiriman tidak cocok dengan secret yang dipegang Rekeningo. Secret di sini adalah kata rahasia bersama antara gateway dan Rekeningo. Kenapa tidak cocok ada di blok berikutnya.",
   "Rekaman lab memerankannya: enam kiriman dijawab 401, dan tabel `webhook_event` tetap kosong.",
   "</details>",
   "</Blok>",
@@ -707,20 +707,20 @@ export const KALIMAT_TERKUNCI: string[] = [
   "Jeda antar percobaan 2, 10, 30, 90, dan 210 menit sejak percobaan sebelumnya. Kiriman jatuh pada menit 0, 2, 12, 42, 132, dan 342. Totalnya 342 menit, atau 342 ÷ 60 = 5,7 jam (Hitungan: angka yang dihitung dari angka lain di halaman).",
   "**Kenapa 401 diulang sampai lima kali.** Gateway tidak tahu kenapa Rekeningo menolak. Ia hanya melihat kode status.",
   "Dokumentasi gateway kedua memuat jumlah ulangan per kode status ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29, Tidak dijalankan). Tanpa ulangan untuk 2xx, satu kali untuk 500, empat kali untuk 503, dua kali untuk 400 dan 404, dan lima kali untuk kegagalan lain. Pengalihan 301, 302, dan 303 tidak diulang, dan tiruan tidak memerankannya (Tidak dijalankan).",
-  "Kode 401 tidak disebut sendiri di dokumentasi itu. Ia jatuh ke baris kegagalan lain, dan itu pembacaan, bukan kutipan. Tiruan memakai pembacaan itu (Asumsi), dan tabel bagian A merekam jumlah kirimannya per kode:",
+  "Tabel kode status di dokumentasi itu tidak menyebut 401 sendiri. Kode itu jatuh ke baris kegagalan lain, dan itu pembacaan, bukan kutipan. Tiruan memakai pembacaan itu (Asumsi), dan tabel bagian A merekam jumlah kirimannya per kode:",
   "<Snippet file=\"labs/t4-webhook/output/retry.txt\" lines=\"5:16\" title=\"Rekaman lab: labs/t4-webhook/output/retry.txt, bagian A (jumlah kiriman per kode status)\" />",
   "**Dua gateway nyata, dua kebiasaan.** Jadwal tiruan datang dari dokumentasi gateway kedua. Perilaku rotasi yang berbeda ada di dokumentasi gateway pertama ([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29, Tidak dijalankan). Keduanya tidak boleh dibaca sebagai satu gateway:",
   "| | Dokumentasi gateway nyata | Tiruan lab |",
   "|---|---|---|",
   "| Kiriman yang gagal | Gateway pertama: diulang sampai tiga hari dalam mode live. Gateway kedua: paling banyak lima kali, jeda 2, 10, 30, 90, dan 210 menit, digeser acak | Lima ulangan dengan jeda yang sama, tanpa geseran (`retry.txt` bagian A) |",
-  "| Rotasi secret | Gateway pertama: secret lama bisa tetap aktif sampai 24 jam, dengan satu tanda tangan per secret. Gateway kedua: tidak disebut di dokumentasi yang dibuka | Langsung memakai secret baru, tanpa masa tumpang tindih (`retry.txt` bagian B) |",
+  "| Rotasi secret | Gateway pertama: secret lama bisa langsung kedaluwarsa atau tetap aktif sampai 24 jam, sesuai pilihan; tiap secret yang aktif memberi satu tanda tangan. Gateway kedua: tidak disebut di dokumentasi yang dibuka | Langsung memakai secret baru; secret lama dan baru tidak berlaku bersamaan (`retry.txt` bagian B) |",
   "Masa tumpang tindih adalah jangka waktu ketika secret lama dan secret baru sama-sama berlaku. Kegagalan seperti M30 butuh dua sifat sekaligus: rotasi tanpa masa tumpang tindih, dan jadwal ulang yang lebih pendek daripada waktu penyamaan secret. Gabungan itu bukan perilaku yang tertulis di salah satu dari kedua dokumentasi.",
   "**Kiriman yang tidak datang lagi.** Bayu menyamakan secret Minggu 09.10 (Ilustrasi), atau 910 menit sesudah rotasi pukul 18.00. Jadwal terpanjang gateway 342 menit. Kiriman pertama sebelum 09.10 − 342 menit = 03.28 memakai keenam percobaannya sebelum 09.10.",
   "Semuanya dijawab 401, dan gateway tidak mengirim lagi. Rentang itu dimulai dari rotasi: Sabtu 18.00 sampai Minggu 03.28, atau 910 − 342 = 568 menit. Top-up Citra, Sabtu malam, ada di rentang itu. Kiriman pertama sesudah 03.28 masih punya percobaan sesudah 09.10, jadi tercatat, hanya terlambat.",
   "Karena itu keputusan Raka, menunggu sehari, tidak menolong Citra. Gateway sudah berhenti mengirim sebelum Raka mulai menunggu.",
   "Batas 03.28 berlaku untuk tiruan. Gateway kedua menggeser tiap percobaan secara acak, jadi batasnya di sana bergeser sedikit. Jumlah top-up di rentang itu bergantung pada berapa orang mengisi saldo; naskah menyebut tujuh top-up tanpa jurnal pada hari Senin (Ilustrasi).",
-  "**Penyebabnya secret, bukan waktu atau isi.** Di bagian C hanya satu hal yang berbeda sebelum kiriman ke-3: secret di api-t4 disamakan. Isi kiriman dan jam maya yang dipasang sebelum tiap kiriman sama (Tidak dijalankan: dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.",
-  "**Tidak ada jalan kedua.** Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada yang mencocokkan laporan gateway dengan ledger. Skrip rekaman bagian B tidak menjalankan job apa pun sesudah jadwal habis (Tidak dijalankan: dibaca dari `run.py`).",
+  "**Penyebabnya secret, bukan waktu atau isi.** Di bagian C api-t4 dinyalakan ulang sebelum kiriman ke-3, dengan secret baru di depan dan secret lama sesudahnya. Isi kiriman sama, dan jam maya dipasang sebelum tiap kiriman (Tidak dijalankan: dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.",
+  "**Tidak ada jalan kedua.** Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada job yang mencocokkan laporan gateway dengan ledger. Skrip rekaman bagian B tidak menjalankan job apa pun sesudah jadwal habis (Tidak dijalankan: dibaca dari `run.py`).",
   "Catatan penutup rekaman itu menyebut keduanya, cek status dan rekonsiliasi, sebagai yang menemukan uangnya. Keduanya lahir sesudah M30.",
   "Dokumentasi gateway kedua sendiri menyarankan menanyakan status transaksi lewat API-nya bila notifikasi terlambat (dokumentasi yang sama, Tidak dijalankan). Webhook di versi ini adalah satu-satunya jalan kabar uang masuk. Pertanyaan PRD v4, siapa yang tahu bila kabar tidak datang, di sini dijawab dengan buruk: Citra lewat pesan, dan Pak Hadi lewat laporan hari Senin.",
   "Jalan kedua, dan cara selisih seperti ini menjadi insiden bernomor, dibuka di [[t4-rekonsiliasi]].",

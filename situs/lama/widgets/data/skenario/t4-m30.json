@@ -146,7 +146,7 @@
         "dari": "api",
         "judul": "Secret disamakan, api-t4 dinyalakan ulang",
         "kirim": "# menit 2 sampai 12: rahasia di api-t4 disamakan, server dinyalakan ulang dengan <baru>,<lama>",
-        "jelas": "Satu-satunya yang berubah adalah secret di api-t4: yang baru dipakai, yang lama masih diterima. Isi kiriman dan jam maya sama."
+        "jelas": "Daftar secret di api-t4 berubah: yang baru dipakai, yang lama masih diterima. Isi kiriman sama, dan jam maya dipasang sebelum tiap kiriman."
       },
       {
         "dari": "gw",

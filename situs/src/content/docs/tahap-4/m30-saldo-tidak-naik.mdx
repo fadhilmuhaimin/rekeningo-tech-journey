@@ -34,7 +34,7 @@ Dugaan ketiga: gateway sedang lambat. Raka memutuskan menunggu sehari.
 <details class="question">
 <summary>Tebak dulu: gateway sudah mengirim kabar "dibayar" untuk top-up Citra, tetapi database tidak memuat satu pun event. Kenapa tidak ada event?</summary>
 
-Kabarnya sampai ke Rekeningo, tetapi ditolak sebelum satu pun baris event ditulis. Penolakannya 401, karena tanda tangan di kiriman tidak cocok dengan secret yang dipegang Rekeningo. Kenapa tidak cocok ada di blok berikutnya.
+Kabarnya sampai ke Rekeningo, tetapi ditolak sebelum satu pun baris event ditulis. Penolakannya 401, karena tanda tangan di kiriman tidak cocok dengan secret yang dipegang Rekeningo. Secret di sini adalah kata rahasia bersama antara gateway dan Rekeningo. Kenapa tidak cocok ada di blok berikutnya.
 
 Rekaman lab memerankannya: enam kiriman dijawab 401, dan tabel `webhook_event` tetap kosong.
 
@@ -70,7 +70,7 @@ Jeda antar percobaan 2, 10, 30, 90, dan 210 menit sejak percobaan sebelumnya. Ki
 
 Dokumentasi gateway kedua memuat jumlah ulangan per kode status ([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29, Tidak dijalankan). Tanpa ulangan untuk 2xx, satu kali untuk 500, empat kali untuk 503, dua kali untuk 400 dan 404, dan lima kali untuk kegagalan lain. Pengalihan 301, 302, dan 303 tidak diulang, dan tiruan tidak memerankannya (Tidak dijalankan).
 
-Kode 401 tidak disebut sendiri di dokumentasi itu. Ia jatuh ke baris kegagalan lain, dan itu pembacaan, bukan kutipan. Tiruan memakai pembacaan itu (Asumsi), dan tabel bagian A merekam jumlah kirimannya per kode:
+Tabel kode status di dokumentasi itu tidak menyebut 401 sendiri. Kode itu jatuh ke baris kegagalan lain, dan itu pembacaan, bukan kutipan. Tiruan memakai pembacaan itu (Asumsi), dan tabel bagian A merekam jumlah kirimannya per kode:
 
 <Snippet file="labs/t4-webhook/output/retry.txt" lines="5:16" title="Rekaman lab: labs/t4-webhook/output/retry.txt, bagian A (jumlah kiriman per kode status)" />
 
@@ -79,7 +79,7 @@ Kode 401 tidak disebut sendiri di dokumentasi itu. Ia jatuh ke baris kegagalan l
 | | Dokumentasi gateway nyata | Tiruan lab |
 |---|---|---|
 | Kiriman yang gagal | Gateway pertama: diulang sampai tiga hari dalam mode live. Gateway kedua: paling banyak lima kali, jeda 2, 10, 30, 90, dan 210 menit, digeser acak | Lima ulangan dengan jeda yang sama, tanpa geseran (`retry.txt` bagian A) |
-| Rotasi secret | Gateway pertama: secret lama bisa tetap aktif sampai 24 jam, dengan satu tanda tangan per secret. Gateway kedua: tidak disebut di dokumentasi yang dibuka | Langsung memakai secret baru, tanpa masa tumpang tindih (`retry.txt` bagian B) |
+| Rotasi secret | Gateway pertama: secret lama bisa langsung kedaluwarsa atau tetap aktif sampai 24 jam, sesuai pilihan; tiap secret yang aktif memberi satu tanda tangan. Gateway kedua: tidak disebut di dokumentasi yang dibuka | Langsung memakai secret baru; secret lama dan baru tidak berlaku bersamaan (`retry.txt` bagian B) |
 
 Masa tumpang tindih adalah jangka waktu ketika secret lama dan secret baru sama-sama berlaku. Kegagalan seperti M30 butuh dua sifat sekaligus: rotasi tanpa masa tumpang tindih, dan jadwal ulang yang lebih pendek daripada waktu penyamaan secret. Gabungan itu bukan perilaku yang tertulis di salah satu dari kedua dokumentasi.
 
@@ -91,9 +91,9 @@ Karena itu keputusan Raka, menunggu sehari, tidak menolong Citra. Gateway sudah 
 
 Batas 03.28 berlaku untuk tiruan. Gateway kedua menggeser tiap percobaan secara acak, jadi batasnya di sana bergeser sedikit. Jumlah top-up di rentang itu bergantung pada berapa orang mengisi saldo; naskah menyebut tujuh top-up tanpa jurnal pada hari Senin (Ilustrasi).
 
-**Penyebabnya secret, bukan waktu atau isi.** Di bagian C hanya satu hal yang berbeda sebelum kiriman ke-3: secret di api-t4 disamakan. Isi kiriman dan jam maya yang dipasang sebelum tiap kiriman sama (Tidak dijalankan: dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.
+**Penyebabnya secret, bukan waktu atau isi.** Di bagian C api-t4 dinyalakan ulang sebelum kiriman ke-3, dengan secret baru di depan dan secret lama sesudahnya. Isi kiriman sama, dan jam maya dipasang sebelum tiap kiriman (Tidak dijalankan: dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.
 
-**Tidak ada jalan kedua.** Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada yang mencocokkan laporan gateway dengan ledger. Skrip rekaman bagian B tidak menjalankan job apa pun sesudah jadwal habis (Tidak dijalankan: dibaca dari `run.py`).
+**Tidak ada jalan kedua.** Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada job yang mencocokkan laporan gateway dengan ledger. Skrip rekaman bagian B tidak menjalankan job apa pun sesudah jadwal habis (Tidak dijalankan: dibaca dari `run.py`).
 
 Catatan penutup rekaman itu menyebut keduanya, cek status dan rekonsiliasi, sebagai yang menemukan uangnya. Keduanya lahir sesudah M30.
 

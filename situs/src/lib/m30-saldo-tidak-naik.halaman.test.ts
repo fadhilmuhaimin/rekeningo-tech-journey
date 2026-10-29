@@ -195,7 +195,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(hal43).toContain("kabar yang tidak datang di [[t4-m30]]");
     expect(hal43).toContain("| Kabar hilang, dan job cek status juga belum jalan? | Widget memakai umur job 0 detik | [[t4-m30]] |");
     expect(hal44).toContain("Jawabannya ada di [[t4-m29]], [[t4-m30]], dan [[t4-m31]].");
-    harus("Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada yang mencocokkan laporan gateway dengan ledger.");
+    harus("Di cerita, minggu 4 belum punya job yang menanyakan status top-up ke gateway, dan belum ada job yang mencocokkan laporan gateway dengan ledger.");
   });
   test("halaman tidak membuka isi 4.9: hanya ADR 35 dan hanya sekali (konsep yang lahir); tanpa batas 30 menit, insiden_rekon, 0,4%, atau aturan koreksi", () => {
     expect([...new Set(badan.match(/ADR \d+/g))]).toEqual(["ADR 35"]);
@@ -304,9 +304,9 @@ describe("rekaman retry.txt: bagian A, B, dan C dan rentang Snippet", () => {
     expect(runWebhook).toContain('url_jam=f"http://127.0.0.1:{PORT}/lab/jam", dari=3)');
     expect(runWebhook).toContain('ganti_api(["-jam-lab", "-rahasia-webhook", f"{RAHASIA2},{RAHASIA1}"]');
     harus("Bagian C memakai top-up Eko Rp200.000 dengan alur yang sama: kiriman ke-3 pada menit 12 diterima, dan jurnalnya satu.");
-    harus("**Penyebabnya secret, bukan waktu atau isi.** Di bagian C hanya satu hal yang berbeda sebelum kiriman ke-3: secret di api-t4 disamakan. Isi kiriman dan jam maya yang dipasang sebelum tiap kiriman sama (Tidak dijalankan: dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.");
+    harus("**Penyebabnya secret, bukan waktu atau isi.** Di bagian C api-t4 dinyalakan ulang sebelum kiriman ke-3, dengan secret baru di depan dan secret lama sesudahnya. Isi kiriman sama, dan jam maya dipasang sebelum tiap kiriman (Tidak dijalankan: dibaca dari `run.py`). Kiriman 1 dan 2 dijawab 401, dan kiriman 3 pada menit 12 dijawab 200 diproses.");
   });
-  test("run.py: tiap kiriman bagian B dan C memasang jam maya (url_jam) sebelum dikirim; hanya secret yang berubah di antara kiriman 2 dan 3", () => {
+  test("run.py: tiap kiriman bagian B dan C memasang jam maya (url_jam) sebelum dikirim; api-t4 dinyalakan ulang satu kali, dengan daftar secret baru lalu lama, di antara kiriman 2 dan 3", () => {
     const run = bagian(runWebhook);
     const iB = run.nomor((b) => b.includes('bagian("B. M30:'));
     const iC = run.nomor((b) => b.includes('bagian("C. Disamakan'));
@@ -415,7 +415,7 @@ describe("kode lab: tanda tangan lebih dulu, 401, daftar secret, dan tiruan gate
     expect(jadwalGo).toContain("tandatangani(p.Rahasia, ts, asli)");
     expect(jadwalGo).toContain("maya := time.Unix(p.Mulai, 0).Add(offsetKiriman(ke))");
     expect(jadwalGo).toContain("tiruan ini tidak menggeser (supaya");
-    harus("Langsung memakai secret baru, tanpa masa tumpang tindih (`retry.txt` bagian B)");
+    harus("Langsung memakai secret baru; secret lama dan baru tidak berlaku bersamaan (`retry.txt` bagian B)");
     harus("Lima ulangan dengan jeda yang sama, tanpa geseran (`retry.txt` bagian A)");
     expect(bagA).toContain("# Tiruan tidak menggeser tiap percobaan secara acak (dokumentasi gateway itu menggeser)");
   });
@@ -431,7 +431,7 @@ describe("kode lab: tanda tangan lebih dulu, 401, daftar secret, dan tiruan gate
     expect(barisRiset("R4-146")).toContain('"301/302/303" ("No retries")');
     expect(baca("labs/t4-webhook/README.md")).toContain("pengalihan 3xx (dokumentasi gateway itu: 301, 302, 303 tanpa ulangan; 307 dan 308 diikuti)");
     expect(retry).not.toMatch(/ 30[123] +\|/); // tiruan tidak memerankan pengalihan: tidak ada baris 301, 302, atau 303 di bagian A
-    harus("Kode 401 tidak disebut sendiri di dokumentasi itu. Ia jatuh ke baris kegagalan lain, dan itu pembacaan, bukan kutipan. Tiruan memakai pembacaan itu (Asumsi), dan tabel bagian A merekam jumlah kirimannya per kode:");
+    harus("Tabel kode status di dokumentasi itu tidak menyebut 401 sendiri. Kode itu jatuh ke baris kegagalan lain, dan itu pembacaan, bukan kutipan. Tiruan memakai pembacaan itu (Asumsi), dan tabel bagian A merekam jumlah kirimannya per kode:");
     expect(bagA).toContain("# Penolakan 401 masuk 'lainnya': lima ulangan, enam kiriman, 342 menit.");
   });
 });
@@ -520,7 +520,7 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     expect(a).toContain("Stripe generates one signature per secret until expiration");
     expect(a).toContain("for up to three days with an exponential back off in live mode");
     harus("Gateway pertama: diulang sampai tiga hari dalam mode live.");
-    harus("Gateway pertama: secret lama bisa tetap aktif sampai 24 jam, dengan satu tanda tangan per secret.");
+    harus("Gateway pertama: secret lama bisa langsung kedaluwarsa atau tetap aktif sampai 24 jam, sesuai pilihan; tiap secret yang aktif memberi satu tanda tangan.");
     harus("([dokumentasi webhook gateway pembayaran lain](https://docs.stripe.com/webhooks), dibuka 2026-10-29, Tidak dijalankan)");
     expect(barisRiset("R4-126")).toContain("ulangan sampai tiga hari di live mode");
   });
@@ -531,7 +531,7 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     expect(b).toContain("\"Midtrans retry at most 5 times\"");
     expect(b).toContain("the first retry time might be 33s (up to 2m) after previous attempt");
     expect(b).toContain("\"you should use the GET Status API\"");
-    expect(b).toContain("halaman tidak menyebut kode 401 atau 403 sendiri dan tidak menyebut rotasi atau penggantian server key");
+    expect(b).toContain("isi halaman (tabel dan teks) tidak menyebut kode 401 atau 403 sendiri dan tidak menyebut rotasi atau penggantian server key");
     expect(b).toContain("seluruh halaman terbaca (100.000 karakter pertama dan sisa 6.898 karakter)");
     expect(barisRiset("R4-136")).toContain("kegagalan lain lima kali");
     harus("([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29, Tidak dijalankan)");
