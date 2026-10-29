@@ -298,12 +298,13 @@ window.ISTILAH = {
   "u": "tahap-3/tls-pinning/"
  },
  "Circuit breaker": {
-  "b": "B11",
+  "b": "t4-breaker",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
-  "n": "Integrasi pihak ketiga (versi lama)",
+  "h": "istilah/circuit-breaker/",
+  "n": "4.11 Timeout, retry, breaker, lajur per vendor",
   "s": "istilah-circuit-breaker",
   "t": "Circuit breaker",
-  "u": "b-fondasi/b11-integrasi-pihak-ketiga/"
+  "u": "tahap-4/timeout-retry-breaker/"
  },
  "Connection pool": {
   "b": "t3-pool",
@@ -1862,12 +1863,13 @@ window.ISTILAH = {
   "u": "tahap-3/tls-pinning/"
  },
  "circuit breaker": {
-  "b": "B11",
+  "b": "t4-breaker",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
-  "n": "Integrasi pihak ketiga (versi lama)",
+  "h": "istilah/circuit-breaker/",
+  "n": "4.11 Timeout, retry, breaker, lajur per vendor",
   "s": "istilah-circuit-breaker",
   "t": "Circuit breaker",
-  "u": "b-fondasi/b11-integrasi-pihak-ketiga/"
+  "u": "tahap-4/timeout-retry-breaker/"
  },
  "connection pool": {
   "b": "t3-pool",
