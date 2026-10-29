@@ -9,12 +9,12 @@ window.ISTILAH = {
   "u": "tahap-1/transaction/"
  },
  "ADR": {
-  "b": "D5",
+  "b": "t4-modul",
   "d": "Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.",
-  "n": "Template ADR (versi lama)",
+  "n": "4.13 Modular monolith",
   "s": "istilah-adr",
   "t": "ADR (Architecture Decision Record)",
-  "u": "d-system-design/d5-adr/"
+  "u": "tahap-4/modular-monolith/"
  },
  "API": {
   "b": "A1",
@@ -50,12 +50,12 @@ window.ISTILAH = {
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
  },
  "Architecture Decision Record": {
-  "b": "D5",
+  "b": "t4-modul",
   "d": "Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.",
-  "n": "Template ADR (versi lama)",
+  "n": "4.13 Modular monolith",
   "s": "istilah-adr",
   "t": "ADR (Architecture Decision Record)",
-  "u": "d-system-design/d5-adr/"
+  "u": "tahap-4/modular-monolith/"
  },
  "Argon2id": {
   "b": "t2-login-aman",
@@ -929,12 +929,13 @@ window.ISTILAH = {
   "u": "tahap-1/migration/"
  },
  "Modular monolith": {
-  "b": "B7.2",
+  "b": "t4-modul",
   "d": "Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.",
-  "n": "Modular monolith (versi lama)",
+  "h": "istilah/modular-monolith/",
+  "n": "4.13 Modular monolith",
   "s": "istilah-modular-monolith",
   "t": "Modular monolith",
-  "u": "b-fondasi/b7-2-batas-modul/"
+  "u": "tahap-4/modular-monolith/"
  },
  "Monolith": {
   "b": "A1",
@@ -2320,12 +2321,13 @@ window.ISTILAH = {
   "u": "tahap-1/migration/"
  },
  "modular monolith": {
-  "b": "B7.2",
+  "b": "t4-modul",
   "d": "Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.",
-  "n": "Modular monolith (versi lama)",
+  "h": "istilah/modular-monolith/",
+  "n": "4.13 Modular monolith",
   "s": "istilah-modular-monolith",
   "t": "Modular monolith",
-  "u": "b-fondasi/b7-2-batas-modul/"
+  "u": "tahap-4/modular-monolith/"
  },
  "monolith": {
   "b": "A1",

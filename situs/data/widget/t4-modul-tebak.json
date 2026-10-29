@@ -1,0 +1,44 @@
+{
+  "id": "t4-modul-tebak",
+  "judul": "SQL pembayaran ke tabel akun sesudah modul dipisah",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t4-modul/output/batas.txt bagian B"
+  },
+  "adegan": [
+    "Modul sudah dibagi ke enam schema, dan tiap modul punya role sendiri. Role t4m_pembayaran tidak punya hak apa pun di schema akun.",
+    "Kode pembayaran menjalankan SQL lamanya apa adanya: SELECT nama FROM akun, tanpa awalan schema."
+  ],
+  "pertanyaan": "Apa jawaban PostgreSQL?",
+  "pilihan": [
+    {
+      "teks": "Berhasil. Semua tabel ada di satu database, jadi role mana pun bisa membacanya.",
+      "benar": false,
+      "alasan": "Satu database tidak berarti satu hak. Secara bawaan role tidak bisa mengakses objek di schema yang bukan miliknya, tanpa hak USAGE dari pemilik schema."
+    },
+    {
+      "teks": "permission denied for table akun (42501), karena role itu tidak punya hak SELECT.",
+      "benar": false,
+      "alasan": "Jawaban itu muncul bila SQL memakai awalan schema, dan bunyinya permission denied for schema t4m_akun. Tanpa awalan, PostgreSQL tidak sampai ke pemeriksaan hak."
+    },
+    {
+      "teks": "column \"nama\" does not exist (42703), karena kolomnya sudah diganti namanya.",
+      "benar": false,
+      "alasan": "Jawaban itu milik versi tanpa batas, sesudah rename. Di versi ini tabelnya sendiri tidak ditemukan, jadi PostgreSQL tidak memeriksa kolom."
+    },
+    {
+      "teks": "relation \"akun\" does not exist (42P01): tabel akun tidak ditemukan.",
+      "benar": true,
+      "alasan": "search_path, daftar schema yang dicari bila nama tabel tanpa awalan, hanya memuat schema pembayaran untuk role ini. Schema tanpa hak USAGE dilewati diam-diam, jadi nama akun tidak ditemukan."
+    }
+  ],
+  "penutup": "Pemisahan memaksa kode pembayaran memakai kontrak modul akun. SQL langsung yang dulu berhasil kini gagal sebelum rilis, bukan sesudah rename.",
+  "label": {
+    "sumber": "Rekaman lab · batas.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
