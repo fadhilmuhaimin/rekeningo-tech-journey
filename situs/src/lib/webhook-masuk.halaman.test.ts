@@ -454,7 +454,7 @@ describe("webhook-masuk.mdx: tiap angka turunan dari rekaman, kode, dan naskah",
     harus("Bila semua kiriman gagal, λ naik ke 3,47 per detik dan pool penuh sejak W > 2,6 detik.");
     harus("Saat pemrosesan satu kabar melebihi 5 detik, yaitu sepertiga dari 15 detik batas tunggu satu gateway nyata.");
     expect(15 / 3).toBe(5);
-    harus(`Pada batas atas ${lBatas[4]} per detik, L = ${lW5[2]} melewati pool ${poolPenuh[1]} (Hitungan, Asumsi).`);
+    harus(`Pada batas atas ${lBatas[4]} per detik, L = ${lW5[2]} melewati pool ${poolPenuh[1]}, dan pool penuh sejak W > ${poolPenuh[4]} detik (Hitungan, Asumsi).`);
     harus("hanya ditemukan job cek status, yang baru memeriksa top-up sesudah 30 menit (Asumsi lab), dan rekonsiliasi harian.");
     expect(baca("labs/t4-webhook/README.md")).toContain("umur cek status 30 menit");
     harus("Dokumentasi yang sama menyarankan membalas 2xx sebelum logika yang berat dan memproses kabar lewat queue asinkron.");
@@ -858,7 +858,7 @@ describe("penutup tahap dua: kalimat klaim dihitung kemunculannya, kata bilangan
     H("- **C ditolak** karena isi yang diubah dan kiriman yang diputar ulang sama-sama diterima (`tandatangan.txt` bagian D, fungsi pembanding).");
     H("| Kejadian | Gaya 1: HMAC dan timestamp | Gaya 2: SHA-512 atas field | Gaya 3: token statis |");
     H("**Event dicatat satu kali, oleh database.** Tabel `webhook_event` memakai `event_id` sebagai kunci utama.");
-    H("Fungsi `terapkanStatus` memajukan status satu top-up, dan kabar yang tidak maju diparkir:");
+    H("Fungsi `terapkanStatus` memajukan status satu top-up. Kabar yang datang mundur diparkir, dan kabar yang sama dengan status sekarang dijawab `ganda`:");
     H(`Di \`urutan.txt\` bagian F, kabar \`pending\` sesudah \`settlement\` dijawab \`${UF1.find((b) => b.startsWith("kabar pending sesudah settlement: "))!.split(": ")[1]}\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali.`);
     H(`Kabar dijawab \`200 diparkir\`, status tetap \`dibayar\`, dan gateway ditanya ${ditanyaF1} kali.`);
     H(`Pada top-up yang masih \`menunggu\`, kabar yang diparkir karena batas saldo tingkat membuat gateway ditanya ${ditanyaF2} kali di luar transaction, dan kreditnya tetap ditolak.`);
@@ -912,7 +912,7 @@ describe("penutup tahap dua: kalimat klaim dihitung kemunculannya, kata bilangan
       "Satu tabel `webhook_event` dan satu rahasia per gateway",
     ]);
     H(`3. Selama ledger ada di satu proses (sampai ADR ${adrModul}), event, status top-up, jurnal, dan baris outbox ditulis dalam satu transaction.`);
-    H("4. Status top-up hanya maju. Kabar yang tidak maju diparkir, dan gateway ditanya, di luar transaction, hanya bila top-up masih `menunggu` atau `tidak_pasti`.");
+    H("4. Status top-up hanya maju. Kabar yang datang mundur, atau yang kreditnya ditolak batas saldo, diparkir. Gateway ditanya, di luar transaction, hanya bila top-up masih `menunggu` atau `tidak_pasti`.");
     H("7. Sesudah ADR 37, ledger dipanggil lewat API di luar transaction pembayaran dengan key itu. Lalu `webhook_event` dan `topup_bank` ditulis dalam satu transaction, dan 2xx dibalas sesudah COMMIT ([[t4-modul]]).");
     expect(adrModul).toBe(37);
     H("- **A ditolak** karena dua kiriman bersamaan lolos cek status, dan hasilnya dua jurnal (`ganda-serentak.txt` bagian A).");
@@ -980,15 +980,15 @@ const TidakDijalankan = 10;
 const JumlahAsumsi = 10;
 const JumlahIlustrasi = 7;
 const JumlahHitungan = 6;
-const SIDIK_HALAMAN: Record<string, number> = { tidak: 58, bukan: 20, belum: 9, hanya: 26, tanpa: 15, sesudah: 26, sebelum: 9, juga: 3, setiap: 0, semua: 5, "lebih dari": 2, "paling banyak": 0, selalu: 1, sama: 19 };
+const SIDIK_HALAMAN: Record<string, number> = { tidak: 56, bukan: 20, belum: 9, hanya: 26, tanpa: 15, sesudah: 26, sebelum: 9, juga: 3, setiap: 0, semua: 5, "lebih dari": 2, "paling banyak": 0, selalu: 1, sama: 20 };
 const SIDIK_RANTAI: Record<string, number> = { tidak: 1, bukan: 1, belum: 0, hanya: 0, tanpa: 1, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 0 };
 const SIDIK_ISTILAH: Record<string, number> = { tidak: 5, bukan: 0, belum: 0, hanya: 0, tanpa: 1, sesudah: 0, sebelum: 0, juga: 0, setiap: 0, semua: 0, "lebih dari": 0, "paling banyak": 0, selalu: 0, sama: 1 };
 
 // Tinjauan independen (keputusan 1293): "tiga lapis" menahan DUA event berbeda di draf pertama, padahal `event_id` berbeda tidak ditahan
 // kunci utama (urutan.txt G memakai evt-g-<n>a dan evt-g-<n>b, ganda-serentak.txt B menulisnya). Asal angka 9 di ambang pool dan kalimat yang
 // menyebut Rekeningo "hanya menerima kabar" (padahal gateway juga ditanya) ditutup di sini; semuanya diturunkan dari rekaman dan kode lab.
+const runLab = baca("labs/t4-webhook/run.py");
 describe("tinjauan 1293: event berbeda, asal angka 9, ambang 5 detik, dan klaim 'hanya menerima kabar'", () => {
-  const runLab = baca("labs/t4-webhook/run.py");
   test("urutan.txt G: event kedua selalu memakai event_id yang berbeda, jadi kunci utama bukan lapisnya", () => {
     const a = runLab.match(/kirim_webhook\(event_id=f"(evt-g-\{len\(varian\)\})a"/);
     const b = runLab.match(/kirim_webhook\(event_id=f"(evt-g-\{len\(varian\)\})b"/);
@@ -1023,4 +1023,168 @@ describe("tinjauan 1293: event berbeda, asal angka 9, ambang 5 detik, dan klaim 
     H1("Rekeningo menghitung nilai yang sama dengan fungsi ini, lalu membandingkannya dengan tanda tangan di header:");
   });
   const H1 = (fragmen: string): void => expect(halaman.split(fragmen).length - 1, `kemunculan "${fragmen.slice(0, 70)}"`).toBe(1);
+});
+
+// Putaran kedua tinjauan (keputusan 1293): 89 mutan baru, 88 tertangkap DENGAN kunci baris dan 74 TANPA kunci. Lima belas yang lolos tanpa kunci
+// adalah kalimat yang mengutip dokumentasi luar atau memutuskan antara opsi ADR, ditambah satu nilai JSON bukan string (`stack: []`) yang
+// lolos juga DENGAN kunci karena kunci JSON hanya mengumpulkan string. Penutupnya: klaim stack diturunkan dari baris RISET, atribusi per
+// sumber diturunkan dari potongan baris R4-140, huruf opsi ADR diturunkan dari kepala tabel, dan tipe nilai JSON dikunci.
+describe("tinjauan 1293, putaran kedua: kutipan dokumentasi, atribusi, huruf opsi, dan tipe nilai JSON", () => {
+  const H1 = (fragmen: string): void => expect(halaman.split(fragmen).length - 1, `kemunculan "${fragmen.slice(0, 70)}"`).toBe(1);
+  const barisRiset = (id: string): string => riset.split("\n").find((b) => b.startsWith(`| ${id} |`)) ?? "";
+  const slotTeks = (slot: string): string => halaman.match(new RegExp(`<Fragment slot="${slot}">([\\s\\S]*?)</Fragment>`))![1]!;
+  const berbeda = (slot: string): string => slotTeks(slot).split("\n").find((b) => b.startsWith("**Yang berbeda di stack ini:**"))!;
+
+  test("tiap kode di paragraf 'Yang berbeda di stack ini' ada di baris RISET stack itu", () => {
+    const peta: Record<string, string[]> = { t1: ["R4-141"], t2: ["R4-142"], t3: ["R4-142"], t4: ["R4-143"], t5: ["R4-144"] };
+    const alias: Record<string, string> = { "request.body": "HttpRequest.body" };
+    for (const [slot, ids] of Object.entries(peta)) {
+      const sumber = ids.map(barisRiset).join(" ");
+      expect(sumber, slot).not.toBe("");
+      const kode = [...berbeda(slot).matchAll(/`([^`]+)`/g)].map((m) => m[1]!);
+      expect(kode.length, `${slot}: jumlah kode`).toBeGreaterThanOrEqual(2);
+      for (const k of kode) {
+        const dasar = (alias[k] ?? k).replace(/\(\)$/, "");
+        expect(sumber.includes(dasar), `${slot}: \`${k}\` tidak ada di ${ids.join(", ")}`).toBe(true);
+      }
+    }
+  });
+
+  test("kalimat yang mengutip dokumentasi stack punya kutipan sumbernya di baris RISET", () => {
+    const pasang: [string, string, string][] = [
+      ["kalau tidak, `StateError`.", "R4-143", "will throw a `StateError`"],
+      ["menulis bahwa body hanya bisa dibaca sekali", "R4-143", "The body can only be read once"],
+      ["Mengakses `body` sesudah `read()` atau `readline()` menghasilkan `RawPostDataException`", "R4-142", "mengakses `body` sesudah `read()` atau `readline()` menghasilkan `RawPostDataException`"],
+      ["Komentar lain menyuruh men-deploy fungsinya dengan `verify_jwt = false`", "R4-144", "so deploy with verify_jwt = false"],
+      ["komentarnya menulis bahwa verifikasi bergantung pada body mentah, bukan JSON yang diurai", "R4-144", "relies on the raw request body rather than the parsed JSON"],
+      ["Dokumentasi menulis bahwa `req.body` adalah `undefined` bila `Content-Type` tidak cocok", "R4-141", "`undefined` \"if there was no body to parse, the `Content-Type` was not matched"],
+      ["karena gateway tidak tahu token apa yang dikirim", "R4-142", "Stripe will not know what CSRF token to send"],
+      ["dan pengirim mengulang sampai tiga hari di mode live", "R4-140", "pengiriman ulang sampai tiga hari di mode live"],
+    ];
+    for (const [kalimat, id, kutipan] of pasang) {
+      H1(kalimat);
+      expect(barisRiset(id), `${id} memuat kutipan`).toContain(kutipan);
+    }
+    expect(halaman).not.toContain("melarang men-deploy");
+  });
+
+  test("atribusi per sumber: Stripe, gateway kedua, dan Go diturunkan dari potongan baris R4-140", () => {
+    const r140 = barisRiset("R4-140");
+    const iMid = r140.indexOf("Midtrans docs,");
+    const iGo = r140.indexOf("pkg.go.dev crypto/hmac");
+    expect(iMid).toBeGreaterThan(0);
+    expect(iGo).toBeGreaterThan(iMid);
+    const stripe = r140.slice(0, iMid), kedua = r140.slice(iMid, iGo), go = r140.slice(iGo);
+    // kalimat Stripe di halaman
+    expect(stripe).toContain("tanda tangan dan timestamp dibuat baru tiap percobaan");
+    expect(kedua).not.toContain("dibuat baru tiap percobaan");
+    H1("Dokumentasi Stripe menulis bahwa tanda tangan dan timestamp dibuat baru tiap percobaan");
+    expect(stripe).toContain("Our libraries have a default tolerance of 5 minutes");
+    expect(stripe).toContain("Handle duplicate events");
+    H1("**Kasus industri: dokumentasi Stripe.** Dokumentasi Stripe menulis bahwa endpoint harus memverifikasi tanda tangan atas body mentah, dan library resminya bertoleransi 5 menit.");
+    expect(stripe).toContain("IP allowlisting");
+    expect(halaman).toContain("| Daftar IP pengirim | Dokumentasi Stripe menyebutnya bersama tanda tangan");
+    // jadwal, 15 detik, dan 5 detik milik gateway kedua
+    for (const k of ["jeda 2, 10, 30, 90, 210 menit", "\"up-to 15 seconds\"", "\"ideally within 5 seconds\"", "random time shift"]) expect(kedua, k).toContain(k);
+    expect(stripe).not.toContain("up-to 15 seconds");
+    expect(go).toContain("Equal compares two MACs for equality without leaking timing information");
+    H1("Perbandingan memakai `hmac.Equal`, yang menurut dokumentasi Go tidak membocorkan informasi lewat waktu");
+  });
+
+  test("pemilik syarat di ADR sama dengan tabel 4.4, dan Pemilik yang memutuskan datang dari naskah", () => {
+    const empat4 = baca("situs/src/content/docs/tahap-4/dua-arah-pihak-ketiga.mdx");
+    const pemilik = (judul: string): string => empat4.split("\n").find((b) => b.includes(judul))!.split("|").map((x) => x.trim())[2]!;
+    const satu = pemilik("1. Dicatat satu kali"), dua = pemilik("2. Dipercaya setelah dicek");
+    expect([satu, dua]).toEqual(["Pak Hadi", "Laras"]);
+    H1(`Syarat ${satu}: tiap rupiah dari luar dicatat satu kali. Syarat ${dua}: kabar dipercaya hanya sesudah dicek.`);
+    expect(naskah).toContain("(keputusan pemilik)");
+    H1("Ini temuan lab, dan pencegahannya belum diputuskan:");
+    H1("atau rekonsiliasi menjumlahkan semua jurnal per order. Pemilik yang memutuskan.");
+  });
+
+  test("huruf opsi ADR diturunkan dari kepala tabel, dan vonis tiap opsi memakai huruf itu", () => {
+    const kepala = halaman.split("\n").find((b) => b.startsWith("| | A. "))!;
+    const opsi = [...kepala.matchAll(/\|\s*([A-D])\. ([^|]+?)\s*(?=\|)/g)].map((m) => [m[1]!, m[2]!.toLowerCase()] as const);
+    expect(opsi.map((o) => o[0])).toEqual(["A", "B", "C", "D"]);
+    const huruf = (kata: string): string => opsi.find((o) => o[1].includes(kata))![0];
+    const [a, b, c, d] = [huruf("cek-lalu-tulis"), huruf("balas 2xx dulu"), huruf("token statis"), huruf("hmac")];
+    expect([a, b, c, d]).toEqual(["A", "B", "C", "D"]);
+    // urutan alternatif di naskah ADR 34: cek-lalu-tulis, balas-dulu-antre, token statis
+    const n = naskah.split("\n").find((x) => x.startsWith("| 34 |"))!;
+    expect(n.indexOf("Cek-lalu-tulis")).toBeLessThan(n.indexOf("balas 2xx dulu lalu antre"));
+    expect(n.indexOf("balas 2xx dulu lalu antre")).toBeLessThan(n.indexOf("token statis tanpa timestamp"));
+    H1(`**Keputusan: opsi ${d}.** Tujuh aturan:`);
+    H1(`**Kenapa ${d}, bukan ${a}, ${b}, atau ${c}.**`);
+    H1(`- **${a} ditolak** karena dua kiriman bersamaan lolos cek status, dan hasilnya dua jurnal (\`ganda-serentak.txt\` bagian A).`);
+    expect(halaman).toContain(`- **${b} ditolak** karena jawaban 200 yang dikirim sebelum kabar tercatat menghentikan ulangan gateway.`);
+    H1(`- **${c} ditolak** karena isi yang diubah dan kiriman yang diputar ulang sama-sama diterima`);
+    H1(`Opsi ${b} menjadi benar.`);
+    H1(`Itu opsi ${b}, dan ADR ini menolaknya untuk beban ${lPuncak[5]} per detik, dengan alasan di atas.`);
+    expect(halaman).not.toMatch(/\*\*[A-D] diterima\*\*/);
+  });
+
+  test("klausa kunci, kalimat Skenario, dan judul tebal paragraf Paham dikunci terhadap kode dan jawaban tab", () => {
+    H1("Fungsi `CatatEvent` menulis dengan `INSERT ... ON CONFLICT DO NOTHING`, dan nol baris berarti event itu sudah pernah tercatat:");
+    expect(kodeRepo).toContain("return n == 1, nil");
+    expect(kodeRepo).toContain("ON CONFLICT (event_id) DO NOTHING");
+    H1("**Skenario:** satu kabar bertanda tangan masuk ke endpoint. Yang ditanyakan: byte mana yang dihitung tandanya, dan pemeriksaan CSRF atau JWT apa yang berdiri di depan handler.");
+    for (const [slot, kata] of [["t2", "CSRF"], ["t3", "CSRF"], ["t5", "JWT"]] as const) expect(slotTeks(slot), slot).toContain(kata);
+    // judul tebal: paragraf mekanisme diturunkan dari kode (TandaTangan menulis "Dihitung atas byte yang tiba")
+    expect(kodeService).toContain("Dihitung atas\n// byte yang tiba, sebelum JSON diurai");
+    const judul = [...halaman.matchAll(/^\*\*([^*]+?)\*\*/gm)].map((m) => m[1]);
+    expect(judul).toEqual([
+      "Ubah satu hal:", "Tanda tangan dihitung atas byte yang tiba.", "Event dicatat satu kali, oleh database.",
+      "Status hanya maju, dan dua lapis lain menahan jurnal kedua.", "Balasan 2xx dikirim sesudah COMMIT.", "Jadwal ulangan gateway.",
+      "Berapa koneksi yang terpakai.", "Skenario:", ...Array(6).fill("Yang berbeda di stack ini:"), "Kebutuhan.", "Status:", "Keputusan: opsi D.",
+      "Kenapa D, bukan A, B, atau C.", "Kasus industri: dokumentasi Stripe.", "Pre-mortem.", "Kapan keputusan ini salah.", "Yang akan merevisinya.",
+      "1.", "2.", "3.", "4.",
+    ]);
+  });
+
+  test("terapkanStatus: yang mundur diparkir, yang sama dijawab ganda, kredit ditolak batas saldo diparkir (dibaca dari kode)", () => {
+    expect(kodeService).toContain('case target == cur:\n\t\treturn "ganda", tp.JurnalID, nil');
+    expect(kodeService).toContain('return "diparkir", nil, nil // mundur dari status akhir');
+    expect(kodeService).toContain('b.Saldo+tp.Jumlah > BatasSaldoTingkat(tingkat)');
+    expect(kodeService).toContain('return "diparkir", nil, nil\n\t}');
+    H1("Kabar yang datang mundur diparkir, dan kabar yang sama dengan status sekarang dijawab `ganda`:");
+    H1("4. Status top-up hanya maju. Kabar yang datang mundur, atau yang kreditnya ditolak batas saldo, diparkir.");
+    expect(halaman).not.toContain("kabar yang tidak maju diparkir");
+    expect(halaman).not.toContain("Kabar yang tidak maju diparkir");
+  });
+
+  test("tiap kutipan berkas.txt dan bagiannya menunjuk bagian yang ada di rekaman, dan urutan kutipan terkunci", () => {
+    const pola = /`([a-z0-9-]+\.txt)`(?: \(?bagian | )([A-G]\d?)(?: dan ([A-G]\d?))?\)?|([a-z0-9-]+\.txt) \(bagian ([A-G])\)/g;
+    const semua = [...halaman.matchAll(pola)];
+    const dikutip = semua.map((m) => `${m[1] ?? m[4]}:${[m[2] ?? m[5], m[3]].filter(Boolean).join("+")}`);
+    expect(dikutip).toEqual([
+      "ganda.txt:A", "urutan.txt:F", "tandatangan.txt:B", "tandatangan.txt:A", "tandatangan.txt:A", "tandatangan.txt:D", "ganda.txt:A", "ganda.txt:A",
+      "ganda-serentak.txt:A", "urutan.txt:F", "urutan.txt:G", "urutan.txt:G", "retry.txt:A", "retry.txt:A", "retry.txt:D", "ganda-serentak.txt:A", "retry.txt:A",
+      "tandatangan.txt:D", "ganda.txt:B", "ganda-serentak.txt:B", "urutan.txt:F+G", "tandatangan.txt:B", "proses-mati.txt:A", "ganda-serentak.txt:A",
+      "tandatangan.txt:D", "proses-mati.txt:C", "ganda.txt:A+B", "tandatangan.txt:A", "urutan.txt:F", "urutan.txt:G",
+    ]);
+    const bagianPer: Record<string, Record<string, Bagian>> = { "ganda.txt": G, "ganda-serentak.txt": S, "tandatangan.txt": T, "urutan.txt": U, "retry.txt": R, "proses-mati.txt": M };
+    for (const m of semua) {
+      const berkas = (m[1] ?? m[4])!;
+      for (const huruf of [m[2] ?? m[5], m[3]].filter(Boolean) as string[]) {
+        expect(Object.keys(bagianPer[berkas]!).some((k) => k.startsWith(huruf)), `${berkas} tidak punya bagian ${huruf}`).toBe(true);
+      }
+    }
+  });
+
+  test("kata bilangan di kalimat kiriman bersamaan dan satu kejadian diturunkan dari lab", () => {
+    const kapital = (x: string): string => x[0]!.toUpperCase() + x.slice(1);
+    const kata = SA.find((b) => b.startsWith("dua kiriman bersamaan"))!.split(" ")[0]!;
+    H1(`${kapital(kata)} kiriman yang tiba bersamaan menguji hal lain.`);
+    // dua event berbeda, SATU order: evt-3a dan evt-3b memakai t3["order_id"] yang sama
+    expect(runLab).toMatch(/kirim_webhook\(event_id="evt-3a", order_id=(t3\["order_id"\])\) \+ kirim_webhook\(event_id="evt-3b", order_id=\1\)/);
+    H1("Dua `event_id` berbeda untuk satu kejadian, tanpa kedua lapis itu, menghasilkan dua `200 diproses`.");
+  });
+
+  test("halaman istilah: tipe tiap nilai JSON dikunci, bukan hanya string (stack null tidak boleh jadi daftar kosong)", () => {
+    const tipe = (v: unknown): string => (v === null ? "null" : Array.isArray(v) ? "array" : typeof v);
+    expect(Object.entries(istilahHmac).map(([k, v]) => `${k}:${tipe(v)}`)).toEqual([
+      "istilah:string", "sehari_hari:string", "cerita:array", "mekanisme:array", "stack:null", "jebakan:array", "terkait:array", "sumber:array",
+    ]);
+    expect(istilahHmac.sumber.map((x) => Object.keys(x).sort().join(","))).toEqual(["catatan,judul,riset,url", "catatan,judul,riset,url", "catatan,judul,rekaman"]);
+  });
 });
