@@ -231,15 +231,15 @@ describe("naskah M29: gejala, yang dikira, dan yang sebenarnya", () => {
     harus(`Budi mengisi saldo ${m[1]} dari rekening banknya lewat app. Saldo di app naik dari ${m[2]} ke ${m[3]}.`);
     harus(`Laporan gateway memuat satu pembayaran ${m[1]} dari Budi. Ledger memuat dua jurnal top-up untuk pembayaran itu.`);
     harus(`*Angka cerita (Ilustrasi):* saldo ${m[2]} ke ${m[3]} dan laporan pencocokan Pak Hadi berasal dari naskah, bukan dari rekaman.`);
-    harus(`Kenaikannya sama, ${rp(650000 - 250000)} (Hitungan, angka yang dihitung dari angka lain di halaman:`);
+    harus(`Kenaikannya sama, ${rp(650000 - 250000)} (Hitungan dari angka Rekaman lab dan Ilustrasi di atas:`);
     const naik = cocok(rBagA, /saldo Budi naik (Rp[\d.]+) untuk (Rp[\d.]+) yang dibayar\./);
     expect(naik[1]).toBe(rp(650000 - 250000));
     expect(naik[2]).toBe(m[1]);
     harus(`Saldo Budi naik ${naik[1]} untuk ${naik[2]} yang dibayar.`);
     harus("Paginya Pak Hadi mencocokkan laporan gateway dengan jurnal di ledger, seperti tiap hari.");
     harus("Gateway tidak menerima jawaban 2xx. Kemungkinan terbesar: handler sudah menyimpan jurnal dari kiriman pertama, tetapi balasan 200 tidak sampai.");
-    harus("Gateway tidak rusak. Ia mengirim ulang kabar yang tidak dijawab 2xx, dan handler pertama menambah saldo dari tiap kiriman yang datang.");
-    harus("Jawaban selain 2xx, juga timeout, dicatat sebagai kiriman yang belum berhasil.");
+    harus("Gateway tidak rusak. Ia mengirim ulang kabar yang gagal terkirim, dan handler pertama menambah saldo dari tiap kiriman yang datang.");
+    harus("Jawaban 4xx, 5xx, atau timeout dicatat sebagai kiriman yang belum berhasil, dan gateway kedua tidak mengulang pengalihan 301, 302, dan 303.");
     harus("Di lab `api-t4`, role aplikasi ditolak");
     expect(skemaTxt).toContain("Role app (api_t4)");
     harus("dua kiriman `evt-1` ke handler pertama, sampai HP Budi.");
@@ -252,7 +252,7 @@ describe("naskah M29: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(dari("t4-rekonsiliasi").nomor).toBe("4.9");
   });
   test("Hitungan di Gejala diulang dari angka di teks: 650.000 − 250.000 dan 450.000 − 50.000 sama dengan 400.000 = 2 × 200.000", () => {
-    const m = cocok(badan, /\(Hitungan, angka yang dihitung dari angka lain di halaman: ([\d.]+) − ([\d.]+) dan ([\d.]+) − ([\d.]+)\)/);
+    const m = cocok(badan, /\(Hitungan dari angka Rekaman lab dan Ilustrasi di atas: ([\d.]+) − ([\d.]+) dan ([\d.]+) − ([\d.]+)\)/);
     const [a, b, c, d] = m.slice(1).map((x) => Number(x.replace(/\./g, "")));
     expect([a! - b!, c! - d!]).toEqual([400000, 400000]);
     expect(a).toBe(650000);
@@ -447,7 +447,7 @@ describe("kode lab: handler pertama, cek-lalu-tulis, kunci baris, dan penolakan 
     expect(kodeCekTulis.indexOf("s.t4.JedaCekTulis")).toBeLessThan(kodeCekTulis.indexOf("DalamTx"));
     const sqlBaca = cocok(repoGo, /func \(r Repo\) TopupBankLewatOrder[^\n]*\n[^\n]*`SELECT `\+kolomTopup\+` FROM topup_bank WHERE order_id = \$1`/)[0];
     expect(sqlBaca).not.toContain("FOR UPDATE");
-    harus("handler membaca status di luar transaction dan tanpa mengunci baris, lalu menulis jurnal di transaction sendiri (dibaca dari kode).");
+    harus("handler membaca status di luar transaction dan tanpa mengunci baris, lalu menulis jurnal di transaction sendiri (dibaca dari kode, Tidak dijalankan).");
   });
   test("mode webhook-cek-tulis memanggil kreditV1 yang sama dengan handler pertama; mode rentan hanya dua (webhook-v1, webhook-cek-tulis) untuk M29", () => {
     expect(baca("labs/api-t4/internal/service/t4_aturan.go")).toMatch(/RentanWebhookCekTulis = "webhook-cek-tulis"/);
@@ -488,7 +488,10 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     harus("Gateway kedua mengirim ulang paling banyak lima kali, bergantung pada kode jawaban,");
     harus("kiriman ulang pertama datang 2 menit sesudah yang pertama, bukan dalam satu detik.");
     expect(jeda[0]).toBe(2);
-    expect(b).toContain("500 sekali, 503 empat kali, 400 dan 404 dua kali, kegagalan lain lima kali");
+    expect(b).toContain("500 sekali, 503 empat kali, 400 dan 404 dua kali, kegagalan lain lima kali, pengalihan 301, 302, dan 303 tanpa ulangan");
+    expect(a).toContain("(Timed out) ERR"); // timeout dicatat sebagai kiriman belum berhasil (gateway pertama)
+    harus("menulis dua hal.");
+    expect(badan).not.toMatch(/tidak dijawab 2xx|selain 2xx/);
     expect(readmeWebhook).toContain("Jumlah ulangan per kode dan jeda dibaca persis");
     expect(badan).not.toMatch(/Stripe|Midtrans/);
   });
@@ -524,16 +527,21 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     harus("Arti Ilustrasi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].");
     // keputusan 1289: tanpa paragraf definisi di adegan Gejala (python3 tools/eval_tahap.py gejala 4); Hitungan diberi arti
     // sebaris di pemakaian pertama, penalaran di pemakaian pertama di blok Yang sebenarnya
-    harus("(Hitungan, angka yang dihitung dari angka lain di halaman:");
-    harus("(penalaran: kesimpulan dari kode atau rekaman lain, tanpa rekaman sendiri)");
+    harus("(Hitungan dari angka Rekaman lab dan Ilustrasi di atas:");
+    harus("(Tidak dijalankan, penalaran: kesimpulan dari kode atau rekaman lain, tanpa rekaman sendiri)");
     const blokGejala = badan.slice(badan.indexOf('<Blok nama="Gejala" buka>'), badan.indexOf("</Blok>"));
     expect(blokGejala).not.toMatch(/ (adalah|yaitu|artinya|berarti|merupakan|disebut) /);
-    expect(badan.indexOf("(penalaran: ")).toBeLessThan(badan.indexOf("(penalaran, tidak direkam)"));
-    expect(badan.indexOf("penalaran")).toBe(badan.indexOf("(penalaran: ") + 1);
-    expect(badan.indexOf("Hitungan")).toBe(badan.indexOf("(Hitungan, ") + 1);
-    expect(badan.match(/\(penalaran, tidak direkam\)/g)).toHaveLength(1);
-    expect(badan.match(/\(Tidak dijalankan\)/g)).toHaveLength(3);
-    expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(7);
+    // keputusan 1289: label turunan (Hitungan, penalaran, dibaca dari kode) selalu berdampingan dengan satu dari lima label
+    // di /cara-pakai/ (Tidak dijalankan, Rekaman lab, Ilustrasi)
+    expect(badan.indexOf("(Tidak dijalankan, penalaran: ")).toBeLessThan(badan.indexOf("(Tidak dijalankan, penalaran)"));
+    expect(badan.indexOf("penalaran")).toBe(badan.indexOf("(Tidak dijalankan, penalaran: ") + "(Tidak dijalankan, ".length);
+    expect(badan.indexOf("Hitungan")).toBe(badan.indexOf("(Hitungan dari ") + 1);
+    expect(badan.match(/\(Tidak dijalankan, penalaran\)/g)).toHaveLength(1);
+    expect(badan).not.toMatch(/\(penalaran/);
+    for (const m of badan.matchAll(/\(dibaca dari kode[^)]*\)/g)) expect(m[0], "label turunan tanpa label sumber").toContain("Tidak dijalankan");
+    expect(badan.match(/penalaran dari bagian A, bagian B, dan dokumentasi gateway \(Tidak dijalankan\)\./g)).toHaveLength(1);
+    expect(badan.match(/\(Tidak dijalankan\)/g)).toHaveLength(5);
+    expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(10);
     expect(badan.match(/\(dibaca dari kode[^)]*\)/g)).toHaveLength(3);
     expect(badan.match(/\(Asumsi\)/g)).toHaveLength(1);
     expect(badan.match(/\(Rekaman lab\)/g)).toHaveLength(1);
@@ -780,8 +788,8 @@ describe("tinjauan 1289: klaim yang lolos tanpa kunci baris", () => {
   test("label tidak lebih kuat dari sumber: alasan pemutusan tidak diukur (naskah), kiriman kedua di cerita adalah penalaran, jawaban Pak Hadi tanpa rekaman", () => {
     expect(naskah).toContain("alasan desain yang tidak diukur");
     harus("Alasan itu dari naskah dan tidak diukur.");
-    harus("adalah penalaran dari bagian A, bagian B, dan dokumentasi gateway.");
-    expect(badan).not.toMatch(/Alasan itu (diukur|direkam)|adalah rekaman dari bagian A/);
+    harus("adalah penalaran dari bagian A, bagian B, dan dokumentasi gateway (Tidak dijalankan).");
+    expect(badan).not.toMatch(/Alasan itu (diukur|direkam)|adalah rekaman dari bagian A|Hitungan, angka|\(penalaran[:,]/);
     // handler pertama: tidak ada bagian rekaman yang memutus balasan, jadi sebab di cerita memang tidak direkam
     expect(bagA + rBagA).not.toMatch(/putus|diputus/);
     harus("Handler pertama tidak punya jawabannya: tidak ada catatan yang menghubungkan satu kiriman dengan satu jurnal.");
@@ -878,7 +886,7 @@ describe("tinjauan 1289 (lanjutan): kalimat baru hasil perbaikan peninjau", () =
   test("kiriman berikutnya setelah jurnal dihapus: tidak ada DELETE atau kiriman ulang di rekaman handler pertama; kreditV1 menjurnal tiap panggilan", () => {
     expect(bagA + rBagA).not.toMatch(/DELETE FROM jurnal/);
     expect(kodeKreditV1).toContain("CatatJurnal");
-    harus("Itu kesimpulan dari kode handler pertama, bukan dari rekaman.");
+    harus("Itu kesimpulan dari kode handler pertama (Tidak dijalankan).");
     expect(badan).not.toMatch(/Itu hasil rekaman handler pertama/);
   });
   test("cek-lalu-tulis: kode menjawab ganda bila status sudah dibayar (kalimat 'perbaikan yang paling dekat')", () => {

@@ -2557,7 +2557,7 @@
   "judul": "4.6 M29: Top-up Budi masuk dua kali",
   "url": "tahap-4/m29-topup-dua-kali/",
   "tanya": "Ledger memuat dua jurnal untuk satu pembayaran Budi. Kenapa Raka tidak menghapus jurnal kedua dengan tangan?",
-  "jawab": "Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE`, dan role aplikasi ditolak saat mencoba menghapus `jurnal` (`skema.txt` bagian D). Menghapusnya juga tidak menutup sebabnya: kiriman berikutnya yang sama menjadi jurnal ganda lagi (penalaran, tidak direkam)."
+  "jawab": "Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE`, dan role aplikasi ditolak saat mencoba menghapus `jurnal` (`skema.txt` bagian D). Menghapusnya juga tidak menutup sebabnya: kiriman berikutnya yang sama menjadi jurnal ganda lagi (Tidak dijalankan, penalaran)."
  },
  {
   "id": "t4-m29-2",
@@ -2565,7 +2565,7 @@
   "judul": "4.6 M29: Top-up Budi masuk dua kali",
   "url": "tahap-4/m29-topup-dua-kali/",
   "tanya": "Gateway mengirim kabar yang sama dua kali. Kenapa itu bukan bug gateway?",
-  "jawab": "Dokumentasi dua gateway pembayaran nyata menulis bahwa kabar yang tidak dijawab 2xx dikirim ulang dan duplikat bisa terjadi (Tidak dijalankan). Balasan 200 yang hilang di jalan terlihat dari sisi gateway sebagai kabar yang belum diterima (`ganda.txt` bagian B)."
+  "jawab": "Dokumentasi dua gateway pembayaran nyata menulis bahwa kabar yang gagal terkirim dikirim ulang dan duplikat bisa terjadi (Tidak dijalankan). Balasan 200 yang hilang di jalan terlihat dari sisi gateway sebagai kabar yang belum diterima (`ganda.txt` bagian B)."
  },
  {
   "id": "t4-m29-3",

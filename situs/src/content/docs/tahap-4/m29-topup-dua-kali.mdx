@@ -19,7 +19,7 @@ Paginya Pak Hadi mencocokkan laporan gateway dengan jurnal di ledger, seperti ti
 
 Pak Hadi memanggil Raka. "Setiap rupiah dari luar harus cocok dengan catatan pihak yang mengirimnya. Kalau tidak cocok, namanya insiden, bukan angka yang saya koreksi."
 
-*Angka cerita (Ilustrasi):* saldo Rp50.000 ke Rp450.000 dan laporan pencocokan Pak Hadi berasal dari naskah, bukan dari rekaman. Rekaman memakai data awal lab: saldo Budi Rp250.000, dan Rp650.000 sesudah dua jurnal (Rekaman lab). Kenaikannya sama, Rp400.000 (Hitungan, angka yang dihitung dari angka lain di halaman: 650.000 − 250.000 dan 450.000 − 50.000).
+*Angka cerita (Ilustrasi):* saldo Rp50.000 ke Rp450.000 dan laporan pencocokan Pak Hadi berasal dari naskah, bukan dari rekaman. Rekaman memakai data awal lab: saldo Budi Rp250.000, dan Rp650.000 sesudah dua jurnal (Rekaman lab). Kenaikannya sama, Rp400.000 (Hitungan dari angka Rekaman lab dan Ilustrasi di atas: 650.000 − 250.000 dan 450.000 − 50.000).
 
 Lab tidak menjalankan rekonsiliasi ([[t4-rekonsiliasi]]) atas handler pertama (Tidak dijalankan). Arti Ilustrasi, Rekaman lab, dan Tidak dijalankan ada di [[A0]].
 
@@ -33,7 +33,7 @@ Jadi yang ganda bukan app. Raka menyimpulkan gateway punya bug dan mengirim kaba
 
 Aturan Pak Hadi melarangnya, dan ledger melarangnya juga. Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE` ([[t2-ledger]]). Di lab `api-t4`, role aplikasi ditolak dengan `permission denied` saat mencoba `DELETE` pada `jurnal` (`skema.txt` bagian D).
 
-Menghapus satu jurnal juga tidak menutup sebabnya. Kiriman berikutnya yang sama menjadi jurnal ganda lagi. Itu kesimpulan dari kode handler pertama, bukan dari rekaman.
+Menghapus satu jurnal juga tidak menutup sebabnya. Kiriman berikutnya yang sama menjadi jurnal ganda lagi. Itu kesimpulan dari kode handler pertama (Tidak dijalankan).
 
 <details class="question">
 <summary>Tebak dulu: gateway mengirim kabar "dibayar" untuk order yang sama dua kali, padahal Budi membayar sekali. Apa yang membuat gateway mengirimnya lagi?</summary>
@@ -48,19 +48,19 @@ Rekaman lab `ganda.txt` bagian B memerankannya pada handler lain, yang memakai t
 
 <Blok nama="Yang sebenarnya">
 
-Gateway tidak rusak. Ia mengirim ulang kabar yang tidak dijawab 2xx, dan handler pertama menambah saldo dari tiap kiriman yang datang. Kiriman kedua menjadi jurnal kedua.
+Gateway tidak rusak. Ia mengirim ulang kabar yang gagal terkirim, dan handler pertama menambah saldo dari tiap kiriman yang datang. Kiriman kedua menjadi jurnal kedua.
 
 <Rantai data={satuBayar} />
 
 *Kondisi rekaman:* PostgreSQL 17.11, server Go `api-t4` dengan mode rentan `webhook-v1`, dan gateway tiruan lokal. Skrip lab membuat satu top-up Rp200.000 untuk Budi dan memerintahkan tiap kiriman, jadi gateway tiruan tidak mengulang sendiri.
 
-**Gateway nyata mengirim ulang, dan menyebut duplikat sebagai hal biasa.** Dokumentasi dua gateway pembayaran nyata (dibuka 2026-10-29, Tidak dijalankan) menulis tiga hal. Endpoint bisa menerima event yang sama lebih dari sekali dan harus menjaganya sendiri. Jawaban selain 2xx, juga timeout, dicatat sebagai kiriman yang belum berhasil.
+**Gateway nyata mengirim ulang, dan menyebut duplikat sebagai hal biasa.** Dokumentasi dua gateway pembayaran nyata (dibuka 2026-10-29, Tidak dijalankan) menulis dua hal. Endpoint bisa menerima event yang sama lebih dari sekali dan harus menjaganya sendiri. Jawaban 4xx, 5xx, atau timeout dicatat sebagai kiriman yang belum berhasil, dan gateway kedua tidak mengulang pengalihan 301, 302, dan 303.
 
 Gateway pertama mengirim ulang sampai tiga hari di mode live. Gateway kedua mengirim ulang paling banyak lima kali, bergantung pada kode jawaban, dengan jeda 2, 10, 30, 90, dan 210 menit. Jadi pada gateway kedua kiriman ulang pertama datang 2 menit sesudah yang pertama, bukan dalam satu detik. Jadwal tiruan lab mengikuti gateway kedua, dengan waktu diperankan (`retry.txt` bagian A).
 
 **Pengirim tidak bisa membedakan "tidak sampai" dari "sampai, tetapi jawabannya hilang".** RFC 9110 bagian 9.2.2 menulis bahwa kegagalan komunikasi bisa terjadi sebelum client membaca jawaban server. Karena itu client sebaiknya tidak mengulang otomatis permintaan yang tidak idempoten (SHOULD NOT), kecuali ia tahu permintaan itu idempoten atau belum pernah diterapkan (Tidak dijalankan).
 
-Dokumentasi kedua gateway tidak menyebut RFC itu, dan tidak menyebut koneksi yang putus sesudah handler selesai. Gateway tetap mengulang, jadi penjagaan duplikat pindah ke penerima (penalaran: kesimpulan dari kode atau rekaman lain, tanpa rekaman sendiri).
+Dokumentasi kedua gateway tidak menyebut RFC itu, dan tidak menyebut koneksi yang putus sesudah handler selesai. Gateway tetap mengulang, jadi penjagaan duplikat pindah ke penerima (Tidak dijalankan, penalaran: kesimpulan dari kode atau rekaman lain, tanpa rekaman sendiri).
 
 **Handler pertama menjurnal tiap kiriman.** `event_id` adalah pengenal yang diberikan gateway pada tiap kabar. Handler pertama mengurai JSON, membaca baris top-up dengan `FOR UPDATE`, lalu menulis jurnal sebesar `jumlah` di isi kiriman. Ia tidak memeriksa status top-up dan tanda tangan, dan tidak menyimpan `event_id`:
 
@@ -78,9 +78,9 @@ Saldo Budi naik Rp400.000 untuk Rp200.000 yang dibayar. Tabel `webhook_event` te
 
 <Snippet file="labs/t4-webhook/output/ganda.txt" lines="19:28" title="Rekaman lab: labs/t4-webhook/output/ganda.txt, bagian B (balasan hilang, satu jurnal)" />
 
-Gateway tiruan menunggu byte pertama karena memutus lebih awal bisa membatalkan konteks permintaan dan mem-rollback transaction. Alasan itu dari naskah dan tidak diukur. Bahwa kiriman kedua di cerita datang karena balasan hilang pada handler pertama adalah penalaran dari bagian A, bagian B, dan dokumentasi gateway.
+Gateway tiruan menunggu byte pertama karena memutus lebih awal bisa membatalkan konteks permintaan dan mem-rollback transaction. Alasan itu dari naskah dan tidak diukur. Bahwa kiriman kedua di cerita datang karena balasan hilang pada handler pertama adalah penalaran dari bagian A, bagian B, dan dokumentasi gateway (Tidak dijalankan).
 
-**Memeriksa status dulu belum cukup.** Perbaikan yang paling dekat adalah membaca status top-up dan menjawab `ganda` bila sudah `dibayar`. Mode `webhook-cek-tulis` memerankannya: handler membaca status di luar transaction dan tanpa mengunci baris, lalu menulis jurnal di transaction sendiri (dibaca dari kode). Di isolation level bawaan, Read Committed, pembacaan biasa hanya melihat data yang sudah di-COMMIT sebelum perintahnya mulai (dokumentasi PostgreSQL 17, bagian 13.2.1, Tidak dijalankan).
+**Memeriksa status dulu belum cukup.** Perbaikan yang paling dekat adalah membaca status top-up dan menjawab `ganda` bila sudah `dibayar`. Mode `webhook-cek-tulis` memerankannya: handler membaca status di luar transaction dan tanpa mengunci baris, lalu menulis jurnal di transaction sendiri (dibaca dari kode, Tidak dijalankan). Di isolation level bawaan, Read Committed, pembacaan biasa hanya melihat data yang sudah di-COMMIT sebelum perintahnya mulai (dokumentasi PostgreSQL 17, bagian 13.2.1, Tidak dijalankan).
 
 Dua kiriman bersamaan sama-sama membaca `menunggu`, dan keduanya menjurnal. Jeda 300 ms di antara cek dan tulis adalah pilihan lab untuk melebarkan celah (Asumsi). Lebar celah tanpa jeda tidak diukur:
 
@@ -140,7 +140,7 @@ Pengirim boleh mengirim ulang, dan penerima yang menggerakkan uang harus mencata
 <details class="success">
 <summary>Jawaban</summary>
 
-Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE`, dan role aplikasi ditolak saat mencoba menghapus `jurnal` (`skema.txt` bagian D). Menghapusnya juga tidak menutup sebabnya: kiriman berikutnya yang sama menjadi jurnal ganda lagi (penalaran, tidak direkam).
+Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE`, dan role aplikasi ditolak saat mencoba menghapus `jurnal` (`skema.txt` bagian D). Menghapusnya juga tidak menutup sebabnya: kiriman berikutnya yang sama menjadi jurnal ganda lagi (Tidak dijalankan, penalaran).
 
 </details>
 
@@ -149,7 +149,7 @@ Kesalahan di ledger dikoreksi dengan jurnal pembalik, bukan dengan `DELETE`, dan
 <details class="success">
 <summary>Jawaban</summary>
 
-Dokumentasi dua gateway pembayaran nyata menulis bahwa kabar yang tidak dijawab 2xx dikirim ulang dan duplikat bisa terjadi (Tidak dijalankan). Balasan 200 yang hilang di jalan terlihat dari sisi gateway sebagai kabar yang belum diterima (`ganda.txt` bagian B).
+Dokumentasi dua gateway pembayaran nyata menulis bahwa kabar yang gagal terkirim dikirim ulang dan duplikat bisa terjadi (Tidak dijalankan). Balasan 200 yang hilang di jalan terlihat dari sisi gateway sebagai kabar yang belum diterima (`ganda.txt` bagian B).
 
 </details>
 
