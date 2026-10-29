@@ -17,7 +17,7 @@ Minggu 8 Tahap 4. Senin pukul 07.50 menjadi hari kerja pertama sesudah Rekeningo
 
 Pendaftar yang gagal mencoba lagi, rata-rata ±42 orang per jam. Log vendor menolak dengan 403. Laras, dari tim security, berkata: "Ini bukan pemadaman."
 
-*Angka cerita (Ilustrasi):* hari, jam, dan kutipan Laras berasal dari cerita, bukan dari rekaman. Laju ±42 per jam berasal dari 1.000 pendaftar per hari ÷ 24 jam = 41,67. Itu Hitungan, yaitu angka yang dihitung dari angka lain di halaman, dan 1.000 per hari termasuk Asumsi. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+*Angka cerita (Ilustrasi):* hari, jam, dan kutipan Laras berasal dari cerita, bukan dari rekaman. Laju ±42 per jam berasal dari 1.000 pendaftar per hari ÷ 24 jam = 41,67. Itu Hitungan, yaitu angka yang dihitung dari angka lain di halaman, dan 1.000 per hari termasuk Asumsi. Arti Ilustrasi, Rekaman lab, Asumsi, Tidak dijalankan, dan [perlu verifikasi] ada di [[A0]].
 
 </Blok>
 
@@ -62,7 +62,7 @@ Tiga pekerjaan dikali lima percobaan menghasilkan 15 penolakan. Lima percobaan a
 
 <Rantai data={alamatBerubah} />
 
-**Kenapa breaker tidak menolong.** Rekaman bagian C menjalankan pindahan yang sama untuk delapan pekerjaan, dengan breaker ADR 36 dan Timeout 3 detik (ADR 36 memakai 60 detik). Breaker tidak pernah terbuka: 8 × 5 = 40 penolakan, dan delapan pengajuan berstatus `gagal`:
+**Kenapa breaker tidak menolong.** Rekaman bagian C menjalankan pindahan yang sama untuk delapan pekerjaan dan satu slot worker, yaitu satu pekerjaan berjalan pada satu waktu. Breaker memakai aturan ADR 36 dan Timeout breaker 3 detik, yaitu lama breaker tetap terbuka sebelum mencoba lagi (ADR 36 memakai 60 detik). Breaker tidak pernah terbuka: 8 × 5 = 40 penolakan, dan delapan pengajuan berstatus `gagal`:
 
 <Snippet file="labs/t4-infra/output/alamat.txt" lines="102:108" title="Rekaman lab: labs/t4-infra/output/alamat.txt, bagian C (aturan ADR 36: breaker tidak terbuka)" />
 
@@ -84,7 +84,7 @@ Tiga hal terbaca dari rekaman itu:
 
 1. Breaker bawaan membuat tujuh pekerjaan menunggu, bukan mati. Aturan ADR 36 membuat delapan pekerjaan mati.
 2. Menunggu berlangsung sampai alamat didaftarkan. Di lab pendaftaran seketika. Di cerita butuh dua hari kerja (Asumsi), dan rekaman tidak menjalankan selama itu. Selama menunggu panjang, tiap permintaan percobaan di half-open memakai satu percobaan pekerjaan terdepan, jadi sebagian pekerjaan bisa tetap mati ([[t4-breaker]], Tidak dijalankan untuk M34).
-3. Satu pekerjaan tetap mati. Ambang breaker 6 lebih tinggi daripada batas lima percobaan, jadi pekerjaan pertama habis sebelum breaker terbuka. Pendaftarnya tetap gagal, dan tidak ada yang mengantrekannya ulang, seperti di M31.
+3. Dengan satu slot, satu pekerjaan tetap mati karena ambang breaker 6 lebih tinggi daripada batas lima percobaan, jadi pekerjaan pertama habis sebelum breaker terbuka. Pendaftarnya tetap gagal, dan tidak ada yang mengantrekannya ulang, seperti di M31. Di [[t4-breaker]], pada 4 slot dan vendor yang mati, tidak ada pekerjaan yang mati. M34 dengan 4 slot Tidak dijalankan.
 
 **Penilaian 401 dan 403 belum diputuskan.** ADR 36 menulis bahwa apakah 401, 403, 408, dan 429 dihitung netral belum diputuskan ([[t4-breaker]]). Lab mengusulkan 401 dan 403 dihitung gagal, dan 400 dan 422 tetap sukses (usul lab, bukan keputusan). Usul itu mengubah pekerjaan yang mati menjadi menunggu, tetapi tidak mendaftarkan alamat.
 
@@ -94,7 +94,7 @@ Tiga hal terbaca dari rekaman itu:
 
 Dokumentasi OpenTofu menulis bahwa state memuat semua atribut sumber daya. State lokal berupa file JSON teks biasa ([OpenTofu: Sensitive Data in State](https://opentofu.org/docs/language/state/sensitive-data/), versi 1.13.x, dibuka 2026-10-30, Tidak dijalankan).
 
-Lab merekam mekanismenya dengan OpenTofu v1.13.2. Password dari `random_password` dan kunci dari variabel masuk state, walau keluaran CLI menulis "(sensitive value)". Data source `local_sensitive_file` yang membaca file rahasia juga memasukkan isinya. Konfigurasi yang hanya menulis alamat dan path secret manager tidak memuat nilai (Rekaman lab, `state.txt` bagian A sampai C).
+Lab merekam mekanismenya dengan OpenTofu v1.13.2. Password dari `random_password` dan kunci dari variabel yang dipakai satu resource masuk state, walau keluaran CLI menulis "(sensitive value)". Data source `local_sensitive_file` yang membaca file rahasia juga memasukkan isinya. Konfigurasi yang hanya menulis alamat dan path secret manager tidak memuat nilai (Rekaman lab, `state.txt` bagian A sampai C).
 
 Data source milik provider Vault atau OpenBao Tidak dijalankan [perlu verifikasi]. State Rekeningo sendiri hanya ada di cerita.
 
@@ -120,7 +120,7 @@ Widget ini mengikuti rekaman `alamat.txt` bagian A dan C, dengan satu varian dar
 
 Sesudah langkah terakhir, centang **Ubah satu hal: permintaan keluar lewat proxy keluar bertetap**. Proxy keluar adalah server perantara yang meneruskan panggilan keluar Rekeningo ke vendor, jadi vendor selalu melihat alamat proxy itu. Yang didaftarkan sekali adalah alamat proxy, dan pindahan host tidak mengubahnya: enam permintaan diterima dari satu alamat, tanpa penolakan (Rekaman lab, bagian B).
 
-Batasnya: proxy keluar menjadi titik gagal tunggal baru, dan lab tidak merekam matinya proxy. NAT dengan IP tetap di cloud Tidak dijalankan. Cara memilihnya ada di [[t4-infra-secret]].
+Batasnya: proxy keluar menjadi titik gagal tunggal baru, dan lab tidak merekam matinya proxy. NAT dengan IP tetap di cloud, cara lain membuat alamat keluar tetap, Tidak dijalankan. Cara memilihnya ada di [[t4-infra-secret]].
 
 <noscript>
 Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: sesudah pindahan, vendor menolak 15 percobaan dari host baru dengan 403, dan tiga pengajuan berstatus `gagal`.
@@ -162,7 +162,7 @@ ADR 36 menghitung jawaban 4xx sebagai sukses, dan 403 termasuk 4xx. Delapan peke
 <details class="success">
 <summary>Jawaban</summary>
 
-Vendor menjawab setiap permintaan dengan 403, dan sebelum pindahan ia meluluskan tiga pendaftar dari host lama. Yang berubah adalah alamat sumber host, yang belum didaftarkan (`alamat.txt` bagian A).
+Vendor menjawab setiap permintaan dari host baru dengan 403, dan sebelum pindahan ia meluluskan tiga pendaftar dari host lama. Yang berubah adalah alamat sumber host, yang belum didaftarkan (`alamat.txt` bagian A).
 
 </details>
 
@@ -171,7 +171,7 @@ Vendor menjawab setiap permintaan dengan 403, dan sebelum pindahan ia meluluskan
 <details class="success">
 <summary>Jawaban</summary>
 
-Tujuh pekerjaan menunggu, bukan mati, dan tujuh dari delapan lulus sesudah alamat didaftarkan. Penyebabnya tetap sampai operator mendaftarkan alamat, dan satu pekerjaan sudah mati karena ambang 6 lebih tinggi daripada batas lima percobaan (`alamat.txt` bagian C).
+Tujuh pekerjaan menunggu, bukan mati, dan tujuh dari delapan lulus sesudah alamat didaftarkan. Penyebabnya tetap sampai operator mendaftarkan alamat. Pada satu slot worker, satu pekerjaan sudah mati karena ambang 6 lebih tinggi daripada batas lima percobaan (`alamat.txt` bagian C).
 
 </details>
 

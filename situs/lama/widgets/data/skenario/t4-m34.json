@@ -67,7 +67,7 @@
       "ke": "vnd",
       "judul": "Aturan bawaan pustaka: breaker terbuka sesudah enam penolakan",
       "kirim": "delapan pekerjaan, 4xx dihitung gagal:\nditolak 403, per alamat sumber: {'host baru': 6}\nverifikasi: diajukan 7, gagal 1; outbox: menunggu 7, mati 1\nlog breaker: closed -> open",
-      "jelas": "Tujuh pekerjaan menunggu dan vendor tidak dihubungi lagi. Satu pekerjaan sudah mati, karena ambang breaker 6 lebih tinggi daripada batas lima percobaan."
+      "jelas": "Tujuh pekerjaan menunggu dan vendor tidak dihubungi lagi. Dengan satu slot, satu pekerjaan sudah mati, karena ambang breaker 6 lebih tinggi daripada batas lima percobaan."
     },
     {
       "dari": "vnd",

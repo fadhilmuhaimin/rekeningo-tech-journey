@@ -258,6 +258,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(badan.match(/OpenBao/g)).toHaveLength(1);
     expect(badan).not.toMatch(/OpenTofu v1\.13\.2.*Terraform|Terraform|\bVault v2\b|BSL|rotasi tanpa deploy|masa tumpang tindih|secret dibaca saat runtime|mode dev/);
     expect(badan.match(/NAT/g)).toHaveLength(1);
+    // Tinjauan: NAT dipakai tanpa definisi, jadi kalimat itu memberi perannya (cara lain membuat alamat keluar tetap) dan label Tidak dijalankan.
+    harus("NAT dengan IP tetap di cloud, cara lain membuat alamat keluar tetap, Tidak dijalankan.");
     expect(badan.match(/ADR 44/g)).toHaveLength(1);
   });
 });
@@ -355,7 +357,18 @@ describe("rekaman alamat.txt: bagian A, B, dan C, nilai yang dikutip, dan rentan
     expect(cAdrBagian).not.toMatch(/log breaker/);
     expect(TIMEOUT_BREAKER).toBe("3");
     expect(cAdrBagian).toContain("Pengaturan breaker: ADR 36 (4xx = sukses)");
-    harus(`untuk ${kata(PEKERJAAN_C)} pekerjaan, dengan breaker ADR 36 dan Timeout ${TIMEOUT_BREAKER} detik (ADR 36 memakai 60 detik).`);
+    harus(`untuk ${kata(PEKERJAAN_C)} pekerjaan dan satu slot worker, yaitu satu pekerjaan berjalan pada satu waktu. Breaker memakai aturan ADR 36 dan Timeout breaker ${TIMEOUT_BREAKER} detik, yaitu lama breaker tetap terbuka sebelum mencoba lagi (ADR 36 memakai 60 detik).`);
+    // Tinjauan: "Timeout" tanpa kata breaker bisa dibaca sebagai batas waktu client 3 detik (ADR 22); lab memberi breaker flag -breaker-timeout.
+    expect(badan).not.toMatch(/Timeout \d/);
+    // Tinjauan: satu pekerjaan mati hanya pada satu slot (-serentak 1 di kedua jalankan bagian C); pada 4 slot lajur.txt bagian C merekam nol mati.
+    for (const b of [cAdrBagian, cBawaanA]) expect(b).toContain("-serentak 1 ");
+    const lajurTxt = baca("labs/t4-integrasi/output/lajur.txt");
+    expect(lajurTxt).toContain("# --- C. Breaker, banyak pekerjaan menunggu bersamaan dan kapasitas 4: tidak ada pekerjaan yang mati ---");
+    expect(lajurTxt).toContain("-serentak 4 -backoff 1ms -maks-percobaan 5 -selang 50ms -breaker -breaker-timeout 30s");
+    expect(hal411).toContain("Dengan 4 slot (bagian C, 8 pekerjaan, backoff 1 ms) tidak ada yang mati");
+    harus("3. Dengan satu slot, satu pekerjaan tetap mati karena ambang breaker 6 lebih tinggi daripada batas lima percobaan, jadi pekerjaan pertama habis sebelum breaker terbuka.");
+    harus("Di [[t4-breaker]], pada 4 slot dan vendor yang mati, tidak ada pekerjaan yang mati. M34 dengan 4 slot Tidak dijalankan.");
+    harus("Pada satu slot worker, satu pekerjaan sudah mati karena ambang 6 lebih tinggi daripada batas lima percobaan (`alamat.txt` bagian C).");
     harus(`Breaker tidak pernah terbuka: ${PEKERJAAN_C} × ${PERCOBAAN} = ${TOLAK_C} penolakan, dan ${kata(GAGAL_C)} pengajuan berstatus \`gagal\`:`);
     expect(hal411).toContain("terbuka 60 detik");
   });
@@ -373,7 +386,7 @@ describe("rekaman alamat.txt: bagian A, B, dan C, nilai yang dikutip, dan rentan
     harus(`Breaker terbuka sesudah ${kata(TOLAK_BAWAAN)} penolakan beruntun. ${Kata(MENUNGGU_BAWAAN)} pekerjaan menunggu, dan ${kata(MATI_BAWAAN)} pekerjaan sudah mati:`);
     harus(`1. Breaker bawaan membuat ${kata(MENUNGGU_BAWAAN)} pekerjaan menunggu, bukan mati. Aturan ADR 36 membuat ${kata(PEKERJAAN_C)} pekerjaan mati.`);
     harus(`${kata(LULUS_AKHIR)} dari ${kata(PEKERJAAN_C)} lulus sesudah alamat didaftarkan`);
-    harus("Ambang breaker 6 lebih tinggi daripada batas lima percobaan, jadi pekerjaan pertama habis sebelum breaker terbuka.");
+    harus("karena ambang breaker 6 lebih tinggi daripada batas lima percobaan, jadi pekerjaan pertama habis sebelum breaker terbuka.");
     harus("tidak ada yang mengantrekannya ulang, seperti di M31.");
     expect(hal410).toMatch(/tidak ada yang mengantre/);
     expect(naskah).toContain("tujuh dari delapan pekerjaan lulus");
@@ -551,7 +564,8 @@ describe("state.txt, staging.txt, dan pin.txt Tahap 3: dua temuan lain dan pin A
     expect(sC).toContain("Di lab ini yang terbukti hanya provider local.");
     expect(sC).toContain("[perlu verifikasi: provider Vault atau OpenBao tidak dijalankan di lab ini]");
     harus("Lab merekam mekanismenya dengan OpenTofu v1.13.2.");
-    harus("Password dari `random_password` dan kunci dari variabel masuk state, walau keluaran CLI menulis \"(sensitive value)\".");
+    harus("Password dari `random_password` dan kunci dari variabel yang dipakai satu resource masuk state, walau keluaran CLI menulis \"(sensitive value)\".");
+    expect(sA).toContain("Variabel yang diisi dari lingkungan ikut masuk ke state begitu dipakai satu resource"); // tinjauan: variabel saja belum masuk state
     harus("Data source `local_sensitive_file` yang membaca file rahasia juga memasukkan isinya.");
     harus("Konfigurasi yang hanya menulis alamat dan path secret manager tidak memuat nilai (Rekaman lab, `state.txt` bagian A sampai C).");
   });
@@ -619,14 +633,17 @@ describe("state.txt, staging.txt, dan pin.txt Tahap 3: dua temuan lain dan pin A
     expect(badan).not.toMatch(/\d+ ?B\b/);
   });
   test("label sumber: arti Ilustrasi, Rekaman lab, Asumsi, Tidak dijalankan ditaut ke A0 di Gejala; Hitungan didefinisikan di pemakaian pertama; tautan sumber luar dengan tanggal akses", () => {
-    harus("Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].");
+    harus("Arti Ilustrasi, Rekaman lab, Asumsi, Tidak dijalankan, dan [perlu verifikasi] ada di [[A0]].");
+    // Tinjauan: kelima label di /cara-pakai/ bernama persis begitu, dan label [perlu verifikasi] pertama dipakai di halaman sesudah kalimat penaut.
+    for (const l of ["**Rekaman lab**", "**Asumsi**", "**Ilustrasi**", "**Tidak dijalankan**", "**[perlu verifikasi]**"]) expect(cara, l).toContain(l);
+    expect(badan.indexOf("[perlu verifikasi] ada di [[A0]]")).toBeLessThan(badan.indexOf("Tidak dijalankan [perlu verifikasi]"));
     expect(badan.match(/Itu Hitungan, yaitu/g)).toHaveLength(1);
     expect(badan.match(/, dibuka 2026-10-30, Tidak dijalankan\)/g)).toHaveLength(2);
     expect(badan.match(/, versi 1\.13\.x, dibuka 2026-10-30, Tidak dijalankan\)/g)).toHaveLength(1);
     expect(badan.match(/\]\(https:\/\//g)).toHaveLength(2);
     expect(badan).not.toMatch(/\(Simulasi|Ilustrasi mekanisme|\(dibaca dari/);
     expect(badan.match(/\(Tidak dijalankan: dibaca dari kode\)/g)).toHaveLength(2);
-    expect(badan.match(/\[perlu verifikasi\]/g)).toHaveLength(1);
+    expect(badan.match(/\[perlu verifikasi\]/g)).toHaveLength(2); // satu di kalimat penaut ke A0, satu di data source Vault atau OpenBao
     expect(cara).toContain("Label sumber");
   });
 });
@@ -790,7 +807,7 @@ describe("skenario alur t4-m34.json: valid, nilai dari rekaman, tebakan, dan var
     expect(l3!.jelas).toBe(`${Kata(PEKERJAAN_A)} pekerjaan dikali ${kata(PERCOBAAN)} percobaan menghasilkan ${TOLAK_A} penolakan. Vendor menjawab setiap permintaan, jadi penyebabnya alamat sumber, bukan vendor yang mati.`);
     expect(l4!.jelas).toBe(`Worker mengulang jawaban 403 sampai batas lima percobaan (ADR 25). Status ketiga pengajuan menjadi gagal.`);
     expect(l5!.jelas).toBe(`403 adalah jawaban 4xx, dan aturan ADR 36 menghitungnya sukses. ${Kata(PEKERJAAN_C)} pekerjaan dikali ${kata(PERCOBAAN)} percobaan menghabiskan ${TOLAK_C} percobaan.`);
-    expect(l6!.jelas).toBe(`${Kata(MENUNGGU_BAWAAN)} pekerjaan menunggu dan vendor tidak dihubungi lagi. Satu pekerjaan sudah mati, karena ambang breaker 6 lebih tinggi daripada batas lima percobaan.`);
+    expect(l6!.jelas).toBe(`${Kata(MENUNGGU_BAWAAN)} pekerjaan menunggu dan vendor tidak dihubungi lagi. Dengan satu slot, satu pekerjaan sudah mati, karena ambang breaker 6 lebih tinggi daripada batas lima percobaan.`);
     expect(l7!.jelas).toBe(`Sesudah Timeout breaker (${TIMEOUT_BREAKER} detik di lab) satu permintaan percobaan lulus, dan breaker menutup. ${Kata(LULUS_AKHIR)} dari ${kata(PEKERJAAN_C)} pekerjaan lulus. Pekerjaan yang sudah mati tetap gagal, karena tidak ada yang mengantrekannya ulang.`);
     expect(cBawaanA).toContain("tidak dihubungi lagi");
     expect(skenario.langkah[0]!.jelas).toBe(`Vendor menerima alamat host lama karena sudah didaftarkan. ${Kata(LULUS_A)} pekerjaan lulus dengan satu percobaan tiap pekerjaan.`);
@@ -812,6 +829,8 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     expect(kartu.every((k) => k.url === "tahap-4/m34-verifikasi-ditolak/" && k.judul === "4.16 M34: Semua verifikasi ditolak sesudah pindah hosting")).toBe(true);
     expect(kartu[0]!.jawab).toContain(`${Kata(PEKERJAAN_C)} pekerjaan menghabiskan ${PEKERJAAN_C} × ${PERCOBAAN} = ${TOLAK_C} penolakan dan ${kata(GAGAL_C)} pengajuan berstatus \`gagal\``);
     expect(kartu[1]!.jawab).toContain(`ia meluluskan ${kata(LAMA_A)} pendaftar dari host lama`);
+    expect(kartu[1]!.jawab).toContain("Vendor menjawab setiap permintaan dari host baru dengan 403,"); // tinjauan: "setiap" berlingkup host baru
+    expect(kartu[2]!.jawab).toContain("Pada satu slot worker, satu pekerjaan sudah mati");
     expect(kartu[2]!.jawab).toContain(`${Kata(MENUNGGU_BAWAAN)} pekerjaan menunggu, bukan mati, dan ${kata(LULUS_AKHIR)} dari ${kata(PEKERJAAN_C)} lulus sesudah alamat didaftarkan`);
     expect(kartu[2]!.jawab).toContain("ambang 6 lebih tinggi daripada batas lima percobaan");
     expect(kartu[2]!.tanya).toBe(`Breaker bawaan pustaka terbuka sesudah ${kata(TOLAK_BAWAAN)} penolakan. Apa yang ia ubah dan apa yang tidak?`);
@@ -857,7 +876,7 @@ describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", 
     harus(`Pemeriksaan sesudah M${m34[1]} menemukan tiga hal lain.`);
     const token = [...badan.matchAll(/\bM(\d+)\b/g)].map((m) => m[1]!);
     expect([...new Set(token)].sort()).toEqual([m31[1], m34[1]].sort());
-    expect(token.filter((x) => x === m34[1])).toHaveLength(5);
+    expect(token.filter((x) => x === m34[1])).toHaveLength(6);
     expect(token.filter((x) => x === m31[1])).toHaveLength(5);
     expect(naskah).toContain(`| M${m31[1]} | ${m31[2]} |`);
     expect(naskah).toContain(`| M${m34[1]} | ${m34[2]} |`);
