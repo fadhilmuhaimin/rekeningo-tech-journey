@@ -1,0 +1,340 @@
+---
+title: "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34"
+description: Rekeningo memeriksa tanda tangan atas byte mentah, mencatat tiap event satu kali, dan tidak memundurkan status top-up. ADR 34 menimbang tiga cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WebhookLangkah from "../../../components/WebhookLangkah.astro";
+import intiDiagram from "../../../../data/diagram/t4-webhook-masuk-inti.json";
+
+<p class="meta">Baca 17 menit · coba 4 menit · Prasyarat: [[t4-m29]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Kabar diperiksa tanda tangannya, dicatat satu kali, dan tidak memundurkan status.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `ganda.txt` bagian A, handler versi pertama menerima event `evt-1` dua kali dan menulis dua jurnal. Saldo Budi naik Rp400.000 untuk Rp200.000 yang dibayar. Di bagian B, handler versi ADR 34 menjawab `200 ganda` untuk kiriman kedua, dan jurnalnya satu. Byte mentah adalah isi body persis seperti yang tiba, sebelum diurai menjadi JSON.
+
+Di `urutan.txt` bagian F, kabar `pending` yang datang sesudah `settlement` dijawab `200 diparkir`: kabar dicatat, tetapi status tetap `dibayar`. Isi yang diubah atau timestamp 360 detik lalu dijawab `401` (`tandatangan.txt` bagian B).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Gateway mengirim event yang sama dua kali karena balasan 200 yang pertama hilang. Berapa jurnal yang ditulis handler versi pertama, dan berapa yang ditulis handler ADR 34?
+2. Kenapa tanda tangan dihitung atas byte yang tiba, bukan atas JSON yang sudah diurai?
+3. Kabar `pending` datang sesudah `settlement`. Apa yang terjadi pada status top-up, dan apakah gateway ditanya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: kiriman yang sama menghasilkan satu jurnal bila event dicatat dengan kunci unik, dan kabar yang datang mundur tidak mengubah status.">
+
+Widget ini memutar satu top-up Rp200.000 lewat delapan langkah, dengan dua versi handler. Tebak dulu, lalu gulir atau tekan Langkah berikutnya.
+
+Chip di tiap langkah menyebut asal angkanya. Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini. Asumsi adalah angka pilihan penulis tanpa rekaman, dan Ilustrasi adalah skenario yang bukan hasil sistem. Tidak dijalankan berarti dicek ke kode atau dokumentasi, tanpa menjalankannya.
+
+<WebhookLangkah />
+
+**Ubah satu hal:** di bilah atas, ganti Versi handler ke versi ADR 34. Pada langkah Kiriman ulang, jurnal tetap satu dan jawabannya `200 ganda`. Ganti lagi ke versi pertama: jurnal menjadi dua, dan kabar `pending` memundurkan status ke `menunggu`.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t4-m29]] menunjukkan satu pembayaran Rp200.000 yang menjadi dua jurnal. Gateway tidak ikut COMMIT, jadi kabar dari luar adalah klaim, bukan fakta. [[t4-dua-arah]] menulis tiga hal yang harus selalu benar. Halaman ini mengerjakan dua di antaranya untuk kabar yang masuk: uang dicatat satu kali, dan kabar dipercaya hanya sesudah dicek.
+
+Dokumentasi satu gateway nyata menulis tiga sifat kabar itu. Endpoint bisa menerima event yang sama lebih dari sekali. Urutan pengiriman tidak dijamin menurut urutan kejadian, dan pengirim mengulang sampai tiga hari di mode live ([Stripe: webhooks](https://docs.stripe.com/webhooks), dibuka 2026-10-29). Dokumentasi gateway lain menulis jadwal ulangan per kode status ([dokumentasi notifikasi gateway](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29).
+
+### Cara kerjanya
+
+**Tanda tangan dihitung atas byte yang tiba.** Di lab, gateway tiruan menghitung HMAC-SHA256 atas timestamp, satu titik, dan byte body. HMAC adalah nilai kriptografi dari data dan rahasia bersama, jadi hanya pihak yang tahu rahasia yang bisa membuatnya. Rekeningo menghitung nilai yang sama dengan fungsi ini, lalu membandingkannya dengan tanda tangan di header:
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="60:65" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
+
+Dokumentasi Stripe menulis format yang sama, dan manipulasi apa pun pada body mentah membuat verifikasi gagal. Di `tandatangan.txt` bagian A, gateway tiruan menandatangani body berindentasi sebesar 109 byte dengan 5 baris baru. Verifikasi atas byte mentah cocok, sedangkan verifikasi atas JSON yang diurai lalu ditulis ulang tidak cocok. Fungsi pembanding itu ada di skrip lab, bukan di handler api-t4.
+
+<Snippet file="labs/t4-webhook/output/tandatangan.txt" lines="7:11" title="Rekaman lab: labs/t4-webhook/output/tandatangan.txt (bagian A)" />
+
+Tanda tangan juga membatasi usia kiriman. Kiriman 240 detik lalu diproses, sedangkan 360 detik lalu dan 360 detik di depan dijawab `401` (bagian B). Isi yang diubah sesudah ditandatangani juga dijawab `401`, tanpa menulis event dan tanpa menjurnal.
+
+Toleransi 5 menit (300 detik) adalah Asumsi untuk tiruan, yang mengikuti bawaan library satu gateway nyata. Dokumentasinya menyarankan tidak memakai nilai 0, karena nilai itu mematikan cek usia. Perbandingan memakai `hmac.Equal`, yang menurut dokumentasi Go tidak membocorkan informasi lewat waktu ([Go: crypto/hmac](https://pkg.go.dev/crypto/hmac), halaman Go 1.27.3 sedangkan lab memakai Go 1.27.1, dibuka 2026-10-29).
+
+Dokumentasi Stripe menulis bahwa tanda tangan dan timestamp dibuat baru tiap percobaan, dan tiruan lab melakukan hal yang sama (Asumsi untuk tiruan). Jadi kiriman ulang yang sah tetap lolos cek usia. Tiga gaya tanda tangan dibandingkan di lab lewat tiga fungsi verifikasi di skrip lab, bukan lewat handler. Hanya gaya 1 sama dengan yang dijalankan api-t4. Bentuk gaya 3 [perlu verifikasi] ke dokumentasi gateway yang memakainya.
+
+| Kejadian | Gaya 1: HMAC dan timestamp | Gaya 2: SHA-512 atas field | Gaya 3: token statis |
+|---|---|---|---|
+| Kiriman sah | diterima | diterima | diterima |
+| Isi diubah: jumlah x10, tanda tangan lama | ditolak | ditolak | diterima |
+| Field yang tidak ditandatangani diubah (`event_id`) | ditolak | diterima | diterima |
+| Kiriman sah diputar ulang 60 detik kemudian | diterima | diterima | diterima |
+| Kiriman sah diputar ulang 6 menit kemudian | ditolak | diterima | diterima |
+| Isi sah diformat ulang (indentasi), tanda tangan lama | ditolak | diterima | diterima |
+| Pengirim tidak tahu rahasia | ditolak | ditolak | ditolak |
+
+Sumber tabel: `tandatangan.txt` bagian D, Rekaman lab dari fungsi pembanding di skrip lab untuk ketiga gaya. Handler api-t4 hanya menjalankan gaya 1, dan bagian A sampai C merekam sebagian barisnya di sana. Gaya 1 menolak kiriman 6 menit tetapi menerima kiriman 60 detik. Jadi yang menahan kiriman yang diputar ulang di dalam toleransi bukan tanda tangan, melainkan `event_id`.
+
+**Event dicatat satu kali, oleh database.** Tabel `webhook_event` memakai `event_id` sebagai kunci utama. Fungsi `CatatEvent` menulis dengan `INSERT ... ON CONFLICT DO NOTHING`, dan nol baris berarti event itu sudah pernah tercatat:
+
+<Snippet file="labs/api-t4/internal/repo/pembayaran.go" lines="100:109" lang="go" title="labs/api-t4/internal/repo/pembayaran.go" />
+
+Di `ganda.txt` bagian A, handler versi pertama tidak punya tabel itu, jadi kiriman kedua menulis jurnal 10202 sesudah jurnal 10201. Di bagian B, gateway tiruan memutus koneksi begitu balasan `200` mulai datang, dan Rekeningo sudah COMMIT. Kiriman kedua dengan `event_id` yang sama dijawab `200 ganda`, dan `webhook_event` berisi satu baris. Kiriman ulang di rekaman itu adalah perintah skrip lab, bukan jadwal gateway.
+
+<Snippet file="labs/t4-webhook/output/ganda.txt" lines="7:17" title="Rekaman lab: labs/t4-webhook/output/ganda.txt (bagian A)" />
+
+Dua kiriman yang tiba bersamaan menguji hal lain. Di `ganda-serentak.txt` bagian A, handler cek-lalu-tulis membaca status `menunggu` di kedua kiriman, dan keduanya menjurnal. Hasilnya dua jurnal. Jeda 300 milidetik di antara cek dan tulis ada di lab supaya celahnya terekam, dan lebar celah tanpa jeda tidak diukur.
+
+Di bagian B, `event_id` yang sama bersamaan menghasilkan satu `200 diproses` dan satu `200 ganda`, walau status top-up dan Idempotency-Key ledger dimatikan. Yang menahannya hanya kunci utama. Dua `event_id` berbeda untuk satu kejadian, tanpa kedua lapis itu, menghasilkan dua `200 diproses`. Dokumentasi Stripe menulis bahwa kadang dua objek Event dikirim untuk satu kejadian.
+
+**Status hanya maju, dan dua lapis lain menahan jurnal kedua.** Fungsi `terapkanStatus` memajukan status satu top-up. Kabar yang datang mundur diparkir, dan kabar yang sama dengan status sekarang dijawab `ganda`:
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" region="terapkan-status" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
+
+Di `urutan.txt` bagian F, kabar `pending` sesudah `settlement` dijawab `200 diparkir`, status tetap `dibayar`, dan gateway ditanya 0 kali. Top-up yang sudah berstatus akhir tidak ditanyakan, karena jawaban gateway tidak bisa mengubah statusnya. Pada top-up yang masih `menunggu`, kabar yang diparkir karena batas saldo tingkat membuat gateway ditanya 1 kali di luar transaction, dan kreditnya tetap ditolak. Kabar `settlement` sesudah `expire` diparkir, status tetap `kedaluwarsa`, dan tidak ada jurnal; di lab ini hanya rekonsiliasi harian yang menemukan uang itu ([[t4-rekonsiliasi]]).
+
+Dua event berbeda untuk satu kejadian punya `event_id` berbeda, jadi kunci utama tidak menahan yang kedua. Dua lapis lain menahannya: status top-up, dan Idempotency-Key ledger sebesar `order_id` ([[t2-idempotency]]). Key itu hidup 24 jam. Di `urutan.txt` bagian G, jam service diputar 25 jam:
+
+| Kasus | Event kedua datang | Jawaban event kedua | Jurnal untuk satu order |
+|---|---|---|---|
+| 1. Semua lapis menyala | 0 jam | ganda | 1 |
+| 2. Semua lapis menyala, 25 jam kemudian | 25 jam | ganda | 1 |
+| 3. Tanpa lapis status, event kedua langsung | 0 jam | ganda | 1 |
+| 4. Tanpa lapis status, 25 jam kemudian (key sudah habis) | 25 jam | diproses | 2 |
+
+Sumber tabel: `urutan.txt` bagian G, Rekaman lab. Sesudah 24 jam hanya status top-up yang menahan jurnal kedua. Kasus 2 lawan kasus 4 menunjukkannya: dengan lapis status jurnal tetap satu, tanpa lapis status jurnal menjadi dua.
+
+**Balasan 2xx dikirim sesudah COMMIT.** Handler membaca body, `TerimaWebhook` memeriksa tanda tangan dan mengurai JSON, lalu memanggil `webhookAman`. Fungsi itu mencatat event, mengunci baris top-up, menerapkan status, dan menutup event dalam satu transaction. Untuk `settlement`, penerapan status menulis jurnal dan baris outbox:
+
+<Snippet file="labs/api-t4/internal/service/pembayaran.go" lines="208:247" lang="go" title="labs/api-t4/internal/service/pembayaran.go" />
+
+Fungsi itu mengembalikan hasil sesudah `DalamTx` selesai, yaitu sesudah COMMIT. Bila transaction gagal, ROLLBACK membuang event dan jurnal bersama, dan handler menjawab galat, bukan 2xx. Gateway mengulang kiriman yang tidak dijawab 2xx menurut jadwalnya. Pemanggilan ke gateway untuk kabar yang diparkir terjadi sesudah COMMIT, jadi tidak ada panggilan jaringan di dalam transaction yang memegang lock.
+
+**Jadwal ulangan gateway.** Di `retry.txt` bagian A, gateway tiruan mengulang menurut kode jawaban, dengan jeda 2, 10, 30, 90, dan 210 menit antar percobaan. Totalnya 342 menit (Hitungan: 2 + 10 + 30 + 90 + 210). Jawaban 2xx menghasilkan 1 kiriman, 400 dan 404 menghasilkan 3, 500 menghasilkan 2, 503 menghasilkan 5, dan 401 serta 502 menghasilkan 6. Jadwal itu Ilustrasi yang mengikuti dokumentasi satu gateway nyata, dengan waktu yang diperankan, bukan ditunggu.
+
+<Snippet file="labs/t4-webhook/output/retry.txt" lines="6:16" title="Rekaman lab: labs/t4-webhook/output/retry.txt (bagian A)" />
+
+Dokumentasi gateway itu menulis jumlah ulangan dan jeda yang sama per kode, ditambah geseran acak pada tiap percobaan, yang tidak ditiru lab. Dokumentasi itu juga menunggu jawaban paling lama 15 detik dan menyarankan jawaban dalam 5 detik. Jawaban `401` termasuk kategori lainnya, jadi penolakan karena rahasia salah diulang lima kali. Itu bahan [[t4-m30]].
+
+**Berapa koneksi yang terpakai.** Hitungan ini memakai tiga simbol. λ adalah kiriman per detik, dan W adalah lama satu kabar memegang satu koneksi database. L = λ × W adalah rata-rata koneksi terpakai ([[t3-pool]] membahas rumusnya).
+
+Puncak top-up adalah 5.000 per hari ÷ 86.400 × 10 = 0,579 per detik. Angka itu Asumsi: 0,25 top-up per user aktif per hari, 20.000 user aktif, dan faktor puncak 10. Bila semua kiriman gagal dan diulang sampai kiriman ke-6, λ menjadi 6 × 0,579 = 3,47 per detik (Hitungan).
+
+| W | λ = 0,579 | λ = 3,47 |
+|---|---|---|
+| 5 detik | L = 2,9 koneksi | L = 17,4 koneksi |
+
+Sumber tabel: `retry.txt` bagian D, Hitungan atas Asumsi dan Tidak dijalankan, karena lab tidak menahan koneksi 5 detik per kabar. Pool pembayaran 10 koneksi (Asumsi) penuh bila L melebihi 10 − 1 = 9, aturan [[t3-pool]] untuk kedatangan berjadwal tetap. Pada badai ulang λ = 3,47, jadi itu terjadi bila W > 9 ÷ 3,47 = 2,6 detik. Pada laju puncak 0,579 per detik, W = 5 detik memakai 2,9 koneksi.
+
+### Di stack lain
+
+**Skenario:** satu kabar bertanda tangan masuk ke endpoint. Yang ditanyakan: byte mana yang dihitung tandanya, dan pemeriksaan CSRF atau JWT apa yang berdiri di depan handler.
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-10-29. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab api-t4 dan t4-webhook, PostgreSQL 17.11 dan Go 1.27.1 (rekaman `ganda.txt`, `tandatangan.txt`, `urutan.txt`).*
+
+<Snippet file="labs/api-t4/internal/handler/handler_pembayaran.go" region="webhook" lang="go" title="labs/api-t4/internal/handler/handler_pembayaran.go" />
+
+**Yang berbeda di stack ini:** handler membaca byte lewat `io.ReadAll` dengan batas 64 KB (`http.MaxBytesReader`), lalu menyerahkannya ke `TerimaWebhook` bersama dua header. Tanda tangan yang salah dan timestamp yang kedaluwarsa dijawab sama, yaitu `401`.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke dokumentasi [Express 5.x](https://expressjs.com/en/5x/api/express/), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`app.post(
+  "/webhooks/pembayaran",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    const mentah = req.body; // Buffer, atau undefined bila Content-Type tidak cocok
+    if (!mentah) return res.sendStatus(400);
+    // hitung HMAC atas \`\${timestamp}.\` + mentah, lalu bandingkan
+  }
+);`} />
+
+**Yang berbeda di stack ini:** `express.raw()` menghasilkan `Buffer`, dan `express.json()` menghasilkan objek yang sudah diurai. Dokumentasi menulis bahwa `req.body` adalah `undefined` bila `Content-Type` tidak cocok dengan opsi `type`, yang bawaannya `application/octet-stream`. Route webhook perlu `type` yang cocok dengan header gateway. Bila parser JSON global berjalan lebih dulu pada route yang sama, `req.body` sudah berupa objek (penalaran dari dokumentasi, Tidak dijalankan).
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: CSRF Protection](https://laravel.com/docs/13.x/csrf) dan [HTTP Requests](https://laravel.com/docs/13.x/requests), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`->withMiddleware(function (Middleware $middleware): void {
+    $middleware->preventRequestForgery(except: [
+        'webhooks/pembayaran',
+    ]);
+})`} />
+
+**Yang berbeda di stack ini:** rute di grup `web` melewati pemeriksaan CSRF. Dokumentasi menulis bahwa rute webhook sebuah gateway harus dikecualikan karena gateway tidak tahu token apa yang dikirim, lewat `preventRequestForgery(except: [...])` atau rute di luar grup `web`. Halaman HTTP Requests membahas `input`, `all`, dan input JSON, dan tidak membahas pembacaan body mentah. Cara membaca byte mentah perlu dicek di dokumentasi Symfony HttpFoundation, karena `Request` Laravel memperluasnya [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 6.1: request dan response](https://docs.djangoproject.com/en/6.1/ref/request-response/) dan [CSRF](https://docs.djangoproject.com/en/6.1/ref/csrf/), dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`@csrf_exempt
+def webhook_pembayaran(request):
+    mentah = request.body  # bytes, dibaca sebelum json.loads
+    ...`} />
+
+**Yang berbeda di stack ini:** `request.body` adalah byte mentah dari body. Mengakses `body` sesudah `read()` atau `readline()` menghasilkan `RawPostDataException`, jadi handler membaca `body` lebih dulu. `csrf_exempt` menandai view bebas dari pemeriksaan middleware CSRF. Dokumentasi Stripe menyebut Django di bagian pengecualian CSRF untuk rute webhook.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: request data](https://docs.serverpod.dev/concepts/web-server/request-data), halaman bertanda versi dokumentasi 4.0.0, dibuka 2026-10-29.*
+
+**Yang berbeda di stack ini:** halaman itu menunjukkan `await request.readAsString()` untuk membaca body sebagai string, dan menulis bahwa body hanya bisa dibaca sekali, kalau tidak, `StateError`. Halaman itu tidak menyebut pembacaan byte mentah dan tidak menyebut webhook. Apakah string hasil `readAsString()` bisa dikodekan ulang menjadi byte yang sama dengan yang ditandatangani gateway tidak ditulis di sana [perlu verifikasi].
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke contoh Edge Function Stripe di [repositori Supabase](https://github.com/supabase/supabase/blob/master/examples/edge-functions/supabase/functions/stripe-webhooks/index.ts), cabang master, dibuka 2026-10-29. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="ts" code={`const tanda = req.headers.get("Stripe-Signature");
+const body = await req.text();
+// verifikasi tanda tangan atas body, bukan atas JSON yang diurai`} />
+
+**Yang berbeda di stack ini:** contoh itu membaca body lewat `req.text()`, dan komentarnya menulis bahwa verifikasi bergantung pada body mentah, bukan JSON yang diurai. Komentar lain menyuruh men-deploy fungsinya dengan `verify_jwt = false`, karena gateway memverifikasi lewat tanda tangan. Jadi pemeriksaan JWT dimatikan untuk fungsi itu, dan tanda tangan yang memeriksa asal kiriman.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 34: tanda tangan atas byte mentah, event satu kali, status hanya maju
+
+**Kebutuhan.** Top-up dari bank naik jadi saldo karena kabar gateway, dan kabar itu bisa datang dua kali, bersamaan, mundur, atau palsu ([[t4-dua-arah]]). Syarat Pak Hadi: tiap rupiah dari luar dicatat satu kali. Syarat Laras: kabar dipercaya hanya sesudah dicek. Bebannya kecil: 0,579 top-up per detik di puncak (Asumsi, rumus di blok Paham).
+
+**Status:** diterima sesudah M29, dan dibaca ulang di [[t4-m30]] dan [[t4-rekonsiliasi]]. Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
+
+| | A. Cek-lalu-tulis tanpa tabel event | B. Balas 2xx dulu, lalu antre ke worker | C. Token statis tanpa timestamp | D. HMAC atas byte mentah, event_id unik, status hanya maju |
+|---|---|---|---|---|
+| Cara kerja | Handler membaca status top-up. Bila belum `dibayar`, ia menjurnal | Handler membalas 200 sebelum menulis apa pun. Worker memproses kabar dari queue | Gateway mengirim token yang sama di tiap kiriman, dan handler membandingkannya dengan rahasia | Tanda tangan diperiksa atas byte mentah. `event_id` kunci utama, status top-up hanya maju, dan 2xx dibalas sesudah COMMIT |
+| Kelebihan | Satu tabel lebih sedikit | Handler cepat, dan lonjakan kiriman tidak menahan koneksi | Satu perbandingan string | Event ganda, kiriman lama, dan isi yang diubah ditolak oleh pemeriksaan yang berbeda |
+| Kekurangan | Dua kiriman bersamaan sama-sama melihat `menunggu` dan sama-sama menjurnal | Gateway tidak mengulang kiriman yang sudah dijawab 200, jadi kabar yang gagal di worker tidak diulang | Isi yang diubah dan kiriman lama sama-sama diterima | Handler menahan satu koneksi selama satu transaction |
+| Biaya operasional | Rendah, tetapi celahnya tidak terlihat sampai uang dobel | Satu komponen lagi: queue, worker, dan pemantauan queue | Nol, tetapi tidak ada perlindungan isi | Satu tabel `webhook_event` dan satu rahasia per gateway |
+| Bukti | Rekaman lab `ganda-serentak.txt` A: dua jurnal | Tidak dijalankan. Dokumentasi gateway nyata menyarankannya, dan `retry.txt` A: 2xx adalah 1 kiriman | Rekaman lab `tandatangan.txt` D (fungsi pembanding, bukan handler), kolom gaya 3: isi diubah dan kiriman 6 menit diterima | Rekaman lab `ganda.txt` B, `ganda-serentak.txt` B, `urutan.txt` F dan G, `tandatangan.txt` B |
+
+**Keputusan: opsi D.** Tujuh aturan:
+
+1. Tanda tangan HMAC-SHA256 atas timestamp, satu titik, dan byte mentah diperiksa sebelum JSON diurai, dengan perbandingan berwaktu tetap. Timestamp lebih dari 5 menit dari jam service ditolak `401` (Asumsi untuk tiruan: bawaan library satu gateway nyata).
+2. `webhook_event.event_id` adalah kunci utama, diisi lewat `INSERT ... ON CONFLICT DO NOTHING`. Nol baris berarti ganda: balas `200` tanpa jurnal.
+3. Selama ledger ada di satu proses (sampai ADR 37), event, status top-up, jurnal, dan baris outbox ditulis dalam satu transaction. Balas 2xx hanya sesudah COMMIT, dan galat membuang semuanya.
+4. Status top-up hanya maju. Kabar yang datang mundur, atau yang kreditnya ditolak batas saldo, diparkir. Gateway ditanya, di luar transaction, hanya bila top-up masih `menunggu` atau `tidak_pasti`.
+5. Jumlah kredit datang dari order milik Rekeningo, bukan dari isi kabar. Kabar dengan jumlah berbeda dijawab `ditolak` (dibaca dari kode `terapkanStatus`, tidak direkam untuk versi ADR).
+6. Idempotency-Key ke ledger adalah `order_id`: satu jurnal per top-up, lewat webhook atau job cek status ([[t4-rekonsiliasi]]). `event_id` hanya kunci `webhook_event`.
+7. Sesudah ADR 37, ledger dipanggil lewat API di luar transaction pembayaran dengan key itu. Lalu `webhook_event` dan `topup_bank` ditulis dalam satu transaction, dan 2xx dibalas sesudah COMMIT ([[t4-modul]]).
+
+Bentuk kedua aturan 7 terekam di `labs/t4-modul` `proses-mati.txt` bagian A. Service pembayaran mati sesudah ledger menjurnal dan sebelum `topup_bank` ditandai. Saat itu ledger punya 1 jurnal, `topup_bank` masih `menunggu`, dan `webhook_event` kosong. Gateway mengirim ulang event yang sama, dijawab `200 diproses`, dan jurnalnya tetap satu.
+
+**Kenapa D, bukan A, B, atau C.**
+
+- **A ditolak** karena dua kiriman bersamaan lolos cek status, dan hasilnya dua jurnal (`ganda-serentak.txt` bagian A).
+- **B ditolak** karena jawaban 200 yang dikirim sebelum kabar tercatat menghentikan ulangan gateway. Kabar yang gagal di worker hanya ditemukan job cek status, yang baru memeriksa top-up sesudah 30 menit (Asumsi lab), dan rekonsiliasi harian.
+- **C ditolak** karena isi yang diubah dan kiriman yang diputar ulang sama-sama diterima (`tandatangan.txt` bagian D, fungsi pembanding).
+
+**Kasus industri: dokumentasi Stripe.** Dokumentasi Stripe menulis bahwa endpoint harus memverifikasi tanda tangan atas body mentah, dan library resminya bertoleransi 5 menit. Event ganda dikenali lewat event ID. Bila dua objek Event berbeda dikirim untuk satu kejadian, id objek di `data.object` bersama `event.type` dipakai ([Stripe: webhooks](https://docs.stripe.com/webhooks), dibuka 2026-10-29).
+
+Dokumentasi yang sama menyarankan membalas 2xx sebelum logika yang berat dan memproses kabar lewat queue asinkron. Itu opsi B, dan ADR ini menolaknya untuk beban 0,579 per detik, dengan alasan di atas. Batasnya: ini dokumentasi sisi pengirim satu produk, tanpa angka beban atau kerugian. Dokumentasi itu hanya menyarankan mencatat event ID yang sudah diproses, tanpa bentuk tabel atau kunci.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Gateway mengulang lebih lama dari umur Idempotency-Key. Jadwal tiruan berhenti di 342 menit, tetapi dokumentasi Stripe menulis tiga hari. Bila service pembayaran mati di antara ledger dan transaction pembayaran, sesudah 24 jam hanya status `topup_bank` yang menahan, dan status itu masih `menunggu`. Di `proses-mati.txt` bagian C, kiriman ulang pada +23 jam menghasilkan 1 jurnal, dan pada +25 jam 2 jurnal: saldo naik dua kali. SQL yang sama dengan `RekonHarian` memberi 150.000 yang dibaca lawan 300.000 yang dikreditkan, dijalankan sebagai kueri dan bukan sebagai job. Menurut SQL itu, jurnal kedua tidak terlihat sebagai insiden. Ini temuan lab, dan pencegahannya belum diputuskan: key top-up tidak kedaluwarsa selagi `topup_bank` menunggu, atau rekonsiliasi menjumlahkan semua jurnal per order. Pemilik yang memutuskan.
+2. Gateway tidak mengirim `event_id` yang stabil. Kunci utama menjadi tidak berguna. Pencegahannya hash isi sebagai kunci, dan itu dicek ke dokumentasi gateway sebelum integrasi.
+3. Badai ulang. Bila semua kiriman gagal, λ naik ke 3,47 per detik dan pool penuh sejak W > 2,6 detik. Pencegahannya batas waktu di tiap panggilan yang memegang koneksi, dan pemantauan koneksi terpakai.
+
+**Kapan keputusan ini salah.**
+
+- Saat pemrosesan satu kabar melebihi 5 detik, yaitu sepertiga dari 15 detik batas tunggu satu gateway nyata. Opsi B menjadi benar. Pada laju puncak, W = 5 detik memakai L = 2,9 koneksi. Pada batas atas 3,47 per detik, L = 17,4 melewati pool 10, dan pool penuh sejak W > 2,6 detik (Hitungan, Asumsi). Jadi ambang 5 detik berlaku untuk laju puncak, bukan untuk badai ulang.
+- Saat gateway tidak mengirim `event_id` yang stabil. Kunci diganti hash isi.
+- Saat gateway mengulang lebih lama dari 24 jam, umur Idempotency-Key ([[t2-idempotency]]). Hanya status `topup_bank` yang menahan jurnal kedua, dan itu benar hanya bila transaction pembayaran pernah selesai.
+- Saat urutan antar kabar penting bagi bisnis. Gateway tidak menjamin urutan, dan ADR ini hanya mencegah status mundur.
+
+**Yang akan merevisinya.** [[t4-rekonsiliasi]] menambah job cek status dan rekonsiliasi harian di atas jalan kedua ini. [[t4-modul]] memecah service pembayaran dari ledger dan menjadikan bentuk kedua aturan 7 yang berlaku.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Queue pemrosesan kabar | Pada laju puncak, satu kabar 5 detik memakai 2,9 koneksi dari 10 (Hitungan). Dipasang bila satu kabar melewati 5 detik | Belum dijadwalkan |
+| Daftar IP pengirim | Dokumentasi Stripe menyebutnya bersama tanda tangan sebagai dua perlindungan yang dipakai bersamaan. Lab tidak merekamnya: Tidak dijalankan | Belum dijadwalkan |
+| Pembersihan `webhook_event` | Retensi tabel itu belum ditentukan. README lab menulis belum ada | Belum dijadwalkan |
+| Jalur pengembalian dana untuk top-up yang tertahan | PRD v4 belum menjawabnya | [[t4-rekonsiliasi]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Gateway mengirim event yang sama dua kali karena balasan 200 yang pertama hilang. Berapa jurnal yang ditulis handler versi pertama, dan berapa yang ditulis handler ADR 34?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Handler versi pertama menulis dua jurnal, 10201 dan 10202, dan saldo Budi naik Rp400.000. Handler ADR 34 menjawab `200 ganda` untuk kiriman kedua, dan jurnalnya satu (`ganda.txt` bagian A dan B).
+
+</details>
+
+**2.** Kenapa tanda tangan dihitung atas byte yang tiba, bukan atas JSON yang sudah diurai?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Spasi dan baris baru ikut dihitung dalam HMAC. Di `tandatangan.txt` bagian A, body berindentasi 109 byte cocok bila dihitung atas byte mentah, dan tidak cocok bila diurai lalu ditulis ulang.
+
+</details>
+
+**3.** Kabar `pending` datang sesudah `settlement`. Apa yang terjadi pada status top-up, dan apakah gateway ditanya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kabar dijawab `200 diparkir`, status tetap `dibayar`, dan gateway ditanya 0 kali. Top-up yang sudah berstatus akhir tidak ditanyakan, karena jawabannya tidak bisa mengubah status (`urutan.txt` bagian F).
+
+</details>
+
+**4.** Event kedua dengan `event_id` berbeda datang 25 jam kemudian untuk order yang sama. Lapis mana yang menahan jurnal kedua?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Status top-up yang hanya maju. Idempotency-Key ledger hidup 24 jam, jadi sesudah 25 jam ia sudah habis. Tanpa lapis status, event kedua diproses dan jurnalnya dua (`urutan.txt` bagian G, kasus 4).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tanda tangan dihitung atas byte yang dibaca dari body sebelum `json.Unmarshal`, dengan perbandingan berwaktu tetap.
+- [ ] Ada batas usia timestamp, dan nilainya bukan 0.
+- [ ] `event_id` adalah kunci utama, dan hasil nol baris dari `ON CONFLICT DO NOTHING` ditangani sebagai ganda.
+- [ ] Event, status, dan jurnal ditulis dalam satu transaction, dan 2xx dibalas sesudah COMMIT.
+- [ ] Status hanya maju, dan jumlah kredit datang dari order, bukan dari isi kabar.
+- [ ] Gateway ditanya sesudah COMMIT, bukan di dalam transaction yang memegang lock.
+
+### Bacaan lanjut
+
+- [Stripe: webhooks](https://docs.stripe.com/webhooks)
+- [Dokumentasi notifikasi HTTP(S) sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks)
+- [Go: crypto/hmac](https://pkg.go.dev/crypto/hmac)
+- [Express 5.x: express.raw dan express.json](https://expressjs.com/en/5x/api/express/)
+- [Django 6.1: HttpRequest.body](https://docs.djangoproject.com/en/6.1/ref/request-response/)
+- [Laravel 13.x: CSRF Protection](https://laravel.com/docs/13.x/csrf)
+
+</Blok>

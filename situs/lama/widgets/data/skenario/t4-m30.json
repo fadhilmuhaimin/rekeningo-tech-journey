@@ -1,0 +1,195 @@
+{
+  "versi": 2,
+  "judul": "Secret berganti: enam kiriman untuk top-up Citra, enam 401",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-webhook/output/retry.txt",
+    "fileVarian": "labs/t4-webhook/output/retry.txt",
+    "catatan": "Server Go api-t4 dan gateway tiruan lokal dengan PostgreSQL 17.11, dari database bersih (make -C labs/t4-webhook run BAGIAN=retry). Jalur utama: bagian B, top-up Citra Rp500.000, api-t4 memegang secret lama dan gateway menandatangani dengan secret baru. Ubah satu hal: bagian C, top-up Eko Rp200.000 dengan alur yang sama, dan secret di api-t4 disamakan di antara kiriman 2 dan 3; itu top-up lain, bukan top-up Citra. Waktu diperankan: gateway tiruan memainkan jadwal atas perintah skrip lab dan menandatangani tiap kiriman dengan waktu maya, jadi tidak ada yang menunggu 342 menit. Baris diawali tanda panah diringkas dari rekaman yang sama, bukan baris log. Layar HP digambar dari isi rekaman: lab tidak punya app Flutter, dan rekaman tidak mencetak saldo, jadi layar tidak menampilkan saldo. Jam 09.40 di layar HP mengikuti jam cerita (Ilustrasi) dan adalah pilihan penulis."
+  },
+  "pengantar": "Gateway merotasi secret, dan api-t4 belum disamakan. Tebak dulu, lalu ikuti enam kiriman untuk top-up Citra sampai HP-nya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "gw",
+      "label": "Gateway (tiruan)"
+    },
+    {
+      "id": "api",
+      "label": "api-t4"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "perangkat": [
+    {
+      "id": "hp",
+      "label": "HP pemilik top-up"
+    }
+  ],
+  "layarAwal": {
+    "hp": {
+      "judul": "Rekeningo",
+      "waktu": "09.40",
+      "sinyal": 3,
+      "isi": [
+        {
+          "jenis": "teks",
+          "teks": "Top-up Citra Rp500.000"
+        },
+        {
+          "jenis": "baris",
+          "kiri": "Status",
+          "kanan": "menunggu"
+        }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Gateway menandatangani dengan secret baru, dan api-t4 masih memegang secret lama. Gateway mengirim kiriman ke-6 pada menit 342. Apa jawaban api-t4, dan apa yang terjadi sesudahnya?",
+    "options": [
+      "401, lalu gateway terus mengulang sampai secret disamakan",
+      "200 diproses: api-t4 menerima kiriman terakhir",
+      "401, lalu gateway berhenti; top-up tetap menunggu tanpa event dan tanpa jurnal",
+      "500: api-t4 gagal mengurai kiriman"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Secret di api-t4 tidak berubah selama jadwal, jadi kiriman ke-6 juga dijawab 401. Jadwal gateway berhenti di situ. Rekaman retry.txt bagian B: enam kiriman 401, webhook_event 0 baris, dan top-up menunggu tanpa jurnal."
+  },
+  "langkah": [
+    {
+      "dari": "gw",
+      "judul": "Gateway merotasi secret dan memakai yang baru",
+      "kirim": "# Gateway merotasi rahasia dan langsung menandatangani dengan yang baru; menit 0 = kiriman pertama dengan rahasia baru (waktu maya).",
+      "jelas": "Citra sudah membayar di bank, diperankan perintah lab ke gateway tiruan. Gateway langsung menandatangani dengan secret baru, tanpa masa tumpang tindih. api-t4 masih memegang secret yang lama."
+    },
+    {
+      "dari": "gw",
+      "ke": "api",
+      "judul": "Kiriman 1 (menit 0)",
+      "kirim": "→ kiriman 1, menit 0: tanda tangan dengan secret baru",
+      "jelas": "Kiriman pertama membawa kabar bahwa order Citra sudah dibayar. api-t4 menghitung tanda tangan dengan secret lama, dan hasilnya tidak sama (kode PeriksaTandaTangan)."
+    },
+    {
+      "dari": "api",
+      "ke": "gw",
+      "judul": "api-t4 menjawab 401",
+      "kirim": " kiriman | menit sejak kiriman pertama | jawaban api-t4\n 1       | 0                           | 401",
+      "jelas": "Tanda tangan yang salah dijawab 401 sebelum JSON diurai, jadi tidak ada baris event dan tidak ada jurnal.",
+      "nada": "warn"
+    },
+    {
+      "dari": "gw",
+      "ke": "api",
+      "judul": "Gateway mengulang: kiriman 2 sampai 6",
+      "kirim": "→ kiriman 2 sampai 6 pada menit 2, 12, 42, 132, dan 342",
+      "jelas": "Gateway tidak tahu kenapa kirimannya ditolak. Ia mengulang menurut jadwal, dengan jeda 2, 10, 30, 90, dan 210 menit sejak percobaan sebelumnya. Waktunya diperankan, tidak ditunggu."
+    },
+    {
+      "dari": "api",
+      "ke": "gw",
+      "judul": "Kelima ulangan juga dijawab 401",
+      "kirim": " 2       | 2                           | 401\n 3       | 12                          | 401\n 4       | 42                          | 401\n 5       | 132                         | 401\n 6       | 342                         | 401",
+      "jelas": "Secret di api-t4 tidak berubah selama jadwal berjalan, jadi tiap kiriman ditolak.",
+      "nada": "warn"
+    },
+    {
+      "dari": "gw",
+      "judul": "Jadwal habis, gateway berhenti",
+      "kirim": "gateway berhenti: jadwal habis (342 menit sesudah kiriman pertama, ±5,7 jam)",
+      "jelas": "Kiriman keenam adalah yang terakhir. Gateway tidak mengirim lagi.",
+      "nada": "warn"
+    },
+    {
+      "dari": "api",
+      "ke": "db",
+      "judul": "Tidak ada event, tidak ada jurnal",
+      "kirim": "=> SELECT count(*) AS webhook_event FROM webhook_event\n webhook_event\n---------------\n 0\n(1 row)\n=> SELECT status, jurnal_id FROM topup_bank\n status   | jurnal_id\n----------+-----------\n menunggu |\n(1 row)",
+      "jelas": "Tabel webhook_event kosong, dan top-up Citra tetap menunggu tanpa jurnal. Rekaman tidak mencetak saldo, tetapi tanpa jurnal untuk top-up itu saldo Citra tidak bertambah Rp500.000.",
+      "nada": "warn",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "09.40",
+          "sinyal": 3,
+          "isi": [
+            {
+              "jenis": "teks",
+              "teks": "Top-up Citra Rp500.000"
+            },
+            {
+              "jenis": "baris",
+              "kiri": "Status",
+              "kanan": "menunggu",
+              "nada": "warn"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "secret di api-t4 disamakan sebelum jadwal habis",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "gw",
+        "ke": "api",
+        "judul": "Kiriman 1 dan 2 ditolak",
+        "kirim": "kiriman 1 dan 2: 401, 401 (sesuai perintah lab)",
+        "jelas": "Ini top-up lain, milik Eko Rp200.000, dengan alur yang sama: secret baru di gateway dan secret lama di api-t4. Skrip lab menghentikan jadwal sesudah kiriman kedua.",
+        "nada": "warn"
+      },
+      {
+        "dari": "api",
+        "judul": "Secret disamakan, api-t4 dinyalakan ulang",
+        "kirim": "# menit 2 sampai 12: rahasia di api-t4 disamakan, server dinyalakan ulang dengan <baru>,<lama>",
+        "jelas": "Daftar secret di api-t4 berubah: yang baru dipakai, yang lama masih diterima. Isi kiriman sama, dan jam maya dipasang sebelum tiap kiriman."
+      },
+      {
+        "dari": "gw",
+        "ke": "api",
+        "judul": "Gateway mengirim kiriman ke-3 (menit 12)",
+        "kirim": "→ kiriman 3, menit 12: tanda tangan dengan secret baru",
+        "jelas": "Skrip lab melanjutkan jadwal dari kiriman ke-3, pada menit 12."
+      },
+      {
+        "dari": "api",
+        "ke": "gw",
+        "judul": "api-t4 menjawab 200",
+        "kirim": " kiriman | menit sejak kiriman pertama | jawaban api-t4\n 3       | 12                          | 200 diproses",
+        "jelas": "Tanda tangan cocok sekarang, jadi kabarnya diproses.",
+        "nada": "good"
+      },
+      {
+        "dari": "api",
+        "ke": "db",
+        "judul": "Top-up dibayar, satu jurnal",
+        "kirim": "=> SELECT status, jurnal_id IS NOT NULL AS ada_jurnal FROM topup_bank WHERE id = 2\n status  | ada_jurnal\n---------+------------\n dibayar | t\n(1 row)",
+        "jelas": "Uangnya tercatat satu kali. Rekaman bagian C tidak mencetak saldo, jadi layar tidak menampilkannya.",
+        "nada": "good",
+        "layar": {
+          "hp": {
+            "judul": "Rekeningo",
+            "waktu": "09.40",
+            "sinyal": 3,
+            "isi": [
+              {
+                "jenis": "teks",
+                "teks": "Top-up Eko Rp200.000"
+              },
+              {
+                "jenis": "baris",
+                "kiri": "Status",
+                "kanan": "dibayar",
+                "nada": "good"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

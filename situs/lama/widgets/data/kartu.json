@@ -2584,6 +2584,46 @@
   "jawab": "Keduanya sudah tepat untuk data di PostgreSQL: jurnal dan status ikut satu COMMIT atau batal bersama. Transaction tidak memeriksa kabar. Ia menyimpan apa pun yang ditulis di dalamnya, termasuk jumlah yang palsu."
  },
  {
+  "id": "t4-skema-1",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "Tabel Tahap 3 mana yang berubah di Tahap 4, dan apa yang berubah?",
+  "jawab": "Lima tabel: `akun` (kolom `tingkat` dan `status`, tiga nilai `jenis` baru), `buku` (lima nilai `jenis` baru), `jurnal` (tiga nilai `jenis` baru), `outbox` (kolom `tujuan` dan nilai `verifikasi`), dan `produk` (kolom `gambar_url`). Sembilan tabel lainnya tidak berubah."
+ },
+ {
+  "id": "t4-skema-2",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "Kenapa `jurnal` tidak mendapat kolom untuk top-up dari bank?",
+  "jawab": "Pencocokan top-up dan jurnal ada di `topup_bank`: `order_id` UNIQUE, dan `jurnal_id` UNIQUE menunjuk jurnalnya. Baris kedua dengan `order_id` yang sama ditolak dengan SQLSTATE 23505. `jurnal` hanya menerima nilai `jenis` baru, termasuk `topup_bank`."
+ },
+ {
+  "id": "t4-skema-3",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "`qr` menolak QR dinamis tanpa nominal. Aturan apa yang menolaknya?",
+  "jawab": "CHECK `qr_dinamis_terikat` mewajibkan `nominal` dan `berlaku_sampai` terisi persis ketika `jenis` adalah `dinamis`. Melanggarnya ditolak dengan SQLSTATE 23514."
+ },
+ {
+  "id": "t4-skema-4",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "Dari rumus apa ±11 GB posting per tahun di Tahap 4, dan kenapa ±6,57 GB dan ±10,95 GB berbeda?",
+  "jawab": "100.000 × 20% × 3 = 60.000 transaksi per hari. Lalu 60.000 × 2 posting × 365 hari = 43.800.000 posting, dan 43.800.000 × 250 byte = 10.950.000.000 byte. Angka ±6,57 GB menghitung satu baris 300 byte per transaksi, sedangkan ±10,95 GB menghitung dua posting 250 byte per transaksi."
+ },
+ {
+  "id": "t4-skema-5",
+  "halaman": "t4-skema",
+  "judul": "4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya",
+  "url": "tahap-4/skema-data/",
+  "tanya": "Berapa kali lipat ukuran file setahun dibanding posting setahun, dan apa akibatnya pada tabel `verifikasi`?",
+  "jawab": "File 2.000 × 500 KB × 365 = 365 GB, sekitar 33 kali posting (365 ÷ 10,95). Karena itu `verifikasi` menyimpan kunci objek dan checksum, bukan isi file. Semua angka ini Asumsi."
+ },
+ {
   "id": "t4-m29-1",
   "halaman": "t4-m29",
   "judul": "4.6 M29: Top-up Budi masuk dua kali",
@@ -2606,6 +2646,62 @@
   "url": "tahap-4/m29-topup-dua-kali/",
   "tanya": "Handler membaca status dulu dan menjawab `ganda` bila sudah `dibayar`. Kenapa dua kiriman bersamaan tetap menghasilkan dua jurnal?",
   "jawab": "Kedua kiriman membaca status sebelum salah satu menulis, jadi keduanya melihat `menunggu` (`ganda-serentak.txt` bagian A, dengan jeda lab 300 ms di antara cek dan tulis). Pembacaan itu tidak mengunci baris."
+ },
+ {
+  "id": "t4-webhook-1",
+  "halaman": "t4-webhook",
+  "judul": "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+  "url": "tahap-4/webhook-masuk/",
+  "tanya": "Gateway mengirim event yang sama dua kali karena balasan 200 yang pertama hilang. Berapa jurnal yang ditulis handler versi pertama, dan berapa yang ditulis handler ADR 34?",
+  "jawab": "Handler versi pertama menulis dua jurnal, 10201 dan 10202, dan saldo Budi naik Rp400.000. Handler ADR 34 menjawab `200 ganda` untuk kiriman kedua, dan jurnalnya satu (`ganda.txt` bagian A dan B)."
+ },
+ {
+  "id": "t4-webhook-2",
+  "halaman": "t4-webhook",
+  "judul": "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+  "url": "tahap-4/webhook-masuk/",
+  "tanya": "Kenapa tanda tangan dihitung atas byte yang tiba, bukan atas JSON yang sudah diurai?",
+  "jawab": "Spasi dan baris baru ikut dihitung dalam HMAC. Di `tandatangan.txt` bagian A, body berindentasi 109 byte cocok bila dihitung atas byte mentah, dan tidak cocok bila diurai lalu ditulis ulang."
+ },
+ {
+  "id": "t4-webhook-3",
+  "halaman": "t4-webhook",
+  "judul": "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+  "url": "tahap-4/webhook-masuk/",
+  "tanya": "Kabar `pending` datang sesudah `settlement`. Apa yang terjadi pada status top-up, dan apakah gateway ditanya?",
+  "jawab": "Kabar dijawab `200 diparkir`, status tetap `dibayar`, dan gateway ditanya 0 kali. Top-up yang sudah berstatus akhir tidak ditanyakan, karena jawabannya tidak bisa mengubah status (`urutan.txt` bagian F)."
+ },
+ {
+  "id": "t4-webhook-4",
+  "halaman": "t4-webhook",
+  "judul": "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+  "url": "tahap-4/webhook-masuk/",
+  "tanya": "Event kedua dengan `event_id` berbeda datang 25 jam kemudian untuk order yang sama. Lapis mana yang menahan jurnal kedua?",
+  "jawab": "Status top-up yang hanya maju. Idempotency-Key ledger hidup 24 jam, jadi sesudah 25 jam ia sudah habis. Tanpa lapis status, event kedua diproses dan jurnalnya dua (`urutan.txt` bagian G, kasus 4)."
+ },
+ {
+  "id": "t4-m30-1",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Gateway mengirim enam kiriman untuk top-up Citra, dan database tidak memuat satu pun event. Kenapa tidak ada event?",
+  "jawab": "Tanda tangan kiriman memakai secret baru, sedangkan api-t4 masih memegang secret lama. Tiap kiriman dijawab 401 sebelum event ditulis (`retry.txt` bagian B: enam kiriman 401, `webhook_event` 0 baris)."
+ },
+ {
+  "id": "t4-m30-2",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Bayu menyamakan secret Minggu 09.10. Kenapa top-up Citra dari Sabtu malam tetap tidak naik?",
+  "jawab": "Jadwal terpanjang gateway 342 menit. Kiriman pertama sebelum 09.10 − 342 menit = 03.28 sudah memakai semua percobaannya sebelum 09.10. Jadi gateway tidak mengirim lagi (Hitungan atas jadwal `retry.txt` bagian A, dengan jam cerita berlabel Ilustrasi)."
+ },
+ {
+  "id": "t4-m30-3",
+  "halaman": "t4-m30",
+  "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+  "url": "tahap-4/m30-saldo-tidak-naik/",
+  "tanya": "Kenapa halaman ini tidak menulis jadwal ulang dan masa tumpang tindih secret sebagai perilaku satu gateway?",
+  "jawab": "Jadwal lima kali dengan jeda 2, 10, 30, 90, dan 210 menit ada di dokumentasi gateway kedua, yang tidak menyebut rotasi. Masa tumpang tindih sampai 24 jam dan pengulangan sampai tiga hari ada di dokumentasi gateway pertama (Tidak dijalankan). Tiruan lab memakai jadwal gateway kedua dengan rotasi langsung."
  },
  {
   "id": "t4-rekonsiliasi-1",

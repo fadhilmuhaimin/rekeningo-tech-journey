@@ -1,0 +1,41 @@
+{
+  "istilah": "HMAC (hash-based message authentication code)",
+  "sehari_hari": "HMAC adalah tanda yang dihitung dari isi pesan dan satu rahasia yang dipegang pengirim dan penerima. Penerima menghitung ulang tanda itu, dan bila cocok, pesan berasal dari pemegang rahasia dan isinya tidak diubah.",
+  "cerita": [
+    {
+      "rujukan": "t4-webhook",
+      "teks": "Gateway tiruan menghitung HMAC-SHA256 atas timestamp, satu titik, dan byte body, lalu mengirim hasilnya di header. Rekeningo menghitung ulang atas byte yang tiba: body berindentasi 109 byte cocok, dan isi yang diubah dijawab 401 (`tandatangan.txt` bagian A dan B)."
+    }
+  ],
+  "mekanisme": [
+    "Pengirim dan penerima memegang rahasia yang sama, dan rahasia itu tidak ikut terkirim.",
+    "Pengirim menghitung HMAC atas pesan dengan rahasia itu, lalu mengirim hasilnya bersama pesan.",
+    "Penerima menghitung ulang atas byte yang tiba, lalu membandingkan hasilnya dengan perbandingan berwaktu tetap.",
+    "Bila hasilnya beda, pesan ditolak: isinya berubah atau pengirimnya tidak tahu rahasia. Timestamp yang ikut dihitung membuat kiriman lama bisa ditolak."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menghitung atas JSON yang sudah diurai lalu ditulis ulang. Spasi dan baris baru berbeda, jadi HMAC berbeda walau isinya sah (`tandatangan.txt` bagian A).",
+    "Membandingkan dengan `==` biasa. Dokumentasi gateway nyata menyuruh perbandingan berwaktu tetap, dan dokumentasi Go menulis bahwa `hmac.Equal` tidak membocorkan informasi lewat waktu."
+  ],
+  "terkait": ["Signature", "Webhook", "Idempotency key"],
+  "sumber": [
+    {
+      "riset": "R4-140",
+      "judul": "Stripe: webhooks (dibuka 2026-10-29)",
+      "url": "https://docs.stripe.com/webhooks",
+      "catatan": "Tanda tangan dihitung dengan HMAC dan SHA-256 atas timestamp, satu titik, dan body mentah. Dokumentasi menyuruh perbandingan waktu tetap dan menulis bahwa manipulasi apa pun pada body mentah membuat verifikasi gagal."
+    },
+    {
+      "riset": "R4-140",
+      "judul": "Go: crypto/hmac (Go 1.27.3, dibuka 2026-10-29)",
+      "url": "https://pkg.go.dev/crypto/hmac",
+      "catatan": "Equal membandingkan dua MAC tanpa membocorkan informasi lewat waktu."
+    },
+    {
+      "judul": "Rekaman lab t4-webhook: tandatangan.txt bagian A dan B",
+      "rekaman": "labs/t4-webhook/output/tandatangan.txt",
+      "catatan": "Bagian A: body 109 byte cocok atas byte mentah dan tidak cocok bila diurai ulang (fungsi pembanding di skrip lab). Bagian B: isi diubah dan timestamp 360 detik lalu dijawab 401."
+    }
+  ]
+}

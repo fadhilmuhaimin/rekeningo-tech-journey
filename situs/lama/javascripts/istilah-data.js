@@ -557,6 +557,15 @@ window.ISTILAH = {
   "t": "Graceful shutdown",
   "u": "tahap-3/dua-instance/"
  },
+ "HMAC": {
+  "b": "t4-webhook",
+  "d": "Nilai yang dihitung dari isi pesan dan rahasia bersama, supaya penerima bisa memeriksa bahwa pesan tidak diubah dan berasal dari pemegang rahasia.",
+  "h": "istilah/hmac/",
+  "n": "4.7 Webhook masuk",
+  "s": "istilah-hmac",
+  "t": "HMAC (hash-based message authentication code)",
+  "u": "tahap-4/webhook-masuk/"
+ },
  "HSTS": {
   "b": "t3-tls-pinning",
   "d": "Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.",
@@ -1679,12 +1688,12 @@ window.ISTILAH = {
   "u": "e-mobile/e4-push-real-time/"
  },
  "Webhook": {
-  "b": "B10.2",
+  "b": "t4-webhook",
   "d": "HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.",
-  "n": "Webhook dan outbox (versi lama)",
+  "n": "4.7 Webhook masuk",
   "s": "istilah-webhook",
   "t": "Webhook",
-  "u": "b-fondasi/b10-2-webhook-outbox/"
+  "u": "tahap-4/webhook-masuk/"
  },
  "Worker": {
   "b": "t3-outbox",
@@ -2880,12 +2889,12 @@ window.ISTILAH = {
   "u": "tahap-3/m27-hari-promo/"
  },
  "webhook": {
-  "b": "B10.2",
+  "b": "t4-webhook",
   "d": "HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.",
-  "n": "Webhook dan outbox (versi lama)",
+  "n": "4.7 Webhook masuk",
   "s": "istilah-webhook",
   "t": "Webhook",
-  "u": "b-fondasi/b10-2-webhook-outbox/"
+  "u": "tahap-4/webhook-masuk/"
  },
  "worker": {
   "b": "t3-outbox",
