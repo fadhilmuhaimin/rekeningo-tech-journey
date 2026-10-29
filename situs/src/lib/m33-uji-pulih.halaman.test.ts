@@ -894,6 +894,74 @@ describe("tanpa kunci baris: kalimat Inti, definisi Hitungan, dan penutup tabel"
   });
 });
 
+describe("tanpa kunci baris: kalimat naratif per paragraf, nomor soal, rujukan berkas, dan angka di baris riset", () => {
+  const bagianFile = (FILE_HARI / (FILE_HARI + POSTING_GB)) * 100;
+  const paragraf = (): string[] => badan.split("\n").map((b) => b.trim()).filter((b) => b !== "");
+  test("paragraf tebakan, bagian Yang sebenarnya, dan Coba sendiri memuat kalimat utuh dengan angka dari rekaman dan hitungan", () => {
+    harus(`Foto kartu identitas dan swafoto. Versi pertama menyimpannya di kolom \`bytea\`, tipe PostgreSQL untuk byte mentah, di database yang sama dengan data transaksi.`);
+    harus(`Rekaman lab \`ukuran.txt\` bagian A: dump, yaitu file backup yang ditulis \`pg_dump\`, membesar sebanding dengan ukuran file, sekitar ${fmt(RASIO, 1)} kali. Hitungannya ada di blok berikutnya.`);
+    harus("**Dump membesar sebanding dengan ukuran file.** Delapan pengajuan menyimpan 16 file, 8.000.000 byte. Lab mengukur selisih ukuran dump terhadap dump sebelum pengajuan pertama, dibagi byte isi file:");
+    harus("**Pulih berhasil, tetapi waktunya tidak terukur.** Dump tabel itu dipulihkan ke database lain, dan isinya sama dengan sebelum dump:");
+    harus("**File di penyimpanan objek tidak masuk dump.** Object storage adalah layanan yang menyimpan file per objek dan melayaninya lewat HTTP.");
+    harus("Waktu dump dan pulih bergantung mesin, jadi lab hanya memeriksa batas 120 detik untuk 8 MB.");
+    harus(`Rekaman hanya membuktikan ukuran: dump yang ditulis tiap hari dan dibaca saat pulih membesar sebanding dengan file di kolom.`);
+    harus(`Widget ini mengikuti rekaman \`ukuran.txt\`: delapan pengajuan dengan dua file ${fmt(500000)} byte, dump terkompresi dan dump teks, lalu pemulihan ke database lain. Tebak dulu, lalu tekan Berikutnya atau panah kanan.`);
+    harus("Sesudah langkah terakhir, centang **Ubah satu hal: file di penyimpanan objek, bukan di kolom bytea**. Dump hampir tidak membesar, tetapi file perlu cadangan sendiri (`ukuran.txt` bagian C).");
+    harus("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia.");
+    harus("Dump yang kecil tidak berarti file lepas dari tanggung jawab backup. Dump tidak membawa file, jadi file perlu cadangan sendiri, dan pencadangan penyimpanan objek Tidak dijalankan di lab. Keputusannya ada di [[t4-storage]].");
+    harus("Uji yang sama berjalan");
+    expect(paragraf().filter((b) => b.startsWith("Rekaman lab `ukuran.txt` bagian A"))).toHaveLength(1);
+  });
+  test("soal Cek diri bernomor 1, 2, 3 berurutan dengan pertanyaan utuh; tiga jawaban memakai satu label tiap kalimat hitungan", () => {
+    expect([...badan.matchAll(/^\*\*(\d)\.\*\* /gm)].map((m) => Number(m[1]))).toEqual([1, 2, 3]);
+    harus("**1.** Disk staging ditambah, tetapi uji pulih tetap makin lama. Kenapa disk bukan sebabnya?");
+    harus("**3.** Dump di penyimpanan objek hampir tidak membesar. Apakah file sudah aman tercadangkan?");
+    harus("Disk menampung hasil pemulihan, tetapi tidak mengubah isi dump.");
+    harus(`jadi file ${fmt(bagianFile, 1)}% dari file dan posting (Hitungan atas Asumsi).`);
+    harus("Belum. Dump tidak membawa file, jadi file perlu cadangan sendiri.");
+  });
+  test("rujukan `ukuran.txt` dan `unggah.txt` berurutan sama dengan yang diharapkan, dengan bagian yang benar", () => {
+    const rujukan = [...badan.matchAll(/`(ukuran|unggah)\.txt`( bagian [A-D])?/g)].map((m) => `${m[1]}${m[2] ?? ""}`);
+    expect(rujukan).toEqual(["ukuran bagian A", "ukuran", "unggah bagian C", "ukuran", "ukuran bagian C", "ukuran bagian A", "ukuran bagian A", "ukuran bagian C"]);
+    expect(badan.match(/Bagian D `ukuran\.txt`/g)).toHaveLength(1);
+  });
+  test("skenario: catatan sumber lengkap, dan diagram tanpa simpul kode", () => {
+    expect(skenario.sumber.catatan).toBe(`Server Go api-t4, PostgreSQL ${cocok(ukuran, /# PostgreSQL ([\d.]+) \(Debian/)[1]} dari database bersih, dan SeaweedFS ${cocok(readme, /SeaweedFS \| ([\d.]+) \(Apache-2\.0\)/)[1]} untuk varian (make -C labs/t4-storage run BAGIAN=ukuran). Jalur utama: ukuran.txt bagian A, B, dan D. Ubah satu hal: bagian C, run terpisah dengan data awal yang sama. Delapan pengajuan, dua file ${fmt(500000)} byte tiap pengajuan. Isi file karangan (Ilustrasi): tanda tangan PNG lalu byte acak, jadi rasio untuk foto nyata tidak diukur. Waktu dump dan pulih tidak direkam. Lab tidak punya app Flutter dan tidak merekam layar. Baris diawali tanda panah tidak ada di skenario ini.`);
+    for (const b of diagram.baris) for (const sp of b.simpul) expect(sp.kode).toBe(false);
+  });
+  test("tanggal di baris riset semuanya tanggal akses halaman; rujukan antar-ID di dalam baris benar; kutipan hanya yang ada di sumber yang dicatat", () => {
+    const tgl = cocok(badan, /dibuka (\d{4}-\d{2}-\d{2}), Tidak dijalankan/)[1]!;
+    for (const id of IDS) for (const d of barisRiset(id).matchAll(/\d{4}-\d{2}-\d{2}/g)) expect(d[0], id).toBe(tgl);
+    expect(barisRiset("R4-175")).toContain("(R4-176)");
+    expect([...barisRiset("R4-179").matchAll(/R4-1\d\d/g)].map((m) => m[0])).toEqual(["R4-179", "R4-178", "R4-178"]);
+    expect([...barisRiset("R4-175").matchAll(/R4-1\d\d/g)].map((m) => m[0])).toEqual(["R4-175", "R4-176"]);
+    for (const id of ["R4-175", "R4-176", "R4-177"]) for (const q of barisRiset(id).matchAll(/"([^"]{8,})"/g)) expect(q[1], id).toMatch(/^[A-Za-z0-9“” ,.'`_\-\[\]\(\)\/:;=]+$/);
+    expect(barisRiset("R4-176").match(/"([^"]+)"/g)).toEqual(['"is also compressed by default"', '"For the custom and directory archive formats, this specifies compression of individual table-data segments, and the default is to compress using gzip at a moderate level."']);
+    expect(barisRiset("R4-175").match(/"([^"]+)"/g)).toEqual(['"The “hex” format encodes binary data as 2 hexadecimal digits per byte, most significant nibble first."', '"The output format depends on the configuration parameter bytea_output; the default is hex."']);
+    expect(barisRiset("R4-177").match(/"([^"]+)"/g)).toEqual(['"BinaryFilesInDB"', '"last edited on 5 May 2021"', '"Database storage has some common characteristics whichever specific storage you pick"', '"Pluses overall"', '"ACID"', '"Backups are easier there is no need to track external files"', '"Minuses overall"', '"Performance hit storing files in database"', '"Backups can take significantly longer"', '"ikut transaction dan ikut backup"']);
+  });
+  test("angka di baris riset R4-175 sampai R4-179 hanya angka turunan: versi, tanggal, rasio, jumlah, dan hasil hitungan", () => {
+    const token = (row: string): string[] => [...row.matchAll(/\d[\d.,]*\d|\d/g)].map((m) => m[0]);
+    const tglBagian = cocok(badan, /dibuka (\d{4})-(\d{2})-(\d{2}), Tidak dijalankan/).slice(1, 4).map((x) => String(Number(x)).length === x.length ? x : x);
+    const versi = cocok(ukuran, /# PostgreSQL ([\d.]+) \(Debian[^·]*· go([\d.]+) ·/);
+    const ses = cocok(readme, /SeaweedFS \| ([\d.]+) \(Apache-2\.0\)/)[1]!;
+    const nomor = dari("t4-m33").nomor!;
+    const batas = cocok(runLab, /harap\((\d\.\d+) <= rasio_teks <= (\d\.\d+), True,/);
+    const dasar = new Set<string>([...tglBagian, nomor, "4", "2", "3", "5", fmt(RASIO, 1), fmt(RASIO_TEKS, 1), versi[1]!.split(".")[0]!, fmt(Number(batas[1]), 2), fmt(Number(batas[2]), 2)]);
+    const r175 = new Set([...dasar, "8.4.1", "175", "176", "10"]);
+    for (const t of token(barisRiset("R4-175"))) expect(r175.has(t), `R4-175: ${t}`).toBe(true);
+    const r176 = new Set([...dasar, "176", versi[1]!]);
+    for (const t of token(barisRiset("R4-176"))) expect(r176.has(t), `R4-176: ${t}`).toBe(true);
+    const r177 = new Set([...dasar, "177", "2021", "3"]);
+    for (const t of token(barisRiset("R4-177"))) expect(r177.has(t), `R4-177: ${t}`).toBe(true);
+    const r178 = new Set([...dasar, "178", "16", fmt(8 * 2 * 500000), "8", "120", "48", "64", "0,01", "28", "1", "422", "6", "7", versi[1]!, versi[2]!, ses, "12", "40", "33", "1,1", "2,0"]);
+    for (const t of token(barisRiset("R4-178"))) expect(r178.has(t), `R4-178: ${t}`).toBe(true);
+    const gb = (asumsi.upload! * MIB) / 1e9;
+    const r179 = new Set([...dasar, "179", "178", fmt(asumsi.upload!), String(asumsi.fileKB), fmt(POSTING_TAHUN), fmt(TRANSAKSI_HARI), "365", String(BYTE_POSTING), String(HARI), fmt(KB_HARI), fmt(GB_HARI), fmt(GB_HARI, 2), fmt(FILE_HARI), fmt(POSTING_HARI), fmt(POSTING_BYTE), fmt(POSTING_GB, 2), fmt(FILE_HARI / POSTING_GB, 2), fmt(FILE_HARI + POSTING_GB, 2), fmt(bagianFile, 2), fmt(HARI * GB_HARI * RASIO, 1), fmt(MIB), fmt(asumsi.upload! * MIB), fmt(gb, 2), "5.000", fmt(65000), "220", String(MENIT_LAMA), "40", fmt(220 / MENIT_LAMA, 1), "7", "8", "24", "1", "4", "3", "12"]);
+    for (const t of token(barisRiset("R4-179"))) expect(r179.has(t), `R4-179: ${t}`).toBe(true);
+  });
+});
+
 function sidikRiset(): string[] {
   return IDS.map((id) => sidik(barisRiset(id)));
 }
