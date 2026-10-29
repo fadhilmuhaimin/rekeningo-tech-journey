@@ -276,12 +276,13 @@ describe("isi PRD: tujuan, user, fitur, metrik, batasan, tokoh, risiko, pertanya
     const tim = [...naskah4.matchAll(/\*\*Tim (Pembayaran|Merchant|Platform)\*\* \((\d+) orang, dipimpin (\w+)\) memegang ([^.]+?)(?:;|\.)/g)];
     expect(tim.map((m) => m[1])).toEqual(["Pembayaran", "Merchant", "Platform"]);
     for (const m of tim) {
-      const c = barisTabel(`| ${m[1]} |`);
-      expect(c.slice(0, 3)).toEqual([m[1], m[2], m[3]]);
-      expect(c[3]!.startsWith(m[4]!), `bidang tim ${m[1]}`).toBe(true);
+      const c = barisTabel(`| ${m[1]}: `);
+      expect(c[0]).toBe(`${m[1]}: ${m[2]} orang, dipimpin ${m[3]}`);
+      expect(c[1]!.startsWith(m[4]!), `bidang tim ${m[1]}`).toBe(true);
     }
     expect(naskah4).toContain("memegang akun, identitas, outbox, infrastruktur, dan keamanan; Raka memegang paket inti app di dalamnya.");
-    harus("| Platform | 4 | Bayu | akun, identitas, outbox, infrastruktur, dan keamanan; paket inti app dipegang Raka |");
+    harus("| Platform: 4 orang, dipimpin Bayu | akun, identitas, outbox, infrastruktur, dan keamanan; paket inti app dipegang Raka |");
+    harus("| Tim | Memegang |");
     expect(naskah4).toContain("Tim tumbuh dari 4 menjadi 13 orang dalam tiga tim selama 12 minggu (Asumsi cerita): enam minggu pertama menerima engineer baru bertahap.");
     harus("Tim tumbuh dari 4 menjadi 13 orang dalam tiga tim selama 12 minggu (Asumsi cerita). Enam minggu pertama menerima engineer baru bertahap.");
     expect(a3.tim).toBe("4 developer");
@@ -530,6 +531,40 @@ describe("yang dibuka lagi dari Tahap 3: ADR, rekaman, dan nomor halaman", () =>
     expect(badan.indexOf("Tidak dijalankan")).toBeGreaterThan(badan.indexOf("Hitungan adalah rumus"));
     expect(badan.indexOf("Rekaman lab")).toBeGreaterThan(-1);
     expect(badan.indexOf("Hitungan")).toBeGreaterThan(badan.indexOf("Tidak ada HR Lestari") - 1);
+  });
+});
+
+describe("kalimat bebas yang ditulis halaman (tanpa padanan satu baris di naskah) dan kepala tabel", () => {
+  // Putaran mutasi pertama meloloskan 15 mutan di kalimat penghubung, kepala tabel, dan aria-label; semuanya dikunci di sini.
+  test("kalimat penghubung dan penutup blok", () => {
+    for (const k of [
+      "Arti lengkap label sumber ada di [Label sumber](/cara-pakai/#label-sumber).",
+      "PRD lengkap menambah keterangan tiap fitur, metrik, risiko, dan pertanyaan terbuka.",
+      "Tokoh lama tetap ada:",
+      "Tiga pertanyaan ini ada di PRD v4, tapi belum dijawab:",
+      "Di [[t3-jembatan]] kamu menebak ADR Tahap 3 mana yang pecah lebih dulu.",
+      "PRD lengkap menunjukkan baris mana yang membuka tiap syarat. ADR 12 dari Tahap 1 ikut dibaca ulang.",
+      "**Bukan kapasitas.**",
+      "Yang pecah lebih dulu adalah syarat di dalam ADR, bukan kapasitas.",
+      "Masalah pertama dari semua ini datang di [[t4-m29]].",
+      "Rumusnya sama dengan [[t3-estimasi]].",
+      "Sinta menulis empat risiko:",
+    ]) harus(k);
+    expect(naskah4).toContain("Tokoh lama tetap:");
+    expect(naskah4).toContain("**Pertanyaan terbuka di PRD.**");
+    expect(naskah4).toContain("Halaman 4.1 membuka jawaban tebakan di halaman 3.32 (dari ADR Tahap 3, mana yang pecah lebih dulu?)");
+  });
+  test("kepala tabel dan atribut", () => {
+    for (const k of ["| PRD | Aturan Pak Hadi |", "| Besaran | Nilai | Cara hitung |", "| Tim | Memegang |", "| User | Kebutuhan baru | Yang membuatnya berhenti memakai |", "| Prioritas | Fitur | Keterangan |"]) {
+      expect(badan.split("\n"), k).toContain(k);
+    }
+    di(prd3, "3.1", "| PRD | Aturan Pak Hadi |");
+    di(prd3, "3.1", "| Besaran | Nilai | Cara hitung |");
+    harus('<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v4">');
+    di(j32, "3.32", '<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v4">');
+    harus('<p class="meta">Baca');
+    expect(badan.match(/<Blok nama=/g)).toHaveLength(8);
+    expect(badan.match(/<\/Blok>/g)).toHaveLength(8);
   });
 });
 
