@@ -371,7 +371,7 @@ describe("kode lab: tanda tangan lebih dulu, 401, daftar secret, dan tiruan gate
     expect(iUrai).toBeGreaterThan(iPeriksa);
     expect(awal).toContain("if s.rentan != RentanWebhookV1 {");
     expect(awal).toMatch(/PeriksaTandaTangan\(timestamp, tanda, body\); err != nil \{\n\t\t\treturn HasilWebhook\{\}, err\n\t\t\}/);
-    harus("Service memeriksa tanda tangan lebih dulu, sebelum JSON diurai.");
+    harus("Di rekaman bagian B service memeriksa tanda tangan lebih dulu, sebelum JSON diurai.");
   });
   test("handler: ErrTandaTangan dijawab 401, tanpa menulis apa pun; satu-satunya jalan ke 401 di fungsi webhook", () => {
     const kasus = H2.teks(hKasus, hKasus + 1);
@@ -388,7 +388,7 @@ describe("kode lab: tanda tangan lebih dulu, 401, daftar secret, dan tiruan gate
     expect(dasarT4.match(/"-rahasia-webhook"/g)).toHaveLength(1);
     expect(runWebhook).toContain('d.mulai_api(["-jam-lab"], db=DB,');
     expect(runWebhook).toContain('RAHASIA1, RAHASIA2 = d.RAHASIA_WEBHOOK, "rahasia-gateway-lab-2"');
-    harus("Di rekaman bagian B daftar secret yang diterima berisi satu secret, yaitu yang lama.");
+    harus("Daftar secret yang diterima berisi satu secret, yaitu yang lama.");
   });
   test("gateway tiruan: rotasi mengganti satu secret langsung tanpa masa tumpang tindih; kiriman ditandatangani dengan secret itu dan waktu maya; jadwal 2, 10, 30, 90, 210 menit", () => {
     expect(jadwalGo).toContain("// rotasi: POST /lab/rahasia. Gateway merotasi rahasia penanda tangan dan langsung memakainya (M30): tidak ada masa");
@@ -413,7 +413,10 @@ describe("kode lab: tanda tangan lebih dulu, 401, daftar secret, dan tiruan gate
     expect(f).toMatch(/case kode == 503:\n\t\treturn 4/);
     expect(f).toMatch(/\n\treturn 5\n?$/);
     expect(f).not.toMatch(/401/);
-    harus("Tanpa ulangan untuk 2xx, satu kali untuk 500, empat kali untuk 503, dua kali untuk 400 dan 404, dan lima kali untuk kegagalan lain.");
+    harus("Tanpa ulangan untuk 2xx, satu kali untuk 500, empat kali untuk 503, dua kali untuk 400 dan 404, dan lima kali untuk kegagalan lain. Pengalihan 301, 302, dan 303 tidak diulang, dan tiruan tidak memerankannya (Tidak dijalankan).");
+    expect(barisRiset("R4-146")).toContain('"301/302/303" ("No retries")');
+    expect(baca("labs/t4-webhook/README.md")).toContain("pengalihan 3xx (dokumentasi gateway itu: 301, 302, 303 tanpa ulangan; 307 dan 308 diikuti)");
+    expect(retry).not.toMatch(/ 30[123] +\|/); // tiruan tidak memerankan pengalihan: tidak ada baris 301, 302, atau 303 di bagian A
     harus("Kode 401 tidak disebut sendiri di dokumentasi itu. Ia jatuh ke baris kegagalan lain, dan itu pembacaan, bukan kutipan. Tiruan memakai pembacaan itu (Asumsi), dan tabel bagian A merekam jumlah kirimannya per kode:");
     expect(bagA).toContain("# Penolakan 401 masuk 'lainnya': lima ulangan, enam kiriman, 342 menit.");
   });
@@ -441,6 +444,8 @@ describe("Hitungan jam: penyamaan secret lawan jadwal terpanjang", () => {
     expect(menit.some((m) => sesudah + m >= menitDari(JAM_SAMA))).toBe(true);
     expect(menit.every((m) => menitDari(JAM_ROTASI) - 24 * 60 + RENTANG - 1 + m < menitDari(JAM_SAMA))).toBe(true);
     harus("Semuanya dijawab 401, dan gateway tidak mengirim lagi.");
+    harus("Karena itu keputusan Raka, menunggu sehari, tidak menolong Citra. Gateway sudah berhenti mengirim sebelum Raka mulai menunggu.");
+    expect(menitDari(JAM_CITRA)).toBeGreaterThan(menitDari(JAM_SAMA)); // Citra menulis sesudah penyamaan: jadwal top-up Citra sudah habis
     harus("Top-up Citra, Sabtu malam, ada di rentang itu. Kiriman pertama sesudah 03.28 masih punya percobaan sesudah 09.10, jadi tercatat, hanya terlambat.");
     expect(menitDari(JAM_ROTASI)).toBeLessThan(18 * 60 + 1);
     expect(RENTANG).toBeGreaterThan(0);
@@ -498,7 +503,7 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     expect(barisRiset("R4-136")).toContain("kegagalan lain lima kali");
     harus("([dokumentasi notifikasi HTTP sebuah gateway pembayaran](https://docs.midtrans.com/docs/https-notification-webhooks), dibuka 2026-10-29, Tidak dijalankan)");
     harus("Gateway kedua: paling banyak lima kali, jeda 2, 10, 30, 90, dan 210 menit, digeser acak");
-    harus("Gateway kedua: tidak disebut di halaman yang dibuka");
+    harus("Gateway kedua: tidak disebut di dokumentasi yang dibuka");
     harus("Dokumentasi gateway kedua sendiri menyarankan menanyakan status transaksi lewat API-nya bila notifikasi terlambat (dokumentasi yang sama, Tidak dijalankan).");
   });
   test("baris riset dikunci dengan sidik jari: ubah satu karakter, buka lagi sumbernya, lalu perbarui sidiknya", () => {
@@ -530,7 +535,7 @@ describe("sumber luar: baris riset, tanggal akses, dan kutipan", () => {
     expect(badan.match(/\(Rekaman lab\)/g)).toHaveLength(1);
     expect(badan.match(/\(Rekaman lab,/g)).toHaveLength(1);
     expect(badan.match(/\(Asumsi\)/g)).toHaveLength(1);
-    expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(4); // dua tautan sumber, satu anjuran status, satu jawaban kartu ketiga
+    expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(5); // dua tautan sumber, tiruan tanpa 3xx, satu anjuran status, satu jawaban kartu ketiga
     expect(badan.match(/\(dibaca dari kode\)/g)).toHaveLength(1);
     expect(badan.match(/\(Tidak dijalankan: dibaca dari `run\.py`\)/g)).toHaveLength(1);
     expect(badan.match(/\(dibaca dari `run\.py`\)/g)).toHaveLength(1);
