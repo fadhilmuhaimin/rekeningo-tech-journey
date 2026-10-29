@@ -850,15 +850,32 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
  "Nilai pindah ke secret manager (lab: OpenBao mode dev). Operator menulis versi baru, service membacanya tanpa deploy, dan state OpenTofu tidak memuat nilainya (state.txt bagian B, rotasi.txt bagian C). Secret manager milik penyedia Tidak dijalankan.",
  "Worker tetap bagian app. Yang berubah hanya jalan keluarnya: host baru memakai HTTP_PROXY yang sama, dan vendor hanya melihat alamat proxy (alamat.txt bagian B). Proxy keluar itu sendiri titik gagal tunggal baru, dan matinya tidak direkam."
 ]);
-    const ist = { "secret-manager": istSecret, iac: istIac, "proxy-keluar": istProxy } as Record<string, { istilah: string; cerita: unknown; sumber: unknown; terkait: unknown }>;
+    const ist = { "secret-manager": istSecret, iac: istIac, "proxy-keluar": istProxy } as Record<string, Record<string, unknown>>;
     const harapanIst = {
  "secret-manager": {
   "istilah": "Secret manager",
+  "sehari_hari": "Secret manager adalah layanan yang menyimpan secret, seperti kunci gateway dan password database, di luar kode dan di luar file konfigurasi. Aplikasi membacanya lewat API dengan token, tepat saat ia membutuhkannya.",
   "cerita": [
    {
     "rujukan": "t4-infra-secret",
     "teks": "Service pembayaran hanya diberi token baca-saja. Rahasia webhook dibaca dari OpenBao saat service berjalan. Sesudah operator menulis versi baru, service membacanya tanpa deploy (`rotasi.txt` bagian B dan C)."
    }
+  ],
+  "mekanisme": [
+   "Operator menulis secret ke secret manager. Nilainya tidak lewat repo, file konfigurasi, atau state IaC.",
+   "Service diberi token yang hanya boleh membaca path secret miliknya. Token tidak bisa menulis atau menghapus.",
+   "Service membaca dokumen secret saat berjalan dan mengulang pembacaan berkala. Saat rotasi, dokumen memuat nilai sekarang dan nilai lama.",
+   "Bila pembacaan gagal, service memilih: memakai pembacaan terakhir, atau berhenti. Lab memilih yang pertama dan menghitung kegagalannya."
+  ],
+  "stack": null,
+  "jebakan": [
+   "Mengira menulis versi baru sudah mencabut versi lama. Di OpenBao mesin KV versi 2, versi lama tetap terbaca sampai di-destroy (`rotasi.txt` bagian C).",
+   "Memakai mode dev di luar lab. Mode dev menyimpan data di memori dan kehilangan data dan token saat restart (`rotasi.txt` bagian A)."
+  ],
+  "terkait": [
+   "IaC (infrastructure as code)",
+   "Proxy keluar (egress proxy)",
+   "Staging"
   ],
   "sumber": [
    {
@@ -878,20 +895,32 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
     "rekaman": "labs/t4-infra/output/rotasi.txt",
     "catatan": "Service membaca secret saat runtime dengan token baca-saja. Rotasi dengan masa tumpang tindih terbaca tanpa deploy, dan versi lama terbaca sampai di-destroy."
    }
-  ],
-  "terkait": [
-   "IaC (infrastructure as code)",
-   "Proxy keluar (egress proxy)",
-   "Staging"
   ]
  },
  "iac": {
   "istilah": "IaC (infrastructure as code)",
+  "sehari_hari": "IaC berarti infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang disimpan dan di-review seperti kode. Alatnya membaca file itu lalu membuat atau mengubah infrastrukturnya.",
   "cerita": [
    {
     "rujukan": "t4-infra-secret",
     "teks": "Rekeningo memakai OpenTofu. Alat itu menyimpan catatan resource yang sudah dibuatnya di file state. Di lab, secret yang ditulis di konfigurasi ikut tersimpan di state, walau keluaran CLI menulis `(sensitive value)` (`state.txt` bagian A)."
    }
+  ],
+  "mekanisme": [
+   "Kamu menulis konfigurasi yang menyebut resource apa yang harus ada.",
+   "Alat IaC membandingkan konfigurasi dengan state, yaitu catatan resource yang sudah dibuatnya, lalu membuat rencana perubahan.",
+   "Setelah rencana disetujui, alat itu menjalankannya lewat provider, yaitu plugin yang bicara dengan satu jenis layanan.",
+   "State menyimpan atribut resource sebagai teks. Nilai yang melewati resource atau data source ikut tersimpan di sana, jadi state diperlakukan sebagai data sensitif."
+  ],
+  "stack": null,
+  "jebakan": [
+   "Mengira tanda sensitif mencegah nilai masuk state. Tanda itu hanya menyembunyikan nilai dari keluaran CLI (`state.txt` bagian A).",
+   "Mengira membaca secret lewat data source menjaga state bersih. Data source juga menyimpan atribut yang dibacanya (`state.txt` bagian C, provider local)."
+  ],
+  "terkait": [
+   "Secret manager",
+   "Staging",
+   "ADR (Architecture Decision Record)"
   ],
   "sumber": [
    {
@@ -911,20 +940,32 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
     "rekaman": "labs/t4-infra/output/state.txt",
     "catatan": "Nilai dari random_password, variabel, dan data source local ada di state. Konfigurasi yang hanya menulis alamat dan path tidak memuat nilainya."
    }
-  ],
-  "terkait": [
-   "Secret manager",
-   "Staging",
-   "ADR (Architecture Decision Record)"
   ]
  },
  "proxy-keluar": {
   "istilah": "Proxy keluar (egress proxy)",
+  "sehari_hari": "Proxy keluar adalah program perantara yang diberi alamat tetap. Aplikasi mengirim panggilan ke vendor lewat proxy itu, jadi vendor selalu melihat alamat proxy, bukan alamat mesin aplikasi.",
   "cerita": [
    {
     "rujukan": "t4-infra-secret",
     "teks": "Vendor tiruan hanya menerima alamat yang terdaftar. Tanpa proxy, host baru ditolak 403 sebanyak 15 kali untuk tiga pekerjaan. Dengan proxy yang didaftarkan sekali, host baru lulus tanpa penolakan (`alamat.txt` bagian A dan B)."
    }
+  ],
+  "mekanisme": [
+   "Vendor menyimpan allowlist, yaitu daftar alamat sumber yang boleh memanggilnya, dan menolak alamat lain.",
+   "Operator mendaftarkan alamat proxy keluar ke vendor satu kali.",
+   "Aplikasi diberi variabel lingkungan HTTP_PROXY. Client HTTP Go membacanya, jadi kode aplikasi tidak berubah.",
+   "Saat aplikasi pindah host, vendor tetap melihat alamat proxy. Proxy itu sendiri menjadi titik gagal tunggal baru."
+  ],
+  "stack": null,
+  "jebakan": [
+   "Memercayai header X-Forwarded-For untuk menentukan alamat sumber. Header itu diisi client. Vendor tiruan lab memeriksa alamat peer TCP.",
+   "Mengira proxy menyelesaikan semuanya. Alamat proxy hanya tetap selama proxy itu tidak dipindah, dan matinya proxy tidak direkam di lab."
+  ],
+  "terkait": [
+   "Proxy",
+   "Reverse proxy",
+   "Secret manager"
   ],
   "sumber": [
    {
@@ -944,17 +985,12 @@ describe("penutup tanpa kunci: nomor ADR, M34, status HTTP, versi dokumentasi, S
     "rekaman": "labs/t4-infra/output/alamat.txt",
     "catatan": "Pindah host tanpa proxy dijawab 403, dan dengan proxy terdaftar sekali vendor hanya melihat alamat proxy."
    }
-  ],
-  "terkait": [
-   "Proxy",
-   "Reverse proxy",
-   "Secret manager"
   ]
  }
 } as Record<string, unknown>;
     for (const slug of Object.keys(harapanIst)) {
       const h = ist[slug]!;
-      expect({ istilah: h.istilah, cerita: h.cerita, sumber: h.sumber, terkait: h.terkait }, slug).toEqual(harapanIst[slug]);
+      expect(h, slug).toEqual(harapanIst[slug]);
     }
     expect(istProxy.cerita![0]!.teks).toContain(`403 sebanyak ${tolakA} kali untuk ${BILANGAN[pekerjaanA]} pekerjaan`);
     expect(istIac.cerita![0]!.teks).toContain("`state.txt` bagian A");
