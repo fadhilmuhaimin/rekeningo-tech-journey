@@ -868,6 +868,7 @@ describe("nilai turunan cocok dengan naskah dan rekaman", () => {
     expect(naskah).toContain("14 menuju tabel modul `akun` (12 ke `akun`, satu ke `kota`, satu ke `perangkat`) dan 7 menuju `jurnal`");
     expect(naskah).toContain("(400 B per baris adalah Asumsi)");
     expect(naskah).toContain("(500 B Asumsi)");
+    expect(naskah).toContain(`${titik(OB_HARI)} × ${OB_RET} × ${OB_B} B ≈ 136,5 MB dengan retensi ${OB_RET} hari`);
     expect([WH[3], WH[4], AL[5], VR[3], OB[3], OB[5]]).toEqual([titik(MB(WH_HARI * HARI * WH_B)), titik(MB(WH_HARI * WH_RET * WH_B)), titik(MB(AL_HARI * HARI * AL_B)), titik(MB(VR_HARI * HARI * VR_B)), koma(GB(OB_HARI * HARI * OB_B), 2), koma(MB(OB_HARI * OB_RET * OB_B), 1)]);
     expect(naskah).toContain("`audit_log` 2.000 aksi per hari");
     expect([WH_HARI, WH_B, WH_RET, AL_HARI, AL_B, VR_HARI, VR_B, OB_HARI, OB_B, OB_RET]).toEqual([5000, 400, 30, 2000, 400, 1000, 500, 65000, 300, 7]);
