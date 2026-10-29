@@ -1,0 +1,26 @@
+{
+  "id": "t4-webhook-masuk-inti",
+  "judul": "Kiriman ganda dan kabar mundur",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-webhook dan api-t4" },
+  "baris": [
+    {
+      "label": "Event ganda",
+      "sub": "Rp200.000",
+      "simpul": [
+        { "teks": "versi pertama: 2 jurnal", "sub": "saldo +Rp400.000", "nada": "warn" },
+        { "teks": "ADR 34: 200 ganda", "sub": "event_id sudah ada" },
+        { "teks": "1 jurnal", "sub": "Rp200.000", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Kabar mundur",
+      "sub": "status dibayar",
+      "simpul": [
+        { "teks": "versi pertama: mundur", "sub": "status menunggu", "nada": "warn" },
+        { "teks": "ADR 34: 200 diparkir", "sub": "gateway tidak ditanya" },
+        { "teks": "tetap dibayar", "sub": "tanpa jurnal kedua", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Gateway adalah tiruan lokal di lab. Versi pertama dan versi ADR 34 adalah dua handler di api-t4, dan kiriman ulang di rekaman adalah perintah skrip lab, bukan jadwal gateway."
+}

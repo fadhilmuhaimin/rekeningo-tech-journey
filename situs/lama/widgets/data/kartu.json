@@ -2648,6 +2648,38 @@
   "jawab": "Kedua kiriman membaca status sebelum salah satu menulis, jadi keduanya melihat `menunggu` (`ganda-serentak.txt` bagian A, dengan jeda lab 300 ms di antara cek dan tulis). Pembacaan itu tidak mengunci baris."
  },
  {
+  "id": "t4-webhook-1",
+  "halaman": "t4-webhook",
+  "judul": "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+  "url": "tahap-4/webhook-masuk/",
+  "tanya": "Gateway mengirim event yang sama dua kali karena balasan 200 yang pertama hilang. Berapa jurnal yang ditulis handler versi pertama, dan berapa yang ditulis handler ADR 34?",
+  "jawab": "Handler versi pertama menulis dua jurnal, 10201 dan 10202, dan saldo Budi naik Rp400.000. Handler ADR 34 menjawab `200 ganda` untuk kiriman kedua, dan jurnalnya satu (`ganda.txt` bagian A dan B)."
+ },
+ {
+  "id": "t4-webhook-2",
+  "halaman": "t4-webhook",
+  "judul": "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+  "url": "tahap-4/webhook-masuk/",
+  "tanya": "Kenapa tanda tangan dihitung atas byte yang tiba, bukan atas JSON yang sudah diurai?",
+  "jawab": "Spasi dan baris baru ikut dihitung dalam HMAC. Di `tandatangan.txt` bagian A, body berindentasi 109 byte cocok bila dihitung atas byte mentah, dan tidak cocok bila diurai lalu ditulis ulang."
+ },
+ {
+  "id": "t4-webhook-3",
+  "halaman": "t4-webhook",
+  "judul": "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+  "url": "tahap-4/webhook-masuk/",
+  "tanya": "Kabar `pending` datang sesudah `settlement`. Apa yang terjadi pada status top-up, dan apakah gateway ditanya?",
+  "jawab": "Kabar dijawab `200 diparkir`, status tetap `dibayar`, dan gateway ditanya 0 kali. Top-up yang sudah berstatus akhir tidak ditanyakan, karena jawabannya tidak bisa mengubah status (`urutan.txt` bagian F)."
+ },
+ {
+  "id": "t4-webhook-4",
+  "halaman": "t4-webhook",
+  "judul": "4.7 Webhook masuk: tanda tangan, event ganda, urutan + ADR 34",
+  "url": "tahap-4/webhook-masuk/",
+  "tanya": "Event kedua dengan `event_id` berbeda datang 25 jam kemudian untuk order yang sama. Lapis mana yang menahan jurnal kedua?",
+  "jawab": "Status top-up yang hanya maju. Idempotency-Key ledger hidup 24 jam, jadi sesudah 25 jam ia sudah habis. Tanpa lapis status, event kedua diproses dan jurnalnya dua (`urutan.txt` bagian G, kasus 4)."
+ },
+ {
   "id": "t4-m31-1",
   "halaman": "t4-m31",
   "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
