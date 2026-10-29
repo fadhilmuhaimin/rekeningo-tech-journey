@@ -52,7 +52,7 @@
     "q": "Layanan verifikasi mati dan sepuluh pendaftar sudah mengajukan. Satu worker mengerjakan pekerjaannya satu per satu, dengan batas lima percobaan dan tanpa menunggu jeda. Layanan baru pulih sesudah itu, lalu worker dijalankan lagi. Berapa pendaftar yang lulus?",
     "options": [
       "Sepuluh: pekerjaan menunggu sampai layanan pulih, lalu semuanya diproses",
-      "Nol: semua pekerjaan sudah habis lima percobaan dan masuk dead-letter sebelum layanan pulih",
+      "Nol: semua pekerjaan sudah habis lima percobaan sebelum layanan pulih",
       "Lima: separuh pekerjaan habis percobaan, separuh sisanya masih menunggu",
       "Satu: hanya pekerjaan terakhir yang masih punya percobaan"
     ],
