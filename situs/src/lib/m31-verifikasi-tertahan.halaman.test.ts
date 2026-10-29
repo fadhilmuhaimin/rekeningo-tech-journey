@@ -212,7 +212,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(cara).toContain("Label sumber");
   });
   test("janji halaman lain ke 4.10 ditepati: 4.3 (layanan verifikasi yang mati), 4.4 (jawaban M29 sampai M31), 4.2 (kabar dari luar muncul lagi di M31)", () => {
-    expect(hal43).toContain("Layanan verifikasi yang mati sehari dibahas di [[t4-m31]].");
+    expect(hal43).toContain("Layanan verifikasi yang mati beberapa jam dibahas di [[t4-m31]].");
     expect(hal44).toContain("Jawabannya ada di [[t4-m29]], [[t4-m30]], dan [[t4-m31]].");
     expect(hal42).toContain("([[t4-m31]])");
     expect(dari("t4-m31").prasyarat).toEqual(["t3-at-least-once"]);
