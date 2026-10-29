@@ -539,7 +539,9 @@ describe("tab stack, tanggal dibuka, tautan, dan baris RISET R4-140 sampai R4-14
     expect(baris("R4-140")).toContain("503 \"Retry four times\"");
     expect(baris("R4-140")).toContain("jeda 2, 10, 30, 90, 210 menit");
     expect(baris("R4-140")).toContain('"Equal compares two MACs for equality without leaking timing information"');
-    expect(baris("R4-140")).toContain("Go 1.27.3, 2026-10-20");
+    expect(baris("R4-140")).toContain("Go 1.27.3, 2026-10-20; lab memakai go1.27.1");
+    harus("halaman Go 1.27.3 sedangkan lab memakai Go 1.27.1, dibuka 2026-10-29");
+    expect(tanda).toContain("go1.27.1");
     expect(baris("R4-141")).toContain("Express 5.x");
     expect(baris("R4-141")).toContain('"parses all bodies as a `Buffer`"');
     expect(baris("R4-141")).toContain("`application/octet-stream`");
