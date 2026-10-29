@@ -52,7 +52,9 @@ Perintah itu mengganti nama kolom dan tidak mengubah data yang tersimpan ([dokum
 
 <Snippet file="labs/api-t4/internal/modul/pembayaran/notifikasi.go" lines="24:30" lang="go" title="Kode lab: labs/api-t4/internal/modul/pembayaran/notifikasi.go baris 24 sampai 30 (SQL langsung ke tabel akun)" />
 
-Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak punya query ke kolom `nama` (Tidak dijalankan: dibaca dari kode). `TeksTopupLangsung` ditulis lab mengikuti cerita. Karena itu bagian ini Ilustrasi mekanisme: kodenya ditulis mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Hasilnya bukan rekaman kode produksi.
+`labs/api-t4/internal/service/pembayaran.go` tidak punya SQL sendiri yang memilih kolom `nama`. Fungsi `BuatTopupBank` di file itu membaca akun lewat `repo.Akun`, yang memilih `nama` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu sesudah rename.
+
+`TeksTopupLangsung` ditulis lab mengikuti cerita. Karena itu bagian ini Ilustrasi mekanisme: kodenya ditulis mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Hasilnya bukan rekaman kode produksi.
 
 **Kenapa tesnya tetap hijau.** Tes modul pembayaran memakai data tiruan, seperti tes tiap tim di cerita. Data tiruan adalah pengganti database yang membalas data tetap tanpa membuka koneksi. Di lab, driver tiruan membalas satu baris berisi "Budi" untuk perintah apa pun (Tidak dijalankan: dibaca dari kode):
 
@@ -135,7 +137,7 @@ Tesnya memakai driver tiruan, yang tidak membuka koneksi. Driver itu membalas sa
 <details class="success">
 <summary>Jawaban</summary>
 
-Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak membaca `akun.nama`. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi.
+Kode top-up di `labs/api-t4` tidak memilih `nama` dengan SQL sendiri. Ia membaca kolom itu lewat `repo.Akun` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi.
 
 </details>
 

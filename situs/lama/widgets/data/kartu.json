@@ -2717,7 +2717,7 @@
   "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
   "url": "tahap-4/m32-rilis-kamis/",
   "tanya": "Kenapa halaman ini menyebut `TeksTopupLangsung` Ilustrasi mekanisme, bukan rekaman kode top-up?",
-  "jawab": "Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak membaca `akun.nama`. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi."
+  "jawab": "Kode top-up di `labs/api-t4` tidak memilih `nama` dengan SQL sendiri. Ia membaca kolom itu lewat `repo.Akun` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi."
  },
  {
   "id": "t4-m32-3",

@@ -339,7 +339,12 @@ describe("kode lab: SQL langsung, driver tiruan, rename oleh pemilik, dan klaim 
   test("TeksTopupLangsung membaca nama dengan SQL langsung ke tabel akun; kode top-up di service tidak punya query ke kolom nama", () => {
     expect(notifGo).toContain("// TeksTopupLangsung adalah kode modul pembayaran seperti pada M32 (satu schema, satu role, tanpa batas): nama");
     expect(layananGo).not.toMatch(/\b(a|akun)\.nama\b|SELECT nama|nama FROM|nama_tampil/);
-    harus("Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak punya query ke kolom `nama` (Tidak dijalankan: dibaca dari kode).");
+    // BuatTopupBank membaca akun lewat repo.Akun, dan repo.Akun memilih a.nama: jalur top-up nyata tidak bebas dari kolom itu
+    const topup = layananGo.slice(layananGo.indexOf("func (s Service) BuatTopupBank("), layananGo.indexOf("func (s Service) LihatTopupBank("));
+    expect(topup).toContain("a, err := s.repo.Akun(ctx, peminta)");
+    const repoGo = baca("labs/api-t4/internal/repo/repo.go");
+    expect(repoGo.slice(repoGo.indexOf("func (r Repo) Akun("), repoGo.indexOf("func (r Repo) AkunLewatEmail("))).toContain("SELECT a.id, a.jenis, a.nama,");
+    harus("`labs/api-t4/internal/service/pembayaran.go` tidak punya SQL sendiri yang memilih kolom `nama`. Fungsi `BuatTopupBank` di file itu membaca akun lewat `repo.Akun`, yang memilih `nama` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu sesudah rename.");
     expect(readmeModul).toContain("Kode top-up api-t4 tidak membaca kolom itu; `TeksTopupLangsung` di `internal/modul/pembayaran` adalah kode lab yang ditulis seperti uraian naskah");
     harus("`TeksTopupLangsung` ditulis lab mengikuti cerita. Karena itu bagian ini Ilustrasi mekanisme: kodenya ditulis mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Hasilnya bukan rekaman kode produksi.");
     expect(batas).toContain("# Ilustrasi mekanisme: TeksTopupLangsung adalah kode lab yang ditulis seperti uraian M32 di naskah (kode top-up api-t4 tidak membaca akun.nama);");
@@ -476,7 +481,7 @@ describe("ADR 17, kolom sebagai kopling, dan dokumentasi: dibaca dari sumber", (
     expect(badan.indexOf("Ilustrasi mekanisme")).toBe(badan.indexOf("Karena itu bagian ini Ilustrasi mekanisme: kodenya") + "Karena itu bagian ini ".length);
     expect(badan).not.toMatch(/penalaran|\(Simulasi|\[perlu verifikasi\]|\(dibaca dari/);
     expect(badan.match(/\(Tidak dijalankan: dibaca dari ADR 17\)/g)).toHaveLength(2);
-    expect(badan.match(/\(Tidak dijalankan: dibaca dari kode\)/g)).toHaveLength(3);
+    expect(badan.match(/\(Tidak dijalankan: dibaca dari kode\)/g)).toHaveLength(4);
     expect(badan.match(/, dibuka 2026-10-29, Tidak dijalankan\)/g)).toHaveLength(3); // tiga tautan sumber luar
     expect(badan.match(/Tidak dijalankan\)/g)).toHaveLength(3); // label turunan selalu berpasangan: "Tidak dijalankan: dibaca dari ..."
   });
@@ -614,7 +619,7 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     expect(kartu.map((k) => k.id)).toEqual(["t4-m32-1", "t4-m32-2", "t4-m32-3"]);
     expect(kartu.every((k) => k.url === "tahap-4/m32-rilis-kamis/" && k.judul === "4.12 M32: Rilis Kamis memecahkan top-up")).toBe(true);
     expect(kartu[0]!.jawab).toContain(`Terhadap database, fungsi yang sama dijawab \`${PESAN_A}\` (\`batas.txt\` bagian A).`);
-    expect(kartu[1]!.jawab).toContain("Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak membaca `akun.nama`.");
+    expect(kartu[1]!.jawab).toContain("Kode top-up di `labs/api-t4` tidak memilih `nama` dengan SQL sendiri. Ia membaca kolom itu lewat `repo.Akun` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu.");
     expect(kartu[2]!.jawab).toContain("(Tidak dijalankan: dibaca dari ADR 17)");
     expect(kartu[2]!.jawab).toContain("Di cerita tidak ada pemeriksaan yang menjalankan aturan itu sebelum rilis (Ilustrasi).");
     const cek = badan.slice(badan.indexOf("### Cek diri"));

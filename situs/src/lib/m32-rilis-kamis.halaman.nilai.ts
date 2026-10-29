@@ -3,7 +3,7 @@
 // ulang pembangkit, dan baca selisihnya sebelum commit: sidik hanya menandai bahwa sesuatu berubah, bukan bahwa ia benar.
 export const SIDIK = {
   frontmatter: "d2599ecc4db70c05",
-  riset: ["2d55ece6795162a3","31d997a5bb21787d","c77d2801b54c4a69","bcc5ee6844fd5716"],
+  riset: ["2d55ece6795162a3","31d997a5bb21787d","c77d2801b54c4a69","edecd1de8950e2d3"],
   diagram: "d17f9a9bffa401ac",
   skenario: "505961dbfd4e74b0",
 };
@@ -14,7 +14,7 @@ export const RISET_TERKUNCI: string[] = [
   "| R4-165 | Kode galat PostgreSQL 42703, 42P01, dan 42501 (dibuka untuk halaman 4.12) | PostgreSQL 17.11 Documentation, Appendix A \"PostgreSQL Error Codes\", Table A.1, Class 42 \"Syntax Error or Access Rule Violation\" (postgresql.org/docs/17/errcodes-appendix.html, dibuka 2026-10-29): `42703` `undefined_column`, `42P01` `undefined_table`, `42501` `insufficient_privilege` | 4.12 (Tebak dulu: arti 42703 satu kalimat; noscript menyebut 42P01 dan 42501 dari rekaman bagian B) | Tidak berubah |",
   "| R4-166 | ALTER TABLE ... RENAME COLUMN: yang dijanjikan dokumentasi (dibuka untuk halaman 4.12) | PostgreSQL 17 Documentation, ALTER TABLE (postgresql.org/docs/17/sql-altertable.html, dibuka 2026-10-29), bagian Description: \"The RENAME forms change the name of a table (or an index, sequence, view, materialized view, or foreign table), the name of an individual column in a table, or the name of a constraint of the table. When renaming a constraint that has an underlying index, the index is renamed as well. There is no effect on the stored data.\"; contoh `ALTER TABLE distributors RENAME COLUMN address TO city;`; halaman itu tidak menyebut akibat rename pada query yang masih memakai nama lama, jadi akibat itu hanya ada di rekaman (`batas.txt` bagian A, 42703) | 4.12 (Yang sebenarnya: rename mengganti nama kolom dan tidak mengubah data tersimpan; akibatnya pada query ditulis dari rekaman, bukan dari dokumentasi) | Tidak berubah |",
   "| R4-167 | Integration Database: database bersama sebagai titik kopling (dibuka untuk halaman 4.12) | Martin Fowler, \"Integration Database\" (martinfowler.com/bliki/IntegrationDatabase.html, terbit 25 Mei 2004, diperbarui 2015-07-01, dibuka 2026-10-29): \"An integration database is a database which acts as the data store for multiple applications, and thus integrates data across these applications\"; \"On the whole integration databases lead to serious problems becaue the database becomes a point of coupling between the applications that access it.\"; \"This is usually a deep coupling that significantly increases the risk involved in changing those applications and making it harder to evolve them.\" Tulisan itu membahas beberapa aplikasi yang berbagi satu database, bukan modul dari tiga tim di satu aplikasi: halaman menulisnya sebagai analogi (tingkat 4, tulisan praktisi, atribusi bukan fakta) | 4.12 (Yang sebenarnya: kalimat \"point of coupling\" dengan atribusi dan satu kalimat batas analogi) | Tidak berubah |",
-  "| R4-168 | Rekaman dan kode lab t4-modul untuk M32 (dibaca untuk halaman 4.12, tanpa menjalankan ulang) | `labs/t4-modul/output/batas.txt` bagian A (tiga langkah CI lolos tanpa koneksi database; sebelum rename `TeksTopupLangsung` menjawab \"Top-up Rp200000 masuk ke Budi\"; sesudah rename `column \"nama\" does not exist (42703)`) dan bagian B (`relation \"akun\" does not exist (42P01)`, `permission denied for schema t4m_akun (42501)`, kontrol role `t4m_akun` berhasil, rename oleh pemilik schema akun tidak mematahkan `pembayaran.TeksTopup`); kepala rekaman: PostgreSQL 17.11, go1.27.1, pgx v5.11.0. Kode: `labs/api-t4/internal/modul/pembayaran/notifikasi.go` baris 24 sampai 30 (`SELECT nama FROM akun WHERE id = $1`), `notifikasi_test.go` baris 33 sampai 46 (driver tiruan membalas satu baris \"Budi\" untuk perintah apa pun), `labs/api-t4/internal/modul/satu_test.go` (rename oleh role pemilik). `labs/api-t4/internal/service` tidak punya query ke kolom `nama`; `labs/api-t4/internal/repo` membaca `a.nama` di `Akun`, `AkunBO`, `Katalog`, `CekCache`, `TutupBuku`, dan satu query QR di `qr.go` (dibaca dari kode, tidak dijalankan sesudah rename) | 4.12 (semua angka, kode galat, dan pernyataan \"dibaca dari kode\") | Tidak berubah |"
+  "| R4-168 | Rekaman dan kode lab t4-modul untuk M32 (dibaca untuk halaman 4.12, tanpa menjalankan ulang) | `labs/t4-modul/output/batas.txt` bagian A (tiga langkah CI lolos tanpa koneksi database; sebelum rename `TeksTopupLangsung` menjawab \"Top-up Rp200000 masuk ke Budi\"; sesudah rename `column \"nama\" does not exist (42703)`) dan bagian B (`relation \"akun\" does not exist (42P01)`, `permission denied for schema t4m_akun (42501)`, kontrol role `t4m_akun` berhasil, rename oleh pemilik schema akun tidak mematahkan `pembayaran.TeksTopup`); kepala rekaman: PostgreSQL 17.11, go1.27.1, pgx v5.11.0. Kode: `labs/api-t4/internal/modul/pembayaran/notifikasi.go` baris 24 sampai 30 (`SELECT nama FROM akun WHERE id = $1`), `notifikasi_test.go` baris 33 sampai 46 (driver tiruan membalas satu baris \"Budi\" untuk perintah apa pun), `labs/api-t4/internal/modul/satu_test.go` (rename oleh role pemilik). `labs/api-t4/internal/service/pembayaran.go` tidak punya SQL sendiri yang memilih `nama`, tetapi `BuatTopupBank` memanggil `repo.Akun` (`repo.go` baris 34 sampai 40, `SELECT a.id, a.jenis, a.nama, ...`); `labs/api-t4/internal/repo` membaca `a.nama` di `Akun`, `AkunBO`, `Katalog`, `CekCache`, `TutupBuku`, dan satu query QR di `qr.go` (dibaca dari kode, tidak dijalankan sesudah rename) | 4.12 (semua angka, kode galat, dan pernyataan \"dibaca dari kode\") | Tidak berubah |"
 ];
 export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  [
@@ -477,7 +477,8 @@ export const PROFIL_BARIS: string[] = [
  "sebelum:1 satu:3 nama:1",
  "satu:2 Pembayaran:1 nama:1",
  "",
- "tidak:1 bukan:1 Tidak dijalankan:1 Ilustrasi:1 Ilustrasi mekanisme:1 nama:1",
+ "tidak:2 sesudah:1 Tidak dijalankan:1 nama:2",
+ "bukan:1 Ilustrasi:1 Ilustrasi mekanisme:1",
  "tetap:2 satu:1 Budi:1 tanpa:1 Tidak dijalankan:1 hijau:1",
  "satu:1",
  "tidak:3 tanpa:1 lolos:1",
@@ -524,7 +525,7 @@ export const PROFIL_BARIS: string[] = [
  "bukan:1 Ilustrasi:1 Ilustrasi mekanisme:1",
  "",
  "",
- "tidak:1 bukan:1 nama:1",
+ "tidak:2 bukan:1 Tidak dijalankan:1 nama:1",
  "",
  "tidak:1 Merchant:1",
  "",
@@ -564,7 +565,8 @@ export const KALIMAT_TERKUNCI: string[] = [
   "*Kondisi rekaman:* PostgreSQL 17.11, go1.27.1, dan pgx v5.11.0, dari database bersih. Semua modul memakai satu schema, yaitu ruang nama untuk tabel di dalam satu database (`tahap4_modul`). Mereka juga memakai satu role, yaitu identitas login database yang punya hak sendiri (`api_t4`). Dengan role itu SQL langsung ke tabel `akun` berhasil sebelum rename.",
   "**Kode yang membaca kolom milik modul lain.** Modul adalah sekelompok kode di satu codebase yang dipegang satu tim. Modul pembayaran, milik tim Pembayaran, membaca `akun.nama` dengan SQL langsung untuk teks notifikasi. Di lab fungsinya bernama `TeksTopupLangsung`:",
   "<Snippet file=\"labs/api-t4/internal/modul/pembayaran/notifikasi.go\" lines=\"24:30\" lang=\"go\" title=\"Kode lab: labs/api-t4/internal/modul/pembayaran/notifikasi.go baris 24 sampai 30 (SQL langsung ke tabel akun)\" />",
-  "Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak punya query ke kolom `nama` (Tidak dijalankan: dibaca dari kode). `TeksTopupLangsung` ditulis lab mengikuti cerita. Karena itu bagian ini Ilustrasi mekanisme: kodenya ditulis mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Hasilnya bukan rekaman kode produksi.",
+  "`labs/api-t4/internal/service/pembayaran.go` tidak punya SQL sendiri yang memilih kolom `nama`. Fungsi `BuatTopupBank` di file itu membaca akun lewat `repo.Akun`, yang memilih `nama` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu sesudah rename.",
+  "`TeksTopupLangsung` ditulis lab mengikuti cerita. Karena itu bagian ini Ilustrasi mekanisme: kodenya ditulis mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Hasilnya bukan rekaman kode produksi.",
   "**Kenapa tesnya tetap hijau.** Tes modul pembayaran memakai data tiruan, seperti tes tiap tim di cerita. Data tiruan adalah pengganti database yang membalas data tetap tanpa membuka koneksi. Di lab, driver tiruan membalas satu baris berisi \"Budi\" untuk perintah apa pun (Tidak dijalankan: dibaca dari kode):",
   "<Snippet file=\"labs/api-t4/internal/modul/pembayaran/notifikasi_test.go\" lines=\"33:46\" lang=\"go\" title=\"Kode lab: labs/api-t4/internal/modul/pembayaran/notifikasi_test.go baris 33 sampai 46 (driver tiruan membalas satu baris)\" />",
   "Perintah apa pun termasuk perintah yang menyebut kolom yang sudah tidak ada. Tes itu tidak menyentuh skema, jadi rename tidak mengubah hasilnya. Tiga langkah CI lolos tanpa koneksi database:",
@@ -611,7 +613,7 @@ export const KALIMAT_TERKUNCI: string[] = [
   "**2.** Kenapa halaman ini menyebut `TeksTopupLangsung` Ilustrasi mekanisme, bukan rekaman kode top-up?",
   "<details class=\"success\">",
   "<summary>Jawaban</summary>",
-  "Kode top-up di `labs/api-t4/internal/service/pembayaran.go` tidak membaca `akun.nama`. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi.",
+  "Kode top-up di `labs/api-t4` tidak memilih `nama` dengan SQL sendiri. Ia membaca kolom itu lewat `repo.Akun` (Tidak dijalankan: dibaca dari kode). Rekaman tidak menjalankan jalur itu. `TeksTopupLangsung` ditulis lab mengikuti cerita, sedangkan skema, role, dan pesan galat adalah PostgreSQL yang nyata. Rekaman membuktikan mekanismenya, bukan kode produksi.",
   "</details>",
   "**3.** Kenapa ADR 17 tidak menghentikan migration Merchant?",
   "<details class=\"success\">",
