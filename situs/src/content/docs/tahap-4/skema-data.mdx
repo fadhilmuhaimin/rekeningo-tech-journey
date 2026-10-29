@@ -61,11 +61,13 @@ Diagram dibuka di Tahap 4. Tiap tabel diberi label baru, berubah, atau tetap men
 
 PRD v4 meminta top-up dari bank, verifikasi identitas, QR merchant luar, kartu virtual, dan back office ([[t4-prd]]). [[t4-fitur-teknis]] menurunkannya jadi pekerjaan, dan halaman ini menunjukkan akibatnya pada tabel.
 
-Setiap perubahan di bawah punya alasan dan masalah yang memicunya. Tanpa catatan itu, tim berikutnya tidak tahu kenapa `topup_bank` menunjuk ke `jurnal` dan kenapa 22 tabel dibagi ke enam schema.
+Setiap perubahan di bawah punya alasan dan masalah yang memicunya. Tanpa catatan itu, tim berikutnya tidak tahu kenapa `topup_bank` menunjuk ke `jurnal` dan kenapa 22 tabel dibagi ke enam schema. Schema adalah kelompok tabel bernama di dalam satu database PostgreSQL.
 
 ### Cara kerjanya
 
 **Apa yang berubah dan kenapa.** Tabel pertama memuat delapan tabel baru, dan tabel kedua memuat lima tabel Tahap 3 yang berubah. Nama tabel, kolom, dan nilai status ada di skema lab api-t4 (Rekaman lab, `skema.txt` bagian A, B, dan E). Kolom Alasan adalah pertimbangan tim, bukan hasil ukur.
+
+Role aplikasi di tabel ini adalah login database yang dipakai server, dengan hak yang dibatasi per tabel.
 
 | Tahap 3 | Tahap 4 | Alasan | Masalah atau syarat |
 |---|---|---|---|
@@ -177,7 +179,7 @@ Selisih ketiganya bukan kesalahan hitung. Dari baris pertama ke kedua, transaksi
 
 Karena itu `verifikasi` hanya menyimpan kunci objek dan checksum kartu dan swafoto, bukan isi file (Rekaman lab, ERD Tahap 4). Alasannya dibahas di [[t4-m33]].
 
-**Tabel baru Tahap 4 kecil, kecuali `outbox` tanpa retensi.** Ukuran per baris adalah Asumsi: 400 byte untuk `webhook_event` dan `audit_log`, 500 byte untuk `verifikasi`, dan 300 byte untuk `outbox`.
+**Tabel baru Tahap 4 kecil, kecuali `outbox` tanpa retensi.** Retensi adalah berapa lama baris disimpan sebelum dibuang. Ukuran per baris adalah Asumsi: 400 byte untuk `webhook_event` dan `audit_log`, 500 byte untuk `verifikasi`, dan 300 byte untuk `outbox`.
 
 | Tabel | Rumus | Hasil | Label |
 |---|---|---|---|
