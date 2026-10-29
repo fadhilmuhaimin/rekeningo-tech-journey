@@ -46,7 +46,7 @@
       "dari": "tuj",
       "ke": "fch",
       "judul": "Server menjawab 200 dengan isi JSON: bukan gambar",
-      "kirim": "200 berisi JSON layanan dalam pesan \"bukan gambar\"\n403 berisi JSON layanan dalam pesan \"gambar tidak bisa diunduh\"\n404 berisi JSON layanan dalam pesan \"gambar tidak bisa diunduh\"\n500 berisi JSON layanan dalam pesan \"gambar tidak bisa diunduh\"",
+      "kirim": "200 berisi JSON layanan dalam pesan: \"bukan gambar\"\n403 berisi JSON layanan dalam pesan: \"gambar tidak bisa diunduh\"\n404 berisi JSON layanan dalam pesan: \"gambar tidak bisa diunduh\"\n500 berisi JSON layanan dalam pesan: \"gambar tidak bisa diunduh\"",
       "jelas": "Isi JSON dari server uji tidak ikut ke pesan. Jawaban 200 yang bukan gambar dijawab \"bukan gambar\", dan 403, 404, dan 500 dijawab \"gambar tidak bisa diunduh\"."
     },
     {

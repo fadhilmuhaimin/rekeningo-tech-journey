@@ -9,11 +9,11 @@ import WidgetLama from "../../../components/WidgetLama.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 import pratinjauJson from "../../../../data/diagram/t4-m36-pratinjau-json.json";
 
-<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t4-storage]] · Jalur inti</p>
+<p class="meta">Baca 6 menit · coba 3 menit · Prasyarat: [[t4-storage]] · Jalur inti</p>
 
 <Blok nama="Gejala" buka>
 
-Minggu 9 Tahap 4. Senin pagi Ratih, analis risiko di tim risk, meninjau merchant baru. Ia membuka toko "Toko Andalan" dan melihat kolom "pratinjau gambar".
+Minggu 9 Tahap 4. Senin Ratih, analis risiko di tim risk, meninjau merchant baru. Ia membuka toko "Toko Andalan" dan melihat kolom "pratinjau gambar".
 
 Kolom itu tidak berisi gambar. Isinya teks JSON dengan kata `penyimpanan-internal`.
 
@@ -55,7 +55,7 @@ OWASP memakai contoh serupa, yaitu user yang mengisi URL gambar avatarnya untuk 
 1. Pemeriksaan alamat hanya mencocokkan teks: fungsi mencari dua teks, `localhost` dan `127.0.0.1`, di dalam URL.
 2. Alamat hasil resolusi tidak diperiksa. Resolusi DNS adalah proses mengubah nama di URL menjadi alamat IP, dan jawabannya langsung dipakai.
 3. Redirect diikuti. Redirect adalah jawaban server yang menyuruh client pindah ke alamat lain.
-4. Pesan kesalahan memuat 200 byte pertama isi jawaban, dan pesan itu dikembalikan ke merchant.
+4. Untuk jawaban yang bukan gambar atau berstatus bukan 200, pesan kesalahan memuat 200 byte pertama isinya. Pesan itu dikembalikan ke merchant.
 
 Butir 1 adalah deny-list, yaitu daftar yang dilarang. Alamat yang sama bisa ditulis dengan cara lain, dan nama yang diselesaikan ke alamat dalam tidak memuat dua teks itu. OWASP menulis bahwa deny-list mudah dilewati dan hanya pilihan terakhir (Tidak dijalankan: dibaca dari sumber). Bentuk penulisan yang lolos bergantung pada resolver platform, yaitu bagian sistem yang mengubah nama menjadi alamat, jadi halaman ini tidak mencatatnya.
 
@@ -67,7 +67,7 @@ Butir 3 datang dari client bawaan. Dokumentasi Go menulis bahwa tanpa `CheckRedi
 
 Butir 4 menjawab kenapa isi layanan dalam sampai ke merchant:
 
-<Snippet file="labs/api-t4/internal/unduh/unduh.go" lines="299:305" lang="go" title="Kode lab: labs/api-t4/internal/unduh/unduh.go baris 299 sampai 305 (isi respons ikut di pesan galat)" />
+<Snippet file="labs/api-t4/internal/unduh/unduh.go" lines="299:306" lang="go" title="Kode lab: labs/api-t4/internal/unduh/unduh.go baris 299 sampai 306 (isi respons ikut di pesan galat)" />
 
 Pesan itu disimpan di kolom `galat`, bukan `pratinjau`, karena `pratinjau` hanya terisi bila unduhan berhasil:
 
@@ -144,7 +144,7 @@ Di M36 server sudah mengunduh gambar dengan akses jaringan dalam. Yang kurang ad
 <details class="success">
 <summary>Jawaban</summary>
 
-Server mengunduh alamat itu dengan akses jaringannya sendiri. Versi pertama menaruh 200 byte pertama isi jawaban di pesan kesalahan, dan pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan).
+Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan kesalahan. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan).
 
 </details>
 

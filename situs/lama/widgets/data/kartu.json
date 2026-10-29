@@ -2949,7 +2949,7 @@
   "judul": "4.20 M36: Pratinjau gambar yang berisi JSON",
   "url": "tahap-4/m36-pratinjau-json/",
   "tanya": "Kolom `gambar_url` hanya berisi alamat. Kenapa teks JSON dari layanan lain bisa sampai ke merchant?",
-  "jawab": "Server mengunduh alamat itu dengan akses jaringannya sendiri. Versi pertama menaruh 200 byte pertama isi jawaban di pesan kesalahan, dan pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan)."
+  "jawab": "Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan kesalahan. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan)."
  },
  {
   "id": "t4-m36-2",
