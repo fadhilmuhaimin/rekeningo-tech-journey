@@ -10,14 +10,14 @@
   "mekanisme": [
     "Server memegang kredensial penyimpanan dan menandatangani satu permintaan: metode, kunci objek, dan umur.",
     "URL memuat tanda tangan, tanggal penandatanganan, dan umur. Token sesi aplikasi tidak ikut (`presign.txt` bagian A).",
-    "Penyimpanan memeriksa tanda tangan dan umur, bukan siapa pengirimnya. Kunci, metode, atau tanda tangan yang diganti ditolak 403 (bagian E).",
+    "Penyimpanan memeriksa tanda tangan dan umur, bukan siapa pengirimnya. Kunci atau metode yang diganti, dan permintaan tanpa tanda tangan, ditolak 403 (bagian E).",
     "Sesudah umur habis URL ditolak 403 (bagian C). Pada Signature Version 4 umur paling lama 604.800 detik, yaitu 7 hari (bagian D)."
   ],
   "stack": null,
   "jebakan": [
     "Menganggap URL itu terikat ke satu user. Pemegang lain mendapat 200 dan menimpa objek (`presign.txt` bagian B).",
     "Menulis URL ke log akses atau jawaban galat. URL yang tercatat adalah izin yang bocor sampai umurnya habis.",
-    "Tidak menandatangani panjang file. URL tanpa panjang menerima 5 MiB (`presign.txt` bagian F)."
+    "Tidak menandatangani panjang file. Di lab, URL tanpa panjang menerima 5 MiB (`presign.txt` bagian F)."
   ],
   "terkait": [
     "Signed URL",

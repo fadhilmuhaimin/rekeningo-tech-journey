@@ -748,9 +748,9 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
     expect(istilah.cerita[0]!.rujukan).toBe("t4-storage");
     expect(istilah.cerita[0]!.teks).toBe(`App Dina dan pemegang lain memakai URL unggah yang sama, dan keduanya mendapat 200. Isi objek menjadi ${titik(isiAkhir)} byte milik pemegang lain. Sesudah umur URL habis, PUT ditolak ${ditolakC} (\`presign.txt\` bagian B dan C).`);
     expect(istilah.mekanisme[3]).toBe(`Sesudah umur habis URL ditolak ${ditolakC} (bagian C). Pada Signature Version 4 umur paling lama ${titik(Number(maksD[1]))} detik, yaitu ${maksD[2]} hari (bagian D).`);
-    expect(istilah.mekanisme[2]).toContain(`ditolak ${tolakE === 4 ? "403" : "?"} (bagian E)`);
+    expect(istilah.mekanisme[2]).toBe(`Penyimpanan memeriksa tanda tangan dan umur, bukan siapa pengirimnya. Kunci atau metode yang diganti, dan permintaan tanpa tanda tangan, ditolak ${tolakE === 4 ? "403" : "?"} (bagian E).`);
     expect(istilah.jebakan[0]).toBe("Menganggap URL itu terikat ke satu user. Pemegang lain mendapat 200 dan menimpa objek (`presign.txt` bagian B).");
-    expect(istilah.jebakan[2]).toBe(`Tidak menandatangani panjang file. URL tanpa panjang menerima ${lima / 1048576} MiB (\`presign.txt\` bagian F).`);
+    expect(istilah.jebakan[2]).toBe(`Tidak menandatangani panjang file. Di lab, URL tanpa panjang menerima ${lima / 1048576} MiB (\`presign.txt\` bagian F).`);
     expect(istilah.terkait).toEqual(["Signed URL", "Object storage", "Checksum"]);
     for (const t of istilah.terkait) expect(glosarium, t).toMatch(new RegExp(`\\| \\*\\*${t}\\*\\*`));
     expect(glosarium).toContain("| **Presigned URL** | URL ke satu objek di penyimpanan yang sudah ditandatangani pemilik kredensial, sehingga pemegangnya bisa memakainya sampai umurnya habis. | [[t4-storage]] |");
