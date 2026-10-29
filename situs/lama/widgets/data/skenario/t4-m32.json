@@ -1,0 +1,155 @@
+{
+  "versi": 2,
+  "judul": "Rename kolom: tes hijau, top-up gagal",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-modul/output/batas.txt",
+    "fileVarian": "labs/t4-modul/output/batas.txt",
+    "catatan": "Lab t4-modul, PostgreSQL 17.11, dari database bersih (make -C labs/t4-modul run BAGIAN=batas). Jalur utama: bagian A, versi tanpa batas, dengan satu schema dan satu role aplikasi. TeksTopupLangsung adalah kode lab yang ditulis mengikuti cerita, jadi jalur utama adalah Ilustrasi mekanisme: skema, role, dan pesan galat adalah PostgreSQL yang nyata, tetapi kodenya bukan kode produksi. Ubah satu hal: bagian B, enam schema dan satu role per modul. Pada varian rename dilakukan oleh pemilik schema akun, bukan oleh tim Merchant. Baris diawali tanda panah diringkas dari rekaman yang sama, bukan baris log. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter, dan jam 15.22 serta kesalahan di layar berasal dari cerita."
+  },
+  "pengantar": "Tim Merchant mengganti nama satu kolom, dan kode top-up tim Pembayaran tidak berubah. Tebak dulu, lalu ikuti langkahnya sampai HP penerima. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "mer",
+      "label": "Migration"
+    },
+    {
+      "id": "ci",
+      "label": "CI tim Pembayaran"
+    },
+    {
+      "id": "byr",
+      "label": "Modul pembayaran"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "perangkat": [
+    {
+      "id": "hp",
+      "label": "HP penerima top-up"
+    }
+  ],
+  "layarAwal": {
+    "hp": {
+      "judul": "Rekeningo",
+      "waktu": "15.20",
+      "sinyal": 3,
+      "isi": [
+        {
+          "jenis": "tombol",
+          "teks": "Terima top-up Rp200.000"
+        }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Tim Merchant mengganti nama kolom akun.nama. Kode top-up tim Pembayaran tidak berubah, dan tesnya hijau. Apa yang terjadi saat top-up membaca nama penerima?",
+    "options": [
+      "Berhasil: PostgreSQL masih menerima nama lama sebagai alias",
+      "Gagal dengan 42703: kolom nama tidak ada, walau tes tim Pembayaran hijau",
+      "Berhasil, tetapi nama penerima kosong karena kolom lama sudah tidak berisi",
+      "Gagal dengan 42P01: tabel akun tidak ditemukan di database"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Sesudah rename, SELECT nama FROM akun dijawab 42703: kolom nama tidak ada. Hasilnya bukan nama lama dan bukan nama kosong. Tes tetap hijau karena memakai driver tiruan tanpa koneksi database. Rekaman batas.txt bagian A."
+  },
+  "langkah": [
+    {
+      "dari": "ci",
+      "judul": "Tiga langkah CI tim Pembayaran lolos",
+      "kirim": "$ go build ./...\n(tanpa keluaran)\n# exit status 0\n$ go vet ./internal/modul/...\n(tanpa keluaran)\n# exit status 0\n$ go test -count=1 -run TestTeksTopupLangsungDenganDataTiruanLolos -v ./internal/modul/pembayaran\n--- PASS: TestTeksTopupLangsungDenganDataTiruanLolos\nPASS\nok    lab/apit4/internal/modul/pembayaran\n# exit status 0",
+      "jelas": "go build, go vet, dan go test lolos. Tes pembayaran memakai driver tiruan dan tidak membuka koneksi database."
+    },
+    {
+      "dari": "byr",
+      "ke": "db",
+      "judul": "Kode top-up membaca nama dengan SQL langsung",
+      "kirim": "sebelum rename, role aplikasi (satu role untuk semua modul): pembayaran.TeksTopupLangsung -> \"Top-up Rp200000 masuk ke Budi\"",
+      "jelas": "Sebelum rename, SELECT nama FROM akun berhasil dan teks notifikasi terbentuk. Fungsinya TeksTopupLangsung, kode lab yang ditulis mengikuti cerita (Ilustrasi mekanisme)."
+    },
+    {
+      "dari": "mer",
+      "ke": "db",
+      "judul": "Migration Merchant mengganti nama kolom",
+      "kirim": "migration tim Merchant: ALTER TABLE akun RENAME COLUMN nama TO nama_tampil",
+      "jelas": "Satu perintah, dan database menerimanya. Kolom nama sekarang bernama nama_tampil."
+    },
+    {
+      "dari": "ci",
+      "judul": "CI tim Pembayaran tidak melihat perubahan itu",
+      "kirim": "→ tes pembayaran memakai driver tiruan, tanpa koneksi ke PostgreSQL",
+      "jelas": "Driver tiruan membalas satu baris untuk perintah apa pun. Hasil tes tidak bergantung pada skema, jadi rename tidak mengubahnya (dibaca dari kode lab, tidak dijalankan sesudah rename)."
+    },
+    {
+      "dari": "byr",
+      "ke": "db",
+      "judul": "Kode yang sama dijalankan terhadap database",
+      "kirim": "sesudah rename, pembayaran.TeksTopupLangsung dengan role dan skema yang sama -> column \"nama\" does not exist (42703)",
+      "jelas": "Role dan skema sama dengan langkah 2. PostgreSQL menjawab 42703: kolom nama tidak ada.",
+      "nada": "warn",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "15.22",
+          "sinyal": 3,
+          "isi": [
+            {
+              "jenis": "tombol",
+              "teks": "Terima top-up Rp200.000"
+            },
+            {
+              "jenis": "toast",
+              "teks": "Terjadi kesalahan",
+              "nada": "warn"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "modul pembayaran dan modul akun dipisah schema dan role",
+    "mulai": 1,
+    "langkah": [
+      {
+        "dari": "byr",
+        "ke": "db",
+        "judul": "Kode yang sama, modul sudah dipisah",
+        "kirim": "pembayaran menjalankan SQL M32 apa adanya (SELECT nama FROM akun): relation \"akun\" does not exist (42P01)\npembayaran menulis awalan schema sendiri (SELECT nama FROM t4m_akun.akun): permission denied for schema t4m_akun (42501)",
+        "jelas": "Role pembayaran tidak punya hak di schema akun. Tanpa awalan schema tabel akun tidak ditemukan, dengan awalan hak ditolak. Kodenya gagal sebelum rename apa pun.",
+        "nada": "warn"
+      },
+      {
+        "dari": "db",
+        "judul": "Kontrol: pemilik schema akun menjalankan SQL yang sama",
+        "kirim": "kontrol: role t4m_akun menjalankan SQL yang sama pada baris yang sama: berhasil",
+        "jelas": "Yang gagal adalah batasnya, bukan SQL-nya."
+      },
+      {
+        "dari": "mer",
+        "ke": "db",
+        "judul": "Rename oleh pemilik schema akun, kodenya ikut diubah",
+        "kirim": "sesudah ALTER TABLE akun RENAME COLUMN nama TO nama_tampil oleh pemilik schema akun dan kode modul akun ikut diubah:\n  modul akun membaca nama_tampil: berhasil; pembayaran.TeksTopup lewat kontrak akun: \"Top-up Rp200000 masuk ke Budi\"",
+        "jelas": "Pembayaran mengambil nama lewat kontrak modul akun, bukan lewat tabelnya. Rename tidak mematahkannya.",
+        "nada": "good",
+        "layar": {
+          "hp": {
+            "judul": "Rekeningo",
+            "waktu": "15.22",
+            "sinyal": 3,
+            "isi": [
+              {
+                "jenis": "tombol",
+                "teks": "Terima top-up Rp200.000"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

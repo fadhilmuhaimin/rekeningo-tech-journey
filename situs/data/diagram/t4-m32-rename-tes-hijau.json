@@ -1,0 +1,26 @@
+{
+  "id": "t4-m32-rename-tes-hijau",
+  "judul": "Tes hijau, kolom berganti nama, top-up gagal",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-modul · batas.txt bagian A (Ilustrasi mekanisme)" },
+  "baris": [
+    {
+      "label": "Yang dilihat CI tim Pembayaran",
+      "sub": "tanpa koneksi database",
+      "simpul": [
+        { "teks": "go build", "sub": "tanpa keluaran, exit 0" },
+        { "teks": "go vet", "sub": "tanpa keluaran, exit 0" },
+        { "teks": "go test", "sub": "PASS, data tiruan" }
+      ]
+    },
+    {
+      "label": "Yang terjadi di database",
+      "sub": "satu schema, satu role",
+      "simpul": [
+        { "teks": "Rename kolom", "sub": "nama jadi nama_tampil" },
+        { "teks": "SELECT nama FROM akun", "sub": "kode Pembayaran, tidak berubah" },
+        { "teks": "Galat 42703", "sub": "column \"nama\" does not exist", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Kode yang dijalankan adalah TeksTopupLangsung, kode lab yang ditulis mengikuti cerita. Kotak oranye adalah akibat yang direkam."
+}
