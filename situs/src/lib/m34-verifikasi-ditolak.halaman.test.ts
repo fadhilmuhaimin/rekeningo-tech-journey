@@ -78,7 +78,7 @@ interface Skenario {
   langkah: Langkah[];
   varian: { label: string; mulai: number; langkah: Langkah[] };
 }
-interface H { id: string; judul: string; label?: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
+interface H { bagian?: number; id: string; judul: string; label?: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
 const hal = cerita.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
@@ -189,7 +189,7 @@ const LAJU_TEKS = LAJU.toFixed(2).replace(".", ",");
 
 describe("registry, meta, susunan blok, dan tautan", () => {
   test("4.16 ada, masalah, jalur inti, prasyarat ADR 36 dan 1.35, lab t4-infra, peran devops dan backend; judul sama dengan peta naskah", () => {
-    expect(dari("t4-m34")).toMatchObject({ ada: true, nomor: "4.16", jenis: "masalah", inti: true, prasyarat: ["t4-breaker", "t1-secret"], lab: ["t4-infra"], tahap: 4, peran: ["devops", "backend"] });
+    expect(dari("t4-m34")).toMatchObject({ ada: true, nomor: "4.16", jenis: "masalah", bagian: 4, inti: true, prasyarat: ["t4-breaker", "t1-secret"], lab: ["t4-infra"], tahap: 4, peran: ["devops", "backend"] });
     expect(dari("t4-infra-secret").nomor).toBe("4.17");
     expect(frontmatter).toContain('title: "4.16 M34: Semua verifikasi ditolak sesudah pindah hosting"');
     expect(frontmatter).toContain("description: Minggu 8. Sesudah Rekeningo pindah ke infrastruktur PT, setiap pendaftar baru gagal diverifikasi, karena vendor menolak alamat keluar yang baru dan breaker tidak menolong.");
@@ -378,6 +378,61 @@ describe("rekaman alamat.txt: bagian A, B, dan C, nilai yang dikutip, dan rentan
     expect(hal410).toMatch(/tidak ada yang mengantre/);
     expect(naskah).toContain("tujuh dari delapan pekerjaan lulus");
     expect(naskah).toContain("ambang 6 lebih tinggi daripada batas percobaan 5");
+  });
+  test("rekaman alamat.txt yang tampil di Snippet: angka sisi vendor sama dengan klaim halaman (diterima, diproses, objek, outbox), tiap bagian", () => {
+    const sesudahA = T.teks(aSesudahMulai, aTiap - 1);
+    expect(bagianSebelum).toContain(`#   permintaan yang diproses: ${LULUS_A}, objek dibuat: ${LULUS_A}`);
+    expect(sesudahA).toContain(`#   diterima, per alamat sumber yang dilihat vendor: {'host lama': ${LAMA_A}}`);
+    expect(sesudahA).toContain(`#   permintaan yang diproses: ${LAMA_A}, objek dibuat: ${LAMA_A}`);
+    expect(T.baris[aTiap - 1]).toContain(`# Tiap pekerjaan memakai lima percobaan atas jawaban 403 yang tidak akan berubah (${PEKERJAAN_A} pekerjaan x ${PERCOBAAN} percobaan = ${TOLAK_A} penolakan).`);
+    expect(T.baris.find((b) => b.startsWith("# Akhir pekan: aplikasi pindah ke infrastruktur baru."))).toContain("Host baru dinyalakan sebelum host lama dimatikan; alamatnya berbeda");
+    expect(readmeInfra).toContain("\"Pindahan\" adalah host kedua yang dinyalakan sebelum host pertama dimatikan");
+    harus("Pindahan diperankan dengan menyalakan host baru sebelum host lama dimatikan, dan lab memeriksa bahwa alamat keduanya berbeda.");
+    harus("**Sebelum pindahan.** Host lama terdaftar");
+    harus("**Sesudah pindahan.** Tidak ada yang mendaftarkan alamat host baru.");
+    // bagian B: sebelum dan sesudah pindahan lewat proxy
+    const bAwal = T.teks(bLama, bBeda - 1);
+    expect(bAwal).toContain(`#   diterima, per alamat sumber yang dilihat vendor: {'proxy keluar': ${LULUS_B_SEBELUM}}`);
+    expect(bAwal).toContain(`#   permintaan yang diproses: ${LULUS_B_SEBELUM}, objek dibuat: ${LULUS_B_SEBELUM}`);
+    expect(bAwal).toContain("#   ditolak 403, per alamat sumber: (tidak ada)");
+    expect(T.teks(bSesudah, bBatas)).toContain(`#   permintaan yang diproses: ${TERIMA_B}, objek dibuat: ${TERIMA_B}`);
+    expect(T.teks(bBeda, bSesudah)).toMatch(new RegExp(`terkirim\\s+\\| 1\\s+\\| ${TERIMA_B}\\b`));
+    expect(T.baris[bBatas - 2]).toContain("# Alamat host baru tidak pernah sampai ke vendor.");
+    // bagian C, aturan ADR 36: tidak ada objek, dua baris catatan yang tampil
+    expect(T.baris[tC - 1]).toContain("jawaban 403 vendor dihitung sukses (4xx), dan dengan pengaturan bawaan pustaka dihitung gagal");
+    expect(T.teks(cAdr, cAdr + 6)).toContain("#   diterima, per alamat sumber yang dilihat vendor: (tidak ada)");
+    expect(T.teks(cAdr, cAdr + 6)).toContain("#   permintaan yang diproses: 0, objek dibuat: 0");
+    expect(T.baris[cAdr + 4]).toContain(`# Breaker tidak pernah terbuka: 403 adalah jawaban 4xx, dihitung sukses. ${Kata(PEKERJAAN_C)} pekerjaan habis lima percobaan dan ${kata(GAGAL_C)} pengajuan berstatus \`gagal\`.`);
+    expect(T.baris[cAdr + 5]).toContain("# Aturan ADR 36 benar untuk dokumen yang salah (422), tetapi 403 karena alamat sumber salah semua permintaan, bukan satu dokumen: breaker tidak menolong.");
+    // bagian C, bawaan pustaka: lima baris yang tampil, outbox, dan keadaan sesudah alamat didaftarkan
+    expect(T.teks(cTerbuka, cTerbuka + 4)).toContain("#   diterima, per alamat sumber yang dilihat vendor: (tidak ada)");
+    expect(cBawaanA).toMatch(new RegExp(`mati\\s+\\| ${PERCOBAAN}\\s+\\| ${MATI_BAWAAN}\\b`));
+    const outboxAkhir = T.teks(cOperator, cDidaftar - 1);
+    expect([...outboxAkhir.matchAll(/terkirim\s+\| \d+\s+\| (\d+)/g)].reduce((s, m) => s + Number(m[1]), 0)).toBe(LULUS_AKHIR);
+    expect(outboxAkhir).toMatch(new RegExp(`mati\\s+\\| ${PERCOBAAN}\\s+\\| ${GAGAL_AKHIR}\\b`));
+    const akhir = T.teks(cDidaftar, cDidaftar + 5);
+    expect(akhir).toContain(`#   diterima, per alamat sumber yang dilihat vendor: {'host baru': ${LULUS_AKHIR}}`);
+    expect(akhir).toContain(`#   ditolak 403, per alamat sumber: {'host baru': ${TOLAK_BAWAAN}}`);
+    expect(akhir).toContain(`#   permintaan yang diproses: ${LULUS_AKHIR}, objek dibuat: ${LULUS_AKHIR}`);
+    expect(cBawaanB).toContain("# Operator mendaftarkan alamat host baru di vendor.");
+    harus("Lajur pulih sesudah operator mendaftarkan alamat host baru:");
+    expect([...bagC.matchAll(/-breaker-timeout (\d+)s/g)].map((m) => m[1])).toEqual([TIMEOUT_BREAKER, TIMEOUT_BREAKER]);
+    expect(bagC.match(/-breaker-bawaan/g)).toHaveLength(1);
+  });
+  test("rekaman di luar alamat.txt: versi OpenTofu dua kali di state.txt dan README; pin cadangan tiga kali di bagian C; 4.11 dan 4.10 memuat kalimat yang dirujuk", () => {
+    expect(stateTxt.match(/OpenTofu v1\.13\.2/g)).toHaveLength(2);
+    expect(readmeInfra).toContain("| OpenTofu | v1.13.2,");
+    const c = pinTxt.slice(pinTxt.indexOf("# --- C. "), pinTxt.indexOf("# --- D. "));
+    expect(c.match(/--pin=spki_server-a,spki_server-b/g)).toHaveLength(3);
+    expect(c.match(/pin-tidak-cocok/g)).toHaveLength(2);
+    expect(hal411.match(/terbuka 60 detik/g)).toHaveLength(2);
+    expect(hal410).toContain("tiap pekerjaan menghabiskan lima percobaannya");
+    expect(hal410).toContain("tidak ada yang mengantrekan pekerjaan itu lagi");
+    harus("Pada M31 layanan verifikasi tidak menjawab, dan tiap pekerjaan menghabiskan lima percobaan.");
+    harus("Pemisahan secret staging dan produksi ada di [[t4-infra-secret]], dan pemindaian di pipeline ada di [[t4-tim-infra]].");
+    harus("Cara memilihnya ada di [[t4-infra-secret]].");
+    harus("rekaman di blok berikutnya yang menjawab.");
+    harus("Tebak dulu apa yang dijawab vendor atas permintaan host baru, lalu tekan Berikutnya atau panah kanan.");
   });
   test("rentang Snippet diturunkan dari baris rekaman dan kode, bukan ditulis tangan; berkas, bahasa, dan judul sesuai; urutan di halaman", () => {
     expect(tag).toHaveLength(10);
@@ -578,6 +633,7 @@ describe("halaman istilah Alamat keluar: baris glosarium, rujukan, sumber, dan a
     const baris = glosarium.split("\n").filter((b) => b.startsWith("| **Alamat keluar** |"));
     expect(baris).toHaveLength(1);
     expect(baris[0]).toContain("| [[t4-m34]] |");
+    expect(baris[0]).toBe("| **Alamat keluar** | Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak. | [[t4-m34]] |");
     expect(sidik(baris[0]!)).toBe(SIDIK.glosarium);
     expect(istilah.stack).toBeNull();
     expect(istilah.terkait).toEqual(["Proxy", "Circuit breaker"]);
@@ -587,14 +643,22 @@ describe("halaman istilah Alamat keluar: baris glosarium, rujukan, sumber, dan a
   });
   test("cerita dan mekanisme: angka dari rekaman alamat.txt, label sumber, dan rujukan ke 4.16", () => {
     expect(istilah.cerita).toEqual([{ rujukan: "t4-m34", teks: `${HARI} pukul ${JAM}, sesudah Rekeningo pindah ke infrastruktur PT, setiap pendaftar baru gagal diverifikasi. Vendor menjawab 403 karena alamat host baru belum didaftarkan (cerita, Ilustrasi).` }]);
-    expect(istilah.mekanisme).toHaveLength(3);
-    expect(istilah.mekanisme[0]).toContain("layanan verifikasi tiruan memeriksa alamat ujung koneksi TCP, bukan header (`alamat.txt` bagian A).");
+    expect(istilah.mekanisme).toEqual([
+      "Vendor menyimpan daftar alamat yang boleh memanggilnya (allowlist). Di lab, layanan verifikasi tiruan memeriksa alamat ujung koneksi TCP, bukan header (`alamat.txt` bagian A).",
+      `Host baru memanggil dari alamat yang berbeda dan belum terdaftar. ${Kata(PEKERJAAN_A)} pekerjaan menghabiskan ${TOLAK_A} penolakan 403, ${kata(GAGAL_A)} pengajuan berstatus gagal (\`alamat.txt\` bagian A).`,
+      "Bila panggilan keluar lewat proxy keluar, vendor melihat alamat proxy, bukan alamat host. Pindahan host tidak mengubah alamat itu (`alamat.txt` bagian B).",
+    ]);
+    expect(istilah.jebakan).toEqual([
+      "Mengira 403 dari vendor berarti vendor mati. Vendor menjawab, dan yang ditolak adalah pemanggilnya.",
+      "Mengandalkan breaker untuk menahan penolakan alamat. Dengan aturan ADR 36, 403 dihitung sukses dan breaker tidak pernah terbuka (`alamat.txt` bagian C).",
+      "Mendaftarkan alamat sesudah pindah. Di cerita, pendaftaran satu alamat butuh dua hari kerja (Asumsi).",
+    ]);
+    expect(istilah.sehari_hari).toBe("Alamat keluar adalah alamat IP yang dilihat server tujuan saat service Rekeningo memanggilnya. Bila tujuan itu menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.");
+    expect(readmeInfra).toContain("**Daftar alamat sumber**");
     expect(alamatGo).toContain("alamat peer koneksi TCP (r.RemoteAddr), bukan header apa pun");
     expect(istilah.mekanisme[1]).toContain(`${Kata(PEKERJAAN_A)} pekerjaan menghabiskan ${TOLAK_A} penolakan 403, ${kata(GAGAL_A)} pengajuan berstatus gagal (\`alamat.txt\` bagian A).`);
     expect(istilah.mekanisme[2]).toContain("vendor melihat alamat proxy, bukan alamat host. Pindahan host tidak mengubah alamat itu (`alamat.txt` bagian B).");
     expect(TERIMA_B).toBe(6);
-    expect(istilah.jebakan[1]).toContain("403 dihitung sukses dan breaker tidak pernah terbuka (`alamat.txt` bagian C).");
-    expect(istilah.jebakan[2]).toContain("pendaftaran satu alamat butuh dua hari kerja (Asumsi)");
     expect(barisM34).toContain("pendaftaran alamat butuh dua hari kerja (Asumsi)");
   });
   test("sumber: dua entri; RFC 9110 dengan URL dan tanggal akses sama dengan halaman dan riset; rekaman alamat.txt; ID riset ada; berkas dikunci sidik", () => {
@@ -607,6 +671,9 @@ describe("halaman istilah Alamat keluar: baris glosarium, rujukan, sumber, dan a
     expect(rfc!.catatan).toBe("403 berarti server memahami permintaan dan menolak memenuhinya.");
     expect(rek!.rekaman).toBe("labs/t4-infra/output/alamat.txt");
     expect(rek!.catatan).toBe("Alamat host adalah alamat container Docker di satu jaringan lab, bukan alamat akun cloud.");
+    expect(rek!.judul).toBe("Rekaman lab t4-infra: alamat.txt bagian A sampai C");
+    expect(rfc!.riset).toBe("R4-185");
+    expect(rek!.riset).toBe("R4-187");
     expect(sidik(istilahMentah)).toBe(SIDIK.istilah);
     expect(istilahMentah).not.toMatch(/\bR\d-\d{2,3}\b(?!")/);
   });
@@ -757,6 +824,61 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     harus("- [[t3-tls-pinning]]: pin ADR 31, yang dibaca ulang sebelum pindah.");
     harus("Di M34 breaker sudah ada dan tidak menyelesaikan masalah. Yang diperlukan sebelum pindah adalah alamat keluar yang tidak berubah atau sudah didaftarkan lebih dulu.");
     expect(badan.trimEnd().endsWith('<SkripLama daftar={["hp","alur-core","alur"]} />')).toBe(true);
+  });
+});
+
+// ---- tinjauan: celah yang hanya terlihat tanpa kunci baris --------------------------------------------------------------
+// Mutan bilangan yang lolos saat kunci baris dan sidik dimatikan: versi di Kondisi rekaman, nomor masalah, nomor daftar,
+// jumlah hal, usul 400 dan 422, hari dan jam di daftar "yang tidak direkam", dan angka di noscript. Tiap tes menurunkan
+// nilainya dari kepala rekaman, registry, naskah, atau rekaman, bukan dari teks halaman ini.
+describe("tinjauan: nilai yang diturunkan dari sumber, bukan dari kunci baris", () => {
+  test("Kondisi rekaman: versi PostgreSQL, Go, dan pgx dari kepala alamat.txt; worker api-t4 dari README; semua rekaman satu kepala", () => {
+    const kepala = cocok(T.baris[1]!, /^# PostgreSQL (\d+\.\d+) \([^)]*\) · (go[\d.]+) · pgx (v[\d.]+) · schema (\w+)$/);
+    harus(`*Kondisi rekaman:* PostgreSQL ${kepala[1]}, ${kepala[2]}, dan pgx ${kepala[3]}, dari database bersih.`);
+    for (const r of [stateTxt, stagingTxt]) expect(r.split("\n")[1]).toContain(`PostgreSQL ${kepala[1]} (`);
+    expect(kepala[4]).toBe("t4_infra");
+    expect(readmeInfra).toContain("Host aplikasi adalah worker api-t4 yang dikompilasi untuk Linux");
+    harus("yaitu worker `api-t4` yang dikompilasi untuk Linux.");
+    expect(fs.existsSync(path.join(akar, "labs/api-t4"))).toBe(true);
+  });
+  test("nomor masalah dan minggu: M31 dan M34 dari label registry; semua token M<angka> hanya M31 dan M34 dengan jumlah tetap; minggu 8 dan minggu 5", () => {
+    const m31 = cocok(dari("t4-m31").label!, /^Masalah (\d+) · minggu (\d+)$/);
+    const m34 = cocok(dari("t4-m34").label!, /^Masalah (\d+) · minggu (\d+)$/);
+    harus(`Layar pendaftar sama dengan layar M${m31[1]} di minggu ${m31[2]} ([[t4-m31]])`);
+    harus(`Minggu ${m34[2]} Tahap 4.`);
+    harus(`Apakah breaker itu ikut bekerja di M${m34[1]}, rekaman di blok berikutnya yang menjawab.`);
+    harus(`Pemeriksaan sesudah M${m34[1]} menemukan tiga hal lain.`);
+    const token = [...badan.matchAll(/\bM(\d+)\b/g)].map((m) => m[1]!);
+    expect([...new Set(token)].sort()).toEqual([m31[1], m34[1]].sort());
+    expect(token.filter((x) => x === m34[1])).toHaveLength(5);
+    expect(token.filter((x) => x === m31[1])).toHaveLength(5);
+    expect(naskah).toContain(`| M${m31[1]} | ${m31[2]} |`);
+    expect(naskah).toContain(`| M${m34[1]} | ${m34[2]} |`);
+  });
+  test("nomor daftar bernomor berurutan 1, 2, 3 dan jumlah hal lain sama dengan jumlah paragraf berjudul tebal", () => {
+    expect([...badan.matchAll(/^(\d+)\. /gm)].map((m) => m[1])).toEqual(["1", "2", "3"]);
+    const tigaHal = [...badan.matchAll(/^\*\*(State IaC memuat secret|Staging memakai kunci gateway produksi|Pin ADR 31 harus ditinjau sebelum pindah)\.\*\*/gm)];
+    expect(tigaHal).toHaveLength(3);
+    harus(`menemukan ${kata(tigaHal.length)} hal lain.`);
+    harus(`**Tiga hal lain dari pindahan yang sama.**`);
+    expect(badan.match(/^\*\*(\d+)\.\*\* /gm)!.map((s) => s.replace(/\D/g, ""))).toEqual(["1", "2", "3"]);
+  });
+  test("usul 400 dan 422: dari naskah ADR 36 (usul lab t4-infra) dan README; 401 dan 403 gagal tetap usul, bukan keputusan", () => {
+    const u = cocok(naskah, /usul lab `t4-infra`: (401 dan 403) dihitung gagal, (400 dan 422) tetap sukses/);
+    harus(`Lab mengusulkan ${u[1]} dihitung gagal, dan ${u[2]} tetap sukses (usul lab, bukan keputusan).`);
+    expect(readmeInfra).toContain("Usulan, bukan keputusan lab: jawaban 401 dan 403");
+    expect(T.baris[cAdr + 5]).toContain("(422)");
+    expect(hal411).toContain("Apakah 401, 403, 408, dan 429 dihitung netral belum diputuskan.");
+    harus("Usul itu mengubah pekerjaan yang mati menjadi menunggu, tetapi tidak mendaftarkan alamat.");
+  });
+  test("daftar yang tidak direkam: hari dan jam dari naskah; status gagal di database; noscript memakai angka rekaman bagian A dan B", () => {
+    harus(`Layar "Verifikasi gagal", ${HARI} ${JAM}, kutipan Laras, dan dua hari kerja pendaftaran hanya ada di cerita (Ilustrasi atau Asumsi).`);
+    expect(barisM34).toContain("dua hari kerja (Asumsi)");
+    const noscript = cocok(badan, /<noscript>([\s\S]*?)<\/noscript>/)[1]!;
+    expect(noscript).toContain(`sesudah pindahan, vendor menolak ${TOLAK_A} percobaan dari host baru dengan 403, dan ${kata(GAGAL_A)} pengajuan berstatus \`gagal\`.`);
+    expect(noscript).toContain(`vendor menerima ${kata(TERIMA_B)} permintaan dari satu alamat dan tidak menolak satu pun.`);
+    expect(noscript).toContain("Rekaman bagian B ada di lipatan di bawah.");
+    harus("Rekaman hanya mencatat status `gagal` di database.");
   });
 });
 
