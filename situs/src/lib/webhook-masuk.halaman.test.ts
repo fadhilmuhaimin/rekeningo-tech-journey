@@ -1180,6 +1180,69 @@ describe("tinjauan 1293, putaran kedua: kutipan dokumentasi, atribusi, huruf ops
     H1("Dua `event_id` berbeda untuk satu kejadian, tanpa kedua lapis itu, menghasilkan dua `200 diproses`.");
   });
 
+  test("putaran ketiga (hapus tiap kalimat tanpa kunci): kalimat widget, tanggal dibuka, dan kalimat mekanisme diturunkan dari sumber", () => {
+    const widget = JSON.parse(baca("situs/data/widget/t4-webhook-langkah.json")) as { tebakDulu: string; berikutnya: string; langkah: { hasil: Record<string, { sumber: unknown[] }> }[] };
+    H1("Tebak dulu, lalu gulir atau tekan Langkah berikutnya.");
+    expect(widget.berikutnya).toBe("Langkah berikutnya");
+    expect(widget.tebakDulu).toMatch(/^Tebak dulu:/);
+    H1("Chip di tiap langkah menyebut asal angkanya.");
+    expect(widget.langkah.length).toBe(8);
+    for (const l of widget.langkah) for (const v of Object.values(l.hasil)) expect(v.sumber.length).toBeGreaterThan(0);
+    H1("Halaman ini mengerjakan dua di antaranya untuk kabar yang masuk: uang dicatat satu kali, dan kabar dipercaya hanya sesudah dicek.");
+    const empat4 = baca("situs/src/content/docs/tahap-4/dua-arah-pihak-ketiga.mdx");
+    expect(empat4).toContain("| 1. Dicatat satu kali |");
+    expect(empat4).toContain("| 2. Dipercaya setelah dicek |");
+    expect(empat4).toContain("Tiga hal harus selalu benar: uang dari luar dicatat satu kali, kabar dari luar dipercaya hanya sesudah dicek, dan pihak luar yang lambat atau mati tidak menahan pembayaran antar akun.");
+    // tautan eksternal: urutan, tanggal dibuka, dan tanggal sama dengan baris RISET
+    const tautan = [...halaman.matchAll(/\[([^\]]+)\]\((https?:[^)]+)\)(?:, dibuka (\d{4}-\d{2}-\d{2}))?/g)].map((m) => `${m[2]}|${m[3] ?? "-"}`);
+    expect(tautan).toEqual([
+      "https://docs.stripe.com/webhooks|2026-10-29", "https://docs.midtrans.com/docs/https-notification-webhooks|2026-10-29",
+      "https://pkg.go.dev/crypto/hmac|-", "https://expressjs.com/en/5x/api/express/|2026-10-29",
+      "https://laravel.com/docs/13.x/csrf|-", "https://laravel.com/docs/13.x/requests|2026-10-29",
+      "https://docs.djangoproject.com/en/6.1/ref/request-response/|-", "https://docs.djangoproject.com/en/6.1/ref/csrf/|2026-10-29",
+      "https://docs.serverpod.dev/concepts/web-server/request-data|-",
+      "https://github.com/supabase/supabase/blob/master/examples/edge-functions/supabase/functions/stripe-webhooks/index.ts|-",
+      "https://docs.stripe.com/webhooks|2026-10-29",
+      "https://docs.stripe.com/webhooks|-", "https://docs.midtrans.com/docs/https-notification-webhooks|-", "https://pkg.go.dev/crypto/hmac|-",
+      "https://expressjs.com/en/5x/api/express/|-", "https://docs.djangoproject.com/en/6.1/ref/request-response/|-", "https://laravel.com/docs/13.x/csrf|-",
+    ]);
+    // sembilan sumber luar dibuka 2026-10-29 (Stripe dua kali, gateway kedua, Go, Express, Laravel, Django, Serverpod, Supabase): satu tanggal per sumber
+    expect((halaman.match(/dibuka 2026-10-29/g) ?? []).length).toBe(9);
+    expect((halaman.match(/dibuka \d{4}-\d{2}-\d{2}/g) ?? []).length).toBe(9);
+    for (const id of ["R4-140", "R4-141", "R4-142", "R4-143", "R4-144"]) expect(barisRiset(id), id).toContain("dibuka 2026-10-29");
+    expect(halaman.match(/dibuka (\d{4}-\d{2}-\d{2})/g)!.every((x) => x === "dibuka 2026-10-29")).toBe(true);
+    H1("Jadi kiriman ulang yang sah tetap lolos cek usia.");
+    expect(retry).toContain("menandatangani ulang tiap percobaan dengan timestamp-nya (Asumsi untuk tiruan)");
+    H1("Di bagian B, gateway tiruan memutus koneksi begitu balasan `200` mulai datang, dan Rekeningo sudah COMMIT.");
+    expect(ganda).toContain("koneksi diputus gateway begitu balasan mulai datang");
+    expect(ganda).toContain("Kiriman pertama sudah di-COMMIT sebelum balasan dikirim");
+    expect(runLab).toContain("putus_balasan=True");
+    H1("Untuk `settlement`, penerapan status menulis jurnal dan baris outbox:");
+    expect(kodeService).toContain('s.beritahu(ctx, tx, id, tp.AkunID, "topup", nil,');
+    expect(baca("labs/api-t4/internal/service/notif.go")).toContain("return tx.TulisOutbox(ctx, jurnal, penerima, repo.KelasUang, jenis, b)");
+    H1("Tab Go dijalankan di lab.");
+    for (const kepala of [ganda, serentak, tanda, urutan, retry]) expect(kepala.split("\n")[1]).toContain("PostgreSQL 17.11");
+    expect(slotTeks("t0")).toContain("PostgreSQL 17.11 dan Go 1.27.1");
+    expect(ganda.split("\n")[1]).toContain("go1.27.1");
+    H1("`csrf_exempt` menandai view bebas dari pemeriksaan middleware CSRF.");
+    expect(barisRiset("R4-142")).toContain("marks a view as being exempt from the protection ensured by the middleware");
+    H1("Dokumentasi Stripe menyebut Django di bagian pengecualian CSRF untuk rute webhook.");
+    expect(barisRiset("R4-142")).toContain("Stripe docs (R4-140) menyebut Rails dan Django");
+    H1("Pencegahannya batas waktu di tiap panggilan yang memegang koneksi, dan pemantauan koneksi terpakai.");
+    expect(kodeService).toContain("timeout 3 detik");
+    H1("Spasi dan baris baru ikut dihitung dalam HMAC.");
+    expect(tanda).toContain("spasi dan baris baru berbeda, jadi HMAC berbeda");
+    for (const butir of [
+      "- [ ] Tanda tangan dihitung atas byte yang dibaca dari body sebelum `json.Unmarshal`, dengan perbandingan berwaktu tetap.",
+      "- [ ] Ada batas usia timestamp, dan nilainya bukan 0.",
+      "- [ ] `event_id` adalah kunci utama, dan hasil nol baris dari `ON CONFLICT DO NOTHING` ditangani sebagai ganda.",
+      "- [ ] Event, status, dan jurnal ditulis dalam satu transaction, dan 2xx dibalas sesudah COMMIT.",
+      "- [ ] Status hanya maju, dan jumlah kredit datang dari order, bukan dari isi kabar.",
+      "- [ ] Gateway ditanya sesudah COMMIT, bukan di dalam transaction yang memegang lock.",
+    ]) H1(butir);
+    expect(kodeService).toContain("hmac.Equal(hitung, diterima)");
+  });
+
   test("halaman istilah: tipe tiap nilai JSON dikunci, bukan hanya string (stack null tidak boleh jadi daftar kosong)", () => {
     const tipe = (v: unknown): string => (v === null ? "null" : Array.isArray(v) ? "array" : typeof v);
     expect(Object.entries(istilahHmac).map(([k, v]) => `${k}:${tipe(v)}`)).toEqual([
