@@ -1,0 +1,99 @@
+{
+  "versi": 2,
+  "judul": "Stiker QR statis di kasir Bu Marni: pembayaran sah, CRC tidak menahan",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-qr/output/statis.txt",
+    "fileVarian": "labs/t4-qr/output/crc.txt",
+    "catatan": "Lab t4-qr, PostgreSQL 17.11, dari database bersih (make -C labs/t4-qr run). Jalur utama: statis.txt bagian A, B, dan C. Pemindai dan pemalsu adalah skrip lab (qrlab), bukan app dan bukan penyerang; stiker yang tertempel di kasir adalah Ilustrasi. Ubah satu hal: crc.txt bagian C dan D. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
+  },
+  "pengantar": "Stiker QR milik Toko Andalan tertempel di kasir Bu Marni, dan Budi membayar Rp35.000. Tebak dulu apa yang dijawab server, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "stk", "label": "Stiker dan pemindai" },
+    { "id": "srv", "label": "Server api-t4" },
+    { "id": "dbm", "label": "Database: jurnal dan tabel qr" }
+  ],
+  "predict": {
+    "q": "Budi memindai stiker yang tertempel di kasir Bu Marni dan membayar Rp35.000. Stiker itu milik Toko Andalan, merchant sah yang terverifikasi. Apa yang dijawab server?",
+    "options": [
+      "201: Rp35.000 masuk ke Toko Andalan, dan jurnalnya seimbang",
+      "Ditolak: server tahu stiker itu tidak berada di kasir Bu Marni",
+      "201, tetapi saldo Budi belum berkurang sampai merchant mengonfirmasi",
+      "Ditolak: nama di payload tidak sama dengan nama di tabel akun"
+    ],
+    "answer": 0,
+    "varian": false,
+    "explain": "Server hanya menerima sesi Budi, id QR, dan nominal. Stiker itu QR sah, jadi pembayaran diterima: saldo Budi turun dari Rp250.000 ke Rp215.000, dan Toko Andalan menerima Rp35.000. Rekaman statis.txt bagian B."
+  },
+  "langkah": [
+    {
+      "dari": "stk",
+      "ke": "srv",
+      "judul": "Dua merchant menerbitkan QR statis",
+      "kirim": "=> SELECT a.nama, b.saldo_cache AS saldo FROM buku b JOIN akun a ON a.id = b.akun_id WHERE a.id IN (419, 30001, 30002) ORDER BY a.id\n Budi               | 250000\n Toko Sumber Rejeki | 0\n Toko Andalan       | 0",
+      "jelas": "Bu Marni dan Toko Andalan menerbitkan QR statis masing-masing, dan payload tiap stiker dibangun dari jawaban server. Saldo Budi Rp250.000, saldo kedua merchant Rp0."
+    },
+    {
+      "dari": "stk",
+      "judul": "Budi memindai stiker yang tertempel di kasir Bu Marni",
+      "kirim": "# Skenario (Ilustrasi): stiker Toko Andalan tertempel di kasir Bu Marni.\npemindai: CRC cocok; jenis statis; id <qr statis Toko Andalan>; nama di payload 'Toko Andalan'; kota di payload 'Surabaya'\nserver: GET /qr/{id} -> 200; nama 'Toko Andalan'; kota 'Surabaya'; terverifikasi ya\nnama dan kota di payload sama dengan jawaban server: ya",
+      "jelas": "Stiker itu tidak dipalsukan: nama di payload sama dengan nama yang dijawab server. Letak stiker tidak ada di sistem, jadi penempelannya hanya Ilustrasi."
+    },
+    {
+      "dari": "stk",
+      "ke": "srv",
+      "judul": "Budi membayar Rp35.000, server menjawab 201",
+      "kirim": "$ curl -i -X POST '/qr/<qr statis Toko Andalan>/bayar' -H 'Authorization: Bearer <token sesi Budi>' -d '{\"nominal\": 35000}'\nHTTP/1.1 201 Created\n{\"id\":10201,\"saldo\":215000,\"nominal\":35000,\"merchant\":\"Toko Andalan\"}",
+      "jelas": "Pembayaran diterima. Saldo Budi menjadi Rp215.000, dan jawabannya menyebut Toko Andalan sebagai merchant penerima.",
+      "nada": "warn"
+    },
+    {
+      "dari": "srv",
+      "ke": "dbm",
+      "judul": "Jurnal seimbang, buku Bu Marni tidak tersentuh",
+      "kirim": " bayar | Budi         | -35000\n bayar | Toko Andalan | 35000\n posting_di_buku_bu_marni\n 0",
+      "jelas": "Dua posting berjumlah nol, dan Bu Marni tidak punya satu posting pun dari pembayaran itu. Pemeriksaan yang Raka rencanakan semuanya lolos.",
+      "nada": "warn"
+    },
+    {
+      "dari": "dbm",
+      "judul": "Server tidak menyimpan letak stiker",
+      "kirim": " id\n akun_id\n jenis\n nominal\n berlaku_sampai\n status\n jurnal_id\n# Tidak ada data yang menunjukkan di mana stiker itu tertempel, jadi tidak ada aturan yang bisa menolaknya.",
+      "jelas": "Tabel qr punya tujuh kolom, dan tidak ada yang berisi lokasi atau pengenal stiker. Yang diterima server untuk membayar hanya sesi pembeli, id QR, dan nominal."
+    },
+    {
+      "dari": "stk",
+      "ke": "srv",
+      "judul": "Payload Bu Marni dengan id Toko Andalan lolos CRC, nama berbeda dari server",
+      "kirim": "pemindai: CRC cocok; jenis statis; id <qr statis Toko Andalan>; nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'\nserver: GET /qr/{id} -> 200; nama 'Toko Andalan'; kota 'Surabaya'; terverifikasi ya\nnama dan kota di payload sama dengan jawaban server: tidak",
+      "jelas": "Payload yang dipalsukan membawa nama Bu Marni, padahal id QR-nya milik Toko Andalan, dan CRC-nya dihitung ulang. Pemindai lab menerimanya. Nama yang dijawab server tetap Toko Andalan.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "stiker salah terbaca satu karakter, bukan diganti",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "stk",
+        "judul": "Satu karakter payload berubah: CRC tidak cocok",
+        "kirim": "karakter ke-115 (di nama merchant) diganti; galat crc: CRC tidak cocok\nkarakter ke-51 (di id QR) diganti; galat crc: CRC tidak cocok\nkarakter ke-96 (di nominal) diganti; galat crc: CRC tidak cocok",
+        "jelas": "Pemindai lab menolak payload yang satu karakternya berubah, di nama, di id QR, dan di nominal."
+      },
+      {
+        "dari": "stk",
+        "judul": "Semua penggantian satu karakter pada payload contoh terdeteksi",
+        "kirim": "salah baca satu karakter pada payload contoh statis milik tes (138 karakter): 8562 dari 8562 terdeteksi (8314 oleh CRC, 248 oleh tag 63 yang rusak)\ndua karakter bersebelahan bertukar tempat pada payload contoh yang sama: 104 dari 104 terdeteksi (hasil untuk payload ini, bukan jaminan umum)",
+        "jelas": "Hasil ini berlaku untuk satu payload contoh dan dua jenis kesalahan. Sifat CRC terhadap kesalahan lain tidak dibuktikan lab."
+      },
+      {
+        "dari": "stk",
+        "ke": "srv",
+        "judul": "Isi payload diganti dan CRC dihitung ulang: lolos",
+        "kirim": "selisih: id QR berubah; CRC berubah dari B29D menjadi 4D5E\nteks diganti tanpa menghitung CRC baru: galat crc: CRC tidak cocok\nteks diganti lalu CRC dihitung ulang dengan binascii.crc_hqx (tanpa alat lab): lolos, hasilnya sama persis dengan keluaran qrlab ganti",
+        "jelas": "Tanpa CRC baru, payload ditolak. Dengan CRC yang dihitung ulang tanpa key apa pun, payload yang berubah lolos. CRC menangkap salah baca, bukan penggantian.",
+        "nada": "warn"
+      }
+    ]
+  }
+}
