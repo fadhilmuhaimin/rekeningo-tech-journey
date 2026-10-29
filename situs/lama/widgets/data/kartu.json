@@ -2680,6 +2680,38 @@
   "jawab": "Status top-up yang hanya maju. Idempotency-Key ledger hidup 24 jam, jadi sesudah 25 jam ia sudah habis. Tanpa lapis status, event kedua diproses dan jurnalnya dua (`urutan.txt` bagian G, kasus 4)."
  },
  {
+  "id": "t4-breaker-1",
+  "halaman": "t4-breaker",
+  "judul": "4.11 Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36",
+  "url": "tahap-4/timeout-retry-breaker/",
+  "tanya": "Vendor mati dan 10 pendaftar masuk, tanpa breaker. Berapa permintaan sampai ke vendor, dan berapa pekerjaan mati?",
+  "jawab": "Vendor menerima 50 permintaan, yaitu 5 percobaan untuk tiap pekerjaan, dan 10 pekerjaan mati. Sesudah vendor pulih, worker mengklaim 0 pekerjaan (`lajur.txt` bagian A)."
+ },
+ {
+  "id": "t4-breaker-2",
+  "halaman": "t4-breaker",
+  "judul": "4.11 Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36",
+  "url": "tahap-4/timeout-retry-breaker/",
+  "tanya": "Balasan vendor terpotong sesudah objek dibuat. Kenapa retry dengan key yang sama tidak membuat objek kedua?",
+  "jawab": "Vendor mengenali key yang sama dan tidak membuat objek lagi: 2 permintaan masuk, 1 objek (`retry.txt` bagian A). Dengan key baru di tiap percobaan, vendor membuat dua objek untuk satu pendaftar (bagian B)."
+ },
+ {
+  "id": "t4-breaker-3",
+  "halaman": "t4-breaker",
+  "judul": "4.11 Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36",
+  "url": "tahap-4/timeout-retry-breaker/",
+  "tanya": "Dengan breaker, berapa dari 10 pekerjaan mati, dan kenapa jawabannya bukan nol?",
+  "jawab": "Satu pekerjaan mati. Breaker membuka pada kegagalan keenam, sedangkan batas percobaan satu pekerjaan lima, jadi pekerjaan pertama habis lebih dulu. Itu berlaku untuk satu worker tanpa jeda antar percobaan (`lajur.txt` bagian B)."
+ },
+ {
+  "id": "t4-breaker-4",
+  "halaman": "t4-breaker",
+  "judul": "4.11 Timeout, retry berkunci, circuit breaker, lajur per vendor + ADR 36",
+  "url": "tahap-4/timeout-retry-breaker/",
+  "tanya": "Enam dokumen rusak (jawaban 422) datang berturut-turut dari vendor yang sehat. Apa beda breaker bawaan pustaka dan penilaian ADR 36?",
+  "jawab": "Breaker bawaan menghitung 4xx sebagai gagal, membuka, dan menjeda 4 pengajuan sehat di belakang dokumen rusak (`lajur.txt` bagian D). Penilaian ADR 36 tidak membukanya, jadi 4 pengajuan sehat lulus. Enam dokumen rusak tetap memakai lima percobaan, sehingga 10 pengajuan menghasilkan 34 permintaan (bagian E)."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

@@ -335,11 +335,11 @@
  {
   "t": "Circuit breaker",
   "d": "Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda.",
-  "b": "B11",
-  "n": "Integrasi pihak ketiga (versi lama)",
-  "u": "/b-fondasi/b11-integrasi-pihak-ketiga/",
+  "b": "t4-breaker",
+  "n": "4.11 Timeout, retry, breaker, lajur per vendor",
+  "u": "/tahap-4/timeout-retry-breaker/",
   "s": "istilah-circuit-breaker",
-  "h": null
+  "h": "/istilah/circuit-breaker/"
  },
  {
   "t": "CODEOWNERS",
