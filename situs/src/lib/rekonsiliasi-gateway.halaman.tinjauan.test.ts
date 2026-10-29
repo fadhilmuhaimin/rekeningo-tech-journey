@@ -177,6 +177,60 @@ describe("rekaman dan hitungan diturunkan", () => {
   });
 });
 
+describe("sisa mutan tanpa kunci: definisi, batas, target PRD, dan tanggal akses diturunkan dari sumbernya", () => {
+  test("laporan settlement per tanggal dan kalimat Inti: koreksi lewat jurnal normal (kode) dan satu tanggal (parameter -rekon)", () => {
+    expect(baca("labs/api-t4/internal/service/pembayaran.go")).toContain("(YYYY-MM-DD, zona Asia/Jakarta di tiruan)");
+    harus("Laporan settlement adalah daftar order yang diselesaikan gateway pada satu tanggal.");
+    harus("Koreksinya lewat jurnal normal, bukan `UPDATE` pada saldo.");
+    expect(`${koreksiGo}\n${koreksiRepoGo}`).not.toMatch(/UPDATE\s+(posting|buku)\b/i);
+  });
+  test("ADR opsi A: jumlah kiriman 401 di retry.txt bagian B sama dengan kalimat bukti", () => {
+    const b = bagianRekaman(retry, /# --- B\./, /\n# --- C\./);
+    const n = [...b.matchAll(/^ (\d+) +\| \d+ +\| 401$/gm)].length;
+    harus(`Rekaman lab \`retry.txt\` bagian B: ${kata[n]} kiriman 401`);
+  });
+  test("batas tingkat Dina: konstanta lab, komentar urutan.txt, dan rupiah di halaman sama", () => {
+    const m = aturanGo.match(/BatasSaldoBelum\s+int64 = ([\d_]+)/);
+    const batas = Number(m![1]!.replace(/_/g, ""));
+    expect(urutan).toContain(`batas Rp${titik(batas)} untuk tingkat belum`);
+    expect(rekon).toContain(`batas Rp${titik(batas)}`);
+    harus(`tidak boleh melewati Rp${titik(batas)} (\`rekon.txt\` bagian B)`);
+  });
+  test("aturan koreksi per jenis bukan syarat PRD v4: bagian PRD naskah tidak menyebut jenis insiden atau aturan koreksi", () => {
+    const prd = naskah.slice(naskah.indexOf("## 1. PRD v4"), naskah.indexOf("## 2. Dari fitur ke pekerjaan teknis"));
+    expect(prd.length).toBeGreaterThan(1000);
+    for (const k of ["tidak_di_ledger", "tidak_di_gateway", "jumlah_beda", "jurnal pembalik"]) expect(prd, k).not.toContain(k);
+    harus("pilihan lab (Asumsi), bukan syarat PRD v4.");
+  });
+  test("1% adalah sisa dari target PRD: persen dan menit di halaman dari naskah, 50 dari 5.000 dihitung", () => {
+    const m = naskah.match(/- (\d+)% top-up tercatat dalam kurang dari (\d+) menit sejak gateway mengirim kabar/);
+    expect(m).not.toBeNull();
+    const [p, menit] = [Number(m![1]), Number(m![2])];
+    harus(`${p}% top-up tercatat dalam kurang dari ${menit} menit sejak gateway mengirim kabar`);
+    harus(`Lebih dari ${100 - p}% top-up, yaitu sisa dari target ${p}% dalam kurang dari ${menit} menit`);
+    harus(`${100 - p}% adalah ${(5000 * (100 - p)) / 100} top-up (Hitungan dari Asumsi)`);
+  });
+  test("definisi secret sama dengan halaman 4.8 (prasyarat) dan istilah rahasia hanya untuk opsi lab dan kutipan rekaman", () => {
+    const m30 = baca("situs/src/content/docs/tahap-4/m30-saldo-tidak-naik.mdx");
+    const def = "Secret adalah kata rahasia yang hanya diketahui gateway dan Rekeningo";
+    expect(m30).toContain(def);
+    harus(def);
+    const prosa = badan.split("\n").filter((b) => !/^(<Snippet|import )/.test(b.trim())).join("\n");
+    const sisa = prosa.replace(/`-rahasia-webhook[^`]*`/g, "").replace(/kata rahasia yang/g, "").replace(/menulis secret sebagai rahasia/g, "");
+    expect(sisa.match(/\brahasia\b/gi) ?? []).toEqual([]);
+  });
+  test("tanggal akses di halaman istilah sama dengan baris riset sumbernya (R4-150 dan R4-151)", () => {
+    const riset = baca("plan/RISET-TAHAP-4.md");
+    const istilah = JSON.parse(baca("situs/data/halaman-istilah/rekonsiliasi.json")) as { sumber: { riset?: string; url?: string; catatan: string }[] };
+    for (const id of ["R4-150", "R4-151"]) {
+      const baris = riset.split("\n").find((b) => b.startsWith(`| ${id} |`))!;
+      const tanggal = baris.match(/dibuka (\d{4}-\d{2}-\d{2})/)![1];
+      const s = istilah.sumber.find((x) => x.riset === id)!;
+      expect(s.catatan, id).toContain(`Dibuka ${tanggal}.`);
+    }
+  });
+});
+
 describe("pemulihan fokus tombol Jalankan di runsql lama", () => {
   test("tombol yang mati selama berjalan mengembalikan fokus ke dirinya (sukses dan gagal), hanya bila ia yang fokus saat ditekan", () => {
     const js = baca("situs/lama/widgets/runsql.js");
