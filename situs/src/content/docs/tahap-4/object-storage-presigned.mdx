@@ -121,6 +121,8 @@ Rekaman `presign.txt` mengukur sisanya. URL tidak memuat token sesi Dina, dan ja
 
 Penyimpanan menghitung umur dari tanggal di dalam URL. URL bertanggal 10 menit lalu dengan umur 300 detik ditolak 403. URL bertanggal 30 menit di depan diterima 200 (bagian D). Jadi jam server yang menandatangani harus benar (SeaweedFS 4.51; penyimpanan lain [perlu verifikasi]).
 
+Label [perlu verifikasi] berarti klaim yang belum bisa dicek ke sumber primer.
+
 Kunci diganti, metode diganti (URL PUT dipakai untuk GET), dan permintaan tanpa tanda tangan semuanya ditolak 403 (bagian E). Umur paling lama 604.800 detik, yaitu 7 hari, dan 604.801 ditolak 400 (bagian D). Dokumentasi AWS menulis bahwa URL dari kredensial sementara berakhir bersama kredensialnya.
 
 **Penyimpanan di lab menegakkan ukuran bila panjangnya ikut ditandatangani.** URL tanpa panjang menerima 5.242.880 byte, yaitu 5 MiB. Bila app menyebut `ukuran_kartu` saat meminta URL, panjang itu masuk tanda tangan. PUT 1.001 byte atau 999 byte untuk URL 1.000 byte ditolak 403 (bagian F).
@@ -250,7 +252,7 @@ Halaman fitur ([[t4-topup-verifikasi]]) bertanya di mana file identitas disimpan
 | Cara kerja | File di kolom `bytea` di database yang sama dengan data transaksi | File di direktori server aplikasi, database menyimpan nama file | App mengirim byte ke server (JSON base64 di `POST /verifikasi`), server menulis ke penyimpanan, dan unduh juga lewat server | File di penyimpanan objek privat. App mengunggah lewat URL berumur 5 menit, dan unduh hanya lewat endpoint server |
 | Kelebihan | Wiki PostgreSQL menulis bahwa akses dan keamanan disederhanakan, dan cadangan tidak perlu melacak file di luar database | Tanpa layanan baru | Tidak ada URL yang bisa dipegang pihak lain, dan jalur unggahnya sudah ada di api-t4 (`verifikasi.txt` bagian B) | Database hanya memegang kunci dan checksum (rasio dump di bawah 0,01). Ukuran, tipe, dan checksum diperiksa server sesudah unggah |
 | Kekurangan | Dump membesar sebanding dengan file: rasio 1,1, dan dump teks 2,0 (`ukuran.txt` bagian A). Wiki PostgreSQL (terakhir diedit 2021-05-05) menulis bahwa cadangan bisa jauh lebih lama | Nasib file terikat pada satu server. Dua instance tidak berbagi direktori (penalaran penulis, [[t3-dua-instance]]) | Server menyangga tiap byte unggahan, dan base64 menambah 4 untuk tiap 3 byte (Hitungan). Batas badan di handler 3 MiB (kode) | URL adalah bearer token: PUT kedua menimpa (`presign.txt` bagian B). File sah masih bisa ditimpa sampai URL habis (`unduh.txt` bagian D). Server tetap membaca tiap file sekali |
-| Biaya operasional | Cadangan dan uji pulih mengangkut file | Salinan dan pemindahan file saat pindah hosting ([[t4-m34]]) | Handler dan koneksi HP yang lambat ditahan server (Tidak dijalankan) | Satu komponen baru: kredensial penyimpanan, pencadangan file terpisah, dan job retensi |
+| Biaya operasional | Cadangan dan uji pulih mengangkut file | Salinan dan pemindahan file bila hosting pindah, seperti di [[t4-m34]] (penalaran penulis) | Handler dan koneksi HP yang lambat ditahan server (Tidak dijalankan) | Satu komponen baru: kredensial penyimpanan, pencadangan file terpisah, dan job retensi |
 | Bukti | `ukuran.txt` bagian A dan D, [PostgreSQL wiki](https://wiki.postgresql.org/wiki/BinaryFilesInDB) | `verifikasi.txt` bagian B (direktori lokal), tanpa rekaman perbandingan | Kode `handler_pembayaran.go`, `verifikasi.txt` bagian B | `presign.txt`, `unggah.txt`, `unduh.txt`, `retensi.txt`, `ukuran.txt` bagian C |
 
 Hitungan base64 memakai RFC 4648: 4 karakter untuk tiap 3 byte. Satu file 500.000 byte menjadi sekitar 666.668 karakter, dan dua file 1.333.336 karakter, di bawah batas badan 3 MiB (3.145.728 byte).
@@ -267,7 +269,7 @@ Hitungan base64 memakai RFC 4648: 4 karakter untuk tiap 3 byte. Satu file 500.00
 **Kenapa D, bukan A sampai C.**
 
 - **A ditolak** karena cadangan dan uji pulih mengangkut file, yang 33,3 kali lebih besar dari posting dalam setahun (Hitungan). Alasan "ikut transaction" tidak dibuktikan lab: `bytea` di lab ditulis dengan satu pernyataan di luar transaction pengajuan.
-- **B ditolak** karena file terikat pada satu server, dan [[t4-m34]] memindahkan infrastruktur. Itu penalaran penulis, tanpa rekaman perbandingan.
+- **B ditolak** karena file terikat pada satu server, dan hosting bisa pindah seperti di [[t4-m34]], yang mengubah alamat keluar. Itu penalaran penulis, tanpa rekaman perbandingan.
 - **C ditolak untuk unggah, dipakai untuk unduh.** Alasan naskah, server tidak menyangga setiap file, hanya sebagian benar: server tetap membaca tiap objek untuk menghitung checksum. Yang dihindari adalah koneksi unggah dari HP, dan manfaat itu belum diukur. Pembandingnya kecil: unggahan puncak 116 KB per detik. Unggah lewat server tetap sah bila data tidak boleh ditimpa (`unduh.txt` bagian D).
 - **Unduh lewat URL ditolak** karena URL itu bisa dikirim ulang tanpa catatan (`unduh.txt` bagian C), dan pembukaan file tidak punya alasan tercatat.
 

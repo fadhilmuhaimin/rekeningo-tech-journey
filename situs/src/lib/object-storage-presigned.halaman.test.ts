@@ -958,7 +958,7 @@ describe("tinjauan: versi rekaman, baris yang dikutip, kutipan bagian, tautan pe
       ["t4-prd", "prd v4", "([[t4-prd]])"],
       ["t4-topup-verifikasi", "verifikasi identitas", "dari tiap pendaftar ([[t4-topup-verifikasi]])"],
       ["t3-dua-instance", "instance", "penalaran penulis, [[t3-dua-instance]]"],
-      ["t4-m34", "pindah hosting", "pindah hosting ([[t4-m34]])"],
+      ["t4-m34", "pindah hosting", "bila hosting pindah, seperti di [[t4-m34]] (penalaran penulis)"],
       ["t4-infra-secret", "secret", "[[t4-infra-secret]] memindahkan kredensial penyimpanan ke secret manager"],
       ["t4-m38", "membuka data budi", "[[t4-m38]] bertanya siapa yang membuka data Budi"],
     ];
@@ -966,7 +966,9 @@ describe("tinjauan: versi rekaman, baris yang dikutip, kutipan bagian, tautan pe
       expect(dari(id).judul.toLowerCase(), id).toContain(kata);
       harus(kalimat);
     }
-    harus("karena file terikat pada satu server, dan [[t4-m34]] memindahkan infrastruktur");
+    harus("karena file terikat pada satu server, dan hosting bisa pindah seperti di [[t4-m34]], yang mengubah alamat keluar.");
+    expect(cara).toContain("**[perlu verifikasi]**: klaim yang belum bisa dicek ke sumber primer.");
+    harus("Label [perlu verifikasi] berarti klaim yang belum bisa dicek ke sumber primer.");
   });
   test("Snippet dan tab: bahasa cocok dengan ekstensi berkas dan dengan stack tab", () => {
     for (const b of halaman.split("\n").filter((x) => x.startsWith("<Snippet") && /file=|files=/.test(x))) {
