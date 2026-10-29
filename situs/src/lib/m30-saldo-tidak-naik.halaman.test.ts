@@ -275,6 +275,8 @@ describe("rekaman retry.txt: bagian A, B, dan C dan rentang Snippet", () => {
     expect(bagB).toContain("gateway berhenti: jadwal habis (342 menit sesudah kiriman pertama, ±5,7 jam)");
     expect(bagB).toContain("# Gateway merotasi rahasia dan langsung menandatangani dengan yang baru; menit 0 = kiriman pertama dengan rahasia baru (waktu maya).");
     expect(bagB).toContain("(6 rows)");
+    const versiPg = cocok(retry, /^# PostgreSQL (\d+\.\d+) \(Debian [^)]+\) · go\d+\.\d+\.\d+ · pgx v\d+\.\d+\.\d+ · schema tahap4_webhook/m)[1]!;
+    harus(`*Kondisi rekaman:* PostgreSQL ${versiPg}, server Go \`api-t4\`, dan gateway tiruan lokal.`);
     harus("Gateway tiruan mengirim kiriman pertama dan lima ulangan untuk top-up Citra Rp500.000. Semuanya dijawab 401.");
     harus("Sesudah kiriman keenam gateway berhenti, dan database tidak memuat event maupun jurnal:");
     const ulangLainnya = Number(cocok(jadwalGo, /func jumlahUlang\(kode int\) int \{[\s\S]*?\n\treturn (\d+)\n}/)[1]);
