@@ -1,0 +1,49 @@
+{
+  "id": "t4-modul-inti",
+  "judul": "Rename kolom akun.nama tanpa batas dan dengan batas",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t4-modul, batas.txt bagian A dan B"
+  },
+  "baris": [
+    {
+      "label": "Tanpa batas",
+      "sub": "satu schema, satu role",
+      "simpul": [
+        {
+          "teks": "tes lolos",
+          "sub": "data tiruan, tanpa database"
+        },
+        {
+          "teks": "rename kolom",
+          "sub": "akun.nama jadi nama_tampil"
+        },
+        {
+          "teks": "42703 di database",
+          "sub": "kolom nama tidak ada",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Dengan batas",
+      "sub": "schema dan role per modul",
+      "simpul": [
+        {
+          "teks": "SQL ditolak",
+          "sub": "42P01 dan 42501"
+        },
+        {
+          "teks": "rename kolom",
+          "sub": "oleh modul akun, kode ikut berubah"
+        },
+        {
+          "teks": "pembayaran jalan",
+          "sub": "lewat paket publik akun",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kode pembayaran yang membaca akun.nama ditulis lab mengikuti uraian M32 (Ilustrasi). Schema, role, dan pesan galat adalah PostgreSQL yang dijalankan lab."
+}
