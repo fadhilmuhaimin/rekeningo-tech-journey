@@ -3793,8 +3793,9 @@
       "lab": [
         "t4-kartu"
       ],
-      "ada": false,
-      "nomor": "4.22"
+      "ada": true,
+      "nomor": "4.22",
+      "menit": 11
     },
     {
       "id": "t4-kartu",
