@@ -1,0 +1,29 @@
+{
+  "id": "t4-m34-alamat-berubah",
+  "judul": "Alamat host berubah, vendor menolak, breaker tidak menyelesaikan",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-infra · alamat.txt bagian A dan C" },
+  "baris": [
+    {
+      "label": "Sesudah pindahan",
+      "sub": "bagian A, tanpa breaker",
+      "simpul": [
+        { "teks": "Host baru menyala", "sub": "alamat beda dari host lama" },
+        { "teks": "Tiga pendaftar mengajukan", "sub": "tiga pekerjaan" },
+        { "teks": "403 di tiap percobaan", "sub": "15 = 3 × 5", "nada": "warn" },
+        { "teks": "Tiga pengajuan gagal", "sub": "vendor menjawab", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Yang dilakukan breaker",
+      "sub": "bagian C, delapan pekerjaan",
+      "simpul": [
+        { "teks": "Aturan ADR 36", "sub": "403 dihitung sukses" },
+        { "teks": "Tidak pernah terbuka", "sub": "40 penolakan, 8 gagal", "nada": "warn" },
+        { "teks": "Aturan bawaan pustaka", "sub": "403 dihitung gagal" },
+        { "teks": "Terbuka sesudah enam penolakan", "sub": "7 menunggu, 1 gagal" },
+        { "teks": "Alamat didaftarkan", "sub": "7 lulus, 1 gagal", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Alamat host di lab adalah alamat container Docker, bukan alamat akun cloud. Kotak oranye adalah akibat yang direkam."
+}

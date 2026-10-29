@@ -153,6 +153,15 @@
   "h": null
  },
  {
+  "t": "Alamat keluar",
+  "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
+  "b": "t4-m34",
+  "n": "4.16 M34",
+  "u": "/tahap-4/m34-verifikasi-ditolak/",
+  "s": "istilah-alamat-keluar",
+  "h": "/istilah/alamat-keluar/"
+ },
+ {
   "t": "Alert",
   "d": "Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.",
   "b": "t3-tim-infra",
