@@ -1,6 +1,6 @@
 {
   "istilah": "CRC (cyclic redundancy check)",
-  "sehari_hari": "CRC adalah angka pendek yang dihitung dari seluruh isi sebuah data, untuk mendeteksi salah baca atau salah kirim. Penerima menghitungnya lagi dan menolak data bila angkanya berbeda.",
+  "sehari_hari": "CRC adalah angka pendek yang dihitung dari seluruh isi sebuah data, untuk mendeteksi data yang salah terbaca atau rusak saat dikirim. Penerima menghitungnya lagi dan menolak data bila angkanya berbeda.",
   "cerita": [
     {
       "rujukan": "t4-m35",

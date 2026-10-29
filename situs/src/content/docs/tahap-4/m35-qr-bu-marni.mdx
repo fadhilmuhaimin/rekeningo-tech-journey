@@ -27,7 +27,7 @@ Ketiga pembayaran itu berjumlah Rp105.000 (Rp35.000 + Rp48.000 + Rp22.000).
 
 Raka membaca tiga laporan itu dan melihat satu pola: pembayaran tercatat berhasil di app, tetapi uangnya tidak sampai ke toko yang dituju. Ia menduga app salah mencatat tujuan pembayaran.
 
-Dugaan itu bisa diperiksa. Bila app salah mencatat, jurnal pembayaran Budi tidak seimbang, merchant penerimanya tidak aktif, atau saldo Budi berkurang tanpa ada yang menerima. Rekaman di blok berikutnya memeriksa ketiganya.
+Dugaan itu bisa diperiksa di database. Bila app salah mencatat, uang Budi sebenarnya masuk ke buku Bu Marni, dan jurnalnya menyebut Bu Marni, bukan toko yang tertulis di app. Raka memeriksa tiga hal: jurnal pembayaran Budi, buku Bu Marni, dan status merchant penerimanya. Rekaman di blok berikutnya memuat ketiganya.
 
 <details class="question">
 <summary>Tebak dulu: pembayaran Budi lolos pemeriksaan jurnal, merchant, dan saldo. Data apa yang tidak dimiliki server?</summary>
@@ -46,7 +46,7 @@ Pembayaran Budi sah menurut server, karena yang berganti adalah stikernya, dan s
 
 <Rantai data={stikerBerganti} ringkas />
 
-Pihak yang mencoba, orang yang tidak dikenal, menempelkan stiker QR statis miliknya di atas stiker Bu Marni. QR statis dipakai berulang untuk banyak pembayaran, dan pembeli mengisi nominalnya sendiri. Miliknya adalah merchant sah yang terverifikasi dengan identitasnya sendiri, jadi server tidak melihat yang palsu.
+Pihak yang mencoba, orang yang tidak dikenal, menempelkan stiker QR statis miliknya di atas stiker Bu Marni. QR statis dipakai berulang untuk banyak pembayaran, dan pembeli mengisi nominalnya sendiri. Stiker itu milik merchant sah yang terverifikasi dengan identitasnya sendiri, jadi server tidak melihat yang palsu.
 
 Angka pemeriksa di stiker itu bernama CRC: empat karakter di ujung payload, yaitu teks di dalam QR, yang dihitung dari semua teks di depannya. CRC menangkap salah baca, bukan penggantian. Layar konfirmasi versi pertama hanya bertanya "Bayar?", jadi tidak ada langkah yang menghentikan Budi.
 
@@ -82,11 +82,11 @@ Tag 01 bernilai 11 untuk QR statis dan 12 untuk QR dinamis, yang dibuat baru unt
 
 CRC dihitung dari semua teks di depannya, termasuk `6304`, yaitu tag dan panjang CRC itu sendiri. Pemindai menghitung CRC lagi dari teks yang ia baca dan menolak payload bila hasilnya berbeda.
 
-Lab memakai format bergaya EMV: tag 00, 01, dan 63 serta cara menghitung CRC berasal dari sumber yang bisa dibuka, dan selebihnya pilihan lab (Asumsi). Halaman EMVCo mendaftarkan spesifikasi QR merchant-presented sebagai versi 1.1 (27 November 2020; dibuka 2026-10-30), tetapi PDF-nya belum terbaca. Parameter CRC menurut spesifikasi itu [perlu verifikasi di PDF EMVCo].
+Lab memakai format bergaya EMV. Nilai tag 00 dan 01, serta cara menghitung CRC, berasal dari dokumen pihak ketiga yang mengutip EMVCo (sumber sekunder); selebihnya pilihan lab (Asumsi). Halaman EMVCo mendaftarkan spesifikasi QR merchant-presented sebagai versi 1.1 (27 November 2020; dibuka 2026-10-30), tetapi PDF-nya belum terbaca. Parameter CRC menurut spesifikasi itu [perlu verifikasi di PDF EMVCo].
 
 Rumus CRC punya parameter, dan lab memakai CRC-16/IBM-3740: polinomial 0x1021 dan nilai awal 0xFFFF. [Katalog CRC](https://reveng.sourceforge.io/crc-catalogue/16.htm) memuatnya dengan nilai uji 0x29B1 untuk teks `123456789` (halaman terakhir diperbarui 11 Desember 2024, dibuka 2026-10-30, Tidak dijalankan). Lab menghasilkan nilai yang sama dengan dua implementasi, yaitu Go dan `binascii.crc_hqx` dari Python (Rekaman lab, `crc.txt` bagian A).
 
-**CRC menangkap salah baca.** Satu karakter yang berubah membuat CRC tidak cocok, di tiga posisi yang dicoba lab:
+**CRC menangkap salah baca.** Satu karakter yang berubah membuat CRC tidak cocok. Lab mencobanya di tiga posisi pada payload QR dinamis contoh, karena hanya payload itu yang memuat nominal:
 
 <Snippet file="labs/t4-qr/output/crc.txt" lines="53:57" title="Rekaman lab: labs/t4-qr/output/crc.txt, bagian C (salah baca)" />
 

@@ -238,7 +238,7 @@ window.ISTILAH = {
  },
  "CRC": {
   "b": "t4-m35",
-  "d": "Angka pendek yang dihitung dari isi data untuk mendeteksi salah baca atau salah kirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.",
+  "d": "Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.",
   "h": "istilah/crc/",
   "n": "4.18 M35",
   "s": "istilah-crc",

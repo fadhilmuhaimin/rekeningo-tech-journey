@@ -406,7 +406,7 @@
  },
  {
   "t": "CRC (cyclic redundancy check)",
-  "d": "Angka pendek yang dihitung dari isi data untuk mendeteksi salah baca atau salah kirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.",
+  "d": "Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.",
   "b": "t4-m35",
   "n": "4.18 M35",
   "u": "/tahap-4/m35-qr-bu-marni/",

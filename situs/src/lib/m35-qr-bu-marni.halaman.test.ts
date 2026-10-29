@@ -238,7 +238,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(badan.match(/ADR 40/g)).toHaveLength(1);
     expect([...new Set(badan.match(/ADR \d+/g))]).toEqual(["ADR 40"]);
     expect(badan).not.toMatch(/200\.000|200\.001|5 menit|kedaluwarsa|dibekukan|membekukan|pembekuan|bobot pelapor|Retry-After|409|410|422/);
-    expect(badan.match(/dinamis/g)).toHaveLength(2);
+    expect(badan.match(/dinamis/g)).toHaveLength(3);
     expect(badan.match(/laporan QR palsu|pelaporan QR palsu/g)).toHaveLength(1);
   });
 });
@@ -284,7 +284,15 @@ describe("naskah M35: gejala, yang dikira, dan yang sebenarnya", () => {
   test("yang dikira sebelum yang sebenarnya; dugaan Raka dari naskah; tiga pemeriksaan sama dengan yang direkam", () => {
     expect(badan.indexOf('<Blok nama="Yang Raka kira"')).toBeLessThan(badan.indexOf('<Blok nama="Yang sebenarnya">'));
     harus("Ia menduga app salah mencatat tujuan pembayaran.");
-    harus("Bila app salah mencatat, jurnal pembayaran Budi tidak seimbang, merchant penerimanya tidak aktif, atau saldo Budi berkurang tanpa ada yang menerima. Rekaman di blok berikutnya memeriksa ketiganya.");
+    harus("Dugaan itu bisa diperiksa di database. Bila app salah mencatat, uang Budi sebenarnya masuk ke buku Bu Marni, dan jurnalnya menyebut Bu Marni, bukan toko yang tertulis di app. Raka memeriksa tiga hal: jurnal pembayaran Budi, buku Bu Marni, dan status merchant penerimanya. Rekaman di blok berikutnya memuat ketiganya.");
+    // dugaan dan pemeriksaan: tiga hal yang diperiksa dengan urutan yang sama dengan pemeriksaan di blok Yang sebenarnya, dan dugaan bisa diuji oleh pemeriksaan itu
+    const dugaan = badan.indexOf("Raka memeriksa tiga hal: jurnal pembayaran Budi, buku Bu Marni, dan status merchant penerimanya.");
+    expect(dugaan).toBeGreaterThan(0);
+    const urutan = ["Pertama, jurnal seimbang", "Kedua, buku Bu Marni", "Ketiga, kedua merchant aktif"].map((k) => badan.indexOf(k));
+    expect(urutan.every((x, i) => x > dugaan && (i === 0 || x > urutan[i - 1]!))).toBe(true);
+    // yang diuji dugaan: buku Bu Marni nol posting dan jurnal menuju Toko Andalan, jadi uang tidak masuk ke Bu Marni
+    expect(POSTING_BUKU_MARNI).toBe(0);
+    expect(POSTING.map((p) => p[0])).toEqual(["Budi", JAWAB.merchant]);
     expect(JUMLAH_POSTING).toBe(0);
     expect(barisAkun.every((r) => r[1] === "merchant" && r[2] === "terverifikasi" && r[3] === "aktif")).toBe(true);
     expect(SALDO_AKHIR).toBe(SALDO_AWAL - NOMINAL);
@@ -438,7 +446,12 @@ describe("rekaman crc.txt: parameter, tabel tag, salah baca, penggantian, dan Hi
     harus(`Jumlah ${rib(TERDETEKSI)} sama dengan ${PANJANG} × ${ABJAD.length - 1} + ${DI_LUAR_ABJAD}. Tiap posisi diganti dengan ${ABJAD.length - 1} karakter lain, kecuali ${kata(DI_LUAR_ABJAD)} posisi berisi titik atau strip yang diganti dengan ${ABJAD.length} karakter (Hitungan, dibaca dari kode tes \`TestPayloadSalahBacaSatuKarakterTerdeteksiSemua\`). Payload itu bukan payload di cuplikan di atas: kotanya Bandung, bukan Jakarta.`);
     harus(`Pertukaran dua karakter bersebelahan yang berbeda juga terdeteksi, ${TUKAR[1]} dari ${TUKAR[2]}. Itu hasil untuk satu payload dan dua jenis kesalahan, bukan jaminan untuk payload lain atau kesalahan lain.`);
     expect(payloadTesGo).toContain("func TestPayloadSalahBacaSatuKarakterTerdeteksiSemua(");
-    harus("Satu karakter yang berubah membuat CRC tidak cocok, di tiga posisi yang dicoba lab:");
+    harus("Satu karakter yang berubah membuat CRC tidak cocok. Lab mencobanya di tiga posisi pada payload QR dinamis contoh, karena hanya payload itu yang memuat nominal:");
+    // tiga posisi (nama, id QR, nominal) dicoba pada payload dinamis di run.py; payload statis di bagian B tidak punya tag 54
+    expect(runLab).toContain('p = contoh["dinamis"]');
+    expect(runLab).toContain('("di nominal", p.index("35000") + 1)');
+    expect(bagCB.split("$ qrlab buat -jenis dinamis")[0]).not.toMatch(/\n 54\s+\|/);
+    expect(bagCB.split("$ qrlab buat -jenis dinamis")[1]).toMatch(/\n 54\s+\| 05\s+\| 35000\s+\| nominal/);
     expect(readme).toContain("Sifat umum CRC-16 terhadap jenis kesalahan lain tidak dibuktikan di sini.");
   });
   test("D: id diganti dan CRC dihitung ulang lolos (B29D menjadi 4D5E); tanpa CRC baru ditolak; sama dengan crc_hqx; Hitungan 4 x 4 = 16 bit dan 2^16 = 65.536", () => {
@@ -472,7 +485,10 @@ describe("rekaman crc.txt: parameter, tabel tag, salah baca, penggantian, dan Hi
     harus("([Wikipedia: Cyclic redundancy check](https://en.wikipedia.org/wiki/Cyclic_redundancy_check), dibuka 2026-10-30, sumber sekunder, Tidak dijalankan)");
     harus("Wikipedia menulis hal serupa tentang CRC pada umumnya. CRC tidak cocok untuk melindungi dari perubahan yang disengaja. Penyerang bisa mengubah pesan dan menghitung ulang CRC (");
     expect(readme).toContain("**PDF EMVCo**: parameter CRC, daftar tag wajib, dan batas panjang nama dan kota belum dibaca dari spesifikasi asli");
-    harus("Lab memakai format bergaya EMV: tag 00, 01, dan 63 serta cara menghitung CRC berasal dari sumber yang bisa dibuka, dan selebihnya pilihan lab (Asumsi).");
+    harus("Lab memakai format bergaya EMV. Nilai tag 00 dan 01, serta cara menghitung CRC, berasal dari dokumen pihak ketiga yang mengutip EMVCo (sumber sekunder); selebihnya pilihan lab (Asumsi).");
+    // asal nilai tag dari README lab: dokumen turunan, bukan PDF EMVCo
+    expect(readme).toContain("dokumen turunan yang menyatakan isinya mengikuti EMV QRCPS");
+    expect(readme).toContain("**PDF EMVCo belum dibuka**");
     expect(readme).toContain('Format payload "bergaya EMV", bukan implementasi EMVCo penuh');
     expect(crc).toContain("# Yang tidak dibuktikan lab ini: bahwa PDF spesifikasi EMVCo menetapkan parameter itu untuk tag 63.");
     expect(crc).toContain("PDF EMVCo belum dibuka [perlu verifikasi di PDF EMVCo].");
@@ -553,11 +569,11 @@ describe("halaman istilah CRC: baris glosarium, rujukan, sumber, dan angka dari 
     expect(istilah.istilah).toBe("CRC (cyclic redundancy check)");
     const baris = glosarium.split("\n").filter((b) => b.startsWith("| **CRC** (cyclic redundancy check) |"));
     expect(baris).toHaveLength(1);
-    expect(baris[0]).toBe("| **CRC** (cyclic redundancy check) | Angka pendek yang dihitung dari isi data untuk mendeteksi salah baca atau salah kirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian. | [[t4-m35]] |");
+    expect(baris[0]).toBe("| **CRC** (cyclic redundancy check) | Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian. | [[t4-m35]] |");
     expect(sidik(baris[0]!)).toBe(SIDIK.glosarium);
     expect(glosarium.indexOf("| **CRC** (")).toBeGreaterThan(glosarium.indexOf("| **Container** |"));
     expect(glosarium.indexOf("| **CRC** (")).toBeLessThan(glosarium.indexOf("| **CRDT** ("));
-    expect(istilah.sehari_hari).toBe("CRC adalah angka pendek yang dihitung dari seluruh isi sebuah data, untuk mendeteksi salah baca atau salah kirim. Penerima menghitungnya lagi dan menolak data bila angkanya berbeda.");
+    expect(istilah.sehari_hari).toBe("CRC adalah angka pendek yang dihitung dari seluruh isi sebuah data, untuk mendeteksi data yang salah terbaca atau rusak saat dikirim. Penerima menghitungnya lagi dan menolak data bila angkanya berbeda.");
     harus("Angka pemeriksa di stiker itu bernama CRC: empat karakter di ujung payload, yaitu teks di dalam QR, yang dihitung dari semua teks di depannya.");
     expect(badan.match(/bernama CRC/g)).toHaveLength(1);
     expect(badan.indexOf("bernama CRC")).toBeLessThan(badan.indexOf("CRC dihitung dari semua teks"));
