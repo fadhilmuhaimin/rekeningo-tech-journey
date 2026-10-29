@@ -18,7 +18,7 @@ import { DataRantai } from "./rantai";
 import { HalamanIstilah } from "./istilah";
 import { daftarBlok, cekTemplat } from "./blok";
 import { KALIMAT_TERKUNCI, SIDIK } from "./rekonsiliasi-gateway.halaman.nilai";
-import { ANGKA, LABEL, NEGASI, TAUTAN } from "./rekonsiliasi-gateway.halaman.kata";
+import { ANGKA, DIAGRAM, ISTILAH, LABEL, NEGASI, RISET, TABEL, TAUTAN, WIDGET } from "./rekonsiliasi-gateway.halaman.kata";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -856,5 +856,20 @@ describe("kunci kata: negasi, angka, label sumber, dan tautan (berkas kata.ts, d
   });
   test("deret tautan [[id]] sama dengan daftar", () => {
     expect([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1])).toEqual(TAUTAN);
+  });
+});
+
+describe("kunci kata (lanjutan): tabel, baris riset, diagram, widget, dan halaman istilah", () => {
+  test("semua baris tabel di badan sama dengan daftar, urutan baris dan sel: menukar sel atau baris menggagalkan tes", () => {
+    expect(badan.split("\n").map((b) => b.trim()).filter((b) => b.startsWith("|"))).toEqual(TABEL);
+    expect(TABEL.filter((b) => !b.startsWith("|---"))).toHaveLength(2 + 3 + 3 + 5 + 4);
+  });
+  test("lima baris riset 4.9 sama dengan daftar (kutipan, tanggal akses, dan hitungan)", () => {
+    expect(["R4-150", "R4-151", "R4-152", "R4-153", "R4-154"].map(barisRiset)).toEqual(RISET);
+  });
+  test("diagram Rantai, widget runsql, dan halaman istilah sama dengan salinan di berkas kata.ts (semua nilai string dan angka)", () => {
+    expect(diagramMentah).toEqual(DIAGRAM);
+    expect(widget).toEqual(WIDGET);
+    expect(istilahMentah).toEqual(ISTILAH);
   });
 });
