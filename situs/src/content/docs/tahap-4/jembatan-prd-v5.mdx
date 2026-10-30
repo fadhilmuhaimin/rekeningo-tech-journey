@@ -32,12 +32,14 @@ PRD v5 mengubah enam hal dari PRD v4:
 |---|---|---|
 | Lingkup | Publik: 100.000 user terdaftar, merchant di luar Lestari | Nasional: 1 juta user dan ratusan ribu merchant |
 | Laporan | Dasbor web warung dari PRD v3 | Laporan merchant real-time |
-| Notifikasi | Satu notifikasi per kejadian uang | Notifikasi massal |
+| Notifikasi | Notifikasi uang per kejadian, dan pengumuman promo atau top-up massal sampai 10.000 notifikasi sekaligus ([[t3-prd]]) | Notifikasi massal |
 | Produk uang | Saldo, top-up dari bank, QR, dan kartu virtual | Cicilan dan tabungan, dengan proses batch harian |
 | Integrasi | Gateway, layanan verifikasi, dan penerbit kartu | API publik untuk POS pihak ketiga |
 | Tim | 13 developer dalam tiga tim (Asumsi cerita) | 20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security (Asumsi cerita) |
 
 Isi PRD v5 adalah rencana cerita (Ilustrasi): contoh, bukan hasil sistem. Hitungan berarti rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya. Arti label sumber ada di [[A0]].
+
+SRE (site reliability engineer) adalah engineer yang menjaga sistem produksi tetap berjalan, dan POS (point of sale) adalah kasir elektronik di toko.
 
 Tahap 4 menghasilkan ADR 34 sampai 45. Sebagian dari keputusan itu akan pecah lebih dulu daripada yang lain. Pecah berarti halaman ADR itu menulis keadaan yang sama dengan satu isi PRD v5. Keadaan itu bisa berupa syarat salah, pemicu, atau hal yang direvisi tahap berikutnya.
 
@@ -58,9 +60,9 @@ PRD v4 sudah menulis empat isi PRD v5 sebagai P2 yang ditunda ke v5 ([[t4-prd]])
 | Skala nasional: 1 juta user dan ratusan ribu merchant | 100.000 user terdaftar, ±400 merchant luar, dan ±60 warung (Asumsi). Puncak 138,9 request per detik dan 40 dari 100 koneksi database (Hitungan atas Asumsi, [[t4-estimasi]]) |
 | Laporan merchant real-time | Dasbor web warung dari PRD v3 ([[t3-prd]]). ADR 45 menunda read replica, yaitu salinan database untuk bacaan, dan satu pemicunya adalah laporan ini ([[t4-adr-45]]) |
 | Notifikasi massal | Notifikasi uang memakai 7,52 dari 13,33 pengiriman per detik di puncak, dan pengumuman ke 100.000 HP butuh paling sedikit 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]) |
-| Cicilan dan tabungan, dengan proses batch harian | Proses terjadwal yang ada: rekonsiliasi harian dengan gateway ([[t4-rekonsiliasi]]) dan pencairan warung tiap Jumat ([[t2-pencairan]]) |
-| API publik untuk POS pihak ketiga | PRD v3 menulis API untuk kasir pihak ketiga sebagai bukan lingkup ([[t3-prd]]). Pihak luar yang memanggil Rekeningo di Tahap 4: gateway lewat webhook ([[t4-webhook]]) dan penerbit kartu ([[t4-kartu]]) |
-| 20 sampai 40 orang dalam 5 sampai 7 tim | 13 developer dalam tiga tim: Pembayaran 5, Merchant 4, Platform 4 (Asumsi cerita), di satu repo dan satu proses ([[t4-modul]]) |
+| Cicilan dan tabungan, dengan proses batch harian | Contoh proses terjadwal yang ada: rekonsiliasi harian dengan gateway ([[t4-rekonsiliasi]]) dan pencairan warung tiap Jumat ([[t2-pencairan]]) |
+| API publik untuk POS pihak ketiga | PRD v3 menulis API untuk kasir pihak ketiga sebagai bukan lingkup ([[t3-prd]]). Contoh pihak luar yang memanggil Rekeningo di Tahap 4: gateway lewat webhook ([[t4-webhook]]) dan penerbit kartu ([[t4-kartu]]) |
+| 20 sampai 40 orang dalam 5 sampai 7 tim | 13 developer dalam tiga tim: Pembayaran 5, Merchant 4, Platform 4 (Asumsi cerita), di satu repo. Lima modul berjalan di satu proses, dan modul pembayaran di service sendiri ([[t4-modul]]) |
 
 Halaman ini tidak memuat klaim izin, lisensi, atau kepatuhan regulasi apa pun. Semua isi PRD v5 di atas adalah rencana cerita.
 
@@ -70,18 +72,20 @@ Halaman ini tidak memuat klaim izin, lisensi, atau kepatuhan regulasi apa pun. S
 
 Jawaban tebakan dibuka di halaman pertama Tahap 5. Halaman ini hanya mencatat apa yang sudah tertulis di halaman Tahap 4.
 
-Di halaman ini "pecah lebih dulu" adalah penalaran dari kalimat halaman ADR (Asumsi), bukan urutan kejadian yang direkam. Halaman ini juga tidak menghitung beban tiap komponen untuk 1 juta user, yang 10 kali 100.000 (Hitungan: 1.000.000 ÷ 100.000).
+Di halaman ini "pecah lebih dulu" adalah penalaran dari kalimat halaman ADR (Asumsi), bukan urutan kejadian yang direkam. Halaman ini juga tidak menghitung beban tiap komponen untuk 1 juta user, yang 10 kali 100.000 (Hitungan: 1.000.000 ÷ 100.000). Hitungan beban Tahap 5 ada di [[t4-estimasi]] (Hitungan atas Asumsi), dan halaman ini tidak memakainya untuk memilih ADR.
 
 Tiga keadaan yang cocok ditulis di halaman ADR-nya:
 
 - ADR 45: satu dari tiga pemicu read replica adalah laporan merchant real-time yang diminta PRD v5. Empat pemicu berangka di halaman itu belum terlewati, dan yang terdekat 57% ([[t4-adr-45]]).
-- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam; [[t4-breaker]]). Pengumuman ke 100.000 HP lewat satu queue butuh paling sedikit 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).
+- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (Tidak dijalankan: dibaca dari kode; [[t4-breaker]]). Pengumuman ke 100.000 HP lewat satu queue butuh paling sedikit 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).
 - ADR 37: keputusannya salah saat tim membuat deploy bersama tidak lagi masuk akal, dan dari 13 developer itu belum terlihat ([[t4-modul]]). ADR 44 menulis hal yang sama untuk tim: pipeline dan giliran jaga dibagi per tim, dan batas modul perlu menjadi batas deploy ([[t4-tim-infra]]).
 
 Dua pilihan lain di tebakan tidak cocok dengan isi PRD v5:
 
 - ADR 41: syarat pertamanya dihitung per satu impor: 50 produk menjadi 21 detik dalam satu request ([[t4-ssrf]]).
 - ADR 40: syarat ketiganya memakai 15 merchant, atau 3,3% dari ±460 merchant. Bila merchant bertambah, pembanding persen itu mengecil ([[t4-qr]]).
+
+Tebakan hanya membandingkan tiga pilihan, jadi ADR lain tidak dinilai di sini. ADR 38, misalnya, menulis hitungan untuk beban sepuluh kali lipat di salah satu syarat salahnya, dan halaman ini tidak menilainya ([[t4-storage]]).
 
 Satu heuristik praktisi menyebut bahwa microservices baru masuk akal di atas ±50 developer. [[t4-modul]] tidak menemukan sumber primer untuk angka itu [perlu verifikasi], jadi halaman ini tidak memakainya.
 

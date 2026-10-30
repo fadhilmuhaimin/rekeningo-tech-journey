@@ -95,6 +95,7 @@ const merevisi = (teks: string): string => cocok(teks, /\*\*Yang akan merevisiny
 type Asumsi = { user: number; aktif: number; req: number; puncak: number; trx: number; tim: string };
 const a4 = cerita.tahap[3]!.asumsi as unknown as Asumsi;
 const a5 = cerita.tahap[4]!.asumsi as unknown as Asumsi;
+const a3 = cerita.tahap[2]!.asumsi as unknown as Asumsi;
 const N4 = cerita.tahap[3]!.no;
 const N5 = cerita.tahap[4]!.no;
 const dau = (a4.user * a4.aktif) / 100;
@@ -226,8 +227,8 @@ describe("registry, naskah, blok, dan tautan", () => {
     const hitungId: Record<string, number> = {};
     for (const x of id) hitungId[x] = (hitungId[x] ?? 0) + 1;
     expect(hitungId).toEqual({
-      A0: 1, "t2-pencairan": 1, "t3-prd": 2, "t4-adr-45": 2, "t4-breaker": 1, "t4-estimasi": 1, "t4-kartu": 1, "t4-m39": 4, "t4-modul": 3, "t4-prd": 1, "t4-qr": 1,
-      "t4-rekap": 1, "t4-rekonsiliasi": 1, "t4-ssrf": 1, "t4-tim-infra": 1, "t4-webhook": 1,
+      A0: 1, "t2-pencairan": 1, "t3-prd": 3, "t4-adr-45": 2, "t4-breaker": 1, "t4-estimasi": 2, "t4-kartu": 1, "t4-m39": 4, "t4-modul": 3, "t4-prd": 1, "t4-qr": 1,
+      "t4-rekap": 1, "t4-rekonsiliasi": 1, "t4-ssrf": 1, "t4-storage": 1, "t4-tim-infra": 1, "t4-webhook": 1,
     });
     for (const x of Object.keys(hitungId)) expect(hal.some((h) => h.id === x), `[[${x}]] tidak ada di registry`).toBe(true);
     const sesuai: [string, string, string][] = [
@@ -257,6 +258,7 @@ describe("registry, naskah, blok, dan tautan", () => {
       "<p>Tanpa JavaScript tebakan tidak berjalan. Pilihan yang cocok dengan halaman ADR: ADR 36, ADR 37, ADR 44, dan ADR 45. Alasannya ada di blok Menuju Tahap 5, dan jawabannya dibuka di halaman pertama Tahap 5.</p>",
       '<Blok nama="Menuju Tahap 5">',
       "Jawaban tebakan dibuka di halaman pertama Tahap 5. Halaman ini hanya mencatat apa yang sudah tertulis di halaman Tahap 4.",
+      `Di halaman ini "pecah lebih dulu" adalah penalaran dari kalimat halaman ADR (Asumsi), bukan urutan kejadian yang direkam. Halaman ini juga tidak menghitung beban tiap komponen untuk 1 juta user, yang ${rasio} kali ${titik(a4.user)} (Hitungan: ${titik(a5.user)} ÷ ${titik(a4.user)}). Hitungan beban Tahap ${N5} ada di [[t4-estimasi]] (Hitungan atas Asumsi), dan halaman ini tidak memakainya untuk memilih ADR.`,
       "Tidak ada lab yang menjalankan PRD v5. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di halaman 4.27. Jawabannya dibuka di halaman pertama Tahap 5.",
     ]);
     expect(frontmatter).not.toContain("Tahap 5");
@@ -358,7 +360,7 @@ describe("kepala dokumen dan tabel PRD v4 ke PRD v5", () => {
     expect(baris).toEqual([
       `| Lingkup | Publik: ${titik(a4.user)} user terdaftar, merchant di luar Lestari | Nasional: ${skala.replace("Skala nasional: ", "")} |`,
       `| Laporan | Dasbor web warung dari PRD v3 | ${laporan} |`,
-      `| Notifikasi | Satu notifikasi per kejadian uang | ${notifikasi} |`,
+      `| Notifikasi | Notifikasi uang per kejadian, dan pengumuman promo atau top-up massal sampai ${titik(a3.user)} notifikasi sekaligus ([[t3-prd]]) | ${notifikasi} |`,
       `| Produk uang | Saldo, top-up dari bank, QR, dan kartu virtual | ${cicilan} |`,
       `| Integrasi | Gateway, layanan verifikasi, dan penerbit kartu | ${api} |`,
       `| Tim | ${timAnggota} developer dalam tiga tim (Asumsi cerita) | ${timBaru[2]} orang dalam ${timBaru[3]} tim, ditambah platform, SRE, dan security (Asumsi cerita) |`,
@@ -397,9 +399,9 @@ describe("ruang lingkup: lima isi PRD v5 dan tim, tiap baris dengan keadaan terd
       `| ${skala} | ${titik(a4.user)} user terdaftar, ±400 merchant luar, dan ±60 warung (Asumsi). Puncak ${koma(puncak, 1)} request per detik dan ${jumlahKoneksi} dari ${koneksi[3]} koneksi database (Hitungan atas Asumsi, [[t4-estimasi]]) |`,
       `| ${laporan} | Dasbor web warung dari PRD v3 ([[t3-prd]]). ADR 45 menunda read replica, yaitu salinan database untuk bacaan, dan satu pemicunya adalah laporan ini ([[t4-adr-45]]) |`,
       `| ${notifikasi} | Notifikasi uang memakai ${koma(notif, 2)} dari ${koma(kapasitas, 2)} pengiriman per detik di puncak, dan pengumuman ke ${titik(HP)} HP butuh paling sedikit ${menitHp} menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]) |`,
-      `| ${cicilan} | Proses terjadwal yang ada: rekonsiliasi harian dengan gateway ([[t4-rekonsiliasi]]) dan pencairan warung tiap Jumat ([[t2-pencairan]]) |`,
-      `| ${api} | PRD v3 menulis API untuk kasir pihak ketiga sebagai bukan lingkup ([[t3-prd]]). Pihak luar yang memanggil Rekeningo di Tahap 4: gateway lewat webhook ([[t4-webhook]]) dan penerbit kartu ([[t4-kartu]]) |`,
-      `| ${timBaru[2]} orang dalam ${timBaru[3]} tim | ${timAnggota} developer dalam tiga tim: Pembayaran ${timLama[1]}, Merchant ${timLama[2]}, Platform ${timLama[3]} (Asumsi cerita), di satu repo dan satu proses ([[t4-modul]]) |`,
+      `| ${cicilan} | Contoh proses terjadwal yang ada: rekonsiliasi harian dengan gateway ([[t4-rekonsiliasi]]) dan pencairan warung tiap Jumat ([[t2-pencairan]]) |`,
+      `| ${api} | PRD v3 menulis API untuk kasir pihak ketiga sebagai bukan lingkup ([[t3-prd]]). Contoh pihak luar yang memanggil Rekeningo di Tahap 4: gateway lewat webhook ([[t4-webhook]]) dan penerbit kartu ([[t4-kartu]]) |`,
+      `| ${timBaru[2]} orang dalam ${timBaru[3]} tim | ${timAnggota} developer dalam tiga tim: Pembayaran ${timLama[1]}, Merchant ${timLama[2]}, Platform ${timLama[3]} (Asumsi cerita), di satu repo. Lima modul berjalan di satu proses, dan modul pembayaran di service sendiri ([[t4-modul]]) |`,
     ]);
     expect(badan).toContain("| Isi PRD v5 | Keadaan terdekat di Tahap 4 |\n|---|---|\n");
   });
@@ -410,12 +412,18 @@ describe("ruang lingkup: lima isi PRD v5 dan tim, tiap baris dengan keadaan terd
     ada(bagian(naskah4, "## 1. PRD v4 · Rekeningo dibuka ke publik"), "Bu Marni dan ±400 lainnya, Asumsi", "naskah 4 bagian 1");
     ada(naskah4, "Ani** satu dari ±60 warung Lestari", "naskah 4");
     ada(T3("prd-v3.mdx"), "API untuk kasir pihak ketiga", "3.1");
+    ada(T3("prd-v3.mdx"), `Top-up massal tiap Senin boleh menyusul beberapa menit, karena ${titik(a3.user)} notifikasi sekaligus`, "3.1");
+    ada(T3("prd-v3.mdx"), "| P1 | Promo dari HR |", "3.1");
+    ada(T3("estimasi.mdx"), `di Tahap 3 angkanya 750 detik untuk ${titik(a3.user)} HP`, "3.29");
+    expect(badan, "PRD v3 sudah punya pengumuman ke 10.000 HP: v4 bukan hanya satu notifikasi per kejadian").not.toContain("Satu notifikasi per kejadian uang");
     expect(T3("prd-v3.mdx").split("\n").filter((b) => b.startsWith("**Bukan lingkup v3:**"))[0]!).toContain("API untuk kasir pihak ketiga");
     ada(T4("rekonsiliasi-gateway.mdx"), "Rekonsiliasi harian", "4.9");
     ada(T2("fitur-pencairan.mdx"), "Pencairan adalah job tiap Jumat 15.00", "2.5");
     ada(T4("webhook-masuk.mdx"), "gateway", "4.7");
     ada(naskah4, "penerbit kartu yang memanggil Rekeningo dengan tenggat 2 detik", "naskah 4");
-    ada(T4("modular-monolith.mdx"), "hidup di satu repo dan satu proses", "4.13");
+    ada(T4("modular-monolith.mdx"), "Modul `ledger`, `akun`, `identitas`, `merchant`, dan `platform` hidup di satu repo dan satu proses. Modul `pembayaran` (gateway, kartu, webhook) adalah satu service terpisah", "4.13");
+    ada(T4("modular-monolith.mdx"), "Lima modul berjalan di satu proses, dan satu modul berjalan di proses sendiri.", "4.13");
+    expect(badan, "13 developer tidak semuanya di satu proses: modul pembayaran adalah service sendiri").not.toMatch(/satu repo dan satu proses/);
     const adr37Naskah = naskah4.split("\n").filter((b) => b.startsWith("| 37 | "))[0]!;
     ada(adr37Naskah, "dalam satu repo dan satu proses", "naskah ADR 37");
     expect(naskah4.split("\n").filter((b) => b.startsWith("| 45 | "))[0]!).toContain("read replica dan PgBouncer (40 dari 100 koneksi; pemicu laporan merchant real-time)");
@@ -424,7 +432,7 @@ describe("ruang lingkup: lima isi PRD v5 dan tim, tiap baris dengan keadaan terd
   test("halaman ini tidak menghitung ulang beban untuk 1 juta user", () => {
     const semua = badan + "\n" + teksWidget;
     expect(semua).not.toMatch(/1\.389|1\.250 menit|75\.000 detik|20,8 jam|5,79|1\.157/);
-    harus(`Halaman ini juga tidak menghitung beban tiap komponen untuk 1 juta user, yang ${rasio} kali ${titik(a4.user)} (Hitungan: ${titik(a5.user)} ÷ ${titik(a4.user)}).`);
+    harus(`Halaman ini juga tidak menghitung beban tiap komponen untuk 1 juta user, yang ${rasio} kali ${titik(a4.user)} (Hitungan: ${titik(a5.user)} ÷ ${titik(a4.user)}). Hitungan beban Tahap ${N5} ada di [[t4-estimasi]] (Hitungan atas Asumsi), dan halaman ini tidak memakainya untuk memilih ADR.`);
   });
 });
 
@@ -448,6 +456,11 @@ describe("Menuju Tahap 5: tiga keadaan yang cocok dikutip dari halaman ADR-nya; 
     harus('Di halaman ini "pecah lebih dulu" adalah penalaran dari kalimat halaman ADR (Asumsi), bukan urutan kejadian yang direkam.');
     harus("Tiga keadaan yang cocok ditulis di halaman ADR-nya:");
     harus("Dua pilihan lain di tebakan tidak cocok dengan isi PRD v5:");
+    harus("Tebakan hanya membandingkan tiga pilihan, jadi ADR lain tidak dinilai di sini. ADR 38, misalnya, menulis hitungan untuk beban sepuluh kali lipat di salah satu syarat salahnya, dan halaman ini tidak menilainya ([[t4-storage]]).");
+    const salah38 = kapanSalah(isi(halamanAdr(38)));
+    expect(halamanAdr(38).id).toBe("t4-storage");
+    expect(salah38.filter((b) => /Registry Tahap 5 memberi .*sepuluh kali Tahap 4/.test(b))).toHaveLength(1);
+    expect(hitung(badan, "ADR 38")).toBe(1);
   });
   test("ADR 45: pemicu read replica dan PgBouncer adalah laporan merchant real-time (naskah 4)", () => {
     harus(`- ADR 45: satu dari tiga pemicu read replica adalah laporan merchant real-time yang diminta PRD v${N5}. Empat pemicu berangka di halaman itu belum terlewati, dan yang terdekat ${persenPemicu}% ([[t4-adr-45]]).`);
@@ -466,7 +479,7 @@ describe("Menuju Tahap 5: tiga keadaan yang cocok dikutip dari halaman ADR-nya; 
     expect(bag6).toContain("ADR 45 menunda read replica sampai");
   });
   test("ADR 36: breaker di memori satu proses worker, dua worker tidak berbagi hitungan; 125 menit dari naskah", () => {
-    harus(`- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam; [[t4-breaker]]). Pengumuman ke ${titik(HP)} HP lewat satu queue butuh paling sedikit ${menitHp} menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).`);
+    harus(`- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (Tidak dijalankan: dibaca dari kode; [[t4-breaker]]). Pengumuman ke ${titik(HP)} HP lewat satu queue butuh paling sedikit ${menitHp} menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).`);
     ada(T4("m39-prd-v5.mdx"), `Pengumuman ke ${titik(HP)} HP dihitung ${titik(HP)} × 0,3 ÷ 4 = ${titik(HP / kapasitas)} detik, yaitu ${menitHp} menit (Hitungan, Tidak dijalankan: lab tidak menulis ${titik(HP)} baris).`, "4.27");
     ada(T4("m39-prd-v5.mdx"), `${menitHp} menit adalah batas bawah karena worker juga mengirim notifikasi uang`, "4.27");
     expect(salah36).toHaveLength(5);
@@ -600,8 +613,9 @@ describe("widget tebak: tepat satu pilihan cocok, posisi dan panjang tidak membo
     const a = data.pilihan[j]!.alasan;
     expect(a.startsWith("Tiga keadaan itu ditulis di halaman ADR-nya. ADR 45 menunda")).toBe(true);
     ada(a, "ADR 45 menunda read replica, dan satu dari tiga pemicunya adalah laporan merchant real-time yang diminta PRD v5.");
-    ada(a, "ADR 36 menulis bahwa breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam).");
-    ada(a, `Pengumuman ke ${titik(HP)} HP butuh paling sedikit ${menitHp} menit di satu queue (Hitungan atas Asumsi, Tidak dijalankan), jadi menambah worker adalah langkah yang masuk akal (penalaran).`);
+    ada(a, "ADR 36 menulis bahwa breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (Tidak dijalankan: dibaca dari kode).");
+    ada(a, `Pengumuman ke ${titik(HP)} HP butuh paling sedikit ${menitHp} menit di satu queue (Hitungan atas Asumsi, Tidak dijalankan), jadi jumlah worker bisa menjadi pertanyaan (penalaran), dan ADR 36 sudah menulis akibatnya bila worker lebih dari satu.`);
+    expect(teksWidget, "4.28: komponen untuk beban Tahap 5 belum diputuskan di Tahap 4").not.toMatch(/menambah worker|langkah yang masuk akal/);
     ada(a, "ADR 37 salah bila tim membuat deploy bersama tidak lagi masuk akal, dan ADR 44 menulis bahwa tim yang naik membagi pipeline dan giliran jaga per tim.");
     ada(a, "Ini bacaan dari halaman Tahap 4 (Asumsi), bukan hitungan beban untuk 1 juta user.");
     expect(data.pilihan[j]!.teks).toBe("ADR 36, ADR 37, ADR 44, dan ADR 45: worker notifikasi, batas modul dan pipeline per tim, dan database yang sama untuk laporan.");
@@ -699,9 +713,9 @@ describe("struktur halaman dan dunia angka tertutup", () => {
     const token = [...badan.matchAll(/\d+,\d+/g)].map((m) => m[0]);
     expect([...new Set(token.filter((x) => !boleh.has(x)))], "token berkoma di halaman yang tidak dihitung dari sumber").toEqual([]);
     for (const b of boleh) expect(token, `nilai yang dihitung tidak dipakai halaman: ${b}`).toContain(b);
-    expect([...new Set([...badan.matchAll(/\d{1,3}(?:\.\d{3})+/g)].map((m) => m[0]))].sort()).toEqual([titik(a4.user), titik(a5.user)].sort());
+    expect([...new Set([...badan.matchAll(/\d{1,3}(?:\.\d{3})+/g)].map((m) => m[0]))].sort()).toEqual([titik(a3.user), titik(a4.user), titik(a5.user)].sort());
     expect([...new Set([...badan.matchAll(/\d+(?:,\d+)?%/g)].map((m) => m[0]))].sort()).toEqual([`${koma((15 / 460) * 100, 1)}%`, `${Math.round((jumlahKoneksi / Number(cocok(isi(halamanAdr(45)), /dari pemicu (\d+), atau/)[1])) * 100)}%`].sort());
-    expect(new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set(["34", "36", "37", "40", "41", "44", "45"]));
+    expect(new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set(["34", "36", "37", "38", "40", "41", "44", "45"]));
     expect(new Set([...badan.matchAll(/Tahap \d+/g)].map((m) => m[0]))).toEqual(new Set(["Tahap 4", "Tahap 5"]));
     const bersih = badan.replace(/\[\[[^\]]+\]\]/g, "").split("\n").filter((b) => !/^(import|export|  \.)/.test(b) && !b.startsWith("<Tebak")).join("\n");
     const bulat = new Set([...bersih.matchAll(/(?<![\d,.])\d+(?![\d,.%])/g)].map((m) => m[0]));
@@ -752,6 +766,7 @@ describe("token versi PRD dan nomor Tahap: urutan di tiap baris sama dengan yang
       [P(N5)], // klaim izin
       [T(N5)], // nama blok Menuju Tahap 5
       [T(N5), T(N4)], // jawaban dibuka di halaman pertama
+      [T(N5)], // hitungan beban Tahap 5 ada di 4.28
       [P(N5)], // bullet ADR 45: diminta PRD v5
       [P(N5)], // dua pilihan lain
       [T(N4), P(N5)], // satu hal belum selesai
