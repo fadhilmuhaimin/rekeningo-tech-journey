@@ -28,11 +28,11 @@
     "q": "Tahap 5 punya 1.000.000 user, sepuluh kali Tahap 4. Berapa kali lipat puncak request per detiknya?",
     "pilihan": [
       "8 kali",
-      "12,5 kali",
+      "10 kali",
       "5 kali",
-      "10 kali"
+      "12,5 kali"
     ],
-    "jawaban": 3,
+    "jawaban": 1,
     "skenario": 1,
     "alasan": "User naik 10 kali, user aktif tetap 20% (1 kali), dan request per user tetap 60 (1 kali). Berbeda dari Tahap 3 ke Tahap 4, tidak ada pengali yang turun. Hasil kalinya 10, jadi puncak naik dari 138,9 ke 1.388,9 request per detik."
   },

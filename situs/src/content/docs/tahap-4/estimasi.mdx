@@ -1,6 +1,6 @@
 ---
 title: "4.28 Estimasi Tahap 4 → 5"
-description: Estimasi dari angka Tahap 4, berlabel Asumsi atau Hitungan. Puncaknya 138,9 request per detik; dikali 10 untuk Tahap 5 menjadi 1.388,9, dan worker notifikasi melewati kapasitasnya.
+description: Estimasi dari angka Tahap 4, berlabel Asumsi atau Hitungan. Puncaknya 138,9 request per detik; dikali 10 untuk Tahap 5 menjadi 1.388,9, tanpa memilih komponen.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -87,6 +87,8 @@ Top-up punya satu tambahan. Jadwal gateway tiruan mengulang kiriman yang gagal s
 
 [Rekaman lab](/cara-pakai/#label-sumber) api-t4 (`beban.txt` bagian B) menguras 100 pesan promo dari outbox dengan satu worker dan push tiruan 300 ms. Laju terukurnya dalam 15% dari 13,3 per detik; nilainya tidak direkam. Itu batas pada satu mesin, bukan kapasitas produksi.
 
+Baris koneksi tertahan di tabel berikut memakai W, yaitu lama satu request memegang koneksi. Rumusnya ada di bawah tabel.
+
 | Besaran | Tahap 3 | Tahap 4 | Batas |
 |---|---|---|---|
 | Notifikasi uang per detik, puncak | 0,868 | 7,52 | 13,33 |
@@ -124,7 +126,7 @@ Pengumuman ke semua HP memakai satu queue. 100.000 × 0,3 ÷ 4 = 7.500 detik, at
 | Verifikasi saat vendor mati: 5 percobaan × 3 detik | 0,116 | 15 detik | 1,74 worker |
 | Notifikasi uang di worker yang sama | 7,52 | 0,3 detik | 2,26 worker |
 
-Lima baris pertama hanya benar bila tiap panggilan ke gateway memegang koneksi database dan tidak punya timeout. ADR 22 ([[t3-pool]]) melarangnya, jadi tabel ini menghitung akibat bila aturan itu dilanggar. Pool pembayaran 10 (2 instance × 5, Asumsi) penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu.
+Lima baris pertama hanya benar bila tiap panggilan ke gateway memegang koneksi database selama W. Baris 15 dan 30 detik mengandaikan juga tanpa timeout, dan baris ketiga memakai timeout 3 detik. ADR 22 ([[t3-pool]]) melarang menahan koneksi selama panggilan itu, jadi tabel ini menghitung akibat bila aturan itu dilanggar. Pool pembayaran 10 (2 instance × 5, Asumsi) penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu.
 
 Client yang menyerah sesudah T detik melepas koneksinya. Bila dua pool dihitung sebagai satu pool 10, ia penuh hanya bila T > 9 ÷ 0,579 = 15,5 detik. Tiap instance menerima setengah kedatangan, yaitu 0,579 ÷ 2 per detik. Jadi pool 5 penuh hanya bila T > 4 ÷ (0,579 ÷ 2) = 13,8 detik.
 
@@ -144,7 +146,7 @@ Ketiga, kapasitas worker tepatnya 4 ÷ 0,3 = 13,333. Pengumuman 100.000 HP memak
 | Rumus data per tahun [[D1]] | 20.000 × 3 transaksi × 365 × 300 byte | 6,57 GB |
 | File verifikasi identitas | 2.000 unggahan × 500 KB × 365 | 365 GB |
 
-Dua besaran pertama paling jauh berbeda 10,95 ÷ 6,57 = 1,7 kali, jadi satu orde besaran. Tahap 3 memberi 5,475 juta × 250 byte = 1,37 GB, dan 1,37 × 8 = 10,95 GB. [[t3-estimasi]] menulis ±1,4 dan ±11 GB untuk angka yang sama; selisihnya hanya pembulatan.
+Dua besaran pertama paling jauh berbeda 10,95 ÷ 6,57 = 1,7 kali, jadi satu orde besaran. Tahap 3 memberi 5,475 juta × 250 byte = 1,37 GB (tepatnya 1,36875). Posting naik 8 kali ke 43,8 juta, jadi 1,36875 × 8 = 10,95 GB; dari 1,37 yang dibulatkan, hasilnya 10,96. [[t3-estimasi]] menulis ±1,4 dan ±11 GB untuk angka yang sama; selisihnya hanya pembulatan.
 
 File memakai hitungan lain. 2.000 × 500 KB = 1 GB per hari, atau 365 GB per tahun. Itu 33 kali posting ledger (365 ÷ 10,95) dan 56 kali rumus [[D1]] (365 ÷ 6,57).
 

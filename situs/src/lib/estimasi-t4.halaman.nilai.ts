@@ -5,7 +5,7 @@
 export const BARIS_MDX: string[] = [
  "---",
  "title: \"4.28 Estimasi Tahap 4 → 5\"",
- "description: Estimasi dari angka Tahap 4, berlabel Asumsi atau Hitungan. Puncaknya 138,9 request per detik; dikali 10 untuk Tahap 5 menjadi 1.388,9, dan worker notifikasi melewati kapasitasnya.",
+ "description: Estimasi dari angka Tahap 4, berlabel Asumsi atau Hitungan. Puncaknya 138,9 request per detik; dikali 10 untuk Tahap 5 menjadi 1.388,9, tanpa memilih komponen.",
  "---",
  "import Blok from \"../../../components/Blok.astro\";",
  "import Rantai from \"../../../components/Rantai.astro\";",
@@ -60,6 +60,7 @@ export const BARIS_MDX: string[] = [
  "Top-up punya satu tambahan. Jadwal gateway tiruan mengulang kiriman yang gagal sampai kiriman ke-6. Bila semua kiriman gagal, λ menjadi 6 × 0,579 = 3,47 per detik (Hitungan atas jadwal tiruan, Asumsi). Dari kelas baru di PRD v4, registry hanya memuat unggahan per hari dan ukuran file; angka kelas lain adalah Asumsi naskah.",
  "**3. Bandingkan tiap hasil dengan batas komponennya.** Kapasitas bukan request per detik. Worker punya kapasitas c ÷ t, dengan c = 4 pengirim serentak dan t = 0,3 detik per pengiriman. Jadi 4 ÷ 0,3 = 13,33 per detik (Asumsi dari Tahap 3).",
  "[Rekaman lab](/cara-pakai/#label-sumber) api-t4 (`beban.txt` bagian B) menguras 100 pesan promo dari outbox dengan satu worker dan push tiruan 300 ms. Laju terukurnya dalam 15% dari 13,3 per detik; nilainya tidak direkam. Itu batas pada satu mesin, bukan kapasitas produksi.",
+ "Baris koneksi tertahan di tabel berikut memakai W, yaitu lama satu request memegang koneksi. Rumusnya ada di bawah tabel.",
  "| Besaran | Tahap 3 | Tahap 4 | Batas |",
  "|---|---|---|---|",
  "| Notifikasi uang per detik, puncak | 0,868 | 7,52 | 13,33 |",
@@ -86,7 +87,7 @@ export const BARIS_MDX: string[] = [
  "| Gateway di dalam request, menggantung 30 detik | 0,579 | 30 detik | 17,4 koneksi |",
  "| Verifikasi saat vendor mati: 5 percobaan × 3 detik | 0,116 | 15 detik | 1,74 worker |",
  "| Notifikasi uang di worker yang sama | 7,52 | 0,3 detik | 2,26 worker |",
- "Lima baris pertama hanya benar bila tiap panggilan ke gateway memegang koneksi database dan tidak punya timeout. ADR 22 ([[t3-pool]]) melarangnya, jadi tabel ini menghitung akibat bila aturan itu dilanggar. Pool pembayaran 10 (2 instance × 5, Asumsi) penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu.",
+ "Lima baris pertama hanya benar bila tiap panggilan ke gateway memegang koneksi database selama W. Baris 15 dan 30 detik mengandaikan juga tanpa timeout, dan baris ketiga memakai timeout 3 detik. ADR 22 ([[t3-pool]]) melarang menahan koneksi selama panggilan itu, jadi tabel ini menghitung akibat bila aturan itu dilanggar. Pool pembayaran 10 (2 instance × 5, Asumsi) penuh pada 10 ÷ 0,579 = 17,3 detik bila gateway tidak pernah menjawab dan client terus menunggu.",
  "Client yang menyerah sesudah T detik melepas koneksinya. Bila dua pool dihitung sebagai satu pool 10, ia penuh hanya bila T > 9 ÷ 0,579 = 15,5 detik. Tiap instance menerima setengah kedatangan, yaitu 0,579 ÷ 2 per detik. Jadi pool 5 penuh hanya bila T > 4 ÷ (0,579 ÷ 2) = 13,8 detik.",
  "Dua baris terakhir mengandaikan verifikasi memakai empat worker yang sama dengan notifikasi (Asumsi desain). Jeda antar percobaan tidak memegang worker (Asumsi). Hasilnya 1,74 + 2,26 = 4,0 dari 4 worker: 0,116 pendaftar per detik sudah menghabiskan worker, karena tiap pekerjaan memakai 15 detik.",
  "Kedatangan dianggap berjadwal tetap dan terbagi sama rata. L adalah rata-rata, jadi pada satu detik tertentu jumlahnya bisa lebih besar ([[t2-estimasi]]).",
@@ -98,7 +99,7 @@ export const BARIS_MDX: string[] = [
  "| Posting ledger | 43,8 juta posting × 250 byte | 10,95 GB |",
  "| Rumus data per tahun [[D1]] | 20.000 × 3 transaksi × 365 × 300 byte | 6,57 GB |",
  "| File verifikasi identitas | 2.000 unggahan × 500 KB × 365 | 365 GB |",
- "Dua besaran pertama paling jauh berbeda 10,95 ÷ 6,57 = 1,7 kali, jadi satu orde besaran. Tahap 3 memberi 5,475 juta × 250 byte = 1,37 GB, dan 1,37 × 8 = 10,95 GB. [[t3-estimasi]] menulis ±1,4 dan ±11 GB untuk angka yang sama; selisihnya hanya pembulatan.",
+ "Dua besaran pertama paling jauh berbeda 10,95 ÷ 6,57 = 1,7 kali, jadi satu orde besaran. Tahap 3 memberi 5,475 juta × 250 byte = 1,37 GB (tepatnya 1,36875). Posting naik 8 kali ke 43,8 juta, jadi 1,36875 × 8 = 10,95 GB; dari 1,37 yang dibulatkan, hasilnya 10,96. [[t3-estimasi]] menulis ±1,4 dan ±11 GB untuk angka yang sama; selisihnya hanya pembulatan.",
  "File memakai hitungan lain. 2.000 × 500 KB = 1 GB per hari, atau 365 GB per tahun. Itu 33 kali posting ledger (365 ÷ 10,95) dan 56 kali rumus [[D1]] (365 ÷ 6,57).",
  "Lajunya kecil, 0,231 unggahan per detik atau 116 KB per detik di puncak. Di mana file disimpan adalah keputusan tersendiri.",
  "**7. Satu langkah ke Tahap 5.** Masukan Tahap 5 ada di registry: 1.000.000 user, 20% aktif, 60 request, faktor puncak 10, dan 20.000 unggahan per hari × 500 KB. Tabel ini mengalikannya, dan mengandaikan perilaku per user tetap seperti Tahap 4.",
@@ -180,7 +181,7 @@ export const BARIS_MDX: string[] = [
 ];
 // Bentuk baris tiap baris MDX: - = baris kosong, # = baris isi. Baris kosong menentukan cara MDX mengurai paragraf, daftar, tabel,
 // dan tag JSX, jadi satu baris kosong yang hilang harus gagal (tinjauan).
-export const BENTUK_MDX = "##########-#-#-#-#-#-#-#-##-###-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#######-#-#-########-#-#-#-#-########-#-#-#-#-#-#-#-#-#-#########-#-#-#-#-#-#-#-#####-#-#-#-#-########-#-#-#-#-###-#-#-#-#-#-#-#####-#-######-#-#-#####-#-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-######-#-###-#-";
+export const BENTUK_MDX = "##########-#-#-#-#-#-#-#-##-###-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#######-#-#-########-#-#-#-#-#-########-#-#-#-#-#-#-#-#-#-#########-#-#-#-#-#-#-#-#####-#-#-#-#-########-#-#-#-#-###-#-#-#-#-#-#-#####-#-######-#-#-#####-#-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-######-#-###-#-";
 export const BARIS_RISET: string[] = [
  "| R4-245 | Kapasitas bukan request per detik (Google SRE, Handling Overload; dibuka ulang 2026-10-30) | sre.google/sre-book/handling-overload/ (Google SRE book, teks HTML dibuka 2026-10-30 dengan curl), bagian \"Pitfalls of \"Queries per Second\"\": menulis bahwa memodelkan kapasitas sebagai \"queries per second\" atau memakai fitur statis permintaan sebagai proksi \"often makes for a poor metric\", karena biaya tiap query bisa berbeda dan rasionya bisa berubah; solusi yang lebih baik adalah mengukur kapasitas langsung dalam sumber daya yang tersedia, mis. core CPU dan memori; konsumsi CPU sebagai sinyal penyediaan bekerja baik \"in a majority of cases (although certainly not in all)\". Klaim yang sama sudah dicatat di R3-240 dan R2-208 | 4.28 (bagian \"Yang tidak dijawab estimasi\" butir 1 dan Bacaan lanjut) | Tidak berubah |",
  "| R4-246 | max_connections dan superuser_reserved_connections (dibuka ulang 2026-10-30) | PostgreSQL 18.6 (postgresql.org/docs/18/runtime-config-connection.html, dibuka 2026-10-30): `max_connections` bawaan \"typically 100 connections, but might be less if your kernel settings will not support it (as determined during initdb)\"; `superuser_reserved_connections` bawaan tiga, sebagai cadangan darurat bagi superuser; paling banyak `max_connections` koneksi aktif bersamaan, jadi slot cadangan ada di dalam batas itu (penalaran dari kalimat tersebut, bukan kutipan). Lab memakai PostgreSQL 17.11; R2-207 dan 3.8 memakai halaman yang sama untuk angka 100 dan 3 | 4.28 (koneksi database 40 dari 100, suku cadangan superuser, dan Bacaan lanjut) | Tidak berubah |",
@@ -235,10 +236,10 @@ export const NILAI_JSON: Record<string, string[]> = {
   "awal=0",
   "tebak.q=\"Tahap 5 punya 1.000.000 user, sepuluh kali Tahap 4. Berapa kali lipat puncak request per detiknya?\"",
   "tebak.pilihan.0=\"8 kali\"",
-  "tebak.pilihan.1=\"12,5 kali\"",
+  "tebak.pilihan.1=\"10 kali\"",
   "tebak.pilihan.2=\"5 kali\"",
-  "tebak.pilihan.3=\"10 kali\"",
-  "tebak.jawaban=3",
+  "tebak.pilihan.3=\"12,5 kali\"",
+  "tebak.jawaban=1",
   "tebak.skenario=1",
   "tebak.alasan=\"User naik 10 kali, user aktif tetap 20% (1 kali), dan request per user tetap 60 (1 kali). Berbeda dari Tahap 3 ke Tahap 4, tidak ada pengali yang turun. Hasil kalinya 10, jadi puncak naik dari 138,9 ke 1.388,9 request per detik.\"",
   "label.sumber=\"Asumsi\"",

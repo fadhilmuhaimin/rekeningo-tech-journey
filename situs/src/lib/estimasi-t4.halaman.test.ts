@@ -208,7 +208,8 @@ describe("registry, naskah, blok, dan tautan", () => {
   });
   test("description memuat puncak Tahap 4 dan 5 dan label sama dengan isi", () => {
     const desc = cocok(frontmatter, /^description: (.+)$/m)[1]!;
-    expect(desc).toContain(`Puncaknya ${koma(h4.puncak, 1)} request per detik; dikali ${a5.user / a4.user} untuk Tahap 5 menjadi ${kali(h5.puncak, 1)}, dan worker notifikasi melewati kapasitasnya.`);
+    expect(desc).toContain(`Puncaknya ${koma(h4.puncak, 1)} request per detik; dikali ${a5.user / a4.user} untuk Tahap 5 menjadi ${kali(h5.puncak, 1)}, tanpa memilih komponen.`);
+    expect(desc).not.toMatch(/melewati|pecah|lebih dulu|worker/i); // 4.31 membuka tebakan; halaman ini tidak menyebut komponen mana yang gagal
     expect(desc).toContain("berlabel Asumsi atau Hitungan");
     expect(pakai4 * 10).toBeGreaterThan(1);
   });
@@ -494,7 +495,11 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     expect(ambangPerPool).toBeLessThan(ambangSatuPool);
     harus(`Hasilnya ${koma(lamVerTulis * PERCOBAAN * TIMEOUT, 2)} + ${koma(notif4Tulis * T_PUSH, 2)} = ${koma(lamVerTulis * PERCOBAAN * TIMEOUT + notif4Tulis * T_PUSH, 1)} dari ${C} worker: ${koma(lamVerTulis, 3)} pendaftar per detik sudah menghabiskan worker, karena tiap pekerjaan memakai ${PERCOBAAN * TIMEOUT} detik.`);
     harus(`verifikasi memakai ${["nol", "satu", "dua", "tiga", "empat"][C]} worker yang sama dengan notifikasi (Asumsi desain)`);
-    harus(`Lima baris pertama hanya benar bila tiap panggilan ke gateway memegang koneksi database dan tidak punya timeout.`);
+    harus(`Lima baris pertama hanya benar bila tiap panggilan ke gateway memegang koneksi database selama W. Baris 15 dan 30 detik mengandaikan juga tanpa timeout, dan baris ketiga memakai timeout ${TIMEOUT} detik.`);
+    expect(badan).not.toContain("tidak punya timeout"); // baris ketiga tabel memakai timeout, jadi kalimat universal itu salah
+    harus("ADR 22 ([[t3-pool]]) melarang menahan koneksi selama panggilan itu, jadi tabel ini menghitung akibat bila aturan itu dilanggar.");
+    expect(hal38).toContain(`### ADR 22: panggilan keluar di luar transaction, timeout ${TIMEOUT} detik, pool tetap 10`);
+    expect(hal38).toContain(`B. Timeout ${TIMEOUT} detik, tetap di dalam transaction`);
     harus(`Dua baris terakhir mengandaikan`);
     harus(`Keduanya tiruan lokal, jadi 0,3, 2, 3, 15, dan 30 detik adalah Asumsi.`);
     harus(`Kedatangan dianggap berjadwal tetap dan terbagi sama rata.`);
@@ -546,7 +551,13 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`| Rumus data per tahun [[D1]] | ${ribu(h4.dau)} × ${TRX} transaksi × 365 × ${m4.baris} byte | ${koma(gbD1, 2)} GB |`);
     harus(`| File verifikasi identitas | ${ribu(unggahHari)} unggahan × ${m4.fileKB} KB × 365 | ${gbFile} GB |`);
     harus(`Dua besaran pertama paling jauh berbeda ${koma(gbLedger4, 2)} ÷ ${koma(gbD1, 2)} = ${koma(gbLedger4 / gbD1, 1)} kali, jadi satu orde besaran.`);
-    harus(`Tahap 3 memberi ${koma(posting3 / 1e6, 3)} juta × ${BYTE_POSTING} byte = ${koma(gbLedger3, 2)} GB, dan ${koma(gbLedger3, 2)} × 8 = ${koma(gbLedger3 * 8, 2)} GB.`);
+    const naik = Math.round(posting4 / posting3);
+    expect(naik).toBe(8);
+    harus(`Tahap 3 memberi ${koma(posting3 / 1e6, 3)} juta × ${BYTE_POSTING} byte = ${koma(gbLedger3, 2)} GB (tepatnya ${koma(gbLedger3, 5)}). Posting naik ${naik} kali ke ${koma(posting4 / 1e6, 1)} juta, jadi ${koma(gbLedger3, 5)} × ${naik} = ${koma(gbLedger3 * naik, 2)} GB;`);
+    // hasil turunan dari angka yang tertulis: 1,37 × 8 = 10,96, bukan 10,95, jadi halaman menulis kedua nilainya
+    harus(`dari ${koma(gbLedger3, 2)} yang dibulatkan, hasilnya ${koma(dibaca(koma(gbLedger3, 2)) * naik, 2)}.`);
+    expect(koma(dibaca(koma(gbLedger3, 2)) * naik, 2)).not.toBe(koma(gbLedger4, 2));
+    expect(badan).not.toContain(`${koma(gbLedger3, 2)} × ${naik} = ${koma(gbLedger4, 2)} GB`);
     harus(`[[t3-estimasi]] menulis ±${duaAngka(gbLedger3)} dan ±${duaAngka(gbLedger4)} GB untuk angka yang sama; selisihnya hanya pembulatan.`);
     harus(`${ribu(unggahHari)} × ${m4.fileKB} KB = ${(unggahHari * Number(m4.fileKB)) / 1e6} GB per hari, atau ${gbFile} GB per tahun. Itu ${Math.round(gbFile / gbLedger4)} kali posting ledger (${gbFile} ÷ ${koma(gbLedger4, 2)}) dan ${Math.round(gbFile / gbD1)} kali rumus [[D1]] (${gbFile} ÷ ${koma(gbD1, 2)}).`);
     harus(`Lajunya kecil, ${koma(lamUnggah, 3)} unggahan per detik atau ${Math.round(dibaca(koma(lamUnggah, 3)) * Number(m4.fileKB))} KB per detik di puncak.`);
@@ -714,6 +725,12 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     expect(badan.indexOf("P95 adalah waktu jawab yang dilewati 5% permintaan")).toBeGreaterThan(badan.indexOf("P95 di bawah"));
     expect(badan.indexOf("P95")).toBe(badan.indexOf("P95 di bawah 500 ms."));
     expect(badan.indexOf("c ÷ t")).toBe(badan.indexOf("Worker punya kapasitas c ÷ t, dengan c = 4 pengirim serentak dan t = 0,3 detik per pengiriman.") + "Worker punya kapasitas ".length);
+    // W dipakai pertama di baris tabel koneksi tertahan: artinya ada di kalimat tepat sebelum tabel itu
+    const pertamaW = badan.search(/\bW\b/);
+    const kalimatW = "W, yaitu lama satu request memegang koneksi. Rumusnya ada di bawah tabel.";
+    expect(badan.slice(pertamaW, pertamaW + kalimatW.length)).toBe(kalimatW);
+    expect(pertamaW).toBeLessThan(badan.indexOf("(W 20 ms)"));
+    expect(badan.indexOf("L = λ × W. L adalah rata-rata koneksi yang terpakai bersamaan")).toBeGreaterThan(badan.indexOf("(W 20 ms)"));
     harus("Client yang menyerah sesudah T detik melepas koneksinya.");
     expect(badan.indexOf("T detik")).toBe(badan.indexOf("Client yang menyerah sesudah T detik") + "Client yang menyerah sesudah ".length);
   });
@@ -1040,7 +1057,9 @@ describe("widget kalkulator t4-estimasi-kalkulator.json", () => {
     for (const p of t.pilihan) expect(p).toMatch(/^[\d,]+ kali$/);
     expect(new Set(t.pilihan).size).toBe(t.pilihan.length);
     expect(t.pilihan).toContain(`${Math.round(h4.puncak / h3.puncak)} kali`);
-    for (const f of ["t1-estimasi-kalkulator", "t1-m8-kalkulator", "t2-estimasi-kalkulator", "t3-estimasi-kalkulator", "t3-m28-kalkulator"]) {
+    // 4.27 (t4-m39-kalkulator) bersebelahan dengan halaman ini: bila sudah ada di pohon ini, posisinya juga harus beda
+    const tetangga = fs.existsSync(path.join(akar, "situs/data/widget/t4-m39-kalkulator.json")) ? ["t4-m39-kalkulator"] : [];
+    for (const f of ["t1-estimasi-kalkulator", "t1-m8-kalkulator", "t2-estimasi-kalkulator", "t3-estimasi-kalkulator", "t3-m28-kalkulator", ...tetangga]) {
       const lain = JSON.parse(baca(`situs/data/widget/${f}.json`)) as { tebak: { jawaban: number; pilihan: string[] } };
       if (lain.tebak.pilihan.length === t.pilihan.length) expect(lain.tebak.jawaban, f).not.toBe(t.jawaban);
     }
