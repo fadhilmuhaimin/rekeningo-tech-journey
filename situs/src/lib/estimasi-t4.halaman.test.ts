@@ -1134,6 +1134,11 @@ describe("penutup celah mutasi tinjauan", () => {
       `${koma((a5.user / a4.user) / (a4.aktif / a3.aktif), 1)} kali`,
     ]);
   });
+  test("jumlah kata badan tetap sama dan Rantai di Inti ringkas (kalimat tambahan di paragraf bebas tidak lolos)", () => {
+    // paragraf prosa bebas tidak punya kunci kalimat tanpa lapis kunci baris; jumlah kata menangkap kalimat yang disisipkan atau dihapus
+    expect(badan.split(/\s+/).filter(Boolean).length).toBe(3233);
+    expect(badan).toContain("<Rantai data={intiDiagram} ringkas />");
+  });
   test("kalimat halaman tidak menjawab tebakan 4.31 dan tidak memilih komponen", () => {
     expect(badan).not.toMatch(/pecah lebih dulu|yang pecah|jawaban(nya)? (tebakan|Tahap 5)|paling dulu|harus diganti/i);
     expect(hitungKali(badan, "Tabel ini bukan desain Tahap 5")).toBe(1);
