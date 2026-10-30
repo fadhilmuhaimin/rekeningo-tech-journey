@@ -760,7 +760,8 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(Math.round((100000 * 0.3) / 4 / 60)).toBe(125);
     harus(butir(13).batas, "Pengumuman ke 100.000 HP butuh 125 menit (Hitungan, Tidak dijalankan).");
     harus(butir(13).batas, "rekaman beban bukan kapasitas produksi, karena memakai satu proses, satu laptop, dan 20 detik. Kapasitas satu server belum diukur.");
-    harus(butir(13).batas, "13 orang menjadi 20 sampai 40 di satu repo");
+    harus(butir(13).batas, "13 orang menjadi 20 sampai 40 di satu repo (Asumsi).");
+    harus(fileHalaman("t4-prd"), "13 engineer");
     expect(a4.tim).toBe("13 developer, 3 tim");
     // 4.27 sampai 4.29: hanya diperiksa terhadap isi halaman bila halamannya sudah di main
     jikaAda("t4-m39", (t) => {
