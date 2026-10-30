@@ -17,14 +17,14 @@
       "alasan": "Notifikasi uang 7,52 per detik dari pemicu 100 per detik: 7,5%. Jumlah consumer yang bergantung pada urutan pesan belum dihitung."
     },
     {
-      "teks": "Service per modul, untuk koneksi satu modul",
-      "benar": false,
-      "alasan": "Gateway di dalam request dengan timeout 3 detik menahan 0,579 × 3 = 1,74 koneksi, dari pemicu 5: 35%. Modul lain di dalam monolith belum punya pool sendiri, jadi angkanya belum terbaca."
-    },
-    {
       "teks": "PgBouncer, untuk koneksi database",
       "benar": true,
       "alasan": "Koneksi: 2 × 10 + 2 × 5 + 4 + 3 + 3 = 40 dari 100. Pemicu 70 berarti 40 ÷ 70 = 57% jalan, dan lima instance API dengan pool 10 sampai di sana."
+    },
+    {
+      "teks": "Service per modul, untuk koneksi satu modul",
+      "benar": false,
+      "alasan": "Gateway di dalam request dengan timeout 3 detik menahan 0,579 × 3 = 1,74 koneksi, dari pemicu 5: 35%. Modul lain di dalam monolith belum punya pool sendiri, jadi angkanya belum terbaca."
     },
     {
       "teks": "Read replica, untuk bacaan laporan",

@@ -534,17 +534,17 @@ describe("diagram Inti dan Tebak: nilai diturunkan dari hitungan, bukan ditulis 
     expect(badan).toContain("Delapan penundaan punya pemicu tertulis, dan kapasitas satu server belum diukur.");
     expect(badan).toContain("Ia perlu tahu bahwa itu keputusan, bukan kelupaan.");
   });
-  test("tebak: empat pilihan, tepat satu benar dan itu rasio terbesar, di posisi ketiga dan bukan yang terpanjang; alasan memuat hitungannya", () => {
+  test("tebak: empat pilihan, tepat satu benar dan itu rasio terbesar, di posisi kedua (4.23 dan 4.5 memakai ketiga, 4.25 yang pertama) dan bukan yang terpanjang; alasan memuat hitungannya", () => {
     expect(tebak.pilihan).toHaveLength(4);
     const benar = tebak.pilihan.map((p, i) => (p.benar ? i : -1)).filter((i) => i >= 0);
-    expect(benar).toEqual([2]);
+    expect(benar).toEqual([1]);
     const panjang = tebak.pilihan.map((p) => p.teks.length);
-    expect(panjang[2]).toBeLessThan(Math.max(...panjang));
-    expect(tebak.pilihan[2]!.teks).toBe("PgBouncer, untuk koneksi database");
+    expect(panjang[1]).toBeLessThan(Math.max(...panjang));
+    expect(tebak.pilihan[1]!.teks).toBe("PgBouncer, untuk koneksi database");
     const per = tebak.pilihan.map((p) => p.alasan);
     expect(per[0]).toContain(`Notifikasi uang ${fmt(notifT, 2)} per detik dari pemicu ${pemicuPesan} per detik: ${persen(notifT, pemicuPesan, 1)}`);
-    expect(per[1]).toContain(`${fmt(topupT, 3)} × ${timeoutGateway} = ${fmt(lGateway, 2)} koneksi, dari pemicu ${ambangL}: ${persen(lGateway, ambangL)}`);
-    expect(per[2]).toContain(`${masukanKoneksi} = ${koneksi} dari ${maxKoneksi}. Pemicu ${pemicuKoneksi} berarti ${koneksi} ÷ ${pemicuKoneksi} = ${persen(koneksi, pemicuKoneksi)} jalan, dan lima instance API dengan pool ${poolApi} sampai di sana`);
+    expect(per[2]).toContain(`${fmt(topupT, 3)} × ${timeoutGateway} = ${fmt(lGateway, 2)} koneksi, dari pemicu ${ambangL}: ${persen(lGateway, ambangL)}`);
+    expect(per[1]).toContain(`${masukanKoneksi} = ${koneksi} dari ${maxKoneksi}. Pemicu ${pemicuKoneksi} berarti ${koneksi} ÷ ${pemicuKoneksi} = ${persen(koneksi, pemicuKoneksi)} jalan, dan lima instance API dengan pool ${poolApi} sampai di sana`);
     expect(per[3]).toContain(`(${fmt(rpsT, 1)} − ${fmt(trxT, 2)}) × ${fmt(waktuBaca, 2)} = ${fmt(lBaca, 2)}, dari pemicu ${ambangL}: ${persen(lBaca, ambangL)}`);
     expect(per[3]).toContain(`${persen(lBaca, ambangL)} masih di bawah ${persen(koneksi, pemicuKoneksi)}`);
     expect(tebak.penutup).toContain(`baru ${persen(koneksi, pemicuKoneksi)} dari pemicunya, dan pemicunya Asumsi`);
@@ -613,6 +613,10 @@ describe("kasus industri Shopify dan klaim yang tidak melampaui sumber", () => {
     expect(badan).toContain("Deconstructing the Monolith, 2019-02-21, dibuka 2026-10-31");
     expect(badan).toContain("dikerjakan lebih dari sepuluh tahun oleh lebih dari seribu developer");
     expect(badan).toContain(`1.000 ÷ ${timJumlah} ≈ ${fmt(1000 / timJumlah)} kali Tahap 4 (Hitungan atas Asumsi)`);
+    // Sumbernya menulis bahwa pipeline yang banyak mahal, bukan satu pipeline (R4-254: "bentuk jamak").
+    expect(r).toContain("pipeline yang banyak (bentuk jamak) mahal dibuat, disesuaikan, dan dipelihara");
+    expect(badan).toContain("Pipeline yang banyak memakan biaya besar untuk dibuat, disesuaikan, dan dipelihara, tulis penulisnya");
+    expect(badan).not.toMatch(/satu pipeline tes dan deploy,? yang butuh/);
     expect(badan).toContain("Batasnya: satu aplikasi Rails");
     expect(badan).toContain("tulisan perusahaan tentang keputusannya sendiri");
     expect(badan).toContain("Halaman ini hanya memakai bagian tentang biaya pipeline.");
@@ -653,7 +657,12 @@ describe("kasus industri Shopify dan klaim yang tidak melampaui sumber", () => {
       expect(tim, butir).toContain(butir);
       expect(naskah.split("\n").find((b) => b.startsWith("| 45 |")) ?? "", butir).not.toMatch(/atestasi|state IaC|di luar proses|rilis kartu bertahap/i);
     }
-    expect(badan).toContain("Halaman [[t4-tim-infra]] mencatat penundaannya sendiri di bagian \"Sengaja belum dilakukan\", dan menunjuk ke halaman ini untuk provenance SLSA.");
+    // Jumlah butir tabel 4.26 diturunkan dari tabelnya: satu menunjuk ke 4.29, empat disebut di sini, sisanya tidak dibahas.
+    const barisTim = tim.slice(tim.indexOf("### Sengaja belum dilakukan")).split("\n").filter((b) => b.startsWith("| ")).slice(1); // tanpa baris judul kolom; baris pemisah tidak berawalan "| "
+    expect(barisTim).toHaveLength(11);
+    expect(barisTim.filter((b) => b.includes("[[t4-adr-45]]"))).toHaveLength(1);
+    expect(badan).toContain("Halaman [[t4-tim-infra]] mencatat penundaannya sendiri di bagian \"Sengaja belum dilakukan\". Tabel itu memuat sebelas butir, dan hanya provenance SLSA yang menunjuk ke halaman ini. Empat butir lain tidak ada di daftar ADR 45, dan ADR ini tidak memberi pemicu untuk keempatnya.");
+    expect(badan).toContain("Enam butir lain di tabel itu tidak dibahas di sini.");
     expect(badan).toContain("atestasi app (sinyal dari platform bahwa panggilan datang dari app asli), tempat flag kill switch kartu di luar proses, rilis kartu bertahap, dan pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC");
     expect(badan).toContain("HMAC-SHA256 atas timestamp dan byte mentah body (ADR 34)");
     expect(openapi).toContain('Tanda tangan HMAC-SHA256 atas "<timestamp>.<byte mentah body>"');
