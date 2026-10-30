@@ -51,7 +51,7 @@ Sumber definisi, dibuka 2026-10-31: [Kubernetes](https://kubernetes.io/docs/conc
 
 Minggu 12, uji coba publik lolos, lalu Sinta datang dengan PRD v5 ([[t4-m39]]). Dugaan pertama adalah server lebih besar, Kubernetes, atau satu service per modul. Kapasitas satu server belum diukur: `make beban` di lab hanya memutar beban berjadwal di laptop, dan rekamannya menulis bahwa itu bukan klaim kapasitas produksi (`beban.txt` bagian A).
 
-Engineer baru akan membuka repo tanpa service per modul, Kubernetes, gRPC, replica, PgBouncer, BFF, atau login sosial, dan tidak tahu apakah itu keputusan atau kelupaan. ADR ini menulis delapan keputusan itu dengan angka Tahap 4 dan pemicunya. Tak satu pun dari delapan diminta PRD v4 ([[t4-prd]]).
+Engineer yang baru bergabung akan mencari Kubernetes, gRPC, replica, atau login sosial di repo dan tidak menemukannya. Ia perlu tahu bahwa itu keputusan, bukan kelupaan. ADR ini menuliskan delapan keputusan itu, masing-masing dengan angka Tahap 4 dan pemicunya. Tak satu pun dari delapan diminta PRD v4 ([[t4-prd]]).
 
 **Status:** diterima di minggu 12 Tahap 4, sebelum PRD v5 dikerjakan. ADR ini tidak mengubah ADR 36 ([[t4-breaker]]), ADR 37 ([[t4-modul]]), atau ADR 44 ([[t4-tim-infra]]). Ia menulis ulang daftar tertunda dari [[t3-adr-33]], [[t2-adr-21]], dan [[t1-adr-12]] dengan angka Tahap 4, dan menambah butir baru.
 
@@ -99,7 +99,6 @@ Tabel memakai L = λ × W. Koneksi yang tertahan (L) sama dengan laju kedatangan
 | 6. Login sosial | PRD v4 tidak memintanya. Pendaftaran memakai verifikasi foto kartu identitas dan swafoto ([[t4-prd]]). Kode `labs/api-t4` tidak memuat oidc, oauth, pkce, atau sosial. Rekaman lab lama `b5-2-oidc` memuat tiruan server identitas | Bergantung pada penyedia login: bila ia mati, masuk lewat akun itu berhenti, dan jalurnya butuh timeout dan breaker seperti vendor lain ([[t4-breaker]]). Akun penyedia harus dihubungkan dengan akun Rekeningo, dan batas saldo tetap menunggu verifikasi identitas (PRD v4) |
 | 7. Provenance SLSA dan HTTP Message Signatures | Hanya disebut, Tidak dijalankan. Naskah ADR 44 menandatangani image per digest dan membuat SBOM. Gateway tiruan memakai HMAC-SHA256 atas timestamp dan byte mentah body (ADR 34), bukan skema RFC 9421 ([[t4-webhook]]) | SLSA Build Track butuh platform build yang menghasilkan provenance dan pemeriksa yang menolak artefak tanpanya. RFC 9421 hanya berlaku bila pemanggil dan penerima sama-sama memakainya (penalaran) |
 | 8. Durable execution dan event streaming | Hanya disebut, Tidak dijalankan. Pencairan memakai job idempoten (ADR 19) dan notifikasi memakai outbox (ADR 23): keduanya menjalankan ulang pekerjaan dengan hasil yang sama. PRD v5 membawa cicilan dan tabungan dengan proses batch harian (naskah, Ilustrasi) | Engine dan server atau layanan tambahan, di luar PostgreSQL yang menyimpan semuanya sekarang |
-
 
 </Blok>
 
