@@ -11,7 +11,7 @@ import intiDiagram from "../../../../data/diagram/t4-tim-infra-inti.json";
 import pipelineDiagram from "../../../../data/diagram/t4-tim-infra-pipeline.json";
 import pilah from "../../../../lama/widgets/data/t4-tim-infra-pilah.json";
 
-<p class="meta">Baca 23 menit · coba 3 menit · Prasyarat: [[t4-modul]], [[t3-tim-infra]] · Jalur inti</p>
+<p class="meta">Baca 25 menit · coba 3 menit · Prasyarat: [[t4-modul]], [[t3-tim-infra]] · Jalur inti</p>
 
 <Blok nama="Mulai" buka>
 
@@ -30,7 +30,7 @@ Di `tanda-tangan.txt` bagian C, tag `2.0` dipindah ke image lain sebelum cosign,
 
 1. oasdiff `breaking` meloloskan perubahan yang menghapus satu field opsional dari respons. Apa yang bisa menangkapnya?
 2. `cosign verify` atas tag lulus, padahal tag itu dipindah sebelum ditandatangani. Apa yang menolak image itu?
-3. govulncheck atas api-t4 menemukan 10 kerentanan stdlib walau kodenya tidak diubah. Kenapa pemindaian itu juga berjalan sesudah merge?
+3. govulncheck atas api-t4 menemukan 10 kerentanan stdlib walau kodenya tidak diubah. Kenapa pindai kerentanan atas image juga berjalan sesudah merge?
 
 Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
@@ -57,7 +57,7 @@ Kalau kamu pernah merilis app berdua atau bertiga, urutannya sudah kamu kenal. B
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: pemeriksaan yang cukup membaca file berjalan di PR, dan pemeriksaan yang butuh image atau basis data kerentanan hari ini berjalan sesudah merge.">
 
-Delapan pemeriksaan di bawah ini punya rekaman lab, kecuali CI yang memanggilnya. Tidak dijalankan berarti dicek ke dokumentasi atau kode tanpa menjalankannya. Pilah tiap pemeriksaan: jalan di PR, atau di rilis sesudah merge.
+Delapan pemeriksaan di bawah ini punya rekaman lab, kecuali CI yang memanggilnya. Tidak dijalankan berarti dicek ke dokumentasi atau kode tanpa menjalankannya. Penalaran penulis berarti kesimpulan dari sumber yang tidak dikutip dari sumber itu. Pilah tiap pemeriksaan: jalan di PR, atau di rilis sesudah merge.
 
 <WidgetLama nama="pilah" src="data/t4-tim-infra-pilah.json" />
 
@@ -145,7 +145,7 @@ Baris terakhir adalah celah pertama. `breaking` hanya memuat ERR dan WARN, sedan
 
 File `--severity-levels` yang berisi satu baris, `response-optional-property-removed err`, menaikkannya menjadi error (bagian B).
 
-Celah kedua ada di parameter. Parameter tingkat path adalah parameter yang ditulis sekali di satu path dan berlaku untuk semua operasinya. Di kontrak mini lab, perubahan itu lolos tanpa flag dan tertangkap dengan `--flatten-params`. Perubahan `explode`, cara array ditulis di query, tidak tertangkap di tingkat mana pun:
+Celah kedua ada di parameter. Parameter tingkat path adalah parameter yang ditulis sekali di satu path dan berlaku untuk semua operasinya. Di kontrak mini lab, perubahan itu lolos tanpa flag dan tertangkap dengan `--flatten-params` pada ambang WARN, sedangkan ambang ERR tidak menahan penghapusan parameter. Perubahan `explode`, cara array ditulis di query, tidak tertangkap di tingkat mana pun:
 
 <Snippet file="labs/t4-pipeline/output/kontrak.txt" lines="91:94" title="Rekaman lab: labs/t4-pipeline/output/kontrak.txt baris 91 sampai 94 (bagian C, parameter jadi wajib)" />
 
@@ -178,7 +178,7 @@ static AkunJenisEnum? fromJson(dynamic value) => AkunJenisEnumTypeTransformer().
 
 Nilai yang tidak dikenal menjadi null, jadi client lama yang menerima `badan` berhenti dengan galat null check. Itu dibaca dari kode hasil generasi, dan Dart Tidak dijalankan. Karena versi lama tetap terpasang di HP user, ADR 10 tetap berlaku ([[E1]]).
 
-Paket app dibagi per tim dengan pub workspaces atau Melos. Pub workspaces mulai ada di Dart 3.6.0, dan seluruh paket memakai satu resolusi dengan satu `pubspec.lock` ([dart.dev: Pub workspaces](https://dart.dev/tools/pub/workspaces), dibuka 2026-10-30). Dokumentasi Melos menulis bahwa pembagian paket itu ditangani pub workspaces dan Melos dibangun di atasnya ([Melos](https://melos.invertase.dev/), dibuka 2026-10-30). Lab tidak punya app Flutter, jadi pilihan di antara keduanya Tidak dijalankan.
+Paket app dibagi per tim dengan pub workspaces atau Melos. Pub workspaces mulai ada di Dart 3.6.0, dan seluruh paket memakai satu resolusi dengan satu `pubspec.lock` ([dart.dev: Pub workspaces](https://dart.dev/tools/pub/workspaces), dibuka 2026-10-30). Dokumentasi Melos menulis bahwa penautan paket lokal di Dart ditangani pub workspaces, dan Melos dibangun di atasnya ([Melos](https://melos.invertase.dev/), dibuka 2026-10-30). Lab tidak punya app Flutter, jadi pilihan di antara keduanya Tidak dijalankan.
 
 ### SAST dan audit dependensi: tiga pemindai yang bisa lulus palsu
 
@@ -212,9 +212,9 @@ govulncheck atas kode yang sama menemukan 10 kerentanan stdlib yang dipanggil:
 
 <Snippet file="labs/t4-pipeline/output/sast.txt" lines="55:70" title="Rekaman lab: labs/t4-pipeline/output/sast.txt baris 55 sampai 70 (bagian E, audit atas api-t4)" />
 
-Empat belas temuan stdlib dikurangi 10 yang dipanggil menyisakan empat yang ada tetapi tidak dipanggil (Hitungan atas dua daftar). Dua Critical menunjukkan bedanya. GO-2026-6612, HTTP/2 di `net/http`, ada di daftar yang dipanggil. GO-2026-6604 tidak. README lab mencatat ringkasan advisory-nya: `os.Root.Mkdir` mengikuti junction di Windows. grype menandainya Critical karena mencocokkan versi stdlib go1.27.1, sedangkan govulncheck tidak menemukan panggilan ke fungsi itu (`sbom.txt` bagian C, `sast.txt` bagian E).
+Empat belas temuan stdlib dikurangi 10 yang dipanggil menyisakan empat yang ada tetapi tidak dipanggil (Hitungan atas dua daftar). Dua Critical menunjukkan bedanya. GO-2026-6612, HTTP/2 di `net/http`, ada di daftar yang dipanggil. GO-2026-6604 tidak. README lab mencatat ringkasan advisory-nya: `os.Root.Mkdir` mengikuti junction di Windows. grype mencocokkan versi stdlib go1.27.1 dengan advisory itu dan melaporkannya sebagai Critical, sedangkan govulncheck tidak menemukan panggilan ke fungsi itu (`sbom.txt` bagian C, `sast.txt` bagian E).
 
-Hasilnya: gerbang lab menolak api-t4 hari ini. Ambang High menghasilkan 13 temuan High atau lebih, dan govulncheck menemukan 10 yang dipanggil. Perbaikannya tercantum di Go 1.27.2 dan 1.27.3.
+Hasilnya: gerbang lab menolak api-t4 dengan Go 1.27.1 dan basis data grype yang dibangun 2026-10-28. Ambang High menghasilkan 13 temuan: dua Critical, sembilan High, dan dua Unknown yang gerbang hitung paling berat. Alat govulncheck menemukan 10 temuan yang dipanggil. Perbaikannya tercantum di Go 1.27.2 dan 1.27.3.
 
 Lab tidak menaikkan Go, karena itu mengubah api-t4 dan semua rekamannya. Itu tugas terpisah. Hasil ini Rekaman lab dengan Go 1.27.1, bukan kelemahan desain.
 
@@ -233,7 +233,7 @@ Bagian C paling berbahaya. Tanda tangan dan verifikasi atas tag sah, tetapi atas
 
 Tanda tangannya sah, dan objek yang ditandatangani yang bisa keliru. Hanya perbandingan dengan digest hasil build yang menolak digest D. Kunci cosign lab dibuat per run, dan keyless, Fulcio, serta Rekor Tidak dijalankan.
 
-Lab juga memeriksa alatnya sendiri. `make verifikasi-alat` memverifikasi checksum rilis syft, grype, dan cosign (Verified OK). oasdiff tidak menerbitkan tanda tangan, dan gosec Tidak dijalankan (README lab).
+Lab juga memeriksa alatnya sendiri. `make verifikasi-alat` memverifikasi tanda tangan atas file checksum rilis syft, grype, dan cosign (Verified OK). oasdiff tidak menerbitkan tanda tangan, dan gosec Tidak dijalankan (README lab).
 
 ### Supply chain: nama yang bisa dipindah
 
@@ -241,7 +241,7 @@ Supply chain adalah semua yang masuk ke software sebelum sampai ke produksi: dep
 
 GitHub Advisory Database menulis bahwa serangan supply chain menyusup ke GitHub Action `tj-actions/changed-files`, dengan lebih dari 23.000 repositori terdampak. Kode berbahaya mengambil secret dari memori proses runner dan mencetaknya di log Actions. Penyerang mengubah beberapa tag versi secara surut supaya menunjuk commit berbahaya, dan versi 46.0.1 memperbaikinya ([GHSA-mrrh-fwg8-r2c3](https://github.com/advisories/GHSA-mrrh-fwg8-r2c3), diterbitkan 2025-03-15, dibuka 2026-10-30).
 
-Dokumentasi GitHub menulis bahwa tag bisa dipindah atau dihapus bila penyerang menguasai repositori action. Ia menyarankan menyematkan action ke commit SHA penuh ([GitHub Docs: Secure use reference](https://docs.github.com/en/actions/reference/security/secure-use), dibuka 2026-10-30). Advisory itu sendiri tidak menyebut penyematan SHA.
+Dokumentasi GitHub menulis bahwa tag bisa dipindah atau dihapus bila penyerang menguasai repositori action. Ia menyebut lockfile dependensi workflow sebagai perlindungan terkuat, yang menggantikan penyematan SHA bagi repositori yang memakainya (Tidak dijalankan di sini). Bagi repositori yang tidak bisa memakai lockfile, ia menyarankan menyematkan action ke commit SHA penuh ([GitHub Docs: Secure use reference](https://docs.github.com/en/actions/reference/security/secure-use), dibuka 2026-10-30). Advisory itu sendiri tidak menyarankan penyematan SHA.
 
 Batasnya: ini dependensi workflow, bukan image kontainer, dan kasusnya tidak membuktikan bahwa tanda tangan digest menahannya. Kesamaannya satu: nama yang bisa dipindah tidak mengikat isinya.
 
@@ -256,7 +256,7 @@ Rilis bertahap mengirim versi baru ke sebagian user dulu. Tabel ini memuat apa y
 | Dihentikan | halt dan resume memengaruhi kelompok yang sama | jeda sampai 30 hari, jumlah jeda tidak dibatasi |
 | Yang sudah menerima | tetap di versi itu | user bisa mengunduh sendiri kapan saja |
 
-Sumbernya [Play Console Help: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149) dan [App Store Connect Help: phased release](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/). Dengan 20.000 user aktif (Asumsi naskah), jangkauan tiap hari di iOS paling banyak 200, 400, 1.000, 2.000, 4.000, 10.000, dan 20.000 user. Itu Hitungan atas jadwal Apple, bila semua user memakai iOS dengan pembaruan otomatis.
+Sumbernya [Play Console Help: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149) dan [App Store Connect Help: phased release](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/). Dengan 20.000 user aktif (Asumsi naskah), jangkauan pembaruan otomatis di iOS tiap hari paling banyak 200, 400, 1.000, 2.000, 4.000, 10.000, dan 20.000 user. Itu Hitungan atas jadwal Apple, bila semua user memakai iOS dengan pembaruan otomatis. Unduhan manual dari App Store tidak dibatasi jadwal itu.
 
 Rilis bertahap membatasi berapa user melihat bug app. Bug di server tetap kena semua versi, jadi server wajib kompatibel mundur ([[E1]]).
 
@@ -267,14 +267,14 @@ Laras membaca threat model tahap ini dan menjalankan pemeriksaan ADR 44. Threat 
 | Temuan | Bukti | Putusan |
 |---|---|---|
 | 10 kerentanan stdlib dipanggil kode api-t4 | `sast.txt` bagian E | memblok rilis sampai Go naik |
-| GO-2026-6604 Critical menurut grype, tetapi menurut ringkasan advisory di Windows dan tidak dipanggil | `sbom.txt` bagian C, `sast.txt` bagian E | dicatat, tidak memblok sendirian (penalaran penulis) |
+| GO-2026-6604, Critical menurut grype. Ringkasan advisory menyebut Windows, dan govulncheck tidak melaporkannya dipanggil | `sbom.txt` bagian C, `sast.txt` bagian E | gerbang grype menahannya sampai Go naik (aturan 5); dampak di image Linux masih dugaan (penalaran penulis) |
 | Staging memakai kunci gateway produksi (dugaan) | hanya pemindai atas dua file contoh, bukan kejadiannya | tidak memblok; jalankan pemindai atas konfigurasi staging yang sebenarnya |
 
 Laras sendiri adalah tokoh cerita, jadi adegan penilaiannya Ilustrasi. Rekamannya adalah hasil alat di tabel itu. Kontrol back office dan audit log berantai di [[t4-audit]] termasuk yang ia nilai (penalaran penulis, Tidak dijalankan).
 
 ### On-call per modul dan alert gejala
 
-Rotasi jaga mingguan berlaku per tim untuk modulnya. Buku SRE Google menulis bahwa tidak lebih dari 25% waktu seorang SRE dipakai untuk jaga ([SRE book, bab 11](https://sre.google/sre-book/being-on-call/), dibuka 2026-10-30). Naskah tidak menulis jam jaga, jadi tabel ini menghitung pembagian minggu:
+Rotasi jaga mingguan berlaku per tim untuk modulnya. Buku SRE Google menulis bahwa tidak lebih dari 25% waktu seorang SRE dipakai untuk jaga ([SRE book, bab 11](https://sre.google/sre-book/being-on-call/), dibuka 2026-10-30). Naskah tidak menulis jam jaga, jadi tabel ini menghitung pembagian minggu dengan satu orang jaga per minggu (Asumsi penulis):
 
 | Tim | Orang | Minggu jaga per orang | Terhadap batas 25% |
 |---|---|---|---|
@@ -282,7 +282,7 @@ Rotasi jaga mingguan berlaku per tim untuk modulnya. Buku SRE Google menulis bah
 | Merchant | 4 | 1 ÷ 4 = 25% | tepat di batas |
 | Platform | 4 | 1 ÷ 4 = 25% | tepat di batas |
 
-Satu orang cuti dari tim berempat membuat rotasi 1 ÷ 3 = 33%, di atas batas (Hitungan atas Asumsi naskah).
+Satu orang cuti dari tim berempat membuat rotasi 1 ÷ 3 = 33%, di atas batas (Hitungan atas Asumsi naskah). Buku yang sama menghitung dua orang jaga bersamaan, primer dan sekunder, dan menurunkan minimal delapan engineer untuk satu tim satu lokasi dengan jaga 24 jam. Ketiga tim di sini lebih kecil dari itu, jadi satu orang per minggu adalah syarat tabel ini.
 
 Alert hanya untuk gejala yang dirasakan user. Buku SRE menulis bahwa monitoring menjawab apa yang rusak dan kenapa. Tiap page harus mendesak, bisa ditindaklanjuti, dan terlihat user ([SRE book, bab 6](https://sre.google/sre-book/monitoring-distributed-systems/), dibuka 2026-10-30).
 
@@ -300,7 +300,7 @@ Testcontainers dan k6 Tidak dijalankan. api-t4 memakai Docker Compose seperti Ta
 
 ### ADR 44: pipeline per modul, tanda tangan atas digest, dan rilis bertahap
 
-**Kebutuhan.** Tiga tim merilis ke satu codebase, dan dua kejadian menunjukkan tidak ada mesin yang memeriksa sebelum rilis. Di [[t4-m32]], rilis tim Merchant memecahkan top-up karena tes tiap tim memakai data tiruan. Di [[t4-m34]], pindahan hosting membawa kunci gateway produksi ke staging (Ilustrasi). PRD v4 meminta security review lolos sebelum dibuka ke publik ([[t4-prd]]).
+**Kebutuhan.** Tiga tim merilis ke satu codebase, dan dua kejadian menunjukkan tidak ada mesin yang memeriksa sebelum rilis. Di [[t4-m32]], rilis tim Merchant memecahkan top-up, dan tes tiap tim tetap lolos karena tes pembayaran memakai data tiruan. Di [[t4-m34]], pindahan hosting membawa kunci gateway produksi ke staging (Ilustrasi). PRD v4 meminta security review lolos sebelum dibuka ke publik ([[t4-prd]]).
 
 Bebannya bukan alasan. Puncaknya 138,9 request per detik (20.000 × 60 ÷ 86.400 × 10) dan 6,94 transaksi uang per detik (20.000 × 3 ÷ 86.400 × 10). Masukannya Asumsi: 100.000 user dengan 20% aktif (20.000 user aktif), 60 request dan 3 transaksi per user aktif per hari, faktor puncak 10.
 
@@ -308,7 +308,7 @@ Bebannya bukan alasan. Puncaknya 138,9 request per detik (20.000 × 60 ÷ 86.400
 
 **Beda dengan naskah.** Hal ini terbaca dari rekaman lab dan dokumentasi:
 
-- Naskah menulis oasdiff belum memeriksa parameter tingkat path dan `explode`. Itu benar untuk v1.34.1, tetapi `--flatten-params` menutup tingkat path. `explode` tetap lolos.
+- Naskah menulis oasdiff belum memeriksa parameter tingkat path dan `explode`. Itu benar untuk v1.34.1, tetapi `--flatten-params` menutup tingkat path, dan penghapusan parameter hanya tertangkap pada ambang WARN. `explode` tetap lolos.
 - Naskah tidak menyebut bahwa `breaking` tidak melihat field opsional yang dihapus (INFO). `--severity-levels` menaikkannya.
 - Naskah menulis tanda tangani digest. cosign v3.1.4 menerima tag dengan peringatan. Yang berbahaya adalah tag dipindah sebelum ditandatangani.
 - ADR 12 menulis tes yang mencocokkan response dengan kontrak. oasdiff membandingkan dua versi kontrak, dan tes lab hanya mencocokkan rute dengan kontrak.
@@ -331,12 +331,12 @@ Keputusan lain punya opsi sendiri:
 |---|---|---|---|
 | Tanda tangan image | cosign atas digest | Tanda tangan atas tag | Tag bisa dipindah sebelum ditandatangani (`tanda-tangan.txt` bagian C) |
 | Gerbang pemindai | Membaca keluaran terstruktur dan menolak pemindaian tidak lengkap | Memercayai exit code alat | Tiga pemindai lulus palsu (`sast.txt` bagian B, `sbom.txt` bagian B, dokumentasi govulncheck) |
-| Rilis app | Bertahap lewat store | Rilis ke semua user sekaligus | Hari pertama iOS paling banyak 200 dari 20.000 user aktif, lawan 20.000 (Hitungan) |
+| Rilis app | Bertahap lewat store | Rilis ke semua user sekaligus | Hari pertama pembaruan otomatis iOS paling banyak 200 dari 20.000 user aktif, lawan 20.000 (Hitungan) |
 
 **Keputusan: opsi C, dengan sembilan aturan.**
 
-1. Di PR, file yang berubah memilih langkah. `internal/modul/<nama>/` memicu tes dan SAST modul itu, dan `openapi.yaml` memicu tes contract dan client. `go.mod` dan `go.sum` memicu audit dependensi dan SBOM, sedangkan `Dockerfile` dan `cmd/api` memicu build image. Satu job yang selalu jalan memutuskan langkah mana yang perlu.
-2. Tes contract memakai `oasdiff breaking --flatten-params` dengan ambang ERR dan `--severity-levels` yang menaikkan `response-optional-property-removed`. Client Dart dibuat ulang dan diff-nya dibaca orang.
+1. Di PR, file yang berubah memilih langkah. `internal/modul/<nama>/` memicu tes dan SAST modul itu, dan `openapi.yaml` memicu tes contract dan client. `go.mod` dan `go.sum` memicu audit dependensi dan SBOM, sedangkan `Dockerfile` dan `cmd/api` memicu build image. Satu job yang selalu jalan memutuskan langkah mana yang perlu. Langkah atas image (build, SBOM, pindai, tanda tangan, dan verifikasi digest) berjalan sesudah merge, bukan di PR (aturan 5 dan 6).
+2. Tes contract memakai `oasdiff breaking --flatten-params` dengan ambang ERR dan `--severity-levels` yang menaikkan `response-optional-property-removed`. Penghapusan parameter tingkat path hanya WARN, jadi ambang ini tidak menahannya. Client Dart dibuat ulang dan diff-nya dibaca orang.
 3. SAST: gosec tanpa `-quiet` dan govulncheck dibaca dari JSON. Pemindaian tidak lengkap ditolak.
 4. Pemindai kunci produksi berjalan di PR atas file konfigurasi staging. Memindai state IaC dan seluruh repositori Tidak dijalankan: rekaman hanya dua file contoh. Gitleaks dari ADR 11 ([[t1-secret]]) tetap menjaga riwayat git.
 5. Sesudah merge, CI membangun image, membuat SBOM CycloneDX dengan syft, dan memindainya dengan grype pada ambang High (pilihan lab). SBOM harus memuat semua modul dari `go.mod`.
@@ -355,7 +355,7 @@ Keputusan lain punya opsi sendiri:
 
 1. Pemetaan melewatkan kode bersama. PR yang hanya mengubah `internal/service` lolos tanpa tes dan SAST, seperti `langkah_untuk` yang mengembalikan daftar kosong di rekaman. Pencegahannya aturan "jalankan semua" atau tes yang menolak folder tanpa aturan. Keduanya belum diputuskan.
 2. Pemindai memberi hijau palsu atau merah mendadak. Gerbang yang memercayai exit code lulus saat pemindaian gagal, dan basis data kerentanan yang baru membuat api-t4 gagal tanpa perubahan kode, seperti hari ini. Pencegahannya gerbang yang membaca keluaran terstruktur, dan versi basis data grype yang dikunci dan dicatat di tiap hasil.
-3. Pipeline sendiri disusupi. Tag action dipindah seperti kasus tj-actions, atau alat tanpa tanda tangan rilis diganti: oasdiff tidak menerbitkannya dan gosec Tidak dijalankan. Pencegahannya menyematkan action ke commit SHA penuh, mengunci SHA-256 alat (sudah di lab), dan CODEOWNERS atas file workflow. Tiga pencegahan itu Tidak dijalankan, kecuali checksum alat.
+3. Pipeline sendiri disusupi. Tag action dipindah seperti kasus tj-actions, atau alat tanpa tanda tangan rilis diganti: oasdiff tidak menerbitkannya dan gosec Tidak dijalankan. Pencegahannya menyematkan action ke commit SHA penuh (atau lockfile workflow, yang menurut dokumentasi GitHub menggantikannya), mengunci SHA-256 alat (sudah di lab), dan CODEOWNERS atas file workflow. Tiga pencegahan itu Tidak dijalankan, kecuali checksum alat.
 
 **Kapan keputusan ini salah.**
 

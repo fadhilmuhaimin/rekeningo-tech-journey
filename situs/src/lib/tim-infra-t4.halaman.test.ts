@@ -293,7 +293,8 @@ describe("naskah: ADR 44, tim, beban, dan isi halaman Tim dan infra", () => {
     expect(barisM34).toContain("staging memakai kunci API gateway produksi (Ilustrasi");
     expect(naskah).toContain("Menandai hampir semua temuan sebagai kritis");
     harus("Naskah menulis bahwa Laras cenderung menandai hampir semua temuan sebagai kritis.");
-    harus("Di [[t4-m32]], rilis tim Merchant memecahkan top-up karena tes tiap tim memakai data tiruan.");
+    harus("Di [[t4-m32]], rilis tim Merchant memecahkan top-up, dan tes tiap tim tetap lolos karena tes pembayaran memakai data tiruan.");
+    expect(barisM32).toContain("Tes tiap tim lolos karena tes pembayaran memakai data tiruan");
     harus("Di [[t4-m34]], pindahan hosting membawa kunci gateway produksi ke staging (Ilustrasi).");
   });
   test("isi halaman Tim dan infra di naskah: rotasi mingguan per tim, lima gejala, security review, rilis bertahap, Testcontainers dan k6 Tidak dijalankan", () => {
@@ -418,12 +419,16 @@ describe("rekaman SAST, SBOM, dan tanda tangan", () => {
     harus(`Empat belas temuan stdlib dikurangi ${PANGGIL.length} yang dipanggil menyisakan empat yang ada tetapi tidak dipanggil (Hitungan atas dua daftar).`);
     expect(STDLIB.length - PANGGIL.length).toBe(4);
     harus(`govulncheck atas kode yang sama menemukan ${PANGGIL.length} kerentanan stdlib yang dipanggil:`);
-    harus(`Ambang High menghasilkan ${TINGGI} temuan High atau lebih, dan govulncheck menemukan ${PANGGIL.length} yang dipanggil.`);
+    harus(`Hasilnya: gerbang lab menolak api-t4 dengan Go 1.27.1 dan basis data grype yang dibangun 2026-10-28. Ambang High menghasilkan ${TINGGI} temuan: dua Critical, sembilan High, dan dua Unknown yang gerbang hitung paling berat. Alat govulncheck menemukan ${PANGGIL.length} temuan yang dipanggil.`);
+    expect(sbomC).toContain("dibangun 2026-10-28T06:23:30Z");
+    expect(sbom.split("\n")[1]).toContain("go1.27.1");
+    expect(sbomC).toContain("ambang Critical: GAGAL (4 temuan Critical atau lebih); tingkat Unknown dihitung paling berat");
+    expect([per("Critical"), per("High"), per("Unknown")]).toEqual([2, 9, 2]);
     harus("Perbaikannya tercantum di Go 1.27.2 dan 1.27.3.");
     harus("GO-2026-6612, HTTP/2 di `net/http`, ada di daftar yang dipanggil. GO-2026-6604 tidak.");
     expect(readme).toContain("GO-2026-6612 (CVE-2026-78663, HTTP/2 server di `net/http`; dipanggil kode api-t4 menurut govulncheck)");
     expect(readme).toContain("GO-2026-6604 (CVE-2026-56857; ringkasan advisory menyebut `os.Root.Mkdir` mengikuti junction di Windows; tidak dipanggil)");
-    harus("GO-2026-6604 tidak. README lab mencatat ringkasan advisory-nya: `os.Root.Mkdir` mengikuti junction di Windows. grype menandainya Critical karena mencocokkan versi stdlib go1.27.1, sedangkan govulncheck tidak menemukan panggilan ke fungsi itu (`sbom.txt` bagian C, `sast.txt` bagian E).");
+    harus("GO-2026-6604 tidak. README lab mencatat ringkasan advisory-nya: `os.Root.Mkdir` mengikuti junction di Windows. grype mencocokkan versi stdlib go1.27.1 dengan advisory itu dan melaporkannya sebagai Critical, sedangkan govulncheck tidak menemukan panggilan ke fungsi itu (`sbom.txt` bagian C, `sast.txt` bagian E).");
     expect(sbomC).toContain("GO-2026-6604           Critical  stdlib go1.27.1, diperbaiki di 1.26.9, 1.27.2");
     expect(baca("labs/api-t4/README.md")).toContain("go1.27.3");
     harus("Lab tidak menaikkan Go, karena itu mengubah api-t4 dan semua rekamannya.");
@@ -465,7 +470,7 @@ describe("rekaman SAST, SBOM, dan tanda tangan", () => {
     expect(readme).toContain("Tidak ada: rilis hanya menerbitkan `checksums.txt`");
     expect(readme).toContain("| gosec | v2.30.0 (2026-10-23) |");
     expect(readme).toContain("Tidak dijalankan: bundle `.sigstore.json` bertanda kunci");
-    harus("`make verifikasi-alat` memverifikasi checksum rilis syft, grype, dan cosign (Verified OK). oasdiff tidak menerbitkan tanda tangan, dan gosec Tidak dijalankan (README lab).");
+    harus("`make verifikasi-alat` memverifikasi tanda tangan atas file checksum rilis syft, grype, dan cosign (Verified OK). oasdiff tidak menerbitkan tanda tangan, dan gosec Tidak dijalankan (README lab).");
     harus("Tanda tangannya sah, dan objek yang ditandatangani yang bisa keliru. Hanya perbandingan dengan digest hasil build yang menolak digest D.");
     expect(inti.baris[1]!.simpul.map((s) => s.teks)).toEqual(["tag dipindah dulu", "verify tag lulus", "digest D ditolak"]);
     expect(inti.baris[1]!.simpul[1]!.sub).toBe("memuat digest D");
@@ -572,9 +577,11 @@ describe("Hitungan: angka yang dihitung dari angka yang tertulis di halaman", ()
     expect(persen).toEqual([1, 2, 5, 10, 20, 50, 100]);
     const jangkauan = persen.map((p) => (AKTIF * p) / 100);
     expect(jangkauan.map(rib)).toEqual(["200", "400", "1.000", "2.000", "4.000", "10.000", "20.000"]);
-    harus(`jangkauan tiap hari di iOS paling banyak ${jangkauan.map(rib).slice(0, 6).join(", ")}, dan ${rib(jangkauan[6]!)} user.`);
+    harus(`jangkauan pembaruan otomatis di iOS tiap hari paling banyak ${jangkauan.map(rib).slice(0, 6).join(", ")}, dan ${rib(jangkauan[6]!)} user.`);
+    harus("Unduhan manual dari App Store tidak dibatasi jadwal itu.");
+    expect(r).toContain("can be manually downloaded from the App Store by anyone at any time");
     harus(`1%, 2%, 5%, 10%, 20%, 50%, 100%`);
-    harus("Hari pertama iOS paling banyak 200 dari 20.000 user aktif, lawan 20.000 (Hitungan)");
+    harus("Hari pertama pembaruan otomatis iOS paling banyak 200 dari 20.000 user aktif, lawan 20.000 (Hitungan)");
     expect(r).toContain("'Staged rollouts can only be used for app updates, not when publishing an app for the first time'");
     expect(r).toContain("'chosen at random for each new release rollout'");
     expect(r).toContain("'affecting the same set of users'");
@@ -592,13 +599,15 @@ describe("Hitungan: angka yang dihitung dari angka yang tertulis di halaman", ()
   test("giliran jaga: 1 ÷ 5 = 20%, 1 ÷ 4 = 25%, 1 ÷ 3 = 33%; batas 25% dari buku SRE; tabel di halaman sama dengan hitungan", () => {
     const pct = (n: number) => `${Math.round(100 / n)}%`;
     expect([pct(TIM.Pembayaran!), pct(TIM.Merchant!), pct(TIM.Platform!), pct(3)]).toEqual(["20%", "25%", "25%", "33%"]);
-    const tabel = tabelSetelah("jadi tabel ini menghitung pembagian minggu:").slice(1);
+    const tabel = tabelSetelah("pembagian minggu dengan satu orang jaga per minggu (Asumsi penulis):").slice(1);
     expect(tabel).toEqual([
       ["Pembayaran", String(TIM.Pembayaran), `1 ÷ ${TIM.Pembayaran} = ${pct(TIM.Pembayaran!)}`, "di bawah batas"],
       ["Merchant", String(TIM.Merchant), `1 ÷ ${TIM.Merchant} = ${pct(TIM.Merchant!)}`, "tepat di batas"],
       ["Platform", String(TIM.Platform), `1 ÷ ${TIM.Platform} = ${pct(TIM.Platform!)}`, "tepat di batas"],
     ]);
-    harus("Satu orang cuti dari tim berempat membuat rotasi 1 ÷ 3 = 33%, di atas batas (Hitungan atas Asumsi naskah).");
+    harus("Satu orang cuti dari tim berempat membuat rotasi 1 ÷ 3 = 33%, di atas batas (Hitungan atas Asumsi naskah). Buku yang sama menghitung dua orang jaga bersamaan, primer dan sekunder, dan menurunkan minimal delapan engineer untuk satu tim satu lokasi dengan jaga 24 jam. Ketiga tim di sini lebih kecil dari itu, jadi satu orang per minggu adalah syarat tabel ini.");
+    expect(barisRiset("R4-238")).toContain("the minimum number of engineers needed for on-call duty from a single-site team is eight");
+    expect(Math.max(...Object.values(TIM))).toBeLessThan(8);
     harus("1 ÷ 4 = 25% sebelum, dan 1 ÷ 3 = 33% sesudah. Batas buku SRE adalah 25% waktu (Hitungan atas Asumsi naskah).");
     harus("Saat satu tim jaga turun menjadi tiga orang: 1 ÷ 3 = 33% minggu jaga lawan batas 25% (Hitungan atas Asumsi naskah).");
     expect(barisRiset("R4-238")).toContain("'no more than 25% can be spent on-call'");
@@ -703,7 +712,9 @@ describe("ADR 44: tiga opsi, sembilan aturan, pre-mortem, kapan salah, sengaja b
     expect(r).toContain("'Pin references to actions to a commit SHA in your workflow files'");
     harus("lebih dari 23.000 repositori terdampak");
     harus("([GHSA-mrrh-fwg8-r2c3](https://github.com/advisories/GHSA-mrrh-fwg8-r2c3), diterbitkan 2025-03-15, dibuka 2026-10-30)");
-    harus("Advisory itu sendiri tidak menyebut penyematan SHA.");
+    harus("Advisory itu sendiri tidak menyarankan penyematan SHA.");
+    harus("Ia menyebut lockfile dependensi workflow sebagai perlindungan terkuat, yang menggantikan penyematan SHA bagi repositori yang memakainya (Tidak dijalankan di sini). Bagi repositori yang tidak bisa memakai lockfile, ia menyarankan menyematkan action ke commit SHA penuh");
+    expect(barisRiset("R4-235")).toContain("lockfile disebut menggantikan penyematan SHA bagi repositori yang memakainya");
     harus("Penyerang mengubah beberapa tag versi secara surut supaya menunjuk commit berbahaya, dan versi 46.0.1 memperbaikinya");
     harus("([GitHub Docs: Secure use reference](https://docs.github.com/en/actions/reference/security/secure-use), dibuka 2026-10-30)");
     harus("Batasnya: ini dependensi workflow, bukan image kontainer, dan kasusnya tidak membuktikan bahwa tanda tangan digest menahannya.");
@@ -726,7 +737,7 @@ describe("ADR 44: tiga opsi, sembilan aturan, pre-mortem, kapan salah, sengaja b
     expect(barisRiset("R4-239")).toContain("hanya `labs/api-t4/cmd/api/main.go` cocok dan hasilnya ['image'] (1 dari 13)");
   });
   test("pre-mortem dan kapan salah: tiap klaim berujung pada rekaman atau label; tiga pencegahan pre-mortem 3 berlabel Tidak dijalankan", () => {
-    harus("Pencegahannya menyematkan action ke commit SHA penuh, mengunci SHA-256 alat (sudah di lab), dan CODEOWNERS atas file workflow. Tiga pencegahan itu Tidak dijalankan, kecuali checksum alat.");
+    harus("Pencegahannya menyematkan action ke commit SHA penuh (atau lockfile workflow, yang menurut dokumentasi GitHub menggantikannya), mengunci SHA-256 alat (sudah di lab), dan CODEOWNERS atas file workflow. Tiga pencegahan itu Tidak dijalankan, kecuali checksum alat.");
     harus("PR yang hanya mengubah `internal/service` lolos tanpa tes dan SAST, seperti `langkah_untuk` yang mengembalikan daftar kosong di rekaman.");
     harus("Gerbang yang memercayai exit code lulus saat pemindaian gagal, dan basis data kerentanan yang baru membuat api-t4 gagal tanpa perubahan kode, seperti hari ini.");
     harus("Saat tim memakai parameter tingkat path atau `explode` di kontrak. `explode` tidak tertangkap oasdiff di kedua tingkat (`kontrak.txt` bagian C).");
@@ -827,7 +838,7 @@ describe("celah turunan yang ditemukan uji mutasi tanpa kunci: heading, tanggal 
     expect(barisRiset("R4-235")).toContain("diterbitkan 2025-03-15");
     expect(badan.match(/2021-07-12/g)).toHaveLength(1);
     expect(barisRiset("R4-237")).toContain("2021-07-12");
-    expect(badan.match(/2026-10-28/g)).toHaveLength(1);
+    expect(badan.match(/2026-10-28/g)).toHaveLength(2); // terbit oasdiff v1.35.0 dan dibangunnya basis data grype (sbom.txt)
     expect(readme).toContain("oasdiff v1.35.0 terbit 2026-10-28T16:31Z");
     harus("masih terbuka pada 2026-10-30 (GitHub API)");
     expect(barisRiset("R4-237")).toContain("GitHub API 2026-10-30");
@@ -872,7 +883,7 @@ describe("celah turunan yang ditemukan uji mutasi tanpa kunci: heading, tanggal 
     harus("Apa yang dilakukan client Dart terhadap deklarasi itu tidak diuji (Tidak dijalankan).");
     harus("Lab tidak menaikkan Go, karena itu mengubah api-t4 dan semua rekamannya. Itu tugas terpisah. Hasil ini Rekaman lab dengan Go 1.27.1, bukan kelemahan desain.");
     harus("Laras sendiri adalah tokoh cerita, jadi adegan penilaiannya Ilustrasi. Rekamannya adalah hasil alat di tabel itu.");
-    harus("Dengan 20.000 user aktif (Asumsi naskah), jangkauan tiap hari di iOS paling banyak");
+    harus("Dengan 20.000 user aktif (Asumsi naskah), jangkauan pembaruan otomatis di iOS tiap hari paling banyak");
     harus("Itu Hitungan atas jadwal Apple, bila semua user memakai iOS dengan pembaruan otomatis.");
     expect(badan.match(/Rekaman lab/g)).toHaveLength(12);
     expect(sast.split("\n")[1]).toContain("gosec 2.30.0");
@@ -954,7 +965,7 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
   test("versi cosign dan oasdiff di kalimat sama dengan README; nomor masalah di Status sama dengan registry; kejadian M32 dan M34", () => {
     harus(`Tanda tangan image adalah persoalan lain. cosign ${versi("cosign")} menerima tag dengan peringatan, lalu menandatangani digest yang ditunjuk tag saat itu.`);
     harus(`- Naskah menulis tanda tangani digest. cosign ${versi("cosign")} menerima tag dengan peringatan.`);
-    harus(`- Naskah menulis oasdiff belum memeriksa parameter tingkat path dan \`explode\`. Itu benar untuk ${versi("oasdiff")}, tetapi \`--flatten-params\` menutup tingkat path.`);
+    harus(`- Naskah menulis oasdiff belum memeriksa parameter tingkat path dan \`explode\`. Itu benar untuk ${versi("oasdiff")}, tetapi \`--flatten-params\` menutup tingkat path, dan penghapusan parameter hanya tertangkap pada ambang WARN.`);
     const nomorM = (id: string) => cocok(dari(id).label ?? "", /^Masalah (\d+) /)[1];
     harus(`**Status:** diterima sesudah M${nomorM("t4-m32")} dan M${nomorM("t4-m34")}.`);
     expect([nomorM("t4-m32"), nomorM("t4-m34")]).toEqual(["32", "34"]);
@@ -973,7 +984,8 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
     const kritisTakDipanggil = TEMUAN.filter((t) => t[1] === "Critical" && TIDAK_DIPANGGIL.includes(t[0]));
     expect(kritisTakDipanggil.map((t) => t[0])).toEqual(["GO-2026-6604"]);
     harus(`| ${PANGGIL.length} kerentanan stdlib dipanggil kode api-t4 | \`sast.txt\` bagian E | memblok rilis sampai Go naik |`);
-    harus(`| ${kritisTakDipanggil[0]![0]} Critical menurut grype, tetapi menurut ringkasan advisory di Windows dan tidak dipanggil | \`sbom.txt\` bagian C, \`sast.txt\` bagian E | dicatat, tidak memblok sendirian (penalaran penulis) |`);
+    harus(`| ${kritisTakDipanggil[0]![0]}, Critical menurut grype. Ringkasan advisory menyebut Windows, dan govulncheck tidak melaporkannya dipanggil | \`sbom.txt\` bagian C, \`sast.txt\` bagian E | gerbang grype menahannya sampai Go naik (aturan 5); dampak di image Linux masih dugaan (penalaran penulis) |`);
+    expect(tanda.split("\n")[8]).toContain("untuk Linux");
     harus(`${STDLIB.length} − ${PANGGIL.length} = ${STDLIB.length - PANGGIL.length} (Hitungan atas dua daftar). ${kritisTakDipanggil[0]![0]} salah satunya:`);
     harus("| Staging memakai kunci gateway produksi (dugaan) | hanya pemindai atas dua file contoh, bukan kejadiannya | tidak memblok; jalankan pemindai atas konfigurasi staging yang sebenarnya |");
     for (const baris of [
@@ -1044,11 +1056,11 @@ describe("tabel ADR 44, tabel jaga, dan baris riset: sel demi sel dan silang ruj
       [`Keputusan`, `Dipilih`, `Ditolak`, `Kenapa ditolak`],
       [`Tanda tangan image`, `cosign atas digest`, `Tanda tangan atas tag`, `Tag bisa dipindah sebelum ditandatangani (\`tanda-tangan.txt\` bagian C)`],
       [`Gerbang pemindai`, `Membaca keluaran terstruktur dan menolak pemindaian tidak lengkap`, `Memercayai exit code alat`, `Tiga pemindai lulus palsu (\`sast.txt\` bagian B, \`sbom.txt\` bagian B, dokumentasi govulncheck)`],
-      [`Rilis app`, `Bertahap lewat store`, `Rilis ke semua user sekaligus`, `Hari pertama iOS paling banyak 200 dari 20.000 user aktif, lawan 20.000 (Hitungan)`],
+      [`Rilis app`, `Bertahap lewat store`, `Rilis ke semua user sekaligus`, `Hari pertama pembaruan otomatis iOS paling banyak 200 dari 20.000 user aktif, lawan 20.000 (Hitungan)`],
     ]);
   });
   test("tabel jaga: judul kolom memuat batas 25% dari buku SRE; bullet 'aturan 4' menunjuk aturan pemindai kunci", () => {
-    expect(tabelSetelah("jadi tabel ini menghitung pembagian minggu:")[0]).toEqual(["Tim", "Orang", "Minggu jaga per orang", `Terhadap batas ${cocok(barisRiset("R4-238"), /no more than (\d+)% can be spent on-call/)[1]}%`]);
+    expect(tabelSetelah("pembagian minggu dengan satu orang jaga per minggu (Asumsi penulis):")[0]).toEqual(["Tim", "Orang", "Minggu jaga per orang", `Terhadap batas ${cocok(barisRiset("R4-238"), /no more than (\d+)% can be spent on-call/)[1]}%`]);
     const aturan = [...badan.slice(badan.indexOf("**Keputusan: opsi C, dengan sembilan aturan.**"), badan.indexOf("**Belum diputuskan.**")).matchAll(/^(\d+)\. (.+)$/gm)];
     const nomorPemindai = aturan.find((m) => m[2]!.startsWith("Pemindai kunci produksi"))![1];
     harus(`jadi aturan ${nomorPemindai} menambahkannya.`);
@@ -1101,5 +1113,39 @@ describe("nilai terkunci terpisah dari kalimat: profil kata penentu per baris, d
     const prosa = baris.filter((b) => !/^(\||<|```|\{|\)\)|\[|import )/.test(b));
     for (const b of prosa) expect(KALIMAT_TERKUNCI, b.slice(0, 60)).toContain(b);
     expect(prosa.length).toBeGreaterThan(60);
+  });
+});
+
+describe("tinjauan: ambang, tingkat keparahan, pembagian PR dan rilis, dan label turunan", () => {
+  test("kontrak.txt C memakai ambang WARN: penghapusan parameter tingkat path hanya WARN dan tertangkap dengan flatten; halaman dan ADR menulis akibatnya pada ambang ERR", () => {
+    expect(kontrak).toContain("Gerbang di sini memakai ambang WARN");
+    expect(kontrak).toContain("path, --flatten-params     GAGAL  (1 temuan): WARN request-parameter-removed GET /riwayat");
+    expect(kontrak).toContain("path, --flatten-params     GAGAL  (1 temuan): ERR request-parameter-became-required GET /riwayat");
+    expect(kontrak).toContain("path, --flatten-params     GAGAL  (1 temuan): ERR request-parameter-max-decreased GET /riwayat");
+    harus("Di kontrak mini lab, perubahan itu lolos tanpa flag dan tertangkap dengan `--flatten-params` pada ambang WARN, sedangkan ambang ERR tidak menahan penghapusan parameter.");
+    harus("Penghapusan parameter tingkat path hanya WARN, jadi ambang ini tidak menahannya.");
+  });
+  test("langkah atas image berjalan sesudah merge (aturan 1, 5, dan 6), dan pertanyaan Sudah tahu 3 menyebut pindai atas image, bukan govulncheck", () => {
+    harus("Langkah atas image (build, SBOM, pindai, tanda tangan, dan verifikasi digest) berjalan sesudah merge, bukan di PR (aturan 5 dan 6).");
+    harus("3. govulncheck atas api-t4 menemukan 10 kerentanan stdlib walau kodenya tidak diubah. Kenapa pindai kerentanan atas image juga berjalan sesudah merge?");
+    expect(badan).not.toContain("Kenapa pemindaian itu juga berjalan sesudah merge");
+    harus("5. Sesudah merge, CI membangun image, membuat SBOM CycloneDX dengan syft, dan memindainya dengan grype pada ambang High (pilihan lab).");
+    harus("6. Image ditandatangani cosign atas digest dan diverifikasi dengan perbandingan digest hasil build sebelum deploy.");
+  });
+  test("Penalaran penulis didefinisikan di blok Coba sebelum pemakaian pertamanya, dan dipakai hanya sesudahnya", () => {
+    harus("Penalaran penulis berarti kesimpulan dari sumber yang tidak dikutip dari sumber itu.");
+    expect(badan.match(/Penalaran penulis berarti/g)).toHaveLength(1);
+    const def = badan.indexOf("Penalaran penulis berarti");
+    expect(def).toBeGreaterThan(badan.indexOf('<Blok nama="Coba"'));
+    const pakai = [...badan.matchAll(/enalaran (penulis|dari definisi)/g)].map((m) => m.index!).filter((i) => i !== def + 1);
+    expect(pakai.length).toBeGreaterThan(2);
+    for (const i of pakai) expect(i).toBeGreaterThan(def);
+  });
+  test("tingkat keparahan grype: 13 = 2 Critical + 9 High + 2 Unknown dihitung paling berat; Medium tidak ikut", () => {
+    const peta: Record<string, number> = {};
+    for (const [, tingkat] of TEMUAN) peta[tingkat] = (peta[tingkat] ?? 0) + 1;
+    expect(peta).toEqual({ Unknown: 2, Critical: 2, High: 9, Medium: 2 });
+    expect(peta.Critical! + peta.High! + peta.Unknown!).toBe(TINGGI);
+    expect(peta.Critical! + peta.High!).not.toBe(TINGGI);
   });
 });
