@@ -1187,10 +1187,19 @@ describe("penutup celah mutasi tinjauan", () => {
     ];
     for (const u of unsur) expect(r247, u).toContain(u);
     expect(kolom("R4-245", 3)).toContain("teks HTML dibuka 2026-10-30 dengan curl");
+    // ekspresi Tahap 5 di baris hitungan dan masukan registry di baris R4-249, dibaca dari registry dan halaman 4.13
+    expect(r247).toContain(`Tahap 5: ${ribu(a5.user)} × ${a5.aktif}% × ${a5.req} ÷ ${ribu(DETIK)} × ${a5.puncak} = ${kali(h5.puncak, 1)}`);
+    expect(r247).toContain(`${koma(KAP * 0.85, 2)}, ${koma(notif4Tulis, 2)} ÷ ${koma(KAP * 0.85, 2)} = ${Math.round((notif4Tulis / dibaca(koma(KAP * 0.85, 2))) * 100)}% dan ${koma(siang4, 2)} ÷ ${koma(KAP * 0.85, 2)} = ${Math.round((dibaca(koma(siang4, 2)) / dibaca(koma(KAP * 0.85, 2))) * 100)}%`);
+    expect(r247).toContain(`${kali(h5.puncak, 1)} × ${koma(W_DB, 2)} = ${koma(L5, 1)}`);
+    harus("memisahkan angka yang direkam dari angka yang dihitung");
+    harus("Baris koneksi tertahan di tabel berikut memakai W, yaitu lama satu request memegang koneksi.");
     const r249 = kolom("R4-249", 3);
     expect(r249).toContain("`tahap[4].asumsi`");
     expect(r249).toContain(`registry (${TRX5}) tidak sama dengan naskah (${TRX})`);
     expect(r249).toContain("pencarian 2026-10-29 di halaman 4.13");
     expect(r249).toContain(`user ${ribu(a5.user)}`);
+    expect(r249).toContain(`tim "${m5.tim}"`);
+    expect(r249).toContain("Ambang ±50 developer untuk microservices: tidak ada sumber primer");
+    expect(r249).toContain(`Jadi \`trx\` Tahap 5 di registry (${TRX5}) tidak sama dengan naskah (${TRX}); halaman 4.28 memakai ${TRX} dan menulis hasil dengan ${TRX5} di sebelahnya.`);
   });
 });
