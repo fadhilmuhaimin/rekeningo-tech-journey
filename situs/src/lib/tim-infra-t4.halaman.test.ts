@@ -68,7 +68,7 @@ const hal421 = baca("situs/src/content/docs/tahap-4/ssrf.mdx");
 const hal140 = baca("situs/src/content/docs/tahap-1/sengaja-belum.mdx");
 const hal327 = baca("situs/src/content/docs/tahap-3/tim-infra.mdx");
 
-interface H { bagian?: number; id: string; judul: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; path?: string; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
+interface H { bagian?: number; label?: string; id: string; judul: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; path?: string; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
 const hal = cerita.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
