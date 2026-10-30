@@ -371,6 +371,9 @@ describe("kepala dokumen dan tabel PRD v4 ke PRD v5", () => {
     harus("Isi PRD v5 adalah rencana cerita (Ilustrasi): contoh, bukan hasil sistem. Hitungan berarti rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya. Arti label sumber ada di [[A0]].");
     expect(badan.indexOf("Hitungan berarti rumus")).toBeLessThan(badan.indexOf("(Hitungan"));
     expect(badan.indexOf("Hitungan berarti rumus")).toBeLessThan(badan.indexOf("<Tebak"));
+    harus("SRE (site reliability engineer) adalah engineer yang menjaga sistem produksi tetap berjalan, dan POS (point of sale) adalah kasir elektronik di toko.");
+    expect(badan.indexOf("SRE (site reliability engineer)"), "arti SRE dan POS di blok pertama, sebelum tebakan").toBeLessThan(badan.indexOf("<Tebak"));
+    expect(hitung(badan, "SRE (site reliability engineer)")).toBe(1);
     ada(T4("prd-v4.mdx"), "Hitungan adalah rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya.", "4.1");
     expect(cara).toContain("Label sumber");
   });
