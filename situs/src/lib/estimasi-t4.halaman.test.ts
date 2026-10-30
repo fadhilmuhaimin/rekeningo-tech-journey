@@ -1153,6 +1153,19 @@ describe("penutup celah mutasi tinjauan", () => {
     expect(baca("situs/src/content/docs/alat/indeks-topik.mdx")).toContain(`[4.28 Estimasi Tahap 4 → 5](/tahap-4/estimasi/) | Tahap 4 | ${masalah} |`);
     expect(baca("situs/src/content/docs/cerita/tahap-4.mdx")).toContain(`| ${masalah} | [4.28 Estimasi Tahap 4 → 5](/tahap-4/estimasi/) |`);
   });
+  test("tabel 'diputuskan di halaman lain' tidak melampaui ADR 45: pemicu PgBouncer dan service dibaca dari 4.29, komponen Tahap 5 ditunda", () => {
+    const adr = baca("situs/src/content/docs/tahap-4/sengaja-belum.mdx");
+    // ADR 45 memakai angka yang sama dengan halaman ini: 40 dari 100 koneksi, L = 0,579 × 3 = 1,74, 13 orang
+    expect(adr).toContain(`${INST} × ${POOL} + ${INST_BAYAR} × ${POOL_BAYAR} + ${WORKER_DB} + ${ADMIN} + ${CADANGAN} = ${INST * POOL + INST_BAYAR * POOL_BAYAR + WORKER_DB + ADMIN + CADANGAN} dari \`max_connections\` ${MAX_KONEKSI}`);
+    expect(adr).toContain(`L = ${koma(lamTopTulis, 3)} × ${TIMEOUT} = ${koma(lamTopTulis * TIMEOUT, 2)}`);
+    // ADR 45 tidak memutuskan komponen untuk beban Tahap 5 dan tidak menyebut worker 564% atau koneksi tertahan 27,8
+    expect(adr).toContain("Tahap 5 membaca daftar ini terhadap PRD v5, dengan angka tahap itu.");
+    expect(adr).not.toContain(`${Math.round(pakai5 * 100)}%`);
+    expect(adr).not.toContain(koma(L5, 1));
+    harus("Belum diputuskan di Tahap 4. [[t4-adr-45]] menulis pemicu yang ditunda, dan Tahap 5 membacanya dengan angka tahap itu");
+    expect(dari("t4-adr-45").ada).toBe(true);
+    expect(dari("t4-m39").ada).toBe(true);
+  });
   test("baris riset R4-247 sampai R4-249: persamaan berunit, deret L, ambang pool, dan rujukan dihitung ulang dari sumbernya", () => {
     const kolom = (id: string, k: number): string => riset4.split("\n").find((x) => x.startsWith(`| ${id} |`))!.split("|")[k]!.trim();
     const r247 = kolom("R4-247", 3);
