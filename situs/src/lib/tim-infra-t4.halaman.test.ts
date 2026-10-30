@@ -690,7 +690,7 @@ describe("ADR 44: tiga opsi, sembilan aturan, pre-mortem, kapan salah, sengaja b
     harus("**Yang akan merevisinya.** Tahap 5 menaikkan tim dari 13 menjadi 20 sampai 40 orang dalam 5 sampai 7 tim (naskah Tahap 4, jembatan).");
     expect(naskah).toContain("Tim naik dari 13 menjadi 20 sampai 40 orang dalam 5 sampai 7 tim");
     const sengaja = tabelSetelah("### Sengaja belum dilakukan");
-    expect(sengaja.map((r) => r[0])).toEqual(["Yang ditunda", "Keyless signing, Fulcio, dan Rekor", "Provenance SLSA dan atestasi app", "Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS", "Mencocokkan isi response server dengan kontrak", "Aturan \"jalankan semua\" untuk kode bersama", "Menaikkan Go ke 1.27.3", "Client Dart yang dijalankan"]);
+    expect(sengaja.map((r) => r[0])).toEqual(["Yang ditunda", "Keyless signing, Fulcio, dan Rekor", "Provenance SLSA dan atestasi app", "Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS", "Mencocokkan isi response server dengan kontrak", "Aturan \"jalankan semua\" untuk kode bersama", "Menaikkan Go ke 1.27.3", "Client Dart yang dijalankan", "Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC"]);
     expect(sengaja.every((r) => r.length === 3)).toBe(true);
     expect(sengaja[2]).toEqual(["Provenance SLSA dan atestasi app", "Hanya dijelaskan, Tidak dijalankan", "[[t4-adr-45]]"]);
   });
@@ -959,7 +959,7 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
   test("urutan tautan [[id]] di seluruh halaman, satu per satu", () => {
     expect([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1])).toEqual([
       "t4-modul", "t3-tim-infra", "berikutnya", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t1-adr-12", "E1", "E1", "t4-audit", "t3-tim-infra", "t4-rekonsiliasi", "t4-breaker",
-      "t3-tim-infra", "t4-m32", "t4-m34", "t4-prd", "t4-m34", "t4-infra-secret", "t4-ssrf", "t3-tim-infra", "t1-secret", "t2-skema-tanpa-downtime", "t4-modul", "t4-m32", "t4-adr-45", "t4-adr-45",
+      "t3-tim-infra", "t4-m32", "t4-m34", "t4-prd", "t4-m34", "t4-infra-secret", "t4-ssrf", "t3-tim-infra", "t1-secret", "t2-skema-tanpa-downtime", "t4-modul", "t4-m32", "t4-adr-45", "t4-adr-45", "t4-infra-secret",
     ]);
   });
   test("versi cosign dan oasdiff di kalimat sama dengan README; nomor masalah di Status sama dengan registry; kejadian M32 dan M34", () => {
@@ -996,6 +996,7 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
       "| Aturan \"jalankan semua\" untuk kode bersama | Belum diputuskan | Bila PR kode bersama lolos tanpa tes |",
       "| Menaikkan Go ke 1.27.3 | Mengubah api-t4 dan semua rekamannya | Sebelum dibuka ke publik |",
       "| Client Dart yang dijalankan | Hanya kode hasil generasi yang dibaca | Belum dijadwalkan |",
+      "| Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC | Rekaman hanya dua file contoh ([[t4-infra-secret]]). Tidak dijalankan | Belum dijadwalkan |",
     ]) harus(baris);
     expect(baca("labs/api-t4/README.md")).toContain("go1.27.3");
   });
