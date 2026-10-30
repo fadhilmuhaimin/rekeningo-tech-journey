@@ -3718,8 +3718,9 @@
       "lab": [
         "t4-qr"
       ],
-      "ada": false,
-      "nomor": "4.19"
+      "ada": true,
+      "nomor": "4.19",
+      "menit": 23
     },
     {
       "id": "t4-m36",

@@ -265,6 +265,7 @@
 *[proxy keluar]: Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.
 *[Pull request review]: Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.
 *[pull request review]: Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.
+*[QR statis dan dinamis]: QR statis dicetak sekali dan dipakai berulang dengan nominal diisi pembeli; QR dinamis dibuat per pembayaran, nominalnya terikat, dan hanya sekali bayar.
 *[Query plan]: Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.
 *[query plan]: Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.
 *[Queue]: Daftar pekerjaan yang menunggu diproses oleh worker, satu per satu atau paralel.

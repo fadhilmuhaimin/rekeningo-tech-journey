@@ -1,0 +1,44 @@
+{
+  "id": "t4-qr-tebak",
+  "judul": "Payload dengan CRC yang dihitung ulang",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t4-qr/output/crc.txt bagian D dan statis.txt bagian C; pemindai dan pemalsu adalah skrip lab, bukan app"
+  },
+  "adegan": [
+    "Lab mengambil payload QR statis milik Bu Marni, yang memuat nama Toko Sumber Rejeki dan kota Jakarta. Id QR di dalamnya diganti dengan id QR milik Toko Andalan.",
+    "Lalu CRC dihitung ulang dengan rumus terbuka, tanpa key apa pun. Pemindai lab membaca payload itu, lalu menanyakan id QR-nya ke server."
+  ],
+  "pertanyaan": "Apa yang dilakukan pemindai, dan nama apa yang dijawab server?",
+  "pilihan": [
+    {
+      "teks": "Pemindai menolak, karena CRC lama tidak cocok dengan id yang baru.",
+      "benar": false,
+      "alasan": "CRC lama memang tidak cocok, tetapi pemalsu menghitung CRC baru dengan rumus terbuka dan tanpa key, jadi pemindai menerimanya (`crc.txt` bagian D). Payload yang diganti tanpa CRC baru ditolak dengan galat crc."
+    },
+    {
+      "teks": "Pemindai menerima, dan server menjawab nama Toko Andalan, bukan nama di payload.",
+      "benar": true,
+      "alasan": "`statis.txt` bagian C: CRC cocok, dan nama di payload tetap Toko Sumber Rejeki dengan kota Jakarta. Server menjawab nama dan kota dari tabel akun untuk id itu, yaitu Toko Andalan dan Surabaya. Nama di payload ditulis oleh pemegang payload."
+    },
+    {
+      "teks": "Pemindai menerima, dan server menjawab nama Toko Sumber Rejeki, karena server memakai nama yang tertulis di payload.",
+      "benar": false,
+      "alasan": "Server api-t4 tidak membaca payload. Yang diterimanya hanya id QR dan nominal, dan nama dijawab dari tabel akun (`statis.txt` bagian E)."
+    },
+    {
+      "teks": "Server menolak, karena tag 01 bernilai 11 hanya sah untuk QR dinamis.",
+      "benar": false,
+      "alasan": "Tag 01 bernilai 11 untuk QR statis dan 12 untuk QR dinamis. Payload di rekaman memakai 11 dan pemindai menerimanya (`crc.txt` bagian B)."
+    }
+  ],
+  "penutup": "CRC menangkap salah baca, bukan penggantian. Nama dari tabel akun merchant terverifikasi adalah nama yang layak ditampilkan di layar konfirmasi, karena pembeli bisa membandingkannya dengan papan toko.",
+  "label": {
+    "sumber": "Rekaman lab · statis.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
