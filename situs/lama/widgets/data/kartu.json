@@ -3200,6 +3200,46 @@
   "jawab": "Server memeriksa pemegang token, yaitu akun risk lain yang aktif, bukan aksi yang disetujui. Buka blokir Eko dan ubah batas Eko sama-sama dijawab 204 (`persetujuan.txt` bagian D)."
  },
  {
+  "id": "t4-tim-infra-1",
+  "halaman": "t4-tim-infra",
+  "judul": "4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44",
+  "url": "tahap-4/tim-infra/",
+  "tanya": "oasdiff `breaking` pada ambang ERR meloloskan field opsional yang dihapus dari respons. Kenapa, dan apa yang menaikkannya?",
+  "jawab": "Perubahan itu berstatus INFO, dan `breaking` hanya memuat ERR dan WARN. File `--severity-levels` dengan satu baris `response-optional-property-removed err` menaikkannya menjadi error (`kontrak.txt` bagian B)."
+ },
+ {
+  "id": "t4-tim-infra-2",
+  "halaman": "t4-tim-infra",
+  "judul": "4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44",
+  "url": "tahap-4/tim-infra/",
+  "tanya": "`cosign verify` atas tag lulus, padahal tag itu dipindah sebelum ditandatangani. Apa yang menolak image itu?",
+  "jawab": "Perbandingan digest di referensi dengan digest hasil build CI. Di `tanda-tangan.txt` bagian C, verify atas tag lulus dan memuat digest D, sedangkan build CI menghasilkan digest C."
+ },
+ {
+  "id": "t4-tim-infra-3",
+  "halaman": "t4-tim-infra",
+  "judul": "4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44",
+  "url": "tahap-4/tim-infra/",
+  "tanya": "grype menemukan 14 temuan stdlib atas image api-t4, dan govulncheck menemukan 10 yang dipanggil. Berapa yang ada tetapi tidak dipanggil, dan apa contohnya?",
+  "jawab": "14 − 10 = 4 (Hitungan atas dua daftar). GO-2026-6604 salah satunya: grype menandainya Critical, tetapi govulncheck tidak melaporkannya dipanggil, dan ringkasan advisory menyebut Windows."
+ },
+ {
+  "id": "t4-tim-infra-4",
+  "halaman": "t4-tim-infra",
+  "judul": "4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44",
+  "url": "tahap-4/tim-infra/",
+  "tanya": "Satu PR hanya mengubah `internal/service/bayar.go`. Langkah apa yang jalan menurut pemetaan lab?",
+  "jawab": "Tidak ada. `langkah_untuk` mengembalikan daftar kosong untuk kode di luar `internal/modul/<nama>/`. Aturan untuk kode bersama belum diputuskan."
+ },
+ {
+  "id": "t4-tim-infra-5",
+  "halaman": "t4-tim-infra",
+  "judul": "4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44",
+  "url": "tahap-4/tim-infra/",
+  "tanya": "Tim Merchant berempat memakai giliran jaga mingguan, lalu satu orang cuti. Berapa persen minggu jaga tiap orang sebelum dan sesudahnya?",
+  "jawab": "1 ÷ 4 = 25% sebelum, dan 1 ÷ 3 = 33% sesudah. Batas buku SRE adalah 25% waktu (Hitungan atas Asumsi naskah)."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",
