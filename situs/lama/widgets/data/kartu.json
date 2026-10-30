@@ -3200,6 +3200,46 @@
   "jawab": "Server memeriksa pemegang token, yaitu akun risk lain yang aktif, bukan aksi yang disetujui. Buka blokir Eko dan ubah batas Eko sama-sama dijawab 204 (`persetujuan.txt` bagian D)."
  },
  {
+  "id": "t4-rekap-1",
+  "halaman": "t4-rekap",
+  "judul": "4.30 Yang dibawa keluar dari Tahap 4",
+  "url": "tahap-4/rekap/",
+  "tanya": "Event kedua dengan `event_id` lain datang 25 jam sesudah event pertama untuk order yang sama. Lapis mana yang menahan jurnal kedua, dan berapa jurnal tanpa lapis itu?",
+  "jawab": "Status top-up yang hanya maju. Idempotency-Key ledger hidup 24 jam, jadi sesudah 25 jam key itu sudah habis. Tanpa lapis status, event kedua diproses dan jurnalnya 2 (`urutan.txt` bagian G, kasus 4)."
+ },
+ {
+  "id": "t4-rekap-2",
+  "halaman": "t4-rekap",
+  "judul": "4.30 Yang dibawa keluar dari Tahap 4",
+  "url": "tahap-4/rekap/",
+  "tanya": "Breaker membuka sesudah kegagalan keenam, sedangkan satu pekerjaan punya lima percobaan. Berapa dari 10 pekerjaan mati, dan kenapa bukan 0?",
+  "jawab": "Satu pekerjaan mati. Pekerjaan pertama sudah memakai kelima percobaannya sebelum kegagalan keenam, dan breaker baru membuka sesudahnya. Itu berlaku untuk satu worker tanpa jeda antar percobaan (`lajur.txt` bagian B)."
+ },
+ {
+  "id": "t4-rekap-3",
+  "halaman": "t4-rekap",
+  "judul": "4.30 Yang dibawa keluar dari Tahap 4",
+  "url": "tahap-4/rekap/",
+  "tanya": "Dua pemegang URL unggah yang sama mengirim file berbeda. Isi siapa yang tersisa, dan apa yang terjadi sesudah umur URL habis?",
+  "jawab": "Isi pemegang kedua, 90.000 byte, karena PUT kedua menimpa objek tanpa versi lama (`presign.txt` bagian B). Sesudah umur habis, PUT dijawab 403 dan objek tidak berubah (bagian C)."
+ },
+ {
+  "id": "t4-rekap-4",
+  "halaman": "t4-rekap",
+  "judul": "4.30 Yang dibawa keluar dari Tahap 4",
+  "url": "tahap-4/rekap/",
+  "tanya": "Fetcher hanya memeriksa alamat dengan `IsPrivate`. Berapa dari 32 alamat terlarang yang lolos, dan dari angka apa?",
+  "jawab": "29. `IsPrivate` menandai 3 dari 32 alamat itu, jadi 32 − 3 = 29 (Hitungan atas `alamat.txt`). Pemeriksaan alamat versi aman menolak ke-32-nya."
+ },
+ {
+  "id": "t4-rekap-5",
+  "halaman": "t4-rekap",
+  "judul": "4.30 Yang dibawa keluar dari Tahap 4",
+  "url": "tahap-4/rekap/",
+  "tanya": "Baris 5 sampai 8 dari audit log berantai dihapus. Apa jawaban pemeriksaan tanpa jangkar, dan apa dengan file jangkar?",
+  "jawab": "Tanpa jangkar: 4 baris, rantai utuh, exit status 0. Dengan file jangkar: jangkar nomor 6 dijawab baris-hilang, exit status 2 (`jangkar.txt` bagian B)."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

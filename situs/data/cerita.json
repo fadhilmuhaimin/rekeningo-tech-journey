@@ -3986,8 +3986,9 @@
       "prasyarat": [
         "t4-adr-45"
       ],
-      "ada": false,
-      "nomor": "4.30"
+      "ada": true,
+      "nomor": "4.30",
+      "menit": 16
     },
     {
       "id": "t4-jembatan",
