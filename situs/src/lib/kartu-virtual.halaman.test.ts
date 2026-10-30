@@ -13,7 +13,7 @@ import rantai from "../../data/diagram/t4-kartu-inti.json";
 import tebak from "../../data/widget/t4-kartu-tebak.json";
 import registry from "../../data/cerita.json";
 import templat from "../../data/templat.json";
-import { KALIMAT_TERKUNCI, KUNCI_JSON, SIDIK } from "./kartu-virtual.halaman.nilai";
+import { ANGKA_BARIS, ANGKA_JSON, KALIMAT_TERKUNCI, KUNCI_JSON, SIDIK } from "./kartu-virtual.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const baca = (rel: string): string => fs.readFileSync(path.join(akar, rel), "utf8");
@@ -182,7 +182,7 @@ describe("registry, frontmatter, blok, dan rujukan halaman 4.23", () => {
   });
   test("lima blok konsep berurutan, dua pertama terbuka, dan aman hanya di Coba", () => {
     const nama = [...halaman.matchAll(/<Blok nama="([^"]+)"( buka)?( aman="[^"]*")?>/g)];
-    const konsep = (templat.jenis as Record<string, { blok: { nama: string }[]; buka: number }>).konsep!;
+    const konsep = templat.jenis.konsep;
     expect(nama.map((m) => m[1])).toEqual(konsep.blok.map((b) => b.nama));
     expect(nama.map((m) => Boolean(m[2]))).toEqual([true, true, false, false, false]);
     expect(nama.map((m) => Boolean(m[3]))).toEqual([false, true, false, false, false]);
@@ -237,7 +237,7 @@ describe("registry, frontmatter, blok, dan rujukan halaman 4.23", () => {
 
 // ---- 2. Snippet: berkas dan rentang baris diturunkan dari jangkar ---------------------------------
 describe("Snippet: rentang baris diturunkan dari isi berkas sumber", () => {
-  const dari = (rel: string, teks: string, rentang: string, lang?: string, judul?: string) => ({ file: rel, lines: rentang, lang, title: judul });
+  const dari = (rel: string, _teks: string, rentang: string, lang?: string, judul?: string) => ({ file: rel, lines: rentang, lang, title: judul });
   const harapan = [
     dari("labs/t4-kartu/output/otorisasi.txt", OT, sampaiSebelum(OT, "# Lab memegang lock buku Budi (seperti", "clearing AUTH-A Rp80.000: HTTP 200, status ditangkap"), undefined, "Rekaman lab: labs/t4-kartu/output/otorisasi.txt (bagian C)"),
     dari("labs/t4-kartu/output/otorisasi.txt", OT, sampaiSebelum(OT, "AUTH-A Rp80.000: setuju", "# Kontrol: otorisasi ketiga"), undefined, "Rekaman lab: labs/t4-kartu/output/otorisasi.txt (bagian A)"),
@@ -425,6 +425,9 @@ describe("kalimat berangka halaman diturunkan dari rekaman labs/t4-kartu", () =>
     harus("Penagihan Rp150.000 itu tidak punya penutup di ledger");
     harus("Rp60.000 tertahan untuk keputusan yang sudah tolak di sana");
     harus("Rekonsiliasi kartu tetap perlu.");
+    harus("Di versi satu proses, jawaban yang lewat dari tenggat 2 detik tidak punya hold, seperti AUTH-P1 (`penerbit.txt` bagian A). Di jalur dua service, hold bisa sudah ada ketika penerbit menolak, seperti AUTH-P4 (bagian D).");
+    expect(adaBaris(PB.D!.baris, "AUTH-P4 Rp60.000: tolak (sumber: timeout)")).toBe(true);
+    expect(adaBaris(PB.D!.baris, " AUTH-P4     | ditahan | t")).toBe(true);
     harus("Tanpa reversal dari penerbit, hanya job kedaluwarsa sesudah 7 hari yang melepasnya (`penerbit.txt` bagian D).");
   });
   test("dua-service.txt: key = id_penerbit, ulang true, 422, SIGKILL, hold yatim Rp30.000, dan batas harian Rp120.000 lawan Rp100.000", () => {
@@ -689,6 +692,11 @@ describe("ADR 42: tabel opsi, tujuh aturan, pre-mortem, kapan salah, dan Sengaja
     const salah = halaman.slice(halaman.indexOf("**Kapan keputusan ini salah.**"), halaman.indexOf("**Yang akan merevisinya.**"));
     expect((salah.match(/^- /gm) ?? []).length).toBe(6);
     expect(salah).toContain("0,116 otorisasi per detik di puncak, dan L = 0,23 untuk tenggat 2 detik.");
+    const baris44 = naskah.split("\n").find((b) => b.startsWith("| 44 |"))!;
+    expect(baris44).toContain("Rilis app bertahap (R4-22) dan feature flag (ADR 42).");
+    harus("Naskah ADR 44 menyebut rilis app bertahap dan feature flag ADR 42 di pipeline-nya ([[t4-tim-infra]]).");
+    harus("Isi sel Kelebihan, Kekurangan, dan Biaya operasional untuk opsi B dan C adalah penalaran dari desain, tanpa rekaman. Baris Bukti menyebut apa yang direkam.");
+    harus("Selisih baru terlihat saat penagihan ditolak ledger (`otorisasi.txt` bagian B)");
     const sb = potong("| Yang ditunda | Kenapa ditunda | Muncul lagi di |");
     expect(sb.length).toBe(7);
     expect(sb.every((r) => r.length === 3)).toBe(true);
@@ -774,7 +782,7 @@ describe("halaman istilah hold dan kill-switch, glosarium, dan baris RISET R4-22
 });
 
 // ---- 9. kunci kalimat: lapis 2 -------------------------------------------------------------------
-const Label = { rekaman: 17, tidak: 17, asumsi: 15, hitungan: 6, penalaran: 3 };
+const Label = { rekaman: 17, tidak: 17, asumsi: 15, hitungan: 6, penalaran: 4 };
 describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terkunci per baris (lapis 2)", () => {
   const tekstual = (x: unknown, keluar: string[] = []): string[] => {
     if (typeof x === "string") keluar.push(x);
@@ -791,6 +799,9 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
     else if (x && typeof x === "object") for (const y of Object.values(x)) nilaiString(y, keluar);
     return keluar;
   };
+  const angkaToken = (t: string): string[] => t.match(/\d+(?:[.,]\d+)*/g) ?? [];
+  const angkaBaris = halaman.split("\n").filter((b) => b.trim() !== "").map((b, i) => [i, angkaToken(b)] as const).filter(([, t]) => t.length > 0).map(([i, t]) => `${i}|${t.join(" ")}`);
+  const angkaJson = Object.fromEntries(Object.entries({ rantai, tebak, hold: istilahHold, kill: istilahKill }).map(([k, v]) => [k, tekstual(v).map((x, i) => [i, angkaToken(x)] as const).filter(([, t]) => t.length > 0).map(([i, t]) => `${i}|${t.join(" ")}`)]));
   const sekarang = {
     halaman: halaman.split("\n").filter((b) => b.trim() !== ""),
     json: { rantai: tekstual(rantai), tebak: tekstual(tebak), hold: tekstual(istilahHold), kill: tekstual(istilahKill) },
@@ -803,7 +814,7 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
     },
   };
   if (process.env.PERBARUI_KUNCI === "1") {
-    const isi = `// Dihasilkan dari berkas saat ini oleh PERBARUI_KUNCI=1 (lihat kartu-virtual.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\nexport const KALIMAT_TERKUNCI: string[] = ${JSON.stringify(sekarang.halaman, null, 1)};\nexport const KUNCI_JSON: Record<string, string[]> = ${JSON.stringify(sekarang.json, null, 1)};\nexport const SIDIK: Record<string, Record<string, number>> = ${JSON.stringify(sekarang.sidik, null, 1)};\n`;
+    const isi = `// Dihasilkan dari berkas saat ini oleh PERBARUI_KUNCI=1 (lihat kartu-virtual.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\nexport const KALIMAT_TERKUNCI: string[] = ${JSON.stringify(sekarang.halaman, null, 1)};\nexport const KUNCI_JSON: Record<string, string[]> = ${JSON.stringify(sekarang.json, null, 1)};\nexport const SIDIK: Record<string, Record<string, number>> = ${JSON.stringify(sekarang.sidik, null, 1)};\nexport const ANGKA_BARIS: string[] = ${JSON.stringify(angkaBaris, null, 1)};\nexport const ANGKA_JSON: Record<string, string[]> = ${JSON.stringify(angkaJson, null, 1)};\n`;
     fs.writeFileSync(path.join(__dirname, "kartu-virtual.halaman.nilai.ts"), isi);
   }
   (tanpaKunci ? test.skip : test)("setiap baris halaman sama dengan yang dikunci, dalam urutan yang sama", () => {
@@ -814,5 +825,166 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
   });
   test("sidik kata penentu halaman, Rantai, tebakan, dan halaman istilah (kunci agregat, bukan turunan)", () => {
     expect(sekarang.sidik).toEqual(SIDIK);
+  });
+  test("sidik angka: deretan angka tiap baris halaman dan tiap string JSON tidak berubah (jalan juga tanpa kunci kalimat)", () => {
+    expect(angkaBaris).toEqual(ANGKA_BARIS);
+    expect(angkaJson).toEqual(ANGKA_JSON);
+  });
+});
+
+// ---- 10. struktur halaman dan isi JSON per sel: berjalan juga tanpa kunci kalimat ---------------------
+describe("struktur halaman, sel tabel, dan isi JSON diperiksa per bagian (tanpa kunci kalimat)", () => {
+  const tabelDari = (awalan: string): string[][] => {
+    const keluar: string[][] = [];
+    for (const b of halaman.slice(halaman.indexOf(awalan)).split("\n")) { if (!b.startsWith("|")) break; keluar.push(b.split("|").slice(1, -1).map((x) => x.trim())); }
+    return keluar;
+  };
+  test("judul bagian: tingkat dan teks, dan tidak ada tingkat yang meloncat", () => {
+    const judul = [...halaman.matchAll(/^(#{2,6}) (.+)$/gm)].map((m) => `${m[1]} ${m[2]}`);
+    expect(judul).toEqual([
+      "## Inti",
+      "### Kenapa ini ada",
+      "### Cara kerjanya",
+      "### ADR 42: hold di ledger lewat satu panggilan, lock_timeout 1 detik, kill switch",
+      "### Sengaja belum dilakukan",
+      "### Cek diri",
+      "### Saat me-review kode AI, cek ini",
+      "### Bacaan lanjut",
+    ]);
+  });
+  test("kotak lipat: kelas dan ringkasan, dan daftar bernomor berurutan dari 1 per kelompok", () => {
+    expect([...halaman.matchAll(/<details class="([a-z]+)">\n<summary>([^<]+)<\/summary>/g)].map((m) => `${m[1]}|${m[2]}`)).toEqual([
+      "question|Sudah tahu? Cek 3 pertanyaan",
+      "success|Jawaban", "success|Jawaban", "success|Jawaban", "success|Jawaban",
+    ]);
+    expect((halaman.match(/<\/details>/g) ?? []).length).toBe(5);
+    const kelompok: number[][] = [];
+    let kini: number[] = [];
+    for (const b of halaman.split("\n")) {
+      const m = b.match(/^(\d+)\. /);
+      if (m) kini.push(Number(m[1]));
+      else if (b.trim() === "" || b.startsWith("**") || b.startsWith("<")) { if (kini.length && b.trim() !== "") { kelompok.push(kini); kini = []; } }
+      else if (!/^ {2,}/.test(b) && kini.length) { kelompok.push(kini); kini = []; }
+    }
+    if (kini.length) kelompok.push(kini);
+    for (const k of kelompok) expect(k, `daftar ${k.join(",")}`).toEqual(k.map((_, i) => i + 1));
+    expect(kelompok.map((k) => k.length)).toEqual([3, 8, 7, 3]);
+    expect([...halaman.matchAll(/^\*\*(\d)\.\*\* /gm)].map((m) => m[1])).toEqual(["1", "2", "3", "4"]);
+  });
+  test("tabel ADR: tiap sel memuat potongan kuncinya (sel yang tertukar antar baris atau kolom gagal)", () => {
+    const t = tabelDari("| | A. Cek saldo tanpa menahan");
+    const kunci: string[][] = [
+      ["menjawab setuju tanpa menulis ke buku", "saldo dikurangi hold", "ditolak, tanpa menunggu", "jurnal tahan, key = id_penerbit"],
+      ["Tidak ada lock, jadi handler tidak menunggu", "Otorisasi tidak menyentuh buku ledger", "Jawaban tidak pernah menunggu lock", "saldo tetap jumlah posting"],
+      ["penagihan kedua ditolak ledger", "Dua sumber kebenaran untuk uang yang sama", "Menolak user sah tiap kali", "`lock_timeout` berlaku per penantian"],
+      ["Selisih baru terlihat saat penagihan ditolak ledger", "Rekonsiliasi antara kolom dan ledger", "Rasio tolak naik saat buku sibuk", "Alert untuk rasio tolak sibuk (Asumsi)"],
+      ["tiga setuju", "Tidak dijalankan", "Tidak dijalankan sebagai opsi tersendiri", "`kill-switch.txt`"],
+    ];
+    expect(t.length).toBe(7);
+    kunci.forEach((baris, r) => baris.forEach((frag, c) => expect(t[r + 2]![c + 1], `sel ${r + 2},${c + 1}`).toContain(frag)));
+    expect(t[6]![2]).toBe("Tidak dijalankan");
+    expect(t.slice(2).map((r) => r[0])).toEqual(["Cara kerja", "Kelebihan", "Kekurangan", "Biaya operasional", "Bukti"]);
+  });
+  test("tabel Sengaja belum: tiap sel tepat per baris dan kolom", () => {
+    const t = tabelDari("| Yang ditunda |");
+    expect(t.slice(2)).toEqual([
+      ["Job rekonsiliasi kartu: penerbit lawan `otorisasi_kartu`, dan hold tanpa baris", "Lab membandingkan lewat SQL, dan job belum ada", "Belum dijadwalkan"],
+      ["Flag kill switch di luar proses atau di tabel", "Di lab flag di memori satu proses, dan keputusan produknya belum final", "[[t4-tim-infra]]"],
+      ["Serialisasi batas harian di jalur dua service", "Celah ditemukan lab dan tidak ditutup", "Belum dijadwalkan"],
+      ["Perlakuan penagihan atas otorisasi yang ditolak atau tidak dikenal", "Keputusan produk: didebit, ditolak, atau insiden bernomor", "Belum dijadwalkan"],
+      ["Rilis bertahap 1%, 5%, 25%, 100%", "Tidak dijalankan di lab, dan angkanya Asumsi", "[[t4-tim-infra]]"],
+    ]);
+  });
+  test("Rantai: seluruh isi sama dengan yang diturunkan dari rekaman", () => {
+    expect(rantai).toEqual({
+      id: "t4-kartu-inti",
+      judul: `Dua otorisasi ${rp(jumlah)} untuk saldo ${rp(saldoAwal)}, tanpa dan dengan hold`,
+      sumber: { jenis: "rekaman", teks: "Rekaman lab t4-kartu, otorisasi.txt A, B, dan C" },
+      baris: [
+        { label: "Tanpa hold", sub: "versi pertama", simpul: [
+          { teks: "A dan B setuju", sub: `keduanya ${rp(jumlah)}` },
+          { teks: `saldo tetap ${rp(saldoAwal)}`, sub: "tak ada jurnal tahan" },
+          { teks: "penagihan B ditolak", sub: "409 dari ledger", nada: "warn" },
+        ] },
+        { label: "Dengan hold", sub: "ADR 42", simpul: [
+          { teks: `A setuju, hold ${rp(jumlah)}`, sub: "jurnal tahan" },
+          { teks: `saldo jadi ${rp(sisa)}`, sub: "dibaca B sesudah lock" },
+          { teks: "B ditolak saldo kurang", sub: "tanpa jurnal", nada: "good" },
+        ] },
+      ],
+      catatan: "Penerbit adalah proses tiruan lokal. Di baris pertama kedua otorisasi serentak, dengan jeda 300 ms di antara cek dan tulis yang hanya ada di lab. Di baris kedua lab memegang lock buku Budi dan mengantrekan A lebih dulu, lalu B.",
+    });
+  });
+  test("tebakan: seluruh isi sama dengan yang diturunkan dari rekaman", () => {
+    expect(tebak).toEqual({
+      id: "t4-kartu-tebak",
+      judul: `Dua otorisasi ${rp(jumlah)} untuk saldo ${rp(saldoAwal)}, dengan hold`,
+      sumber: { jenis: "rekaman", teks: "labs/t4-kartu/output/otorisasi.txt bagian C" },
+      adegan: [
+        `Saldo Budi ${rp(saldoAwal)} dan satu kartu virtual. Rekeningo menahan dana sebelum menjawab setuju.`,
+        `Lab memegang lock buku Budi, seperti transaction lain yang sedang berjalan. AUTH-A (${rp(jumlah)}) mengantre di lock itu, lalu AUTH-B (${rp(jumlah)}), lalu lab melepas lock.`,
+      ],
+      pertanyaan: "Apa jawaban Rekeningo untuk AUTH-B?",
+      pilihan: [
+        { teks: `Setuju. Saldo ${rp(saldoAwal)} cukup untuk ${rp(jumlah)}, dan AUTH-A belum ditagih.`, benar: false,
+          alasan: `Itu jawaban versi pertama, tanpa hold (bagian A): saldo yang dibaca AUTH-B tetap ${rp(saldoAwal)}. Di versi ini AUTH-A sudah menahan ${rp(jumlah)} sebelum dijawab setuju.` },
+        { teks: `Tolak karena sibuk. AUTH-B tidak mendapat lock dalam ${LOCK} detik, lalu menyerah.`, benar: false,
+          alasan: `Rekaman bagian C menjawab saldo-kurang, bukan sibuk. Jawaban sibuk hanya muncul bila lock tidak didapat dalam lock_timeout ${LOCK} detik, seperti di tenggat.txt bagian A.` },
+        { teks: `Tolak karena saldo kurang. AUTH-B membaca ${rp(sisa)} sesudah lock.`, benar: true,
+          alasan: `AUTH-A menahan ${rp(jumlah)} lewat jurnal tahan, jadi saldo Budi ${rp(sisa)} saat AUTH-B mendapat giliran. Saldo dibaca sesudah lock, bukan sebelum mengantre.` },
+        { teks: "Setuju oleh penerbit sendiri, karena jawaban Rekeningo terlambat dari tenggat.", benar: false,
+          alasan: `Itu keadaan lain: jawaban lewat dari tenggat. Rekaman ini memakai tenggat ${tenggatOtorisasi} detik, dan sumber jawaban AUTH-B adalah rekeningo.` },
+      ],
+      penutup: "Hold membuat urutan di lock menentukan siapa yang melihat saldo sisa. Tanpa hold, urutan tidak berpengaruh: otorisasi ketiga yang datang sesudah dua yang pertama selesai pun disetujui.",
+      label: { sumber: "Rekaman lab · otorisasi.txt", tebakDulu: "Tebak dulu:", benar: "Tepat", belum: "Belum tepat", ulang: "Coba pilihan lain", jawaban: "Jawaban yang tepat" },
+    });
+  });
+  test("halaman istilah hold dan kill-switch: seluruh isi, tautan sumber ada di halaman, dan istilah terkait ada di glosarium", () => {
+    expect(istilahHold).toEqual({
+      istilah: "Hold (dana tertahan)",
+      sehari_hari: "Hold adalah dana yang dipisahkan sementara dari saldo untuk satu otorisasi kartu. Dana itu belum berpindah ke toko, tetapi otorisasi berikutnya tidak bisa memakainya lagi. Hold dilepas saat ditagih, dibatalkan, atau kedaluwarsa.",
+      cerita: [{ rujukan: "t4-kartu", teks: `Tanpa hold, dua otorisasi ${rp(jumlah)} untuk saldo ${rp(saldoAwal)} sama-sama disetujui. Dengan hold, otorisasi pertama menahan ${rp(jumlah)}, dan yang kedua membaca saldo ${rp(sisa)} lalu ditolak (\`otorisasi.txt\` bagian A dan C).` }],
+      mekanisme: [
+        "Otorisasi datang. Handler memasang `lock_timeout`, mengunci buku pemilik kartu, dan membaca saldo sesudah lock.",
+        "Bila saldo cukup, satu jurnal `kartu_tahan` memindahkan jumlah itu dari buku pemilik ke buku sistem `dana_tertahan`. Saldo pemilik berkurang pada saat itu juga (`otorisasi.txt` bagian C).",
+        "Penagihan, yang disebut clearing, memindahkan dana dari `dana_tertahan` ke buku `settlement_kartu` (`otorisasi.txt` bagian C).",
+        "Hold yang tidak ditagih dilepas lewat jurnal pembalik sesudah 7 hari (Asumsi). Job pelepasnya aman dijalankan berulang (`kedaluwarsa.txt` bagian A dan B).",
+      ],
+      stack: null,
+      jebakan: [
+        `Mengira hold hanya status di baris otorisasi. Di versi pertama baris berstatus \`ditahan\`, tetapi \`ada_jurnal_tahan\` bernilai \`f\`, dan saldo yang dibaca otorisasi berikutnya tetap ${rp(saldoAwal)} (\`otorisasi.txt\` bagian A).`,
+        "Hold di ledger tanpa baris otorisasi. Bila service pembayaran mati sesudah ledger menahan dan penerbit tidak mengulang, Rp30.000 tertahan dan job kedaluwarsa tidak melihatnya (`dua-service.txt` bagian B).",
+      ],
+      terkait: ["Ledger", "Jurnal", "Lock"],
+      sumber: [
+        { judul: "Rekaman lab t4-kartu: tanpa hold lawan dengan hold", rekaman: "labs/t4-kartu/output/otorisasi.txt", catatan: `Bagian A: tiga persetujuan ${rp(jumlah)} untuk saldo ${rp(saldoAwal)} tanpa jurnal tahan. Bagian C: jurnal tahan dan penolakan saldo-kurang.` },
+        { judul: "Rekaman lab t4-kartu: kedaluwarsa hold 7 hari", rekaman: "labs/t4-kartu/output/kedaluwarsa.txt", catatan: "Jam maya, satu pelepasan walau dua job berjalan, dan hold yang sudah ditagih tidak dilepas." },
+        { riset: "R4-221", judul: "Stripe Issuing: real-time authorizations", url: "https://docs.stripe.com/issuing/controls/real-time-authorizations", catatan: "Jumlah yang ditahan bisa diatur bila is_amount_controllable bernilai true. Dibuka 30 Oktober 2026." },
+      ],
+    });
+    expect(istilahKill).toEqual({
+      istilah: "Kill switch",
+      sehari_hari: "Kill switch adalah sakelar untuk mematikan satu fitur seketika, tanpa deploy dan tanpa memulai ulang server. Ia berupa feature flag yang dibaca tiap kali fitur dipakai. Yang mematikannya biasanya petugas yang berwenang, dengan alasan yang tercatat.",
+      cerita: [{ rujukan: "t4-kartu", teks: "Ratih dari tim risk mematikan flag kartu. Otorisasi baru dijawab tolak `kill-switch` oleh proses yang sama, sedangkan otorisasi Rp50.000 yang sudah disetujui tetap bisa ditagih (`kill-switch.txt` bagian A)." }],
+      mekanisme: [
+        "Flag dibaca di awal tiap otorisasi, sebelum kartu dan saldo diperiksa. Bila mati, jawabannya tolak dengan alasan `kill-switch`, dan tidak ada baris atau hold yang ditulis (`kill-switch.txt` bagian A dan C).",
+        "Flag diubah lewat rute back office untuk peran risk. Alasan wajib, dan audit log mencatat aksinya sebelum flag berubah (`kill-switch.txt` bagian A).",
+        "Otorisasi yang sudah disetujui tidak dibatalkan, jadi penagihannya tetap diterima (`kill-switch.txt` bagian A).",
+        "Di lab, flag adalah penanda di memori satu proses. Sesudah proses dimulai ulang, flag kembali aktif (`kill-switch.txt` bagian B).",
+      ],
+      stack: null,
+      jebakan: [
+        "Menyimpan flag di memori proses. Proses yang dimulai ulang kembali aktif tanpa ada yang menyalakannya, dan tiap instance punya flag sendiri (`kill-switch.txt` bagian B, dibaca dari kode untuk dua instance).",
+        "Mengira kill switch menarik persetujuan yang sudah keluar. Ia hanya menolak otorisasi baru.",
+      ],
+      terkait: ["Canary", "Circuit breaker"],
+      sumber: [
+        { judul: "Rekaman lab t4-kartu: kill switch tanpa deploy", rekaman: "labs/t4-kartu/output/kill-switch.txt", catatan: "Bagian A: flag mati menolak otorisasi baru dalam proses yang sama. Bagian B: flag kembali aktif sesudah proses dimulai ulang. Bagian C: service pembayaran." },
+        { riset: "R4-222", judul: "OpenFeature: rilis spesifikasi", url: "https://github.com/open-feature/spec/releases", catatan: "Rilis spesifikasi tertinggi v0.9.0 dan belum ada rilis 1.0. Lab tidak memakai OpenFeature. Dibuka 30 Oktober 2026." },
+      ],
+    });
+    const tautanHalaman = new Set([...halaman.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((m) => m[1]));
+    for (const i of [istilahHold, istilahKill]) for (const sb of i.sumber) if (sb.url) expect(tautanHalaman.has(sb.url), sb.url).toBe(true);
+    for (const t of [...istilahHold.terkait, ...istilahKill.terkait]) expect(glosarium, t).toMatch(new RegExp(`^\\| \\*\\*${t.replace(/[()]/g, "\\$&")}\\*\\*`, "m"));
   });
 });

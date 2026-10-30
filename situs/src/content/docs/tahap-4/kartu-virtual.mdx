@@ -200,8 +200,10 @@ Bebannya 1.000 otorisasi per hari: 5% dari 20.000 user aktif, satu otorisasi tia
 | Cara kerja | Handler membaca saldo dan status kartu, lalu menjawab setuju tanpa menulis ke buku | Tabel kartu menyimpan saldo tersedia, yaitu saldo dikurangi hold, dan mengubahnya tiap otorisasi, clearing, dan reversal | Otorisasi yang tidak langsung mendapat lock buku ditolak, tanpa menunggu | Satu transaction di ledger: lock buku, saldo dibaca sesudah lock, jurnal tahan, key = id_penerbit |
 | Kelebihan | Tidak ada lock, jadi handler tidak menunggu | Otorisasi tidak menyentuh buku ledger | Jawaban tidak pernah menunggu lock | Persetujuan hanya sesudah dana tertahan, dan saldo tetap jumlah posting |
 | Kekurangan | Dua otorisasi di bawah saldo sama-sama disetujui, dan penagihan kedua ditolak ledger | Dua sumber kebenaran untuk uang yang sama, dan bertentangan dengan saldo = jumlah posting (penalaran dari desain ledger) | Menolak user sah tiap kali ada transaction lain di buku yang sama | Menunggu lock sampai 1 detik, dan `lock_timeout` berlaku per penantian |
-| Biaya operasional | Rekonsiliasi hanya menemukan selisih sesudah penagihan | Rekonsiliasi antara kolom dan ledger, dan dua tempat yang harus diubah bersama | Rasio tolak naik saat buku sibuk | Alert untuk rasio tolak sibuk (Asumsi), job kedaluwarsa, dan rekonsiliasi kartu yang belum ada |
+| Biaya operasional | Selisih baru terlihat saat penagihan ditolak ledger (`otorisasi.txt` bagian B) | Rekonsiliasi antara kolom dan ledger, dan dua tempat yang harus diubah bersama | Rasio tolak naik saat buku sibuk | Alert untuk rasio tolak sibuk (Asumsi), job kedaluwarsa, dan rekonsiliasi kartu yang belum ada |
 | Bukti | Rekaman lab `otorisasi.txt` A dan B: tiga setuju, Rp240.000 | Tidak dijalankan | Tidak dijalankan sebagai opsi tersendiri; jawaban sibuk yang sama direkam lewat `lock_timeout` (`tenggat.txt` A) | Rekaman lab `otorisasi.txt` C dan D, `tenggat.txt`, `dua-service.txt`, `kedaluwarsa.txt`, `kill-switch.txt` |
+
+Isi sel Kelebihan, Kekurangan, dan Biaya operasional untuk opsi B dan C adalah penalaran dari desain, tanpa rekaman. Baris Bukti menyebut apa yang direkam.
 
 **Keputusan: opsi D.** Tujuh aturan:
 
@@ -225,7 +227,7 @@ Batasnya: itu dokumentasi satu penyedia, bukan studi, dan tidak memuat angka keg
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
-1. Penerbit memutuskan sendiri karena jawaban terlambat. Jawaban yang lewat dari tenggat 2 detik tidak punya hold, seperti AUTH-P1 (`penerbit.txt` bagian A). Pencegahannya `lock_timeout` di bawah tenggat dan batas seluruh panggilan 1,5 detik, tetapi batas kedua hanya ada di jalur dua service. Rekonsiliasi kartu menemukan selisihnya, dan jobnya belum ada.
+1. Penerbit memutuskan sendiri karena jawaban terlambat. Di versi satu proses, jawaban yang lewat dari tenggat 2 detik tidak punya hold, seperti AUTH-P1 (`penerbit.txt` bagian A). Di jalur dua service, hold bisa sudah ada ketika penerbit menolak, seperti AUTH-P4 (bagian D). Pencegahannya `lock_timeout` di bawah tenggat dan batas seluruh panggilan 1,5 detik, tetapi batas kedua hanya ada di jalur dua service. Rekonsiliasi kartu menemukan selisihnya, dan jobnya belum ada.
 2. Hold yatim menahan dana user. Proses pembayaran yang mati sesudah ledger menahan dan penerbit tidak mengulang menyisakan hold tanpa baris (`dua-service.txt` bagian B: Rp30.000 untuk saldo Rp100.000). Pencegahannya rekonsiliasi hold di ledger tanpa baris, yang belum ada.
 3. Kill switch tidak menolong saat dibutuhkan. Flag hilang saat proses dimulai ulang, dan instance lain punya flag sendiri (`kill-switch.txt` bagian B). Pencegahannya flag di luar proses, yang di lab Tidak dijalankan dan keputusan produknya belum final.
 
@@ -238,7 +240,7 @@ Batasnya: itu dokumentasi satu penyedia, bukan studi, dan tidak memuat angka keg
 - Saat batas harian harus ketat di jalur dua service. Rp120.000 disetujui untuk batas Rp100.000 (`dua-service.txt` bagian C).
 - Saat Rekeningo berjalan di lebih dari satu instance. Kill switch di memori tidak lintas instance (dibaca dari kode, tidak direkam).
 
-**Yang akan merevisinya.** [[t4-tim-infra]] memasang rilis bertahap di atas feature flag ADR 42. Batas flag di memori proses harus dijawab di sana atau di tahap berikutnya, dan itu belum diputuskan. Tidak ada ADR yang dijadwalkan untuk rekonsiliasi kartu dan batas harian dua service, jadi keduanya ditulis di tabel berikut.
+**Yang akan merevisinya.** Naskah ADR 44 menyebut rilis app bertahap dan feature flag ADR 42 di pipeline-nya ([[t4-tim-infra]]). Batas flag di memori proses harus dijawab di sana atau di tahap berikutnya, dan itu belum diputuskan. Tidak ada ADR yang dijadwalkan untuk rekonsiliasi kartu dan batas harian dua service, jadi keduanya ditulis di tabel berikut.
 
 ### Sengaja belum dilakukan
 
