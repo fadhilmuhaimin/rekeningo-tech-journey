@@ -3930,8 +3930,9 @@
       "prasyarat": [
         "t4-tim-infra"
       ],
-      "ada": false,
-      "nomor": "4.27"
+      "ada": true,
+      "nomor": "4.27",
+      "menit": 13
     },
     {
       "id": "t4-estimasi",
