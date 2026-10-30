@@ -172,6 +172,12 @@ describe("angka beban, hitungan, dan ambang diturunkan dari registry, naskah, da
     expect(bebanTxt).toContain("Bukan klaim kapasitas produksi.");
     expect(bebanTxt).toContain("Dijalankan di laptop lab: bukan kapasitas produksi.");
     expect(badan).toContain(`tambahan p95 lewat HTTP di bawah ${anggaranMs} ms, ya (batas di localhost satu mesin; nilai mentah tidak direkam)`);
+    expect(latensiTxt).toContain("# --- A. Tambahan latensi HTTP internal");
+    expect(bebanTxt).toContain("# --- A. 20 detik pada 138.9 permintaan per detik");
+    expect(badan).toContain("Rekaman lab `latensi.txt` bagian A: tambahan p95");
+    expect(badan).toContain("Rekaman lab `latensi.txt` bagian A memeriksa tambahan p95 di bawah 50 ms");
+    expect(badan).toContain("Rekaman lab `beban.txt` bagian A: p95 di bawah");
+    expect(badan).toContain("(`beban.txt` bagian A)");
     expect(badan).toContain(`p95 di bawah ${p95Lab} ms pada ${fmt(rpsT, 1)} request per detik, ya (batas lab di laptop)`);
     expect(badan).toContain(`melewati ${p95Lab} ms (batas lab, Asumsi)`);
     expect(badan).toContain("Ambang 70 koneksi dan 100 pesan per detik adalah Asumsi [[t3-adr-33]]");
@@ -305,6 +311,13 @@ describe("rekaman, kontrak, dan kode lab yang dikutip halaman", () => {
     const tampil = [kodeMain.slice(awalPool, akhirPool + 1), kodeLatensi.slice(awalAng, constAng + 1), kodeLatensi.slice(awalCek, awalCek + 3),
       kodeOidc.slice(kodeOidc.indexOf("[start:verifikasi]"), kodeOidc.indexOf("[end:verifikasi]")).split("\n")].map((x) => x.join("\n")).join("\n");
     expect(tampil).not.toMatch(/\bR\d-\d{2,3}\b|keputusan \d{3,4}|PR #?\d+|tinjauan/);
+  });
+  test("versi pgx di halaman, tautan, dan baris riset sama dengan go.mod api-t4", () => {
+    const versi = cari(/github\.com\/jackc\/pgx\/v5 (v[\d.]+)/, baca("labs/api-t4/go.mod"), "pgx di go.mod")[1]!;
+    expect(versi).toBe("v5.11.0");
+    expect(badan).toContain(`[pgx ${versi}](https://github.com/jackc/pgx/blob/${versi}/conn.go)`);
+    expect(barisRiset("R4-254")).toContain(`pgx ${versi} (versi yang dipakai lab, go.mod), github.com/jackc/pgx/blob/${versi}/conn.go`);
+    expect(latensiTxt.split("\n")[1]).toContain(`pgx ${versi}`);
   });
   test("klaim 'tidak ada': sebelas folder lab Tahap 4, jenis file yang disebut halaman, di luar output; api-t4 untuk bff dan login sosial", () => {
     const folder = ["api-t4", ...["audit", "infra", "integrasi", "kartu", "modul", "pipeline", "qr", "ssrf", "storage", "webhook"].map((x) => `t4-${x}`)];
@@ -509,6 +522,7 @@ describe("diagram Inti dan Tebak: nilai diturunkan dari hitungan, bukan ditulis 
     expect(rantai.sumber.teks).toBe(`Hitungan atas Asumsi naskah Tahap 4; pemicu ${pemicuKoneksi} adalah Asumsi ADR 33 dan pemicu ${ambangL} Asumsi ADR 21`);
     expect(rantai.catatan).toBe("Dua dari empat pemicu berupa angka beban. Keduanya masih di bawah pemicu; kapasitas satu server belum diukur di server sungguhan, jadi jarak ini hitungan, bukan bukti.");
     expect(badan).toContain("Delapan penundaan punya pemicu tertulis, dan kapasitas satu server belum diukur.");
+    expect(badan).toContain("Ia perlu tahu bahwa itu keputusan, bukan kelupaan.");
   });
   test("tebak: empat pilihan, tepat satu benar dan itu rasio terbesar, di posisi ketiga dan bukan yang terpanjang; alasan memuat hitungannya", () => {
     expect(tebak.pilihan).toHaveLength(4);
