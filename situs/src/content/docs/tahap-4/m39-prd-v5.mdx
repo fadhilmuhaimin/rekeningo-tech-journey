@@ -104,7 +104,7 @@ Laju terukur dalam 15% dari 13,33 per detik, dan nilainya tidak direkam. Rekaman
 
 Angka itu batas bawah. Pada puncak worker yang sama juga mengirim 7,52 notifikasi uang per detik, jadi tersisa 13,33 − 7,52 = 5,81 per detik.
 
-**"Tidak sesak" berarti L kecil.** L adalah rata-rata jumlah koneksi yang sedang dipegang. Rumusnya L = λ × W, dengan λ request per detik dan W lama satu request memegang koneksi ([[t3-pool]]). Dengan W 20 ms (Asumsi dari [[t3-m28]]; api-t4 tidak merekam W), L = 138,9 × 0,02 = 2,78 koneksi dari pool 10.
+**"Tidak sesak" berarti L kecil.** L adalah rata-rata jumlah koneksi yang sedang dipegang. Rumusnya L = λ × W, dengan λ request per detik dan W lama satu request memegang koneksi ([[t3-pool]]). Dengan W 20 ms (Asumsi dari [[t3-m28]]; api-t4 tidak merekam W), L = 138,9 × 0,02 = 2,78 koneksi dari pool 10 (Hitungan; W Asumsi).
 
 Pool 10 baru terdesak bila L melebihi 9. Itu terjadi pada 9 ÷ 0,02 = 450 request per detik, yaitu 3,24 kali puncak 138,9 (Hitungan untuk kedatangan berjadwal tetap). Kedatangan acak mengantre lebih awal.
 

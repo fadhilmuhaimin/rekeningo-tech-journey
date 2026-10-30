@@ -350,7 +350,7 @@ describe("angka beban: dari asumsi registry dan rumus, semuanya berlabel Asumsi 
     expect((hp * T_KIRIM) / SERENTAK / 60).toBeLessThan(hp / (KAPASITAS - notif4) / 60);
   });
   test("L dan pool: L = 138,9 × 0,02 = 2,78 dari pool 10; terdesak bila L melebihi 9, pada 450 per detik = 3,24 kali puncak; W Asumsi dari 3.28 dan tidak direkam di api-t4", () => {
-    harus(`Dengan W 20 ms (Asumsi dari [[t3-m28]]; api-t4 tidak merekam W), L = ${koma(T4.puncak, 1)} × ${koma(W, 2)} = ${koma(L4, 2)} koneksi dari pool ${POOL}.`);
+    harus(`Dengan W 20 ms (Asumsi dari [[t3-m28]]; api-t4 tidak merekam W), L = ${koma(T4.puncak, 1)} × ${koma(W, 2)} = ${koma(L4, 2)} koneksi dari pool ${POOL} (Hitungan; W Asumsi).`);
     harus(`Pool ${POOL} baru terdesak bila L melebihi ${BATAS_L}. Itu terjadi pada ${BATAS_L} ÷ ${koma(W, 2)} = ${ribu(BATAS_L / W)} request per detik, yaitu ${koma(BATAS_L / W / T4.puncak, 2)} kali puncak ${koma(T4.puncak, 1)} (Hitungan untuk kedatangan berjadwal tetap).`);
     expect(koma(BATAS_L / W / T4.puncak, 2)).toBe("3,24");
     expect(koma(L4, 2)).toBe("2,78");
@@ -844,5 +844,61 @@ describe("riset: baris milik halaman ini ada tanpa ID ganda dan tidak tampil ke 
     const urut = id.filter((x) => /^R4-2\d\d$/.test(x)).map((x) => Number(x.slice(3)));
     expect(urut).toEqual([...urut].sort((a, b) => a - b));
     expect(badan).not.toMatch(/\bR4-\d+\b/);
+  });
+});
+
+describe("kalimat klaim kunci: ditulis di tes, bukan dibangkitkan dari halaman, supaya mutasi yang membangkitkan ulang kunci kata tetap gagal", () => {
+  const p = koma(T4.puncak, 1);
+  const naskahM39 = barisMdxBaris("M39");
+  test("gejala, dugaan, dan tebakan: kalimat berisi sebab, label, dan batas", () => {
+    harus("Pak Hadi membuka laporan rekonsiliasi hari ke-14 berturut-turut ([[t4-rekonsiliasi]]). Tiap hari selisihnya Rp0, atau insiden yang muncul sudah tertutup dalam satu hari kerja.");
+    harus("berasal dari naskah. Naskah menulisnya sebagai target (Asumsi), tanpa rekaman yang mengulangnya.");
+    harus("Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].");
+    harus("Raka, Bayu, dan Nadia membaca daftar PRD v5 dan mengira bebannya naik lagi. Masing-masing mengusulkan jawaban yang sudah ia kenal.");
+    harus(`Ketiganya mengira kapasitas yang kurang. Satu rekaman beban Tahap 4 bisa memeriksanya: lab menjadwalkan ${p} request per detik selama ${LAMA} detik ke satu proses API di satu laptop.`);
+    harus(`<summary>Tebak dulu: p95 di bawah 500 ms pada ${p} request per detik. Apa yang dibuktikan hasil itu untuk server produksi dan PRD v5?</summary>`);
+    harus("Hasil itu bukan kapasitas produksi, dan tidak menjalankan laporan merchant, notifikasi massal, atau tim yang lebih besar.");
+    expect(cocok(naskahM39, /\| Perlu server lebih besar, Kubernetes, atau satu service per modul \|/)[0]).toContain("Kubernetes");
+  });
+  test("inti dan paragraf pembuka Yang sebenarnya: worker terdekat, batas di satu laptop, tiga hal belum diuji dengan angka dari baris M39", () => {
+    const [, tim, dari3, ke3] = cocok(naskahM39, /dan (\d+) orang menjadi (\d+) sampai (\d+) di satu repo/);
+    expect([tim, dari3, ke3]).toEqual(["13", "20", "40"]);
+    expect(Number(tim)).toBe(5 + 4 + 4);
+    harus(`Yang terdekat ke batasnya adalah worker notifikasi: ${koma(notif4, 2)} notifikasi uang per detik dibagi kapasitas ${koma(KAPASITAS, 2)} per detik sama dengan ${Math.round(pakai4 * 100)}% (Hitungan atas Asumsi). Lab \`api-t4\` merekam batas di satu laptop: ${ribu(Math.floor(RPS * LAMA))} dari ${ribu(Math.floor(RPS * LAMA))} permintaan selesai tanpa error, dan p95 di bawah 500 ms.`);
+    harus(`PRD v5 meminta tiga hal yang belum pernah diuji di Tahap 4. Pertama laporan merchant dan transaksi di satu database, lalu notifikasi massal lewat satu worker, dan terakhir ${tim} orang menjadi ${dari3} sampai ${ke3} di satu repo. Ketiga dugaan di atas menjawab pertanyaan lain, yaitu apakah satu server sanggup melayani beban itu.`);
+    harus(`**Angka Tahap 4 dihitung dengan rumus Tahap 3.** Puncak adalah laju di jam paling ramai: rata-rata harian dikali faktor puncak ${reg4.puncak}. Semua masukan tabel ini adalah Asumsi naskah dari \`cerita.json\` atau PRD v4, jadi seluruh tabel berlabel Asumsi.`);
+    harus("**Worker terpakai paling besar.**");
+  });
+  test("rekaman dan kapasitas: lead tebal, batas yang tidak membuktikan, dan label pengumuman", () => {
+    harus("**Rekaman: yang dibuktikan dan yang tidak.**");
+    harus("Dua batas lain tidak membuktikan pool tidak sesak.");
+    harus("Yang melihat jawaban server hanya p95, dan batas 500 ms hanya menangkap request yang sudah menumpuk panjang.");
+    harus("**Kapasitas worker terukur, pengumuman tidak.**");
+    harus(`Koneksi ${KONEKSI4} dari 100 adalah Hitungan atas pool Asumsi, dan lab tidak mengukurnya.`);
+    harus("Itu hitungan untuk koneksi database di satu proses saja.");
+    harus("Itu hitungan untuk koneksi database di satu proses, dan kapasitas server belum diukur.");
+    harus("**Tiga hal yang belum pernah diuji.**");
+    harus("Rencana itu masuk akal bila instance tumbuh sampai kerja tangan tidak lagi memadai, dan bila koneksinya dihitung lebih dulu.");
+    harus("Rencana Bayu menambah instance tanpa kerja tangan.");
+    harus("**Tiga dugaan, dan angka yang menjawabnya.**");
+    harus("Server lebih besar masuk akal bila pengukuran di server sebenarnya menunjukkan W atau pemakaian worker mendekati batas di tabel.");
+    harus("Dugaan Raka, Bayu, dan Nadia menjawab pertanyaan yang hitungannya tidak mempersoalkan. PRD v5 mengajukan pertanyaan lain: apa yang terjadi bila laporan, notifikasi massal, dan tim yang lebih besar berbagi database, worker, dan repo yang sama.");
+    harus("Tebak dulu akibatnya bila persentase user aktif jauh di atas asumsi, lalu ubah satu hal");
+    harus("Dugaan Nadia sudah dijawab [[t4-modul]].");
+  });
+  test("data widget dan diagram: id, pilihan tebakan, dan label baris sama dengan kalkulator tetangga atau nilai yang dikunci", () => {
+    expect(diagram.id).toBe("t4-m39-batas");
+    expect(kalk.id).toBe("t4-m39-kalkulator");
+    expect(kalk.tebak.pilihan).toEqual(["2 kali", "10 kali", "4 kali", "5 kali"]);
+    const tetangga = DataKalkulator.parse(JSON.parse(baca("situs/data/widget/t3-m28-kalkulator.json")));
+    expect(kalk.label).toEqual({ ...tetangga.label, lanjut: kalk.label.lanjut });
+    expect(kalk.label.baris).toEqual({ user: "User terdaftar", dau: "User aktif per hari", reqHari: "Request per hari", rata: "Rata-rata, request per detik", puncak: "Puncak, request per detik" });
+    expect([kalk.label.tebakDulu, kalk.label.ubah, kalk.label.asumsi, kalk.label.detik, kalk.label.ms]).toEqual(["Tebak dulu:", "Skenario", "asumsi", "detik", "ms"]);
+  });
+  test("sumber yang dibaca halaman: benih dan titik potong campuran beban, dan sel asumsi top-up di naskah", () => {
+    expect(bebanGo).toContain("jenis := rng.IntN(100)");
+    expect(bebanGo).toContain("mrand.New(mrand.NewPCG(1, 2))");
+    expect(barisTopup).toContain(`${koma(TOPUP_PER_AKTIF, 2)} top-up per user aktif per hari (Asumsi), ${ribu(topupHari)} per hari`);
+    expect(barisTopup).toContain(`0,058 rata-rata dan ${koma(topupDetik, 3)} puncak`);
   });
 });
