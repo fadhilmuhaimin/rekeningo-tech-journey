@@ -271,6 +271,58 @@ describe("registry, naskah, blok, dan tautan", () => {
   });
 });
 
+// ---- Jejak riset -------------------------------------------------------------------------------------------------------------
+describe("jejak riset: lima baris R4-260 sampai R4-264, urut, lima kolom, tanggal baca, dan sumber yang dikutip ada", () => {
+  const riset = baca("plan/RISET-TAHAP-4.md").split("\n");
+  const baris = (id: string): string[] => {
+    const b = riset.filter((x) => x.startsWith(`| ${id} |`));
+    expect(b, `baris riset ${id}`).toHaveLength(1);
+    const sel = b[0]!.split("|").slice(1, -1).map((x) => x.trim());
+    expect(sel, `${id} harus punya lima kolom`).toHaveLength(5);
+    return sel;
+  };
+  test("lima baris urut tanpa ID ganda, tiap kolom terisi, tanggal baca 2026-10-31 atau ditandai", () => {
+    const urut = riset.map((x, i) => [x.match(/^\| (R4-\d+) \|/)?.[1], i] as const).filter(([id]) => id && /^R4-26[0-4]$/.test(id));
+    expect(urut.map(([id]) => id)).toEqual(["R4-260", "R4-261", "R4-262", "R4-263", "R4-264"]);
+    expect(urut.map(([, i]) => i)).toEqual([urut[0]![1], urut[0]![1] + 1, urut[0]![1] + 2, urut[0]![1] + 3, urut[0]![1] + 4]);
+    for (const [id] of urut) for (const k of baris(id!)) expect(k.length, id).toBeGreaterThan(3);
+    for (const id of ["R4-260", "R4-261", "R4-264"]) expect(baris(id)[2], id).toContain("2026-10-31");
+    expect(baris("R4-263")[4]).toBe("Belum dicek ulang 2026-10-31");
+  });
+  test("R4-260: hitungan diulang dari angka halaman, termasuk 10 kali, 3,26%, 0,015%, 6,25, 125 menit, 40 dari 100, 13", () => {
+    const h = baris("R4-260")[2]!;
+    ada(h, `${titik(a5.user)} ÷ ${titik(a4.user)} = ${rasio}`, "R4-260");
+    ada(h, `15 ÷ 460 = ${koma((15 / 460) * 100, 2)}%`, "R4-260");
+    ada(h, `15 ÷ ${titik(a4.user)} = ${koma((15 / a4.user) * 100, 3)}%`, "R4-260");
+    ada(h, `50 ÷ 8 = ${koma(50 / 8, 2)} menjadi ${Math.ceil(50 / 8)} gelombang, ${Math.ceil(50 / 8)} × 3 detik = ${Math.ceil(50 / 8) * 3} detik`, "R4-260");
+    ada(h, `${c} ÷ ${koma(t, 1)} = ${koma(kapasitas, 3)} per detik`, "R4-260");
+    ada(h, `${koma(notif, 2)} ÷ ${koma(kapasitas, 3)} = ${koma((notif / kapasitas) * 100, 1)}%`, "R4-260");
+    ada(h, `${titik(HP)} ÷ ${koma(kapasitas, 3)} = ${titik(HP / kapasitas)} detik = ${menitHp} menit`, "R4-260");
+    ada(h, `${koneksi[1]} = ${jumlahKoneksi} dari ${koneksi[3]}`, "R4-260");
+    ada(h, `${timLama[1]} + ${timLama[2]} + ${timLama[3]} = ${timAnggota}`, "R4-260");
+  });
+  test("R4-261 dan R4-263: berkas yang dibaca ada dan memuat kalimat yang dikutip; heuristik tidak dipakai", () => {
+    const b = baris("R4-261")[2]!;
+    for (const f of ["timeout-retry-breaker", "modular-monolith", "qr-pembayaran", "ssrf", "tim-infra"]) {
+      ada(b, `tahap-4/${f}.mdx`, "R4-261");
+      expect(terlacak?.has(`situs/src/content/docs/tahap-4/${f}.mdx`) ?? true, f).toBe(true);
+    }
+    ada(baris("R4-263")[2]!, "pencarian 2026-10-29 tidak menemukan sumber primer", "R4-263");
+    ada(T4("modular-monolith.mdx"), "Pencarian 2026-10-29 tidak menemukan sumber primer", "4.13");
+    expect(baris("R4-263")[3]).toContain("tidak ada hitungan yang bergantung padanya");
+  });
+  test("R4-264: PROPOSAL dan naskah membaca 'ditambah' berbeda; halaman memakai kalimat naskah", () => {
+    const proposal = baca("plan/PROPOSAL.md");
+    ada(proposal, "| 5 | 100rb–1jt | 20–40 (5–7 tim + platform + SRE + security) |", "PROPOSAL");
+    ada(bag6, "20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security (PROPOSAL)", "naskah 4 bagian 6");
+    const b = baris("R4-264");
+    ada(b[2]!, "20–40 (5–7 tim + platform + SRE + security)", "R4-264");
+    ada(b[2]!, "20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security (PROPOSAL)", "R4-264");
+    ada(b[3]!, "tidak menghitung orang per tim", "R4-264");
+    expect(badan).not.toMatch(/orang per tim|per tim:? \d/);
+  });
+});
+
 // ---- Kepala dokumen dan tabel PRD v4 ke PRD v5 -------------------------------------------------------------------------------
 describe("kepala dokumen dan tabel PRD v4 ke PRD v5", () => {
   const [skala, laporan, notifikasi, cicilan, api] = lima as [string, string, string, string, string];
