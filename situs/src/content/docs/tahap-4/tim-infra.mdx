@@ -258,7 +258,7 @@ Rilis bertahap mengirim versi baru ke sebagian user dulu. Tabel ini memuat apa y
 
 Sumbernya [Play Console Help: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149) dan [App Store Connect Help: phased release](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/). Dengan 20.000 user aktif (Asumsi naskah), jangkauan pembaruan otomatis di iOS tiap hari paling banyak 200, 400, 1.000, 2.000, 4.000, 10.000, dan 20.000 user. Itu Hitungan atas jadwal Apple, bila semua user memakai iOS dengan pembaruan otomatis. Unduhan manual dari App Store tidak dibatasi jadwal itu.
 
-Rilis bertahap membatasi berapa user melihat bug app. Bug di server tetap kena semua versi, jadi server wajib kompatibel mundur ([[E1]]).
+Rilis bertahap membatasi berapa user melihat bug app. Bug di server tidak dibatasi rilis bertahap app, jadi server wajib kompatibel mundur ([[E1]]).
 
 ### Security review dan temuan
 
@@ -372,7 +372,8 @@ Keputusan lain punya opsi sendiri:
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
 | Keyless signing, Fulcio, dan Rekor | Lab memakai kunci sendiri. Keyless Tidak dijalankan | Belum dijadwalkan |
-| Provenance SLSA dan atestasi app | Hanya dijelaskan, Tidak dijalankan | [[t4-adr-45]] |
+| Provenance SLSA | Hanya disebut di naskah, Tidak dijalankan | [[t4-adr-45]] |
+| Atestasi app | Hanya disebut di naskah, Tidak dijalankan | Belum dijadwalkan |
 | Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS | Fitur GitHub, lab tidak menjalankan CI. Plan pemilik [perlu verifikasi] | Belum dijadwalkan |
 | Mencocokkan isi response server dengan kontrak | Lab hanya mencocokkan rute dengan kontrak | Belum dijadwalkan |
 | Aturan "jalankan semua" untuk kode bersama | Belum diputuskan | Bila PR kode bersama lolos tanpa tes |

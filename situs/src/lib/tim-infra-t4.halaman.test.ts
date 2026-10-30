@@ -170,6 +170,7 @@ const sorotan = (teks: string, re: RegExp) => [...teks.matchAll(re)].map((m) => 
 
 // ---- naskah ------------------------------------------------------------------------------------------------------------
 const barisAdr44 = naskah.split("\n").find((b) => b.startsWith("| 44 |"))!;
+const barisAdr45 = naskah.split("\n").find((b) => b.startsWith("| 45 |"))!;
 const barisM32 = naskah.split("\n").find((b) => b.startsWith("| M32 |"))!;
 const barisM34 = naskah.split("\n").find((b) => b.startsWith("| M34 |"))!;
 const NASKAH_TIM = [...naskah.matchAll(/\*\*Tim (Pembayaran|Merchant|Platform)\*\* \((\d+) orang, dipimpin (\w+)\)/g)].map((m) => [m[1]!, Number(m[2]), m[3]!] as [string, number, string]);
@@ -691,9 +692,13 @@ describe("ADR 44: tiga opsi, sembilan aturan, pre-mortem, kapan salah, sengaja b
     harus("**Yang akan merevisinya.** Tahap 5 menaikkan tim dari 13 menjadi 20 sampai 40 orang dalam 5 sampai 7 tim (naskah Tahap 4, jembatan).");
     expect(naskah).toContain("Tim naik dari 13 menjadi 20 sampai 40 orang dalam 5 sampai 7 tim");
     const sengaja = tabelSetelah("### Sengaja belum dilakukan");
-    expect(sengaja.map((r) => r[0])).toEqual(["Yang ditunda", "Keyless signing, Fulcio, dan Rekor", "Provenance SLSA dan atestasi app", "Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS", "Mencocokkan isi response server dengan kontrak", "Aturan \"jalankan semua\" untuk kode bersama", "Menaikkan Go ke 1.27.3", "Client Dart yang dijalankan", "Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC"]);
+    expect(sengaja.map((r) => r[0])).toEqual(["Yang ditunda", "Keyless signing, Fulcio, dan Rekor", "Provenance SLSA", "Atestasi app", "Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS", "Mencocokkan isi response server dengan kontrak", "Aturan \"jalankan semua\" untuk kode bersama", "Menaikkan Go ke 1.27.3", "Client Dart yang dijalankan", "Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC"]);
     expect(sengaja.every((r) => r.length === 3)).toBe(true);
-    expect(sengaja[2]).toEqual(["Provenance SLSA dan atestasi app", "Hanya dijelaskan, Tidak dijalankan", "[[t4-adr-45]]"]);
+    expect(sengaja[2]).toEqual(["Provenance SLSA", "Hanya disebut di naskah, Tidak dijalankan", "[[t4-adr-45]]"]);
+    expect(sengaja[3]).toEqual(["Atestasi app", "Hanya disebut di naskah, Tidak dijalankan", "Belum dijadwalkan"]);
+    expect(naskah).toContain("provenance SLSA, atestasi app, dan semua layanan terkelola");
+    expect(barisAdr45).toContain("provenance SLSA dan HTTP Message Signatures (hanya disebut)");
+    expect(barisAdr45).not.toContain("atestasi");
   });
   test("aturan 1 sampai 9 memuat hanya yang direkam atau diberi label; sumber kasus industri dan pencegahan pre-mortem sama dengan R4-235 dan dokumentasi GitHub", () => {
     harus("2. Tes contract memakai `oasdiff breaking --flatten-params` dengan ambang ERR dan `--severity-levels` yang menaikkan `response-optional-property-removed`.");
@@ -993,7 +998,8 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
     harus("| Staging memakai kunci gateway produksi (dugaan) | hanya pemindai atas dua file contoh, bukan kejadiannya | tidak memblok; jalankan pemindai atas konfigurasi staging yang sebenarnya |");
     for (const baris of [
       "| Keyless signing, Fulcio, dan Rekor | Lab memakai kunci sendiri. Keyless Tidak dijalankan | Belum dijadwalkan |",
-      "| Provenance SLSA dan atestasi app | Hanya dijelaskan, Tidak dijalankan | [[t4-adr-45]] |",
+      "| Provenance SLSA | Hanya disebut di naskah, Tidak dijalankan | [[t4-adr-45]] |",
+      "| Atestasi app | Hanya disebut di naskah, Tidak dijalankan | Belum dijadwalkan |",
       "| Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS | Fitur GitHub, lab tidak menjalankan CI. Plan pemilik [perlu verifikasi] | Belum dijadwalkan |",
       "| Mencocokkan isi response server dengan kontrak | Lab hanya mencocokkan rute dengan kontrak | Belum dijadwalkan |",
       "| Aturan \"jalankan semua\" untuk kode bersama | Belum diputuskan | Bila PR kode bersama lolos tanpa tes |",
