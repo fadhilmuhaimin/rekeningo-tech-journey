@@ -1,0 +1,100 @@
+{
+  "versi": 2,
+  "judul": "Kartu virtual Budi: dua otorisasi Rp80.000 untuk saldo Rp100.000, keduanya disetujui",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-kartu/output/otorisasi.txt",
+    "fileVarian": "labs/t4-kartu/output/otorisasi.txt",
+    "catatan": "Lab t4-kartu, PostgreSQL 17.11, dari database bersih (make -C labs/t4-kartu run). Jalur utama: otorisasi.txt bagian A (dua otorisasi serentak) dan B (penagihan). Penerbit adalah proses tiruan lokal; toko online, jam, dan laporan harian adalah Ilustrasi. Ubah satu hal: otorisasi.txt bagian A (otorisasi ketiga sesudah dua yang pertama selesai) dan B. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
+  },
+  "pengantar": "Penerbit kartu meminta dua otorisasi Rp80.000 untuk kartu Budi, yang saldonya Rp100.000. Tebak dulu apa yang dijawab Rekeningo, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "pnb",
+      "label": "Penerbit tiruan"
+    },
+    {
+      "id": "srv",
+      "label": "Server api-t4 (versi pertama)"
+    },
+    {
+      "id": "dbm",
+      "label": "Database: otorisasi_kartu dan buku"
+    }
+  ],
+  "predict": {
+    "q": "Penerbit meminta dua otorisasi Rp80.000 sekaligus untuk kartu Budi, yang saldonya Rp100.000. Versi pertama handler membaca saldo, lalu menjawab. Apa yang dijawab Rekeningo?",
+    "options": [
+      "Setuju untuk yang pertama dan tolak untuk yang kedua, karena saldo hanya cukup satu kali",
+      "Tolak keduanya, karena dua permintaan serentak ditolak sebagai pengaman",
+      "Setuju untuk keduanya, dan saldo Budi menjadi −Rp60.000 sebelum penagihan",
+      "Setuju untuk keduanya, dan saldo Budi masih Rp100.000 sesudahnya"
+    ],
+    "answer": 3,
+    "varian": false,
+    "explain": "Handler versi pertama hanya membaca saldo dan tidak menahan dana. Kedua otorisasi membaca Rp100.000 dan keduanya disetujui, dan saldo Budi masih Rp100.000 sesudahnya. Rekaman otorisasi.txt bagian A."
+  },
+  "langkah": [
+    {
+      "dari": "pnb",
+      "ke": "srv",
+      "judul": "Penerbit meminta dua otorisasi Rp80.000 untuk Budi",
+      "kirim": "# Budi (akun 40301): saldo Rp100.000, kartu virtual diterbitkan lewat POST /kartu\n# server: ./api-t4 -lab -rentan kartu-tanpa-hold -lab-jeda-cek-tulis 300ms",
+      "jelas": "Budi punya kartu virtual dan saldo Rp100.000. Server memakai versi pertama handler otorisasi, dengan jeda 300 ms di antara cek dan tulis supaya celahnya terekam. Penerbit tiruan memberi tenggat 10 detik di bagian ini."
+    },
+    {
+      "dari": "pnb",
+      "ke": "srv",
+      "judul": "Rekeningo menjawab setuju untuk keduanya",
+      "kirim": "AUTH-A Rp80.000: setuju (sumber: rekeningo)\nAUTH-B Rp80.000: setuju (sumber: rekeningo)",
+      "jelas": "Catatan penerbit tiruan menulis sumber keputusan: rekeningo. Penerbit tidak memutuskan sendiri, dan kedua id_penerbit berbeda.",
+      "nada": "warn"
+    },
+    {
+      "dari": "srv",
+      "ke": "dbm",
+      "judul": "Dua baris berstatus ditahan, tanpa jurnal tahan",
+      "kirim": "=> SELECT id_penerbit, status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id_penerbit\n id_penerbit | status  | jumlah | ada_jurnal_tahan\n-------------+---------+--------+------------------\n AUTH-A      | ditahan | 80000  | f\n AUTH-B      | ditahan | 80000  | f\n(2 rows)",
+      "jelas": "Kolom ada_jurnal_tahan bernilai f di kedua baris. Di rekaman yang sama, buku dana_tertahan berisi Rp0 dan saldo Budi tetap Rp100.000.",
+      "nada": "warn"
+    },
+    {
+      "dari": "pnb",
+      "ke": "srv",
+      "judul": "Penagihan datang: yang pertama lolos, yang kedua ditolak",
+      "kirim": "clearing AUTH-A Rp80.000: HTTP 200\nclearing AUTH-B Rp80.000: HTTP 409, /problems/saldo-kurang",
+      "jelas": "Penagihan AUTH-A menutup Rp80.000 dari saldo, dan saldo Budi tinggal Rp20.000 (Hitungan: Rp100.000 − Rp80.000). Penagihan AUTH-B ditolak ledger karena Rp20.000 kurang dari Rp80.000: persetujuan kedua sudah diberikan tanpa saldo yang menutupinya.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "otorisasi ketiga datang sesudah dua yang pertama selesai",
+    "mulai": 3,
+    "langkah": [
+      {
+        "dari": "pnb",
+        "ke": "srv",
+        "judul": "Otorisasi ketiga datang sesudah dua yang pertama selesai",
+        "kirim": "# Kontrol: otorisasi ketiga datang sesudah dua yang pertama selesai, bukan bersamaan.\nAUTH-C Rp80.000: setuju (sumber: rekeningo)",
+        "jelas": "Tidak ada yang berjalan bersamaan, dan AUTH-C tetap disetujui. Tanpa dana tertahan, tidak ada yang mengubah saldo yang dibaca otorisasi berikutnya.",
+        "nada": "warn"
+      },
+      {
+        "dari": "srv",
+        "ke": "dbm",
+        "judul": "Tiga persetujuan berjumlah Rp240.000",
+        "kirim": "=> SELECT count(*) AS disetujui, sum(jumlah) AS jumlah_disetujui FROM otorisasi_kartu WHERE status = 'ditahan'\n disetujui | jumlah_disetujui\n-----------+------------------\n 3         | 240000\n(1 row)",
+        "jelas": "Tiga persetujuan masing-masing Rp80.000 berjumlah Rp240.000, untuk saldo Rp100.000 (3 × Rp80.000, Hitungan).",
+        "nada": "warn"
+      },
+      {
+        "dari": "pnb",
+        "ke": "srv",
+        "judul": "Penagihan kedua dan ketiga ditolak ledger",
+        "kirim": "clearing AUTH-A Rp80.000: HTTP 200\nclearing AUTH-B Rp80.000: HTTP 409, /problems/saldo-kurang\nclearing AUTH-C Rp80.000: HTTP 409, /problems/saldo-kurang",
+        "jelas": "Hanya penagihan pertama yang punya penutup. Rp160.000 yang sudah disetujui tidak punya saldo yang menutupinya (Rp240.000 − Rp80.000, Hitungan).",
+        "nada": "warn"
+      }
+    ]
+  }
+}
