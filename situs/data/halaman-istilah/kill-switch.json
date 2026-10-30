@@ -1,6 +1,6 @@
 {
   "istilah": "Kill switch",
-  "sehari_hari": "Kill switch adalah sakelar untuk mematikan satu fitur seketika, tanpa deploy dan tanpa memulai ulang server. Ia berupa feature flag yang dibaca tiap kali fitur dipakai. Yang mematikannya biasanya petugas yang berwenang, dengan alasan yang tercatat.",
+  "sehari_hari": "Kill switch adalah sakelar untuk mematikan satu fitur seketika, tanpa deploy dan tanpa memulai ulang server. Ia berupa feature flag yang dibaca tiap kali fitur dipakai. Yang mematikannya biasanya orang yang berwenang, dengan alasan yang tercatat.",
   "cerita": [
     {
       "rujukan": "t4-kartu",

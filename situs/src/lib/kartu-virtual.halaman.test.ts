@@ -968,7 +968,7 @@ describe("struktur halaman, sel tabel, dan isi JSON diperiksa per bagian (tanpa 
     });
     expect(istilahKill).toEqual({
       istilah: "Kill switch",
-      sehari_hari: "Kill switch adalah sakelar untuk mematikan satu fitur seketika, tanpa deploy dan tanpa memulai ulang server. Ia berupa feature flag yang dibaca tiap kali fitur dipakai. Yang mematikannya biasanya petugas yang berwenang, dengan alasan yang tercatat.",
+      sehari_hari: "Kill switch adalah sakelar untuk mematikan satu fitur seketika, tanpa deploy dan tanpa memulai ulang server. Ia berupa feature flag yang dibaca tiap kali fitur dipakai. Yang mematikannya biasanya orang yang berwenang, dengan alasan yang tercatat.",
       cerita: [{ rujukan: "t4-kartu", teks: "Ratih dari tim risk mematikan flag kartu. Otorisasi baru dijawab tolak `kill-switch` oleh proses yang sama, sedangkan otorisasi Rp50.000 yang sudah disetujui tetap bisa ditagih (`kill-switch.txt` bagian A)." }],
       mekanisme: [
         "Flag dibaca di awal tiap otorisasi, sebelum kartu dan saldo diperiksa. Bila mati, jawabannya tolak dengan alasan `kill-switch`, dan tidak ada baris atau hold yang ditulis (`kill-switch.txt` bagian A dan C).",
