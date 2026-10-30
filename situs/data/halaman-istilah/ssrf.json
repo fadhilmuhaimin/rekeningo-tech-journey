@@ -1,0 +1,39 @@
+{
+  "istilah": "SSRF (server-side request forgery)",
+  "sehari_hari": "SSRF adalah serangan yang membuat server mengambil alamat pilihan pihak lain. Server memakai hak jaringannya sendiri, jadi alamat yang tidak terlihat dari luar bisa terjangkau.",
+  "cerita": [
+    {
+      "rujukan": "t4-ssrf",
+      "teks": "Pemeriksaan alamat di fetcher gambar versi aman menolak 32 dari 32 alamat terlarang, tanpa membuat koneksi. Bila `IsPrivate` satu-satunya pemeriksaan, 29 dari 32 lolos (`alamat.txt`)."
+    }
+  ],
+  "mekanisme": [
+    "Server menerima alamat dari pihak luar, misalnya URL gambar di katalog merchant.",
+    "Server mengunduh alamat itu dengan hak jaringan server, termasuk alamat jaringan dalam yang tidak terlihat dari luar.",
+    "Pemeriksaan teks URL tidak mencakup tujuan sebenarnya, karena satu alamat punya beberapa penulisan dan satu nama bisa menunjuk ke alamat dalam.",
+    "Pemeriksaan yang menentukan berjalan pada alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi. Di lab, tujuh kode 3xx ditolak dan server tujuan redirect tidak tersentuh (`batas.txt`)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memeriksa teks URL dengan daftar kata. Satu alamat punya beberapa penulisan, jadi daftar kata mudah dilewati.",
+    "Memakai `IsPrivate` Go sebagai satu-satunya pemeriksaan. Di lab, 29 dari 32 alamat terlarang lolos (`alamat.txt`).",
+    "Mengikuti redirect tanpa memeriksa tujuannya. Client HTTP bawaan Go mengikuti sampai 10 permintaan berturut-turut."
+  ],
+  "terkait": [
+    "Allowlist",
+    "Deny-list"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-210",
+      "judul": "OWASP: Server-Side Request Forgery Prevention Cheat Sheet (dibuka 2026-10-30)",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html",
+      "catatan": "SSRF menyalahgunakan aplikasi untuk berinteraksi dengan jaringan internal, jaringan luar, atau mesin itu sendiri. Allowlist dianjurkan, deny-list rawan dilewati, dan redirect dimatikan di client."
+    },
+    {
+      "judul": "Rekaman lab t4-ssrf: alamat.txt dan batas.txt",
+      "rekaman": "labs/t4-ssrf/output/alamat.txt",
+      "catatan": "Pemeriksaan alamat fetcher aman menolak 32 dari 32 alamat terlarang, dan 29 dari 32 lolos bila IsPrivate satu-satunya pemeriksaan."
+    }
+  ]
+}
