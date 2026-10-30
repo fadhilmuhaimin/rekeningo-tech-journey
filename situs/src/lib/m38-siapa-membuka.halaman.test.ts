@@ -31,6 +31,21 @@ const baca = (rel: string): string => {
   if (terlacak) expect(terlacak.has(rel), `tes membaca berkas yang tidak terlacak git: ${rel}`).toBe(true);
   return fs.readFileSync(path.join(akar, rel), "utf8");
 };
+// Daftar berkas terlacak di bawah satu folder; tanpa git (salinan git archive untuk uji mutasi) dibaca dari disk.
+const semuaDi = (dir: string): string[] => {
+  if (terlacak) return [...terlacak].filter((f) => f.startsWith(dir));
+  const keluar: string[] = [];
+  const jalan = (rel: string) => {
+    for (const e of fs.readdirSync(path.join(akar, rel), { withFileTypes: true })) {
+      if (e.name === "node_modules" || e.name === ".git") continue;
+      const r = `${rel}${e.name}`;
+      if (e.isDirectory()) jalan(`${r}/`);
+      else keluar.push(r);
+    }
+  };
+  jalan(dir);
+  return keluar;
+};
 const sidik = (t: string): string => createHash("sha256").update(t).digest("hex").slice(0, 16);
 
 const BERKAS = "situs/src/content/docs/tahap-4/m38-siapa-membuka.mdx";
@@ -351,7 +366,7 @@ describe("kode lab: mode, Audit, LihatVerifikasiBO, migrasi, dan klaim negatif b
     expect(dasar).toContain('MIGRASI_T3 = sorted((T3 / "migrasi").glob("*.up.sql"))');
     expect(dasar).toContain('MIGRASI_T4 = sorted((HERE / "migrasi").glob("*.up.sql"))');
     expect(dasar).toContain('(LABS / "b4-migration/baru/000005_batas_saldo_warung.up.sql")');
-    const migrasi = [...(terlacak ?? new Set<string>())].filter((f) => /^labs\/api-t[234]\/migrasi\/[^/]+\.up\.sql$/.test(f) || f === "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql");
+    const migrasi = ["labs/api-t2/migrasi/", "labs/api-t3/migrasi/", "labs/api-t4/migrasi/", "labs/b4-migration/baru/"].flatMap(semuaDi).filter((f) => /\/[^/]+\.up\.sql$/.test(f) && (!f.startsWith("labs/b4-migration/") || f === "labs/b4-migration/baru/000005_batas_saldo_warung.up.sql"));
     expect(migrasi.length).toBeGreaterThanOrEqual(15);
     for (const f of migrasi) expect(baca(f), f).not.toContain("audit_biasa");
     for (const f of migrasi) {
@@ -362,7 +377,7 @@ describe("kode lab: mode, Audit, LihatVerifikasiBO, migrasi, dan klaim negatif b
     const ddl = baca("labs/api-t4/internal/repo/audit_biasa.sql");
     expect(ddl).toContain("CREATE TABLE IF NOT EXISTS audit_biasa (");
     expect(ddl.split("\n").filter((b) => !b.startsWith("--")).join("\n")).not.toMatch(/hash/);
-    const sisipAudit = (terlacak ? [...terlacak] : []).filter((f) => f.startsWith("labs/api-t4/") && f.endsWith(".go") && !f.endsWith("_test.go") && /INSERT INTO audit_log/.test(fs.readFileSync(path.join(akar, f), "utf8")));
+    const sisipAudit = semuaDi("labs/api-t4/").filter((f) => f.startsWith("labs/api-t4/") && f.endsWith(".go") && !f.endsWith("_test.go") && /INSERT INTO audit_log/.test(fs.readFileSync(path.join(akar, f), "utf8")));
     expect(sisipAudit).toEqual(["labs/api-t4/internal/repo/audit.go"]);
     expect(repoAuditGo).toContain("INSERT INTO audit_log (waktu, pelaku_id, peran, aksi, objek, alasan, penyetuju_id, hash_sebelumnya, hash)");
     harus("enam aksi yang sama masuk ke tabel `audit_biasa`, yang hanya ada di lab untuk mode ini. Tabel itu tidak punya pemeriksaan apakah sebuah baris pernah diubah.");
@@ -585,7 +600,7 @@ describe("skenario alur t4-m38.json: valid, nilai dari rekaman, tebakan, dan var
     expect(jawabA.every(([, n]) => n === 0)).toBe(true);
     const panjang = p.options.map((o) => o.length);
     expect(panjang[p.answer]).toBeLessThan(Math.max(...panjang));
-    const lainBerkas = (terlacak ? [...terlacak] : []).filter((f) => /^situs\/lama\/widgets\/data\/skenario\/t4-[^/]+\.json$/.test(f) && !f.endsWith("t4-m38.json"));
+    const lainBerkas = semuaDi("situs/lama/widgets/data/skenario/").filter((f) => /\/t4-[^/]+\.json$/.test(f) && !f.endsWith("t4-m38.json"));
     expect(lainBerkas.length).toBeGreaterThanOrEqual(10);
     const lain = lainBerkas.map((f) => (JSON.parse(baca(f)) as Skenario).predict.answer);
     expect(lain.filter((x) => x === p.answer).length).toBeLessThanOrEqual(lain.length / 2);
