@@ -416,11 +416,16 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(jurnal.map((m) => m[2])).toEqual(["200000", "200000"]);
     const nominal = Number(jurnal[0]![2]);
     const total = jurnal.reduce((n, m) => n + Number(m[2]), 0);
-    harus(butir(1).pertama, `jadi saldo Budi naik ${rp(total)} untuk ${rp(nominal)} yang dibayar`);
+    harus(butir(1).pertama, `Saldo Budi naik ${rp(total)} untuk ${rp(nominal)} yang dibayar`);
     const B = bag(ganda, "B");
     expect(ada(B, /^kiriman 2 \(event yang sama\): 200 ganda$/)).toBe(true);
     expect(semua(B, /^ evt-1 +\| settlement +\| diproses +\| t$/)).toHaveLength(1);
-    harus(butir(1).pertama, "Handler ADR 34 menjawab `200 ganda` dan jurnalnya satu (`ganda.txt` bagian A dan B, lab t4-webhook).");
+    harus(butir(1).pertama, "Handler ADR 34 menjawab `200 ganda` dan jurnalnya satu saat balasan hilang (`ganda.txt` bagian B).");
+    // penyebab kiriman kedua (balasan 200 hilang) pada handler pertama adalah penalaran, bukan rekaman (halaman 4.6)
+    harus(butir(1).pertama, "Penyebab kiriman kedua, balasan 200 yang hilang, adalah penalaran (Tidak dijalankan pada handler pertama).");
+    harus(fileHalaman("t4-m29"), "adalah penalaran dari bagian A, bagian B, dan dokumentasi gateway (Tidak dijalankan)");
+    harus(fileHalaman("t4-m29"), "Rekaman handler pertama tidak memutus balasan");
+    expect(ada(A, /^hasil kiriman: 200 diproses, 200 diproses$/)).toBe(true);
     const TA = bag(tandatangan, "A");
     const bt = cocok(TA.join("\n"), /body (\d+) byte, (\d+) baris baru/);
     harus(butir(1).pertama, `Body ${bt[1]} byte cocok bila dibaca mentah, dan tidak cocok bila diurai lalu ditulis ulang (\`tandatangan.txt\` bagian A).`);
@@ -432,12 +437,15 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     cocok(G, /umur 24 jam\)/);
     harus(butir(1).batas, "ditahan tiga lapis, yaitu `event_id`, status top-up yang hanya maju, dan Idempotency-Key ledger yang hidup 24 jam");
     harus(butir(1).batas, "Tanpa lapis status, event kedua yang datang 25 jam kemudian menghasilkan 2 jurnal (`urutan.txt` bagian G, kasus 4). Service pembayaran yang mati lalu menerima kiriman ulang");
-    harus(butir(1).pertama, "Di [[t4-m29]], balasan 200 hilang dan gateway mengirim kabar yang sama lagi, jadi saldo Budi naik");
+    harus(butir(1).pertama, "Di [[t4-m29]], gateway mengirim kabar yang sama dua kali, dan handler pertama menjurnal tiap kiriman. Saldo Budi naik");
     const C = bag(prosesMati, "C");
     cocok(C.join("\n"), /Idempotency-Key ledger hidup 24 jam/);
     const sesudah25 = C.join("\n").slice(C.join("\n").indexOf("jam ledger digeser 25 jam"));
     cocok(sesudah25, /^ 2 +\| 1 +\| dibayar$/m);
-    harus(butir(1).batas, "pada +25 jam juga menghasilkan 2 jurnal (`proses-mati.txt` bagian C, lab t4-modul), dan pencegahannya belum diputuskan.");
+    harus(butir(1).batas, "pada +25 jam juga menghasilkan 2 jurnal (`proses-mati.txt` bagian C, lab t4-modul), dan pencegahannya belum diputuskan. Jam lab diputar di kedua rekaman.");
+    // jam diputar, bukan ditunggu: urutan.txt memakai -jam-lab dan proses-mati.txt memerankan jam ledger lewat /lab/jam
+    harus(urutan, "jam service bisa diputar lewat /lab/jam");
+    harus(prosesMati, "Jam ledger diperankan (POST /lab/jam)");
     harus(fileHalaman("t4-webhook"), "pencegahannya belum diputuskan");
     harus(fileHalaman("t4-prd"), "Kalau gateway mengirim kabar dua kali, terlambat, atau tidak mengirim sama sekali, siapa yang tahu?");
     harus(butir(1).pertama, "bertanya siapa yang tahu bila gateway mengirim kabar dua kali, terlambat, atau tidak sama sekali");
@@ -719,14 +727,18 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     const E = bag(sast, "E");
     const dipanggil = cari(E, /^dipanggil kode: (\d+)$/, "sast E")[1]!;
     expect(semua(E, /^ {2}GO-\d{4}-\d{4} stdlib v1\.27\.1, diperbaiki di v1\.27\.\d$/)).toHaveLength(Number(dipanggil));
-    harus(butir(12).pertama, `Alat govulncheck menemukan ${dipanggil} kerentanan stdlib yang dipanggil (\`sast.txt\` bagian E).`);
+    harus(butir(12).pertama, `Alat govulncheck atas kodenya menemukan ${dipanggil} kerentanan stdlib yang dipanggil (\`sast.txt\` bagian E).`);
     const Cs = bag(sbom, "C");
     const grype = semua(Cs, /^ {2}GO-\d{4}-\d{4} +(Unknown|Critical|High|Medium) +(stdlib go1\.27\.1|golang\.org\/x\/crypto v0\.57\.0)/);
     expect(grype).toHaveLength(15);
     expect(grype.filter((m) => m[1] === "Critical")).toHaveLength(2);
-    harus(butir(12).pertama, `Alat grype menemukan ${grype.length} temuan, dua di antaranya Critical (\`sbom.txt\` bagian C).`);
+    harus(butir(12).pertama, `Alat grype atas image-nya menemukan ${grype.length} temuan, dua di antaranya Critical (\`sbom.txt\` bagian C).`);
     expect(ada(Cs, /^gerbang SBOM dan grype atas image api-t4 \(ambang High\): GAGAL/)).toBe(true);
-    harus(butir(12).pertama, "Dengan Go 1.27.1, image api-t4 sendiri gagal gerbang.");
+    harus(butir(12).pertama, "Dengan Go 1.27.1, api-t4 sendiri gagal gerbang. Alat govulncheck atas kodenya menemukan");
+    harus(butir(12).pertama, "Alat grype atas image-nya menemukan");
+    // govulncheck berjalan atas kode di labs/api-t4 (./...), grype atas SBOM image dari registry lab
+    harus(rk("t4-pipeline", "sast.txt"), "$ govulncheck -format json -db <salinan vuln.go.dev> ./...   # di labs/api-t4");
+    harus(rk("t4-pipeline", "sbom.txt"), "$ syft registry:127.0.0.1:18295/api-t4@<digest A> -o cyclonedx-json");
     harus(fileHalaman("t4-tim-infra"), "Lab tidak menaikkan Go");
     harus(fileHalaman("t4-tim-infra"), "Kunci cosign lab dibuat per run");
     harus(fileHalaman("t4-tim-infra"), "Belum diputuskan.");
@@ -763,7 +775,8 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     const B = bag(beban, "B").join("\n");
     cocok(B, /100000 \/ \(4 \/ 0,3\) = |hitungan: 100000 \/ \(4 \/ 0,3\) = 7500 detik|hitungan: 100000 \/ \(4 \/ 0,3\)/);
     expect(Math.round((100000 * 0.3) / 4 / 60)).toBe(125);
-    harus(butir(13).batas, "Pengumuman ke 100.000 HP butuh 125 menit (Hitungan, Tidak dijalankan).");
+    harus(butir(13).batas, "Pengumuman ke 100.000 HP butuh paling sedikit 125 menit (Hitungan, Tidak dijalankan).");
+    harus(fileHalaman("t4-m39"), "125 menit adalah batas bawah karena worker juga mengirim notifikasi uang");
     harus(butir(13).batas, "rekaman beban memeriksa batas lab, yaitu status 200 atau 201 dan p95 di bawah 500 ms. Itu bukan kapasitas produksi, karena memakai satu proses, satu laptop, dan 20 detik. Kapasitas satu server belum diukur.");
     expect(ada(A, /^status: 200 x\d+, 201 x\d+/)).toBe(true);
     harus(fileHalaman("t4-m39"), "p95, yaitu waktu jawab yang dilewati 5% request paling lambat");
@@ -897,16 +910,19 @@ describe("tabel ADR di blok Putuskan", () => {
     komponen.push(mentah.slice(awal).trim());
     expect(komponen).toHaveLength(8);
     const k45 = baris()[11]!;
-    expect(k45[2]).toBe("Delapan komponen sengaja belum dipasang, masing-masing dengan angka Tahap 4 dan pemicu yang bisa diukur");
+    expect(k45[2]).toBe("Delapan komponen sengaja belum dipasang, masing-masing dengan angka Tahap 4 dan pemicu tertulis, dan kapasitas satu server belum diukur");
     harus(naskah45, "Masing-masing diukur dengan angka tahap ini");
     harus(naskah45, "Pemicu masing-masing ditulis di halamannya");
     expect(naskah.match(/^\| 44 \| Merge per modul menjalankan/m)).not.toBeNull();
     const naskah44 = barisNaskah.find((b) => b.startsWith("| 44 |"))!;
     for (const f of ["per modul", "per digest", "Rilis app bertahap"]) harus(naskah44, f);
+    // ADR 45 menulis "pemicu tertulis" dan "kapasitas satu server belum diukur"; hanya empat pemicu berupa angka beban yang bisa dibaca hari ini, jadi
+    // "pemicu yang bisa diukur" lebih kuat daripada halaman asalnya
     jikaAda("t4-adr-45", (t) => {
-      harus(t, "Delapan");
-      harus(t, "pemicu");
+      harus(t, "Delapan penundaan punya pemicu tertulis, dan kapasitas satu server belum diukur.");
+      harus(t, "Lima butir lain menunggu permintaan produk, permintaan pihak luar, atau alat ukur yang belum ada.");
     });
+    expect(blok("Putuskan")).not.toContain("pemicu yang bisa diukur");
   });
 
   test("angka di kolom Keputusan adalah pilihan tiap ADR, dan revisi ADR 12 ditulis di halaman ADR 37 dan 44", () => {
@@ -1038,6 +1054,9 @@ describe("struktur halaman: label, sumber ingatan, tanpa ID internal, dan kata y
     harus(baris, "Psychological Science 17(3)");
     harus(baris, "PMID 16719566 = Cepeda dkk.");
     harus(baris, "Psychological Bulletin 132(3)");
+    // halaman artikel kedua dan pertama (PubMed esummary): satu angka yang berubah tidak boleh lolos
+    harus(baris, "halaman 249-55");
+    harus(baris, "halaman 354-80");
     const kol = baris.split(" | ");
     expect(kol).toHaveLength(5);
     expect(kol[0]).toBe("| R4-255");
@@ -1167,6 +1186,45 @@ describe("struktur: heading, daftar bernomor, ADR dan M yang disebut, Rantai, da
       const sumber = butir(i + 1).pertama + " " + butir(i + 1).batas;
       const hitung = (t: string, a: string): number => t.split(a).length - 1;
       for (const a of new Set(angka(c.tanya))) expect(hitung(sumber, a) >= 1, `kartu ${c.id}: ${a}`).toBe(true);
+    }
+  });
+});
+
+// ================================================================================================================================
+// Mutan yang lolos dari tes turunan pada tinjauan (keputusan 1385): kalimat prosa tanpa angka yang hanya dijaga kunci kalimat. Tiap
+// asersi menautkan kalimat ke berkas yang memuat dasarnya (rekaman, halaman asal, atau naskah), bukan ke dirinya sendiri.
+describe("kalimat prosa tanpa angka tertaut ke dasarnya (tinjauan)", () => {
+  test("atribut aman di blok Coba, skrip widget kartu, dan jumlah kalimat di dalamnya mengikuti tabel naskah", () => {
+    const kataBilangan = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas", "dua belas", "tiga belas"];
+    harus(blok("Coba"), `aman="Kalau berhenti di sini, kamu sudah punya ${kataBilangan[tabelNaskah5.length]} kalimat Tahap 4, masing-masing dengan kejadiannya."`);
+    harus(mdx, '<WidgetLama nama="kartu" src="data/t4-rekap-kartu.json" />');
+    harus(mdx, '<SkripLama daftar={["cerita","kartu"]} />');
+  });
+  test("kalimat 1, 4, 8, 3: pelaku dan label dibaca dari rekaman dan halaman asal", () => {
+    harus(butir(1).pertama, "Tanda tangan dihitung atas byte yang tiba.");
+    expect(ada(bag(tandatangan, "A"), /^verifikasi atas byte mentah: cocok$/)).toBe(true);
+    harus(butir(4).pertama, "tim Merchant mengganti nama kolom `akun.nama`");
+    harus(fileHalaman("t4-m32"), "Kamis pukul 15.20 tim Merchant merilis versi baru.");
+    harus(barisNaskah.find((b) => b.startsWith("| M32 |"))!, "tim Merchant merilis");
+    harus(butir(4).batas, "dijaga review dan checklist PR, bukan mesin.");
+    harus(fileHalaman("t4-modul"), "dijaga review dan checklist PR, bukan mesin.");
+    harus(butir(8).pertama, "Penempelan stiker adalah Ilustrasi, dan lab hanya memerankan pemindai.");
+    harus(rk("t4-qr", "statis.txt"), "# Skenario (Ilustrasi): stiker Toko Andalan tertempel di kasir Bu Marni. Lab hanya memerankan pemindaian payload Toko Andalan");
+    harus(butir(3).batas, "Yang terlindungi adalah pekerjaan yang belum dicoba.");
+    harus(fileHalaman("t4-breaker"), "pekerjaan yang belum dicoba menunggu tanpa memakai percobaan");
+  });
+  test("daftar periksa kode AI: tiap butir sejalan dengan rumusan di daftar periksa atau Putuskan halaman asalnya", () => {
+    const kode = blok("Kunci");
+    const periksa: [string, string, string][] = [
+      ["t4-webhook", "dihitung atas byte mentah sebelum JSON diurai", "diperiksa sebelum JSON diurai"],
+      ["t4-storage", "URL unggah berumur pendek, server memeriksa isi file sesudah unggah, dan file dibuka lewat server, bukan lewat URL", "umur URL dalam menit, bukan hari"],
+      ["t4-audit", "Role aplikasi tidak bisa mengubah audit log", "Role aplikasi tidak punya UPDATE dan DELETE pada tabel log"],
+      ["t4-tim-infra", "lewat digest hasil build CI yang diverifikasi, bukan lewat tag", "Verifikasi image memakai digest hasil build, bukan tag."],
+      ["t4-qr", "menampilkan nama merchant dari jawaban server, bukan dari payload", "Yang dipercaya adalah jawaban server atas id QR."],
+    ];
+    for (const [id, di4_30, disumber] of periksa) {
+      harus(kode, di4_30);
+      harus(fileHalaman(id), disumber);
     }
   });
 });

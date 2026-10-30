@@ -4,7 +4,7 @@
     "halaman": "t4-m29",
     "judul": "4.6 M29: Top-up Budi masuk dua kali",
     "url": "tahap-4/m29-topup-dua-kali/",
-    "tanya": "M29: balasan 200 untuk kabar pertama hilang, gateway mengirim kabar yang sama lagi, dan saldo Budi naik Rp400.000 untuk Rp200.000 yang dibayar. Kalimat apa yang lahir?",
+    "tanya": "M29: gateway mengirim kabar yang sama dua kali, handler pertama menjurnal tiap kiriman, dan saldo Budi naik Rp400.000 untuk Rp200.000 yang dibayar. Kalimat apa yang lahir?",
     "jawab": "Kabar dari luar adalah klaim: periksa tanda tangannya, catat satu kali, baru percaya (ADR 34: tanda tangan atas byte mentah, event satu kali, status hanya maju). Dipersempit: \"satu kali\" ditahan tiga lapis, dan tanpa lapis status event kedua pada 25 jam menghasilkan 2 jurnal."
   },
   {
