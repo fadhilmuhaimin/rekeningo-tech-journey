@@ -1,0 +1,44 @@
+{
+  "id": "t4-adr45-tebak",
+  "judul": "Empat pemicu berupa angka beban: mana yang paling dekat?",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Hitungan atas Asumsi naskah Tahap 4; pemicu 70 dan 100 adalah Asumsi ADR 33, dan pemicu 5 Asumsi ADR 21"
+  },
+  "adegan": [
+    "Dari delapan komponen yang ditunda, empat pemicu berupa angka beban punya nilai yang bisa dihitung hari ini: laju pesan outbox, koneksi tertahan oleh satu modul, koneksi database, dan koneksi tertahan oleh bacaan.",
+    "Angka Tahap 4: puncak 138,9 request per detik, 6,94 transaksi uang per detik dan 7,52 notifikasi uang per detik, dua instance API dengan pool 10, dan dua instance pembayaran dengan pool 5."
+  ],
+  "pertanyaan": "Mana dari keempatnya yang paling dekat ke pemicunya sekarang?",
+  "pilihan": [
+    {
+      "teks": "Kafka, untuk laju pesan outbox",
+      "benar": false,
+      "alasan": "Notifikasi uang 7,52 per detik dari pemicu 100 per detik: 7,5%. Jumlah consumer yang bergantung pada urutan pesan belum dihitung."
+    },
+    {
+      "teks": "PgBouncer, untuk koneksi database",
+      "benar": true,
+      "alasan": "Koneksi: 2 × 10 + 2 × 5 + 4 + 3 + 3 = 40 dari 100. Pemicu 70 berarti 40 ÷ 70 = 57% jalan, dan lima instance API dengan pool 10 sampai di sana."
+    },
+    {
+      "teks": "Service per modul, untuk koneksi satu modul",
+      "benar": false,
+      "alasan": "Gateway di dalam request dengan timeout 3 detik menahan 0,579 × 3 = 1,74 koneksi, dari pemicu 5: 35%. Modul lain di dalam monolith belum punya pool sendiri, jadi angkanya belum terbaca."
+    },
+    {
+      "teks": "Read replica, untuk bacaan laporan",
+      "benar": false,
+      "alasan": "Koneksi tertahan oleh bacaan paling banyak (138,9 − 6,94) × 0,02 = 2,64, dari pemicu 5: 53%. Dekat, tetapi 53% masih di bawah 57%. Waktu 20 ms adalah Asumsi, dan tidak semua request selain uang adalah baca."
+    }
+  ],
+  "penutup": "Yang terdekat pun baru 57% dari pemicunya, dan pemicunya Asumsi. Pemicu yang tidak berupa angka beban, atau yang nilainya belum diukur, tidak muncul di sini.",
+  "label": {
+    "sumber": "Asumsi · hitungan",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
