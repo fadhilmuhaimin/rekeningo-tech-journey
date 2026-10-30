@@ -3100,8 +3100,8 @@
   "halaman": "t4-audit",
   "judul": "4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43",
   "url": "tahap-4/audit-log-back-office/",
-  "tanya": "Baris 5 sampai 8 dihapus. Apa jawaban pemeriksaan tanpa jangkar, dan apa jawabannya dengan berkas jangkar?",
-  "jawab": "Tanpa jangkar: 4 baris, rantai utuh, exit status 0. Dengan berkas jangkar: jangkar nomor 6 baris-hilang, exit status 2 (`jangkar.txt` bagian B)."
+  "tanya": "Baris 5 sampai 8 dihapus. Apa jawaban pemeriksaan tanpa jangkar, dan apa jawabannya dengan file jangkar?",
+  "jawab": "Tanpa jangkar: 4 baris, rantai utuh, exit status 0. Dengan file jangkar: jangkar nomor 6 baris-hilang, exit status 2 (`jangkar.txt` bagian B)."
  },
  {
   "id": "t4-audit-3",

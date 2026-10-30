@@ -8,15 +8,15 @@
   "baris": [
     {
       "label": "Tanpa jangkar",
-      "sub": "pemeriksaan rantai saja",
+      "sub": "rantai saja",
       "simpul": [
         {
-          "teks": "baris 5 sampai 8 dihapus",
-          "sub": "oleh pemilik tabel"
+          "teks": "ekor dipotong",
+          "sub": "baris 5 sampai 8 dihapus"
         },
         {
-          "teks": "4 baris, rantai utuh",
-          "sub": "keadaan terpotong dijangkarkan",
+          "teks": "rantai utuh",
+          "sub": "4 baris, keadaan terpotong dijangkarkan",
           "nada": "warn"
         }
       ]
@@ -26,11 +26,11 @@
       "sub": "file di luar database",
       "simpul": [
         {
-          "teks": "baris 5 sampai 8 dihapus",
-          "sub": "oleh pemilik tabel"
+          "teks": "ekor dipotong",
+          "sub": "baris 5 sampai 8 dihapus"
         },
         {
-          "teks": "jangkar nomor 6: baris-hilang",
+          "teks": "jangkar 6 hilang",
           "sub": "pemeriksaan menolak",
           "nada": "good"
         }

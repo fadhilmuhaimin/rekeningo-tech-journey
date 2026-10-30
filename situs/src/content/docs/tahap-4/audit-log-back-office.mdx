@@ -12,13 +12,13 @@ import SkripLama from "../../../components/SkripLama.astro";
 import intiDiagram from "../../../../data/diagram/t4-audit-inti.json";
 import dataTebak from "../../../../data/widget/t4-audit-tebak.json";
 
-<p class="meta">Baca 22 menit · coba 4 menit · Prasyarat: [[t4-m38]] · Jalur inti</p>
+<p class="meta">Baca 21 menit · coba 4 menit · Prasyarat: [[t4-m38]] · Jalur inti</p>
 
 <Blok nama="Mulai" buka>
 
 ## Inti
 
-Rantai hash mendeteksi baris tengah yang diubah, tetapi ekor yang dipotong baru ketahuan bila hash harian disimpan di luar database.
+Rantai hash mendeteksi baris tengah yang diubah, tetapi ekor yang dipotong baru ketahuan bila ada jangkar di luar database.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -67,7 +67,7 @@ Pilih satu kejadian, lalu baca catatan di tiap sisi. Catatan memakai `rantai.txt
 
 ### Kenapa ini ada
 
-[[t4-m38]] adalah masalahnya: Rekeningo tidak bisa menjawab siapa yang membuka data identitas Budi dalam 30 hari terakhir. Halaman ini memutuskan siapa boleh melakukan apa di back office, apa yang dicatat, dan apa yang dibuktikan catatan itu. Back office adalah layar internal tim risk untuk melihat akun dan pengajuan verifikasi, membuka file identitas, membekukan akun, dan mengubah batas harian.
+[[t4-m38]] adalah masalahnya: Rekeningo tidak bisa menjawab siapa yang membuka data identitas Budi dalam 30 hari terakhir. Back office adalah layar internal tim risk untuk melihat akun dan pengajuan verifikasi, membuka file identitas, membekukan akun, dan mengubah batas harian. Halaman ini memutuskan siapa boleh melakukan apa di back office, apa yang dicatat, dan apa yang dibuktikan catatan itu.
 
 PRD v4 menulis ukuran 100% akses staf ke file dan data identitas tercatat di audit log ([[t4-prd]]). [[t4-storage]] sudah menulis satu baris audit tiap kali staf membuka file lewat server. Rekaman lab memakai akun Dina (40001) sebagai pemilik data, bukan Budi, karena Dina punya pengajuan verifikasi dan file di data awal lab. Penyerang di halaman ini adalah orang dalam yang mencoba, yaitu staf atau engineer dengan hak tulis, bukan peretas yang masuk ke server.
 
@@ -145,7 +145,7 @@ Hari 1 menjangkarkan baris 4, hari 2 menjangkarkan baris 6, dan pemeriksaan yang
 | Baris 2 ditulis ulang dan hash baris 2 sampai 8 dihitung ulang, tanpa jangkar | 8 baris, rantai utuh | 0 |
 | Kejadian yang sama, dengan jangkar | jangkar nomor 4 dan nomor 6 hash-beda | 2 |
 | Baris 7 dan 8 dihapus sesudah jangkar terakhir | 6 baris, rantai utuh, nol temuan | 0 |
-| File jangkar dipangkas, nomor 6 dihapus | 4 baris, rantai utuh, nol temuan | 0 |
+| Baris 5 sampai 8 dihapus dan jangkar nomor 6 ikut dihapus dari file | 4 baris, rantai utuh, nol temuan | 0 |
 | File jangkar dihapus seluruhnya | dibaca belum ada jangkar, jangkar baru nomor 4 | 0 |
 | File jangkar rusak | pemeriksaan gagal, file tidak dilewati | 1 |
 
@@ -165,7 +165,7 @@ Enam alat tulis yang dipanggil client dijawab galat JSON-RPC -32602 "unknown too
 
 Server hanya menerima token agen. Tanpa token, token sembarang, dan token sesi back office Ratih dijawab 401, dan token agen di dua endpoint back office juga 401 (bagian F). Spesifikasi menamai pola sebaliknya token passthrough: server menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir. Spesifikasi menulis bahwa server tidak boleh (MUST NOT) menerima token yang tidak diterbitkan untuk server itu ([Security Best Practices](https://modelcontextprotocol.io/specification/2026-07-28/basic/security_best_practices), dibuka 2026-10-30).
 
-Salah satu risikonya menyangkut audit. Server tidak bisa membedakan client, dan log API hilir menunjukkan sumber yang berbeda, sehingga investigasi insiden lebih sulit. Server lab tidak meneruskan token ke mana pun. Jalan keluarnya hanya koneksi PostgreSQL dengan kredensial role `t4a_agen` miliknya sendiri, dan token tidak muncul di log server (bagian F). Tes memindai sumber server dan tidak menemukan client HTTP (`testing.txt` bagian B).
+Salah satu risikonya menyangkut audit. Server tidak bisa membedakan client, dan log API hilir menunjukkan sumber yang berbeda, sehingga investigasi insiden lebih sulit. Server lab tidak meneruskan token ke mana pun. Jalan keluarnya hanya koneksi PostgreSQL dengan kredensial role `t4a_agen` miliknya sendiri, dan token tidak muncul di log server (bagian F). Satu tes Go memindai sumber server dan menolak alat tulis, resource, prompt, dan client keluar, dan tes itu lulus (`testing.txt` bagian B).
 
 `t4a_agen` hanya boleh SELECT atas `audit_log`, kolom `id`, `jenis`, `status`, dan `tingkat` dari `akun`, dan kolom `id`, `akun_id`, `subjek`, dan `status` dari `verifikasi`. Membaca surel, nama, tabel `sesi`, kunci objek file, dan checksum ditolak (`role.txt` bagian D, `mcp.txt` bagian G).
 
@@ -207,7 +207,7 @@ Tab Go dijalankan di lab. Tab lain Tidak dijalankan, dan hanya dicek ke dokument
 
 *Tidak dijalankan. Dicek ke dokumentasi [Django 6.1: admin site](https://docs.djangoproject.com/en/6.1/ref/contrib/admin/), dibaca dari teks mentah cabang stable/6.1.x di GitHub, dibuka 2026-10-30.*
 
-**Yang berbeda di stack ini:** model `LogEntry` mencatat penambahan, perubahan, dan penghapusan objek yang dilakukan lewat admin. Perubahan lewat kode lain tidak termasuk. Bagian `LogEntry` tidak membahas tahan ubah atau tabel yang hanya bertambah.
+**Yang berbeda di stack ini:** model `LogEntry` mencatat penambahan, perubahan, dan penghapusan objek yang dilakukan lewat admin. Dokumentasi itu membatasi cakupannya pada admin. Bagian `LogEntry` tidak membahas tahan ubah atau tabel yang hanya bertambah.
 
 </Fragment>
 <Fragment slot="t4">
