@@ -3824,8 +3824,9 @@
       "lab": [
         "t4-kartu"
       ],
-      "ada": false,
-      "nomor": "4.23"
+      "ada": true,
+      "nomor": "4.23",
+      "menit": 24
     },
     {
       "id": "t4-m38",
@@ -3849,8 +3850,9 @@
       "lab": [
         "t4-audit"
       ],
-      "ada": false,
-      "nomor": "4.24"
+      "ada": true,
+      "nomor": "4.24",
+      "menit": 10
     },
     {
       "id": "t4-audit",

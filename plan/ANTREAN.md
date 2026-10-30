@@ -2222,11 +2222,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### 4.22 · M37: Kartu virtual disetujui dua kali dengan satu saldo
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 4.21, lab-t4-kartu, KONSISTENSI-4, DIRI-3
 - selesai bila: halaman Masalah 4.22 sesuai `plan/CERITA-TAHAP-4.md` bagian 4 (M37) dan peta halaman Tahap 4; rekaman dari `labs/t4-kartu`; widget alur; yang dikira (bug di penerbit kartu) sebelum yang sebenarnya (otorisasi memeriksa saldo lalu menyetujui tanpa menahan dana, cek-lalu-tulis seperti M9 `[[t2-m9]]`; ledger menolak clearing kedua karena saldo tidak boleh negatif, padahal persetujuan tidak bisa ditarik; tenggat 2 detik penerbit); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama. Gejala berlabel Ilustrasi sampai ada rekaman; yang dikira sebelum yang sebenarnya; konsep tidak di dalam adegan; angka kejadian naskah yang tidak terulang di lab berlabel Ilustrasi dan masuk `### USULAN-CERITA`. Aturan terbukti Tahap 3 (`plan/BRIEF-HALAMAN.md`, dibaca seluruhnya): angka hanya dari rekaman atau dihitung dari angka yang tertulis di halaman, dengan label tidak lebih kuat dari rekaman dan dari kode lab yang memerankannya; klaim negatif dan universal berlingkup; penjaga angka Vitest yang menurunkan nilai dari rekaman, registry, dan naskah dengan uji mutasi sendiri (tabel di badan PR); ID riset dan nomor keputusan tidak tampil (`cek_id_tampil.py`); Snippet `lines=` dari rentang fungsi; hasil tanpa JavaScript (noscript); tabel tidak meluap di 320 px.
-- catatan: Rp100.000 dan Rp80.000 berlabel Ilustrasi. ALOKASI: keputusan 1350–1353 (1350–1352 pelaksana, 1353 peninjau), ID riset R4-215 sampai R4-219.
+- catatan: Rp100.000 dan Rp80.000 berlabel Ilustrasi. ALOKASI: keputusan 1350–1353 (1350–1352 pelaksana, 1353 peninjau), ID riset R4-215 sampai R4-219. Selesai 2026-10-30 di PR #453 (keputusan 1350–1353): m37-kartu-dua-kali.mdx (cek-lalu-tulis pada otorisasi kartu, penerbit tiruan fail terbuka, jalan kedua lewat tenggat); peninjau menjalankan klaim ke rekaman, 731 menit dibuka sampai merge (jeda limit #10 dan dua kali sesi pengatur dimulai ulang).
 
 ### 4.23 · Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42
 
@@ -2240,20 +2240,20 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### 4.24 · M38: Siapa yang membuka data Budi?
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 4.23, lab-t4-audit, KONSISTENSI-4, DIRI-3
 - selesai bila: halaman Masalah 4.24 sesuai `plan/CERITA-TAHAP-4.md` bagian 4 (M38) dan peta halaman Tahap 4; rekaman dari `labs/t4-audit`; widget alur; yang dikira (layanan verifikasi bocor) sebelum yang sebenarnya (satu akun bersama, engineer membaca tabel lewat role pemilik schema tanpa catatan, log biasa bisa diubah; jawaban "tidak ada" sama nilainya dengan "tidak tahu"); sumber pesan ke Budi tidak pernah dibuktikan; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama. Gejala berlabel Ilustrasi sampai ada rekaman; yang dikira sebelum yang sebenarnya; konsep tidak di dalam adegan; angka kejadian naskah yang tidak terulang di lab berlabel Ilustrasi dan masuk `### USULAN-CERITA`. Aturan terbukti Tahap 3 (`plan/BRIEF-HALAMAN.md`, dibaca seluruhnya): angka hanya dari rekaman atau dihitung dari angka yang tertulis di halaman, dengan label tidak lebih kuat dari rekaman dan dari kode lab yang memerankannya; klaim negatif dan universal berlingkup; penjaga angka Vitest yang menurunkan nilai dari rekaman, registry, dan naskah dengan uji mutasi sendiri (tabel di badan PR); ID riset dan nomor keputusan tidak tampil (`cek_id_tampil.py`); Snippet `lines=` dari rentang fungsi; hasil tanpa JavaScript (noscript); tabel tidak meluap di 320 px.
-- catatan: Pesan ke Budi dan 30 hari berlabel Ilustrasi. ALOKASI: keputusan 1358–1361 (1358–1360 pelaksana, 1361 peninjau), ID riset R4-225 sampai R4-229.
+- catatan: Pesan ke Budi dan 30 hari berlabel Ilustrasi. ALOKASI: keputusan 1358–1361 (1358–1360 pelaksana, 1361 peninjau), ID riset R4-225 sampai R4-229. Selesai 2026-10-30 di PR #457 (keputusan 1358–1361): m38-siapa-membuka.mdx; peninjau: 'Rekeningo tidak bisa menjawab' dibatasi ke tabel catatan, 'UPDATE tidak meninggalkan petunjuk' jadi 'di isi tabel' (xmin dan n_tup_upd tak diperiksa lab), 'pemilik tabel yang mengubah satu baris terdeteksi' dibantah jangkar.txt B dan C, penjaga klaim negatif migrasi diperluas (RULE, EVENT TRIGGER, CONSTRAINT TRIGGER); 248 mutan baru, 4 lolos setara.
 
 ### 4.25 · Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 4.24, lab-t4-audit, KONSISTENSI-4, DIRI-3
 - selesai bila: halaman Keamanan + ADR 4.25 sesuai `plan/CERITA-TAHAP-4.md` bagian 4 dan tabel ADR 43 dan peta halaman Tahap 4; rekaman dari `labs/t4-audit`; widget banding (log biasa lawan log berantai: UPDATE baris tengah, ekor dipotong); ADR 43: peran `cs`, `risk`, `keuangan`, `admin-sistem`, persetujuan dua orang, hash SHA-256 berantai, jangkar harian di luar database, role aplikasi tanpa UPDATE dan DELETE, agen baca-saja lewat MCP tanpa meneruskan token (perilaku model Tidak dijalankan); "kapan salah": pelaku yang menulis ulang seluruh rantai termasuk jangkar, pemotongan ekor ([perlu verifikasi di lab]); registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama. ADR dengan opsi naskah (tiga atau lebih), pre-mortem, "kapan salah" dengan satuan dan pembanding yang sama dengan hitungan beban naskah (aturan 4), dan sumber; opsi terpilih dan satu opsi yang ditolak ada di rekaman. Aturan terbukti Tahap 3 (`plan/BRIEF-HALAMAN.md`, dibaca seluruhnya): angka hanya dari rekaman atau dihitung dari angka yang tertulis di halaman, dengan label tidak lebih kuat dari rekaman dan dari kode lab yang memerankannya; klaim negatif dan universal berlingkup; penjaga angka Vitest yang menurunkan nilai dari rekaman, registry, dan naskah dengan uji mutasi sendiri (tabel di badan PR); ID riset dan nomor keputusan tidak tampil (`cek_id_tampil.py`); Snippet `lines=` dari rentang fungsi; hasil tanpa JavaScript (noscript); tabel tidak meluap di 320 px.
-- catatan: Naskah menyebut halaman ini Keamanan 9. ALOKASI: keputusan 1362–1365 (1362–1364 pelaksana, 1365 peninjau), ID riset R4-230 sampai R4-234.
+- catatan: Naskah menyebut halaman ini Keamanan 9. ALOKASI: keputusan 1362–1365 (1362–1364 pelaksana, 1365 peninjau), ID riset R4-230 sampai R4-234. Selesai 2026-10-30 di PR #455 (keputusan 1362–1365): audit-log-back-office.mdx (ADR 43 empat opsi, banding log biasa lawan berantai, halaman istilah audit-log dan mcp); peninjau: Inti diberi syarat 'tanpa hitung ulang', aturan 4 ADR 43 memisahkan ubah data dari buka file (BukaBerkas menulis audit di transaction sendiri), ukuran PRD 100% belum terpenuhi untuk dua jalur, opsi C [perlu verifikasi]; 635 mutan baru, penjaga +45 tes.
 
 ### 4.26 · Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44
 
