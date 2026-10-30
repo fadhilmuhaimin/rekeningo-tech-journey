@@ -220,9 +220,9 @@ describe("registry, meta, susunan blok, dan tautan", () => {
   });
   test("tautan [[id]]: himpunan sama dengan yang diharapkan; nomor dan judul sama dengan registry", () => {
     const id = [...new Set([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!))].sort();
-    expect(id).toEqual(["E1", "berikutnya", "t1-adr-12", "t1-secret", "t2-skema-tanpa-downtime", "t3-tim-infra", "t4-adr-45", "t4-audit", "t4-breaker", "t4-infra-secret", "t4-m32", "t4-m34", "t4-modul", "t4-prd", "t4-rekonsiliasi", "t4-ssrf"]);
+    expect(id).toEqual(["C3", "E1", "berikutnya", "t1-adr-12", "t1-secret", "t2-skema-tanpa-downtime", "t3-tim-infra", "t4-adr-45", "t4-audit", "t4-breaker", "t4-infra-secret", "t4-m32", "t4-m34", "t4-modul", "t4-prd", "t4-rekonsiliasi", "t4-ssrf"]);
     const sesuai: [string, string, string][] = [
-      ["E1", "1.33", "App versi lama"], ["t1-adr-12", "1.40", "Sengaja belum dilakukan"], ["t1-secret", "1.35", "Secret di repo dan di server"],
+      ["C3", "1.31", "Deployment dan rollback"], ["E1", "1.33", "App versi lama"], ["t1-adr-12", "1.40", "Sengaja belum dilakukan"], ["t1-secret", "1.35", "Secret di repo dan di server"],
       ["t2-skema-tanpa-downtime", "2.22", "Ubah skema tanpa downtime"], ["t3-tim-infra", "3.27", "Tim dan infra Tahap 3"], ["t4-adr-45", "4.29", "ADR 45"], ["t4-audit", "4.25", "Keamanan 9"],
       ["t4-breaker", "4.11", "Timeout, retry"], ["t4-infra-secret", "4.17", "Secret manager, IaC"], ["t4-m32", "4.12", "M32"], ["t4-m34", "4.16", "M34"],
       ["t4-modul", "4.13", "Modular monolith"], ["t4-prd", "4.1", "PRD v4"], ["t4-rekonsiliasi", "4.9", "Rekonsiliasi dengan gateway"], ["t4-ssrf", "4.21", "Keamanan 8"],
@@ -387,7 +387,8 @@ describe("rekaman SAST, SBOM, dan tanda tangan", () => {
     expect(bagB).toMatch(/\$ gosec -fmt=json -quiet \.\/\.\.\.\n\(exit code 0\)\n# Exit code 0 dan keluaran kosong/);
     expect(bagB).toContain("gerbang gosec: GAGAL (pemindaian tidak lengkap (5 galat paket))");
     harus("Di `sast.txt` bagian A ia melapor G701, analisis taint, pada contoh yang disiapkan: `os.Args[1]` mengalir ke `db.Query`. Kasus tandingan di bagian yang sama memakai query itu dengan masukan konstanta, dan hasilnya nol temuan.");
-    harus("Jadi G701 melapor aliran dari sumber input, bukan setiap `fmt.Sprintf` ke database.");
+    harus("Jadi pada contoh ini G701 melapor aliran dari sumber input, bukan setiap `fmt.Sprintf` ke database, dan pola query lain tidak diuji.");
+    expect(sast).toContain("# Pola query lain tidak dicoba di lab ini.");
     harus("| gosec `-quiet` | kode tidak terkompilasi: keluaran kosong dan exit code 0 | `sast.txt` bagian B |");
     harus("| grype atas SBOM kosong | tidak ada yang dipindai, jadi nol temuan | `sbom.txt` bagian B |");
     harus("| govulncheck `-format json` | exit code selalu 0, berapa pun temuannya | dokumentasi alat, Tidak dijalankan di sini |");
@@ -959,7 +960,7 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
   test("urutan tautan [[id]] di seluruh halaman, satu per satu", () => {
     expect([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1])).toEqual([
       "t4-modul", "t3-tim-infra", "berikutnya", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t1-adr-12", "E1", "E1", "t4-audit", "t3-tim-infra", "t4-rekonsiliasi", "t4-breaker",
-      "t3-tim-infra", "t4-m32", "t4-m34", "t4-prd", "t4-m34", "t4-infra-secret", "t4-ssrf", "t3-tim-infra", "t1-secret", "t2-skema-tanpa-downtime", "t4-modul", "t4-m32", "t4-adr-45", "t4-adr-45", "t4-infra-secret",
+      "t3-tim-infra", "t4-m32", "t4-m34", "t4-prd", "t4-m34", "t4-infra-secret", "t4-ssrf", "t3-tim-infra", "C3", "t1-secret", "t2-skema-tanpa-downtime", "t4-modul", "t4-m32", "t4-adr-45", "t4-adr-45", "t4-infra-secret",
     ]);
   });
   test("versi cosign dan oasdiff di kalimat sama dengan README; nomor masalah di Status sama dengan registry; kejadian M32 dan M34", () => {
@@ -972,8 +973,10 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
     expect(hal327).toContain("migration dry-run");
     expect(hal327).toContain("k6 smoke");
     expect(hal327).toContain("approve");
-    harus("| Cara kerja | Tes dengan PostgreSQL dan Redis, migration dry-run, k6 smoke, staging, approve ([[t3-tim-infra]]) |");
-    harus(`| Kekurangan | Tidak ada tes contract, SAST, SBOM, atau tanda tangan: tiga error kontrak dan ${PANGGIL.length} kerentanan dipanggil tidak terlihat |`);
+    harus("| Cara kerja | Tes dengan PostgreSQL dan Redis, migration dry-run, k6 smoke, staging, approve ([[t3-tim-infra]]), dan gosec dengan aturan G201 dan G202 sejak Tahap 1 ([[C3]]) |");
+    expect(baca("situs/src/content/docs/tahap-1/deployment-rollback.mdx")).toContain("1. Setiap push ke `main` menjalankan CI: `go vet`, `go test`, gosec G201 dan G202 (janji di [[t1-sql-injection]]), lalu build dan push image.");
+    expect(dari("C3").nomor).toBe("1.31");
+    harus(`| Kekurangan | Tidak ada tes contract, govulncheck, SBOM, atau tanda tangan, dan gosec hanya memakai aturan G201 dan G202: tiga error kontrak dan ${PANGGIL.length} kerentanan dipanggil tidak terlihat |`);
     harus("| Bukti | Tidak dijalankan: dibaca dari pipeline Tahap 3. Yang terlewat: `kontrak.txt` api-t4, `sast.txt` bagian E |");
     harus("**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:");
     harus("Bedanya, di Tahap 4 backend punya tiga tim, dan satu rilis yang salah mengenai uang orang di luar Lestari.");
@@ -1047,9 +1050,9 @@ describe("tabel ADR 44, tabel jaga, dan baris riset: sel demi sel dan silang ruj
   test("tabel opsi A, B, C dan tabel keputusan lain sama sel demi sel; angka di sel dari rekaman", () => {
     expect(tabelSetelah("Keputusan pipeline punya tiga opsi:")).toEqual([
       [``, `A. Pipeline Tahap 3 saja`, `B. Semua pemeriksaan di setiap PR untuk seluruh repo`, `C. Per modul`],
-      [`Cara kerja`, `Tes dengan PostgreSQL dan Redis, migration dry-run, k6 smoke, staging, approve ([[t3-tim-infra]])`, `Satu workflow menjalankan tes, SAST, SBOM, dan pindai atas seluruh repo di tiap PR`, `File yang berubah memilih langkah di PR, dan pemeriksaan atas image berjalan sesudah merge`],
+      [`Cara kerja`, `Tes dengan PostgreSQL dan Redis, migration dry-run, k6 smoke, staging, approve ([[t3-tim-infra]]), dan gosec dengan aturan G201 dan G202 sejak Tahap 1 ([[C3]])`, `Satu workflow menjalankan tes, SAST, SBOM, dan pindai atas seluruh repo di tiap PR`, `File yang berubah memilih langkah di PR, dan pemeriksaan atas image berjalan sesudah merge`],
       [`Kelebihan`, `Tidak ada pekerjaan baru`, `Tidak ada aturan pemetaan yang bisa salah, dan kode bersama ikut diperiksa`, `PR cepat, dan pemilik modul melihat hasil modulnya`],
-      [`Kekurangan`, `Tidak ada tes contract, SAST, SBOM, atau tanda tangan: tiga error kontrak dan ${PANGGIL.length} kerentanan dipanggil tidak terlihat`, `Lambat, dan tim cenderung menghindarinya (Asumsi naskah)`, `Kode bersama belum terpetakan, dan filter path bisa menahan merge`],
+      [`Kekurangan`, `Tidak ada tes contract, govulncheck, SBOM, atau tanda tangan, dan gosec hanya memakai aturan G201 dan G202: tiga error kontrak dan ${PANGGIL.length} kerentanan dipanggil tidak terlihat`, `Lambat, dan tim cenderung menghindarinya (Asumsi naskah)`, `Kode bersama belum terpetakan, dan filter path bisa menahan merge`],
       [`Biaya operasional`, `Nol`, `Waktu tunggu tiap PR, tidak diukur`, `Aturan pemetaan yang harus dites dan dirawat, ditambah satu job penentu`],
       [`Bukti`, `Tidak dijalankan: dibaca dari pipeline Tahap 3. Yang terlewat: \`kontrak.txt\` api-t4, \`sast.txt\` bagian E`, `Tidak dijalankan: waktu pipeline tidak diukur`, `Rekaman lab t4-pipeline dan \`tes_gerbang.py\``],
     ]);
