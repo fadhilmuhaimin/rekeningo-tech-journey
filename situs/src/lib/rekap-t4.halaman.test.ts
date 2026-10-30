@@ -602,7 +602,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     harus(butir(8).pertama, "Payload Bu Marni dengan id Toko Andalan membawa nama Toko Sumber Rejeki, tetapi server menjawab nama Toko Andalan (`statis.txt` bagian C).");
     const D = bag(crc, "D");
     const ganti = cari(D, /^selisih: id QR berubah; CRC berubah dari (\w+) menjadi (\w+)$/, "crc D");
-    harus(butir(8).pertama, `Di rekaman lain, id QR di payload diganti dan CRC dihitung ulang tanpa key, dari \`${ganti[1]}\` menjadi \`${ganti[2]}\`, lalu pemindai lab menerimanya (\`crc.txt\` bagian D).`);
+    harus(butir(8).pertama, `Di rekaman lain, id QR di payload, yaitu isi teks stiker, diganti. CRC, angka pemeriksa di ujung payload, dihitung ulang tanpa key dari \`${ganti[1]}\` menjadi \`${ganti[2]}\`, lalu pemindai lab menerimanya (\`crc.txt\` bagian D).`);
     expect(ada(D, /^teks diganti lalu CRC dihitung ulang dengan binascii\.crc_hqx \(tanpa alat lab\): lolos/)).toBe(true);
     expect(ada(D, /"nama":"Toko Sumber Rejeki"/)).toBe(true);
     const Cc = bag(crc, "C");
@@ -630,7 +630,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     const ringkas = cari(baris, /^ditolak fetcher aman: (\d+) dari (\d+) alamat terlarang; dari itu (\d+) lolos bila IsPrivate satu-satunya pemeriksaan$/, "ssrf ringkas");
     expect(Number(ringkas[2]) - privat).toBe(Number(ringkas[3]));
     expect(ringkas[1]).toBe(ringkas[2]);
-    harus(butir(9).pertama, `Pemeriksaan alamat versi aman menolak ${ringkas[1]} dari ${ringkas[2]} alamat terlarang, dan ${ringkas[3]} lolos bila \`IsPrivate\` satu-satunya pemeriksaan (\`alamat.txt\`, lab t4-ssrf).`);
+    harus(butir(9).pertama, `Pemeriksaan alamat versi aman menolak ${ringkas[1]} dari ${ringkas[2]} alamat terlarang, dan ${ringkas[3]} lolos bila \`IsPrivate\`, metode bawaan Go, satu-satunya pemeriksaan (\`alamat.txt\`, lab t4-ssrf).`);
     const redirect = semua(batasSsrf.split("\n"), /^redirect (\d{3}) ke server lain: ditolak \(tujuan tidak diizinkan\); server pertama disentuh: 1, server tujuan redirect disentuh: 0$/);
     expect(redirect.map((m) => m[1])).toEqual(["300", "301", "302", "303", "304", "307", "308"]);
     harus(butir(9).pertama, "Ketujuh kode redirect 3xx ditolak, dan server tujuan redirect disentuh 0 kali (`batas.txt`).");
@@ -658,7 +658,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(ada(C, /^AUTH-B Rp80\.000: tolak \(sumber: rekeningo, alasan: saldo-kurang\)$/)).toBe(true);
     expect(ada(C, /^ pemakai +\| 20000$/)).toBe(true);
     expect(ada(C, /^ dana_tertahan +\| 80000$/)).toBe(true);
-    harus(butir(10).pertama, "Dengan hold, otorisasi pertama menahan Rp80.000, dan yang kedua membaca saldo Rp20.000 lalu ditolak karena saldo kurang (bagian C).");
+    harus(butir(10).pertama, "Dengan dana tertahan (hold), otorisasi pertama menahan Rp80.000, dan yang kedua membaca saldo Rp20.000 lalu ditolak karena saldo kurang (bagian C).");
     // rute: hanya satu rute yang membatalkan otorisasi, dan dibungkus dariPenerbit
     const handler = baca("labs/api-t4/internal/handler/handler_kartu.go");
     const rute = handler.split("\n").filter((b) => /mux\.HandleFunc\(/.test(b));
@@ -694,7 +694,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     const J = bag(jangkar, "B").join("\n");
     cocok(J, /baris=4 rantai=utuh jangkar_lama=0 temuan=0\njangkar baru: nomor 4\n# exit status 0/);
     cocok(J, /baris=4 rantai=utuh jangkar_lama=2 temuan=1\njangkar nomor 6: baris-hilang\n# exit status 2/);
-    harus(butir(11).pertama, "Tanpa jangkar, rantai utuh dengan 4 baris. Dengan jangkar, jangkar nomor 6 dijawab baris-hilang (`jangkar.txt` bagian B).");
+    harus(butir(11).pertama, "jangkar, yaitu catatan hash baris terakhir di luar database, menangkap ekor yang dipotong. Tanpa jangkar, rantai utuh dengan 4 baris. Dengan jangkar, jangkar nomor 6 dijawab baris-hilang (`jangkar.txt` bagian B).");
     harus(fileHalaman("t4-audit"), "Ukuran 100% dari PRD juga belum terpenuhi: percobaan yang ditolak dan akses lewat role pemilik schema tidak meninggalkan baris.");
     harus(fileHalaman("t4-m38"), "Jawaban \"tidak ada\" di sini sama nilainya dengan \"tidak tahu\"");
     harus(butir(11).batas, "Ukuran 100% dari PRD v4 juga belum terpenuhi, karena percobaan yang ditolak dan akses lewat role pemilik schema tidak meninggalkan baris.");
@@ -710,7 +710,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(ada(C, /^tanda tangan memuat digest <digest D>$/)).toBe(true);
     expect(ada(C, /^gerbang image \(dibangun <digest C>\): GAGAL \(digest di referensi bukan digest yang dibangun CI\)$/)).toBe(true);
     expect(ada(C, /^Error: no signatures found$/)).toBe(true);
-    harus(butir(12).pertama, "`cosign verify` atas tag lulus dengan digest D, padahal build CI menghasilkan digest C. Hanya gerbang digest yang menolaknya (`tanda-tangan.txt` bagian C, lab t4-pipeline).");
+    harus(butir(12).pertama, "Digest adalah sidik jari isi image, sedangkan tag hanya nama yang bisa dipindah. Bila tag dipindah ke image lain sebelum ditandatangani, `cosign verify` atas tag lulus dengan digest D, padahal build CI menghasilkan digest C. Hanya perbandingan dengan digest hasil build CI yang menolaknya (`tanda-tangan.txt` bagian C, lab t4-pipeline).");
     const E = bag(sast, "E");
     const dipanggil = cari(E, /^dipanggil kode: (\d+)$/, "sast E")[1]!;
     expect(semua(E, /^ {2}GO-\d{4}-\d{4} stdlib v1\.27\.1, diperbaiki di v1\.27\.\d$/)).toHaveLength(Number(dipanggil));
