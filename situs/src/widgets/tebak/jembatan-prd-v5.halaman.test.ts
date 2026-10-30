@@ -156,6 +156,8 @@ describe("nilai turunan: sumber dan hitungan itu sendiri", () => {
     expect([N4, N5]).toEqual([4, 5]);
   });
   test("M39: minggu 12, tiga hal yang belum pernah diuji (database, worker, tim)", () => {
+    ada(T4("m39-prd-v5.mdx"), "PRD v5 meminta tiga hal yang belum pernah diuji di Tahap 4. Pertama laporan merchant dan transaksi di satu database, lalu notifikasi massal lewat satu worker, dan terakhir 13 orang menjadi 20 sampai 40 di satu repo.", "4.27");
+    ada(T4("m39-prd-v5.mdx"), "**Tiga hal yang belum pernah diuji.**", "4.27");
     expect(barisM39).toHaveLength(1);
     expect(cocok(barisM39[0]!, /^\| M39 \| (\d+) \|/)[1]).toBe("12");
     expect(belumDiuji).toBe("laporan merchant dan transaksi di satu database, satu worker untuk notifikasi massal, dan 13 orang menjadi 20 sampai 40 di satu repo");
@@ -315,6 +317,18 @@ describe("jejak riset: lima baris R4-260 sampai R4-264, urut, lima kolom, tangga
     ada(baris("R4-263")[2]!, "pencarian 2026-10-29 tidak menemukan sumber primer", "R4-263");
     ada(T4("modular-monolith.mdx"), "Pencarian 2026-10-29 tidak menemukan sumber primer", "4.13");
     expect(baris("R4-263")[3]).toContain("tidak ada hitungan yang bergantung padanya");
+  });
+  test("R4-262: pola jembatan dari 3.32 dan 4.1; naskah bagian 6 menulis jawaban dibuka di halaman pertama Tahap 5", () => {
+    const b = baris("R4-262");
+    ada(b[2]!, "`tahap-3/jembatan-prd-v4.mdx` (tebakan dengan pilihan benar)", "R4-262");
+    ada(b[2]!, "`tahap-4/prd-v4.mdx` blok \"Yang dibuka lagi dari Tahap 3\" (jawaban dibuka dengan bukti Tahap 3)", "R4-262");
+    ada(b[2]!, "naskah Tahap 4 bagian 6 (\"Jawabannya dibuka di halaman pertama Tahap 5\")", "R4-262");
+    ada(b[2]!, "label tebakan menyatakan kecocokan dengan kalimat halaman ADR, bukan jawaban Tahap 5", "R4-262");
+    ada(T4("prd-v4.mdx"), '<Blok nama="Yang dibuka lagi dari Tahap 3">', "4.1");
+    ada(T3("jembatan-prd-v4.mdx"), "<Tebak client:visible", "3.32");
+    ada(bag6, "Jawabannya dibuka di halaman pertama Tahap 5.", "naskah 4 bagian 6");
+    expect(b[0]).toBe("R4-262");
+    expect(b[4]).toBe("Tidak berlaku");
   });
   test("R4-264: PROPOSAL dan naskah membaca 'ditambah' berbeda; halaman memakai kalimat naskah", () => {
     const proposal = baca("plan/PROPOSAL.md");
@@ -628,6 +642,16 @@ describe("widget tebak: tepat satu pilihan cocok, posisi dan panjang tidak membo
     ada(data.pilihan[0]!.alasan, "Tidak satu pun menyebut laporan, notifikasi massal, cicilan, API untuk POS, atau jumlah orang di tim.");
     ada(data.pilihan[0]!.alasan, "Daftar syarat salah di halaman itu tidak menulis keadaan yang PRD v5 minta.");
     ada(data.pilihan[2]!.alasan, "Daftar syarat salah di halaman itu tidak menulis keadaan yang PRD v5 minta.");
+  });
+  test("urutan kalimat alasan tiap pilihan: kalimat berurutan (menukar dua kalimat bersebelahan gagal)", () => {
+    const urut = (alasan: string, awal: string[]) => {
+      const pos = awal.map((k) => alasan.indexOf(k));
+      expect(pos.every((p) => p >= 0), `kalimat tidak ada: ${awal.filter((_, i) => pos[i]! < 0).join(" | ")}`).toBe(true);
+      expect(pos, "urutan kalimat alasan").toEqual([...pos].sort((x, y) => x - y));
+    };
+    urut(data.pilihan[0]!.alasan, ["Halaman 4.21 menulis lima syarat salah ADR 41.", "Syarat pertama dihitung per satu impor", "Empat syarat lain tentang", "Tidak satu pun menyebut", "Daftar syarat salah di halaman itu tidak menulis"]);
+    urut(data.pilihan[1]!.alasan, ["Tiga keadaan itu ditulis di halaman ADR-nya.", "ADR 45 menunda read replica", "ADR 36 menulis bahwa breaker", "Pengumuman ke", "ADR 37 salah bila", "Ini bacaan dari halaman Tahap 4"]);
+    urut(data.pilihan[2]!.alasan, ["Halaman 4.19 menulis empat syarat salah ADR 40.", "Hanya syarat ketiga", "Bila merchant paling sedikit", "Tiga syarat lain tentang", "Daftar syarat salah di halaman itu tidak menulis"]);
   });
   test("adegan: PRD v5 meminta lima isi (Ilustrasi) dan tim naik dari 13 menjadi 20 sampai 40 (Asumsi cerita)", () => {
     expect(data.adegan).toHaveLength(2);
