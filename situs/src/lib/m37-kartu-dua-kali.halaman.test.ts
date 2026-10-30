@@ -75,7 +75,7 @@ interface Skenario {
   langkah: Langkah[];
   varian: { label: string; mulai: number; langkah: Langkah[] };
 }
-interface H { bagian?: number; id: string; judul: string; label?: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
+interface H { bagian?: number; id: string; judul: string; label?: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; path?: string; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
 const hal = cerita.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
@@ -344,7 +344,7 @@ describe("rekaman otorisasi.txt: bagian A, B, dan D; nilai yang dikutip", () => 
     harus("Ledger menjaga uang, tetapi terlambat. Persetujuan sudah sampai ke penerbit dan toko.");
     harus(`Penagihan pertama memindahkan ${rp(NOMINAL)} dari saldo ke buku \`settlement_kartu\`, jadi saldo Budi tinggal ${rp(SALDO_SESUDAH)} (Hitungan: ${rp(SALDO)} − ${rp(NOMINAL)}). Dua penagihan lain ditolak dengan 409, karena ${rp(SALDO_SESUDAH)} kurang dari ${rp(NOMINAL)}. Dari ${rp(JUMLAH_DISETUJUI)} yang disetujui, ${rp(JUMLAH_DISETUJUI - NOMINAL)} tidak punya saldo yang menutupinya (${rp(JUMLAH_DISETUJUI)} − ${rp(NOMINAL)}, Hitungan).`);
     expect(O.baris[oClearing + 1]).toBe("clearing AUTH-C Rp80.000: HTTP 409, /problems/saldo-kurang");
-    harus("Penagihan dari toko lewat penerbit disebut clearing. Di cerita ia datang esok harinya, sedangkan lab memanggilnya segera sesudah otorisasi karena jedanya tidak diukur. Lab menagih ketiga otorisasi satu per satu:");
+    harus("Penagihan dari toko lewat penerbit disebut clearing. Di cerita ia datang esok harinya, sedangkan lab memanggilnya segera sesudah otorisasi dan tidak mengukur jedanya. Lab menagih ketiga otorisasi satu per satu:");
     expect(runLab).toContain("for id_ in (\"AUTH-A\", \"AUTH-B\", \"AUTH-C\"):");
     expect(O.baris[2]).toContain("Rekaman dari database bersih");
   });
@@ -427,7 +427,7 @@ describe("kode lab: handler versi pertama, Clearing, rute kartu, dan migrasi; kl
     expect(kartuGo).toContain("if s.rentan == RentanKartuTanpaHold {\n\t\treturn s.otorisasiTanpaHold(ctx, in)");
     expect(baca("labs/api-t4/internal/service/t4_aturan.go")).toContain('RentanKartuTanpaHold  = "kartu-tanpa-hold"');
     expect(runLab).toContain('mulai_api(["-rentan", "kartu-tanpa-hold", "-lab-jeda-cek-tulis", "300ms"]');
-    harus("Handler membaca saldo kartu, memeriksa statusnya, lalu menulis satu baris `otorisasi_kartu` lewat fungsi `catat` dan menjawab setuju.");
+    harus("Handler membaca saldo pemilik kartu, memeriksa statusnya, lalu menulis satu baris `otorisasi_kartu` lewat fungsi `catat` dan menjawab setuju.");
     // arti hold di halaman: dana pindah dari saldo ke buku sistem dana_tertahan lewat satu jurnal (rekaman bagian C, versi yang menahan dana)
     expect(otorisasi).toMatch(/ kartu_tahan \| -80000\s+\| pemakai\n kartu_tahan \| 80000\s+\| dana_tertahan\n/);
     harus("Dana itu dicatat di buku sistem `dana_tertahan` lewat satu jurnal.");
@@ -463,8 +463,8 @@ describe("kode lab: handler versi pertama, Clearing, rute kartu, dan migrasi; kl
     expect(ruteSemua.filter((r) => /reversal|batal|cabut|tarik/i.test(r))).toEqual(["handler_kartu.go POST /penerbit/reversal"]);
     expect(ruteSemua.filter((r) => /otorisasi/i.test(r))).toEqual(["handler_kartu.go POST /penerbit/otorisasi"]);
     expect(badanFungsi).toContain('if kartu.Status != "aktif" || a.Status == "dibekukan" {\n\t\treturn catat("ditolak", "kartu-dibekukan")');
-    harus("Persetujuan itu tidak bisa ditarik dari sisi Rekeningo. Di `labs/api-t4/internal/handler/handler_kartu.go`, rute untuk pemilik kartu hanya menerbitkan, melihat, membekukan, dan membuka kartu, dan membekukan menolak otorisasi baru. Satu-satunya rute yang membatalkan otorisasi, `POST /penerbit/reversal`, dipanggil penerbit (Tidak dijalankan: dibaca dari file itu).");
-    harus("Di lab, persetujuan yang sudah dijawab tidak bisa ditarik Rekeningo, jadi mengecek saldo saja tidak cukup.");
+    harus("Rekeningo tidak punya rute untuk menarik persetujuan itu. Di `labs/api-t4/internal/handler/handler_kartu.go`, rute untuk pemilik kartu hanya menerbitkan, melihat, membekukan, dan membuka kartu, dan membekukan menolak otorisasi baru. Satu-satunya rute yang membatalkan otorisasi, `POST /penerbit/reversal`, dipanggil penerbit (Tidak dijalankan: dibaca dari file itu).");
+    harus("Di lab, Rekeningo tidak punya rute untuk menarik persetujuan yang sudah dijawab, jadi mengecek saldo saja tidak cukup.");
   });
   test("klaim negatif berlingkup: lab tanpa app (folder labs/t4-kartu); tanpa klaim kepatuhan; tanpa merek di prosa; tidak ada ID internal", () => {
     const berkasLab = berkasDi("labs/t4-kartu/");
@@ -780,6 +780,99 @@ describe("baris riset 4.22: lima baris, urut ID, dan nilai dari rekaman", () => 
     expect(kFungsiAkhir).toBe(354);
     expect(barisRiset("R4-215")).toContain("`Clearing` baris 373 sampai 442");
     expect([kClearing, kClearingAkhir]).toEqual([373, 442]);
+  });
+});
+
+describe("tinjauan 1353: kalimat yang hanya dijaga kunci baris diturunkan dari rekaman, kode, registry, dan baris riset", () => {
+  test("tenggat penerbit: angka di halaman sama dengan dokumentasi (baris riset), kepala penerbit.txt, bawaan penerbit tiruan, diagram, dan Cek diri; angka bagian A otorisasi.txt dari kepala rekamannya", () => {
+    const dok = cocok(barisRiset("R4-216"), /within (\d+) seconds/)[1]!;
+    const kepalaP = cocok(penerbit, /penerbit tiruan: \.\/penerbit, tenggat (\d+) detik/)[1]!;
+    const bawaan = cocok(penerbitGo, /flag\.Duration\("tenggat", (\d+)\*time\.Second/)[1]!;
+    expect([dok, kepalaP, bawaan]).toEqual(["2", "2", "2"]);
+    harus(`penerbit menunggu paling lama ${dok} detik ([dokumentasi satu penerbit kartu]`);
+    harus(`Bila jawaban Rekeningo terlambat dari ${dok} detik, penerbit memutuskan menurut setelan timeout miliknya`);
+    harus(`**Tenggat ${dok} detik membuka jalan kedua ke gejala yang sama.**`);
+    harus(`Jawaban Rekeningo lewat dari ${dok} detik karena satu buku terkunci.`);
+    expect(JSON.stringify(diagramMentah)).toContain(`"label":"Jawaban lewat dari ${dok} detik"`);
+    expect(JSON.stringify(diagramMentah)).toContain(`"sub":"satu buku terkunci lebih dari ${dok} detik"`);
+    const naik = cocok(otorisasi, /Tenggat penerbit tiruan dinaikkan ke (\d+) detik di bagian ini/)[1]!;
+    expect(Number(naik)).toBeGreaterThan(Number(dok));
+    harus(`dinaikkan ke ${naik} detik, jadi waktu tidak ikut menentukan hasilnya`);
+    expect(skenario.langkah[0]!.jelas).toContain(`tenggat ${naik} detik di bagian ini`);
+    const lt = cocok(penerbit, /-kartu-lock-timeout (\d+)s/)[1]!;
+    expect(Number(lt)).toBeGreaterThan(Number(dok));
+    harus(`Server dijalankan dengan \`-kartu-lock-timeout ${lt}s\``);
+  });
+  test("registry: path halaman menunjuk berkas yang ada dan sama dengan BERKAS; pengantar widget menyuruh menebak sebelum mengikuti langkah", () => {
+    const h = dari("t4-m37");
+    expect(h.path).toBe("tahap-4/m37-kartu-dua-kali.md");
+    expect(BERKAS).toBe(`situs/src/content/docs/${h.path!.replace(/\.md$/, ".mdx")}`);
+    expect(baca(BERKAS).length).toBeGreaterThan(1000);
+    expect(skenario.pengantar).toMatch(/^Penerbit kartu meminta dua otorisasi .+\. Tebak dulu apa yang dijawab Rekeningo, lalu ikuti langkahnya\. Sesudah langkah terakhir, centang 'Ubah satu hal'\.$/);
+  });
+  test("noscript: kalimat otorisasi ketiga diturunkan dari rekaman (urutan, hasil, jumlah)", () => {
+    const noscript = cocok(badan, /<noscript>([\s\S]*?)<\/noscript>/)[1]!;
+    expect(bagOA).toContain("# Kontrol: otorisasi ketiga datang sesudah dua yang pertama selesai, bukan bersamaan.");
+    expect(bagOA).toContain(`AUTH-C ${rp(NOMINAL_C)}: setuju (sumber: rekeningo)`);
+    expect(DISETUJUI).toBe(3);
+    expect(noscript).toContain(`Otorisasi ketiga yang datang sesudah dua yang pertama selesai juga disetujui, jadi tiga persetujuan berjumlah ${rp(JUMLAH_DISETUJUI)}.`);
+  });
+  test("janji ke halaman 4.23: tiga kalimat menaut ke halaman yang registry dan naskah beri judul otorisasi, dana tertahan, ADR 42", () => {
+    const j1 = cocok(badan, /Apa yang membedakan server ini dari versi pertama, dan cara menutup kedua jalan, ada di \[\[([^\]]+)\]\]\./)[1]!;
+    const j2 = cocok(badan, /Cara menahan dana sebelum menjawab setuju ada di \[\[([^\]]+)\]\]\./)[1]!;
+    const j3 = cocok(badan, /- \[\[([^\]|]+)\]\]: otorisasi yang menahan dana sebelum menjawab setuju, dan batas waktu jawabannya\. Keputusannya ADR (\d+)\./);
+    expect([j1, j2, j3[1]]).toEqual(["t4-kartu", "t4-kartu", "t4-kartu"]);
+    const h = dari("t4-kartu");
+    expect(h.nomor).toBe("4.23");
+    expect(h.judul).toContain(`ADR ${j3[2]}`);
+    expect(h.judul).toContain("otorisasi, dana tertahan");
+    expect(h.prasyarat).toContain("t4-m37");
+    expect(naskah).toContain(`| 4.23 | 4 | ${h.judul} |`);
+  });
+  test("catatan penerbit tiruan dan kalimat penjelas Yang Raka kira: sumber hanya rekeningo atau timeout; id sama dua kali satu baris; handler versi pertama tidak memanggil hold", () => {
+    const sumber = [...new Set([...penerbitGo.matchAll(/Sumber: "(\w+)"|"sumber": "(\w+)"/g)].map((m) => m[1] ?? m[2]!))].sort();
+    expect(sumber).toEqual(["rekeningo", "timeout"]);
+    harus("Bila penerbit memutuskan sendiri karena jawaban Rekeningo tidak datang, catatannya menulis sumber `timeout`, bukan `rekeningo`.");
+    expect(penerbitGo).toContain('mux.HandleFunc("GET /lab/keputusan"');
+    harus("Dugaan Raka bisa diperiksa dari catatan keputusan penerbit.");
+    harus("Bila penerbit mengirim permintaan yang sama dua kali, kedua permintaan membawa nomor yang sama.");
+    expect(bagOD).toMatch(/AUTH-1 pertama Rp[\d.]+: setuju \(sumber: rekeningo\)\nAUTH-1 kedua \(berurutan\) Rp[\d.]+: setuju/);
+    expect(bagOD).toMatch(/baris_otorisasi\n-+\n 1\n/);
+    harus("Rekeningo menjawab setuju atau tolak, dan penerbit menunggu paling lama");
+    expect(otorisasi).toMatch(/: setuju \(sumber: rekeningo\)/);
+    expect(otorisasi).toMatch(/: tolak \(sumber: rekeningo, alasan: saldo-kurang\)/);
+    harus("Handler ini tidak membuat hold.");
+    expect(badanFungsi.split("\n").slice(1).join("\n")).not.toMatch(/\b\w*(Tahan|Jurnal|Ledger|Hold)\w*\(/);
+  });
+  test("baris riset: rentang baris migrasi, nama berkas, jumlah rekaman, tanggal akses, dan jeda lab diturunkan dari berkasnya", () => {
+    const garis = (isi: string, awal: string, akhir: string): [number, number] => {
+      const b = isi.split("\n");
+      const a = b.findIndex((x) => x.startsWith(awal)) + 1;
+      expect(a, `awal ${awal}`).toBeGreaterThan(0);
+      const z = b.findIndex((x, n) => n >= a - 1 && x.includes(akhir)) + 1;
+      expect(z, `akhir ${akhir}`).toBeGreaterThanOrEqual(a);
+      return [a, z];
+    };
+    const r219 = barisRiset("R4-219");
+    const [a1, z1] = garis(migT2, "CREATE CONSTRAINT TRIGGER saldo_karyawan_tidak_negatif", "WHEN (NEW.jumlah < 0) EXECUTE FUNCTION cek_saldo_karyawan();");
+    expect(r219).toContain(`000010_ledger_tabel.up.sql\` baris ${a1} sampai ${z1}:`);
+    const [a2, z2] = garis(migT4, "-- Invarian 3 (saldo tidak negatif)", "USING ERRCODE = 'check_violation', CONSTRAINT = 'saldo_karyawan_tidak_negatif'");
+    expect(r219).toContain(`000020_akun_tingkat_buku_jenis.up.sql\` baris ${a2} sampai ${z2}:`);
+    const berkas = r219.match(/labs\/[\w\-/.]+\.sql/g)!;
+    expect(berkas).toHaveLength(2);
+    for (const f of berkas) expect(baca(f).length).toBeGreaterThan(0);
+    const r215 = barisRiset("R4-215");
+    expect(r215).toContain(`saldo ${SALDO}`);
+    expect(r215).toContain(`AUTH-A dan AUTH-B ${rp(NOMINAL)} serentak`);
+    expect(r215).toContain(`${DISETUJUI} disetujui, jumlah ${JUMLAH_DISETUJUI}`);
+    const r216 = barisRiset("R4-216");
+    const tgl = cocok(badan, /\(\[dokumentasi satu penerbit kartu\]\([^)]+\), dibuka (\d{4}-\d{2}-\d{2}), Tidak dijalankan\)/)[1]!;
+    expect([cocok(r216, /dibuka ulang (\d{4}-\d{2}-\d{2}),/)[1], cocok(r216, /real-time-authorizations \(dibuka (\d{4}-\d{2}-\d{2});/)[1]]).toEqual([tgl, tgl]);
+    const jeda = cocok(otorisasi, /-lab-jeda-cek-tulis (\d+)ms/)[1]!;
+    expect(barisRiset("R4-218")).toContain(`jeda lab ${jeda} ms`);
+    expect(barisRiset("R4-218")).toContain("clearing kedua 'esok harinya'");
+    expect(barisM37).toContain("Esok harinya clearing kedua");
+    harus(`Jeda ${jeda} ms di antara cek dan tulis hanya ada di lab.`);
   });
 });
 

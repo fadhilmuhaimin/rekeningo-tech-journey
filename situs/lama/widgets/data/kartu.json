@@ -3044,7 +3044,7 @@
   "halaman": "t4-m37",
   "judul": "4.22 M37: Kartu virtual disetujui dua kali dengan satu saldo",
   "url": "tahap-4/m37-kartu-dua-kali/",
-  "tanya": "Jawaban Rekeningo lewat dari 2 detik. Siapa yang memutuskan otorisasinya, dan apa yang dicatat Rekeningo?",
+  "tanya": "Jawaban Rekeningo lewat dari 2 detik karena satu buku terkunci. Siapa yang memutuskan otorisasinya, dan apa yang dicatat Rekeningo?",
   "jawab": "Penerbit memutuskan menurut setelan timeout-nya, yang di lab berarti setuju. Rekeningo tidak punya baris dan tidak menahan dana, dan penagihannya dijawab 404 (`penerbit.txt` bagian A)."
  },
  {

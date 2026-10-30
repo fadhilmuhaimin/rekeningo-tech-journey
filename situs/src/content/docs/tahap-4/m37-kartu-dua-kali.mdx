@@ -31,7 +31,7 @@ Raka membaca laporan itu dan menghitung dua persetujuan untuk satu saldo. Ia men
 
 Penerbit kartu adalah pihak yang menerbitkan nomor kartu virtual. Tiap kali Budi membeli sesuatu, penerbit meminta izin ke Rekeningo lewat otorisasi: "setujui pembelian Rp80.000 dari kartu ini?". Rekeningo menjawab setuju atau tolak, dan penerbit menunggu paling lama 2 detik ([dokumentasi satu penerbit kartu](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30, Tidak dijalankan). Di lab, penerbit adalah proses tiruan di komputer sendiri: tidak ada kartu, nomor, atau layanan nyata.
 
-Dugaan Raka bisa diperiksa dari catatan keputusan penerbit. Tiap otorisasi membawa `id_penerbit`, nomor yang penerbit berikan untuk otorisasi itu. Bila penerbit mengirim permintaan yang sama dua kali, kedua permintaan membawa nomor yang sama. Bila penerbit menyetujui sendiri tanpa Rekeningo, catatannya menulis penerbit sebagai pemutus.
+Dugaan Raka bisa diperiksa dari catatan keputusan penerbit. Tiap otorisasi membawa `id_penerbit`, nomor yang penerbit berikan untuk otorisasi itu. Bila penerbit mengirim permintaan yang sama dua kali, kedua permintaan membawa nomor yang sama. Bila penerbit memutuskan sendiri karena jawaban Rekeningo tidak datang, catatannya menulis sumber `timeout`, bukan `rekeningo`.
 
 <details class="question">
 <summary>Tebak dulu: kedua persetujuan datang dari Rekeningo, bukan dari penerbit, dan id_penerbit keduanya berbeda. Apa yang tidak dilakukan Rekeningo sesudah menyetujui yang pertama?</summary>
@@ -56,7 +56,7 @@ Rekeningo menyetujui otorisasi sesudah membaca saldo, tetapi tanpa menahan dana,
 
 Kedua otorisasi punya id_penerbit berbeda, `AUTH-A` dan `AUTH-B`, dan masing-masing satu baris. Di rekaman ini penerbit tiruan hanya meneruskan jawaban Rekeningo, jadi dugaan Raka tidak didukung.
 
-**Handler versi pertama membaca saldo lalu setuju.** Handler membaca saldo kartu, memeriksa statusnya, lalu menulis satu baris `otorisasi_kartu` lewat fungsi `catat` dan menjawab setuju. Cuplikan ini memuat bagian akhirnya:
+**Handler versi pertama membaca saldo lalu setuju.** Handler membaca saldo pemilik kartu, memeriksa statusnya, lalu menulis satu baris `otorisasi_kartu` lewat fungsi `catat` dan menjawab setuju. Cuplikan ini memuat bagian akhirnya:
 
 <Snippet file="labs/api-t4/internal/service/kartu.go" lines="344:353" lang="go" title="Kode lab: labs/api-t4/internal/service/kartu.go baris 344 sampai 353 (handler otorisasi versi pertama)" />
 
@@ -74,7 +74,7 @@ Lab juga mengirim otorisasi ketiga sesudah dua yang pertama selesai, bukan bersa
 
 Otorisasi ketiga tetap disetujui. Tiga persetujuan Rp80.000 berjumlah Rp240.000 untuk saldo Rp100.000 (3 × Rp80.000, Hitungan). Di [[t2-m9]], kegagalan butuh dua request yang tumpang tindih. Di sini menunggu pun tidak menolong, karena langkah tulis tidak mengubah saldo yang dibaca otorisasi berikutnya.
 
-**Penagihan datang kemudian, dan ledger menolaknya.** Penagihan dari toko lewat penerbit disebut clearing. Di cerita ia datang esok harinya, sedangkan lab memanggilnya segera sesudah otorisasi karena jedanya tidak diukur. Lab menagih ketiga otorisasi satu per satu:
+**Penagihan datang kemudian, dan ledger menolaknya.** Penagihan dari toko lewat penerbit disebut clearing. Di cerita ia datang esok harinya, sedangkan lab memanggilnya segera sesudah otorisasi dan tidak mengukur jedanya. Lab menagih ketiga otorisasi satu per satu:
 
 <Snippet file="labs/t4-kartu/output/otorisasi.txt" lines="33:49" title="Rekaman lab: labs/t4-kartu/output/otorisasi.txt, bagian B (penagihan dan saldo)" />
 
@@ -84,7 +84,7 @@ Penolakan itu datang dari database. Aturan saldo tidak boleh negatif ([[t2-ledge
 
 Ledger menjaga uang, tetapi terlambat. Persetujuan sudah sampai ke penerbit dan toko.
 
-Persetujuan itu tidak bisa ditarik dari sisi Rekeningo. Di `labs/api-t4/internal/handler/handler_kartu.go`, rute untuk pemilik kartu hanya menerbitkan, melihat, membekukan, dan membuka kartu, dan membekukan menolak otorisasi baru. Satu-satunya rute yang membatalkan otorisasi, `POST /penerbit/reversal`, dipanggil penerbit (Tidak dijalankan: dibaca dari file itu).
+Rekeningo tidak punya rute untuk menarik persetujuan itu. Di `labs/api-t4/internal/handler/handler_kartu.go`, rute untuk pemilik kartu hanya menerbitkan, melihat, membekukan, dan membuka kartu, dan membekukan menolak otorisasi baru. Satu-satunya rute yang membatalkan otorisasi, `POST /penerbit/reversal`, dipanggil penerbit (Tidak dijalankan: dibaca dari file itu).
 
 **Tenggat 2 detik membuka jalan kedua ke gejala yang sama.** Bila jawaban Rekeningo terlambat dari 2 detik, penerbit memutuskan menurut setelan timeout miliknya, bukan menurut Rekeningo (dokumentasi satu penerbit kartu, Tidak dijalankan). Penerbit tiruan memakai setelan lab: setuju bila timeout.
 
@@ -136,7 +136,7 @@ Otorisasi ketiga yang datang sesudah dua yang pertama selesai juga disetujui, ja
 - [[t4-skema]]: tabel `kartu` dan `otorisasi_kartu`.
 - [[t4-fitur-teknis]]: kartu virtual sebagai fitur dan pekerjaan teknisnya.
 
-Di lab, persetujuan yang sudah dijawab tidak bisa ditarik Rekeningo, jadi mengecek saldo saja tidak cukup. Cara menahan dana sebelum menjawab setuju ada di [[t4-kartu]].
+Di lab, Rekeningo tidak punya rute untuk menarik persetujuan yang sudah dijawab, jadi mengecek saldo saja tidak cukup. Cara menahan dana sebelum menjawab setuju ada di [[t4-kartu]].
 
 ### Cek diri
 
@@ -158,7 +158,7 @@ Penolakan datang sesudah persetujuan, dan persetujuan sudah sampai ke penerbit d
 
 </details>
 
-**3.** Jawaban Rekeningo lewat dari 2 detik. Siapa yang memutuskan otorisasinya, dan apa yang dicatat Rekeningo?
+**3.** Jawaban Rekeningo lewat dari 2 detik karena satu buku terkunci. Siapa yang memutuskan otorisasinya, dan apa yang dicatat Rekeningo?
 
 <details class="success">
 <summary>Jawaban</summary>
