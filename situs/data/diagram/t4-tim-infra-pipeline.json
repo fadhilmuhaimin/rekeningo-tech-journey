@@ -8,7 +8,7 @@
   "baris": [
     {
       "label": "Di PR",
-      "sub": "menurut berkas yang berubah",
+      "sub": "menurut file yang berubah",
       "simpul": [
         { "teks": "go vet dan tes modul", "sub": "Rekaman lab", "nada": "good" },
         { "teks": "oasdiff breaking", "sub": "Rekaman lab", "nada": "good" },

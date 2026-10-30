@@ -104,7 +104,7 @@ Jadi lebih aman memakai satu job yang selalu jalan dan memutuskan langkah mana y
 
 Branch protection dan CODEOWNERS per modul sudah dibahas di [[t4-modul]]. Keduanya fitur GitHub, dan plan repositori pemilik belum diketahui [perlu verifikasi: plan pemilik]. Cadangannya checklist PR manual.
 
-Lab menjalankan alat dari rilis resmi proyeknya, dan arsipnya dicocokkan dengan SHA-256 dari file checksum rilis:
+Lab mengunduh oasdiff, gosec, syft, grype, dan cosign dari rilis resmi proyeknya, lalu mencocokkan SHA-256 arsipnya dengan file checksum rilis. openapi-generator berjalan dari image yang dikunci dengan digest, dan govulncheck dipasang dari modul Go:
 
 | Alat | Versi di lab | Dipakai untuk |
 |---|---|---|
@@ -116,7 +116,7 @@ Lab menjalankan alat dari rilis resmi proyeknya, dan arsipnya dicocokkan dengan 
 | grype | v0.121.0 | pindai SBOM |
 | cosign | v3.1.4 | tanda tangan image |
 
-oasdiff v1.35.0 terbit 2026-10-28, sesudah lab dibuat. Peninjau lab menjalankan 23 perbandingan kontrak yang sama pada versi itu dan hasilnya identik, tetapi percobaan itu tidak direkam. Rekaman `kontrak.txt` di api-t4 memakai image oasdiff yang dikunci dengan digest, dan versinya tidak tertulis di skrip.
+[oasdiff](https://github.com/oasdiff/oasdiff) v1.35.0 terbit 2026-10-28, sesudah lab dibuat. Peninjau lab menjalankan 23 perbandingan kontrak yang sama pada versi itu dan hasilnya identik, tetapi percobaan itu tidak direkam. Rekaman `kontrak.txt` di api-t4 memakai image oasdiff yang dikunci dengan digest, dan versinya tidak tertulis di skrip.
 
 ### Kontrak: yang ditangkap dan yang lolos
 
@@ -182,7 +182,7 @@ Paket app dibagi per tim dengan pub workspaces atau Melos. Pub workspaces mulai 
 
 ### SAST dan audit dependensi: tiga pemindai yang bisa lulus palsu
 
-gosec membaca kode Go. Di `sast.txt` bagian A ia melapor G701, analisis taint, pada contoh yang disiapkan: `os.Args[1]` mengalir ke `db.Query`. Bagian A2 memakai query yang sama dengan masukan konstanta, dan hasilnya nol temuan. Jadi G701 melapor aliran dari sumber input, bukan setiap `fmt.Sprintf` ke database.
+gosec membaca kode Go. Di `sast.txt` bagian A ia melapor G701, analisis taint, pada contoh yang disiapkan: `os.Args[1]` mengalir ke `db.Query`. Kasus tandingan di bagian yang sama memakai query itu dengan masukan konstanta, dan hasilnya nol temuan. Jadi G701 melapor aliran dari sumber input, bukan setiap `fmt.Sprintf` ke database.
 
 Tiga pemindai bisa lulus padahal pemindaiannya gagal:
 
@@ -212,7 +212,7 @@ govulncheck atas kode yang sama menemukan 10 kerentanan stdlib yang dipanggil:
 
 <Snippet file="labs/t4-pipeline/output/sast.txt" lines="55:70" title="Rekaman lab: labs/t4-pipeline/output/sast.txt baris 55 sampai 70 (bagian E, audit atas api-t4)" />
 
-Empat belas temuan stdlib dikurangi 10 yang dipanggil menyisakan empat yang ada tetapi tidak dipanggil (Hitungan atas dua daftar). Dua Critical menunjukkan bedanya. GO-2026-6612, HTTP/2 di `net/http`, ada di daftar yang dipanggil. GO-2026-6604 tidak: ringkasan advisory-nya menyebut `os.Root.Mkdir` mengikuti junction di Windows, dan grype menandainya Critical menurut versi stdlib tanpa melihat pemakaian atau platform (README lab).
+Empat belas temuan stdlib dikurangi 10 yang dipanggil menyisakan empat yang ada tetapi tidak dipanggil (Hitungan atas dua daftar). Dua Critical menunjukkan bedanya. GO-2026-6612, HTTP/2 di `net/http`, ada di daftar yang dipanggil. GO-2026-6604 tidak. README lab mencatat ringkasan advisory-nya: `os.Root.Mkdir` mengikuti junction di Windows. grype menandainya Critical karena mencocokkan versi stdlib go1.27.1, sedangkan govulncheck tidak menemukan panggilan ke fungsi itu (`sbom.txt` bagian C, `sast.txt` bagian E).
 
 Hasilnya: gerbang lab menolak api-t4 hari ini. Ambang High menghasilkan 13 temuan High atau lebih, dan govulncheck menemukan 10 yang dipanggil. Perbaikannya tercantum di Go 1.27.2 dan 1.27.3.
 
@@ -338,7 +338,7 @@ Keputusan lain punya opsi sendiri:
 1. Di PR, file yang berubah memilih langkah. `internal/modul/<nama>/` memicu tes dan SAST modul itu, dan `openapi.yaml` memicu tes contract dan client. `go.mod` dan `go.sum` memicu audit dependensi dan SBOM, sedangkan `Dockerfile` dan `cmd/api` memicu build image. Satu job yang selalu jalan memutuskan langkah mana yang perlu.
 2. Tes contract memakai `oasdiff breaking --flatten-params` dengan ambang ERR dan `--severity-levels` yang menaikkan `response-optional-property-removed`. Client Dart dibuat ulang dan diff-nya dibaca orang.
 3. SAST: gosec tanpa `-quiet` dan govulncheck dibaca dari JSON. Pemindaian tidak lengkap ditolak.
-4. Pemindai kunci produksi berjalan atas file konfigurasi staging di PR. gitleaks dari ADR 11 tetap berjalan atas riwayat git.
+4. Pemindai kunci produksi berjalan di PR atas file konfigurasi staging. Memindai state IaC dan seluruh repositori Tidak dijalankan: rekaman hanya dua file contoh. Gitleaks dari ADR 11 ([[t1-secret]]) tetap menjaga riwayat git.
 5. Sesudah merge, CI membangun image, membuat SBOM CycloneDX dengan syft, dan memindainya dengan grype pada ambang High (pilihan lab). SBOM harus memuat semua modul dari `go.mod`.
 6. Image ditandatangani cosign atas digest dan diverifikasi dengan perbandingan digest hasil build sebelum deploy. Lab memakai kunci sendiri, dan keyless hanya dijelaskan.
 7. Deploy blue/green dengan dua instance, migration expand lalu contract ([[t2-skema-tanpa-downtime]]), rilis app bertahap, dan feature flag untuk fitur uang. Semuanya Tidak dijalankan.
