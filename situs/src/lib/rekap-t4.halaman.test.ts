@@ -431,7 +431,8 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     cocok(G, /4\. tanpa lapis status, 25 jam kemudian \(key sudah habis\) +\| 25 jam +\| diproses +\| 2/);
     cocok(G, /umur 24 jam\)/);
     harus(butir(1).batas, "ditahan tiga lapis, yaitu `event_id`, status top-up yang hanya maju, dan Idempotency-Key ledger yang hidup 24 jam");
-    harus(butir(1).batas, "event kedua yang datang 25 jam kemudian menghasilkan 2 jurnal (`urutan.txt` bagian G, kasus 4)");
+    harus(butir(1).batas, "Tanpa lapis status, event kedua yang datang 25 jam kemudian menghasilkan 2 jurnal (`urutan.txt` bagian G, kasus 4). Service pembayaran yang mati lalu menerima kiriman ulang");
+    harus(butir(1).pertama, "Di [[t4-m29]], balasan 200 hilang dan gateway mengirim kabar yang sama lagi, jadi saldo Budi naik");
     const C = bag(prosesMati, "C");
     cocok(C.join("\n"), /Idempotency-Key ledger hidup 24 jam/);
     const sesudah25 = C.join("\n").slice(C.join("\n").indexOf("jam ledger digeser 25 jam"));
@@ -543,7 +544,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     const isi = cari(B, /^isi objek sekarang: ([\d.]+) byte, milik pemegang lain: ya$/, "presign B isi");
     expect([put1[2], put2[2]]).toEqual(["200", "200"]);
     expect(isi[1]).toBe(put2[1]);
-    harus(butir(6).pertama, `mengirim file ${put1[1]} byte dan ${put2[1]} byte. Keduanya dijawab ${put1[2]}, dan isi akhirnya ${isi[1]} byte milik pemegang kedua (\`presign.txt\` bagian B, lab t4-storage).`);
+    harus(butir(6).pertama, `Di rekaman, dua pemegang URL yang sama mengirim file ${put1[1]} byte dan ${put2[1]} byte. Keduanya dijawab ${put1[2]}, dan isi akhirnya ${isi[1]} byte milik pemegang kedua (\`presign.txt\` bagian B, lab t4-storage).`);
     const C = bag(presign, "C");
     const umur = cari(C, /\((\d+) detik\)/, "presign C umur")[1]!;
     expect(umur).toBe("5");
@@ -669,6 +670,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     harus(fileHalaman("t4-m37"), "Satu-satunya rute yang membatalkan otorisasi, `POST /penerbit/reversal`, dipanggil penerbit (Tidak dijalankan: dibaca dari file itu).");
     harus(butir(10).batas, "dasar kalimatnya adalah pembacaan kode rute (Tidak dijalankan): satu-satunya rute yang membatalkan otorisasi dipanggil penerbit.");
     harus(fileHalaman("t4-kartu"), "Hold menutup M37, tetapi delapan hal lain tetap terbuka:");
+    harus(butir(10).batas, "Hold menutup M37, tetapi delapan hal lain tetap terbuka.");
     expect(fileHalaman("t4-kartu").match(/^\d\. \*\*/gm)?.length ?? 8).toBeGreaterThanOrEqual(0);
     // kill switch: penanda di memori satu proses, kembali aktif sesudah mulai ulang
     const KB = bag(killSwitch, "B").join("\n");
@@ -691,7 +693,9 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     harus(butir(11).pertama, "satu UPDATE dan satu DELETE oleh role aplikasi menyisakan 5 baris dengan pelaku baris 3 berganti (bagian B).");
     const C = bag(rantaiAudit, "C").join("\n");
     cocok(C, /verifikasi rantai: 7 baris, utuh: ya/);
-    harus(butir(11).batas, "baris ke-7 dengan hash hitungan sendiri lolos (`rantai.txt` bagian C).");
+    harus(butir(11).batas, "Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis, dan baris ke-7 dengan hash hitungan sendiri lolos (`rantai.txt` bagian C).");
+    harus(butir(11).pertama, "Di log biasa, satu UPDATE dan satu DELETE oleh role aplikasi menyisakan 5 baris");
+    harus(butir(11).pertama, "ADR 43 memakai rantai hash, dan jangkar, yaitu catatan hash baris terakhir di luar database, menangkap ekor yang dipotong.");
     const J = bag(jangkar, "B").join("\n");
     cocok(J, /baris=4 rantai=utuh jangkar_lama=0 temuan=0\njangkar baru: nomor 4\n# exit status 0/);
     cocok(J, /baris=4 rantai=utuh jangkar_lama=2 temuan=1\njangkar nomor 6: baris-hilang\n# exit status 2/);
@@ -706,7 +710,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     const error = cari(k, /^(\d+) changes: (\d+) error, (\d+) warning, (\d+) info$/, "kontrak");
     expect([error[1], error[2]]).toEqual(["3", "3"]);
     expect(ada(k, /^\(exit code 1\)$/)).toBe(true);
-    harus(butir(12).pertama, `melapor ${error[2]} error dengan exit code 1 (\`kontrak.txt\`, lab api-t4).`);
+    harus(butir(12).pertama, `Di [[t4-tim-infra]], oasdiff membandingkan contract OpenAPI api-t3 dan api-t4, lalu melapor ${error[2]} error dengan exit code 1 (\`kontrak.txt\`, lab api-t4).`);
     const C = bag(tandaTanganPipeline, "C");
     expect(ada(C, /^tanda tangan memuat digest <digest D>$/)).toBe(true);
     expect(ada(C, /^gerbang image \(dibangun <digest C>\): GAGAL \(digest di referensi bukan digest yang dibangun CI\)$/)).toBe(true);
@@ -755,13 +759,13 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect([jadwal, selesai[1], selesai[2]]).toEqual(["2778", "2778", "2778"]);
     expect(Math.floor(Number(PUNCAK4.replace(",", ".")) * 20)).toBe(2778);
     expect(ada(A, /^p95 di bawah 500 ms \(batas lab, Asumsi; nilai ukur tidak direkam\): ya$/)).toBe(true);
-    harus(butir(13).pertama, `menyelesaikan ${titik(Number(selesai[1]))} dari ${titik(Number(selesai[2]))} permintaan tanpa error. Nilai p95 di bawah batas lab 500 ms (\`beban.txt\` bagian A, lab api-t4).`);
+    harus(butir(13).pertama, `Satu rekaman beban di satu laptop menyelesaikan ${titik(Number(selesai[1]))} dari ${titik(Number(selesai[2]))} permintaan tanpa error. Nilai p95 di bawah batas lab 500 ms (\`beban.txt\` bagian A, lab api-t4).`);
     const B = bag(beban, "B").join("\n");
     cocok(B, /100000 \/ \(4 \/ 0,3\) = |hitungan: 100000 \/ \(4 \/ 0,3\) = 7500 detik|hitungan: 100000 \/ \(4 \/ 0,3\)/);
     expect(Math.round((100000 * 0.3) / 4 / 60)).toBe(125);
     harus(butir(13).batas, "Pengumuman ke 100.000 HP butuh 125 menit (Hitungan, Tidak dijalankan).");
     harus(butir(13).batas, "rekaman beban bukan kapasitas produksi, karena memakai satu proses, satu laptop, dan 20 detik. Kapasitas satu server belum diukur.");
-    harus(butir(13).batas, "13 orang menjadi 20 sampai 40 di satu repo (Asumsi).");
+    harus(butir(13).batas, "Tiga hal yang diminta PRD v5 belum pernah diuji. Laporan merchant akan berbagi database dengan transaksi, notifikasi massal berbagi satu worker, dan 13 orang menjadi 20 sampai 40 di satu repo (Asumsi).");
     harus(fileHalaman("t4-prd"), "13 engineer");
     expect(a4.tim).toBe("13 developer, 3 tim");
     // 4.27 sampai 4.29: hanya diperiksa terhadap isi halaman bila halamannya sudah di main
@@ -808,7 +812,7 @@ describe("kartu tebak lalu buka t4-rekap-kartu.json", () => {
     const jurnal = semua(bag(ganda, "A"), /^ (\d+) +\| karyawan +\| (\d+)$/);
     harus(dari(1).tanya, `saldo Budi naik ${rp(jurnal.reduce((n, m) => n + Number(m[2]), 0))} untuk ${rp(Number(jurnal[0]![2]))} yang dibayar`);
     harus(dari(2).tanya, "Enam kiriman dijawab 401, dan tabel event tetap 0 baris.");
-    harus(dari(2).jawab, "jadwal 342 menit adalah Ilustrasi");
+    harus(dari(2).jawab, "Batas: ambang 30 menit adalah Asumsi, jadwal 342 menit adalah Ilustrasi");
     harus(dari(3).tanya, "Vendor menerima 50 permintaan, sepuluh pekerjaan mati");
     harus(dari(3).jawab, "satu dari sepuluh pekerjaan tetap mati");
     harus(dari(4).jawab, "membaca 17 tabel");
@@ -939,6 +943,7 @@ describe("Cek diri, daftar periksa kode AI, dan butir belum diuji", () => {
     const terlarang = cari(ssrfBaris, /^ditolak fetcher aman: (\d+) dari (\d+) alamat terlarang;/, "ssrf ringkas")[2]!;
     harus(s[3]!.tanya, `Berapa dari ${terlarang} alamat terlarang yang lolos, dan dari angka apa?`);
     harus(s[3]!.jawab, `jadi ${terlarang} − 3 = 29`);
+    harus(s[3]!.jawab, `Pemeriksaan alamat versi aman menolak ke-${terlarang}-nya.`);
     const J = rk("t4-audit", "jangkar.txt");
     const hapusDari = cari(bag(J, "B"), /^=> \[t4a_pemilik\] DELETE FROM audit_log WHERE id >= (\d+)$/, "jangkar B hapus")[1]!;
     const totalBaris = cari(bag(J, "A"), /^# Log penuh: (\d+) baris\./, "jangkar A total")[1]!;
@@ -1020,7 +1025,7 @@ describe("klaim negatif berlingkup, dijaga pemindaian berkas terlacak", () => {
 // ================================================================================================================================
 describe("struktur halaman: label, sumber ingatan, tanpa ID internal, dan kata yang dilarang", () => {
   test("sumber ingatan: tautan PubMed di halaman dan baris riset memakai PMID dan tanggal akses yang sama (Roediger & Karpicke 16507066, Cepeda dkk. 16719566)", () => {
-    harus(badan, "[Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-10-31");
+    harus(badan, "Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-10-31).");
     harus(badan, "- [Roediger & Karpicke 2006, Psychological Science 17(3)](https://pubmed.ncbi.nlm.nih.gov/16507066/)");
     harus(badan, "- [Cepeda dkk. 2006, Psychological Bulletin 132(3)](https://pubmed.ncbi.nlm.nih.gov/16719566/)");
     const baris = riset4.split("\n").find((b) => b.startsWith("| R4-255 |"))!;
@@ -1095,7 +1100,7 @@ function fragmenMdx(teks: string): string[] {
     const b = baris.replace(/^(\s*)(\d+\.\s+|- \[ \] |- )/, "$1").trim();
     for (const f of b.split(/(?<=[.!?:]) /)) {
       const t = f.trim();
-      if (t && t.split(/\s+/).length >= 2 && !/\d/.test(t)) hasil.push(t);
+      if (t && t.split(/\s+/).length >= 2 && !/\d/.test(t.replace(/\[\[[^\]]*\]\]|\bt\d-[a-z]+|\bapi-t\d/g, ""))) hasil.push(t);
     }
   }
   return hasil;
