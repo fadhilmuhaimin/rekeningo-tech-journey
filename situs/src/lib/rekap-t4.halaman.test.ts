@@ -16,6 +16,7 @@ import cerita from "../../data/cerita.json";
 import kejadianMentah from "../../data/diagram/t4-rekap-kejadian.json";
 import { daftarBlok, idBlok } from "./blok";
 import { DataRantai } from "./rantai";
+import { KALIMAT } from "./rekap-t4.halaman.kalimat";
 import { BARIS_MDX, BENTUK_MDX, NILAI_JSON } from "./rekap-t4.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
@@ -932,7 +933,17 @@ describe("Cek diri, daftar periksa kode AI, dan butir belum diuji", () => {
     harus(s[0]!.jawab, "Idempotency-Key ledger hidup 24 jam, jadi sesudah 25 jam key itu sudah habis. Tanpa lapis status, event kedua diproses dan jurnalnya 2 (`urutan.txt` bagian G, kasus 4).");
     harus(fileHalaman("t4-webhook"), "Idempotency-Key ledger hidup 24 jam");
     expect(cari(bag(lajur, "B"), /^ mati +\| 5 +\| 1$/, "lajur B mati")[0]).toBeTruthy();
-    harus(s[1]!.tanya, "Berapa dari 10 pekerjaan mati");
+    harus(s[1]!.tanya, "Berapa dari 10 pekerjaan mati, dan kenapa bukan 0?");
+    harus(s[1]!.tanya, "Breaker membuka sesudah kegagalan keenam, sedangkan satu pekerjaan punya lima percobaan.");
+    const ssrfBaris = alamatSsrf.split("\n");
+    const terlarang = cari(ssrfBaris, /^ditolak fetcher aman: (\d+) dari (\d+) alamat terlarang;/, "ssrf ringkas")[2]!;
+    harus(s[3]!.tanya, `Berapa dari ${terlarang} alamat terlarang yang lolos, dan dari angka apa?`);
+    harus(s[3]!.jawab, `jadi ${terlarang} − 3 = 29`);
+    const J = rk("t4-audit", "jangkar.txt");
+    const hapusDari = cari(bag(J, "B"), /^=> \[t4a_pemilik\] DELETE FROM audit_log WHERE id >= (\d+)$/, "jangkar B hapus")[1]!;
+    const totalBaris = cari(bag(J, "A"), /^# Log penuh: (\d+) baris\./, "jangkar A total")[1]!;
+    expect([hapusDari, totalBaris]).toEqual(["5", "8"]);
+    harus(s[4]!.tanya, `Baris ${hapusDari} sampai ${totalBaris} dari audit log berantai dihapus.`);
     harus(s[1]!.jawab, "Satu pekerjaan mati. Pekerjaan pertama sudah memakai kelima percobaannya sebelum kegagalan keenam");
     harus(s[1]!.jawab, "(`lajur.txt` bagian B)");
     const B = bag(presign, "B");
@@ -1015,6 +1026,7 @@ describe("struktur halaman: label, sumber ingatan, tanpa ID internal, dan kata y
     const baris = riset4.split("\n").find((b) => b.startsWith("| R4-255 |"))!;
     expect(baris, "baris riset R4-255").toBeTruthy();
     harus(baris, "dibuka 2026-10-31");
+    harus(baris, "esummary db=pubmed id=16507066,16719566");
     harus(baris, "PMID 16507066 = Roediger & Karpicke");
     harus(baris, "Psychological Science 17(3)");
     harus(baris, "PMID 16719566 = Cepeda dkk.");
@@ -1069,5 +1081,85 @@ describe("struktur halaman: label, sumber ingatan, tanpa ID internal, dan kata y
     expect(mdx.match(/^import /gm)).toHaveLength(5);
     expect(mdx.match(/<details/g)).toHaveLength(6);
     expect(mdx.match(/class="success"/g)).toHaveLength(5);
+  });
+});
+
+// ================================================================================================================================
+// TANPA_KALIMAT=1 mematikan kunci kalimat tanpa angka, supaya uji mutasi melihat nilai turunan sumber sendirian.
+const kalimatKunci = process.env.TANPA_KALIMAT ? describe.skip : describe;
+function fragmenMdx(teks: string): string[] {
+  const kepala = teks.indexOf("\n---\n", 5) + 5;
+  const hasil: string[] = [];
+  for (const baris of teks.slice(kepala).split("\n")) {
+    if (!baris.trim() || /^(import |<|\||<\/)/.test(baris)) continue;
+    const b = baris.replace(/^(\s*)(\d+\.\s+|- \[ \] |- )/, "$1").trim();
+    for (const f of b.split(/(?<=[.!?:]) /)) {
+      const t = f.trim();
+      if (t && t.split(/\s+/).length >= 2 && !/\d/.test(t)) hasil.push(t);
+    }
+  }
+  return hasil;
+}
+kalimatKunci("kalimat mekanisme tanpa angka terkunci per kalimat", () => {
+  test("setiap kalimat tanpa angka di halaman ada di daftar kunci, dan setiap kunci ada di halaman", () => {
+    const unik = [...new Set(fragmenMdx(mdx))];
+    expect(unik).toEqual(KALIMAT);
+    for (const k of KALIMAT) expect(mdx, k).toContain(k);
+  });
+});
+
+describe("struktur: heading, daftar bernomor, ADR dan M yang disebut, Rantai, dan angka kartu diturunkan dari halaman", () => {
+  test("daftar heading halaman tetap, dan daftar bernomor Mulai berurutan", () => {
+    expect(mdx.match(/^#{1,6} .*$/gm)).toEqual([
+      "## Inti", "### Kenapa ini ada", "### Tiga belas kalimat", "### Yang belum diuji", "### Dua belas keputusan Tahap 4",
+      "### Cek diri", "### Saat me-review kode AI, cek ini", "### Bacaan lanjut",
+    ]);
+    harus(blok("Mulai"), "\n1. Vendor verifikasi mati dan breaker membuka sesudah kegagalan keenam. Kenapa satu dari sepuluh pekerjaan tetap mati?\n2. Stiker QR diganti dan CRC-nya dihitung ulang. Kenapa pemindai tetap menerimanya?\n3. Ratih membuka data Dina enam kali. Kenapa tabel catatan menjawab nol baris untuk Dina dan untuk Eko?\n");
+    harus(blok("Mulai"), "Tahap 4 meninggalkan tiga belas kalimat, satu per konsep.");
+    expect(tigabelas.map((b) => b.pertama.match(/^(\d+)\. /)![1])).toEqual(Array.from({ length: 13 }, (_, i) => String(i + 1)));
+  });
+
+  test("ADR, M, PRD, dan nama lab yang disebut tiap kalimat hanya yang berasal dari kejadiannya", () => {
+    const adrOk: number[][] = [[34], [35], [36], [37, 17], [38], [38], [39], [40], [41], [42], [43], [44], []];
+    const mOk: number[][] = [[29], [30], [31], [32], [33], [33], [34], [35], [36], [37], [38], [], [39]];
+    tigabelas.forEach((b, i) => {
+      const adr = [...new Set([...b.teks.matchAll(/\bADR (\d+)/g)].map((m) => Number(m[1])))].sort((x, y) => x - y);
+      expect(adr, `kalimat ${b.no}: ADR`).toEqual([...adrOk[i]!].sort((x, y) => x - y));
+      const m = [...new Set([...b.teks.matchAll(/\bM(\d{2})\b/g)].map((x) => Number(x[1])))];
+      for (const x of m) expect(mOk[i], `kalimat ${b.no}: M${x}`).toContain(x);
+      const prd = [...new Set([...b.teks.matchAll(/PRD v(\d)/g)].map((x) => x[1]))];
+      expect(prd, `kalimat ${b.no}: PRD`).toEqual(b.no === 13 ? ["5"] : b.no === 11 ? ["4"] : []);
+      for (const lab of b.teks.matchAll(/\blab (t4-[a-z]+|api-t4)\b/g)) expect(terlacak?.has(`labs/${lab[1]}/Makefile`) ?? true, `lab ${lab[1]} tidak ada`).toBe(true);
+      for (const api of b.teks.matchAll(/\bapi-t(\d)\b/g)) expect(["3", "4"], `kalimat ${b.no}: api-t${api[1]}`).toContain(api[1]);
+    });
+    const semuaLab = new Set([...mdx.matchAll(/\blab (t4-[a-z]+|api-t4)\b/g)].map((m) => m[1]));
+    expect([...semuaLab].sort()).toEqual(["api-t4", "t4-audit", "t4-infra", "t4-integrasi", "t4-kartu", "t4-modul", "t4-pipeline", "t4-qr", "t4-ssrf", "t4-storage", "t4-webhook"]);
+  });
+
+  test("Rantai: label dan sub tiap baris dan simpul adalah kata-kata halaman yang tetap, dan tiap sub sesuai konsep halaman kejadian", () => {
+    expect(diagram.baris.map((b) => [b.label, b.sub])).toEqual([["Sampai minggu 7", "kabar dari luar dan kode bersama"], ["Minggu 8 sampai 12", "pindahan, keamanan, beban"]]);
+    expect(diagram.baris.flatMap((b) => b.simpul.map((x) => [x.teks, x.sub]))).toEqual([
+      ["PRD v4", "kabar dari luar"], ["M29 ganda", "top-up dan webhook"], ["M30 secret", "rekonsiliasi"], ["M31 vendor", "breaker dan lajur"],
+      ["M32 rilis", "batas modul"], ["M33 file", "penyimpanan objek"], ["M34 alamat", "secret dan IaC"], ["M35 QR", "CRC dan nama"],
+      ["M36 SSRF", "alamat yang dihubungi"], ["M37 kartu", "dana tertahan"], ["M38 audit", "audit berantai"], ["M39 PRD v5", "estimasi"],
+    ]);
+    expect(diagram.baris.flatMap((b) => b.simpul).filter((x) => x.nada !== "biasa").map((x) => x.nada)).toEqual(["system", "system"]);
+  });
+
+  test("tiap angka di tanya dan jawab kartu ada di teks kalimat yang sama, dan nilai kartu 1 dan 6 sama dengan kalimat halaman", () => {
+    const angka = (t: string): string[] => [...t.replace(/`[^`]*`/g, "").matchAll(/\d+(?:[.,]\d+)*/g)].map((m) => m[0]);
+    kartu.forEach((c, i) => {
+      const teksKalimat = butir(i + 1).teks;
+      const ada = new Set(angka(teksKalimat));
+      for (const a of [...angka(c.tanya), ...angka(c.jawab.replace(/\(ADR \d+[^)]*\)/g, ""))]) expect(ada.has(a) || a === "4" || a === "38", `kartu ${c.id}: angka ${a} tidak ada di kalimat ${i + 1}`).toBe(true);
+      // kartu yang menyebut ADR n memuat nomor yang sama dengan kalimat
+      for (const a of c.jawab.matchAll(/\bADR (\d+)/g)) expect([34, 35, 36, 37, 38, 38, 39, 40, 41, 42, 43, 44, 45][i]).toBe(Number(a[1]));
+    });
+    // angka tiap kartu tidak hanya ada di kalimat, tetapi sama dengan urutan di tanya: multiset angka tanya ada di pertama atau batas
+    for (const [i, c] of kartu.entries()) {
+      const sumber = butir(i + 1).pertama + " " + butir(i + 1).batas;
+      const hitung = (t: string, a: string): number => t.split(a).length - 1;
+      for (const a of new Set(angka(c.tanya))) expect(hitung(sumber, a) >= 1, `kartu ${c.id}: ${a}`).toBe(true);
+    }
   });
 });
