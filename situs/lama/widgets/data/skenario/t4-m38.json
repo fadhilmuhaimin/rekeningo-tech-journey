@@ -55,7 +55,7 @@
       "ke": "cat",
       "judul": "Role aplikasi mengubah satu baris dan menghapus satu baris",
       "kirim": "[api_t4] UPDATE audit_biasa SET pelaku_id = 421 WHERE aksi = 'buka_berkas': UPDATE 1\n[api_t4] DELETE FROM audit_biasa WHERE aksi = 'bekukan': DELETE 1\nbaris 5, nomor terbesar 6, nomor bolong 1",
-      "jelas": "Kartu identitas Dina kini tercatat dibuka oleh akun 421, dan pembekuan tidak pernah terjadi. Nomor yang bolong menunjukkan satu penghapusan. Ubahan pelaku tidak meninggalkan petunjuk apa pun.",
+      "jelas": "Kartu identitas Dina kini tercatat dibuka oleh akun 421, dan pembekuan tidak pernah terjadi. Nomor yang bolong menunjukkan satu penghapusan. Di isi tabel, ubahan pelaku tidak meninggalkan petunjuk.",
       "nada": "warn"
     },
     {

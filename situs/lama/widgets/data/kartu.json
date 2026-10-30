@@ -3125,7 +3125,7 @@
   "judul": "4.24 M38: Siapa yang membuka data Budi?",
   "url": "tahap-4/m38-siapa-membuka/",
   "tanya": "Log biasa mencatat enam aksi. Apa yang terjadi bila role aplikasi mengubah satu baris dan menghapus satu baris, dan petunjuk apa yang tersisa?",
-  "jawab": "Tabel menjadi lima baris. Pelaku di baris 3 berganti dari 420 ke 421, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong 1, dan UPDATE tidak meninggalkan petunjuk (`rantai.txt` bagian B)."
+  "jawab": "Tabel menjadi lima baris. Pelaku di baris 3 berganti dari 420 ke 421, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong 1, dan di isi tabel UPDATE tidak meninggalkan petunjuk (`rantai.txt` bagian B)."
  },
  {
   "id": "t4-m38-3",

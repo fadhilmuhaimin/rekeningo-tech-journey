@@ -44,7 +44,7 @@ Tidak ada yang bisa menjawabnya. Di lab, back office versi pertama menjalankan e
 
 <Blok nama="Yang sebenarnya">
 
-Pertanyaan Pak Hadi tidak bisa dijawab dari data Rekeningo sendiri, apa pun yang terjadi di layanan verifikasi. Ada empat sebab. Tiga terekam di lab, dan satu hanya ada di cerita.
+Pertanyaan Pak Hadi tidak bisa dijawab dari tabel catatan Rekeningo, apa pun yang terjadi di layanan verifikasi. Ada empat sebab. Tiga terekam di lab, dan satu hanya ada di cerita.
 
 **Satu akun bersama.** Di cerita, tim risk memakai satu akun bersama di back office. Catatan dari akun itu paling jauh menjawab "akun risk", bukan "siapa".
 
@@ -70,7 +70,7 @@ Role adalah identitas di database yang memegang hak atas tabel. Yang menulis ula
 
 <Snippet file="labs/t4-audit/peran.sql" lines="10:10" lang="sql" title="Kode lab: labs/t4-audit/peran.sql baris 10 (hak role aplikasi atas tabel log biasa)" />
 
-Sesudah satu UPDATE dan satu DELETE, tabel berisi lima baris. Kartu identitas Dina kini tercatat dibuka oleh akun 421, dan pembekuan hilang. Nomor yang bolong adalah Hitungan, yaitu angka dari angka lain di rekaman: nomor terbesar 6 − 5 baris = 1, dan rekaman mencetak 1 juga. UPDATE tidak meninggalkan petunjuk apa pun:
+Sesudah satu UPDATE dan satu DELETE, tabel berisi lima baris. Kartu identitas Dina kini tercatat dibuka oleh akun 421, dan pembekuan hilang. Nomor yang bolong adalah Hitungan, yaitu angka dari angka lain di rekaman: nomor terbesar 6 − 5 baris = 1, dan rekaman mencetak 1 juga. Di isi tabel, UPDATE tidak meninggalkan petunjuk:
 
 <Snippet file="labs/t4-audit/output/rantai.txt" lines="42:61" title="Rekaman lab: labs/t4-audit/output/rantai.txt baris 42 sampai 61 (satu baris diubah, satu dihapus, nomor bolong 1)" />
 
@@ -93,7 +93,7 @@ Query yang dikirim langsung ke database tidak melewati fungsi itu, jadi tidak ad
 **Yang tidak direkam.**
 
 - Pesan ke Budi, waktu 30 hari, dan pertanyaan Pak Hadi hanya ada di cerita (Ilustrasi).
-- Sumber pesan ke Budi tidak pernah dibuktikan. Lab tidak punya layanan verifikasi sungguhan (Tidak dijalankan), jadi dugaan Raka tidak bisa dibenarkan atau dibantah. Yang terbukti hanya satu hal: Rekeningo tidak bisa menjawab pertanyaan Pak Hadi.
+- Sumber pesan ke Budi tidak pernah dibuktikan. Lab tidak punya layanan verifikasi sungguhan (Tidak dijalankan), jadi dugaan Raka tidak bisa dibenarkan atau dibantah. Yang terbukti hanya satu hal: dari tabel catatan di database lab, pertanyaan Pak Hadi tidak bisa dijawab.
 - Satu akun bersama dan log yang mencatat sebagian aksi hanya ada di cerita. Lab memakai dua mode: tanpa catatan, dan log biasa yang mencatat semua aksi, termasuk membuka file.
 - Log server PostgreSQL tidak dibaca rekaman ini. Bawaan `log_statement` adalah `none` ([PostgreSQL 17, Error Reporting and Logging](https://www.postgresql.org/docs/17/runtime-config-logging.html), dibuka 2026-10-30, Tidak dijalankan), tetapi database lab dijalankan dengan `log_statement=all` (`labs/b3-race`). Apakah pembacaan engineer muncul di log server itu tidak diperiksa.
 
@@ -105,7 +105,9 @@ Widget ini mengikuti rekaman `rantai.txt` bagian A dan B dan `role.txt` bagian C
 
 <WidgetLama nama="alur" src="data/skenario/t4-m38.json" />
 
-Hash adalah sidik tetap yang dihitung dari isi satu baris. Sesudah langkah terakhir, centang **Ubah satu hal: catatan berantai hash menggantikan log biasa**. Di varian ini tiap baris menyimpan hash yang dihitung dari isinya dan dari hash baris sebelumnya. Pemilik tabel yang mengubah satu baris atau menghapus satu baris terdeteksi, tetapi baris palsu di ujung dengan hash yang benar lolos (Rekaman lab, `rantai.txt` bagian C).
+Hash adalah sidik tetap yang dihitung dari isi satu baris. Sesudah langkah terakhir, centang **Ubah satu hal: catatan berantai hash menggantikan log biasa**. Di varian ini tiap baris menyimpan hash yang dihitung dari isinya dan dari hash baris sebelumnya. Pemilik tabel yang mengubah satu baris tanpa menghitung ulang hash terdeteksi, begitu pula yang menghapus satu baris di tengah.
+
+Baris palsu di ujung dengan hash yang benar lolos (Rekaman lab, `rantai.txt` bagian C).
 
 Batasnya: rekaman ini memakai satu skenario, bukan semua cara menulis ulang catatan. Cara memeriksa rantai dan batasnya dibahas di [[t4-audit]].
 
@@ -128,7 +130,7 @@ Rekaman bagian A ada di lipatan di bawah.
 
 - [[t4-audit]]: back office dengan peran, catatan yang bisa diperiksa, dan agen baca-saja. Keputusannya ADR 43.
 
-Di M38 pertanyaan Pak Hadi gagal dijawab karena tiga hal: catatan tidak ada, catatan bisa diubah tanpa petunjuk, dan pembacaan langsung ke database tidak tercatat.
+Pertanyaan Pak Hadi gagal dijawab karena tiga hal: catatan tidak ada, catatan bisa diubah tanpa petunjuk di isi tabel, dan pembacaan langsung tidak tercatat.
 
 ### Cek diri
 
@@ -146,7 +148,7 @@ Mode `bo-tanpa-audit` tidak menulis catatan. Nol baris tidak membedakan akun yan
 <details class="success">
 <summary>Jawaban</summary>
 
-Tabel menjadi lima baris. Pelaku di baris 3 berganti dari 420 ke 421, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong 1, dan UPDATE tidak meninggalkan petunjuk (`rantai.txt` bagian B).
+Tabel menjadi lima baris. Pelaku di baris 3 berganti dari 420 ke 421, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong 1, dan di isi tabel UPDATE tidak meninggalkan petunjuk (`rantai.txt` bagian B).
 
 </details>
 

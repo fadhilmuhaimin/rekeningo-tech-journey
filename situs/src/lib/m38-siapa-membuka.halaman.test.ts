@@ -224,7 +224,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(barisAdr43).toContain("Agen AI di back office hanya baca lewat MCP server");
     expect(naskah).toContain("| Audit log berantai | \"Tidak ada catatan\" sama nilainya dengan \"tidak tahu\" | M38 |");
     expect(badan).not.toMatch(/jangkar|MCP|HMAC|persetujuan dua orang|dua orang|pgaudit|go-sdk|append-only/i);
-    expect(badan.match(/baris palsu/g)).toHaveLength(1);
+    expect(badan.match(/baris palsu/gi)).toHaveLength(1);
   });
 });
 
@@ -308,8 +308,26 @@ describe("rekaman rantai.txt dan role.txt: nilai yang dikutip, Hitungan, dan kla
     expect(teksC).toContain("=> [t4a_pemilik] DELETE FROM audit_log WHERE id = 2\nDELETE 1");
     expect(teksC).toContain("# Rantai tidak membuktikan siapa yang menulis baris: tanpa kunci rahasia, siapa pun yang bisa menulis dan tahu rumusnya bisa menambah baris yang lolos.");
     expect(teksC).toContain("# Pemilik tabel menambah baris ke-7 dengan hash yang ia hitung sendiri dari rumus yang sama (skrip lab, bukan app):");
-    harus("Pemilik tabel yang mengubah satu baris atau menghapus satu baris terdeteksi, tetapi baris palsu di ujung dengan hash yang benar lolos (Rekaman lab, `rantai.txt` bagian C).");
+    harus("Pemilik tabel yang mengubah satu baris tanpa menghitung ulang hash terdeteksi, begitu pula yang menghapus satu baris di tengah.\n\nBaris palsu di ujung dengan hash yang benar lolos (Rekaman lab, `rantai.txt` bagian C).");
     expect(readmeAudit).toContain("Penulis yang menghitung ulang hash dari baris yang ia ubah sampai ujung membuat verifikasi lolos");
+  });
+  test("klaim deteksi dan bukti berlingkup (tinjauan): hanya perubahan tanpa hitung ulang hash dan penghapusan di tengah terdeteksi; jangkar.txt bagian B dan C memperlihatkan ekor dipotong dan hash dihitung ulang lolos; 'terbukti' hanya untuk tabel catatan", () => {
+    const J = baca("labs/t4-audit/output/jangkar.txt");
+    expect(J).toMatch(/# --- B\. Ekor dipotong[\s\S]*?baris=4 rantai=utuh jangkar_lama=0 temuan=0/);
+    expect(J).toMatch(/# --- C\. Baris tengah ditulis ulang dan rantainya dihitung ulang sampai ujung[\s\S]*?baris=8 rantai=utuh jangkar_lama=0 temuan=0/);
+    expect(rantaiTxt).toContain("# Yang terdeteksi adalah penghapusan di tengah");
+    expect(rantaiTxt).toContain("Pemotongan di ujung: bagian jangkar.");
+    harus("Pemilik tabel yang mengubah satu baris tanpa menghitung ulang hash terdeteksi, begitu pula yang menghapus satu baris di tengah.");
+    expect(badan).not.toMatch(/menghapus satu baris terdeteksi|mengubah satu baris atau menghapus|selalu terdeteksi|semua perubahan terdeteksi/i);
+    // "petunjuk" berlingkup isi tabel: rekaman hanya menampilkan kolom tabel, bukan kolom sistem atau statistik PostgreSQL
+    expect(rantaiTxt).toContain("isinya hanya isi baris");
+    expect(badan).not.toMatch(/petunjuk apa pun/);
+    expect(badan.match(/di isi tabel/gi)?.length).toBe(3);
+    // "terbukti": hanya tabel catatan; log server PostgreSQL tidak dibaca (compose log_statement=all) dan halaman mengakuinya
+    expect(badan).not.toMatch(/Rekeningo tidak bisa menjawab|dari data Rekeningo sendiri/);
+    harus("Yang terbukti hanya satu hal: dari tabel catatan di database lab, pertanyaan Pak Hadi tidak bisa dijawab.");
+    expect(composeRace).toContain("log_statement=all");
+    harus("Apakah pembacaan engineer muncul di log server itu tidak diperiksa.");
   });
   test("role.txt: lab superuser (rolsuper t) dan api_t4 bukan; baca verifikasi sebagai role lab = 1 pengajuan; jumlah baris audit sama; pemilik schema disebut di rekaman", () => {
     expect(superuser).toEqual([["api_t4", "f"], ["lab", "t"], ["t4a_agen", "f"], ["t4a_pemilik", "f"], ["t4a_verifikator", "f"]]);
@@ -410,7 +428,7 @@ describe("kode lab: mode, Audit, LihatVerifikasiBO, migrasi, dan klaim negatif b
     expect(readmeAudit).toContain("Lab memakai akun petugas masing-masing");
     expect(readmeAudit).toContain("**Pemilik data** di rekaman adalah Dina (akun publik 40001)");
     harus("- Pesan ke Budi, waktu 30 hari, dan pertanyaan Pak Hadi hanya ada di cerita (Ilustrasi).");
-    harus("- Sumber pesan ke Budi tidak pernah dibuktikan. Lab tidak punya layanan verifikasi sungguhan (Tidak dijalankan), jadi dugaan Raka tidak bisa dibenarkan atau dibantah. Yang terbukti hanya satu hal: Rekeningo tidak bisa menjawab pertanyaan Pak Hadi.");
+    harus("- Sumber pesan ke Budi tidak pernah dibuktikan. Lab tidak punya layanan verifikasi sungguhan (Tidak dijalankan), jadi dugaan Raka tidak bisa dibenarkan atau dibantah. Yang terbukti hanya satu hal: dari tabel catatan di database lab, pertanyaan Pak Hadi tidak bisa dijawab.");
     harus("- Satu akun bersama dan log yang mencatat sebagian aksi hanya ada di cerita. Lab memakai dua mode: tanpa catatan, dan log biasa yang mencatat semua aksi, termasuk membuka file.");
     expect(readmeAudit).toContain("Semua pihak ketiga tidak ada");
   });
@@ -656,7 +674,7 @@ describe("skenario alur t4-m38.json: valid, nilai dari rekaman, tebakan, dan var
     expect(l3!.judul).toBe(`Log biasa: ${kata(SEBELUM.length)} aksi yang sama tercatat`);
     expect(l3!.jelas).toBe("Mode bo-log-biasa menulis aksi yang sama ke tabel biasa tanpa hash. Pertanyaan Pak Hadi kini punya jawaban, selama isi tabel itu tidak berubah.");
     expect(l4!.judul).toBe("Role aplikasi mengubah satu baris dan menghapus satu baris");
-    expect(l4!.jelas).toBe(`Kartu identitas Dina kini tercatat dibuka oleh akun ${SESUDAH.find((r) => r.id === 3)!.pelaku}, dan pembekuan tidak pernah terjadi. Nomor yang bolong menunjukkan satu penghapusan. Ubahan pelaku tidak meninggalkan petunjuk apa pun.`);
+    expect(l4!.jelas).toBe(`Kartu identitas Dina kini tercatat dibuka oleh akun ${SESUDAH.find((r) => r.id === 3)!.pelaku}, dan pembekuan tidak pernah terjadi. Nomor yang bolong menunjukkan satu penghapusan. Di isi tabel, ubahan pelaku tidak meninggalkan petunjuk.`);
     expect(l5!.judul).toBe("Engineer membaca tabel verifikasi lewat role lab: catatan tidak bertambah");
     expect(l5!.jelas).toBe("Role lab adalah pemilik schema dan superuser di lab ini. Pembacaan langsung ke database tidak menambah satu baris pun di tabel catatan.");
     const [v1, v2, v3] = skenario.varian.langkah;
@@ -682,7 +700,7 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     expect(kartu.map((k) => k.id)).toEqual(["t4-m38-1", "t4-m38-2", "t4-m38-3"]);
     expect(kartu.every((k) => k.url === "tahap-4/m38-siapa-membuka/" && k.judul === "4.24 M38: Siapa yang membuka data Budi?")).toBe(true);
     expect(kartu[0]!.tanya).toBe(`Ratih menjalankan ${kata(AKSI_A.length)} aksi atas data Dina, dan Eko tidak pernah dibuka. Kenapa tabel catatan menjawab nol baris untuk keduanya?`);
-    expect(kartu[1]!.jawab).toBe(`Tabel menjadi ${kata(BARIS_B)} baris. Pelaku di baris 3 berganti dari ${SEBELUM.find((r) => r.id === 3)!.pelaku} ke ${SESUDAH.find((r) => r.id === 3)!.pelaku}, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong ${BOLONG_B}, dan UPDATE tidak meninggalkan petunjuk (\`rantai.txt\` bagian B).`);
+    expect(kartu[1]!.jawab).toBe(`Tabel menjadi ${kata(BARIS_B)} baris. Pelaku di baris 3 berganti dari ${SEBELUM.find((r) => r.id === 3)!.pelaku} ke ${SESUDAH.find((r) => r.id === 3)!.pelaku}, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong ${BOLONG_B}, dan di isi tabel UPDATE tidak meninggalkan petunjuk (\`rantai.txt\` bagian B).`);
     expect(kartu[2]!.jawab).toContain("dibaca dari kode, Tidak dijalankan");
     const cek = badan.slice(badan.indexOf("### Cek diri"));
     const butir = [...cek.matchAll(/\*\*(\d+)\.\*\* ([^\n]+)\n\n<details class="success">\n<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)];
@@ -694,7 +712,7 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
   test("konsep yang lahir: satu tautan; penutup tanpa klaim baru; akhir halaman memuat SkripLama; noscript memakai angka rekaman", () => {
     const blok = badan.slice(badan.indexOf('<Blok nama="Konsep yang lahir">'), badan.indexOf("### Cek diri"));
     expect([...blok.matchAll(/^- \[\[([^\]]+)\]\]/gm)].map((m) => m[1])).toEqual(["t4-audit"]);
-    harus("Di M38 pertanyaan Pak Hadi gagal dijawab karena tiga hal: catatan tidak ada, catatan bisa diubah tanpa petunjuk, dan pembacaan langsung ke database tidak tercatat.");
+    harus("Pertanyaan Pak Hadi gagal dijawab karena tiga hal: catatan tidak ada, catatan bisa diubah tanpa petunjuk di isi tabel, dan pembacaan langsung tidak tercatat.");
     expect(badan.trimEnd().endsWith('<SkripLama daftar={["hp","alur-core","alur"]} />')).toBe(true);
     const noscript = cocok(badan, /<noscript>([\s\S]*?)<\/noscript>/)[1]!;
     expect(noscript).toContain(`jawaban untuk Dina dan untuk Eko sama-sama ${kata(BARIS_AUDIT_A)} baris`);
@@ -720,7 +738,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
     harus("Ratih, analis risiko di tim risk, menjawab: \"Kami hanya melihat data bila perlu.\" Jawaban itu terdengar masuk akal. Tim risk memang punya alasan untuk membuka data.");
     harus("Dua jawaban itu sama-sama belum diperiksa. Dugaan tentang pihak luar bisa diperiksa dengan meminta catatan dari mereka. Dugaan tentang pihak dalam hanya bisa diperiksa dari catatan Rekeningo sendiri.");
     harus("Tidak ada yang bisa menjawabnya. Di lab, back office versi pertama menjalankan enam aksi atas satu akun dan tabel catatan tetap kosong (dibaca di blok berikutnya, Rekaman lab).");
-    harus("Pertanyaan Pak Hadi tidak bisa dijawab dari data Rekeningo sendiri, apa pun yang terjadi di layanan verifikasi. Ada empat sebab. Tiga terekam di lab, dan satu hanya ada di cerita.");
+    harus("Pertanyaan Pak Hadi tidak bisa dijawab dari tabel catatan Rekeningo, apa pun yang terjadi di layanan verifikasi. Ada empat sebab. Tiga terekam di lab, dan satu hanya ada di cerita.");
     harus("**Satu akun bersama.** Di cerita, tim risk memakai satu akun bersama di back office. Catatan dari akun itu paling jauh menjawab \"akun risk\", bukan \"siapa\".");
     harus("Keadaan ini tidak direkam (Ilustrasi): lab memakai akun terpisah untuk tiap staf, yaitu Ratih (akun 420) dan Tim Risk Dua (akun 421).");
     harus("**Tanpa catatan.** Lab memerankan versi pertama dengan flag `-rentan`, yaitu server yang sama dengan perilaku versi pertama. Pada mode `bo-tanpa-audit`, fungsi `Audit` keluar tanpa menulis apa pun (Tidak dijalankan: dibaca dari kode). Cabang kedua, `bo-log-biasa`, dibahas di bawah:");
@@ -730,7 +748,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
     harus("*Kondisi rekaman:* PostgreSQL 17.11, go1.27.1, dan database lab yang dibuat bersih untuk tiap bagian. Pemilik data di rekaman adalah Dina, akun lab fiktif, bukan Budi.");
     harus("**Log biasa tercatat, tetapi bisa diubah.** Misalkan versi berikutnya mencatat aksi di tabel biasa. Itu mode `bo-log-biasa`: enam aksi yang sama masuk ke tabel `audit_biasa`, yang hanya ada di lab untuk mode ini. Tabel itu tidak punya pemeriksaan apakah sebuah baris pernah diubah.");
     harus("Role adalah identitas di database yang memegang hak atas tabel. Yang menulis ulang di rekaman adalah role aplikasi `api_t4`, karena versi pertama memberinya hak mengubah dan menghapus tabel itu. Hak itu setelan lab untuk versi pertama, bukan temuan. Dua perintah di bawah dikirim skrip lab, bukan terjadi karena kesalahan sistem:");
-    harus("Sesudah satu UPDATE dan satu DELETE, tabel berisi lima baris. Kartu identitas Dina kini tercatat dibuka oleh akun 421, dan pembekuan hilang. Nomor yang bolong adalah Hitungan, yaitu angka dari angka lain di rekaman: nomor terbesar 6 − 5 baris = 1, dan rekaman mencetak 1 juga. UPDATE tidak meninggalkan petunjuk apa pun:");
+    harus("Sesudah satu UPDATE dan satu DELETE, tabel berisi lima baris. Kartu identitas Dina kini tercatat dibuka oleh akun 421, dan pembekuan hilang. Nomor yang bolong adalah Hitungan, yaitu angka dari angka lain di rekaman: nomor terbesar 6 − 5 baris = 1, dan rekaman mencetak 1 juga. Di isi tabel, UPDATE tidak meninggalkan petunjuk:");
     harus("Log biasa lebih baik daripada tidak ada catatan, tetapi isinya tidak bisa diperiksa. OWASP menyarankan catatan dilengkapi deteksi perubahan, supaya ketahuan bila sebuah baris diubah atau dihapus ([OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html), dibuka 2026-10-30, Tidak dijalankan). Tabel `audit_biasa` tidak punya deteksi itu.");
     harus("**Pembacaan langsung tidak lewat aplikasi.** Engineer yang membuka database langsung memakai role `lab`. Superuser adalah role yang melewati semua pemeriksaan hak kecuali hak untuk login ([PostgreSQL 17, Role Attributes](https://www.postgresql.org/docs/17/role-attributes.html), dibuka 2026-10-30, Tidak dijalankan). Di lab itu `lab` adalah pemilik schema dan sekaligus superuser (`role.txt` bagian A dan C).");
     harus("Rekaman membaca tabel `verifikasi`, yaitu tabel pengajuan verifikasi identitas, dan menghitung baris `audit_log` sebelum dan sesudahnya:");
@@ -738,21 +756,21 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
     harus("Query yang dikirim langsung ke database tidak melewati fungsi itu, jadi tidak ada panggilan `Audit`.");
     harus("**Yang tidak direkam.**");
     harus("- Pesan ke Budi, waktu 30 hari, dan pertanyaan Pak Hadi hanya ada di cerita (Ilustrasi).");
-    harus("- Sumber pesan ke Budi tidak pernah dibuktikan. Lab tidak punya layanan verifikasi sungguhan (Tidak dijalankan), jadi dugaan Raka tidak bisa dibenarkan atau dibantah. Yang terbukti hanya satu hal: Rekeningo tidak bisa menjawab pertanyaan Pak Hadi.");
+    harus("- Sumber pesan ke Budi tidak pernah dibuktikan. Lab tidak punya layanan verifikasi sungguhan (Tidak dijalankan), jadi dugaan Raka tidak bisa dibenarkan atau dibantah. Yang terbukti hanya satu hal: dari tabel catatan di database lab, pertanyaan Pak Hadi tidak bisa dijawab.");
     harus("- Satu akun bersama dan log yang mencatat sebagian aksi hanya ada di cerita. Lab memakai dua mode: tanpa catatan, dan log biasa yang mencatat semua aksi, termasuk membuka file.");
     harus("- Log server PostgreSQL tidak dibaca rekaman ini. Bawaan `log_statement` adalah `none` ([PostgreSQL 17, Error Reporting and Logging](https://www.postgresql.org/docs/17/runtime-config-logging.html), dibuka 2026-10-30, Tidak dijalankan), tetapi database lab dijalankan dengan `log_statement=all` (`labs/b3-race`). Apakah pembacaan engineer muncul di log server itu tidak diperiksa.");
     harus("Widget ini mengikuti rekaman `rantai.txt` bagian A dan B dan `role.txt` bagian C, dengan satu varian dari `rantai.txt` bagian C. Tebak dulu apa yang ditemukan Pak Hadi, lalu tekan Berikutnya atau panah kanan.");
-    harus("Hash adalah sidik tetap yang dihitung dari isi satu baris. Sesudah langkah terakhir, centang **Ubah satu hal: catatan berantai hash menggantikan log biasa**. Di varian ini tiap baris menyimpan hash yang dihitung dari isinya dan dari hash baris sebelumnya. Pemilik tabel yang mengubah satu baris atau menghapus satu baris terdeteksi, tetapi baris palsu di ujung dengan hash yang benar lolos (Rekaman lab, `rantai.txt` bagian C).");
+    harus("Hash adalah sidik tetap yang dihitung dari isi satu baris. Sesudah langkah terakhir, centang **Ubah satu hal: catatan berantai hash menggantikan log biasa**. Di varian ini tiap baris menyimpan hash yang dihitung dari isinya dan dari hash baris sebelumnya. Pemilik tabel yang mengubah satu baris tanpa menghitung ulang hash terdeteksi, begitu pula yang menghapus satu baris di tengah.\n\nBaris palsu di ujung dengan hash yang benar lolos (Rekaman lab, `rantai.txt` bagian C).");
     harus("Batasnya: rekaman ini memakai satu skenario, bukan semua cara menulis ulang catatan. Cara memeriksa rantai dan batasnya dibahas di [[t4-audit]].");
     harus("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: tanpa catatan, jawaban untuk Dina dan untuk Eko sama-sama nol baris, dan membaca tabel verifikasi lewat role lab tidak menambah baris catatan.");
     harus("Rekaman bagian A ada di lipatan di bawah.");
     harus("- [[t4-audit]]: back office dengan peran, catatan yang bisa diperiksa, dan agen baca-saja. Keputusannya ADR 43.");
-    harus("Di M38 pertanyaan Pak Hadi gagal dijawab karena tiga hal: catatan tidak ada, catatan bisa diubah tanpa petunjuk, dan pembacaan langsung ke database tidak tercatat.");
+    harus("Pertanyaan Pak Hadi gagal dijawab karena tiga hal: catatan tidak ada, catatan bisa diubah tanpa petunjuk di isi tabel, dan pembacaan langsung tidak tercatat.");
     harus("### Cek diri");
     harus("**1.** Ratih menjalankan enam aksi atas data Dina, dan Eko tidak pernah dibuka. Kenapa tabel catatan menjawab nol baris untuk keduanya?");
     harus("Mode `bo-tanpa-audit` tidak menulis catatan. Nol baris tidak membedakan akun yang dibuka enam kali dari akun yang tidak pernah dibuka. Karena itu \"tidak ada\" sama nilainya dengan \"tidak tahu\" (`rantai.txt` bagian A).");
     harus("**2.** Log biasa mencatat enam aksi. Apa yang terjadi bila role aplikasi mengubah satu baris dan menghapus satu baris, dan petunjuk apa yang tersisa?");
-    harus("Tabel menjadi lima baris. Pelaku di baris 3 berganti dari 420 ke 421, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong 1, dan UPDATE tidak meninggalkan petunjuk (`rantai.txt` bagian B).");
+    harus("Tabel menjadi lima baris. Pelaku di baris 3 berganti dari 420 ke 421, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong 1, dan di isi tabel UPDATE tidak meninggalkan petunjuk (`rantai.txt` bagian B).");
     harus("**3.** Engineer membaca tabel `verifikasi` lewat role `lab`. Kenapa jumlah baris `audit_log` tidak berubah?");
     harus("Catatan ditulis oleh kode aplikasi di dalam fungsi aksi back office, dan query langsung ke database tidak melewati fungsi itu. Jumlah baris sebelum dan sesudah membaca sama (`role.txt` bagian C; dibaca dari kode, Tidak dijalankan).");
   });
