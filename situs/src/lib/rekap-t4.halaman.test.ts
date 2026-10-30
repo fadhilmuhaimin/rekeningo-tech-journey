@@ -487,7 +487,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     const akhirB = B.join("\n").slice(B.join("\n").lastIndexOf("# Vendor pulih"));
     cocok(akhirB, /^ lulus +\| 9$/m);
     cocok(akhirB, /^ gagal +\| 1$/m);
-    harus(butir(3).pertama, `Dengan breaker per lajur, vendor menerima ${permintaanB} permintaan, dan 9 dari 10 pendaftar lulus sesudah vendor pulih (bagian B).`);
+    harus(butir(3).pertama, `Dengan breaker per lajur, vendor yang mati menerima ${permintaanB} permintaan, dan 9 dari 10 pendaftar lulus sesudah vendor pulih (bagian B).`);
     expect(ada(B, /^# 9 dari 10 pendaftar lulus\. Yang pertama sudah dead-letter sebelum breaker terbuka: ambang bawaan \(lebih dari 5 gagal berturut-turut\) lebih tinggi daripada batas percobaan satu pekerjaan \(5\)\./)).toBe(true);
     harus(butir(3).batas, "satu pekerjaan tetap mati, karena ambang breaker bawaan, lebih dari 5 gagal berturut-turut, lebih tinggi daripada batas lima percobaan satu pekerjaan (bagian B).");
     harus(fileHalaman("t4-breaker"), "tidak dipasangi breaker di lab");
@@ -554,6 +554,11 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(ada(D, /^unduh kartu sesudah ditimpa: HTTP 500$/)).toBe(true);
     expect(ada(D, /^baris audit bertambah satu: 1 jadi 2$/)).toBe(true);
     harus(butir(6).batas, "checksum tidak cocok dan jawabannya 500 (`unduh.txt` bagian D).");
+    const UC = bag(unduh, "C");
+    expect(ada(UC, /^pemegang pertama: HTTP 200, 500\.000 byte$/)).toBe(true);
+    expect(ada(UC, /^pemegang kedua \(dikirim ulang oleh orang lain\): HTTP 200, 500\.000 byte$/)).toBe(true);
+    expect(ada(UC, /^baris audit buka_berkas sesudah dua unduhan lewat URL: 1 \(tetap\)/)).toBe(true);
+    harus(butir(6).batas, "Unduh tidak lewat URL, karena URL unduh buatan lab dibuka dua pemegang dengan 200 dan tanpa baris audit baru (bagian C).");
     harus(fileHalaman("t4-storage"), "5 menit (Asumsi)");
     harus(fileHalaman("t4-storage"), "rekaman memakai umur 5 detik supaya habisnya bisa ditunggu");
   });
@@ -594,10 +599,10 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(ada(C, /nama di payload 'Toko Sumber Rejeki'; kota di payload 'Jakarta'/)).toBe(true);
     expect(ada(C, /server: GET \/qr\/\{id\} -> 200; nama 'Toko Andalan'/)).toBe(true);
     expect(ada(C, /^nama dan kota di payload sama dengan jawaban server: tidak$/)).toBe(true);
-    harus(butir(8).pertama, "Payload itu memuat nama Toko Sumber Rejeki, tetapi server menjawab nama Toko Andalan (`statis.txt` bagian C).");
+    harus(butir(8).pertama, "Payload Bu Marni dengan id Toko Andalan membawa nama Toko Sumber Rejeki, tetapi server menjawab nama Toko Andalan (`statis.txt` bagian C).");
     const D = bag(crc, "D");
     const ganti = cari(D, /^selisih: id QR berubah; CRC berubah dari (\w+) menjadi (\w+)$/, "crc D");
-    harus(butir(8).pertama, `dari \`${ganti[1]}\` menjadi \`${ganti[2]}\`, lalu pemindai lab menerimanya (\`crc.txt\` bagian D)`);
+    harus(butir(8).pertama, `Di rekaman lain, id QR di payload diganti dan CRC dihitung ulang tanpa key, dari \`${ganti[1]}\` menjadi \`${ganti[2]}\`, lalu pemindai lab menerimanya (\`crc.txt\` bagian D).`);
     expect(ada(D, /^teks diganti lalu CRC dihitung ulang dengan binascii\.crc_hqx \(tanpa alat lab\): lolos/)).toBe(true);
     expect(ada(D, /"nama":"Toko Sumber Rejeki"/)).toBe(true);
     const Cc = bag(crc, "C");

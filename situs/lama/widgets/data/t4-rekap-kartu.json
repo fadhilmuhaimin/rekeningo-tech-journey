@@ -45,7 +45,7 @@
     "judul": "4.14 M33: Uji pulih mingguan makin lama",
     "url": "tahap-4/m33-uji-pulih/",
     "tanya": "M33: dua pemegang URL unggah yang sama mengirim file 120.000 byte dan 90.000 byte, keduanya dijawab 200, dan isi akhirnya 90.000 byte. Sesudah umur URL lewat, PUT dijawab 403. Kalimat apa yang lahir?",
-    "jawab": "URL unggah adalah izin bagi siapa pun yang membawanya, dan izin itu punya umur (ADR 38: unggah lewat presigned PUT 5 menit, unduh hanya lewat server). Dipersempit: yang direkam adalah URL unggah, umur di lab 5 detik dan di ADR 38 5 menit (Asumsi)."
+    "jawab": "URL unggah adalah izin bagi siapa pun yang membawanya, dan izin itu punya umur (ADR 38: unggah lewat presigned PUT 5 menit, unduh hanya lewat server). Dipersempit: penimpaan direkam untuk URL unggah, umur di lab 5 detik dan di ADR 38 5 menit (Asumsi), dan unduh tidak lewat URL."
   },
   {
     "id": "t4-rekap-k7",
