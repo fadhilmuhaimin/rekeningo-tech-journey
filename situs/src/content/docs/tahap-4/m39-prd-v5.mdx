@@ -96,7 +96,7 @@ Kode mengukur selisih antara jadwal dan saat generator berhenti tidur, tanpa men
 
 Campuran lab membayar dua kali lebih sering daripada hitungan naskah: 295 ÷ 2.778 = 10,6% request, sedangkan 6,94 ÷ 138,9 = 5,0% (Hitungan). Bagian A tidak menjalankan worker (dibaca dari `run.py`, Tidak dijalankan), jadi notifikasi tidak ikut diukur di sana.
 
-**Kapasitas worker terukur, pengumuman tidak.** Kapasitas worker adalah c ÷ t, dengan c jumlah pengirim yang bekerja serentak (bawaan 4 di `worker.go`) dan t lama satu pengiriman, 0,3 detik pada push tiruan (Asumsi). Bagian B memasukkan 100 notifikasi dan satu worker menguras semuanya:
+**Kapasitas worker terukur, pengumuman tidak.** Kapasitas worker adalah c ÷ t: c pengirim serentak (bawaan 4 di `worker.go`) dibagi t, lama satu pengiriman, 0,3 detik pada push tiruan (Asumsi). Bagian B memasukkan 100 notifikasi dan satu worker menguras semuanya:
 
 <Snippet file="labs/api-t4/output/beban.txt" lines="23:29" title="Rekaman lab: labs/api-t4/output/beban.txt baris 23 sampai 29 (bagian B, kapasitas worker)" />
 

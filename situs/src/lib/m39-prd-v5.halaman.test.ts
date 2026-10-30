@@ -429,7 +429,7 @@ describe("rekaman api-t4 beban.txt bagian A dan B: batas di satu laptop, bukan k
     expect(runPy).toContain("generate_series(1, 100)");
     harus("Bagian B memasukkan 100 notifikasi dan satu worker menguras semuanya:");
     harus("Laju terukur dalam 15% dari 13,33 per detik, dan nilainya tidak direkam. Rekaman memeriksa rumus c ÷ t, bukan lama pengiriman di produksi.");
-    harus("Kapasitas worker adalah c ÷ t, dengan c jumlah pengirim yang bekerja serentak (bawaan 4 di `worker.go`) dan t lama satu pengiriman, 0,3 detik pada push tiruan (Asumsi).");
+    harus("Kapasitas worker adalah c ÷ t: c pengirim serentak (bawaan 4 di `worker.go`) dibagi t, lama satu pengiriman, 0,3 detik pada push tiruan (Asumsi).");
     expect(workerGo).toContain("Serentak      int           // pengirim serentak (c); kapasitas = c ÷ t");
   });
   test("Snippet: empat potongan; nomor baris dihitung dari jangkar di rekaman dan kode; judul memuat nomor yang sama", () => {
@@ -757,7 +757,7 @@ describe("struktur halaman: tingkat heading, daftar, label, dan tanpa ID interna
     const pL = badan.search(/\bL\b/);
     expect(badan.slice(pL, badan.indexOf("L adalah rata-rata jumlah koneksi"))).not.toContain("\n\n");
     expect(badan.slice(0, pL).endsWith('**"Tidak sesak" berarti ')).toBe(true);
-    expect(badan.search(/\bc\b/)).toBe(badan.indexOf("Kapasitas worker adalah c ÷ t, dengan c jumlah pengirim") + "Kapasitas worker adalah ".length);
+    expect(badan.search(/\bc\b/)).toBe(badan.indexOf("Kapasitas worker adalah c ÷ t: c pengirim") + "Kapasitas worker adalah ".length);
     expect(badan.search(/\bt\b/)).toBe(badan.indexOf("Kapasitas worker adalah c ÷ t") + "Kapasitas worker adalah c ÷ ".length);
     expect(badan.search(/\bW\b/)).toBeGreaterThan(badan.indexOf("L adalah rata-rata jumlah koneksi"));
     expect(badan.search(/\bW\b/)).toBeLessThan(badan.indexOf("memegang koneksi ([[t3-pool]])"));
