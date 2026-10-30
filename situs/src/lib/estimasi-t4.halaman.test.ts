@@ -1082,3 +1082,65 @@ describe("widget kalkulator t4-estimasi-kalkulator.json", () => {
     harus('import intiDiagram from "../../../../data/diagram/t4-estimasi-inti.json";');
   });
 });
+
+// Celah yang ditemukan tinjauan (keputusan 1377): mutasi TANPA kunci baris yang lolos penjaga awal. Tiap tes di bawah menutup satu kelas
+// mutan: tautan [[id]] ditukar di satu tempat, impor tambahan, kelas details, kata "laptop", kolom registry, dan persamaan berunit di
+// baris riset (pemeriksa aritmetika di atas hanya membaca rantai angka murni, jadi "× 250 byte" dan "= 125 menit" tidak dihitung ulang).
+describe("penutup celah mutasi tinjauan", () => {
+  test("jumlah tautan [[id]] per halaman, impor, kelas details, dan kata laptop terkunci terhadap penukaran di satu tempat", () => {
+    const hitungId: Record<string, number> = {};
+    for (const m of badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)) hitungId[m[1]!] = (hitungId[m[1]!] ?? 0) + 1;
+    expect(hitungId).toEqual({ D1: 7, berikutnya: 1, "t2-estimasi": 1, "t2-skema": 1, "t3-estimasi": 4, "t3-m18": 1, "t3-m27": 2, "t3-pool": 3, "t4-adr-45": 4, "t4-m39": 2, "t4-modul": 1 });
+    expect(badan.match(/^import /gm)).toHaveLength(6);
+    expect(hitungKali(badan, '<details class="question">')).toBe(1);
+    expect(hitungKali(badan, '<details class="success">')).toBe(4);
+    expect(hitungKali(badan, "<details")).toBe(5);
+    // beban.txt dijalankan di satu laptop lab (kepala rekaman), bukan server: tiga kalimat memakai kata itu
+    expect(beban).toContain("Dijalankan di laptop lab: bukan kapasitas produksi.");
+    expect(hitungKali(badan, "laptop")).toBe(3);
+    expect(hitungKali(badan, "di laptop")).toBe(2);
+    harus("rekaman beban api-t4 hanya memeriksa batas di laptop (rincian di bawah)");
+    harus("Di satu laptop dengan campuran lab, 95% permintaan selesai di bawah 500 ms");
+  });
+  test("kalimat halaman tidak menjawab tebakan 4.31 dan tidak memilih komponen", () => {
+    expect(badan).not.toMatch(/pecah lebih dulu|yang pecah|jawaban(nya)? (tebakan|Tahap 5)|paling dulu|harus diganti/i);
+    expect(hitungKali(badan, "Tabel ini bukan desain Tahap 5")).toBe(1);
+    expect(hitungKali(badan, "Keputusan atas angka ini ditulis di [[t4-adr-45]].")).toBe(1);
+  });
+  test("registry: bagian dan masalah halaman cocok dengan peta naskah dan halaman turunan", () => {
+    const h = dari("t4-estimasi");
+    const bagian = Number(cocok(naskah4, /\| 4\.28 \| (\d+) \| Estimasi Tahap 4 → 5 \| Konsep \|/)[1]);
+    expect((h as unknown as { bagian: number }).bagian).toBe(bagian);
+    const masalah = (h as unknown as { masalah: string }).masalah;
+    expect(masalah).toBe("Menghitung beban Tahap 5 dari angka Tahap 4 sebelum memilih komponen");
+    expect(baca("situs/src/content/docs/alat/indeks-topik.mdx")).toContain(`[4.28 Estimasi Tahap 4 → 5](/tahap-4/estimasi/) | Tahap 4 | ${masalah} |`);
+    expect(baca("situs/src/content/docs/cerita/tahap-4.mdx")).toContain(`| ${masalah} | [4.28 Estimasi Tahap 4 → 5](/tahap-4/estimasi/) |`);
+  });
+  test("baris riset R4-247 sampai R4-249: persamaan berunit, deret L, ambang pool, dan rujukan dihitung ulang dari sumbernya", () => {
+    const kolom = (id: string, k: number): string => riset4.split("\n").find((x) => x.startsWith(`| ${id} |`))!.split("|")[k]!.trim();
+    const r247 = kolom("R4-247", 3);
+    const detikUmum4 = (a4.user * T_PUSH) / C;
+    const PB = INST_BAYAR * POOL_BAYAR;
+    const ambangSatuPool = (PB - 1) / lamTopTulis;
+    const ambangPerPool = (POOL_BAYAR - 1) / (lamTopTulis / INST_BAYAR);
+    const w = [0.3, 2, 3, 15, 30];
+    const unsur = [
+      `L = ${koma(lamTopTulis, 3)} × W untuk W ${w.map((x) => koma(x, x < 1 ? 1 : 0)).join(", ")} detik = ${koma(lamTopTulis * 0.3, 2)}, ${koma(lamTopTulis * 2, 2)}, ${koma(lamTopTulis * 3, 2)}, ${koma(lamTop * 15, 2)} (${koma(lamTopTulis, 3)} × 15 = ${koma(lamTopTulis * 15, 3)}; λ tepat ${koma(lamTop, 4)} memberi ${koma(lamTop * 15, 2)}), ${koma(lamTopTulis * 30, 1)}`,
+      `${PB} ÷ ${koma(lamTopTulis, 3)} = ${koma(PB / lamTopTulis, 1)}; (${PB} − 1) ÷ ${koma(lamTopTulis, 3)} = ${koma(ambangSatuPool, 1)} (λ tepat memberi ${koma((PB - 1) / lamTop, 1)}); (${POOL_BAYAR} − 1) ÷ (${koma(lamTopTulis, 3)} ÷ ${INST_BAYAR}) = ${koma(ambangPerPool, 1)}`,
+      `${koma(posting4 / 1e6, 1)} juta × ${BYTE_POSTING} byte = ${koma(gbLedger4, 2)} GB, ${ribu(h4.dau)} × ${TRX} × 365 × ${m4.baris} byte = ${koma(gbD1, 2)} GB, ${ribu(unggahHari)} × ${m4.fileKB} KB × 365 = ${gbFile} GB, ${gbFile} ÷ ${koma(gbLedger4, 2)} = ${Math.round(gbFile / gbLedger4)} dan ${gbFile} ÷ ${koma(gbD1, 2)} = ${Math.round(gbFile / gbD1)}`,
+      `${ribu(Number(m5.upload))} × ${m5.fileKB} KB × 365 = ${kali(gbFile5, 0)} GB`,
+      `${ribu(a4.user)} × ${koma(T_PUSH, 1)} ÷ ${C} = ${ribu(detikUmum4)} detik = ${detikUmum4 / 60} menit`,
+      `${koma(notif4Tulis, 2)} × ${koma(T_PUSH, 1)} = ${koma(notif4Tulis * T_PUSH, 2)}, jumlah ${koma(lamVerTulis * PERCOBAAN * TIMEOUT + notif4Tulis * T_PUSH, 1)} dari ${C} worker`,
+      `${koma(siang4, 2)} ÷ ${koma(KAP, 2)} = ${Math.round((dibaca(koma(siang4, 2)) / kapTulis) * 100)}%`,
+      `(${INST * POOL + INST_BAYAR * POOL_BAYAR + WORKER_DB + ADMIN} tanpa cadangan superuser)`,
+      "naskah bagian 3, registry `tahap[3]` dan `tahap[4]`",
+    ];
+    for (const u of unsur) expect(r247, u).toContain(u);
+    expect(kolom("R4-245", 3)).toContain("teks HTML dibuka 2026-10-30 dengan curl");
+    const r249 = kolom("R4-249", 3);
+    expect(r249).toContain("`tahap[4].asumsi`");
+    expect(r249).toContain(`registry (${TRX5}) tidak sama dengan naskah (${TRX})`);
+    expect(r249).toContain("pencarian 2026-10-29 di halaman 4.13");
+    expect(r249).toContain(`user ${ribu(a5.user)}`);
+  });
+});
