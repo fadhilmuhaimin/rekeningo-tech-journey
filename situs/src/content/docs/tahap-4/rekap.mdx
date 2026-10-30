@@ -1,0 +1,230 @@
+---
+title: "4.30 Yang dibawa keluar dari Tahap 4"
+description: Tiga belas kalimat dari Tahap 4, masing-masing terikat ke kejadian dan halaman asalnya. Ada kartu untuk menebaknya, ringkasan ADR 34 sampai 45, dan Cek diri gabungan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import kejadian from "../../../../data/diagram/t4-rekap-kejadian.json";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 13 menit · coba 3 menit · Prasyarat: [[t4-adr-45]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Tahap 4 meninggalkan tiga belas kalimat, satu per konsep.
+
+<Rantai data={kejadian} ringkas />
+
+Sebelas kalimat lahir dari PRD v4 dan M29 sampai M38, dan M33 melahirkan dua. Satu kalimat lahir dari tim dan infra, dan satu dari M39. Setiap kalimat terikat ke satu kejadian dan ke halaman asalnya. Kalimat yang lebih luas daripada halaman asalnya ditulis dalam versi halaman asal, dan blok Paham menulis batasnya.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Vendor verifikasi mati dan breaker membuka sesudah kegagalan keenam. Kenapa satu dari sepuluh pekerjaan tetap mati?
+2. Stiker QR diganti dan CRC-nya dihitung ulang. Kenapa pemindai tetap menerimanya?
+3. Ratih membuka data Dina enam kali. Kenapa tabel catatan menjawab nol baris untuk Dina dan untuk Eko?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah punya tiga belas kalimat Tahap 4, masing-masing dengan kejadiannya.">
+
+Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu buka jawabannya. Tautan di kartu membawa ke halaman kejadian itu.
+
+<WidgetLama nama="kartu" src="data/t4-rekap-kartu.json" />
+
+Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap tiga belas kalimat, beserta batas masing-masing, selalu ada di blok Paham.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Konsep Tahap 4 tersebar di dua puluh sembilan halaman, dari [[t4-prd]] sampai [[t4-adr-45]]. Empat di antaranya, [[t4-fitur-teknis]], [[t4-topup-verifikasi]], [[t4-dua-arah]], dan [[t4-skema]], mendukung kalimat di bawah tetapi tidak melahirkan kalimat sendiri.
+
+Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-10-31). Karena itu setiap konsep diringkas jadi satu kalimat dan diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya.
+
+Bila halaman asal menulis kalimat naskah dengan batas yang lebih sempit, halaman ini menulis versi halaman asal. Label Dipersempit menulis selisihnya, dan label Batas menulis yang tidak direkam atau tidak dijalankan di halaman asal.
+
+Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti hasil rumus dari angka yang tertulis di halaman asalnya, berlabel sama dengan masukan terlemahnya. Arti label Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] ada di [[A0]].
+
+### Tiga belas kalimat
+
+1. **Kabar dari luar adalah klaim: periksa tanda tangannya, catat satu kali, baru percaya.** [[t4-prd]] bertanya siapa yang tahu bila gateway mengirim kabar dua kali, terlambat, atau tidak sama sekali. Di [[t4-m29]], gateway mengirim kabar yang sama dua kali, dan handler pertama menjurnal tiap kiriman. Saldo Budi naik Rp400.000 untuk Rp200.000 yang dibayar (`ganda.txt` bagian A, lab t4-webhook). Penyebab kiriman kedua, balasan 200 yang hilang, adalah penalaran (Tidak dijalankan pada handler pertama). Handler ADR 34 menjawab `200 ganda` dan jurnalnya satu saat balasan hilang (`ganda.txt` bagian B). Tanda tangan dihitung atas byte yang tiba. Body 109 byte cocok bila dibaca mentah, dan tidak cocok bila diurai lalu ditulis ulang (`tandatangan.txt` bagian A). Konsep dan ADR 34: [[t4-webhook]].
+
+   *Dipersempit:* "satu kali" ditahan tiga lapis, yaitu `event_id`, status top-up yang hanya maju, dan Idempotency-Key ledger yang hidup 24 jam. Tanpa lapis status, event kedua yang datang 25 jam kemudian menghasilkan 2 jurnal (`urutan.txt` bagian G, kasus 4). Service pembayaran yang mati lalu menerima kiriman ulang pada +25 jam juga menghasilkan 2 jurnal (`proses-mati.txt` bagian C, lab t4-modul), dan pencegahannya belum diputuskan. Jam lab diputar di kedua rekaman.
+
+2. **Kalau satu-satunya jalan kabar putus, jalan kedua harus sudah ada.** Di [[t4-m30]], gateway merotasi secret dan api-t4 masih memegang yang lama. Enam kiriman dijawab 401, dan tabel `webhook_event` tetap 0 baris (`retry.txt` bagian B, lab t4-webhook). Jadwal gateway tiruan habis 342 menit sesudah kiriman pertama, tanpa satu jurnal pun. Job cek status tidak memeriksa top-up berumur 29 menit, tetapi memeriksa dan mengkredit yang berumur 31 menit (`rekon.txt` bagian A). Rekonsiliasi harian menemukan lima insiden, dan job koreksi menutup tiga lewat jurnal dan satu tanpa jurnal baru, sedangkan satu tetap terbuka (bagian B). Konsep dan ADR 35: [[t4-rekonsiliasi]].
+
+   *Batas:* batas 30 menit adalah Asumsi, dan jadwal 342 menit adalah Ilustrasi yang mengikuti dokumentasi satu gateway, dengan waktu yang diperankan. Tiga dari lima batas di kode lab menunggu keputusan pemilik, dan insiden yang menunggu keputusan manusia belum punya jalur penutupan di lab.
+
+3. **Vendor yang mati tidak boleh menghabiskan percobaan pekerjaan yang tidak bersalah.** Di [[t4-m31]], layanan verifikasi mati dan sepuluh pendaftar masuk: vendor menerima 50 permintaan, sepuluh pekerjaan mati, dan sepuluh pengajuan `gagal`. Sesudah layanan pulih, worker mengklaim 0 pekerjaan (`lajur.txt` bagian A, lab t4-integrasi). Dengan breaker per lajur, vendor yang mati menerima 6 permintaan, dan 9 dari 10 pendaftar lulus sesudah vendor pulih (bagian B). Konsep dan ADR 36: [[t4-breaker]].
+
+   *Dipersempit:* satu pekerjaan tetap mati, karena ambang breaker bawaan, lebih dari 5 gagal berturut-turut, lebih tinggi daripada batas lima percobaan satu pekerjaan (bagian B). Yang terlindungi adalah pekerjaan yang belum dicoba. Jalur sinkron tidak dipasangi breaker di lab, dan hanya widget di halaman itu yang menghitungnya.
+
+4. **Aturan yang hanya ditulis di dokumen dilanggar saat orangnya berlipat; batas harus dijaga mesin.** Di [[t4-m32]], tim Merchant mengganti nama kolom `akun.nama`. Aturan ADR 17 sudah tertulis dan tidak menghentikan migration itu. Tiga langkah CI tim Pembayaran tetap hijau, tetapi top-up gagal dengan `column "nama" does not exist` (`batas.txt` bagian A, lab t4-modul). Dengan satu schema dan satu role per modul, SQL lama pembayaran ditolak `relation "akun" does not exist`, dan `go build` menolak impor `internal/data` milik akun (bagian B). Konsep dan ADR 37: [[t4-modul]].
+
+   *Dipersempit:* kode pembayaran di bagian A ditulis lab mengikuti uraian M32 (Ilustrasi), sedangkan schema, role, dan pesan galat adalah PostgreSQL yang dijalankan. Batas mesin berlaku untuk modul pembayaran dan paket baru di `internal/modul/`. Proses monolith memakai satu role yang membaca 17 tabel dari lima modul, dan kode ledger lama belum dipindah. Aturan ADR wajib dijaga review dan checklist PR, bukan mesin.
+
+5. **File bukan data transaksi: database menyimpan kunci dan checksum, dan file hidup di tempat lain.** Di [[t4-m33]], foto kartu identitas disimpan di kolom `bytea`. Delapan pengajuan menghasilkan 16 file sebesar 8.000.000 byte. Dump terkompresi membawa 1,1 kali ukuran file pada 2, 4, dan 8 pengajuan (`ukuran.txt` bagian A, lab t4-storage). Dengan file di penyimpanan objek, dump di bawah 0,01 kali ukuran file (bagian C). Konsep dan ADR 38: [[t4-storage]].
+
+   *Batas:* isi file di lab adalah karangan 500.000 byte (Ilustrasi), jadi rasio foto nyata dan waktu dump atau pulih tidak diukur. Dump yang kecil tidak berarti file aman, karena file perlu cadangan sendiri, dan pencadangan penyimpanan objek Tidak dijalankan.
+
+6. **URL unggah adalah izin bagi siapa pun yang membawanya, dan izin itu punya umur.** Sebagai jawaban atas [[t4-m33]], ADR 38 memindahkan unggahan file ke penyimpanan objek lewat URL bertanda tangan. Di rekaman, dua pemegang URL yang sama mengirim file 120.000 byte dan 90.000 byte. Keduanya dijawab 200, dan isi akhirnya 90.000 byte milik pemegang kedua (`presign.txt` bagian B, lab t4-storage). Sesudah umur URL lewat, PUT dijawab 403 dan objek tidak berubah (bagian C). Konsep dan ADR 38: [[t4-storage]].
+
+   *Dipersempit:* penimpaan direkam untuk URL unggah. Umur URL di lab 5 detik, dan ADR 38 memakai 5 menit (Asumsi). Selama URL belum habis, server baru tahu file ditimpa saat file diunduh: checksum tidak cocok dan jawabannya 500 (`unduh.txt` bagian D). Unduh tidak lewat URL, karena URL unduh buatan lab dibuka dua pemegang dengan 200 dan tanpa baris audit baru (bagian C).
+
+7. **Pindahan membawa tiga hal yang tidak tertulis di kode: alamat keluar, secret, dan state IaC.** Di [[t4-m34]], tiga pengajuan sesudah pindah hosting dijawab 403 lima kali tiap pekerjaan, yaitu 15 penolakan. Tiga pengajuan itu `gagal` walau vendor sehat (`alamat.txt` bagian A, lab t4-infra). Dengan proxy keluar yang didaftarkan sekali, tiga pengajuan sesudah pindahan lulus tanpa penolakan (bagian B). State OpenTofu memuat nilai password dan kunci yang dipakai satu resource, walau CLI menulis `(sensitive value)`. Bila konfigurasi hanya menulis alamat dan path OpenBao, state tidak memuat nilai rahasia (`state.txt` bagian A dan B). Konsep dan ADR 39: [[t4-infra-secret]].
+
+   *Batas:* staging yang memakai kunci produksi tidak direkam, hanya pemindai atas dua file contoh (`staging.txt` bagian B). Hosting terkelola dan NAT cloud Tidak dijalankan, OpenBao berjalan dalam mode dev, dan proxy keluar menjadi titik gagal tunggal baru yang matinya tidak direkam.
+
+8. **CRC menangkap salah baca, bukan penggantian; nama dari server memperlihatkan stiker yang salah tempat, tetapi tidak mencegahnya.** Di [[t4-m35]], Budi membayar Rp35.000 ke stiker Toko Andalan, merchant sah. Server menjawab 201 dengan jurnal seimbang, sedangkan saldo Toko Sumber Rejeki tetap 0 (`statis.txt` bagian B, lab t4-qr). Penempelan stiker adalah Ilustrasi, dan lab hanya memerankan pemindai. Di rekaman lain, id QR di payload, yaitu isi teks stiker, diganti. CRC, angka pemeriksa di ujung payload, dihitung ulang tanpa key dari `B29D` menjadi `4D5E`, lalu pemindai lab menerimanya (`crc.txt` bagian D). Payload Bu Marni dengan id Toko Andalan membawa nama Toko Sumber Rejeki, tetapi server menjawab nama Toko Andalan (`statis.txt` bagian C). Konsep dan ADR 40: [[t4-qr]].
+
+   *Dipersempit:* "salah baca" terekam untuk satu payload contoh 138 karakter dan dua jenis kesalahan (`crc.txt` bagian C). Satu karakter berubah: 8.562 dari 8.562 terdeteksi. Dua karakter bersebelahan bertukar: 104 dari 104. Itu bukan jaminan untuk payload lain.
+
+   *Batas:* layar konfirmasi Tidak dijalankan, dan apakah pembeli membaca nama itu tidak terukur (Asumsi). Parameter CRC berasal dari dokumen pihak ketiga yang mengutip EMVCo, dan PDF EMVCo-nya [perlu verifikasi].
+
+9. **Server yang mengambil URL dari user mengambil atas nama server, jadi yang diperiksa adalah alamat yang dihubungi, bukan teks URL.** Di [[t4-m36]], pratinjau gambar toko berisi teks JSON dari layanan dalam (cerita, Ilustrasi). Sebabnya, server mengambil alamat yang diisi merchant dengan akses jaringan miliknya (Tidak dijalankan). Pemeriksaan alamat versi aman menolak 32 dari 32 alamat terlarang, dan 29 lolos bila `IsPrivate`, metode bawaan Go, satu-satunya pemeriksaan (`alamat.txt`, lab t4-ssrf). Ketujuh kode redirect 3xx ditolak, dan server tujuan redirect disentuh 0 kali (`batas.txt`). Konsep dan ADR 41: [[t4-ssrf]].
+
+   *Dipersempit:* lab t4-ssrf hanya menjalankan sisi pembela, yaitu versi aman. Versi pertama fetcher hanya dibaca dari kode dan dua tes unit api-t4 tanpa rekaman tingkat endpoint (Tidak dijalankan). Daftar alamat adalah contoh karangan lab, bukan semua alamat, dan metadata cloud Tidak dijalankan.
+
+10. **Di lab, Rekeningo tidak punya rute untuk menarik persetujuan kartu, jadi dana ditahan sebelum menjawab setuju.** Di [[t4-m37]], tanpa dana tertahan, dua otorisasi Rp80.000 untuk saldo Rp100.000 sama-sama disetujui, dan saldo masih Rp100.000 sesudahnya. Otorisasi ketiga juga disetujui, jadi Rp240.000 disetujui untuk saldo Rp100.000 (`otorisasi.txt` bagian A, lab t4-kartu). Dengan dana tertahan (hold), otorisasi pertama menahan Rp80.000, dan yang kedua membaca saldo Rp20.000 lalu ditolak karena saldo kurang (bagian C). Konsep dan ADR 42: [[t4-kartu]].
+
+    *Batas:* dasar kalimatnya adalah pembacaan kode rute (Tidak dijalankan): satu-satunya rute yang membatalkan otorisasi dipanggil penerbit. Hold menutup M37, tetapi delapan hal lain tetap terbuka. Salah satunya kill switch, yaitu penanda (flag) yang mematikan otorisasi baru. Penanda itu hidup di memori satu proses, dan kembali aktif sesudah proses dimulai ulang (`kill-switch.txt` bagian B).
+
+11. **Di tabel catatan tanpa audit, jawaban "tidak ada" sama nilainya dengan "tidak tahu".** Di [[t4-m38]], Ratih menjalankan enam aksi atas data Dina. Tabel `audit_log` menjawab 0 baris untuk Dina, dan 0 baris untuk Eko yang tidak pernah dibuka (`rantai.txt` bagian A, lab t4-audit). Di log biasa, satu UPDATE dan satu DELETE oleh role aplikasi menyisakan 5 baris dengan pelaku baris 3 berganti (bagian B). ADR 43 memakai rantai hash, dan jangkar, yaitu catatan hash baris terakhir di luar database, menangkap ekor yang dipotong. Tanpa jangkar, rantai utuh dengan 4 baris. Dengan jangkar, jangkar nomor 6 dijawab baris-hilang (`jangkar.txt` bagian B). Konsep dan ADR 43: [[t4-audit]].
+
+    *Dipersempit:* yang terbukti hanya tabel catatan di database lab, bukan semua tempat. Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis, dan baris ke-7 dengan hash hitungan sendiri lolos (`rantai.txt` bagian C). Ukuran 100% dari PRD v4 juga belum terpenuhi, karena percobaan yang ditolak dan akses lewat role pemilik schema tidak meninggalkan baris.
+
+12. **Image harus bisa dibuktikan sama dengan digest hasil build CI, bukan hanya bertanda tangan.** Di [[t4-tim-infra]], oasdiff membandingkan contract OpenAPI api-t3 dan api-t4, lalu melapor 3 error dengan exit code 1 (`kontrak.txt`, lab api-t4). Digest adalah sidik jari isi image, sedangkan tag hanya nama yang bisa dipindah. Bila tag dipindah ke image lain sebelum ditandatangani, `cosign verify` atas tag lulus dengan digest D, padahal build CI menghasilkan digest C. Hanya perbandingan dengan digest hasil build CI yang menolaknya (`tanda-tangan.txt` bagian C, lab t4-pipeline). Dengan Go 1.27.1, api-t4 sendiri gagal gerbang. Alat govulncheck atas kodenya menemukan 10 kerentanan stdlib yang dipanggil (`sast.txt` bagian E). Alat grype atas image-nya menemukan 15 temuan, dua di antaranya Critical (`sbom.txt` bagian C). Konsep dan ADR 44: [[t4-tim-infra]].
+
+    *Dipersempit:* yang direkam adalah image di registry lab dengan kunci cosign per run, bukan yang berjalan di produksi. Pipeline GitHub Actions, deploy blue/green, dan keyless Tidak dijalankan: lab menjalankan alat dan gerbangnya, bukan CI. Lab tidak menaikkan Go, dan aturan untuk kode di luar `internal/modul/` belum diputuskan.
+
+13. **Masalah Tahap 4 adalah kepercayaan pada pihak lain dan koordinasi tim, bukan jumlah request per detik.** Di [[t4-m39]], uji coba publik lolos dengan 100.000 user terdaftar (target, Asumsi), lalu Sinta datang dengan PRD v5 (Ilustrasi). Puncak 138,9 request per detik naik 8 kali dari 17,4 (Hitungan atas Asumsi: 138,9 ÷ 17,4 = 7,98). Worker notifikasi terpakai 56%, naik dari 6,5%, dan koneksi database 40 dari 100 (Hitungan atas Asumsi). Satu rekaman beban di satu laptop menyelesaikan 2.778 dari 2.778 permintaan tanpa error. Hasilnya p95, yaitu waktu jawab yang dilewati 5% permintaan paling lambat, di bawah batas lab 500 ms (`beban.txt` bagian A, lab api-t4). Konsep dan beban PRD v5: [[t4-estimasi]].
+
+    *Dipersempit:* rekaman beban memeriksa batas lab, yaitu status 200 atau 201 dan p95 di bawah 500 ms. Itu bukan kapasitas produksi, karena memakai satu proses, satu laptop, dan 20 detik. Kapasitas satu server belum diukur. Tiga hal yang diminta PRD v5 belum pernah diuji. Laporan merchant akan berbagi database dengan transaksi, notifikasi massal berbagi satu worker, dan 13 orang menjadi 20 sampai 40 di satu repo (Asumsi). Pengumuman ke 100.000 HP butuh paling sedikit 125 menit (Hitungan, Tidak dijalankan).
+
+### Yang belum diuji
+
+Tiga belas kalimat itu diuji lewat rekaman lab di mesin lokal, bukan di server sungguhan. Sembilan hal yang ditulis terbuka di halamannya belum diuji.
+
+- Kapasitas satu server dan load test di server sungguhan: [[t4-m39]].
+- Gateway, layanan verifikasi, dan penerbit kartu nyata, karena semua pihak ketiga di lab adalah tiruan lokal: [[t4-prd]].
+- Hosting terkelola, NAT cloud, dan failover: [[t4-infra-secret]].
+- Layar konfirmasi QR, gambar QR, kamera, dan perilaku pembeli: [[t4-qr]].
+- Versi pertama fetcher gambar terhadap layanan tiruan, dan metadata cloud: [[t4-ssrf]].
+- Kill switch di luar proses dan dua instance: [[t4-kartu]].
+- Tempat jangkar yang tidak bisa ditulis penulis log, dan pencatatan sesi akses langsung: [[t4-audit]].
+- Pencadangan penyimpanan objek dan waktu pulih: [[t4-m33]].
+- Pipeline GitHub Actions per modul, deploy blue/green, dan keyless cosign: [[t4-tim-infra]].
+
+Komponen yang sengaja belum dipasang punya halaman sendiri di [[t4-adr-45]], dan halaman ini tidak mengulangnya.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Dua belas keputusan Tahap 4
+
+Keputusan di balik kalimat-kalimat itu tertulis di ADR 34 sampai 45. Alasan dan kapan keputusan itu salah ada di halaman masing-masing.
+
+| ADR | Keputusan | Lahir dari |
+|---|---|---|
+| 34 | Tanda tangan atas byte mentah, event satu kali, status hanya maju | PRD v4 dan M29, [[t4-webhook]] |
+| 35 | Dua lapis, insiden bernomor, dan koreksi lewat jurnal normal | M30, [[t4-rekonsiliasi]] |
+| 36 | Satu pembuat client, key dari id internal, breaker per vendor, lajur dijeda | M31, [[t4-breaker]] |
+| 37 | Modular monolith dengan batas yang dijaga mesin, dan satu service pembayaran | M32, [[t4-modul]] |
+| 38 | File identitas di penyimpanan objek, unggah lewat presigned PUT 5 menit, unduh hanya lewat server | M33, [[t4-storage]] |
+| 39 | Layanan terkelola untuk data, file, dan secret, IaC, dan alamat keluar tetap | M34, [[t4-infra-secret]] |
+| 40 | QR dinamis untuk merchant dengan layar, QR statis berbatas dengan nama dari server, laporan membekukan dulu | M35, [[t4-qr]] |
+| 41 | Satu fungsi unduh gambar, hanya https, alamat diperiksa saat dihubungi, tanpa redirect | M36, [[t4-ssrf]] |
+| 42 | Hold di ledger lewat satu panggilan, lock_timeout 1 detik, kill switch | M37, [[t4-kartu]] |
+| 43 | Peran dan persetujuan dua orang, audit log berantai dengan jangkar harian, dan agen baca-saja | M38, [[t4-audit]] |
+| 44 | Pipeline per modul, tanda tangan atas digest, dan rilis bertahap | Tim dan infra, [[t4-tim-infra]] |
+| 45 | Delapan komponen sengaja belum dipasang, masing-masing dengan angka Tahap 4 dan pemicu tertulis, dan kapasitas satu server belum diukur | M39, [[t4-adr-45]] |
+
+ADR 37 merevisi ADR 12 pada service kedua, dan ADR 44 merevisi baris tes contract OpenAPI di ADR 12. Angka di kolom Keputusan adalah pilihan tiap ADR, dan umur URL unggah 5 menit berlabel Asumsi di halamannya.
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Event kedua dengan `event_id` lain datang 25 jam sesudah event pertama untuk order yang sama. Lapis mana yang menahan jurnal kedua, dan berapa jurnal tanpa lapis itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Status top-up yang hanya maju. Idempotency-Key ledger hidup 24 jam, jadi sesudah 25 jam key itu sudah habis. Tanpa lapis status, event kedua diproses dan jurnalnya 2 (`urutan.txt` bagian G, kasus 4).
+
+</details>
+
+**2.** Breaker membuka sesudah kegagalan keenam, sedangkan satu pekerjaan punya lima percobaan. Berapa dari 10 pekerjaan mati, dan kenapa bukan 0?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Satu pekerjaan mati. Pekerjaan pertama sudah memakai kelima percobaannya sebelum kegagalan keenam, dan breaker baru membuka sesudahnya. Itu berlaku untuk satu worker tanpa jeda antar percobaan (`lajur.txt` bagian B).
+
+</details>
+
+**3.** Dua pemegang URL unggah yang sama mengirim file berbeda. Isi siapa yang tersisa, dan apa yang terjadi sesudah umur URL habis?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Isi pemegang kedua, 90.000 byte, karena PUT kedua menimpa objek tanpa versi lama (`presign.txt` bagian B). Sesudah umur habis, PUT dijawab 403 dan objek tidak berubah (bagian C).
+
+</details>
+
+**4.** Fetcher hanya memeriksa alamat dengan `IsPrivate`. Berapa dari 32 alamat terlarang yang lolos, dan dari angka apa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+29. `IsPrivate` menandai 3 dari 32 alamat itu, jadi 32 − 3 = 29 (Hitungan atas `alamat.txt`). Pemeriksaan alamat versi aman menolak ke-32-nya.
+
+</details>
+
+**5.** Baris 5 sampai 8 dari audit log berantai dihapus. Apa jawaban pemeriksaan tanpa jangkar, dan apa dengan file jangkar?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tanpa jangkar: 4 baris, rantai utuh, exit status 0. Dengan file jangkar: jangkar nomor 6 dijawab baris-hilang, exit status 2 (`jangkar.txt` bagian B).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tanda tangan webhook dihitung atas byte mentah sebelum JSON diurai, dan `event_id` dicatat dengan `INSERT ... ON CONFLICT DO NOTHING` ([[t4-webhook]]).
+- [ ] Kabar uang punya jalan kedua, yaitu job cek status dan rekonsiliasi harian, dan selisihnya menjadi insiden bernomor ([[t4-rekonsiliasi]]).
+- [ ] Retry memakai Idempotency-Key dari id internal, dan breaker menjeda lajur tanpa menaikkan percobaan pekerjaan ([[t4-breaker]]).
+- [ ] SQL modul lain tidak dibaca langsung: tiap modul memakai role dan schema sendiri, dan impor lewat paket publik ([[t4-modul]]).
+- [ ] File identitas tidak disimpan di kolom `bytea`: database memegang kunci objek dan checksum ([[t4-storage]]).
+- [ ] URL unggah berumur pendek, server memeriksa isi file sesudah unggah, dan file dibuka lewat server, bukan lewat URL ([[t4-storage]]).
+- [ ] Alamat keluar didaftarkan lewat proxy atau NAT bertetap, dan nilai secret dibaca service saat runtime, bukan oleh OpenTofu ([[t4-infra-secret]]).
+- [ ] Layar konfirmasi QR menampilkan nama merchant dari jawaban server, bukan dari payload ([[t4-qr]]).
+- [ ] Alamat yang diunduh server diperiksa saat dihubungi, redirect tidak diikuti, dan pesan galat tanpa isi respons ([[t4-ssrf]]).
+- [ ] Persetujuan kartu hanya diberikan sesudah dana tertahan sebagai jurnal ([[t4-kartu]]).
+- [ ] Role aplikasi tidak bisa mengubah audit log, dan jangkar rantainya disimpan di luar database ([[t4-audit]]).
+- [ ] Image dideploy lewat digest hasil build CI yang diverifikasi, bukan lewat tag ([[t4-tim-infra]]).
+- [ ] Kapasitas server tidak disebut tanpa load test di server sungguhan ([[t4-m39]]).
+
+### Bacaan lanjut
+
+- [Roediger & Karpicke 2006, Psychological Science 17(3)](https://pubmed.ncbi.nlm.nih.gov/16507066/)
+- [Cepeda dkk. 2006, Psychological Bulletin 132(3)](https://pubmed.ncbi.nlm.nih.gov/16719566/)
+- [[Kartu]]: soal Cek diri dari semua halaman yang sudah kamu baca
+
+</Blok>
+
+<SkripLama daftar={["cerita","kartu"]} />

@@ -1,0 +1,52 @@
+{
+  "id": "t4-estimasi-inti",
+  "judul": "Hitungan Tahap 4 ke Tahap 5",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah dan registry, bukan pengukuran"
+  },
+  "baris": [
+    {
+      "label": "Tahap 4",
+      "sub": "dari angka tertulis",
+      "simpul": [
+        {
+          "teks": "Request: 138,9",
+          "sub": "per detik, puncak",
+          "nada": "old"
+        },
+        {
+          "teks": "Worker: 56%",
+          "sub": "dari 13,33 per detik",
+          "nada": "good"
+        },
+        {
+          "teks": "File: 365 GB",
+          "sub": "per tahun",
+          "nada": "system"
+        }
+      ]
+    },
+    {
+      "label": "Dikali 10",
+      "sub": "perilaku per user tetap",
+      "simpul": [
+        {
+          "teks": "Request: 1.388,9",
+          "sub": "naik 10 kali",
+          "nada": "system"
+        },
+        {
+          "teks": "Worker: 564%",
+          "sub": "kapasitas tetap",
+          "nada": "warn"
+        },
+        {
+          "teks": "File: 3.650 GB",
+          "sub": "per tahun",
+          "nada": "system"
+        }
+      ]
+    }
+  ]
+}

@@ -491,7 +491,7 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     for (const id of ids) expect(barisRiset(id), id).toContain("2026-10-31");
     expect(badan).not.toMatch(/dibuka 2026-10-(?!31)/);
   });
-  test("baris riset: lima baris berurutan R4-250 sampai R4-254 sesudah R4-234 sampai R4-239 dan sebelum ID yang lebih besar (R4-255 ke atas), lima kolom, tanpa ID ganda", () => {
+  test("baris riset: lima baris berurutan R4-250 sampai R4-254 sesudah R4-234 sampai R4-239 dan sebelum R4-300 (R4-255 sampai R4-264 bila 4.30 dan 4.31 sudah merge), lima kolom, tanpa ID ganda", () => {
     const ids = ["R4-250", "R4-251", "R4-252", "R4-253", "R4-254"];
     const semua = [...riset.matchAll(/^\| (R4-\d+) \|/gm)].map((m) => m[1]!);
     expect(new Set(semua).size).toBe(semua.length);
@@ -500,7 +500,10 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     expect(sebelum).toBeGreaterThanOrEqual(234);
     expect(sebelum).toBeLessThan(250);
     expect(semua.slice(i, i + 5)).toEqual(ids);
-    expect(Number(semua[i + 5]!.slice(3)), "baris sesudah R4-254: R4-255 sampai R4-264 milik 4.30 dan 4.31 bila sudah merge, lalu R4-300").toBeGreaterThan(254);
+    // sesudah R4-254: R4-255 sampai R4-264 milik 4.30 dan 4.31 bila sudah merge; tanpa keduanya tetap R4-300
+    const sesudah = Number(semua[i + 5]!.slice(3));
+    expect(sesudah).toBeGreaterThan(254);
+    expect(sesudah).toBeLessThanOrEqual(300);
     for (const id of ids) { const b = barisRiset(id); expect(b.split(" | ").length, id).toBe(5); expect(b.split("\n")).toHaveLength(1); }
     expect(barisRiset("R4-250")).toContain("| 4.29: lima syarat login sosial");
     expect(barisRiset("R4-254")).toContain("Shopify Engineering, Deconstructing the Monolith (Westeinde, 2019-02-21)");

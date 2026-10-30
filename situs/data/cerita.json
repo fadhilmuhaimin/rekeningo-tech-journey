@@ -3950,8 +3950,9 @@
       "prasyarat": [
         "t4-m39"
       ],
-      "ada": false,
-      "nomor": "4.28"
+      "ada": true,
+      "nomor": "4.28",
+      "menit": 18
     },
     {
       "id": "t4-adr-45",
@@ -3989,8 +3990,9 @@
       "prasyarat": [
         "t4-adr-45"
       ],
-      "ada": false,
-      "nomor": "4.30"
+      "ada": true,
+      "nomor": "4.30",
+      "menit": 16
     },
     {
       "id": "t4-jembatan",
