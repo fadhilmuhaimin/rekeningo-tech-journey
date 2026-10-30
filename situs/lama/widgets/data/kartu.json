@@ -3240,6 +3240,38 @@
   "jawab": "1 ÷ 4 = 25% sebelum, dan 1 ÷ 3 = 33% sesudah. Batas buku SRE adalah 25% waktu (Hitungan atas Asumsi naskah)."
  },
  {
+  "id": "t4-m39-1",
+  "halaman": "t4-m39",
+  "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+  "url": "tahap-4/m39-prd-v5/",
+  "tanya": "Puncak request naik dari 17,4 ke 138,9 per detik, padahal user naik 10 kali. Kenapa hanya 8 kali?",
+  "jawab": "User aktif turun dari 25% ke 20%, jadi pengali kedua 0,8, dan request per user tetap 60. Hasil kalinya 10 × 0,8 × 1 = 8 (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t4-m39-2",
+  "halaman": "t4-m39",
+  "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+  "url": "tahap-4/m39-prd-v5/",
+  "tanya": "Rekaman beban menulis koneksi paling banyak 10. Kenapa itu bukan bukti pool tidak sesak?",
+  "jawab": "Batas 10 dipasang pool sendiri, jadi pool tidak bisa melewatinya. Jadwal yang tidak tertinggal hanya menunjukkan generator tepat waktu. Jawaban server hanya dilihat oleh status 200 atau 201 dan p95 di bawah 500 ms, dan keduanya batas lab, bukan kapasitas produksi."
+ },
+ {
+  "id": "t4-m39-3",
+  "halaman": "t4-m39",
+  "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+  "url": "tahap-4/m39-prd-v5/",
+  "tanya": "Worker terpakai 56%, dan pengumuman ke 100.000 HP dihitung 125 menit. Apa label masing-masing, dan apa yang tidak dijalankan lab?",
+  "jawab": "Keduanya Hitungan atas Asumsi: kapasitas 4 ÷ 0,3 = 13,33 per detik, dengan lama pengiriman 0,3 detik sebagai Asumsi. Lab hanya menguras 100 notifikasi dan memeriksa laju dalam 15% dari 13,33 per detik. Lab tidak menulis atau mengirim 100.000 baris, dan 125 menit adalah batas bawah karena worker juga mengirim notifikasi uang."
+ },
+ {
+  "id": "t4-m39-4",
+  "halaman": "t4-m39",
+  "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+  "url": "tahap-4/m39-prd-v5/",
+  "tanya": "Sebutkan tiga hal yang diminta PRD v5 dan belum pernah diuji di Tahap 4.",
+  "jawab": "Laporan merchant real-time di database yang sama dengan transaksi, notifikasi massal lewat satu worker, dan 13 orang menjadi 20 sampai 40 di satu repo. Campuran beban lab hanya baca saldo, riwayat, katalog, dan pembayaran."
+ },
+ {
   "id": "t4-rekap-1",
   "halaman": "t4-rekap",
   "judul": "4.30 Yang dibawa keluar dari Tahap 4",
