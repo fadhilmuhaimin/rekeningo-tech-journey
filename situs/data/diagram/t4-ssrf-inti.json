@@ -1,0 +1,50 @@
+{
+  "id": "t4-ssrf-inti",
+  "judul": "Satu pemeriksaan lawan pemeriksaan alamat saat dihubungi",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t4-ssrf, alamat.txt"
+  },
+  "baris": [
+    {
+      "label": "Hanya IsPrivate",
+      "sub": "metode bawaan Go",
+      "simpul": [
+        {
+          "teks": "32 alamat terlarang",
+          "sub": "alamat contoh lab"
+        },
+        {
+          "teks": "3 ditolak",
+          "sub": "alamat private"
+        },
+        {
+          "teks": "29 lolos",
+          "sub": "termasuk loopback",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Saat dihubungi",
+      "sub": "fungsi alamat fetcher, tanpa koneksi",
+      "simpul": [
+        {
+          "teks": "32 alamat terlarang",
+          "sub": "alamat yang sama"
+        },
+        {
+          "teks": "32 ditolak",
+          "sub": "oleh pemeriksaan alamat",
+          "nada": "good"
+        },
+        {
+          "teks": "5 alamat publik lolos",
+          "sub": "kontrol",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Alamat private dan link-local di rekaman adalah contoh karangan lab."
+}

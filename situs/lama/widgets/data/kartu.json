@@ -3005,14 +3005,14 @@
   "judul": "4.20 M36: Pratinjau gambar yang berisi JSON",
   "url": "tahap-4/m36-pratinjau-json/",
   "tanya": "Kolom `gambar_url` hanya berisi alamat. Kenapa teks JSON dari layanan lain bisa sampai ke merchant?",
-  "jawab": "Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan kesalahan. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan)."
+  "jawab": "Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan galat. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan)."
  },
  {
   "id": "t4-m36-2",
   "halaman": "t4-m36",
   "judul": "4.20 M36: Pratinjau gambar yang berisi JSON",
   "url": "tahap-4/m36-pratinjau-json/",
-  "tanya": "Versi aman menolak 32 dari 32 alamat terlarang. Kenapa pemeriksaan `IsPrivate` saja tidak cukup?",
+  "tanya": "Pemeriksaan alamat versi aman menolak 32 dari 32 alamat terlarang. Kenapa pemeriksaan `IsPrivate` saja tidak cukup?",
   "jawab": "Hanya tiga dari 32 alamat itu ditandai private, jadi 29 lolos bila hanya `IsPrivate` yang diperiksa (`alamat.txt`)."
  },
  {
@@ -3022,6 +3022,38 @@
   "url": "tahap-4/m36-pratinjau-json/",
   "tanya": "Alamat luar menjawab redirect ke alamat lain. Apa yang direkam di versi aman, dan apa yang dilakukan client bawaan?",
   "jawab": "Versi aman menolak redirect, dan server tujuan redirect tersentuh nol kali di tujuh kode (`batas.txt`). Client bawaan Go mengikuti redirect sampai 10 request beruntun (dokumentasi, Tidak dijalankan)."
+ },
+ {
+  "id": "t4-ssrf-1",
+  "halaman": "t4-ssrf",
+  "judul": "4.21 Keamanan 8: SSRF + ADR 41",
+  "url": "tahap-4/ssrf/",
+  "tanya": "Fetcher hanya memeriksa dengan `IsPrivate`. Berapa dari 32 alamat terlarang yang lolos, dan dari angka apa?",
+  "jawab": "29. `IsPrivate` menolak 3 dari 32 alamat itu, jadi 32 − 3 = 29 (Hitungan atas `alamat.txt`)."
+ },
+ {
+  "id": "t4-ssrf-2",
+  "halaman": "t4-ssrf",
+  "judul": "4.21 Keamanan 8: SSRF + ADR 41",
+  "url": "tahap-4/ssrf/",
+  "tanya": "Server yang dituju membalas dengan redirect ke server lain. Apa jawaban versi aman, dan berapa kali server tujuan redirect disentuh?",
+  "jawab": "Ditolak dengan \"tujuan tidak diizinkan\" untuk ketujuh kode 3xx yang diuji, dan server tujuan redirect disentuh 0 kali (`batas.txt`, bagian redirect)."
+ },
+ {
+  "id": "t4-ssrf-3",
+  "halaman": "t4-ssrf",
+  "judul": "4.21 Keamanan 8: SSRF + ADR 41",
+  "url": "tahap-4/ssrf/",
+  "tanya": "Gambar sah berukuran 2.097.152 byte dan gambar lain 2.097.153 byte. Mana yang diterima?",
+  "jawab": "2.097.152 byte, yaitu tepat 2 MiB, diterima. 2.097.153 byte ditolak \"terlalu besar\" (`batas.txt`, bagian batas 2 MiB)."
+ },
+ {
+  "id": "t4-ssrf-4",
+  "halaman": "t4-ssrf",
+  "judul": "4.21 Keamanan 8: SSRF + ADR 41",
+  "url": "tahap-4/ssrf/",
+  "tanya": "Kenapa memeriksa teks URL seperti `localhost` tidak menutup SSRF, dan di mana pemeriksaan seharusnya berjalan?",
+  "jawab": "Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil dengan alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi (dokumentasi Go)."
  },
  {
   "id": "B11-1",
