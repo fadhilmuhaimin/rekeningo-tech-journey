@@ -1142,6 +1142,49 @@ describe("tinjauan: ambang, tingkat keparahan, pembagian PR dan rilis, dan label
     expect(pakai.length).toBeGreaterThan(2);
     for (const i of pakai) expect(i).toBeGreaterThan(def);
   });
+  test("Inti: digest tag yang lulus verify dan digest hasil build CI dibaca dari tanda-tangan.txt bagian C", () => {
+    const hasilBuild = cocok(ttC2, /hasil build CI: <digest (\w)>/)[1]!;
+    const dipindah = cocok(ttC2, /memindahkan tag ke image lain: <digest (\w)>/)[1]!;
+    const verifTag = ttC2.slice(ttC2.indexOf("cosign verify --key kunci-1/cosign.pub --insecure-ignore-tlog=true 127.0.0.1:18295/api-t4-ci:2.0"));
+    const dalamTandaTangan = cocok(verifTag, /tanda tangan memuat digest <digest (\w)>/)[1]!;
+    expect([hasilBuild, dipindah, dalamTandaTangan]).toEqual(["C", "D", "D"]);
+    harus(`Verifikasi atas tag lulus untuk digest ${dalamTandaTangan}, bukan digest ${hasilBuild} hasil build CI.`);
+    harus(`Hanya perbandingan dengan digest ${hasilBuild} yang menolaknya, jadi ADR 44 menandatangani dan memverifikasi digest.`);
+    harus(`Di \`tanda-tangan.txt\` bagian C, tag \`2.0\` dipindah ke image lain sebelum cosign`);
+    expect(ttC2).toContain("$ docker push 127.0.0.1:18295/api-t4-ci:2.0   # pihak lain memindahkan tag ke image lain");
+  });
+  test("oasdiff breaking menerima dua file kontrak (sebelum dan sesudah), dan kalimat penjelas memakai bilangan itu", () => {
+    const perintah = [...kontrak.matchAll(/^\$ oasdiff breaking (\S+\.yaml) (\S+\.yaml)/gm)];
+    expect(perintah.length).toBeGreaterThan(8);
+    for (const m of perintah) expect(m.length - 1).toBe(2);
+    harus("Tes contract membandingkan dua versi kontrak dan menggagalkan perubahan yang merusak client lama.");
+    harus("oasdiff membandingkan dua versi kontrak, dan tes lab hanya mencocokkan rute dengan kontrak.");
+  });
+  test("Cek diri 1: status field opsional yang dihapus dan isi breaking dibaca dari kontrak.txt bagian B", () => {
+    const status = cocok(kontrak, /^(info)\t\[response-optional-property-removed\]/m)[1]!.toUpperCase();
+    const memuat = cocok(kontrak, /`breaking` hanya memuat (ERR) dan (WARN);/);
+    const tingkat = cocok(kontrak, /\$ cat tingkat\.txt\nresponse-optional-property-removed (err)\n/)[1]!;
+    expect([status, memuat[1], memuat[2], tingkat]).toEqual(["INFO", "ERR", "WARN", "err"]);
+    harus(`Perubahan itu berstatus ${status}, dan \`breaking\` hanya memuat ${memuat[1]} dan ${memuat[2]}. File \`--severity-levels\` dengan satu baris \`response-optional-property-removed ${tingkat}\` menaikkannya menjadi error (\`kontrak.txt\` bagian B).`);
+  });
+  test("Cek diri 3: tingkat GO-2026-6604 di jawaban sama dengan sbom.txt, dan pertanyaan 5 memakai tim dan orang yang sama dengan jawabannya", () => {
+    const tingkat = TEMUAN.find((x) => x[0] === "GO-2026-6604")![1];
+    harus(`GO-2026-6604 salah satunya: grype menandainya ${tingkat}, tetapi govulncheck tidak melaporkannya dipanggil, dan ringkasan advisory menyebut Windows.`);
+    expect(TIM.Merchant).toBe(4);
+    harus("**5.** Tim Merchant berempat memakai giliran jaga mingguan, lalu satu orang cuti. Berapa persen minggu jaga tiap orang sebelum dan sesudahnya?");
+    harus(`1 ÷ ${TIM.Merchant} = ${(100 / TIM.Merchant).toFixed(0)}% sebelum, dan 1 ÷ ${TIM.Merchant - 1} = ${(100 / (TIM.Merchant - 1)).toFixed(0)}% sesudah.`);
+  });
+  test("tabel store: sel kepala dan susunan kolom sama dengan dokumentasi (kolom Play lalu App Store), dan lang tiap Snippet mengikuti akhiran berkasnya", () => {
+    const toko = tabelSetelah("Tabel ini memuat apa yang ditulis dokumentasi tiap store, dibuka 2026-10-30:");
+    expect(toko[0]).toEqual(["", "Google Play", "App Store"]);
+    expect(toko.map((r) => r[0])).toEqual(["", "Berlaku untuk", "Jadwal", "Dihentikan", "Yang sudah menerima"]);
+    expect(toko.every((r) => r.length === 3)).toBe(true);
+    for (const tg of tag) {
+      const f = tg.match(/file="([^"]+)"/)![1]!;
+      const bahasa = tg.match(/lang="([^"]+)"/)?.[1];
+      expect(bahasa, f).toBe(f.endsWith(".py") ? "python" : undefined);
+    }
+  });
   test("tingkat keparahan grype: 13 = 2 Critical + 9 High + 2 Unknown dihitung paling berat; Medium tidak ikut", () => {
     const peta: Record<string, number> = {};
     for (const [, tingkat] of TEMUAN) peta[tingkat] = (peta[tingkat] ?? 0) + 1;
