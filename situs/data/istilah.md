@@ -50,6 +50,8 @@
 *[at-least-once]: Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda.
 *[Atomicity]: Jaminan bahwa semua perubahan dalam satu transaction terjadi seluruhnya atau tidak sama sekali.
 *[atomicity]: Jaminan bahwa semua perubahan dalam satu transaction terjadi seluruhnya atau tidak sama sekali.
+*[Audit log]: Catatan siapa membuka atau mengubah apa, kapan, yang hanya bertambah, supaya pertanyaan siapa yang membuka data ini bisa dijawab.
+*[audit log]: Catatan siapa membuka atau mengubah apa, kapan, yang hanya bertambah, supaya pertanyaan siapa yang membuka data ini bisa dijawab.
 *[BaaS]: Layanan yang menyediakan database, auth, dan API siap pakai, mis. Supabase dan Firebase.
 *[Backfill]: Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.
 *[backfill]: Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.
@@ -157,6 +159,8 @@
 *[invarian]: Aturan yang harus selalu benar apa pun yang terjadi, mis. transfer tidak mengubah total saldo semua akun.
 *[Isolation level]: Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.
 *[isolation level]: Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan.
+*[Jangkar hash]: Hash dan nomor baris terakhir sebuah log yang disimpan di luar database, supaya pemotongan ekor log bisa ketahuan.
+*[jangkar hash]: Hash dan nomor baris terakhir sebuah log yang disimpan di luar database, supaya pemotongan ekor log bisa ketahuan.
 *[Jendela tetap]: Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.
 *[jendela tetap]: Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.
 *[Job terjadwal]: Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.
@@ -196,6 +200,8 @@
 *[lost update]: Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa.
 *[LSN]: Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.
 *[Log Sequence Number]: Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.
+*[MCP]: Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server.
+*[Model Context Protocol]: Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server.
 *[Merchant]: Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.
 *[merchant]: Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.
 *[Metode idempoten]: Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.
@@ -351,6 +357,8 @@
 *[token bucket]: Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.
 *[Token perangkat]: Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.
 *[token perangkat]: Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.
+*[Token passthrough]: Pola yang dilarang di server MCP: menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir.
+*[token passthrough]: Pola yang dilarang di server MCP: menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir.
 *[Trace]: Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.
 *[trace]: Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.
 *[traceparent]: Header HTTP standar W3C yang membawa trace-id perjalanan satu request, supaya komponen yang berbeda bisa menyambung trace yang sama.

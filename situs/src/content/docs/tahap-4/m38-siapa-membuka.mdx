@@ -1,0 +1,166 @@
+---
+title: "4.24 M38: Siapa yang membuka data Budi?"
+description: "Minggu 11. Rekeningo tidak bisa menjawab siapa yang membuka data identitas Budi dalam 30 hari terakhir: catatan tidak ada, bisa diubah, atau tidak mencakup pembacaan langsung."
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import siapaMembuka from "../../../../data/diagram/t4-m38-siapa-membuka.json";
+
+<p class="meta">Baca 7 menit · coba 3 menit · Prasyarat: [[t4-modul]], [[t4-storage]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 11 Tahap 4. Budi menerima pesan dari nomor yang tidak ia kenal. Pengirimnya menulis nama lengkap Budi dan nomor identitasnya.
+
+Pak Hadi mendengar tentang pesan itu. Ia bertanya satu hal kepada Raka: siapa yang membuka data identitas Budi dalam 30 hari terakhir?
+
+Tidak ada yang bisa menjawab.
+
+*Angka cerita (Ilustrasi):* pesan ke Budi, waktu 30 hari, dugaan Raka, dan jawaban Ratih berasal dari cerita, bukan dari rekaman. Rekaman memuat pertanyaan Pak Hadi yang sama, tetapi tentang Dina. Arti Ilustrasi, Rekaman lab, Asumsi, Tidak dijalankan, dan [perlu verifikasi] ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka menduga data Budi bocor dari layanan verifikasi, yaitu pihak luar yang memeriksa kartu identitas pendaftar. Dugaan itu masuk akal, karena layanan itu menerima data identitas dari Rekeningo.
+
+Staf tim risk membuka data pendaftar lewat back office, yaitu aplikasi internal tempat staf melihat akun, membaca pengajuan verifikasi, membekukan akun, dan mengubah batas harian.
+
+Ratih, analis risiko di tim risk, menjawab: "Kami hanya melihat data bila perlu." Jawaban itu terdengar masuk akal. Tim risk memang punya alasan untuk membuka data.
+
+Dua jawaban itu sama-sama belum diperiksa. Dugaan tentang pihak luar bisa diperiksa dengan meminta catatan dari mereka. Dugaan tentang pihak dalam hanya bisa diperiksa dari catatan Rekeningo sendiri.
+
+<details class="question">
+<summary>Tebak dulu: anggap layanan verifikasi tidak bocor. Apa yang bisa Raka baca di Rekeningo untuk tahu siapa dari dalam yang membuka data Budi?</summary>
+
+Tidak ada yang bisa menjawabnya. Di lab, back office versi pertama menjalankan enam aksi atas satu akun dan tabel catatan tetap kosong (dibaca di blok berikutnya, Rekaman lab).
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Pertanyaan Pak Hadi tidak bisa dijawab dari tabel catatan Rekeningo, apa pun yang terjadi di layanan verifikasi. Ada empat sebab. Tiga terekam di lab, dan satu hanya ada di cerita.
+
+**Satu akun bersama.** Di cerita, tim risk memakai satu akun bersama di back office. Catatan dari akun itu paling jauh menjawab "akun risk", bukan "siapa".
+
+Keadaan ini tidak direkam (Ilustrasi): lab memakai akun terpisah untuk tiap staf, yaitu Ratih (akun 420) dan Tim Risk Dua (akun 421).
+
+**Tanpa catatan.** Lab memerankan versi pertama dengan flag `-rentan`, yaitu server yang sama dengan perilaku versi pertama. Pada mode `bo-tanpa-audit`, fungsi `Audit` keluar tanpa menulis apa pun (Tidak dijalankan: dibaca dari kode). Cabang kedua, `bo-log-biasa`, dibahas di bawah:
+
+<Snippet file="labs/api-t4/internal/service/t4_audit.go" lines="16:26" lang="go" title="Kode lab: labs/api-t4/internal/service/t4_audit.go baris 16 sampai 26 (mode tanpa catatan dan mode log biasa)" />
+
+Ratih menjalankan enam aksi atas data Dina (akun 40001): melihat akun, melihat pengajuan, membuka kartu identitas, membekukan, membuka blokir, dan mengubah batas harian. Audit log adalah tabel yang menyimpan siapa melakukan aksi apa pada objek apa, dan kapan. Di mode ini tabel `audit_log` berisi nol baris. Eko (akun 40002) tidak pernah dilihat siapa pun, dan jawaban untuknya juga nol baris:
+
+<Snippet file="labs/t4-audit/output/rantai.txt" lines="12:27" title="Rekaman lab: labs/t4-audit/output/rantai.txt baris 12 sampai 27 (enam aksi, nol baris catatan, jawaban Dina dan Eko sama)" />
+
+Dua jawaban yang sama itulah masalahnya. Nol baris untuk Dina tidak berarti tidak ada yang membuka datanya. Jawaban "tidak ada" di sini sama nilainya dengan "tidak tahu".
+
+Daftar jenis kelemahan perangkat lunak CWE (Common Weakness Enumeration) menamai keadaan ini Insufficient Logging. Kejadian penting keamanan tidak dicatat, jadi tidak ada catatan untuk analisis forensik ([CWE-778](https://cwe.mitre.org/data/definitions/778.html), dibuka 2026-10-30, Tidak dijalankan).
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.1, dan database lab yang dibuat bersih untuk tiap bagian. Pemilik data di rekaman adalah Dina, akun lab fiktif, bukan Budi.
+
+**Log biasa tercatat, tetapi bisa diubah.** Misalkan versi berikutnya mencatat aksi di tabel biasa. Itu mode `bo-log-biasa`: enam aksi yang sama masuk ke tabel `audit_biasa`, yang hanya ada di lab untuk mode ini. Tabel itu tidak punya pemeriksaan apakah sebuah baris pernah diubah.
+
+Role adalah identitas di database yang memegang hak atas tabel. Yang menulis ulang di rekaman adalah role aplikasi `api_t4`, karena versi pertama memberinya hak mengubah dan menghapus tabel itu. Hak itu setelan lab untuk versi pertama, bukan temuan. Dua perintah di bawah dikirim skrip lab, bukan terjadi karena kesalahan sistem:
+
+<Snippet file="labs/t4-audit/peran.sql" lines="10:10" lang="sql" title="Kode lab: labs/t4-audit/peran.sql baris 10 (hak role aplikasi atas tabel log biasa)" />
+
+Sesudah satu UPDATE dan satu DELETE, tabel berisi lima baris. Kartu identitas Dina kini tercatat dibuka oleh akun 421, dan pembekuan hilang. Nomor yang bolong adalah Hitungan, yaitu angka dari angka lain di rekaman: nomor terbesar 6 − 5 baris = 1, dan rekaman mencetak 1 juga. Di isi tabel, UPDATE tidak meninggalkan petunjuk:
+
+<Snippet file="labs/t4-audit/output/rantai.txt" lines="42:61" title="Rekaman lab: labs/t4-audit/output/rantai.txt baris 42 sampai 61 (satu baris diubah, satu dihapus, nomor bolong 1)" />
+
+Log biasa lebih baik daripada tidak ada catatan, tetapi isinya tidak bisa diperiksa. OWASP menyarankan catatan dilengkapi deteksi perubahan, supaya ketahuan bila sebuah baris diubah atau dihapus ([OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html), dibuka 2026-10-30, Tidak dijalankan). Tabel `audit_biasa` tidak punya deteksi itu.
+
+**Pembacaan langsung tidak lewat aplikasi.** Engineer yang membuka database langsung memakai role `lab`. Superuser adalah role yang melewati semua pemeriksaan hak kecuali hak untuk login ([PostgreSQL 17, Role Attributes](https://www.postgresql.org/docs/17/role-attributes.html), dibuka 2026-10-30, Tidak dijalankan). Di lab itu `lab` adalah pemilik schema dan sekaligus superuser (`role.txt` bagian A dan C).
+
+Rekaman membaca tabel `verifikasi`, yaitu tabel pengajuan verifikasi identitas, dan menghitung baris `audit_log` sebelum dan sesudahnya:
+
+<Snippet file="labs/t4-audit/output/role.txt" lines="83:89" title="Rekaman lab: labs/t4-audit/output/role.txt baris 83 sampai 89 (baca tabel verifikasi sebagai role lab, catatan tidak bertambah)" />
+
+Catatan ditulis oleh kode aplikasi, di dalam fungsi aksi back office. Migrasi database lab tidak memuat trigger yang menulis `audit_log`. Fungsi `LihatVerifikasiBO` membaca pengajuan, lalu memanggil `Audit` dalam transaction yang sama (Tidak dijalankan: dibaca dari kode):
+
+<Snippet file="labs/api-t4/internal/service/bo.go" lines="147:163" lang="go" title="Kode lab: labs/api-t4/internal/service/bo.go baris 147 sampai 163 (pembacaan dan catatan dalam satu transaction)" />
+
+Query yang dikirim langsung ke database tidak melewati fungsi itu, jadi tidak ada panggilan `Audit`.
+
+<Rantai data={siapaMembuka} />
+
+**Yang tidak direkam.**
+
+- Pesan ke Budi, waktu 30 hari, dan pertanyaan Pak Hadi hanya ada di cerita (Ilustrasi).
+- Sumber pesan ke Budi tidak pernah dibuktikan. Lab tidak punya layanan verifikasi sungguhan (Tidak dijalankan), jadi dugaan Raka tidak bisa dibenarkan atau dibantah. Yang terbukti hanya satu hal: dari tabel catatan di database lab, pertanyaan Pak Hadi tidak bisa dijawab.
+- Satu akun bersama dan log yang mencatat sebagian aksi hanya ada di cerita. Lab memakai dua mode: tanpa catatan, dan log biasa yang mencatat semua aksi, termasuk membuka file.
+- Log server PostgreSQL tidak dibaca rekaman ini. Bawaan `log_statement` adalah `none` ([PostgreSQL 17, Error Reporting and Logging](https://www.postgresql.org/docs/17/runtime-config-logging.html), dibuka 2026-10-30, Tidak dijalankan), tetapi database lab dijalankan dengan `log_statement=all` (`labs/b3-race`). Apakah pembacaan engineer muncul di log server itu tidak diperiksa.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `rantai.txt` bagian A dan B dan `role.txt` bagian C, dengan satu varian dari `rantai.txt` bagian C. Tebak dulu apa yang ditemukan Pak Hadi, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t4-m38.json" />
+
+Hash adalah sidik tetap yang dihitung dari isi satu baris. Sesudah langkah terakhir, centang **Ubah satu hal: catatan berantai hash menggantikan log biasa**. Di varian ini tiap baris menyimpan hash yang dihitung dari isinya dan dari hash baris sebelumnya. Pemilik tabel yang mengubah satu baris tanpa menghitung ulang hash terdeteksi, begitu pula yang menghapus satu baris di tengah.
+
+Baris palsu di ujung dengan hash yang benar lolos (Rekaman lab, `rantai.txt` bagian C).
+
+Batasnya: rekaman ini memakai satu skenario, bukan semua cara menulis ulang catatan. Cara memeriksa rantai dan batasnya dibahas di [[t4-audit]].
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: tanpa catatan, jawaban untuk Dina dan untuk Eko sama-sama nol baris, dan membaca tabel verifikasi lewat role lab tidak menambah baris catatan.
+
+Rekaman bagian A ada di lipatan di bawah.
+</noscript>
+
+<details>
+<summary>Rekaman bagian A (juga untuk pembaca tanpa JavaScript)</summary>
+
+<Snippet file="labs/t4-audit/output/rantai.txt" lines="12:27" title="Rekaman lab: labs/t4-audit/output/rantai.txt baris 12 sampai 27 (bagian A: nol baris untuk Dina dan Eko)" />
+
+</details>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t4-audit]]: back office dengan peran, catatan yang bisa diperiksa, dan agen baca-saja. Keputusannya ADR 43.
+
+Pertanyaan Pak Hadi gagal dijawab karena tiga hal: catatan tidak ada, catatan bisa diubah tanpa petunjuk di isi tabel, dan pembacaan langsung tidak tercatat.
+
+### Cek diri
+
+**1.** Ratih menjalankan enam aksi atas data Dina, dan Eko tidak pernah dibuka. Kenapa tabel catatan menjawab nol baris untuk keduanya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Mode `bo-tanpa-audit` tidak menulis catatan. Nol baris tidak membedakan akun yang dibuka enam kali dari akun yang tidak pernah dibuka. Karena itu "tidak ada" sama nilainya dengan "tidak tahu" (`rantai.txt` bagian A).
+
+</details>
+
+**2.** Log biasa mencatat enam aksi. Apa yang terjadi bila role aplikasi mengubah satu baris dan menghapus satu baris, dan petunjuk apa yang tersisa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tabel menjadi lima baris. Pelaku di baris 3 berganti dari 420 ke 421, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong 1, dan di isi tabel UPDATE tidak meninggalkan petunjuk (`rantai.txt` bagian B).
+
+</details>
+
+**3.** Engineer membaca tabel `verifikasi` lewat role `lab`. Kenapa jumlah baris `audit_log` tidak berubah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Catatan ditulis oleh kode aplikasi di dalam fungsi aksi back office, dan query langsung ke database tidak melewati fungsi itu. Jumlah baris sebelum dan sesudah membaca sama (`role.txt` bagian C; dibaca dari kode, Tidak dijalankan).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

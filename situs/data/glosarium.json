@@ -216,6 +216,15 @@
   "h": null
  },
  {
+  "t": "Audit log",
+  "d": "Catatan siapa membuka atau mengubah apa, kapan, yang hanya bertambah, supaya pertanyaan siapa yang membuka data ini bisa dijawab.",
+  "b": "t4-audit",
+  "n": "4.25 Back office dan audit log berantai",
+  "u": "/tahap-4/audit-log-back-office/",
+  "s": "istilah-audit-log",
+  "h": "/istilah/audit-log/"
+ },
+ {
   "t": "BaaS (Backend-as-a-Service)",
   "d": "Layanan yang menyediakan database, auth, dan API siap pakai, mis. Supabase dan Firebase.",
   "b": "A4",
@@ -765,6 +774,15 @@
   "h": "/istilah/isolation-level/"
  },
  {
+  "t": "Jangkar hash",
+  "d": "Hash dan nomor baris terakhir sebuah log yang disimpan di luar database, supaya pemotongan ekor log bisa ketahuan.",
+  "b": "t4-audit",
+  "n": "4.25 Back office dan audit log berantai",
+  "u": "/tahap-4/audit-log-back-office/",
+  "s": "istilah-jangkar-hash",
+  "h": null
+ },
+ {
   "t": "Jendela tetap (fixed window)",
   "d": "Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.",
   "b": "t3-rate-limit-redis",
@@ -952,6 +970,15 @@
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-lsn",
   "h": null
+ },
+ {
+  "t": "MCP (Model Context Protocol)",
+  "d": "Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server.",
+  "b": "t4-audit",
+  "n": "4.25 Back office dan audit log berantai",
+  "u": "/tahap-4/audit-log-back-office/",
+  "s": "istilah-mcp",
+  "h": "/istilah/mcp/"
  },
  {
   "t": "Merchant",
@@ -1717,6 +1744,15 @@
   "u": "/tahap-3/fitur-notifikasi/",
   "s": "istilah-token-perangkat",
   "h": "/istilah/token-perangkat/"
+ },
+ {
+  "t": "Token passthrough",
+  "d": "Pola yang dilarang di server MCP: menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir.",
+  "b": "t4-audit",
+  "n": "4.25 Back office dan audit log berantai",
+  "u": "/tahap-4/audit-log-back-office/",
+  "s": "istilah-token-passthrough",
+  "h": null
  },
  {
   "t": "Trace",

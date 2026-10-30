@@ -45,6 +45,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Argon2id** | Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar. | [[t2-login-aman]] |
 | **At-least-once** | Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda. | [[t3-at-least-once]] |
 | **Atomicity** | Jaminan bahwa semua perubahan dalam satu transaction terjadi seluruhnya atau tidak sama sekali. | [[B3.1]] |
+| **Audit log** | Catatan siapa membuka atau mengubah apa, kapan, yang hanya bertambah, supaya pertanyaan siapa yang membuka data ini bisa dijawab. | [[t4-audit]] |
 | **BaaS** (Backend-as-a-Service) | Layanan yang menyediakan database, auth, dan API siap pakai, mis. Supabase dan Firebase. | [[A4]] |
 | **Backfill** | Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch. | [[t2-skema-tanpa-downtime]] |
 | **Backoff** | Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama. | [[t2-idempotency]] |
@@ -106,6 +107,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Index sebagian** (partial index) | Index yang hanya memuat baris yang memenuhi syarat WHERE, sehingga lebih kecil, dan pada unique index hanya baris itu yang dijaga keunikannya. | [[t3-skema]] |
 | **Invarian** | Aturan yang harus selalu benar apa pun yang terjadi, mis. transfer tidak mengubah total saldo semua akun. | [[C1]] |
 | **Isolation level** | Seberapa banyak perubahan dari transaction lain yang boleh terlihat oleh satu transaction yang sedang berjalan. | [[t2-isolation-level]] |
+| **Jangkar hash** | Hash dan nomor baris terakhir sebuah log yang disimpan di luar database, supaya pemotongan ekor log bisa ketahuan. | [[t4-audit]] |
 | **Jendela tetap** (fixed window) | Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis. | [[t3-rate-limit-redis]] |
 | **Job terjadwal** | Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00. | [[t2-pencairan]] |
 | **Jurnal** | Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol. | [[t2-ledger]] |
@@ -127,6 +129,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Log** | Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah. | [[t3-observability]] |
 | **Lost update** | Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa. | [[t2-race-lock]] |
 | **LSN** (Log Sequence Number) | Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu. | [[D3]] |
+| **MCP** (Model Context Protocol) | Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server. | [[t4-audit]] |
 | **Merchant** | Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung. | [[t3-jembatan]] |
 | **Metode idempoten** | Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET. | [[t2-kursor]] |
 | **Metric** | Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error. | [[t3-observability]] |
@@ -212,6 +215,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Token** | String yang dibawa request sebagai bukti siapa pengirimnya, mis. token login di header `Authorization`; siapa pun yang memegangnya bisa memakainya. Di token bucket, token berarti satu jatah request. | [[B5.1]] |
 | **Token bucket** | Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token. | [[C4]] |
 | **Token perangkat** | Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu. | [[t3-notifikasi]] |
+| **Token passthrough** | Pola yang dilarang di server MCP: menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir. | [[t4-audit]] |
 | **Trace** | Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian. | [[t3-observability]] |
 | **traceparent** | Header HTTP standar W3C yang membawa trace-id perjalanan satu request, supaya komponen yang berbeda bisa menyambung trace yang sama. | [[t3-observability]] |
 | **TTL** (Time To Live) | Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa. | [[B9]] |

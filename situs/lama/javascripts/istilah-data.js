@@ -100,6 +100,15 @@ window.ISTILAH = {
   "t": "Atomicity",
   "u": "tahap-1/transaction/"
  },
+ "Audit log": {
+  "b": "t4-audit",
+  "d": "Catatan siapa membuka atau mengubah apa, kapan, yang hanya bertambah, supaya pertanyaan siapa yang membuka data ini bisa dijawab.",
+  "h": "istilah/audit-log/",
+  "n": "4.25 Back office dan audit log berantai",
+  "s": "istilah-audit-log",
+  "t": "Audit log",
+  "u": "tahap-4/audit-log-back-office/"
+ },
  "Auth": {
   "b": "B5.1",
   "d": "Proses memastikan siapa yang mengirim request, mis. lewat token login.",
@@ -780,6 +789,14 @@ window.ISTILAH = {
   "t": "JWT (JSON Web Token)",
   "u": "tahap-1/authentication/"
  },
+ "Jangkar hash": {
+  "b": "t4-audit",
+  "d": "Hash dan nomor baris terakhir sebuah log yang disimpan di luar database, supaya pemotongan ekor log bisa ketahuan.",
+  "n": "4.25 Back office dan audit log berantai",
+  "s": "istilah-jangkar-hash",
+  "t": "Jangkar hash",
+  "u": "tahap-4/audit-log-back-office/"
+ },
  "Jendela tetap": {
   "b": "t3-rate-limit-redis",
   "d": "Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.",
@@ -942,6 +959,15 @@ window.ISTILAH = {
   "t": "Lost update",
   "u": "tahap-2/race-lock/"
  },
+ "MCP": {
+  "b": "t4-audit",
+  "d": "Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server.",
+  "h": "istilah/mcp/",
+  "n": "4.25 Back office dan audit log berantai",
+  "s": "istilah-mcp",
+  "t": "MCP (Model Context Protocol)",
+  "u": "tahap-4/audit-log-back-office/"
+ },
  "MITM": {
   "b": "t3-m26",
   "d": "Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya.",
@@ -1006,6 +1032,15 @@ window.ISTILAH = {
   "s": "istilah-migration",
   "t": "Migration",
   "u": "tahap-1/migration/"
+ },
+ "Model Context Protocol": {
+  "b": "t4-audit",
+  "d": "Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server.",
+  "h": "istilah/mcp/",
+  "n": "4.25 Back office dan audit log berantai",
+  "s": "istilah-mcp",
+  "t": "MCP (Model Context Protocol)",
+  "u": "tahap-4/audit-log-back-office/"
  },
  "Modular monolith": {
   "b": "t4-modul",
@@ -1737,6 +1772,14 @@ window.ISTILAH = {
   "t": "Token bucket",
   "u": "c-operasional/c4-security-dasar/"
  },
+ "Token passthrough": {
+  "b": "t4-audit",
+  "d": "Pola yang dilarang di server MCP: menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir.",
+  "n": "4.25 Back office dan audit log berantai",
+  "s": "istilah-token-passthrough",
+  "t": "Token passthrough",
+  "u": "tahap-4/audit-log-back-office/"
+ },
  "Token perangkat": {
   "b": "t3-notifikasi",
   "d": "Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.",
@@ -1889,6 +1932,15 @@ window.ISTILAH = {
   "s": "istilah-atomicity",
   "t": "Atomicity",
   "u": "tahap-1/transaction/"
+ },
+ "audit log": {
+  "b": "t4-audit",
+  "d": "Catatan siapa membuka atau mengubah apa, kapan, yang hanya bertambah, supaya pertanyaan siapa yang membuka data ini bisa dijawab.",
+  "h": "istilah/audit-log/",
+  "n": "4.25 Back office dan audit log berantai",
+  "s": "istilah-audit-log",
+  "t": "Audit log",
+  "u": "tahap-4/audit-log-back-office/"
  },
  "auth": {
   "b": "B5.1",
@@ -2309,6 +2361,14 @@ window.ISTILAH = {
   "s": "istilah-isolation-level",
   "t": "Isolation level",
   "u": "tahap-2/isolation-level/"
+ },
+ "jangkar hash": {
+  "b": "t4-audit",
+  "d": "Hash dan nomor baris terakhir sebuah log yang disimpan di luar database, supaya pemotongan ekor log bisa ketahuan.",
+  "n": "4.25 Back office dan audit log berantai",
+  "s": "istilah-jangkar-hash",
+  "t": "Jangkar hash",
+  "u": "tahap-4/audit-log-back-office/"
  },
  "jendela tetap": {
   "b": "t3-rate-limit-redis",
@@ -3033,6 +3093,14 @@ window.ISTILAH = {
   "s": "istilah-token-bucket",
   "t": "Token bucket",
   "u": "c-operasional/c4-security-dasar/"
+ },
+ "token passthrough": {
+  "b": "t4-audit",
+  "d": "Pola yang dilarang di server MCP: menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir.",
+  "n": "4.25 Back office dan audit log berantai",
+  "s": "istilah-token-passthrough",
+  "t": "Token passthrough",
+  "u": "tahap-4/audit-log-back-office/"
  },
  "token perangkat": {
   "b": "t3-notifikasi",
