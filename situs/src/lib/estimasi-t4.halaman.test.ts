@@ -615,7 +615,9 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     expect(beban).toContain(`permintaan selesai: ${dijadwalkan} dari ${dijadwalkan}`);
     expect(beban).toContain("Dijalankan di laptop lab: bukan kapasitas produksi.");
     expect(beban).toContain("Bukan klaim kapasitas produksi.");
-    harus(`Semuanya selesai, dan jadwal tidak tertinggal lebih dari ${cocok(beban, /jadwal tidak tertinggal lebih dari (\d+) ms[^:]*: ya/)[1]} ms.`);
+    harus(`Semuanya selesai dengan status 200 atau 201, dan jadwal tidak tertinggal lebih dari ${cocok(beban, /jadwal tidak tertinggal lebih dari (\d+) ms[^:]*: ya/)[1]} ms.`);
+    // status dibatasi 200 dan 201 oleh kode lab (run.py: "tidak ada error"), jadi bukan hanya p95 yang diperiksa
+    expect(runApi).toContain('harap(set(m["status"]) <= {"200", "201"}, True, "tidak ada error")');
     harus(`P95 di bawah ${cocok(beban, /p95 di bawah (\d+) ms \(batas lab, Asumsi; nilai ukur tidak direkam\): ya/)[1]} ms. P95 adalah waktu jawab yang dilewati 5% permintaan, batas itu Asumsi lab, dan nilai ukurnya tidak direkam.`);
     expect(cocok(runApi, /batas_p95 = (\d+)/)[1]).toBe("500");
     expect(runApi).toContain("harap(m[\"p95_ms\"] < batas_p95, True, \"p95\")");
@@ -669,7 +671,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`| Perlu komponen lain untuk beban Tahap 5? | Worker ${Math.round(pakai5 * 100)}% dan koneksi tertahan ${koma(L5, 1)} lawan ${BATAS_L} | [[t4-adr-45]] |`);
     harus(`Dari Tahap 3 ke Tahap 4 persentase aktif turun dari ${a3.aktif}% ke ${a4.aktif}% (× ${koma(a4.aktif / a3.aktif, 1)}), jadi ${a4.user / a3.user} × ${koma(a4.aktif / a3.aktif, 1)} = ${Math.round(h4.puncak / h3.puncak)}. Dari Tahap 4 ke Tahap 5 persentase aktif dan request per user tetap, jadi puncak naik ${a5.user / a4.user} kali, dari ${koma(h4.puncak, 1)} ke ${kali(h5.puncak, 1)}.`);
     harus(`Notifikasi uang naik dari ${koma(notif4, 2)} ke ${koma(notif5, 1)} per detik. Dibagi kapasitas ${koma(KAP, 2)} per detik, hasilnya ${Math.round((notif5Tulis / kapTulis) * 100)}%.`);
-    harus(`Di satu laptop dengan campuran lab, 95% permintaan selesai di bawah ${cocok(runApi, /batas_p95 = (\d+)/)[1]} ms dan generator tidak jadi penghambat.`);
+    harus(`Di satu laptop dengan campuran lab, semua jawaban berstatus 200 atau 201, 95% permintaan selesai di bawah ${cocok(runApi, /batas_p95 = (\d+)/)[1]} ms, dan generator tidak jadi penghambat.`);
     harus(`${INST} × ${POOL} untuk dua instance monolith, ${INST_BAYAR} × ${POOL_BAYAR} untuk dua instance service pembayaran, ${WORKER_DB} worker, ${ADMIN} koneksi admin, dan ${CADANGAN} cadangan superuser: ${INST * POOL + INST_BAYAR * POOL_BAYAR + WORKER_DB + ADMIN + CADANGAN}. Angka ${INST * POOL + INST_BAYAR * POOL_BAYAR + WORKER_DB + ADMIN} melewatkan cadangan superuser.`);
     harus("- [Little 1961, Operations Research 9(3): A Proof for the Queuing Formula L = λW](https://doi.org/10.1287/opre.9.3.383)");
     harus('- [Google SRE book: Handling Overload](https://sre.google/sre-book/handling-overload/), bagian "The Pitfalls of Queries per Second"');
@@ -1103,7 +1105,7 @@ describe("penutup celah mutasi tinjauan", () => {
     expect(hitungKali(badan, "laptop")).toBe(3);
     expect(hitungKali(badan, "di laptop")).toBe(2);
     harus("rekaman beban api-t4 hanya memeriksa batas di laptop (rincian di bawah)");
-    harus("Di satu laptop dengan campuran lab, 95% permintaan selesai di bawah 500 ms");
+    harus("Di satu laptop dengan campuran lab, semua jawaban berstatus 200 atau 201, 95% permintaan selesai di bawah 500 ms");
   });
   test("urutan baris tiap tabel (kolom pertama) dan asal tiap pilihan tebakan kalkulator", () => {
     const tabel: string[][] = [];

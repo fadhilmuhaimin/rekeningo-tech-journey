@@ -177,7 +177,7 @@ Laporan merchant real-time, cicilan, dan API publik belum punya λ atau W, jadi 
 2. *Berapa lama gateway dan vendor menjawab?* Keduanya tiruan lokal, jadi 0,3, 2, 3, 15, dan 30 detik adalah Asumsi.
 3. *Bagaimana tim yang lebih besar mengubah satu codebase?* Tim Tahap 4 berjumlah 13 orang: 5 + 4 + 4 (Asumsi naskah). Tidak ada rumus di halaman ini yang memuat koordinasi, dan ambang ±50 developer di [[t4-modul]] hanya heuristik [perlu verifikasi].
 
-Rekaman beban api-t4 (`beban.txt` bagian A) memutar 2.778 permintaan dalam 20 detik pada 138,9 per detik di laptop. Jadwalnya kedatangan tetap: permintaan berangkat menurut jadwal tanpa menunggu jawaban sebelumnya. Semuanya selesai, dan jadwal tidak tertinggal lebih dari 100 ms.
+Rekaman beban api-t4 (`beban.txt` bagian A) memutar 2.778 permintaan dalam 20 detik pada 138,9 per detik di laptop. Jadwalnya kedatangan tetap: permintaan berangkat menurut jadwal tanpa menunggu jawaban sebelumnya. Semuanya selesai dengan status 200 atau 201, dan jadwal tidak tertinggal lebih dari 100 ms.
 
 P95 di bawah 500 ms. P95 adalah waktu jawab yang dilewati 5% permintaan, batas itu Asumsi lab, dan nilai ukurnya tidak direkam. Koneksi paling banyak ≤ 10 adalah batas yang dipasang pool sendiri, jadi bukan bukti pool tidak sesak.
 
@@ -243,7 +243,7 @@ Notifikasi uang naik dari 7,52 ke 75,2 per detik. Dibagi kapasitas 13,33 per det
 <details class="success">
 <summary>Jawaban</summary>
 
-Di satu laptop dengan campuran lab, 95% permintaan selesai di bawah 500 ms dan generator tidak jadi penghambat. Koneksi ≤ 10 dipasang pool sendiri, jadi bukan bukti. Kapasitas produksi tetap tidak terukur.
+Di satu laptop dengan campuran lab, semua jawaban berstatus 200 atau 201, 95% permintaan selesai di bawah 500 ms, dan generator tidak jadi penghambat. Koneksi ≤ 10 dipasang pool sendiri, jadi bukan bukti. Kapasitas produksi tetap tidak terukur.
 
 </details>
 
