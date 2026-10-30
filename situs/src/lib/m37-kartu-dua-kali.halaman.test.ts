@@ -31,6 +31,8 @@ const baca = (rel: string): string => {
   if (terlacak) expect(terlacak.has(rel), `tes membaca berkas yang tidak terlacak git: ${rel}`).toBe(true);
   return fs.readFileSync(path.join(akar, rel), "utf8");
 };
+const berkasDi = (awalan: string): string[] =>
+  terlacak ? [...terlacak].filter((f) => f.startsWith(awalan)) : (fs.readdirSync(path.join(akar, awalan), { recursive: true }) as string[]).map((f) => `${awalan}${f}`);
 const sidik = (t: string): string => createHash("sha256").update(t).digest("hex").slice(0, 16);
 
 const BERKAS = "situs/src/content/docs/tahap-4/m37-kartu-dua-kali.mdx";
@@ -428,7 +430,7 @@ describe("kode lab: handler versi pertama, Clearing, rute kartu, dan migrasi; kl
       ["POST /kartu", "s.wajibLogin"], ["GET /kartu", "s.wajibLogin"], ["POST /kartu/{id}/bekukan", "s.wajibLogin"], ["POST /kartu/{id}/buka", "s.wajibLogin"],
       ["POST /penerbit/otorisasi", "s.dariPenerbit"], ["POST /penerbit/clearing", "s.dariPenerbit"], ["POST /penerbit/reversal", "s.dariPenerbit"],
     ]);
-    const handlerSemua = (terlacak ? [...terlacak] : []).filter((f) => /^labs\/api-t4\/internal\/handler\/[^/]+\.go$/.test(f) && !f.endsWith("_test.go"));
+    const handlerSemua = berkasDi("labs/api-t4/internal/handler/").filter((f) => /^labs\/api-t4\/internal\/handler\/[^/]+\.go$/.test(f) && !f.endsWith("_test.go"));
     expect(handlerSemua.length).toBeGreaterThan(5);
     const ruteSemua = handlerSemua.flatMap((f) => [...baca(f).matchAll(/HandleFunc\("([A-Z]+ [^"]+)"/g)].map((m) => `${f.split("/").pop()} ${m[1]}`));
     expect(ruteSemua.filter((r) => /reversal|batal|cabut|tarik/i.test(r))).toEqual(["handler_kartu.go POST /penerbit/reversal"]);
@@ -438,7 +440,7 @@ describe("kode lab: handler versi pertama, Clearing, rute kartu, dan migrasi; kl
     harus("Di lab, persetujuan yang sudah dijawab tidak bisa ditarik Rekeningo, jadi mengecek saldo saja tidak cukup.");
   });
   test("klaim negatif berlingkup: lab tanpa app (folder labs/t4-kartu); tanpa klaim kepatuhan; tanpa merek di prosa; tidak ada ID internal", () => {
-    const berkasLab = terlacak ? [...terlacak].filter((f) => f.startsWith("labs/t4-kartu/")) : [];
+    const berkasLab = berkasDi("labs/t4-kartu/");
     expect(berkasLab.length).toBeGreaterThan(5);
     expect(berkasLab.filter((f) => /\.(dart|swift|kt)$|pubspec\.yaml$/i.test(f))).toEqual([]);
     harus("- App Flutter dan layar belanja tidak ada di lab.");
