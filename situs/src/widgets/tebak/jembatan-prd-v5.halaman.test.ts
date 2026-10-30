@@ -306,7 +306,7 @@ describe("jejak riset: lima baris R4-260 sampai R4-264, urut, lima kolom, tangga
   });
   test("R4-261 dan R4-263: berkas yang dibaca ada dan memuat kalimat yang dikutip; heuristik tidak dipakai", () => {
     const b = baris("R4-261")[2]!;
-    for (const f of ["timeout-retry-breaker", "modular-monolith", "qr-pembayaran", "ssrf", "tim-infra"]) {
+    for (const f of ["timeout-retry-breaker", "modular-monolith", "qr-pembayaran", "ssrf", "tim-infra", "sengaja-belum", "m39-prd-v5"]) {
       ada(b, `tahap-4/${f}.mdx`, "R4-261");
       expect(terlacak?.has(`situs/src/content/docs/tahap-4/${f}.mdx`) ?? true, f).toBe(true);
     }
