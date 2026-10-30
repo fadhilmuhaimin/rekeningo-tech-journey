@@ -3112,6 +3112,38 @@
   "jawab": "Penerbit memutuskan menurut setelan timeout-nya, yang di lab berarti setuju. Rekeningo tidak punya baris dan tidak menahan dana, dan penagihannya dijawab 404 (`penerbit.txt` bagian A)."
  },
  {
+  "id": "t4-kartu-1",
+  "halaman": "t4-kartu",
+  "judul": "4.23 Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42",
+  "url": "tahap-4/kartu-virtual/",
+  "tanya": "Dua otorisasi Rp80.000 datang bersamaan untuk saldo Rp100.000, dan Rekeningo menahan dana. Apa jawaban untuk yang kedua, dan kenapa?",
+  "jawab": "Tolak dengan alasan saldo-kurang. Otorisasi pertama menahan Rp80.000, jadi yang kedua membaca saldo Rp20.000 sesudah mendapat lock (`otorisasi.txt` bagian C)."
+ },
+ {
+  "id": "t4-kartu-2",
+  "halaman": "t4-kartu",
+  "judul": "4.23 Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42",
+  "url": "tahap-4/kartu-virtual/",
+  "tanya": "`lock_timeout` 1 detik dan tenggat penerbit 2 detik. Kenapa jawaban Rekeningo masih bisa lewat dari tenggat?",
+  "jawab": "`lock_timeout` membatasi satu penantian lock, bukan seluruh transaction, dan hold bisa menunggu dua buku. Dua penantian 0,6 detik lolos dengan jawaban setuju sesudah lebih dari 1 detik, dan tiga penantian 0,9 detik berjumlah 2,7 detik (`tenggat.txt` bagian E, Hitungan). Batas untuk seluruh panggilan ada di jalur dua service (1,5 detik, Asumsi lab)."
+ },
+ {
+  "id": "t4-kartu-3",
+  "halaman": "t4-kartu",
+  "judul": "4.23 Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42",
+  "url": "tahap-4/kartu-virtual/",
+  "tanya": "Service pembayaran mati sesudah ledger menahan dana dan sebelum baris ditulis, dan penerbit tidak pernah mengulang. Apa akibatnya?",
+  "jawab": "Hold yatim: ada di ledger tanpa baris `otorisasi_kartu`, dan job kedaluwarsa tidak melihatnya. Saldo Mina menjadi Rp70.000 karena Rp30.000 tertahan (`dua-service.txt` bagian B). Bila penerbit mengulang dengan `id_penerbit` yang sama dalam 24 jam, ia mendapat hold yang sama."
+ },
+ {
+  "id": "t4-kartu-4",
+  "halaman": "t4-kartu",
+  "judul": "4.23 Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42",
+  "url": "tahap-4/kartu-virtual/",
+  "tanya": "Kill switch dimatikan, lalu proses server mulai ulang. Apa yang terjadi pada otorisasi berikutnya?",
+  "jawab": "Disetujui. Flag adalah penanda di memori satu proses, jadi proses baru kembali aktif tanpa ada yang menyalakannya (`kill-switch.txt` bagian B). Flag di luar proses menutup batas itu, dan di lab Tidak dijalankan."
+ },
+ {
   "id": "t4-m38-1",
   "halaman": "t4-m38",
   "judul": "4.24 M38: Siapa yang membuka data Budi?",

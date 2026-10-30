@@ -637,7 +637,7 @@ describe("glosarium: tiga istilah baru menunjuk 3.26, definisi paling banyak 25 
     expect(glosMdx).toContain("| **Kapasitas worker** | Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman. | [[t3-m27]] |");
     expect(glosMdx).toContain("| **Kelas queue** | Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil. | [[t3-m27]] |");
     expect(glosMdx).toContain("| **Umur notifikasi tertua** | Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu. | [[t3-m27]] |");
-    expect(glosMdx).toMatch(/\| \*\*JWT\*\* [^\n]*\n\| \*\*Kapasitas worker\*\* [^\n]*\n\| \*\*Kelas queue\*\* [^\n]*\n\| \*\*Kredit\*\* /);
+    expect(glosMdx).toMatch(/\| \*\*JWT\*\* [^\n]*\n\| \*\*Kapasitas worker\*\* [^\n]*\n\| \*\*Kelas queue\*\* [^\n]*\n(?:\| \*\*Kill switch\*\* [^\n]*\n)?\| \*\*Kredit\*\* /);
     expect(glosMdx).toMatch(/\| \*\*Tutup buku\*\* [^\n]*\n\| \*\*Umur notifikasi tertua\*\* [^\n]*\n\| \*\*WAL\*\* /);
   });
   test("istilah yang dipakai halaman ada di glosarium: queue, fan-out, worker; kelas, kapasitas, dan umur tertua sesuai kode (kolom kelas, ORDER BY, min(dibuat))", () => {
