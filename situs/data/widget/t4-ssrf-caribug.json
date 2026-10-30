@@ -44,8 +44,8 @@
   ],
   "alasan": {
     "1": "Yang diperiksa adalah teks URL, bukan alamat yang dihubungi. Satu alamat punya beberapa penulisan, dan satu nama bisa menunjuk ke alamat dalam, jadi daftar kata tidak mencakup tujuan sebenarnya. OWASP menyebut deny-list rawan dilewati. Satu tes unit api-t4 lulus dan memastikan versi ini meloloskan bentuk lain sedangkan versi aman menolaknya (testing.txt, tanpa rekaman tingkat endpoint). Bentuk yang lolos bergantung resolver platform, jadi halaman ini tidak menyalinnya.",
-    "10": "Client bawaan Go berhenti sesudah 10 permintaan berturut-turut, jadi pengalihan diikuti. Pemeriksaan teks di baris 2 tidak diulang untuk tujuan pengalihan, dan tidak ada yang memeriksa alamat yang benar-benar dihubungi. Di tes unit api-t4 yang lulus, server dalam tersentuh tepat 1 kali lewat pengalihan (dibaca dari kode tes).",
-    "25": "Pesan galat memuat sampai 200 byte pertama isi respons. Pesan itu sampai ke merchant lewat kolom galat baris impor. Satu tes unit api-t4 lulus dan memastikan isi layanan dalam muncul di pesan (dibaca dari kode tes, tanpa rekaman tingkat endpoint)."
+    "10": "Client bawaan Go berhenti sesudah 10 permintaan berturut-turut, jadi redirect diikuti. Pemeriksaan teks di baris 2 tidak diulang untuk tujuan redirect, dan tidak ada yang memeriksa alamat yang benar-benar dihubungi. Di tes unit api-t4 yang lulus, server dalam tersentuh tepat 1 kali lewat redirect (dibaca dari kode tes).",
+    "25": "Pesan kesalahan memuat sampai 200 byte pertama isi respons. Pesan itu sampai ke merchant lewat field galat di hasil tiap baris impor, bersama nama dan pratinjau. Satu tes unit api-t4 lulus dan memastikan isi layanan dalam muncul di pesan (dibaca dari kode tes, tanpa rekaman tingkat endpoint)."
   },
   "aman": {
     "4": "Batas waktu ada, tetapi 10 detik, bukan 3 detik seperti di ADR 41. Batas ini membatasi lamanya unduhan, bukan tujuannya, jadi ia bukan sumber masalah ini.",
@@ -75,7 +75,7 @@
       "\t\t},",
       "\t}"
     ],
-    "catatan": "Pemeriksaan pindah ke alamat yang akan dihubungi, dan baris teks URL hilang. Versi aman juga hanya menerima https, tidak mengikuti pengalihan, membatasi isi 2 MiB dan waktu 3 detik, hanya menerima status 200, membaca tipe dari byte, dan memakai pesan galat tanpa isi respons (batas.txt). Seluruh fungsinya ada di labs/api-t4/internal/unduh/unduh.go."
+    "catatan": "Pemeriksaan pindah ke alamat yang akan dihubungi, dan baris teks URL hilang. Versi aman juga hanya menerima https, tidak mengikuti redirect, membatasi isi 2 MiB dan waktu 3 detik, hanya menerima status 200, membaca tipe dari byte, dan memakai pesan galat tanpa isi respons (batas.txt). Seluruh fungsinya ada di labs/api-t4/internal/unduh/unduh.go."
   },
   "label": {
     "sumber": "Tidak dijalankan: dibaca dari kode lab api-t4",

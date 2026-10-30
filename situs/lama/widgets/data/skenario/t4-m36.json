@@ -1,0 +1,89 @@
+{
+  "versi": 2,
+  "judul": "Fetcher gambar versi aman: alamat dalam, redirect, dan pesan galat",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-ssrf/output/batas.txt",
+    "fileVarian": "labs/t4-ssrf/output/alamat.txt",
+    "catatan": "Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat contoh adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
+  },
+  "pengantar": "Fetcher gambar versi aman diuji dengan server uji di dalam proses tes. Tebak dulu pesan apa yang diterima merchant, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "mer", "label": "Merchant (pengisi URL)" },
+    { "id": "fch", "label": "Fetcher gambar versi aman" },
+    { "id": "tuj", "label": "Server tujuan (uji)" }
+  ],
+  "predict": {
+    "q": "Server tujuan menjawab 200, tetapi isinya JSON dari layanan lain, bukan gambar. Pesan apa yang diterima merchant dari fetcher versi aman?",
+    "options": [
+      "\"bukan gambar\": kalimat tetap, tanpa satu byte pun isi JSON",
+      "Awal isi JSON itu, supaya merchant tahu kenapa gambarnya ditolak",
+      "\"tujuan tidak diizinkan\": JSON dianggap alamat yang dilarang",
+      "\"tidak menjawab\": isi JSON dianggap jawaban yang tidak lengkap"
+    ],
+    "answer": 0,
+    "varian": false,
+    "explain": "Versi aman menilai isi dari byte-nya dan memakai kalimat tetap, jadi isi respons tidak ikut ke pesan. Rekaman batas.txt, bagian pesan galat: 200 berisi JSON layanan dalam dijawab \"bukan gambar\"."
+  },
+  "langkah": [
+    {
+      "dari": "mer",
+      "ke": "fch",
+      "judul": "Alamat di jaringan dalam: ditolak, server tujuan tidak tersentuh",
+      "kirim": "ditolak fetcher aman: 32 dari 32 alamat terlarang\npenolakan karena alamat literal: 8 alamat (loopback terbuka dan tertutup, private, link-local, CGNAT, ULA, 0.0.0.0): 1 pesan berbeda: map[tujuan tidak diizinkan:8]\nserver uji disentuh oleh unduhan yang ditolak: 0",
+      "jelas": "Alamat contoh loopback, private, link-local, dan CGNAT ditolak oleh pemeriksaan alamat. Delapan penolakan karena alamat literal memakai satu pesan yang sama, dan server uji tidak tersentuh.",
+      "nada": "good"
+    },
+    {
+      "dari": "fch",
+      "ke": "tuj",
+      "judul": "Alamat luar menjawab redirect: tidak diikuti",
+      "kirim": "redirect 302 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0",
+      "jelas": "Tujuh kode redirect diuji, dari 300 sampai 308 tanpa 305 dan 306. Di tiap kode server pertama tersentuh satu kali, dan server tujuan redirect tidak tersentuh sama sekali.",
+      "nada": "good"
+    },
+    {
+      "dari": "tuj",
+      "ke": "fch",
+      "judul": "Server menjawab 200 dengan isi JSON: bukan gambar",
+      "kirim": "200 berisi JSON layanan dalam pesan: \"bukan gambar\"\n403 berisi JSON layanan dalam pesan: \"gambar tidak bisa diunduh\"\n404 berisi JSON layanan dalam pesan: \"gambar tidak bisa diunduh\"\n500 berisi JSON layanan dalam pesan: \"gambar tidak bisa diunduh\"",
+      "jelas": "Isi JSON dari server uji tidak ikut ke pesan. Jawaban 200 yang bukan gambar dijawab \"bukan gambar\", dan 403, 404, dan 500 dijawab \"gambar tidak bisa diunduh\"."
+    },
+    {
+      "dari": "fch",
+      "ke": "mer",
+      "judul": "Merchant hanya menerima kalimat tetap",
+      "kirim": "pesan galat versi aman di kode: 5 kalimat tetap (dibaca dari unduh.go, bukan diamati di tiap jalur)",
+      "jelas": "Kalimat tetap itu dibaca dari kode, bukan diamati di tiap jalur. Di bagian pesan galat rekaman memuat tiga kalimat itu: bukan gambar, gambar tidak bisa diunduh, dan tujuan tidak diizinkan.",
+      "nada": "good"
+    }
+  ],
+  "varian": {
+    "label": "pemeriksaan alamat hanya memakai IsPrivate",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "mer",
+        "ke": "fch",
+        "judul": "Bila IsPrivate satu-satunya pemeriksaan: 29 dari 32 lolos",
+        "kirim": "ditolak fetcher aman: 32 dari 32 alamat terlarang; dari itu 29 lolos bila IsPrivate satu-satunya pemeriksaan",
+        "jelas": "Tiga alamat contoh ditandai private: 10.0.0.1, fd00::5, dan ::ffff:10.0.0.1. Jadi 32 − 3 = 29 alamat terlarang tidak tertahan, termasuk loopback, link-local, dan CGNAT.",
+        "nada": "warn"
+      },
+      {
+        "dari": "fch",
+        "judul": "Empat penanda bawaan Go: 26 dari 32 masih lolos",
+        "kirim": "dari 32 alamat terlarang yang sama, 26 lolos bila hanya empat penanda di tabel (IsPrivate, IsLoopback, IsLinkLocalUnicast, IsUnspecified) yang diperiksa",
+        "jelas": "Enam alamat tertangkap oleh salah satu dari empat penanda, jadi 32 − 6 = 26. Dua dari 26 alamat itu adalah alamat multicast, yang tertangkap penanda bawaan Go lain, IsMulticast. Sisanya, termasuk CGNAT, benchmark, dan bentuk IPv6 transisi, hanya tertangkap oleh daftar awalan yang ditulis fetcher (dibaca dari kode, bukan dicatat rekaman).",
+        "nada": "warn"
+      },
+      {
+        "dari": "fch",
+        "judul": "Kontrol: lima alamat yang bukan terlarang tetap lolos",
+        "kirim": "# 5 alamat kontrol di tabel yang sama lolos, termasuk 100.63.255.255 dan 100.128.0.1 yang tepat di luar blok CGNAT",
+        "jelas": "Daftar tidak menolak semuanya. Lima alamat kontrol, termasuk dua yang tepat di luar blok CGNAT, tetap lolos.",
+        "nada": "good"
+      }
+    ]
+  }
+}
