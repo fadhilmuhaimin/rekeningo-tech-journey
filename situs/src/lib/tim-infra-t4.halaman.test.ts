@@ -832,7 +832,7 @@ describe("celah turunan yang ditemukan uji mutasi tanpa kunci: heading, tanggal 
     ]);
     const tebal = [...badan.matchAll(/^\*\*([^*]+)\*\*/gm)].map((m) => m[1]);
     expect(tebal).toEqual([
-      "Ubah satu hal:", "Kebutuhan.", "Status:", "Beda dengan naskah.", "Keputusan: opsi C, dengan sembilan aturan.", "Belum diputuskan.", "Kenapa C, bukan A atau B.",
+      "Ubah satu hal:", "Kebutuhan.", "Status:", "Beda dengan naskah.", "Keputusan: opsi C, dengan sembilan aturan.", "Belum diputuskan.", "Flag kartu dan rilis bertahap sisi server.", "Kenapa C, bukan A atau B.",
       "Kasus industri: tj-actions/changed-files.", "Pre-mortem.", "Kapan keputusan ini salah.", "Yang akan merevisinya.", "1.", "2.", "3.", "4.", "5.",
     ]);
   });
@@ -892,7 +892,7 @@ describe("celah turunan yang ditemukan uji mutasi tanpa kunci: heading, tanggal 
     harus("Laras sendiri adalah tokoh cerita, jadi adegan penilaiannya Ilustrasi. Rekamannya adalah hasil alat di tabel itu.");
     harus("Dengan 20.000 user aktif (Asumsi naskah), jangkauan pembaruan otomatis di iOS tiap hari paling banyak");
     harus("Itu Hitungan atas jadwal Apple, bila semua user memakai iOS dengan pembaruan otomatis.");
-    expect(badan.match(/Rekaman lab/g)).toHaveLength(12);
+    expect(badan.match(/Rekaman lab/g)).toHaveLength(13);
     expect(sast.split("\n")[1]).toContain("gosec 2.30.0");
     harus("Cadangannya checklist PR manual.");
     harus("Branch protection dan CODEOWNERS per modul sudah dibahas di [[t4-modul]]. Keduanya fitur GitHub, dan plan repositori pemilik belum diketahui [perlu verifikasi: plan pemilik].");
