@@ -1,0 +1,41 @@
+{
+  "id": "t4-audit-inti",
+  "judul": "Ekor log dipotong: tanpa jangkar lawan dengan jangkar",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t4-audit, jangkar.txt bagian B"
+  },
+  "baris": [
+    {
+      "label": "Tanpa jangkar",
+      "sub": "pemeriksaan rantai saja",
+      "simpul": [
+        {
+          "teks": "baris 5 sampai 8 dihapus",
+          "sub": "oleh pemilik tabel"
+        },
+        {
+          "teks": "4 baris, rantai utuh",
+          "sub": "keadaan terpotong dijangkarkan",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Dengan jangkar",
+      "sub": "file di luar database",
+      "simpul": [
+        {
+          "teks": "baris 5 sampai 8 dihapus",
+          "sub": "oleh pemilik tabel"
+        },
+        {
+          "teks": "jangkar nomor 6: baris-hilang",
+          "sub": "pemeriksaan menolak",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Baris 1 sampai 4 utuh dan jangkar nomor 4 masih cocok; satu temuan, dan keadaan yang rusak tidak dijangkarkan."
+}

@@ -1,0 +1,140 @@
+{
+  "judul": "Catatan audit: tabel biasa, atau rantai hash dengan jangkar",
+  "opsi": [
+    {
+      "id": "biasa",
+      "nama": "A · Log biasa: tabel audit_biasa tanpa hash (alternatif yang ditolak)",
+      "baris": [
+        [
+          {
+            "id": "a-pelaku",
+            "label": "Pelaku penulisan",
+            "sub": "role aplikasi dengan hak UPDATE dan DELETE"
+          },
+          {
+            "id": "a-tabel",
+            "label": "audit_biasa",
+            "sub": "isi baris saja, tanpa hash"
+          }
+        ],
+        [
+          {
+            "id": "a-periksa",
+            "label": "Pemeriksaan",
+            "sub": "tidak ada yang bisa dijalankan"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "Penulisan",
+        "Pemeriksaan"
+      ]
+    },
+    {
+      "id": "berantai",
+      "nama": "B · ADR 43: log berantai hash, jangkar harian di luar database",
+      "baris": [
+        [
+          {
+            "id": "b-pelaku",
+            "label": "Pelaku penulisan",
+            "sub": "pemilik tabel; aplikasi hanya INSERT"
+          },
+          {
+            "id": "b-log",
+            "label": "audit_log",
+            "sub": "hash dari hash sebelumnya dan isi baris"
+          }
+        ],
+        [
+          {
+            "id": "b-rantai",
+            "label": "Pemeriksaan rantai",
+            "sub": "hitung ulang tiap baris"
+          },
+          {
+            "id": "b-jangkar",
+            "label": "Jangkar",
+            "sub": "file di luar database"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "Penulisan",
+        "Pemeriksaan"
+      ]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "UPDATE baris tengah",
+      "sorot": {
+        "biasa": ["a-pelaku", "a-tabel"],
+        "berantai": ["b-pelaku", "b-log", "b-rantai"]
+      },
+      "catatan": {
+        "biasa": "UPDATE 1: kartu identitas Dina tercatat dibuka staf 421, dan tidak ada pemeriksaan yang bisa dijalankan atas tabel ini (rantai.txt bagian B).",
+        "berantai": "Sesudah UPDATE oleh pemilik tabel, pemeriksaan menjawab utuh: tidak, rusak di baris 3. Baris dikembalikan, dan pemeriksaan menjawab utuh lagi (rantai.txt bagian C)."
+      },
+      "nada": {
+        "biasa": "warn"
+      }
+    },
+    {
+      "label": "DELETE baris tengah",
+      "sorot": {
+        "biasa": ["a-pelaku", "a-tabel"],
+        "berantai": ["b-pelaku", "b-log", "b-rantai"]
+      },
+      "catatan": {
+        "biasa": "DELETE 1: baris bekukan hilang. Satu-satunya petunjuk adalah nomor yang bolong, 1 nomor, dan UPDATE tidak meninggalkan petunjuk (rantai.txt bagian B).",
+        "berantai": "Baris 2 dihapus dan pemeriksaan menjawab rusak di baris 3, yaitu baris sesudah yang hilang, karena ia tidak lagi menyambung (rantai.txt bagian C)."
+      },
+      "nada": {
+        "biasa": "warn"
+      }
+    },
+    {
+      "label": "Ekor dipotong",
+      "sorot": {
+        "biasa": ["a-tabel"],
+        "berantai": ["b-pelaku", "b-log", "b-rantai", "b-jangkar"]
+      },
+      "catatan": {
+        "biasa": "Tidak dijalankan: rekaman bagian B menghapus baris di tengah, bukan ekor, dan menulis bahwa tabel itu tidak punya pemeriksaan apa pun.",
+        "berantai": "Tanpa jangkar: 4 baris, rantai utuh, exit 0. Dengan file jangkar: jangkar nomor 6 baris-hilang, exit 2 (jangkar.txt bagian B)."
+      },
+      "nada": {
+        "biasa": "warn"
+      }
+    },
+    {
+      "label": "Rantai dihitung ulang sampai ujung",
+      "sorot": {
+        "biasa": ["a-tabel"],
+        "berantai": ["b-pelaku", "b-log", "b-rantai", "b-jangkar"]
+      },
+      "catatan": {
+        "biasa": "Tidak berlaku: tabel ini tidak punya rantai untuk dihitung ulang, dan UPDATE di tengah sudah lolos tanpanya (rantai.txt bagian B).",
+        "berantai": "Tanpa jangkar: 8 baris, rantai utuh, exit 0. Dengan jangkar: nomor 4 dan nomor 6 hash-beda, dua temuan, exit 2 (jangkar.txt bagian C)."
+      },
+      "nada": {
+        "biasa": "warn"
+      }
+    },
+    {
+      "label": "File jangkar ikut dipangkas",
+      "sorot": {
+        "biasa": ["a-tabel"],
+        "berantai": ["b-pelaku", "b-log", "b-jangkar"]
+      },
+      "catatan": {
+        "biasa": "Tidak berlaku: log biasa tidak punya jangkar.",
+        "berantai": "Jangkar nomor 6 dihapus dari file, lalu pemeriksaan menjawab 4 baris, rantai utuh, nol temuan, exit 0: pemotongan lolos (jangkar.txt bagian E)."
+      },
+      "nada": {
+        "berantai": "warn"
+      }
+    }
+  ]
+}
