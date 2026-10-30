@@ -284,6 +284,9 @@ describe("rekaman rantai.txt dan role.txt: nilai yang dikutip, Hitungan, dan kla
     expect(SEBELUM.every((r) => r.pelaku === 420)).toBe(true);
     expect(SEBELUM.filter((r) => r.penyetuju === "421").map((r) => r.aksi)).toEqual(["buka_blokir", "ubah_batas"]);
     expect(SEBELUM.map((r) => r.id)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(rTabel1).toContain(`(${SEBELUM.length} rows)`);
+    expect(rTabel2).toContain(`(${SESUDAH.length} rows)`);
+    expect(SESUDAH).toHaveLength(BARIS_B);
     expect(SESUDAH.map((r) => r.id)).toEqual([1, 2, 3, 5, 6]);
     expect(SESUDAH.map((r) => r.aksi)).not.toContain("bekukan");
     expect(SESUDAH.find((r) => r.id === 3)).toMatchObject({ aksi: "buka_berkas", pelaku: 421 });
@@ -389,7 +392,7 @@ describe("kode lab: mode, Audit, LihatVerifikasiBO, migrasi, dan klaim negatif b
     for (const f of migrasi) expect(baca(f), f).not.toContain("audit_biasa");
     for (const f of migrasi) {
       const t = baca(f);
-      expect(/CREATE (OR REPLACE )?TRIGGER|RETURNS trigger/i.test(t) && /audit_log/.test(t), `trigger yang menulis audit_log di ${f}`).toBe(false);
+      expect(/CREATE\s+(OR\s+REPLACE\s+)?(CONSTRAINT\s+|EVENT\s+)?TRIGGER|CREATE\s+(OR\s+REPLACE\s+)?RULE|RETURNS\s+(event_)?trigger/i.test(t) && /audit_log/.test(t), `trigger, rule, atau event trigger yang menulis audit_log di ${f}`).toBe(false);
     }
     expect(baca("labs/api-t4/migrasi/000023_kartu_audit.up.sql")).toContain("CREATE TABLE audit_log (");
     const ddl = baca("labs/api-t4/internal/repo/audit_biasa.sql");
