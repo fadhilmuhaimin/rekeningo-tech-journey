@@ -92,6 +92,23 @@ const KATA: Record<number, string> = { 1: "satu", 2: "dua", 3: "tiga", 4: "empat
 const kata = (n: number): string => KATA[n] ?? String(n);
 const Kata = (n: number): string => kata(n)[0]!.toUpperCase() + kata(n).slice(1);
 const rapat = (t: string): string => t.replace(/\s+/g, " ").trim();
+// CIDR sendiri (IPv4 dan IPv6, IPv4-mapped dibuka): dipakai untuk menurunkan dari kode awalan mana yang menangkap alamat rekaman.
+const keAngka = (alamat: string): { v: 4 | 6; n: bigint } => {
+  const a = alamat.replace(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i, "$1");
+  if (a.includes(".")) return { v: 4, n: a.split(".").reduce((x, o) => (x << 8n) + BigInt(o), 0n) };
+  const [kiri, kanan] = a.split("::");
+  const bagi = (t?: string): string[] => (t ? t.split(":") : []);
+  const L = bagi(kiri), R = bagi(kanan);
+  const nol = kanan === undefined ? [] : Array<string>(8 - L.length - R.length).fill("0");
+  return { v: 6, n: [...L, ...nol, ...R].reduce((x, g) => (x << 16n) + BigInt(`0x${g}`), 0n) };
+};
+const masukCidr = (alamat: string, cidr: string): boolean => {
+  const [awal, panjang] = cidr.split("/");
+  const c = keAngka(awal!), x = keAngka(alamat);
+  if (c.v !== x.v) return false;
+  const geser = BigInt((c.v === 4 ? 32 : 128) - Number(panjang));
+  return c.n >> geser === x.n >> geser;
+};
 
 // ---- rekaman dan kode: bagian dan nomor baris Snippet -----------------------------------------------------------------
 const bagian = (isi: string) => {
@@ -365,6 +382,19 @@ describe("kode lab: impor katalog, versi pertama (Rentan), klaim negatif berling
       const [a, b] = rentang.split(":").map(Number) as [number, number];
       expect(judulSnippet[i]!.startsWith(a === b ? `${jenis}: ${berkas} baris ${a} (` : `${jenis}: ${berkas} baris ${a} sampai ${b} (`), `judul Snippet ${i + 1}`).toBe(true);
     });
+    // tinjauan: keterangan dalam kurung di judul tiap Snippet adalah klaim (tidak dijaga oleh awalan judul di atas)
+    expect(judulSnippet.map((j) => j!.match(/\(([^)]+)\)$/)![1])).toEqual([
+      "hasil tiap baris: pratinjau dan galat",
+      "pemeriksaan hanya teks",
+      "client bawaan: redirect diikuti",
+      "isi respons ikut di pesan galat",
+      "pesan galat disimpan di kolom galat",
+      "tes butir 4 dan butir 3, lulus",
+      "alamat terlarang dan yang lolos bila IsPrivate saja",
+      "redirect tidak diikuti",
+      "pesan galat tanpa isi respons",
+      "varian: hanya IsPrivate",
+    ]);
     // yang tampil di Snippet kode: tanpa komentar internal (nomor keputusan, PR, ID riset)
     for (const [n, a, b] of [[0, kHasil, kHasilAkhir], [1, uDeny, uDeny + 2], [3, uGalat, uGalatAkhir], [4, kPanggil, kPanggilAkhir]] as [number, number, number][]) {
       const teks = (n === 0 || n === 4 ? K : U).teks(a, b);
@@ -440,6 +470,13 @@ describe("rekaman alamat.txt dan batas.txt: nilai yang dikutip, Hitungan, dan kl
     harus("- Perilaku di cloud sungguhan, layanan terkelola, dan alamat layanan metadata cloud Tidak dijalankan, dan alamat itu tidak ditulis sebagai tujuan.");
     harus(`- Layar Ratih, nama toko, kata \`${KATA_LAYANAN}\`, dan temuan Laras hanya ada di cerita (Ilustrasi).`);
     expect(readmeSsrf).toContain("Lab ini dipersempit dari blok tugas aslinya");
+    // tinjauan: klaim "membedakan nama yang ada dari nama yang tidak ada" diturunkan dari dua pesan di batas.txt, bukan hanya dari baris "pesan sama"
+    const namaAda = cocok(batasTxt.slice(B.baris.slice(0, bNama).join("\n").length), /nama yang diselesaikan ke alamat private:\s+"([^"]+)"/)[1]!;
+    const namaTidakAda = cocok(batasTxt.slice(B.baris.slice(0, bNama).join("\n").length), /nama yang tidak ada:\s+"([^"]+)"/)[1]!;
+    expect([namaAda, namaTidakAda]).toEqual(["tujuan tidak diizinkan", "tidak menjawab"]);
+    expect(namaAda).not.toBe(namaTidakAda);
+    expect(batasTxt).toContain("pesan sama: false");
+    harus("- Pesan galat versi aman tidak memuat isi respons, tetapi membedakan nama yang ada dari nama yang tidak ada");
   });
 });
 
@@ -458,6 +495,13 @@ describe("baris riset R4-205 sampai R4-207 dan label turunan", () => {
     expect(barisRiset("R4-207")).toContain("`labs/api-t4/output/testing.txt` baris 491 sampai 492");
     expect(barisRiset("R4-207")).toContain(`fungsi \`Rentan\` baris ${uRentan} sampai ${U.baris.length - (U.baris[U.baris.length - 1] === "" ? 1 : 0)}`);
     for (const id of ["R4-205", "R4-206", "R4-207"]) expect(barisRiset(id).split("|").length).toBe(7);
+    // tinjauan: tanggal akses, halaman pemakai, dan angka yang diulang dari tabel alamat.txt (tanpa kunci baris)
+    expect(barisRiset("R4-205").match(/2026-10-30/g)).toHaveLength(2);
+    expect(barisRiset("R4-205")).toContain("(dibaca 2026-10-30)");
+    expect(barisRiset("R4-206").match(/2026-10-30/g)).toHaveLength(1);
+    for (const id of ["R4-205", "R4-206"]) expect(barisRiset(id)).toContain("(dibuka untuk halaman 4.20)");
+    expect(barisRiset("R4-207")).toContain("(dibaca untuk halaman 4.20, tanpa menjalankan ulang)");
+    expect(barisRiset("R4-207")).toContain(`(${TERLARANG} dari ${TERLARANG} alamat terlarang ditolak; ${TERLARANG - PRIVAT.length} lolos bila \`IsPrivate\` satu-satunya pemeriksaan; ${TERLARANG - EMPAT.length} lolos bila hanya empat penanda; ${kata(KONTROL)} alamat kontrol lolos)`);
   });
   test("label turunan Hitungan didefinisikan di pemakaian pertama; tidak ada Simulasi; tidak ada ID riset, nomor keputusan, atau nomor PR di halaman", () => {
     expect(badan.indexOf("Hitungan")).toBe(badan.indexOf("Itu Hitungan, yaitu angka dari angka lain di rekaman") + "Itu ".length);
@@ -572,7 +616,17 @@ describe("skenario alur t4-m36.json: valid, nilai dari rekaman, tebakan, dan var
     expect(v1!.judul).toBe(`Bila IsPrivate satu-satunya pemeriksaan: ${TERLARANG - PRIVAT.length} dari ${TERLARANG} lolos`);
     expect(v1!.jelas).toBe(`Tiga alamat contoh ditandai private: ${PRIVAT.map((m) => m[1]).slice(0, 2).join(", ")}, dan ${PRIVAT[2]![1]}. Jadi ${TERLARANG} − ${PRIVAT.length} = ${TERLARANG - PRIVAT.length} alamat terlarang tidak tertahan, termasuk loopback, link-local, dan CGNAT.`);
     expect(v2!.judul).toBe(`Empat penanda bawaan Go: ${TERLARANG - EMPAT.length} dari ${TERLARANG} masih lolos`);
-    expect(v2!.jelas).toBe(`${Kata(EMPAT.length)} alamat tertangkap oleh salah satu dari empat penanda, jadi ${TERLARANG} − ${EMPAT.length} = ${TERLARANG - EMPAT.length}. Sisanya, termasuk CGNAT, benchmark, dan bentuk IPv6 transisi, hanya tertangkap oleh daftar awalan yang ditulis fetcher.`);
+    // Sisa 26 alamat: yang masuk salah satu awalan di alamatKhusus (dibaca dari unduh.go, dihitung dengan CIDR sendiri) dan yang
+    // tidak: alamat itu hanya tertangkap penanda bawaan Go lain, IsMulticast (baris 117 sampai 118 di unduh.go).
+    const sisa = terlarang.filter((m) => ![m[2], m[3], m[4], m[5]].includes("ya"));
+    const awalanKode = [...cocok(unduhGo, /var alamatKhusus = func\(\) \[\]netip\.Prefix \{([\s\S]*?)\}\(\)/)[1]!.matchAll(/"([0-9a-f:.]+\/\d+)"/g)].map((m) => m[1]!);
+    expect(awalanKode.length).toBeGreaterThan(15);
+    const luarAwalan = sisa.filter((m) => !awalanKode.some((c) => masukCidr(m[1]!, c)));
+    expect(luarAwalan.map((m) => m[1])).toEqual(["239.255.0.1", "ff0e::1"]);
+    expect(luarAwalan.every((m) => /multicast/.test(m[7]!))).toBe(true);
+    expect(sisa.filter((m) => /multicast/.test(m[7]!)).length).toBe(luarAwalan.length);
+    expect(unduhGo).toContain("ip.IsMulticast()");
+    expect(v2!.jelas).toBe(`${Kata(EMPAT.length)} alamat tertangkap oleh salah satu dari empat penanda, jadi ${TERLARANG} − ${EMPAT.length} = ${TERLARANG - EMPAT.length}. ${Kata(luarAwalan.length)} dari ${TERLARANG - EMPAT.length} alamat itu adalah alamat multicast, yang tertangkap penanda bawaan Go lain, IsMulticast. Sisanya, termasuk CGNAT, benchmark, dan bentuk IPv6 transisi, hanya tertangkap oleh daftar awalan yang ditulis fetcher (dibaca dari kode, bukan dicatat rekaman).`);
     for (const k of ["CGNAT", "benchmark", "NAT64"]) expect(terlarang.some((m) => m[7]!.includes(k) && ![m[2], m[3], m[4], m[5]].includes("ya")), k).toBe(true);
     expect(unduhGo).toContain("var alamatKhusus = func() []netip.Prefix {");
     expect(v3!.judul).toBe(`Kontrol: ${kata(KONTROL)} alamat yang bukan terlarang tetap lolos`);

@@ -5,7 +5,7 @@ export const SIDIK = {
   frontmatter: "5f184305261ba02e",
   riset: ["ec844cee4f2ee54d","a769235f92afbc8b","0b00e9bd8267a763"],
   diagram: "5abfaefbc8dd57fe",
-  skenario: "840af45202850d58",
+  skenario: "b4281043ee7a2e9b",
 };
 
 // Nilai terpisah dari kalimat terkunci: tiga baris riset utuh, tiap daun diagram dan skenario, dan profil kata penentu
@@ -332,7 +332,7 @@ export const SKENARIO_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".varian.langkah[1].jelas",
-  "Enam alamat tertangkap oleh salah satu dari empat penanda, jadi 32 − 6 = 26. Sisanya, termasuk CGNAT, benchmark, dan bentuk IPv6 transisi, hanya tertangkap oleh daftar awalan yang ditulis fetcher."
+  "Enam alamat tertangkap oleh salah satu dari empat penanda, jadi 32 − 6 = 26. Dua dari 26 alamat itu adalah alamat multicast, yang tertangkap penanda bawaan Go lain, IsMulticast. Sisanya, termasuk CGNAT, benchmark, dan bentuk IPv6 transisi, hanya tertangkap oleh daftar awalan yang ditulis fetcher (dibaca dari kode, bukan dicatat rekaman)."
  ],
  [
   ".varian.langkah[1].nada",

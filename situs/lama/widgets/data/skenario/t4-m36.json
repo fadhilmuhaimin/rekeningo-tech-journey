@@ -74,7 +74,7 @@
         "dari": "fch",
         "judul": "Empat penanda bawaan Go: 26 dari 32 masih lolos",
         "kirim": "dari 32 alamat terlarang yang sama, 26 lolos bila hanya empat penanda di tabel (IsPrivate, IsLoopback, IsLinkLocalUnicast, IsUnspecified) yang diperiksa",
-        "jelas": "Enam alamat tertangkap oleh salah satu dari empat penanda, jadi 32 − 6 = 26. Sisanya, termasuk CGNAT, benchmark, dan bentuk IPv6 transisi, hanya tertangkap oleh daftar awalan yang ditulis fetcher.",
+        "jelas": "Enam alamat tertangkap oleh salah satu dari empat penanda, jadi 32 − 6 = 26. Dua dari 26 alamat itu adalah alamat multicast, yang tertangkap penanda bawaan Go lain, IsMulticast. Sisanya, termasuk CGNAT, benchmark, dan bentuk IPv6 transisi, hanya tertangkap oleh daftar awalan yang ditulis fetcher (dibaca dari kode, bukan dicatat rekaman).",
         "nada": "warn"
       },
       {
