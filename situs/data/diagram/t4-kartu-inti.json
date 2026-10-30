@@ -1,0 +1,26 @@
+{
+  "id": "t4-kartu-inti",
+  "judul": "Dua otorisasi Rp80.000 untuk saldo Rp100.000, tanpa dan dengan hold",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-kartu, otorisasi.txt A, B, dan C" },
+  "baris": [
+    {
+      "label": "Tanpa hold",
+      "sub": "versi pertama",
+      "simpul": [
+        { "teks": "A dan B setuju", "sub": "keduanya Rp80.000" },
+        { "teks": "saldo tetap Rp100.000", "sub": "tak ada jurnal tahan" },
+        { "teks": "penagihan B ditolak", "sub": "409 dari ledger", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Dengan hold",
+      "sub": "ADR 42",
+      "simpul": [
+        { "teks": "A setuju, hold Rp80.000", "sub": "jurnal tahan" },
+        { "teks": "saldo jadi Rp20.000", "sub": "dibaca B sesudah lock" },
+        { "teks": "B ditolak saldo kurang", "sub": "tanpa jurnal", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Penerbit adalah proses tiruan lokal. Di baris pertama kedua otorisasi serentak, dengan jeda 300 ms di antara cek dan tulis yang hanya ada di lab. Di baris kedua lab memegang lock buku Budi dan mengantrekan A lebih dulu, lalu B."
+}
