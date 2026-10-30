@@ -241,7 +241,7 @@ Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelny
 | | A. Tanpa catatan | B. Log biasa | C. Penyimpanan tak bisa diubah di luar database | D. Peran, dua orang, log berantai, jangkar, agen baca-saja |
 |---|---|---|---|---|
 | Cara kerja | Aksi berjalan, tidak ada yang menulis catatan | Aksi dicatat di tabel biasa, dan role aplikasi boleh INSERT, UPDATE, dan DELETE | Tiap baris log dikirim ke penyimpanan yang tidak menerima ubah dan hapus | Aksi dicatat di `audit_log` berantai hash di transaction yang sama dengan aksinya, hash baris terakhir dijangkarkan di luar database, dan role aplikasi hanya INSERT dan SELECT |
-| Kelebihan | Tidak ada kode tambahan | Satu tabel dan tanpa hitungan hash | Penulis log tidak bisa mengubah yang sudah terkirim (klaim naskah, Tidak dijalankan) | Perubahan di tengah dan pemotongan ekor terdeteksi, dengan satu job dan satu file, tanpa penyimpanan log baru |
+| Kelebihan | Tidak ada kode tambahan | Satu tabel dan tanpa hitungan hash | Penulis log tidak bisa mengubah yang sudah terkirim (klaim naskah, [perlu verifikasi]) | Perubahan di tengah dan pemotongan ekor terdeteksi, dengan satu job dan satu file, tanpa penyimpanan log baru |
 | Kekurangan | Pertanyaan Pak Hadi dijawab nol baris, untuk akun yang disentuh dan yang tidak | Siapa pun yang boleh menulis tabel bisa mengubah atau menghapus tanpa catatan | Biayanya besar menurut naskah, dan lab tidak menjalankannya | Penulis yang menghitung ulang rantai dan memangkas jangkar tidak terdeteksi, dan aplikasi yang diambil alih masih bisa INSERT |
 | Biaya operasional | Nol | Nol, dan tabelnya tumbuh | Besar menurut naskah, tidak diukur (Asumsi) | Satu job harian yang membaca seluruh log, satu file jangkar yang hak tulisnya dijaga, dan satu server MCP kecil bila agen dipakai |
 | Bukti | `rantai.txt` bagian A | `rantai.txt` bagian B | Tidak dijalankan | `rantai.txt` bagian C, `jangkar.txt`, `role.txt`, dan `persetujuan.txt` |
@@ -269,7 +269,7 @@ Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelny
 
 Batasnya: itu dokumentasi vendor tentang fitur sendiri, untuk satu layanan, tanpa angka insiden. Kuncinya dipegang CloudTrail, sedangkan rantai di lab tidak punya kunci. Digest dibuat tiap jam, sedangkan jangkar di lab harian (Asumsi). Karena itu kasus ini memperlihatkan arah D, yaitu bukti di luar tempat log ditulis, tetapi bukan pembuktian bahwa D sekuat itu.
 
-**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Usul penulis dan penalaran penulis adalah saran dan kesimpulan penulis halaman ini tanpa rekaman lab. Tiga penyebab yang paling mungkin:
 
 1. File jangkar hilang atau menyusut tanpa ada yang tahu, karena pemeriksaan membacanya sebagai "belum ada jangkar" (`jangkar.txt` bagian E). Pencegahannya peringatan bila file hilang atau lebih pendek dari kemarin (usul penulis, belum dikerjakan).
 2. Aplikasi yang diambil alih menambah baris palsu atau mengubah status akun tanpa penyetuju (`role.txt` bagian E, dan hak `dasar_t4.py`). Pencegahannya memecah role `api_t4` dan menaruh kunci rahasia atas baris di luar aplikasi (usul penulis, belum dikerjakan).
