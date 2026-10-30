@@ -3189,7 +3189,7 @@
   "judul": "4.28 Estimasi Tahap 4 → 5",
   "url": "tahap-4/estimasi/",
   "tanya": "Rekaman beban menulis p95 di bawah 500 ms dan koneksi paling banyak ≤ 10. Apa yang dibuktikan, dan apa yang tidak?",
-  "jawab": "P95 di bawah batas dan jadwal yang tidak tertinggal menunjukkan satu laptop tidak antre pada 138,9 request per detik dengan campuran lab. Koneksi ≤ 10 dipasang pool sendiri, jadi bukan bukti. Kapasitas produksi tetap tidak terukur."
+  "jawab": "Di satu laptop dengan campuran lab, 95% permintaan selesai di bawah 500 ms dan generator tidak jadi penghambat. Koneksi ≤ 10 dipasang pool sendiri, jadi bukan bukti. Kapasitas produksi tetap tidak terukur."
  },
  {
   "id": "t4-estimasi-4",

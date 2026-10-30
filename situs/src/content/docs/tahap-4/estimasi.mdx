@@ -104,9 +104,9 @@ Koneksi database: 2 × 10 + 2 × 5 + 4 + 3 + 3 = 40 dari 100. Suku 2 × 10 adala
 
 Suku 4 adalah worker, 3 koneksi admin, dan 3 cadangan superuser (`superuser_reserved_connections`). Angka 100 adalah nilai `max_connections` bawaan yang biasa. Tahap 3 memakai 2 × 10 + 4 + 3 + 3 = 30 ([[t3-pool]]).
 
-Menjumlah tanpa cadangan superuser memberi 37, bukan 40. Lab api-t4 hanya menjalankan satu proses dengan pool 10, jadi angka 40 tidak diukur: itu Hitungan atas Asumsi desain.
+Menjumlah tanpa cadangan superuser memberi 37, bukan 40. Lab api-t4 menjalankan satu server dengan pool 10, jadi angka 40 tidak diukur: itu Hitungan atas Asumsi desain.
 
-Koneksi tertahan oleh semua request adalah L = λ × W = 138,9 × 0,02 = 2,78. W adalah lama satu request memegang koneksi, 20 ms (Asumsi, belum diukur). Batasnya 2 × (10 − 1) = 18, karena pool n koneksi penuh bila L melebihi n − 1 ([[t3-pool]]).
+Koneksi tertahan oleh semua request dihitung dengan L = λ × W. L adalah rata-rata koneksi yang terpakai bersamaan, dan W adalah lama satu request memegang koneksi. Di sini L = 138,9 × 0,02 = 2,78, dengan W 20 ms (Asumsi, belum diukur). Batasnya 2 × (10 − 1) = 18, karena pool n koneksi penuh bila L melebihi n − 1 ([[t3-pool]]).
 
 Partisi `posting` dijadwalkan saat ±440 juta posting per tahun di Tahap 5 ([[t2-skema]]). Tahap 4 memakai 43,8 ÷ 440 = 10% dari batas itu.
 
@@ -169,7 +169,7 @@ Laporan merchant real-time, cicilan, dan API publik belum punya λ atau W, jadi 
 
 **8. Yang tidak dijawab estimasi.** Tiga pertanyaan tetap terbuka sesudah semua hitungan di atas.
 
-1. *Berapa request per detik yang sanggup dilayani satu server?* Tidak terjawab. Buku SRE Google menyebut "queries per second" sering menjadi ukuran kapasitas yang buruk, karena biaya tiap query berbeda dan bisa berubah. Load test kapasitas di server sungguhan Tidak dijalankan, dan rekaman beban api-t4 hanya memeriksa batas di laptop, seperti dijelaskan di bawah daftar ini.
+1. *Berapa request per detik yang sanggup dilayani satu server?* Tidak terjawab. Buku SRE Google menyebut "queries per second" sering menjadi ukuran kapasitas yang buruk, karena biaya tiap query berbeda dan bisa berubah. Load test kapasitas di server sungguhan Tidak dijalankan di repo ini, dan rekaman beban api-t4 hanya memeriksa batas di laptop (rincian di bawah).
 2. *Berapa lama gateway dan vendor menjawab?* Keduanya tiruan lokal, jadi 0,3, 2, 3, 15, dan 30 detik adalah Asumsi.
 3. *Bagaimana tim yang lebih besar mengubah satu codebase?* Tim Tahap 4 berjumlah 13 orang: 5 + 4 + 4 (Asumsi naskah). Tidak ada rumus di halaman ini yang memuat koordinasi, dan ambang ±50 developer di [[t4-modul]] hanya heuristik [perlu verifikasi].
 
@@ -177,7 +177,7 @@ Rekaman beban api-t4 (`beban.txt` bagian A) memutar 2.778 permintaan dalam 20 de
 
 P95 di bawah 500 ms. P95 adalah waktu jawab yang dilewati 5% permintaan, batas itu Asumsi lab, dan nilai ukurnya tidak direkam. Koneksi paling banyak ≤ 10 adalah batas yang dipasang pool sendiri, jadi bukan bukti pool tidak sesak.
 
-Campuran lab memakai 10% pembayaran (295 dari 2.778 jawaban berstatus 201), dua kali 5% di tabel kelas. Itu lebih berat di tulis daripada tabel kelas, tetapi tetap bukan kapasitas produksi.
+Campuran lab memakai 10% pembayaran (295 dari 2.778 jawaban berstatus 201), dua kali 5% di tabel kelas. Campuran itu memuat pembayaran dua kali lebih banyak daripada tabel kelas, tetapi tetap bukan kapasitas produksi.
 
 </Blok>
 
@@ -239,7 +239,7 @@ Notifikasi uang naik dari 7,52 ke 75,2 per detik. Dibagi kapasitas 13,33 per det
 <details class="success">
 <summary>Jawaban</summary>
 
-P95 di bawah batas dan jadwal yang tidak tertinggal menunjukkan satu laptop tidak antre pada 138,9 request per detik dengan campuran lab. Koneksi ≤ 10 dipasang pool sendiri, jadi bukan bukti. Kapasitas produksi tetap tidak terukur.
+Di satu laptop dengan campuran lab, 95% permintaan selesai di bawah 500 ms dan generator tidak jadi penghambat. Koneksi ≤ 10 dipasang pool sendiri, jadi bukan bukti. Kapasitas produksi tetap tidak terukur.
 
 </details>
 
