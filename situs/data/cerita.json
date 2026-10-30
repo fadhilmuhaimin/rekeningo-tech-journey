@@ -3743,8 +3743,9 @@
       "lab": [
         "t4-ssrf"
       ],
-      "ada": false,
-      "nomor": "4.20"
+      "ada": true,
+      "nomor": "4.20",
+      "menit": 9
     },
     {
       "id": "t4-ssrf",

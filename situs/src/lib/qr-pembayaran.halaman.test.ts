@@ -666,7 +666,8 @@ describe("data Tebak, diagram Rantai, halaman istilah, baris riset, dan kartu Ce
     for (const x of ["R4-200", "R4-201", "R4-202", "R4-203", "R4-204"]) expect(id.filter((y) => y === x), x).toHaveLength(1);
     const i = (x: string) => id.indexOf(x);
     expect(id.slice(i("R4-200"), i("R4-200") + 5)).toEqual(["R4-200", "R4-201", "R4-202", "R4-203", "R4-204"]);
-    expect(id[i("R4-204") + 1]).toBe("R4-300");
+    expect(Number(id[i("R4-204") + 1]!.slice(3))).toBeGreaterThan(204); // R4-205 sampai R4-207 milik 4.20 menyusul sebelum R4-300
+    expect(i("R4-204")).toBeLessThan(i("R4-300"));
     expect(i("R4-200")).toBeGreaterThan(i("R4-187"));
     const tigaDigit = id.filter((x) => /^R4-\d{3}$/.test(x));
     expect(tigaDigit).toEqual([...tigaDigit].sort());
