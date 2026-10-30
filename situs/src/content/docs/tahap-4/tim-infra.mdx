@@ -347,6 +347,8 @@ Keputusan lain punya opsi sendiri:
 
 **Belum diputuskan.** Aturan untuk kode di luar `internal/modul/`. Menjalankan semua langkah aman tetapi lambat. Memetakan tiap folder ke langkah cepat, tetapi folder yang terlupa lolos tanpa pemeriksaan. README lab mencatatnya sebagai keputusan pemilik, dan halaman ini tidak memutuskannya.
 
+**Flag kartu dan rilis bertahap sisi server.** Halaman [[t4-kartu]] menunjuk ke sini untuk dua hal. Di lab flag kill switch kartu hidup di memori satu proses, jadi proses yang dimulai ulang kembali aktif (`kill-switch.txt` bagian B, Rekaman lab), dan dua instance punya flag sendiri-sendiri (dibaca dari kode, Tidak dijalankan). Aturan 7 menyebut feature flag tanpa memilih tempatnya di luar proses, dan rilis kartu bertahap 1%, 5%, 25%, 100% (Asumsi naskah) juga belum diputuskan dan Tidak dijalankan.
+
 **Kenapa C, bukan A atau B.** A sudah gagal di [[t4-m32]]: tidak ada langkah yang melihat kontrak lintas modul atau kerentanan dependensi. B menyelesaikan celah kode bersama dengan satu aturan sederhana, tetapi ongkosnya waktu tunggu yang tidak terukur. C mengambil kecepatan dengan satu risiko yang tertulis, yaitu pemetaan yang bisa bolong.
 
 **Kasus industri: tj-actions/changed-files.** Rangkuman kasusnya ada di blok Paham, bagian supply chain. Pelajarannya untuk ADR ini sempit: nama yang bisa dipindah, seperti tag action atau tag image, tidak mengikat isinya. Batasnya sudah tertulis di sana: kasus ini dependensi workflow dan satu insiden, bukan bukti tentang image kontainer.
@@ -379,6 +381,8 @@ Keputusan lain punya opsi sendiri:
 | Aturan "jalankan semua" untuk kode bersama | Belum diputuskan | Bila PR kode bersama lolos tanpa tes |
 | Menaikkan Go ke 1.27.3 | Mengubah api-t4 dan semua rekamannya | Sebelum dibuka ke publik |
 | Client Dart yang dijalankan | Hanya kode hasil generasi yang dibaca | Belum dijadwalkan |
+| Tempat flag kill switch kartu di luar proses | Lab memakai flag di memori satu proses, dan tempatnya belum diputuskan | Belum dijadwalkan |
+| Rilis kartu bertahap 1%, 5%, 25%, 100% | Asumsi naskah. Tidak dijalankan | Belum dijadwalkan |
 | Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC | Rekaman hanya dua file contoh ([[t4-infra-secret]]). Tidak dijalankan | Belum dijadwalkan |
 
 </Blok>

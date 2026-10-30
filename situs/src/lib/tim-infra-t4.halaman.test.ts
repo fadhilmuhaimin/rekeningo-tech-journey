@@ -170,6 +170,7 @@ const sorotan = (teks: string, re: RegExp) => [...teks.matchAll(re)].map((m) => 
 
 // ---- naskah ------------------------------------------------------------------------------------------------------------
 const barisAdr44 = naskah.split("\n").find((b) => b.startsWith("| 44 |"))!;
+const barisAdr42 = naskah.split("\n").find((b) => b.startsWith("| 42 |"))!;
 const barisAdr45 = naskah.split("\n").find((b) => b.startsWith("| 45 |"))!;
 const barisM32 = naskah.split("\n").find((b) => b.startsWith("| M32 |"))!;
 const barisM34 = naskah.split("\n").find((b) => b.startsWith("| M34 |"))!;
@@ -221,11 +222,11 @@ describe("registry, meta, susunan blok, dan tautan", () => {
   });
   test("tautan [[id]]: himpunan sama dengan yang diharapkan; nomor dan judul sama dengan registry", () => {
     const id = [...new Set([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!))].sort();
-    expect(id).toEqual(["C3", "E1", "berikutnya", "t1-adr-12", "t1-secret", "t2-skema-tanpa-downtime", "t3-tim-infra", "t4-adr-45", "t4-audit", "t4-breaker", "t4-infra-secret", "t4-m32", "t4-m34", "t4-modul", "t4-prd", "t4-rekonsiliasi", "t4-ssrf"]);
+    expect(id).toEqual(["C3", "E1", "berikutnya", "t1-adr-12", "t1-secret", "t2-skema-tanpa-downtime", "t3-tim-infra", "t4-adr-45", "t4-audit", "t4-breaker", "t4-infra-secret", "t4-kartu", "t4-m32", "t4-m34", "t4-modul", "t4-prd", "t4-rekonsiliasi", "t4-ssrf"]);
     const sesuai: [string, string, string][] = [
       ["C3", "1.31", "Deployment dan rollback"], ["E1", "1.33", "App versi lama"], ["t1-adr-12", "1.40", "Sengaja belum dilakukan"], ["t1-secret", "1.35", "Secret di repo dan di server"],
       ["t2-skema-tanpa-downtime", "2.22", "Ubah skema tanpa downtime"], ["t3-tim-infra", "3.27", "Tim dan infra Tahap 3"], ["t4-adr-45", "4.29", "ADR 45"], ["t4-audit", "4.25", "Keamanan 9"],
-      ["t4-breaker", "4.11", "Timeout, retry"], ["t4-infra-secret", "4.17", "Secret manager, IaC"], ["t4-m32", "4.12", "M32"], ["t4-m34", "4.16", "M34"],
+      ["t4-breaker", "4.11", "Timeout, retry"], ["t4-infra-secret", "4.17", "Secret manager, IaC"], ["t4-kartu", "4.23", "Kartu virtual"], ["t4-m32", "4.12", "M32"], ["t4-m34", "4.16", "M34"],
       ["t4-modul", "4.13", "Modular monolith"], ["t4-prd", "4.1", "PRD v4"], ["t4-rekonsiliasi", "4.9", "Rekonsiliasi dengan gateway"], ["t4-ssrf", "4.21", "Keamanan 8"],
     ];
     for (const [idh, nomor, awal] of sesuai) {
@@ -692,7 +693,7 @@ describe("ADR 44: tiga opsi, sembilan aturan, pre-mortem, kapan salah, sengaja b
     harus("**Yang akan merevisinya.** Tahap 5 menaikkan tim dari 13 menjadi 20 sampai 40 orang dalam 5 sampai 7 tim (naskah Tahap 4, jembatan).");
     expect(naskah).toContain("Tim naik dari 13 menjadi 20 sampai 40 orang dalam 5 sampai 7 tim");
     const sengaja = tabelSetelah("### Sengaja belum dilakukan");
-    expect(sengaja.map((r) => r[0])).toEqual(["Yang ditunda", "Keyless signing, Fulcio, dan Rekor", "Provenance SLSA", "Atestasi app", "Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS", "Mencocokkan isi response server dengan kontrak", "Aturan \"jalankan semua\" untuk kode bersama", "Menaikkan Go ke 1.27.3", "Client Dart yang dijalankan", "Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC"]);
+    expect(sengaja.map((r) => r[0])).toEqual(["Yang ditunda", "Keyless signing, Fulcio, dan Rekor", "Provenance SLSA", "Atestasi app", "Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS", "Mencocokkan isi response server dengan kontrak", "Aturan \"jalankan semua\" untuk kode bersama", "Menaikkan Go ke 1.27.3", "Client Dart yang dijalankan", "Tempat flag kill switch kartu di luar proses", "Rilis kartu bertahap 1%, 5%, 25%, 100%", "Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC"]);
     expect(sengaja.every((r) => r.length === 3)).toBe(true);
     expect(sengaja[2]).toEqual(["Provenance SLSA", "Hanya disebut di naskah, Tidak dijalankan", "[[t4-adr-45]]"]);
     expect(sengaja[3]).toEqual(["Atestasi app", "Hanya disebut di naskah, Tidak dijalankan", "Belum dijadwalkan"]);
@@ -965,7 +966,7 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
   test("urutan tautan [[id]] di seluruh halaman, satu per satu", () => {
     expect([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1])).toEqual([
       "t4-modul", "t3-tim-infra", "berikutnya", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t1-adr-12", "E1", "E1", "t4-audit", "t3-tim-infra", "t4-rekonsiliasi", "t4-breaker",
-      "t3-tim-infra", "t4-m32", "t4-m34", "t4-prd", "t4-m34", "t4-infra-secret", "t4-ssrf", "t3-tim-infra", "C3", "t1-secret", "t2-skema-tanpa-downtime", "t4-modul", "t4-m32", "t4-adr-45", "t4-adr-45", "t4-infra-secret",
+      "t3-tim-infra", "t4-m32", "t4-m34", "t4-prd", "t4-m34", "t4-infra-secret", "t4-ssrf", "t3-tim-infra", "C3", "t1-secret", "t2-skema-tanpa-downtime", "t4-modul", "t4-kartu", "t4-m32", "t4-adr-45", "t4-adr-45", "t4-infra-secret",
     ]);
   });
   test("versi cosign dan oasdiff di kalimat sama dengan README; nomor masalah di Status sama dengan registry; kejadian M32 dan M34", () => {
@@ -1005,6 +1006,8 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
       "| Aturan \"jalankan semua\" untuk kode bersama | Belum diputuskan | Bila PR kode bersama lolos tanpa tes |",
       "| Menaikkan Go ke 1.27.3 | Mengubah api-t4 dan semua rekamannya | Sebelum dibuka ke publik |",
       "| Client Dart yang dijalankan | Hanya kode hasil generasi yang dibaca | Belum dijadwalkan |",
+      "| Tempat flag kill switch kartu di luar proses | Lab memakai flag di memori satu proses, dan tempatnya belum diputuskan | Belum dijadwalkan |",
+      "| Rilis kartu bertahap 1%, 5%, 25%, 100% | Asumsi naskah. Tidak dijalankan | Belum dijadwalkan |",
       "| Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC | Rekaman hanya dua file contoh ([[t4-infra-secret]]). Tidak dijalankan | Belum dijadwalkan |",
     ]) harus(baris);
     expect(baca("labs/api-t4/README.md")).toContain("go1.27.3");
@@ -1173,6 +1176,17 @@ describe("tinjauan: ambang, tingkat keparahan, pembagian PR dan rilis, dan label
     expect(barisPipelineT3).toBeDefined();
     expect(barisPipelineT3).not.toMatch(/contract|kontrak|kompatibilitas|SAST|gosec|govulncheck|SBOM|cosign/i);
     harus("dua kejadian menunjukkan pipeline Tahap 3 tidak memeriksa kompatibilitas lintas modul dan kunci produksi sebelum rilis.");
+  });
+  test("janji 4.23: flag kill switch di memori satu proses (kill-switch.txt B), rilis kartu bertahap 1%, 5%, 25%, 100% Asumsi naskah; 4.26 menjawab dan menaruhnya di Sengaja belum", () => {
+    const ks = baca("labs/t4-kartu/output/kill-switch.txt");
+    expect(ks).toContain("# --- B. Batas: flag hidup di memori satu proses, jadi proses yang dimulai ulang kembali aktif tanpa ada yang menyalakannya ---");
+    expect(ks).toContain("dua instance Tidak dijalankan di lab ini");
+    expect(barisAdr42).toContain("rilis 1%, 5%, 25%, 100% (Asumsi)");
+    expect(barisAdr42).toContain("produksi butuh flag di luar proses");
+    harus("**Flag kartu dan rilis bertahap sisi server.** Halaman [[t4-kartu]] menunjuk ke sini untuk dua hal. Di lab flag kill switch kartu hidup di memori satu proses, jadi proses yang dimulai ulang kembali aktif (`kill-switch.txt` bagian B, Rekaman lab), dan dua instance punya flag sendiri-sendiri (dibaca dari kode, Tidak dijalankan). Aturan 7 menyebut feature flag tanpa memilih tempatnya di luar proses, dan rilis kartu bertahap 1%, 5%, 25%, 100% (Asumsi naskah) juga belum diputuskan dan Tidak dijalankan.");
+    const hal423 = baca("situs/src/content/docs/tahap-4/kartu-virtual.mdx");
+    expect(hal423).toContain("| Flag kill switch di luar proses atau di tabel |");
+    expect(hal423).toContain("| Rilis bertahap 1%, 5%, 25%, 100% | Tidak dijalankan di lab, dan angkanya Asumsi | [[t4-tim-infra]] |");
   });
   test("oasdiff breaking menerima dua file kontrak (sebelum dan sesudah), dan kalimat penjelas memakai bilangan itu", () => {
     const perintah = [...kontrak.matchAll(/^\$ oasdiff breaking (\S+\.yaml) (\S+\.yaml)/gm)];
