@@ -3,7 +3,7 @@
   "judul": "ADR Tahap 4 yang pecah lebih dulu",
   "sumber": {
     "jenis": "asumsi",
-    "teks": "Penalaran dari kalimat halaman ADR Tahap 4 dan hitungan Asumsi dari naskah Tahap 4; tidak ada rekaman atau lab untuk PRD v5"
+    "teks": "Penalaran dari kalimat halaman ADR Tahap 4 dan hitungan Asumsi di halaman 4.27; tidak ada rekaman atau lab untuk PRD v5"
   },
   "adegan": [
     "Sinta membagikan PRD v5. Raka membuka ADR 34 sampai 45 yang lahir di Tahap 4.",
@@ -19,10 +19,10 @@
     {
       "teks": "ADR 36, ADR 37, ADR 44, dan ADR 45: worker notifikasi, batas modul dan pipeline per tim, dan database yang sama untuk laporan.",
       "benar": true,
-      "alasan": "Tiga keadaan itu ditulis di halaman ADR-nya. ADR 45 menunda read replica dan PgBouncer sampai laporan merchant real-time diminta. ADR 36 menulis bahwa breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan. Pengumuman ke 100.000 HP butuh 125 menit di satu queue (Hitungan atas Asumsi, Tidak dijalankan), jadi menambah worker mudah dibayangkan (penalaran). ADR 37 salah bila tim membuat deploy bersama tidak lagi masuk akal, dan ADR 44 menulis bahwa tim yang naik membagi pipeline dan giliran jaga per tim. Ini bacaan dari halaman Tahap 4 (Asumsi), bukan hitungan beban untuk 1 juta user."
+      "alasan": "Tiga keadaan itu ditulis di halaman ADR-nya. ADR 45 menunda read replica dan PgBouncer sampai laporan merchant real-time diminta. ADR 36 menulis bahwa breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam). Pengumuman ke 100.000 HP butuh 125 menit di satu queue (Hitungan atas Asumsi, Tidak dijalankan), jadi menambah worker adalah langkah yang masuk akal (penalaran). ADR 37 salah bila tim membuat deploy bersama tidak lagi masuk akal, dan ADR 44 menulis bahwa tim yang naik membagi pipeline dan giliran jaga per tim. Ini bacaan dari halaman Tahap 4 (Asumsi), bukan hitungan beban untuk 1 juta user."
     },
     {
-      "teks": "ADR 40: QR merchant tidak cukup lagi, karena merchant naik dari ±460 menjadi ratusan ribu dan pembekuan massal makin mudah.",
+      "teks": "ADR 40: QR merchant tidak cukup lagi, karena merchant naik dari ±460 menjadi ratusan ribu dan pembekuan massal menjadi ancaman nyata.",
       "benar": false,
       "alasan": "Halaman 4.19 menulis empat syarat salah ADR 40. Hanya syarat ketiga memakai jumlah merchant: 5 akun × 3 laporan = 15 merchant, atau 3,3% dari ±460. Bila merchant paling sedikit 100.000, 15 ÷ 100.000 = 0,015% (Hitungan atas Asumsi), jadi pembanding itu mengecil. Tiga syarat lain tentang pembeli yang tidak membaca nama, merchant tanpa QR dinamis, dan QR dinamis yang kedaluwarsa sebelum dibayar. Daftar syarat salah di halaman itu tidak menulis keadaan yang PRD v5 minta."
     }
