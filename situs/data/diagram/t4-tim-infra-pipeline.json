@@ -1,0 +1,33 @@
+{
+  "id": "t4-tim-infra-pipeline",
+  "judul": "Pipeline per modul: pemeriksaan di PR dan pemeriksaan sesudah merge",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Pembagian PR dan rilis adalah keputusan halaman ini. Tiap alat direkam lab t4-pipeline dan api-t4, kecuali kotak abu-abu"
+  },
+  "baris": [
+    {
+      "label": "Di PR",
+      "sub": "menurut berkas yang berubah",
+      "simpul": [
+        { "teks": "go vet dan tes modul", "sub": "Rekaman lab", "nada": "good" },
+        { "teks": "oasdiff breaking", "sub": "Rekaman lab", "nada": "good" },
+        { "teks": "client Dart dibuat ulang", "sub": "Rekaman lab", "nada": "good" },
+        { "teks": "gosec dan govulncheck", "sub": "Rekaman lab", "nada": "good" },
+        { "teks": "pemindai kunci produksi", "sub": "dua file contoh", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Sesudah merge",
+      "sub": "atas image yang dibangun CI",
+      "simpul": [
+        { "teks": "SBOM image dan grype", "sub": "Rekaman lab", "nada": "good" },
+        { "teks": "cosign sign atas digest", "sub": "Rekaman lab", "nada": "good" },
+        { "teks": "verifikasi digest", "sub": "Rekaman lab", "nada": "good" },
+        { "teks": "deploy blue/green", "sub": "Tidak dijalankan", "nada": "old" },
+        { "teks": "rilis app bertahap", "sub": "Tidak dijalankan", "nada": "old" }
+      ]
+    }
+  ],
+  "catatan": "Kotak hijau punya rekaman lab, kotak abu-abu hanya dicek ke dokumentasi. Workflow yang menjalankan semuanya Tidak dijalankan."
+}
