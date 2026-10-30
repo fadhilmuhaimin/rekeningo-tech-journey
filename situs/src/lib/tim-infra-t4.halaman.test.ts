@@ -1188,6 +1188,16 @@ describe("tinjauan: ambang, tingkat keparahan, pembagian PR dan rilis, dan label
     expect(hal423).toContain("| Flag kill switch di luar proses atau di tabel |");
     expect(hal423).toContain("| Rilis bertahap 1%, 5%, 25%, 100% | Tidak dijalankan di lab, dan angkanya Asumsi | [[t4-tim-infra]] |");
   });
+  test("kalimat penghitung yang dulu lolos mutasi tanpa kunci: dua kelompok pilah, dua bagian ADR 12, enam perubahan pada ambang ERR, dua file contoh staging", () => {
+    expect(pilah.kelompok).toEqual(["Di PR, sebelum merge", "Di rilis, sesudah merge"]);
+    harus("Pilah tiap pemeriksaan: jalan di PR, atau di rilis sesudah merge.");
+    harus("Lab mengerjakan dua bagian dari itu. oasdiff membandingkan dua versi kontrak. Satu tes Go di api-t4 memastikan tiap rute handler ada di `openapi.yaml` dan sebaliknya");
+    expect(VARIAN).toHaveLength(6);
+    expect(kontrak.split("\n").filter((b) => b.startsWith("$ oasdiff breaking sebelum.yaml") && b.endsWith("--fail-on ERR")).length).toBeGreaterThanOrEqual(6);
+    harus("Lab t4-pipeline mengulang pola itu dengan enam perubahan atas kontrak api-t4, memakai ambang ERR:");
+    expect(staging).toContain("$ pindairahasia -awalan gw_live_ -sidik produksi.sidik staging.env penerbit.env");
+    harus("Memindai state IaC dan seluruh repositori Tidak dijalankan: rekaman hanya dua file contoh.");
+  });
   test("oasdiff breaking menerima dua file kontrak (sebelum dan sesudah), dan kalimat penjelas memakai bilangan itu", () => {
     const perintah = [...kontrak.matchAll(/^\$ oasdiff breaking (\S+\.yaml) (\S+\.yaml)/gm)];
     expect(perintah.length).toBeGreaterThan(8);
