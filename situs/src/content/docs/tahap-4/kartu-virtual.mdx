@@ -72,7 +72,7 @@ ADR 22 menulis bahwa aturan 1, panggilan luar di luar transaction, tidak bisa di
 
 **Otorisasi punya tenggat, dan jawaban setuju tidak bisa ditarik.** Penerbit memanggil Rekeningo tiap kali kartu dipakai. Panggilannya membawa `id_penerbit`, yaitu nomor yang penerbit berikan untuk satu otorisasi, token kartu, dan jumlah.
 
-Dokumentasi satu penerbit kartu menulis tenggat 2 detik. Sesudahnya penerbit memutuskan menurut setelan timeout miliknya ([Stripe Issuing: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30, Tidak dijalankan). Penerbit di lab adalah proses tiruan lokal dengan tenggat yang sama.
+Dokumentasi satu penerbit kartu menulis tenggat 2 detik. Sesudahnya penerbit memutuskan menurut setelan timeout miliknya ([Stripe Issuing: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30, Tidak dijalankan). Penerbit di lab adalah proses tiruan lokal dengan tenggat 2 detik. Rekaman `otorisasi.txt` menaikkannya ke 10 detik, karena yang direkam adalah apakah dana ditahan.
 
 Di `labs/api-t4/internal/handler/handler_kartu.go`, rute untuk pemilik kartu hanya menerbitkan, melihat, membekukan, dan membuka kartu. Satu-satunya rute HTTP yang membatalkan otorisasi, `POST /penerbit/reversal`, hanya menerima panggilan penerbit (Tidak dijalankan: dibaca dari kodenya). Karena itu dana harus tertahan sebelum jawaban setuju keluar.
 

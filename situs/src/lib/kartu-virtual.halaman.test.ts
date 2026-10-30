@@ -323,6 +323,22 @@ describe("kalimat berangka halaman diturunkan dari rekaman labs/t4-kartu", () =>
     harus(`AUTH-B menunggu, lalu membaca ${rp(sisa)} (Rekaman lab)`);
     harus(`Jurnal tahan memindahkan ${rp(jumlah)} dari buku Budi ke \`dana_tertahan\``);
   });
+  test("tenggat penerbit tiruan: 2 detik di tenggat.txt dan penerbit.txt, 10 detik di otorisasi.txt (dan rekaman lain yang merekam hold)", () => {
+    const fungsi = (nama: string): string => {
+      const i = runPy.indexOf(`def ${nama}(`);
+      if (i < 0) throw new Error(`run.py: ${nama} tidak ada`);
+      const j = runPy.indexOf("\ndef ", i + 5);
+      return runPy.slice(i, j < 0 ? undefined : j);
+    };
+    expect(fungsi("rekam_otorisasi")).toContain("aturan_penerbit(tenggat_ms=10_000)");
+    expect(fungsi("rekam_tenggat")).not.toContain("tenggat_ms");
+    expect(fungsi("rekam_penerbit")).not.toContain("tenggat_ms");
+    expect(TENGGAT).toBe(2);
+    expect(TG).toContain("tenggat 2 detik");
+    expect(PN).toContain("tenggat 2 detik");
+    expect(OT).toContain("# Tenggat penerbit tiruan dinaikkan ke 10 detik di bagian ini");
+    harus(`Penerbit di lab adalah proses tiruan lokal dengan tenggat ${TENGGAT} detik. Rekaman \`otorisasi.txt\` menaikkannya ke ${tenggatOtorisasi} detik, karena yang direkam adalah apakah dana ditahan.`);
+  });
   test("otorisasi.txt D: id sama berurutan dan serentak satu baris dan satu jurnal, jumlah lain 409, tiruan membaca 409 sebagai timeout", () => {
     expect(OT).toContain("AUTH-1 kedua (berurutan) Rp80.000: setuju (sumber: rekeningo)");
     expect(OT).toContain("kedua permintaan AUTH-2: setuju (sumber: rekeningo)");
