@@ -758,6 +758,15 @@ describe("keputusan, status, syarat login sosial, bacaan lanjut, dan jawaban kar
     expect(badan).toContain("secret yang ikut terpasang di app untuk banyak user tidak dianggap rahasia, dan tidak dianjurkan sebagai syarat server");
     expect(badan).toContain("- [ ] Login lewat akun lain memakai browser sistem dan PKCE S256, tanpa implicit grant dan client secret di app. API memeriksa `iss`, `aud`, dan `exp`.");
   });
+  test("heading: teks dan tingkat tiap heading terkunci, dan heading baku sama dengan halaman ADR 3.30", () => {
+    const judulBadan = badan.split("\n").filter((b) => /^#{2,4} /.test(b));
+    expect(judulBadan).toEqual([
+      "## Inti", "### Apa kedelapannya", "### Kenapa ADR ini ada", "### Yang sudah dipasang dan tidak termasuk daftar ini", "### Delapan yang ditunda",
+      "### Cek diri", "### Saat me-review kode AI, cek ini", "### Bacaan lanjut",
+    ]);
+    const t3judul = t3.split("\n").filter((b) => /^#{2,4} /.test(b));
+    for (const baku of ["## Inti", "### Cek diri", "### Saat me-review kode AI, cek ini", "### Bacaan lanjut"]) expect(t3judul, baku).toContain(baku);
+  });
   test("daftar periksa review AI dan Ubah satu hal terkunci per kalimat", () => {
     for (const k of [
       "- [ ] Setiap komponen baru disertai masalah tahap ini yang dijawabnya, dengan angka dan pemicu.",
