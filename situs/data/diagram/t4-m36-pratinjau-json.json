@@ -1,0 +1,26 @@
+{
+  "id": "t4-m36-pratinjau-json",
+  "judul": "Yang direkam dari sisi pembela: alamat dalam, redirect, dan pesan galat",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-ssrf · alamat.txt dan batas.txt" },
+  "baris": [
+    {
+      "label": "Versi aman menolak",
+      "sub": "alamat.txt dan batas.txt",
+      "simpul": [
+        { "teks": "Alamat dalam", "sub": "32 dari 32 ditolak" },
+        { "teks": "Redirect", "sub": "tujuan tersentuh 0 kali" },
+        { "teks": "Jawaban bukan gambar", "sub": "pesan: bukan gambar", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Bila hanya IsPrivate diperiksa",
+      "sub": "alamat.txt",
+      "simpul": [
+        { "teks": "32 alamat terlarang", "sub": "3 ditandai private" },
+        { "teks": "29 lolos", "sub": "32 − 3", "nada": "warn" },
+        { "teks": "5 alamat kontrol", "sub": "tetap lolos" }
+      ]
+    }
+  ],
+  "catatan": "Alamat contoh adalah angka karangan lab, dan server uji hanya di 127.0.0.1 di dalam proses tes. Kotak oranye adalah akibat yang direkam."
+}
