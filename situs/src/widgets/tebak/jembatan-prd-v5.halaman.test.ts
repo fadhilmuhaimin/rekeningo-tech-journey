@@ -582,6 +582,7 @@ describe("widget tebak: tepat satu pilihan cocok, posisi dan panjang tidak membo
     harus('<noscript>\n<p>Tanpa JavaScript tebakan tidak berjalan. Pilihan yang cocok dengan halaman ADR: ADR 36, ADR 37, ADR 44, dan ADR 45. Alasannya ada di blok Menuju Tahap 5, dan jawabannya dibuka di halaman pertama Tahap 5.</p>\n</noscript>');
     harus('<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v5">');
     const a = data.pilihan[j]!.alasan;
+    expect(a.startsWith("Tiga keadaan itu ditulis di halaman ADR-nya. ADR 45 menunda")).toBe(true);
     ada(a, "ADR 45 menunda read replica dan PgBouncer sampai laporan merchant real-time diminta.");
     ada(a, "ADR 36 menulis bahwa breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam).");
     ada(a, `Pengumuman ke ${titik(HP)} HP butuh ${menitHp} menit di satu queue (Hitungan atas Asumsi, Tidak dijalankan), jadi menambah worker adalah langkah yang masuk akal (penalaran).`);
@@ -658,6 +659,13 @@ describe("struktur halaman dan dunia angka tertutup", () => {
     expect(badan).not.toMatch(/^\d+\. /m);
     expect(badan.split("\n").filter((b) => /^- /.test(b))).toHaveLength(3 + 2);
     expect(hitung(badan, "<Blok ")).toBe(4);
+    expect(hitung(badan, "</Blok>")).toBe(4);
+    for (const impor of [
+      'import Blok from "../../../components/Blok.astro";',
+      'import Tebak from "../../../widgets/tebak/Tebak.tsx";',
+      'import { muat, label, url as urlHalaman } from "../../../../tools/registri.mjs";',
+    ]) expect(badan, impor).toContain(impor);
+    expect(badan.split("\n").filter((b) => b.startsWith("import "))).toHaveLength(4);
   });
   test("tanpa ID internal, emoji, tanda seru, kata yang dilarang gaya-bahasa; tanpa kata rekaman untuk angka yang bukan dari rekaman", () => {
     for (const teks of [badan, frontmatter, teksWidget]) {
