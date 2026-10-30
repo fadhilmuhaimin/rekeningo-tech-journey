@@ -274,7 +274,7 @@ describe("rekaman rantai.txt dan role.txt: nilai yang dikutip, Hitungan, dan kla
     expect(R.baris[3]).toBe("# server: ./api-t4 -lab -rentan bo-tanpa-audit (back office versi pertama: semua aksi berjalan, tidak ada catatan)");
     harus(`Ratih menjalankan ${kata(AKSI_A.length)} aksi atas data Dina (akun 40001): melihat akun, melihat pengajuan, membuka kartu identitas, membekukan, membuka blokir, dan mengubah batas harian.`);
     harus(`Di mode ini tabel \`audit_log\` berisi ${kata(BARIS_AUDIT_A)} baris. Eko (akun 40002) tidak pernah dilihat siapa pun, dan jawaban untuknya juga ${kata(jawabA[1]![1])} baris:`);
-    harus("*Kondisi rekaman:* PostgreSQL 17.11, go1.27.1, dan database lab yang dibuat bersih untuk tiap bagian.");
+    harus(`*Kondisi rekaman:* PostgreSQL ${cocok(R.baris[1]!, /PostgreSQL (17\.\d+) \(/)[1]}, ${cocok(R.baris[1]!, /· (go1\.\d+\.\d+) ·/)[1]}, dan database lab yang dibuat bersih untuk tiap bagian.`);
     expect(readmeAudit).toContain("Setiap bagian membuat ulang schema, tiga role");
     expect(persetujuanTxt).toContain("Ratih adalah akun 420, Tim Risk Dua 421, Dina 40001, Eko 40002, Budi 419 (karyawan)");
     harus("lab memakai akun terpisah untuk tiap staf, yaitu Ratih (akun 420) dan Tim Risk Dua (akun 421).");
@@ -484,6 +484,22 @@ describe("baris riset R4-225 sampai R4-229, label turunan, dan rujukan luar", ()
     expect(barisRiset("R4-228")).toContain('"A database superuser bypasses all permission checks, except the right to log in."');
     expect(barisRiset("R4-229")).toContain("postgresql.org/docs/17/runtime-config-logging.html");
     expect(barisRiset("R4-229")).toContain('"The default is `none`."');
+    // versi PostgreSQL dari kepala rekaman, dan bagian README yang dikutip dengan tanda kutip di baris riset
+    const PGV = cocok(R.baris[1]!, /PostgreSQL (17\.\d+) \(/)[1]!;
+    expect(PGV).toBe("17.11");
+    expect(R.baris[1]).toContain(`go1.27.1 · pgx v5.11.0`);
+    expect(barisRiset("R4-228")).toContain(`(${PGV} menurut tautan Home di halaman)`);
+    expect(barisRiset("R4-228")).toContain(`Lab memakai ${PGV}`);
+    expect(barisRiset("R4-229")).toContain(`(${PGV} menurut tautan Home di halaman)`);
+    expect(barisRiset("R4-228").match(/17\.\d+/g)).toEqual([PGV, PGV]);
+    expect(barisRiset("R4-229").match(/17\.\d+/g)).toEqual([PGV]);
+    expect(barisRiset("R4-226")).toContain('"CWE-778: Insufficient Logging"');
+    expect(barisRiset("R4-226")).toContain('halaman memuat "CWE-778: Insufficient Logging (5.0)"');
+    expect(barisRiset("R4-227")).toContain('"Logging Cheat Sheet"');
+    expect(r25).toContain('bagian "Hal yang dikirim skrip lab" dan "Selisih dengan naskah" butir 10');
+    expect(readmeAudit).toContain("## Hal yang dikirim skrip lab, bukan akibat sistem");
+    expect(readmeAudit).toContain("## Selisih dengan naskah");
+    expect(riset.split("\n").filter((b) => b.startsWith("| R4-22") && /R4-22[5-9]/.test(b.slice(0, 9))).every((b) => (b.match(/"/g)?.length ?? 0) % 2 === 0)).toBe(true);
     expect(barisRiset("R4-229")).toContain("`log_statement=all` (`labs/b3-race/docker-compose.yml`)");
     for (const id of ["R4-225", "R4-226", "R4-227", "R4-228", "R4-229"]) expect(barisRiset(id).match(/\b4\.24\b/g)!.length, id).toBeGreaterThanOrEqual(1);
   });
