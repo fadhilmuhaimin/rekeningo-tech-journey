@@ -3272,6 +3272,38 @@
   "jawab": "Laporan merchant real-time di database yang sama dengan transaksi, notifikasi massal lewat satu worker, dan 13 orang menjadi 20 sampai 40 di satu repo. Campuran beban lab hanya baca saldo, riwayat, katalog, dan pembayaran."
  },
  {
+  "id": "t4-estimasi-1",
+  "halaman": "t4-estimasi",
+  "judul": "4.28 Estimasi Tahap 4 → 5",
+  "url": "tahap-4/estimasi/",
+  "tanya": "User naik 10 kali dari Tahap 3 ke Tahap 4, dan lagi dari Tahap 4 ke Tahap 5. Kenapa puncak request naik 8 kali di yang pertama dan 10 kali di yang kedua?",
+  "jawab": "Dari Tahap 3 ke Tahap 4 persentase aktif turun dari 25% ke 20% (× 0,8), jadi 10 × 0,8 = 8. Dari Tahap 4 ke Tahap 5 persentase aktif dan request per user tetap, jadi puncak naik 10 kali, dari 138,9 ke 1.388,9."
+ },
+ {
+  "id": "t4-estimasi-2",
+  "halaman": "t4-estimasi",
+  "judul": "4.28 Estimasi Tahap 4 → 5",
+  "url": "tahap-4/estimasi/",
+  "tanya": "Worker terpakai 56% di Tahap 4. Berapa persen bila hanya jumlah user yang naik 10 kali dan kapasitasnya tetap?",
+  "jawab": "Notifikasi uang naik dari 7,52 ke 75,2 per detik. Dibagi kapasitas 13,33 per detik, hasilnya 564%. Itu Hitungan atas Asumsi: perilaku per user dan kapasitas dianggap tetap."
+ },
+ {
+  "id": "t4-estimasi-3",
+  "halaman": "t4-estimasi",
+  "judul": "4.28 Estimasi Tahap 4 → 5",
+  "url": "tahap-4/estimasi/",
+  "tanya": "Rekaman beban menulis p95 di bawah 500 ms dan koneksi paling banyak ≤ 10. Apa yang dibuktikan, dan apa yang tidak?",
+  "jawab": "Di satu laptop dengan campuran lab, semua jawaban berstatus 200 atau 201, 95% permintaan selesai di bawah 500 ms, dan generator tidak jadi penghambat. Koneksi ≤ 10 dipasang pool sendiri, jadi bukan bukti. Kapasitas produksi tetap tidak terukur."
+ },
+ {
+  "id": "t4-estimasi-4",
+  "halaman": "t4-estimasi",
+  "judul": "4.28 Estimasi Tahap 4 → 5",
+  "url": "tahap-4/estimasi/",
+  "tanya": "Koneksi database 40 dari 100. Sebutkan tiap suku, dan kenapa 37 salah.",
+  "jawab": "2 × 10 untuk dua instance monolith, 2 × 5 untuk dua instance service pembayaran, 4 worker, 3 koneksi admin, dan 3 cadangan superuser: 40. Angka 37 melewatkan cadangan superuser."
+ },
+ {
   "id": "t4-adr-45-1",
   "halaman": "t4-adr-45",
   "judul": "4.29 ADR 45: Sengaja belum dilakukan",
