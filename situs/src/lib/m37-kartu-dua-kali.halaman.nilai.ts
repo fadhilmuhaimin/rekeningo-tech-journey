@@ -5,7 +5,7 @@ export const SIDIK = {
   frontmatter: "8085f198dd993fa3",
   riset: ["3e76498315d0e3ab","71bd39bc847958e1","bd23ebcb9db8c83e","705a7dc77719f8a2","05827e414a3ea179"],
   diagram: "346625d7af69c80b",
-  skenario: "6b7259ad002e3857",
+  skenario: "9bb49e9b5f307fb5",
   snippet: ["97bfef51738baa51","bdff5fbcd682ddac","a8fc33ce88c48e55","c3292ec26b54f46b","28f412c8939184c0"],
 };
 
@@ -255,11 +255,11 @@ export const SKENARIO_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".langkah[2].kirim",
-  "=> SELECT id_penerbit, status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id_penerbit\n id_penerbit | status  | jumlah | ada_jurnal_tahan\n-------------+---------+--------+------------------\n AUTH-A      | ditahan | 80000  | f\n AUTH-B      | ditahan | 80000  | f\n(2 rows)\n=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'dana_tertahan' ORDER BY b.jenis\n jenis         | saldo_cache\n---------------+-------------\n dana_tertahan | 0\n pemakai       | 100000\n(2 rows)"
+  "=> SELECT id_penerbit, status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id_penerbit\n id_penerbit | status  | jumlah | ada_jurnal_tahan\n-------------+---------+--------+------------------\n AUTH-A      | ditahan | 80000  | f\n AUTH-B      | ditahan | 80000  | f\n(2 rows)"
  ],
  [
   ".langkah[2].jelas",
-  "Kolom ada_jurnal_tahan bernilai f di kedua baris, dan buku dana_tertahan Rp0. Saldo Budi di buku tetap Rp100.000."
+  "Kolom ada_jurnal_tahan bernilai f di kedua baris. Di rekaman yang sama, buku dana_tertahan berisi Rp0 dan saldo Budi tetap Rp100.000."
  ],
  [
   ".langkah[2].nada",
@@ -283,34 +283,10 @@ export const SKENARIO_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".langkah[3].jelas",
-  "Penagihan AUTH-A menutup Rp80.000 dari saldo. Penagihan AUTH-B ditolak ledger, karena saldo yang tersisa tidak cukup."
+  "Penagihan AUTH-A menutup Rp80.000 dari saldo, dan saldo Budi tinggal Rp20.000 (Hitungan: Rp100.000 − Rp80.000). Penagihan AUTH-B ditolak ledger karena Rp20.000 kurang dari Rp80.000: persetujuan kedua sudah diberikan tanpa saldo yang menutupinya."
  ],
  [
   ".langkah[3].nada",
-  "warn"
- ],
- [
-  ".langkah[4].dari",
-  "srv"
- ],
- [
-  ".langkah[4].ke",
-  "dbm"
- ],
- [
-  ".langkah[4].judul",
-  "Saldo Budi Rp20.000, dan Rp80.000 tanpa penutup"
- ],
- [
-  ".langkah[4].kirim",
-  "=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'settlement_kartu' ORDER BY b.jenis\n jenis            | saldo_cache\n------------------+-------------\n pemakai          | 20000\n settlement_kartu | 80000\n(2 rows)"
- ],
- [
-  ".langkah[4].jelas",
-  "Saldo Budi Rp20.000, dan penagihan pertama Rp80.000 tercatat di settlement_kartu. Persetujuan kedua, Rp80.000, sudah diberikan tanpa saldo yang menutupinya (Hitungan: Rp100.000 − Rp80.000 = Rp20.000)."
- ],
- [
-  ".langkah[4].nada",
   "warn"
  ],
  [

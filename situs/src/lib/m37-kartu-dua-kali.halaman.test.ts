@@ -118,7 +118,6 @@ const oHitung = O.nomor((b) => b.startsWith("=> SELECT count(*) AS disetujui"), 
 const oHitungAkhir = O.nomor((b) => b === "(1 row)", oHitung);
 const oClearing = O.nomor((b) => b.startsWith("clearing AUTH-A"), oB);
 const oPenutup = O.nomor((b) => b.startsWith("# Disetujui kepada toko"), oB);
-const oBukuB = O.nomor((b) => b.startsWith("=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'settlement_kartu'"), oB);
 
 const P = bagian(penerbit);
 const pA = P.nomor((b) => b.startsWith("# --- A. ")), pB = P.nomor((b) => b.startsWith("# --- B. ")), pC = P.nomor((b) => b.startsWith("# --- C. ")), pD = P.nomor((b) => b.startsWith("# --- D. "));
@@ -543,12 +542,12 @@ describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
 
 describe("skenario alur t4-m37.json: valid, nilai dari rekaman, tebakan, dan varian", () => {
   const d = core.normalize(skenario);
-  test("valid menurut alur-core dengan rekaman yang ada; tiga komponen; sumber otorisasi.txt; lima langkah dan tiga langkah varian dari indeks 3", () => {
+  test("valid menurut alur-core dengan rekaman yang ada; tiga komponen; sumber otorisasi.txt; empat langkah dan tiga langkah varian dari indeks 3", () => {
     expect(core.validate(d, { exists: (p) => fs.existsSync(path.join(akar, p)) })).toEqual([]);
     expect(skenario.sumber).toMatchObject({ jenis: "rekaman", file: "labs/t4-kartu/output/otorisasi.txt", fileVarian: "labs/t4-kartu/output/otorisasi.txt" });
     expect(skenario.komponen.map((k) => [k.id, k.label])).toEqual([["pnb", "Penerbit tiruan"], ["srv", "Server api-t4 (versi pertama)"], ["dbm", "Database: otorisasi_kartu dan buku"]]);
     expect(skenario.perangkat ?? []).toEqual([]);
-    expect(skenario.langkah).toHaveLength(5);
+    expect(skenario.langkah).toHaveLength(4);
     expect(skenario.varian.langkah).toHaveLength(3);
     expect(skenario.varian.mulai).toBe(3);
     expect(skenario.varian.label).toBe("otorisasi ketiga datang sesudah dua yang pertama selesai");
@@ -591,35 +590,33 @@ describe("skenario alur t4-m37.json: valid, nilai dari rekaman, tebakan, dan var
       for (const b of kirim.split("\n")) expect(baris.some((r) => r === b || (b.startsWith("#") && r.startsWith(b))), `tidak ada di rekaman: ${b}`).toBe(true);
     };
     for (const l of [...skenario.langkah, ...skenario.varian.langkah]) ada(otorisasi, l.kirim);
-    const [l1, l2, l3, l4, l5] = skenario.langkah;
+    const [l1, l2, l3, l4] = skenario.langkah;
     expect(l1!.kirim).toBe(`${O.baris[5]!.replace(/ \(token acak.*$/, "")}\n${O.baris[3]!.replace(/ \(versi pertama.*$/, "")}`);
     expect(l2!.kirim).toBe(O.teks(oAuthA, oAuthA + 1));
-    expect(l3!.kirim).toBe(O.teks(oAuthA + 2, oBuku + 5));
+    expect(l3!.kirim).toBe(O.teks(oAuthA + 2, oTabelAkhir));
     expect(l4!.kirim).toBe(O.teks(oClearing, oClearing + 1));
-    expect(l5!.kirim).toBe(O.teks(oBukuB, oBukuB + 5));
     const [v1, v2, v3] = skenario.varian.langkah;
     expect(v1!.kirim).toBe(O.teks(oAuthA + 14, oAuthA + 15));
     expect(v2!.kirim).toBe(O.teks(oHitung, oHitungAkhir));
     expect(v3!.kirim).toBe(O.teks(oClearing, oClearing + 2));
-    expect(skenario.langkah.map((l) => [l.dari, l.ke ?? ""])).toEqual([["pnb", "srv"], ["pnb", "srv"], ["srv", "dbm"], ["pnb", "srv"], ["srv", "dbm"]]);
+    expect(skenario.langkah.map((l) => [l.dari, l.ke ?? ""])).toEqual([["pnb", "srv"], ["pnb", "srv"], ["srv", "dbm"], ["pnb", "srv"]]);
     expect(skenario.varian.langkah.map((l) => [l.dari, l.ke ?? ""])).toEqual([["pnb", "srv"], ["srv", "dbm"], ["pnb", "srv"]]);
-    expect(skenario.langkah.map((l) => l.nada ?? "")).toEqual(["", "warn", "warn", "warn", "warn"]);
+    expect(skenario.langkah.map((l) => l.nada ?? "")).toEqual(["", "warn", "warn", "warn"]);
     expect(skenario.varian.langkah.map((l) => l.nada ?? "")).toEqual(["warn", "warn", "warn"]);
   });
   test("teks langkah (judul dan jelas) dari angka rekaman; langkah varian terakhir tidak membuka jawaban tebakan jalur utama", () => {
-    const [l1, l2, l3, l4, l5] = skenario.langkah;
+    const [l1, l2, l3, l4] = skenario.langkah;
     expect(l1!.jelas).toBe(`Budi punya kartu virtual dan saldo ${rp(SALDO)}. Server memakai versi pertama handler otorisasi, dengan jeda 300 ms di antara cek dan tulis supaya celahnya terekam. Penerbit tiruan memberi tenggat 10 detik di bagian ini.`);
     expect(l2!.jelas).toBe("Catatan penerbit tiruan menulis sumber keputusan: rekeningo. Penerbit tidak memutuskan sendiri, dan kedua id_penerbit berbeda.");
-    expect(l3!.jelas).toBe("Kolom ada_jurnal_tahan bernilai f di kedua baris, dan buku dana_tertahan Rp0. Saldo Budi di buku tetap Rp100.000.");
-    expect(l4!.jelas).toBe("Penagihan AUTH-A menutup Rp80.000 dari saldo. Penagihan AUTH-B ditolak ledger, karena saldo yang tersisa tidak cukup.");
-    expect(l5!.jelas).toBe(`Saldo Budi ${rp(SALDO_SESUDAH)}, dan penagihan pertama ${rp(NOMINAL)} tercatat di settlement_kartu. Persetujuan kedua, ${rp(NOMINAL)}, sudah diberikan tanpa saldo yang menutupinya (Hitungan: ${rp(SALDO)} − ${rp(NOMINAL)} = ${rp(SALDO_SESUDAH)}).`);
+    expect(l3!.jelas).toBe(`Kolom ada_jurnal_tahan bernilai f di kedua baris. Di rekaman yang sama, buku dana_tertahan berisi Rp${BUKU_A.dana_tertahan} dan saldo Budi tetap ${rp(BUKU_A.pemakai!)}.`);
+    expect(l4!.jelas).toBe(`Penagihan AUTH-A menutup ${rp(NOMINAL)} dari saldo, dan saldo Budi tinggal ${rp(SALDO_SESUDAH)} (Hitungan: ${rp(SALDO)} − ${rp(NOMINAL)}). Penagihan AUTH-B ditolak ledger karena ${rp(SALDO_SESUDAH)} kurang dari ${rp(NOMINAL)}: persetujuan kedua sudah diberikan tanpa saldo yang menutupinya.`);
     const [v1, v2, v3] = skenario.varian.langkah;
     expect(v1!.jelas).toBe("Tidak ada yang berjalan bersamaan, dan AUTH-C tetap disetujui. Tanpa dana tertahan, tidak ada yang mengubah saldo yang dibaca otorisasi berikutnya.");
     expect(v2!.jelas).toBe(`Tiga persetujuan masing-masing ${rp(NOMINAL)} berjumlah ${rp(JUMLAH_DISETUJUI)}, untuk saldo ${rp(SALDO)} (3 × ${rp(NOMINAL)}, Hitungan).`);
     expect(v3!.jelas).toBe(`Hanya penagihan pertama yang punya penutup. ${rp(JUMLAH_DISETUJUI - NOMINAL)} yang sudah disetujui tidak punya saldo yang menutupinya (${rp(JUMLAH_DISETUJUI)} − ${rp(NOMINAL)}, Hitungan).`);
     expect(skenario.langkah.map((l) => l.judul)).toEqual([
       "Penerbit meminta dua otorisasi Rp80.000 untuk Budi", "Rekeningo menjawab setuju untuk keduanya", "Dua baris berstatus ditahan, tanpa jurnal tahan",
-      "Penagihan datang: yang pertama lolos, yang kedua ditolak", "Saldo Budi Rp20.000, dan Rp80.000 tanpa penutup",
+      "Penagihan datang: yang pertama lolos, yang kedua ditolak",
     ]);
     expect(skenario.varian.langkah.map((l) => l.judul)).toEqual(["Otorisasi ketiga datang sesudah dua yang pertama selesai", "Tiga persetujuan berjumlah Rp240.000", "Penagihan kedua dan ketiga ditolak ledger"]);
     expect(skenario.pengantar).toContain(`${rp(NOMINAL)} untuk kartu Budi, yang saldonya ${rp(SALDO)}`);

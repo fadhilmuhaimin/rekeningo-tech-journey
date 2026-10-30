@@ -54,8 +54,8 @@
       "dari": "srv",
       "ke": "dbm",
       "judul": "Dua baris berstatus ditahan, tanpa jurnal tahan",
-      "kirim": "=> SELECT id_penerbit, status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id_penerbit\n id_penerbit | status  | jumlah | ada_jurnal_tahan\n-------------+---------+--------+------------------\n AUTH-A      | ditahan | 80000  | f\n AUTH-B      | ditahan | 80000  | f\n(2 rows)\n=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'dana_tertahan' ORDER BY b.jenis\n jenis         | saldo_cache\n---------------+-------------\n dana_tertahan | 0\n pemakai       | 100000\n(2 rows)",
-      "jelas": "Kolom ada_jurnal_tahan bernilai f di kedua baris, dan buku dana_tertahan Rp0. Saldo Budi di buku tetap Rp100.000.",
+      "kirim": "=> SELECT id_penerbit, status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id_penerbit\n id_penerbit | status  | jumlah | ada_jurnal_tahan\n-------------+---------+--------+------------------\n AUTH-A      | ditahan | 80000  | f\n AUTH-B      | ditahan | 80000  | f\n(2 rows)",
+      "jelas": "Kolom ada_jurnal_tahan bernilai f di kedua baris. Di rekaman yang sama, buku dana_tertahan berisi Rp0 dan saldo Budi tetap Rp100.000.",
       "nada": "warn"
     },
     {
@@ -63,15 +63,7 @@
       "ke": "srv",
       "judul": "Penagihan datang: yang pertama lolos, yang kedua ditolak",
       "kirim": "clearing AUTH-A Rp80.000: HTTP 200\nclearing AUTH-B Rp80.000: HTTP 409, /problems/saldo-kurang",
-      "jelas": "Penagihan AUTH-A menutup Rp80.000 dari saldo. Penagihan AUTH-B ditolak ledger, karena saldo yang tersisa tidak cukup.",
-      "nada": "warn"
-    },
-    {
-      "dari": "srv",
-      "ke": "dbm",
-      "judul": "Saldo Budi Rp20.000, dan Rp80.000 tanpa penutup",
-      "kirim": "=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'settlement_kartu' ORDER BY b.jenis\n jenis            | saldo_cache\n------------------+-------------\n pemakai          | 20000\n settlement_kartu | 80000\n(2 rows)",
-      "jelas": "Saldo Budi Rp20.000, dan penagihan pertama Rp80.000 tercatat di settlement_kartu. Persetujuan kedua, Rp80.000, sudah diberikan tanpa saldo yang menutupinya (Hitungan: Rp100.000 − Rp80.000 = Rp20.000).",
+      "jelas": "Penagihan AUTH-A menutup Rp80.000 dari saldo, dan saldo Budi tinggal Rp20.000 (Hitungan: Rp100.000 − Rp80.000). Penagihan AUTH-B ditolak ledger karena Rp20.000 kurang dari Rp80.000: persetujuan kedua sudah diberikan tanpa saldo yang menutupinya.",
       "nada": "warn"
     }
   ],
