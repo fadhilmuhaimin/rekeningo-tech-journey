@@ -224,7 +224,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(hal41).toMatch(/\| P1 \| Kartu virtual \| User terverifikasi menerbitkan kartu virtual/);
     expect(hal42).toContain("permintaan otorisasi dari penerbit kartu ([[t4-m37]])");
     expect(hal44).toContain("di penerbit kartu yang memanggil Rekeningo dengan tenggat 2 detik ([[t4-m37]])");
-    expect(hal45).toContain("[[t4-m37\\|M37]]");
+    expect(hal45).toMatch(/^\| \(tidak ada\) \| `kartu` \(.*\[\[t4-m37\\\|M37\]\] \|$/m);
+    expect(hal45).toMatch(/^\| \(tidak ada\) \| `otorisasi_kartu` \(.*\[\[t4-m37\\\|M37\]\] \|$/m);
     harus("- [[t4-prd]]: PRD v4 menulis kartu virtual sebagai P1, dan jawaban yang terlambat diputuskan penerbit menurut setelannya.");
     harus("- [[t4-skema]]: tabel `kartu` dan `otorisasi_kartu`.");
     harus("- [[t4-fitur-teknis]]: kartu virtual sebagai fitur dan pekerjaan teknisnya.");
@@ -288,7 +289,7 @@ describe("naskah M37: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(barisRiset("R4-216")).toContain("docs.stripe.com/issuing/controls/real-time-authorizations (dibuka 2026-10-30;");
     expect(barisRiset("R4-216")).toContain("within 2 seconds, the `Authorization` is automatically approved or declined based on your timeout settings");
     expect(penerbitGo).toContain("tenggat");
-    expect(runLab).toContain("aturan_penerbit(tenggat_ms=10_000)");
+    expect(runLab.slice(runLab.indexOf("def rekam_otorisasi():"), runLab.indexOf("# ---------- tenggat.txt"))).toContain("aturan_penerbit(tenggat_ms=10_000)");
     expect(otorisasi).toContain("# Tenggat penerbit tiruan dinaikkan ke 10 detik di bagian ini: yang direkam di sini bukan batas waktu, tetapi apakah dana ditahan.");
     harus("Tenggat penerbit di bagian ini dinaikkan ke 10 detik, jadi waktu tidak ikut menentukan hasilnya:");
     harus("Di lab, penerbit adalah proses tiruan di komputer sendiri: tidak ada kartu, nomor, atau layanan nyata.");
@@ -349,6 +350,7 @@ describe("rekaman otorisasi.txt: bagian A, B, dan D; nilai yang dikutip", () => 
   });
   test("D: balasan 409 dari Rekeningo dibaca penerbit tiruan sebagai timeout; kode penerbit tiruan memperlakukan balasan bukan 200 sebagai tidak ada jawaban", () => {
     expect(D_AUTH1[1]).toBe("90.000");
+    expect(bagOD).toContain(`"jumlah":${angka(D_AUTH1[1]!)}}`);
     expect(bagOD).toContain("HTTP/1.1 409 Conflict");
     expect(bagOD).toContain("Tiruan ini memperlakukan semua balasan yang bukan 200 sebagai tidak ada jawaban, lalu memutuskan menurut setelan timeout (setuju).");
     expect(bagOD).toContain("tanpa merinci status HTTP lain [perlu verifikasi]");
@@ -374,7 +376,8 @@ describe("rekaman penerbit.txt: jawaban terlambat, penagihan tanpa jurnal, dan r
     expect(bagPA).toContain("clearing AUTH-P1 Rp80.000 (penagihan datang): HTTP 404, /problems/otorisasi-tidak-ditemukan");
     expect(bagPA).toContain("clearing AUTH-P2 Rp80.000: HTTP 200, status ditangkap");
     expect(bagPA).toContain("di Rekeningo tidak ada hold dan tidak ada baris. Saldo Joko tidak berkurang, jadi dana yang sama bisa dibelanjakan lagi");
-    expect([P_SALDO, P_NOMINAL, P_DISETUJUI, P_PENUTUP]).toEqual([SALDO, NOMINAL, 2 * NOMINAL, NOMINAL]);
+    expect([P_SALDO, P_NOMINAL, P_DISETUJUI, P_PENUTUP, angka(P_TOTAL[2]!)]).toEqual([SALDO, NOMINAL, 2 * NOMINAL, NOMINAL, SALDO]);
+    expect(P.baris[1]!.replace(/^# PostgreSQL (\d+\.\d+) .*$/, "$1")).toBe(O.baris[1]!.replace(/^# PostgreSQL (\d+\.\d+) .*$/, "$1"));
     expect(P_BUKU).toEqual({ pemakai: SALDO - NOMINAL, settlement_kartu: NOMINAL });
     expect(penerbitGo).toContain('flag.String("bila-timeout", "setuju"');
     harus(`Penerbit menyetujui \`AUTH-P1\` sendiri, dan Rekeningo tidak punya baris maupun hold untuk id itu. Saldo tidak berkurang, jadi \`AUTH-P2\` ${rp(P_NOMINAL)} disetujui lagi oleh Rekeningo. Penagihan \`AUTH-P1\` dijawab 404. Penerbit menyetujui ${rp(P_DISETUJUI)} untuk saldo ${rp(P_SALDO)}, dan hanya ${rp(P_PENUTUP)} yang punya penutup di ledger.`);
@@ -385,10 +388,17 @@ describe("rekaman penerbit.txt: jawaban terlambat, penagihan tanpa jurnal, dan r
     harus("Itu angka yang sama dengan cerita Budi, dari jalan yang berbeda.");
   });
   test("B dan C: penagihan atas otorisasi ditolak dijawab 409 tanpa jurnal dengan saldo tidak cukup; rekonsiliasi SQL menemukan AUTH-P1; job rekonsiliasi kartu belum ada", () => {
+    expect(bagPB).toContain("AUTH-P3 Rp150.000: tolak (sumber: rekeningo, alasan: saldo-kurang)");
     expect(bagPB).toContain("clearing AUTH-P3 Rp150.000 (diperankan lab): HTTP 409, /problems/otorisasi-status");
+    expect(bagPB).toMatch(/ AUTH-P3\s+\| ditolak \| f\n\(1 row\)/);
+    expect(bagPB).toMatch(/saldo_cache\n-+\n 100000\n\(1 row\)/);
+    expect(angka(cocok(bagPB, /saldo_cache\n-+\n (\d+)\n/)[1]!)).toBe(SALDO);
+    expect(angka(cocok(bagPB, /AUTH-P3 Rp([\d.]+): tolak/)[1]!)).toBeGreaterThan(SALDO);
     expect(bagPB).toContain("di sini saldo Kiki memang tidak cukup");
     expect(bagPB).toContain("Rekeningo tidak menjurnal penagihan atas otorisasi yang ditolaknya (409)");
     expect(bagPC).toMatch(/AUTH-P1\s+\| setuju\s+\| timeout\s+\| \(tidak ada baris\)\s+\| setuju di penerbit, tidak ditahan di Rekeningo/);
+    expect(bagPC).toMatch(/AUTH-P2\s+\| setuju\s+\| rekeningo\s+\| ditangkap\s+\| cocok/);
+    expect(bagPC).toMatch(/AUTH-P3\s+\| tolak\s+\| rekeningo\s+\| ditolak\s+\| cocok\n\(3 rows\)/);
     expect(bagPC).toContain("job rekonsiliasi kartu belum ada di api-t4");
     expect(readme).toContain("- Job rekonsiliasi kartu: tidak ada; perbandingan di `penerbit.txt` dijalankan lab.");
     expect(readme).toContain("7. Rekeningo tidak menjurnal penagihan atas otorisasi yang ditolaknya (409), walau saldo pemilik cukup.");
@@ -501,6 +511,48 @@ describe("Snippet: rentang dari struktur rekaman dan kode, judul, dan sidik teks
     expect(K.baris[kAkhir - 1]).toMatch(/^\treturn catat\("ditahan", ""\)/);
     expect(kAkhir - kAwal).toBe(9);
   });
+  test("isi tiap Snippet sama dengan teks yang diharapkan, dengan angka dari konstanta yang diturunkan dari rekaman (bukan hanya sidik)", () => {
+    const a = rib(NOMINAL), t = String(NOMINAL), saldo = String(SALDO);
+    expect(O.teks(oAuthA, oTabelAkhir)).toBe([
+      `AUTH-A Rp${a}: setuju (sumber: rekeningo)`, `AUTH-B Rp${a}: setuju (sumber: rekeningo)`,
+      "=> SELECT id_penerbit, status, jumlah, jurnal_tahan_id IS NOT NULL AS ada_jurnal_tahan FROM otorisasi_kartu ORDER BY id_penerbit",
+      " id_penerbit | status  | jumlah | ada_jurnal_tahan", "-------------+---------+--------+------------------",
+      ` AUTH-A      | ditahan | ${t}  | f`, ` AUTH-B      | ditahan | ${t}  | f`, "(2 rows)",
+    ].join("\n"));
+    expect(O.teks(oBuku, oHitungAkhir)).toBe([
+      "=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'dana_tertahan' ORDER BY b.jenis",
+      " jenis         | saldo_cache", "---------------+-------------", " dana_tertahan | 0", ` pemakai       | ${saldo}`, "(2 rows)",
+      "# Kontrol: otorisasi ketiga datang sesudah dua yang pertama selesai, bukan bersamaan.", `AUTH-C Rp${a}: setuju (sumber: rekeningo)`,
+      "# Yang membuat ini gagal bukan keserentakan: tanpa hold, tidak ada yang mengubah saldo yang dibaca otorisasi berikutnya. Jeda 300 ms hanya melebarkan celah di antara cek dan tulis.",
+      "=> SELECT count(*) AS disetujui, sum(jumlah) AS jumlah_disetujui FROM otorisasi_kartu WHERE status = 'ditahan'",
+      " disetujui | jumlah_disetujui", "-----------+------------------", ` ${DISETUJUI}         | ${JUMLAH_DISETUJUI}`, "(1 row)",
+    ].join("\n"));
+    expect(O.teks(oClearing, oPenutup)).toBe([
+      `clearing AUTH-A Rp${a}: HTTP 200`, `clearing AUTH-B Rp${a}: HTTP 409, /problems/saldo-kurang`, `clearing AUTH-C Rp${a}: HTTP 409, /problems/saldo-kurang`,
+      "=> SELECT id_penerbit, status FROM otorisasi_kartu ORDER BY id_penerbit", " id_penerbit | status", "-------------+-----------",
+      " AUTH-A      | ditangkap", " AUTH-B      | ditahan", " AUTH-C      | ditahan", "(3 rows)",
+      "=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40301 OR b.jenis = 'settlement_kartu' ORDER BY b.jenis",
+      " jenis            | saldo_cache", "------------------+-------------", ` pemakai          | ${SALDO_SESUDAH}`, ` settlement_kartu | ${BUKU_B.settlement_kartu}`, "(2 rows)",
+      `# Disetujui kepada toko Rp${rib(JUMLAH_DISETUJUI)}; saldo Budi Rp${rib(SALDO)}. Hanya satu clearing yang punya penutup, dua yang lain ditolak ledger (409) dan tidak punya jurnal.`,
+    ].join("\n"));
+    expect(P.teks(pA, pPenutup)).toBe([
+      "# --- A. Keadaan pertama (dokumentasi satu penerbit): jawaban terlambat diputuskan penerbit menurut setelannya, bukan menurut Rekeningo ---",
+      "# Buku Joko dikunci transaction lain lebih lama dari tenggat. Setelan penerbit: bila timeout, setuju.",
+      `AUTH-P1 Rp${a}: setuju (sumber: timeout)`,
+      `# Penerbit sudah menyetujui Rp${a}; di Rekeningo tidak ada hold dan tidak ada baris. Saldo Joko tidak berkurang, jadi dana yang sama bisa dibelanjakan lagi:`,
+      `AUTH-P2 Rp${a}: setuju (sumber: rekeningo)`,
+      `clearing AUTH-P1 Rp${a} (penagihan datang): HTTP 404, /problems/otorisasi-tidak-ditemukan`, `clearing AUTH-P2 Rp${a}: HTTP 200, status ditangkap`,
+      "=> SELECT b.jenis, b.saldo_cache FROM buku b WHERE b.akun_id = 40309 OR b.jenis = 'settlement_kartu' ORDER BY b.jenis",
+      " jenis            | saldo_cache", "------------------+-------------", ` pemakai          | ${P_BUKU.pemakai}`, ` settlement_kartu | ${P_BUKU.settlement_kartu}`, "(2 rows)",
+      `# Disetujui penerbit kepada toko: Rp${rib(P_DISETUJUI)} (AUTH-P1 dan AUTH-P2); saldo Joko awal Rp${rib(P_SALDO)}; yang punya penutup di ledger: Rp${rib(P_PENUTUP)}.`,
+    ].join("\n"));
+    expect(K.teks(kAwal, kAkhir)).toBe([
+      '\tif kartu.Status != "aktif" || a.Status == "dibekukan" {', '\t\treturn catat("ditolak", "kartu-dibekukan")', "\t}",
+      "\tif a.Saldo < in.Jumlah { // saldo_cache tanpa lock: sudah bisa basi saat baris ditulis", '\t\treturn catat("ditolak", "saldo-kurang")', "\t}",
+      "\tif s.t4.JedaCekTulis > 0 {", "\t\ttime.Sleep(s.t4.JedaCekTulis)", "\t}",
+      '\treturn catat("ditahan", "") // status ditahan tanpa jurnal: tidak ada dana yang benar-benar tertahan',
+    ].join("\n"));
+  });
   test("teks yang tampil di tiap Snippet dikunci dengan sidik: rekaman atau kode yang berubah menggagalkan tes dan memaksa halaman dibaca ulang", () => {
     const tampil = tag.map((t, i) => {
       const [a, b] = lines[i]!.split(":").map(Number) as [number, number];
@@ -570,7 +622,7 @@ describe("skenario alur t4-m37.json: valid, nilai dari rekaman, tebakan, dan var
     expect(badan).toContain('<SkripLama daftar={["hp","alur-core","alur"]} />');
     expect(skenario.sumber.catatan).toContain("make -C labs/t4-kartu run");
     expect(readme).toContain("make -C labs/t4-kartu run                       # semua bagian, ±4 menit, menulis labs/t4-kartu/output/*.txt");
-    expect(runLab).toContain("def rekam_otorisasi");
+    expect(runLab).toContain("def rekam_otorisasi():");
     expect(skenario.sumber.catatan).toContain(`Lab t4-kartu, PostgreSQL ${cocok(otorisasi, /# PostgreSQL (\d+\.\d+) /)[1]}, dari database bersih`);
     expect(skenario.sumber.catatan).toContain("toko online, jam, dan laporan harian adalah Ilustrasi");
     harus("Hasilnya sama: tiga persetujuan Rp80.000 untuk saldo Rp100.000, jadi keserentakan bukan syaratnya. Lab tidak punya app dan tidak merekam layar.");
