@@ -1236,6 +1236,8 @@ describe("kalimat pembuka tiap butir tertaut ke rekaman dan halaman asalnya, tan
     expect(semua(bag(ganda, "A"), /^ (\d+) +\| karyawan +\| (\d+)$/)).toHaveLength(2);
     harus(kartu[0]!.tanya, "gateway mengirim kabar yang sama dua kali, handler pertama menjurnal tiap kiriman");
     harus(butir(1).pertama, "gateway mengirim kabar yang sama dua kali, dan handler pertama menjurnal tiap kiriman.");
+    harus(butir(1).pertama, "(`ganda.txt` bagian A, lab t4-webhook)");
+    harus(butir(1).pertama, "(`ganda.txt` bagian B).");
     // butir 2: rahasia dirotasi, api-t4 belum disamakan
     harus(butir(2).pertama, "Di [[t4-m30]], gateway merotasi secret dan api-t4 masih memegang yang lama.");
     harus(rk("t4-webhook", "retry.txt"), "M30: gateway merotasi rahasia, api-t4 belum disamakan");
@@ -1251,6 +1253,8 @@ describe("kalimat pembuka tiap butir tertaut ke rekaman dan halaman asalnya, tan
     harus(fileHalaman("t4-storage"), "unggah lewat presigned PUT 5 menit");
     harus(fileHalaman("t4-storage"), "Presigned URL adalah alamat di penyimpanan objek yang sudah ditandatangani server.");
     // butir 9: kejadian M36 adalah cerita (Ilustrasi), dan jalur versi pertama hanya dibaca dari kode (Tidak dijalankan)
+    harus(butir(9).pertama, "Di [[t4-m36]], pratinjau gambar toko berisi teks JSON dari layanan dalam (cerita, Ilustrasi).");
+    harus(fileHalaman("t4-m36"), "jawabannya bukan gambar melainkan teks JSON dari layanan lain");
     harus(butir(9).pertama, "(cerita, Ilustrasi). Sebabnya, server mengambil alamat yang diisi merchant dengan akses jaringan miliknya (Tidak dijalankan).");
     harus(fileHalaman("t4-m36"), "*Angka cerita (Ilustrasi):*");
     harus(fileHalaman("t4-m36"), "Teks itu lalu ikut dikirim kembali ke merchant (dibaca dari kode di blok berikutnya, Tidak dijalankan).");
