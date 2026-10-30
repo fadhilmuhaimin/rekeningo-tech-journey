@@ -665,10 +665,10 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus("| Load test di server sungguhan | Memberi angka nyata untuk kode yang ada | Tidak dijalankan, dan kode Tahap 5 belum ada |");
     harus("Angka tahap lama tidak dikali sendiri, kecuali dikatakan terang seperti di langkah 7.");
     harus(`dan tulis semua suku batas itu, seperti ${INST * POOL + INST_BAYAR * POOL_BAYAR + WORKER_DB + ADMIN + CADANGAN} dari ${MAX_KONEKSI} koneksi.`);
-    harus("Keputusan atas angka ini ditulis di [[t4-adr-45]].");
+    harus("Keputusan Tahap 4 atas angka ini ditulis di [[t4-adr-45]], dan angka Tahap 5 dibaca ulang di Tahap 5.");
     harus(`| Perlu pooler seperti PgBouncer? | Koneksi database ${INST * POOL + INST_BAYAR * POOL_BAYAR + WORKER_DB + ADMIN + CADANGAN} dari ${MAX_KONEKSI} | [[t4-adr-45]] |`);
     harus(`| Perlu memecah modul jadi service? | Kapasitas satu server belum terukur, tim ${TIM_ORANG.reduce((a, b) => a + b, 0)} orang | [[t4-adr-45]] |`);
-    harus(`| Perlu komponen lain untuk beban Tahap 5? | Worker ${Math.round(pakai5 * 100)}% dan koneksi tertahan ${koma(L5, 1)} lawan ${BATAS_L} | [[t4-adr-45]] |`);
+    harus(`| Perlu komponen lain untuk beban Tahap 5? | Worker ${Math.round(pakai5 * 100)}% dan koneksi tertahan ${koma(L5, 1)} lawan ${BATAS_L} (Hitungan atas Asumsi) | Belum diputuskan di Tahap 4. [[t4-adr-45]] menulis pemicu yang ditunda, dan Tahap 5 membacanya dengan angka tahap itu |`);
     harus(`Dari Tahap 3 ke Tahap 4 persentase aktif turun dari ${a3.aktif}% ke ${a4.aktif}% (× ${koma(a4.aktif / a3.aktif, 1)}), jadi ${a4.user / a3.user} × ${koma(a4.aktif / a3.aktif, 1)} = ${Math.round(h4.puncak / h3.puncak)}. Dari Tahap 4 ke Tahap 5 persentase aktif dan request per user tetap, jadi puncak naik ${a5.user / a4.user} kali, dari ${koma(h4.puncak, 1)} ke ${kali(h5.puncak, 1)}.`);
     harus(`Notifikasi uang naik dari ${koma(notif4, 2)} ke ${koma(notif5, 1)} per detik. Dibagi kapasitas ${koma(KAP, 2)} per detik, hasilnya ${Math.round((notif5Tulis / kapTulis) * 100)}%.`);
     harus(`Di satu laptop dengan campuran lab, semua jawaban berstatus 200 atau 201, 95% permintaan selesai di bawah ${cocok(runApi, /batas_p95 = (\d+)/)[1]} ms, dan generator tidak jadi penghambat.`);
@@ -1136,13 +1136,13 @@ describe("penutup celah mutasi tinjauan", () => {
   });
   test("jumlah kata badan tetap sama dan Rantai di Inti ringkas (kalimat tambahan di paragraf bebas tidak lolos)", () => {
     // paragraf prosa bebas tidak punya kunci kalimat tanpa lapis kunci baris; jumlah kata menangkap kalimat yang disisipkan atau dihapus
-    expect(badan.split(/\s+/).filter(Boolean).length).toBe(3233);
+    expect(badan.split(/\s+/).filter(Boolean).length).toBe(3264);
     expect(badan).toContain("<Rantai data={intiDiagram} ringkas />");
   });
   test("kalimat halaman tidak menjawab tebakan 4.31 dan tidak memilih komponen", () => {
     expect(badan).not.toMatch(/pecah lebih dulu|yang pecah|jawaban(nya)? (tebakan|Tahap 5)|paling dulu|harus diganti/i);
     expect(hitungKali(badan, "Tabel ini bukan desain Tahap 5")).toBe(1);
-    expect(hitungKali(badan, "Keputusan atas angka ini ditulis di [[t4-adr-45]].")).toBe(1);
+    expect(hitungKali(badan, "Keputusan Tahap 4 atas angka ini ditulis di [[t4-adr-45]]")).toBe(1);
   });
   test("registry: bagian dan masalah halaman cocok dengan peta naskah dan halaman turunan", () => {
     const h = dari("t4-estimasi");
