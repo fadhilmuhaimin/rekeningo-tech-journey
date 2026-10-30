@@ -866,6 +866,43 @@ describe("tinjauan 4.19: rujukan bagian rekaman, kode ilustrasi yang dijalankan,
     expect(DETIK_BERLAKU / 60).toBe(MENIT_DIN);
     expect(barisRiset("R4-204")).toContain(`${DETIK_BERLAKU} detik ÷ 60 = ${MENIT_DIN} menit`);
   });
+  test("label kejujuran: kalimat 'tidak dibaca' atau 'belum terbaca' membawa [perlu verifikasi]; 'Dijalankan' hanya untuk Go dan pembanding Python; jumlah, tanggal, RFC, dan PSA sama dengan sumbernya", () => {
+    const kalimat = badan.split(/(?<=\.) |\n/).filter(Boolean);
+    const takTerbaca = kalimat.filter((k) => /tidak dibaca|belum terbaca/.test(k));
+    expect(takTerbaca.length).toBeGreaterThanOrEqual(8);
+    for (const k of takTerbaca) expect(k, k.slice(0, 50)).toContain("[perlu verifikasi");
+    expect([...badan.matchAll(/(?<!Tidak )Dijalankan\b/g)]).toHaveLength(2);
+    harus("*Dijalankan: lab api-t4 dan t4-qr");
+    harus("*Dijalankan hanya sebagai pembanding di lab: Python");
+    harus("[perlu verifikasi] berarti belum bisa dicek ke sumber primer.");
+    // nominal rupiah di halaman hanya yang berasal dari rekaman atau kode
+    expect(sD).toContain('{"nominal": 0}');
+    const boleh = new Set([0, 1, NOMINAL_DIN - 1, NOMINAL_DIN, NOMINAL_DIN + 1, SALDO_BU_MARNI, BATAS_STATIS, BATAS_STATIS + 1, SALDO_EKO, SALDO_EKO_AKHIR, KONST_TINGKAT]);
+    for (const m of badan.matchAll(/Rp(\d{1,3}(?:\.\d{3})*)/g)) expect(boleh.has(angka(m[1]!)), `Rp${m[1]}`).toBe(true);
+    for (const k of kalimat.filter((x) => x.includes(`Rp${rib(SALDO_EKO_AKHIR)}`))) expect(k, k.slice(0, 50)).toMatch(/Eko|Saldonya/);
+    // tanggal akses di halaman ada di baris riset yang dirujuk
+    const tanggalRiset = new Set([...[barisRiset("R4-101"), barisRiset("R4-200"), barisRiset("R4-201"), barisRiset("R4-202"), barisRiset("R4-203"), barisRiset("R4-204"), baca("plan/RISET-TAHAP-4.md")].join("\n").matchAll(/dibuka (2026-\d\d-\d\d)/g)].map((m) => m[1]!));
+    for (const m of badan.matchAll(/dibuka (2026-\d\d-\d\d)/g)) expect(tanggalRiset.has(m[1]!), m[1]).toBe(true);
+    for (const m of badan.matchAll(/RFC (\d+)/g)) expect(m[1], "RFC").toBe(cocok(badan, /rfc(\d+)\)/)[1]);
+    const psa = cocok(badan, /PSA(\d\d)(\d\d)(\d\d)\)/);
+    harus(`I-${psa[2]}${psa[3]}${psa[1]}-PSA`);
+    harus(`20${psa[1]}-${psa[2]}-${psa[3]}`);
+    harus("2022-01-18");
+    expect([...badan.matchAll(/RFC (\d+)/g)].length).toBeGreaterThanOrEqual(3);
+  });
+  test("kosakata lab: tim risk, penyetuju kedua, membekukan (bukan menghapus), dan lang Snippet sesuai berkas dan tab", () => {
+    expect(badan).not.toMatch(/\b(menghapus|dihapus|tim cs|satu staf)\b/);
+    expect(lapor).toContain("petugas risk");
+    expect(lapor).toContain("X-Penyetuju-Token");
+    expect(lapor).toContain("merchant dibekukan sementara");
+    for (const t of tag) {
+      const f = t.match(/file="([^"]+)"/)?.[1];
+      const lang = t.match(/lang="([^"]+)"/)?.[1];
+      if (f?.endsWith(".go")) expect(lang, t).toBe("go");
+      if (f?.endsWith(".txt")) expect(lang, t).toBeUndefined();
+    }
+    expect([...badan.matchAll(/<Snippet lang="(\w+)" code=/g)].map((m) => m[1])).toEqual(["js", "php", "python"]);
+  });
   test("heading halaman: urutan dan teks (kunci; heading tidak punya sumber luar)", () => {
     expect([...badan.matchAll(/^(#{2,3}) (.+)$/gm)].map((m) => `${m[1]} ${m[2]}`)).toEqual([
       "## Inti",
