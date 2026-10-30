@@ -771,6 +771,39 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     }
     expect([...kolom("R4-249", 3).matchAll(/\d{4}-\d{2}-\d{2}/g)].map((m) => m[0])).toEqual(["2026-10-29"]);
     expect(riset4.split("\n").find((x) => x.startsWith("| R4-247 |"))!.match(/\d{4}-\d{2}-\d{2}/)).toBeNull();
+    const batasKode = [...kodeBeban.matchAll(/case jenis < (\d+):/g)].map((m) => Number(m[1]));
+    expect(kolom("R4-246", 3)).toContain("Lab memakai PostgreSQL 17.11; R2-207 dan 3.8 memakai halaman yang sama untuk angka 100 dan 3");
+    expect(kolom("R4-247", 3)).toContain("kata Hitungan hanya penjelas");
+    expect(kolom("R4-249", 3)).toContain("halaman 4.28 memakai 3 dan menulis hasil dengan 2 di sebelahnya");
+    const r248 = kolom("R4-248", 3);
+    expect(r248).toContain(`${ribu(Number(cocok(beban, /permintaan dijadwalkan: (\d+)/)[1]))} permintaan terjadwal (⌊${koma(h4.puncak, 1)} × ${cocok(beban, /⌊138\.9 × (\d+)⌋/)[1]}⌋)`);
+    expect(r248).toContain(`p95 di bawah ${cocok(runApi, /batas_p95 = (\d+)/)[1]} ms (batas lab, Asumsi; nilai tidak direkam)`);
+    expect(r248).toContain("jadwal tidak tertinggal lebih dari 100 ms, koneksi paling banyak ≤ 10 (batas yang dipasang pool sendiri)");
+    expect(r248).toContain(`100 pesan outbox dikuras satu worker dengan c = ${C} dan push tiruan ${T_PUSH * 1000} ms, laju terukur dalam 15% dari 13,3 per detik; pengumuman 100.000 HP dihitung dan Tidak dijalankan`);
+    expect(r248).toContain(`kurang dari ${batasKode[0]} baca saldo, kurang dari ${batasKode[1]} riwayat, kurang dari ${batasKode[2]} katalog, selebihnya POST /transfers, jadi ${100 - batasKode[2]!}% pembayaran (benih tetap)`);
+    expect(r248).toContain("menyisipkan 100 baris outbox berjenis promo");
+    expect(r248).toContain(`Campuran ${100 - batasKode[2]!}% pembayaran dua kali ${Math.round((trx4Hari / h4.reqHari) * 100)}% transaksi uang di tabel kelas naskah`);
+    const r249 = kolom("R4-249", 3);
+    expect(r249).toContain(`Halaman 1.38 menulis ±${duaAngka(h5.puncak).replace(".", ".")} request per detik untuk Tahap 5 dan ±${duaAngka((h5.dau * TRX5 * 365 * Number(m5.baris)) / 1e9)} GB data transaksi dengan ${TRX5} transaksi`);
+    expect(r249).toContain(`naskah Tahap 4 bagian 3b menulis \`posting\` ±${PARTISI_POSTING / 1e6} juta dan ±110 GB untuk Tahap 5`);
+    expect(r249).toContain(`= ${ribu((h5.dau * TRX * POSTING_PER_TRX * 365) / 1e6)} juta × ${BYTE_POSTING} byte = ${koma((h5.dau * TRX * POSTING_PER_TRX * 365 * BYTE_POSTING) / 1e9, 1)} GB (${TRX} transaksi)`);
+    expect(r249).toContain(`\`tahap[3].asumsi.trx\` ${TRX} sejak \`T4-siap\``);
+    // aritmetika baris hitungan: tiap "a ○ b ... = c" dihitung ulang dan dibulatkan ke desimal hasil tertulis
+    const angkaTulis = (t: string): number => (/,/.test(t) ? Number(t.replace(/\./g, "").replace(",", ".")) : /^\d{1,3}(\.\d{3})+$/.test(t) ? Number(t.replace(/\./g, "")) : Number(t));
+    const baris247 = kolom("R4-247", 3);
+    const unsur = String.raw`(?:\([^()=]*\)|\d+(?:[.,]\d+)*%?)`;
+    const ungkap = new RegExp(String.raw`${unsur}(?: [×÷+−] ${unsur})+ = \d+(?:[.,]\d+)*%?`, "g");
+    const ekspresi = [...baris247.matchAll(ungkap)].map((m) => m[0]);
+    expect(ekspresi.length).toBeGreaterThanOrEqual(28);
+    for (const e of ekspresi) {
+      const [lhs, rhsMentah] = e.split(" = ") as [string, string];
+      const persen = rhsMentah.endsWith("%");
+      const rhs = persen ? rhsMentah.slice(0, -1) : rhsMentah;
+      const js = lhs.replace(/\d+(?:[.,]\d+)*%?/g, (t) => String(t.endsWith("%") ? angkaTulis(t.slice(0, -1)) / 100 : angkaTulis(t))).replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
+      const nilai = (Function(`"use strict"; return (${js});`)() as number) * (persen ? 100 : 1);
+      const desimal = (rhs.split(",")[1] ?? "").length;
+      expect(koma(nilai, desimal), e).toBe(rhs.replace(/\.(?=\d{3}(\D|$))/g, "").replace(".", ""));
+    }
     const h = riset4.split("\n").find((x) => x.startsWith("| R4-247 |"))!;
     for (const kunci of [
       `${koma(h4.puncak, 1)} ÷ ${koma(h3.puncak, 1)} = 7,98`,
@@ -866,6 +899,12 @@ describe("struktur halaman dan kalimat klaim (tanpa kunci baris)", () => {
     expect(beban).toMatch(/# --- B\. Kapasitas worker/);
     expect(beban).toMatch(/# --- A\. 20 detik pada 138\.9 permintaan per detik/);
     harus("Itu batas pada satu mesin, bukan kapasitas produksi.");
+    harus(`Widget membulatkan hasil ke dua angka penting, jadi Tahap 4 tampil ${duaAngka(h4.puncak)} dan Tahap 5 tampil ${duaAngka(h5.puncak)}.`);
+    harus("Pilih **Aktif 10%**: user aktif tinggal setengahnya,");
+    harus("Pilih **Satu jam**: semua request sehari masuk di satu jam,");
+    harus("Sebelum ada komponen yang dipilih, estimasi mengubahnya menjadi angka per kelas pekerjaan.");
+    harus("Top-up punya satu tambahan.");
+    harus("L adalah rata-rata, jadi pada satu detik tertentu jumlahnya bisa lebih besar ([[t2-estimasi]]).");
   });
   test("kalimat klaim yang memuat angka, nama tahap, atau label: Paham 5 sampai 8", () => {
     harus("Tabel ini mengalikannya, dan mengandaikan perilaku per user tetap seperti Tahap 4.");
