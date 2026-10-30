@@ -1,0 +1,129 @@
+---
+title: "4.31 Jembatan: pratinjau PRD v5"
+description: Minggu 12. Uji coba publik lolos, lalu Sinta membagikan PRD v5 dengan lima isi baru dan tim yang naik. Dari ADR Tahap 4, tebak mana yang pecah lebih dulu.
+---
+import Blok from "../../../components/Blok.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t4-jembatan-tebak.json";
+import { muat, label, url as urlHalaman } from "../../../../tools/registri.mjs";
+
+export const hs = muat().halaman;
+export const tautanTebak = ["t4-m39", "t4-estimasi", "t4-adr-45"]
+  .map((id) => hs.find((h) => h.id === id && h.ada))
+  .filter(Boolean)
+  .map((h) => ({ label: label(h), href: urlHalaman(h) }));
+
+<p class="meta">Baca 6 menit · coba 1 menit · Prasyarat: [[t4-rekap]] · Jalur inti</p>
+
+Ini pratinjau PRD v5, dokumen kelima yang Sinta tulis untuk Rekeningo. Halaman ini hanya menampilkan apa yang diminta; membangunnya adalah isi Tahap 5.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v5">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Status</dt><dd>Pratinjau: rencana cerita (Ilustrasi), bukan PRD lengkap</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>Nasional: 1 juta user dan ratusan ribu merchant</dd></div><div><dt>Tim</dt><dd>20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security</dd></div></dl>
+</div>
+
+<Blok nama="Pratinjau PRD v5" buka>
+
+Minggu 12 Tahap 4. Uji coba publik lolos ([[t4-m39]]). Sinta lalu membagikan PRD v5, supaya Rekeningo bisa dipakai secara nasional.
+
+PRD v5 mengubah enam hal dari PRD v4:
+
+| | PRD v4 | PRD v5 (Ilustrasi) |
+|---|---|---|
+| Lingkup | Publik: 100.000 user terdaftar, merchant di luar Lestari | Nasional: 1 juta user dan ratusan ribu merchant |
+| Laporan | Dasbor web warung dari PRD v3 | Laporan merchant real-time |
+| Notifikasi | Notifikasi uang per kejadian, dan promo atau top-up massal sampai 10.000 notifikasi sekaligus ([[t3-prd]]) | Notifikasi massal |
+| Produk uang | Saldo, top-up dari bank, QR, dan kartu virtual | Cicilan dan tabungan, dengan proses batch harian |
+| Integrasi | Gateway, layanan verifikasi, dan penerbit kartu | API publik untuk POS pihak ketiga |
+| Tim | 13 developer dalam tiga tim (Asumsi cerita) | 20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security (Asumsi cerita) |
+
+Isi PRD v5 adalah rencana cerita (Ilustrasi): contoh, bukan hasil sistem. Hitungan berarti rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya. Arti label sumber ada di [[A0]].
+
+SRE (site reliability engineer) adalah engineer yang menjaga sistem produksi tetap berjalan, dan POS (point of sale) adalah kasir elektronik di toko.
+
+Tahap 4 menghasilkan ADR 34 sampai 45. Sebagian dari keputusan itu akan pecah lebih dulu daripada yang lain. Pecah berarti halaman ADR itu menulis keadaan yang sama dengan satu isi PRD v5. Keadaan itu bisa berupa syarat salah, pemicu, atau hal yang direvisi tahap berikutnya.
+
+<Tebak client:visible data={dataTebak} tautan={tautanTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Pilihan yang cocok dengan halaman ADR: ADR 36, ADR 37, ADR 44, dan ADR 45. Alasannya ada di blok Menuju Tahap 5, dan jawabannya dibuka di halaman pertama Tahap 5.</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+PRD v4 sudah menulis empat isi PRD v5 sebagai P2 yang ditunda ke v5 ([[t4-prd]]). Dua hal lain, skala nasional dan tim yang naik, ikut di PRD v5. Tabel ini menaruh tiap isi di samping keadaan terdekatnya di Tahap 4.
+
+| Isi PRD v5 | Keadaan terdekat di Tahap 4 |
+|---|---|
+| Skala nasional: 1 juta user dan ratusan ribu merchant | 100.000 user terdaftar, ±400 merchant luar, dan ±60 warung (Asumsi). Puncak 138,9 request per detik dan 40 dari 100 koneksi database (Hitungan atas Asumsi, [[t4-estimasi]]) |
+| Laporan merchant real-time | Dasbor web warung dari PRD v3 ([[t3-prd]]). ADR 45 menunda read replica, yaitu salinan database untuk bacaan, dan satu pemicunya adalah laporan ini ([[t4-adr-45]]) |
+| Notifikasi massal | Notifikasi uang memakai 7,52 dari 13,33 pengiriman per detik di puncak, dan pengumuman ke 100.000 HP butuh paling sedikit 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]) |
+| Cicilan dan tabungan, dengan proses batch harian | Contoh proses terjadwal yang ada: rekonsiliasi harian dengan gateway ([[t4-rekonsiliasi]]) dan pencairan warung tiap Jumat ([[t2-pencairan]]) |
+| API publik untuk POS pihak ketiga | PRD v3 menulis API untuk kasir pihak ketiga sebagai bukan lingkup ([[t3-prd]]). Contoh pihak luar yang memanggil Rekeningo di Tahap 4: gateway lewat webhook ([[t4-webhook]]) dan penerbit kartu ([[t4-kartu]]) |
+| 20 sampai 40 orang dalam 5 sampai 7 tim | 13 developer dalam tiga tim: Pembayaran 5, Merchant 4, Platform 4 (Asumsi cerita), di satu repo. Lima modul berjalan di satu proses, dan modul pembayaran di service sendiri ([[t4-modul]]) |
+
+Halaman ini tidak memuat klaim izin, lisensi, atau kepatuhan regulasi apa pun. Semua isi PRD v5 di atas adalah rencana cerita.
+
+</Blok>
+
+<Blok nama="Menuju Tahap 5">
+
+Jawaban tebakan dibuka di halaman pertama Tahap 5. Halaman ini hanya mencatat apa yang sudah tertulis di halaman Tahap 4.
+
+Di halaman ini "pecah lebih dulu" adalah penalaran dari kalimat halaman ADR (Asumsi), bukan urutan kejadian yang direkam. Halaman ini juga tidak menghitung beban tiap komponen untuk 1 juta user, yang 10 kali 100.000 (Hitungan: 1.000.000 ÷ 100.000). Hitungan beban Tahap 5 ada di [[t4-estimasi]] (Hitungan atas Asumsi), dan halaman ini tidak memakainya untuk memilih ADR.
+
+Tiga keadaan yang cocok ditulis di halaman ADR-nya:
+
+- ADR 45: satu dari tiga pemicu read replica adalah laporan merchant real-time yang diminta PRD v5. Empat pemicu berangka di halaman itu belum terlewati, dan yang terdekat 57% ([[t4-adr-45]]).
+- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (Tidak dijalankan: dibaca dari kode; [[t4-breaker]]). Pengumuman ke 100.000 HP lewat satu queue butuh paling sedikit 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).
+- ADR 37: keputusannya salah saat tim membuat deploy bersama tidak lagi masuk akal, dan dari 13 developer itu belum terlihat ([[t4-modul]]). ADR 44 menulis hal yang sama untuk tim: pipeline dan giliran jaga dibagi per tim, dan batas modul perlu menjadi batas deploy ([[t4-tim-infra]]).
+
+Dua pilihan lain di tebakan tidak cocok dengan isi PRD v5:
+
+- ADR 41: syarat pertamanya dihitung per satu impor: 50 produk menjadi 21 detik dalam satu request ([[t4-ssrf]]).
+- ADR 40: syarat ketiganya memakai 15 merchant, atau 3,3% dari ±460 merchant. Bila merchant bertambah, pembanding persen itu mengecil ([[t4-qr]]).
+
+Tebakan hanya membandingkan tiga pilihan, jadi ADR lain tidak dinilai di sini. ADR 38, misalnya, menulis hitungan untuk beban sepuluh kali lipat di salah satu syarat salahnya, dan halaman ini tidak menilainya ([[t4-storage]]).
+
+Satu heuristik praktisi menyebut bahwa microservices baru masuk akal di atas ±50 developer. [[t4-modul]] tidak menemukan sumber primer untuk angka itu [perlu verifikasi], jadi halaman ini tidak memakainya.
+
+Satu hal dari Tahap 4 belum selesai dan ikut masuk ke PRD v5. Kapasitas satu server belum terukur. `make beban` di lab `api-t4` memeriksa status 200 atau 201 dan p95 di bawah 500 ms di satu laptop. Itu batas lab (Asumsi), bukan kapasitas produksi ([[t4-m39]]).
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Jumlah user naik 10 kali di PRD v5. Kenapa halaman ini tidak memakai kenaikan itu untuk memilih ADR yang pecah lebih dulu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+1.000.000 ÷ 100.000 = 10 (Hitungan atas Asumsi cerita). Menghitung tiap komponen untuk 1 juta user adalah hitungan beban, dan halaman ini tidak menghitungnya. Yang dibandingkan adalah keadaan yang ditulis halaman ADR sendiri, dan itu Asumsi.
+
+</details>
+
+**2.** Sebutkan keadaan yang ditulis ADR 36, ADR 37, ADR 44, dan ADR 45 sendiri.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+ADR 36: breaker di memori satu proses worker, jadi dua worker tidak berbagi hitungan. ADR 37: tim yang membuat deploy bersama tidak lagi masuk akal. ADR 44: tim yang naik, sehingga pipeline dan giliran jaga dibagi per tim. ADR 45: satu pemicu read replica adalah laporan merchant real-time yang diminta PRD v5.
+
+</details>
+
+**3.** Kenapa "pecah lebih dulu" di halaman ini berlabel Asumsi, bukan Rekaman lab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak ada lab yang menjalankan PRD v5. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di halaman 4.27. Jawabannya dibuka di halaman pertama Tahap 5.
+
+</details>
+
+Tahap 4 selesai di sini.
+
+</Blok>

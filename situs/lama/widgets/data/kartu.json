@@ -3368,6 +3368,30 @@
   "jawab": "Tanpa jangkar: 4 baris, rantai utuh, exit status 0. Dengan file jangkar: jangkar nomor 6 dijawab baris-hilang, exit status 2 (`jangkar.txt` bagian B)."
  },
  {
+  "id": "t4-jembatan-1",
+  "halaman": "t4-jembatan",
+  "judul": "4.31 Jembatan: pratinjau PRD v5",
+  "url": "tahap-4/jembatan-prd-v5/",
+  "tanya": "Jumlah user naik 10 kali di PRD v5. Kenapa halaman ini tidak memakai kenaikan itu untuk memilih ADR yang pecah lebih dulu?",
+  "jawab": "1.000.000 ÷ 100.000 = 10 (Hitungan atas Asumsi cerita). Menghitung tiap komponen untuk 1 juta user adalah hitungan beban, dan halaman ini tidak menghitungnya. Yang dibandingkan adalah keadaan yang ditulis halaman ADR sendiri, dan itu Asumsi."
+ },
+ {
+  "id": "t4-jembatan-2",
+  "halaman": "t4-jembatan",
+  "judul": "4.31 Jembatan: pratinjau PRD v5",
+  "url": "tahap-4/jembatan-prd-v5/",
+  "tanya": "Sebutkan keadaan yang ditulis ADR 36, ADR 37, ADR 44, dan ADR 45 sendiri.",
+  "jawab": "ADR 36: breaker di memori satu proses worker, jadi dua worker tidak berbagi hitungan. ADR 37: tim yang membuat deploy bersama tidak lagi masuk akal. ADR 44: tim yang naik, sehingga pipeline dan giliran jaga dibagi per tim. ADR 45: satu pemicu read replica adalah laporan merchant real-time yang diminta PRD v5."
+ },
+ {
+  "id": "t4-jembatan-3",
+  "halaman": "t4-jembatan",
+  "judul": "4.31 Jembatan: pratinjau PRD v5",
+  "url": "tahap-4/jembatan-prd-v5/",
+  "tanya": "Kenapa \"pecah lebih dulu\" di halaman ini berlabel Asumsi, bukan Rekaman lab?",
+  "jawab": "Tidak ada lab yang menjalankan PRD v5. Penentuannya penalaran dari kalimat halaman ADR dan dari tiga hal yang belum pernah diuji di halaman 4.27. Jawabannya dibuka di halaman pertama Tahap 5."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",

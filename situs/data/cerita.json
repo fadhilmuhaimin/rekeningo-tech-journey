@@ -4008,8 +4008,9 @@
       "prasyarat": [
         "t4-rekap"
       ],
-      "ada": false,
-      "nomor": "4.31"
+      "ada": true,
+      "nomor": "4.31",
+      "menit": 7
     },
     {
       "id": "T4",
