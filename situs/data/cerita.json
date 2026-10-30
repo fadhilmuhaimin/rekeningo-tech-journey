@@ -3824,8 +3824,9 @@
       "lab": [
         "t4-kartu"
       ],
-      "ada": false,
-      "nomor": "4.23"
+      "ada": true,
+      "nomor": "4.23",
+      "menit": 24
     },
     {
       "id": "t4-m38",
@@ -3908,8 +3909,9 @@
         "api-t4",
         "t4-pipeline"
       ],
-      "ada": false,
-      "nomor": "4.26"
+      "ada": true,
+      "nomor": "4.26",
+      "menit": 28
     },
     {
       "id": "t4-m39",

@@ -117,6 +117,9 @@ async function laporBawaan(page, tag) {
 
 // Klik (desktop) atau tap (HP) lewat koordinat di tengah tabel, bukan element.click(), supaya hit test ikut diuji:
 // React Flow memberi node tanpa handler pointer-events none dan tombol mewarisinya (pola keputusan 681, 698).
+// Halaman 4.23 dari registry: sesudah halamannya ada, detail tabel kartu memuat tautannya; sebelum itu "(segera)" (tidak keduanya diterima).
+const kartuAda = JSON.parse(readFileSync(new URL("../data/cerita.json", import.meta.url), "utf8")).halaman.find((h) => h.id === "t4-kartu")?.ada === true;
+
 async function klikTabel(page, awalan, sentuh) {
   const node = page.locator(`${FIG} .erd-tumbuh__node[aria-label^="${awalan}"]`).first();
   await node.scrollIntoViewIfNeeded();
@@ -439,12 +442,12 @@ for (const [lebar, tinggi, harus] of [
       `${tag}: Tahap 4 bandingkan → ${t4.berdampingan ? "berdampingan" : "bertumpuk"}, ${t4.node} node, ${t4.edge} edge, ${st4.baru} baru, ${st4.berubah} berubah, ${st4.dihapus} dihapus, zoom ${st4.zoom.map((z) => z.toFixed(2)).join("/")}, ${t4.luar} di luar wadah, luapan ${t4.lebarDok} px, nama terpotong ${t4.namaPotong.length}${t4.namaPotong.length ? ` (${t4.namaPotong.join(", ")})` : ""}`,
     );
     await laporBawaan(page, `${tag} Tahap 4 bandingkan`);
-    // Klik atau tap di tengah tabel kartu (tabel baru): modul pembayaran, kolom, dan halaman 4.x yang masih segera.
+    // Klik atau tap di tengah tabel kartu (tabel baru): modul pembayaran, kolom, dan halaman 4.x (segera, atau tertaut sesudah halamannya ada).
     {
       const k = await klikTabel(page, "Tabel kartu", lebar < 500);
       lapor(
         k.kena.startsWith("Tabel kartu") && k.ditekan === "true" && k.detail.includes("kartu · Tahap 4 · baru") && k.detail.includes("token_penerbit") && k.detail.includes("Modul: pembayaran") &&
-          k.detail.includes("Dijelaskan di") && k.detail.includes("4.23") && k.detail.includes("(segera)"),
+          k.detail.includes("Dijelaskan di") && k.detail.includes("4.23") && (kartuAda ? k.tautan.includes("/tahap-4/kartu-virtual/") : k.detail.includes("(segera)")),
         `${tag}: ${lebar < 500 ? "tap" : "klik"} di tengah tabel kartu kena ${k.kena.startsWith("Tabel") ? "tombol" : k.kena} → aria-pressed ${k.ditekan}, detail ${k.detail.length} karakter, tautan ${k.tautan.join(" ") || "(segera)"}`,
       );
     }

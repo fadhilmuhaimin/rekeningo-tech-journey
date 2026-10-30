@@ -1,0 +1,51 @@
+{
+  "id": "t4-tim-infra-inti",
+  "judul": "Kontrak ditahan, tag yang dipindah ditolak",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t4 dan t4-pipeline"
+  },
+  "baris": [
+    {
+      "label": "Di PR",
+      "sub": "kontrak api-t3 ke api-t4",
+      "simpul": [
+        {
+          "teks": "enum ditambah",
+          "sub": "jenis: merchant, pemakai, risk"
+        },
+        {
+          "teks": "oasdiff: 3 error",
+          "sub": "respons GET /akun/{id}",
+          "nada": "warn"
+        },
+        {
+          "teks": "gerbang gagal",
+          "sub": "exit code 1",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Di rilis",
+      "sub": "tag dipindah sebelum ditandatangani",
+      "simpul": [
+        {
+          "teks": "tag dipindah dulu",
+          "sub": "ke image lain"
+        },
+        {
+          "teks": "verify tag lulus",
+          "sub": "memuat digest D",
+          "nada": "warn"
+        },
+        {
+          "teks": "digest D ditolak",
+          "sub": "bukan hasil build CI",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kedua baris adalah rekaman. Pipeline GitHub Actions yang memanggil alat itu Tidak dijalankan: lab menjalankan alat dan gerbangnya, bukan CI."
+}
