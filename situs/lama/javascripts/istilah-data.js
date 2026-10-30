@@ -50,6 +50,14 @@ window.ISTILAH = {
   "t": "Alert",
   "u": "tahap-3/tim-infra/"
  },
+ "Allowlist": {
+  "b": "t4-ssrf",
+  "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
+  "n": "4.21 SSRF",
+  "s": "istilah-allowlist",
+  "t": "Allowlist",
+  "u": "tahap-4/ssrf/"
+ },
  "Application Programming Interface": {
   "b": "A1",
   "d": "Sekumpulan endpoint yang disediakan server supaya program lain, mis. app Flutter, bisa membaca dan mengubah data.",
@@ -433,6 +441,14 @@ window.ISTILAH = {
   "s": "istilah-debit",
   "t": "Debit",
   "u": "tahap-2/ledger/"
+ },
+ "Deny-list": {
+  "b": "t4-ssrf",
+  "d": "Daftar yang ditolak; yang tidak ada di daftar diterima, jadi daftar itu harus memuat semua yang terlarang.",
+  "n": "4.21 SSRF",
+  "s": "istilah-deny-list",
+  "t": "Deny-list",
+  "u": "tahap-4/ssrf/"
  },
  "Double-entry": {
   "b": "t2-ledger",
@@ -1311,6 +1327,15 @@ window.ISTILAH = {
   "t": "Pull request review",
   "u": "tahap-2/tim-infra/"
  },
+ "QR statis dan dinamis": {
+  "b": "t4-qr",
+  "d": "QR statis dicetak sekali dan dipakai berulang dengan nominal diisi pembeli; QR dinamis dibuat per pembayaran, nominalnya terikat, dan hanya sekali bayar.",
+  "h": "istilah/qr-statis-dan-dinamis/",
+  "n": "4.19 QR pembayaran",
+  "s": "istilah-qr-statis-dan-dinamis",
+  "t": "QR statis dan dinamis",
+  "u": "tahap-4/qr-pembayaran/"
+ },
  "Query plan": {
   "b": "t2-index",
   "d": "Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan EXPLAIN.",
@@ -1494,6 +1519,15 @@ window.ISTILAH = {
   "s": "istilah-sse",
   "t": "SSE (Server-Sent Events)",
   "u": "e-mobile/e4-push-real-time/"
+ },
+ "SSRF": {
+  "b": "t4-ssrf",
+  "d": "Serangan yang membuat server mengirim permintaan ke alamat pilihan pihak lain, dengan hak jaringan server.",
+  "h": "istilah/ssrf/",
+  "n": "4.21 SSRF",
+  "s": "istilah-ssrf",
+  "t": "SSRF (server-side request forgery)",
+  "u": "tahap-4/ssrf/"
  },
  "Saga": {
   "b": "D3",
@@ -1822,6 +1856,14 @@ window.ISTILAH = {
   "t": "Alert",
   "u": "tahap-3/tim-infra/"
  },
+ "allowlist": {
+  "b": "t4-ssrf",
+  "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
+  "n": "4.21 SSRF",
+  "s": "istilah-allowlist",
+  "t": "Allowlist",
+  "u": "tahap-4/ssrf/"
+ },
  "argon2id": {
   "b": "t2-login-aman",
   "d": "Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar.",
@@ -2062,6 +2104,14 @@ window.ISTILAH = {
   "s": "istilah-debit",
   "t": "Debit",
   "u": "tahap-2/ledger/"
+ },
+ "deny-list": {
+  "b": "t4-ssrf",
+  "d": "Daftar yang ditolak; yang tidak ada di daftar diterima, jadi daftar itu harus memuat semua yang terlarang.",
+  "n": "4.21 SSRF",
+  "s": "istilah-deny-list",
+  "t": "Deny-list",
+  "u": "tahap-4/ssrf/"
  },
  "double-entry": {
   "b": "t2-ledger",

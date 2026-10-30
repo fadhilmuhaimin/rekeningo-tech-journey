@@ -22,5 +22,5 @@
       ]
     }
   ],
-  "catatan": "Alamat contoh adalah angka karangan lab, dan server uji hanya di 127.0.0.1 di dalam proses tes. Kotak oranye adalah akibat yang direkam."
+  "catatan": "Alamat private dan link-local adalah angka karangan lab, dan server uji hanya di 127.0.0.1 di dalam proses tes. Kotak oranye adalah akibat yang direkam."
 }

@@ -5,7 +5,7 @@
     "jenis": "rekaman",
     "file": "labs/t4-ssrf/output/batas.txt",
     "fileVarian": "labs/t4-ssrf/output/alamat.txt",
-    "catatan": "Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat contoh adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
+    "catatan": "Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat private dan link-local adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
   },
   "pengantar": "Fetcher gambar versi aman diuji dengan server uji di dalam proses tes. Tebak dulu pesan apa yang diterima merchant, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
   "komponen": [
@@ -39,7 +39,7 @@
       "ke": "tuj",
       "judul": "Alamat luar menjawab redirect: tidak diikuti",
       "kirim": "redirect 302 ke server lain: ditolak (tujuan tidak diizinkan); server pertama disentuh: 1, server tujuan redirect disentuh: 0",
-      "jelas": "Tujuh kode redirect diuji, dari 300 sampai 308 tanpa 305 dan 306. Di tiap kode server pertama tersentuh satu kali, dan server tujuan redirect tidak tersentuh sama sekali.",
+      "jelas": "Tujuh kode 3xx diuji, dari 300 sampai 308 tanpa 305 dan 306. Di tiap kode server pertama tersentuh satu kali, dan server tujuan redirect tidak tersentuh sama sekali.",
       "nada": "good"
     },
     {
