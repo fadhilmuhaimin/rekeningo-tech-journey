@@ -106,7 +106,7 @@ Dokumentasi PostgreSQL menulis bahwa batas itu berlaku terpisah untuk tiap upaya
 
 <Snippet file="labs/t4-kartu/output/tenggat.txt" lines="82:98" title="Rekaman lab: labs/t4-kartu/output/tenggat.txt (bagian E)" />
 
-Tiga penantian 0,9 detik, masing-masing di bawah `lock_timeout`, berjumlah 3 × 0,9 = 2,7 detik, di atas tenggat 2 detik (Hitungan; tiga penantian Tidak dijalankan). Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini. Jadi jaminan jawaban sebelum tenggat butuh batas untuk seluruh panggilan.
+Tiga penantian 0,9 detik, masing-masing di bawah `lock_timeout`, berjumlah 3 × 0,9 = 2,7 detik, di atas tenggat 2 detik. Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini, dan tiga penantian Tidak dijalankan. Jadi jaminan jawaban sebelum tenggat butuh batas untuk seluruh panggilan.
 
 **Di jalur dua service, satu panggilan ke API ledger membawa key `id_penerbit`.** Setelah [[t4-modul]], service pembayaran memeriksa kill switch, kartu, dan batas harian dari tabelnya sendiri, lalu memanggil ledger satu kali. Key idempotency (Idempotency-Key, [[t2-idempotency]]) adalah `id_penerbit`. Baris `otorisasi_kartu` ditulis sesudahnya di schema pembayaran.
 
@@ -273,7 +273,7 @@ Tolak dengan alasan saldo-kurang. Otorisasi pertama menahan Rp80.000, jadi yang 
 <details class="success">
 <summary>Jawaban</summary>
 
-Hold yatim: ada di ledger tanpa baris `otorisasi_kartu`, dan job kedaluwarsa tidak melihatnya. Saldo Mina tinggal Rp70.000 karena Rp30.000 tertahan (`dua-service.txt` bagian B). Bila penerbit mengulang dengan `id_penerbit` yang sama dalam 24 jam, ia mendapat hold yang sama.
+Hold yatim: ada di ledger tanpa baris `otorisasi_kartu`, dan job kedaluwarsa tidak melihatnya. Saldo Mina menjadi Rp70.000 karena Rp30.000 tertahan (`dua-service.txt` bagian B). Bila penerbit mengulang dengan `id_penerbit` yang sama dalam 24 jam, ia mendapat hold yang sama.
 
 </details>
 

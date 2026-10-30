@@ -3045,7 +3045,7 @@
   "judul": "4.23 Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42",
   "url": "tahap-4/kartu-virtual/",
   "tanya": "Service pembayaran mati sesudah ledger menahan dana dan sebelum baris ditulis, dan penerbit tidak pernah mengulang. Apa akibatnya?",
-  "jawab": "Hold yatim: ada di ledger tanpa baris `otorisasi_kartu`, dan job kedaluwarsa tidak melihatnya. Saldo Mina tinggal Rp70.000 karena Rp30.000 tertahan (`dua-service.txt` bagian B). Bila penerbit mengulang dengan `id_penerbit` yang sama dalam 24 jam, ia mendapat hold yang sama."
+  "jawab": "Hold yatim: ada di ledger tanpa baris `otorisasi_kartu`, dan job kedaluwarsa tidak melihatnya. Saldo Mina menjadi Rp70.000 karena Rp30.000 tertahan (`dua-service.txt` bagian B). Bila penerbit mengulang dengan `id_penerbit` yang sama dalam 24 jam, ia mendapat hold yang sama."
  },
  {
   "id": "t4-kartu-4",

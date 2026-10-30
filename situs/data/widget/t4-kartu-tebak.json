@@ -17,17 +17,17 @@
       "alasan": "Itu jawaban versi pertama, tanpa hold (bagian A): saldo yang dibaca AUTH-B tetap Rp100.000. Di versi ini AUTH-A sudah menahan Rp80.000 sebelum dijawab setuju."
     },
     {
-      "teks": "Tolak karena sibuk. AUTH-B tidak mendapat lock dalam 1 detik.",
+      "teks": "Tolak karena sibuk. AUTH-B tidak mendapat lock dalam 1 detik, lalu menyerah.",
       "benar": false,
       "alasan": "Rekaman bagian C menjawab saldo-kurang, bukan sibuk. Jawaban sibuk hanya muncul bila lock tidak didapat dalam lock_timeout 1 detik, seperti di tenggat.txt bagian A."
     },
     {
-      "teks": "Tolak karena saldo kurang. AUTH-B membaca Rp20.000 sesudah mendapat lock.",
+      "teks": "Tolak karena saldo kurang. AUTH-B membaca Rp20.000 sesudah lock.",
       "benar": true,
       "alasan": "AUTH-A menahan Rp80.000 lewat jurnal tahan, jadi saldo Budi Rp20.000 saat AUTH-B mendapat giliran. Saldo dibaca sesudah lock, bukan sebelum mengantre."
     },
     {
-      "teks": "Setuju oleh penerbit sendiri, karena jawaban Rekeningo terlambat.",
+      "teks": "Setuju oleh penerbit sendiri, karena jawaban Rekeningo terlambat dari tenggat.",
       "benar": false,
       "alasan": "Itu keadaan lain: jawaban lewat dari tenggat. Rekaman ini memakai tenggat 10 detik, dan sumber jawaban AUTH-B adalah rekeningo."
     }
