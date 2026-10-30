@@ -655,13 +655,14 @@ describe("tebakan t4-kartu-tebak.json dan Rantai t4-kartu-inti.json diturunkan d
     expect(tebak.label.sumber).toBe("Rekaman lab · otorisasi.txt");
     expect(tebak.id).toBe("t4-kartu-tebak");
   });
-  test("tebakan: posisi benar berbeda dari tebakan Tahap 4 lain di data/widget (0 di 4.18 dan 4.20 tidak ada di main, jadi cek yang ada)", () => {
+  test("tebakan: posisi benar tetap pilihan ketiga dan posisi antar tebakan Tahap 4 di data/widget bervariasi (paling sedikit tiga posisi berbeda)", () => {
     const dir = path.join(akar, "situs/data/widget");
     const lain = fs.readdirSync(dir).filter((f) => /^t4-.*tebak\.json$/.test(f) && f !== "t4-kartu-tebak.json");
     expect(lain.length).toBeGreaterThanOrEqual(3);
     const posisi = lain.map((f) => (JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")).pilihan as { benar: boolean }[]).findIndex((p) => p.benar));
-    expect(posisi).not.toContain(0);
-    expect(new Set([...posisi, 2]).size).toBeGreaterThanOrEqual(3);
+    const sendiri = tebak.pilihan.findIndex((p) => p.benar);
+    expect(sendiri).toBe(2);
+    expect(new Set([...posisi, sendiri]).size).toBeGreaterThanOrEqual(3);
   });
   test("Rantai: dua baris tiga simpul, angka dari rekaman, nada, dan sumber", () => {
     expect(rantai.id).toBe("t4-kartu-inti");
