@@ -3112,6 +3112,30 @@
   "jawab": "Penerbit memutuskan menurut setelan timeout-nya, yang di lab berarti setuju. Rekeningo tidak punya baris dan tidak menahan dana, dan penagihannya dijawab 404 (`penerbit.txt` bagian A)."
  },
  {
+  "id": "t4-m38-1",
+  "halaman": "t4-m38",
+  "judul": "4.24 M38: Siapa yang membuka data Budi?",
+  "url": "tahap-4/m38-siapa-membuka/",
+  "tanya": "Ratih menjalankan enam aksi atas data Dina, dan Eko tidak pernah dibuka. Kenapa tabel catatan menjawab nol baris untuk keduanya?",
+  "jawab": "Mode `bo-tanpa-audit` tidak menulis catatan. Nol baris tidak membedakan akun yang dibuka enam kali dari akun yang tidak pernah dibuka. Karena itu \"tidak ada\" sama nilainya dengan \"tidak tahu\" (`rantai.txt` bagian A)."
+ },
+ {
+  "id": "t4-m38-2",
+  "halaman": "t4-m38",
+  "judul": "4.24 M38: Siapa yang membuka data Budi?",
+  "url": "tahap-4/m38-siapa-membuka/",
+  "tanya": "Log biasa mencatat enam aksi. Apa yang terjadi bila role aplikasi mengubah satu baris dan menghapus satu baris, dan petunjuk apa yang tersisa?",
+  "jawab": "Tabel menjadi lima baris. Pelaku di baris 3 berganti dari 420 ke 421, dan baris pembekuan hilang. Satu-satunya petunjuk adalah nomor bolong 1, dan di isi tabel UPDATE tidak meninggalkan petunjuk (`rantai.txt` bagian B)."
+ },
+ {
+  "id": "t4-m38-3",
+  "halaman": "t4-m38",
+  "judul": "4.24 M38: Siapa yang membuka data Budi?",
+  "url": "tahap-4/m38-siapa-membuka/",
+  "tanya": "Engineer membaca tabel `verifikasi` lewat role `lab`. Kenapa jumlah baris `audit_log` tidak berubah?",
+  "jawab": "Catatan ditulis oleh kode aplikasi di dalam fungsi aksi back office, dan query langsung ke database tidak melewati fungsi itu. Jumlah baris sebelum dan sesudah membaca sama (`role.txt` bagian C; dibaca dari kode, Tidak dijalankan)."
+ },
+ {
   "id": "t4-audit-1",
   "halaman": "t4-audit",
   "judul": "4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43",
