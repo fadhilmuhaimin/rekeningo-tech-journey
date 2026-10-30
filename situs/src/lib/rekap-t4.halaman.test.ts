@@ -180,7 +180,7 @@ const beban = rk("api-t4", "beban.txt");
 const testingApi = rk("api-t4", "testing.txt");
 
 // ---- registry: asumsi Tahap 3 dan 4 (hitungan beban) ----------------------------------------------------------------------
-interface Asumsi { user: number; aktif: number; req: number; puncak: number; trx: number }
+interface Asumsi { user: number; aktif: number; req: number; puncak: number; trx: number; tim: string }
 const a3 = cerita.tahap[2]!.asumsi as Asumsi;
 const a4 = cerita.tahap[3]!.asumsi as Asumsi;
 const puncakDari = (a: Asumsi): number => ((a.user * a.aktif) / 100) * a.req / 86400 * a.puncak;
@@ -265,7 +265,7 @@ describe("registry dan naskah: tiga belas kalimat, kejadian, minggu, dan ADR", (
       [11, "t4-m38", ['Jawaban "tidak ada" di sini sama nilainya dengan "tidak tahu".']],
       [12, "t4-tim-infra", ["Pipeline per modul menahan kontrak yang merusak dan menolak image bukan hasil CI.", "perbandingan digest hasil build"]],
     ];
-    for (const [no, id, frasa] of asal) for (const f of frasa) harus(fileHalaman(id), f);
+    for (const [, id, frasa] of asal) for (const f of frasa) harus(fileHalaman(id), f);
     // kata-kata kalimat halaman memuat inti rumusan asal
     harus(butir(5).kalimat, "File bukan data transaksi: database menyimpan kunci dan checksum, dan file hidup di tempat lain");
     harus(butir(6).kalimat, "izin bagi siapa pun yang membawanya, dan izin itu punya umur");
