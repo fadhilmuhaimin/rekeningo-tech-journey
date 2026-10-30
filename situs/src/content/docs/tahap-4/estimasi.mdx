@@ -52,7 +52,7 @@ Pilih **Aktif 10%**: user aktif tinggal setengahnya, dan puncak turun ke ±690, 
 
 ### Kenapa ini ada
 
-PRD v5 ([[t4-m39]]) menaikkan user terdaftar ke 1.000.000, sepuluh kali Tahap 4. Sebelum ada komponen yang dipilih, estimasi mengubahnya menjadi angka per kelas pekerjaan. [[t3-estimasi]] melakukannya untuk Tahap 3 ke 4 saat integrasi pihak ketiga belum ada. Sekarang tiap kelas Tahap 4 punya lab, jadi halaman ini juga memisahkan angka yang direkam dari angka yang dihitung.
+PRD v5 ([[t4-m39]]) meminta skala nasional, dan registry Tahap 5 menulis 1.000.000 user terdaftar, sepuluh kali Tahap 4. Sebelum ada komponen yang dipilih, estimasi mengubahnya menjadi angka per kelas pekerjaan. [[t3-estimasi]] melakukannya untuk Tahap 3 ke 4 saat integrasi pihak ketiga belum ada. Sekarang tiap kelas Tahap 4 punya lab, jadi halaman ini juga memisahkan angka yang direkam dari angka yang dihitung.
 
 ### Cara kerjanya
 
@@ -147,6 +147,8 @@ Ketiga, kapasitas worker tepatnya 4 ÷ 0,3 = 13,333. Pengumuman 100.000 HP memak
 | File verifikasi identitas | 2.000 unggahan × 500 KB × 365 | 365 GB |
 
 Dua besaran pertama paling jauh berbeda 10,95 ÷ 6,57 = 1,7 kali, jadi satu orde besaran. Tahap 3 memberi 5,475 juta × 250 byte = 1,37 GB (tepatnya 1,36875). Posting naik 8 kali ke 43,8 juta, jadi 1,36875 × 8 = 10,95 GB; dari 1,37 yang dibulatkan, hasilnya 10,96. [[t3-estimasi]] menulis ±1,4 dan ±11 GB untuk angka yang sama; selisihnya hanya pembulatan.
+
+Selisih 1,7 kali datang dari byte per transaksi. Ledger menulis dua posting × 250 byte = 500 byte per transaksi. Rumus [[D1]] memakai satu baris 300 byte, dan 500 ÷ 300 = 1,7.
 
 File memakai hitungan lain. 2.000 × 500 KB = 1 GB per hari, atau 365 GB per tahun. Itu 33 kali posting ledger (365 ÷ 10,95) dan 56 kali rumus [[D1]] (365 ÷ 6,57).
 

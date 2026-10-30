@@ -559,6 +559,9 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     expect(koma(dibaca(koma(gbLedger3, 2)) * naik, 2)).not.toBe(koma(gbLedger4, 2));
     expect(badan).not.toContain(`${koma(gbLedger3, 2)} × ${naik} = ${koma(gbLedger4, 2)} GB`);
     harus(`[[t3-estimasi]] menulis ±${duaAngka(gbLedger3)} dan ±${duaAngka(gbLedger4)} GB untuk angka yang sama; selisihnya hanya pembulatan.`);
+    // asal selisih 1,7 kali: byte per transaksi (dua posting × 250 byte lawan satu baris 300 byte), dihitung dari angka yang tertulis
+    harus(`Selisih ${koma(gbLedger4 / gbD1, 1)} kali datang dari byte per transaksi. Ledger menulis dua posting × ${BYTE_POSTING} byte = ${POSTING_PER_TRX * BYTE_POSTING} byte per transaksi. Rumus [[D1]] memakai satu baris ${m4.baris} byte, dan ${POSTING_PER_TRX * BYTE_POSTING} ÷ ${m4.baris} = ${koma((POSTING_PER_TRX * BYTE_POSTING) / Number(m4.baris), 1)}.`);
+    expect(gbLedger4 / gbD1).toBeCloseTo((POSTING_PER_TRX * BYTE_POSTING) / Number(m4.baris), 10);
     harus(`${ribu(unggahHari)} × ${m4.fileKB} KB = ${(unggahHari * Number(m4.fileKB)) / 1e6} GB per hari, atau ${gbFile} GB per tahun. Itu ${Math.round(gbFile / gbLedger4)} kali posting ledger (${gbFile} ÷ ${koma(gbLedger4, 2)}) dan ${Math.round(gbFile / gbD1)} kali rumus [[D1]] (${gbFile} ÷ ${koma(gbD1, 2)}).`);
     harus(`Lajunya kecil, ${koma(lamUnggah, 3)} unggahan per detik atau ${Math.round(dibaca(koma(lamUnggah, 3)) * Number(m4.fileKB))} KB per detik di puncak.`);
     expect(gbLedger4 / gbLedger3).toBeCloseTo(8, 10);
@@ -900,7 +903,9 @@ describe("struktur halaman dan kalimat klaim (tanpa kunci baris)", () => {
     harus("Itu Hitungan: hasil rumus dari angka yang tertulis di halaman, dan tetap Asumsi karena masukannya Asumsi. Kapasitas satu server belum terukur.");
     harus(`<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: dari Tahap 4 ke Tahap 5 puncak naik ${a5.user / a4.user} kali, bukan ${Math.round(h4.puncak / h3.puncak)} kali,`);
     harus("Rumusnya sama dengan [[t3-estimasi]], sekarang untuk Tahap 4 dan Tahap 5. Tebak dulu berapa kali lipat puncaknya naik, lalu pilih Tahap 5 dan baca baris mana yang berubah.");
-    harus(`PRD v5 ([[t4-m39]]) menaikkan user terdaftar ke ${ribu(a5.user)}, sepuluh kali Tahap 4.`);
+    harus(`PRD v5 ([[t4-m39]]) meminta skala nasional, dan registry Tahap 5 menulis ${ribu(a5.user)} user terdaftar, sepuluh kali Tahap 4.`);
+    expect(naskah4).toContain("- Skala nasional: 1 juta user dan ratusan ribu merchant."); // angka 1.000.000 datang dari naskah dan registry, bukan dari isi 4.27
+    expect(a5.user).toBe(1_000_000);
     harus("[[t3-estimasi]] melakukannya untuk Tahap 3 ke 4 saat integrasi pihak ketiga belum ada. Sekarang tiap kelas Tahap 4 punya lab,");
     harus(`Selisihnya dari ${Math.round(h4.puncak / h3.puncak)} hanya pembulatan.`);
     harus("Semua angka di tabel ini Asumsi naskah, bukan pengukuran.");
