@@ -2303,11 +2303,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### 4.31 · Jembatan: pratinjau PRD v5
 
 - jenis: konten
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 4.30, KONSISTENSI-4, DIRI-3
 - selesai bila: halaman PRD 4.31 sesuai `plan/CERITA-TAHAP-4.md` bagian 6 dan peta halaman Tahap 4; tanpa lab; pratinjau PRD v5 (skala nasional 1 juta user, laporan merchant real-time, notifikasi massal, cicilan dan tabungan, API publik untuk POS; tim 13 menjadi 20 sampai 40); widget tebak (dari ADR Tahap 4, mana yang pecah lebih dulu?) dengan bukti dari rekaman Tahap 4 tanpa isi Tahap 5; jawaban dibuka di halaman pertama Tahap 5, bukan di sini; "uang elektronik publik" tanpa klaim izin atau regulasi; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama. Aturan terbukti Tahap 3 (`plan/BRIEF-HALAMAN.md`, dibaca seluruhnya): angka hanya dari rekaman atau dihitung dari angka yang tertulis di halaman, dengan label tidak lebih kuat dari rekaman dan dari kode lab yang memerankannya; klaim negatif dan universal berlingkup; penjaga angka Vitest yang menurunkan nilai dari rekaman, registry, dan naskah dengan uji mutasi sendiri (tabel di badan PR); ID riset dan nomor keputusan tidak tampil (`cek_id_tampil.py`); Snippet `lines=` dari rentang fungsi; hasil tanpa JavaScript (noscript); tabel tidak meluap di 320 px.
-- catatan: Jawaban tebakan dibuka di halaman pertama Tahap 5. ALOKASI: keputusan 1386–1389 (1386–1388 pelaksana, 1389 peninjau), ID riset R4-260 sampai R4-264.
+- catatan: Jawaban tebakan dibuka di halaman pertama Tahap 5. ALOKASI: keputusan 1386–1389 (1386–1388 pelaksana, 1389 peninjau), ID riset R4-260 sampai R4-264. Selesai 2026-10-31 di PR #465 (keputusan 1386–1389): jembatan-prd-v5.mdx (PRD v5 pratinjau; Tebak 3 pilihan indeks 1 dengan label 'Cocok dengan halaman ADR', pilihan benar ADR 36, 37, 44, 45; 'jawabannya dibuka di halaman pertama Tahap 5'); peninjau: 'satu repo dan satu proses' salah (modul pembayaran service sendiri, ADR 37 aturan 1), kolom PRD v4 'satu notifikasi per kejadian uang' salah (PRD v3 sudah top-up massal dan promo), daftar tanpa lingkup jadi 'Contoh', syarat salah kedua ADR 38 juga memenuhi definisi pecah (paragraf lingkup), tabel melebar di 320 px dengan Verdana diperbaiki, R4-263 dibetulkan; 293 mutan baru: 293/293 dengan kunci, 283/293 tanpa (sisa prosa baris riset).
 
 ### EVAL-4 · Evaluasi Tahap 4
 
