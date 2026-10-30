@@ -395,8 +395,8 @@ describe("ruang lingkup: lima isi PRD v5 dan tim, tiap baris dengan keadaan terd
     const baris = badan.split("\n").filter((b) => /^\| (Skala nasional|Laporan merchant|Notifikasi massal|Cicilan|API publik|20 sampai 40)/.test(b));
     expect(baris).toEqual([
       `| ${skala} | ${titik(a4.user)} user terdaftar, ±400 merchant luar, dan ±60 warung (Asumsi). Puncak ${koma(puncak, 1)} request per detik dan ${jumlahKoneksi} dari ${koneksi[3]} koneksi database (Hitungan atas Asumsi, [[t4-estimasi]]) |`,
-      `| ${laporan} | Dasbor web warung dari PRD v3 ([[t3-prd]]). ADR 45 menunda read replica, yaitu salinan database untuk bacaan, dan PgBouncer sampai laporan ini diminta ([[t4-adr-45]]) |`,
-      `| ${notifikasi} | Notifikasi uang memakai ${koma(notif, 2)} dari ${koma(kapasitas, 2)} pengiriman per detik di puncak, dan pengumuman ke ${titik(HP)} HP butuh ${menitHp} menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]) |`,
+      `| ${laporan} | Dasbor web warung dari PRD v3 ([[t3-prd]]). ADR 45 menunda read replica, yaitu salinan database untuk bacaan, dan satu pemicunya adalah laporan ini ([[t4-adr-45]]) |`,
+      `| ${notifikasi} | Notifikasi uang memakai ${koma(notif, 2)} dari ${koma(kapasitas, 2)} pengiriman per detik di puncak, dan pengumuman ke ${titik(HP)} HP butuh paling sedikit ${menitHp} menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]) |`,
       `| ${cicilan} | Proses terjadwal yang ada: rekonsiliasi harian dengan gateway ([[t4-rekonsiliasi]]) dan pencairan warung tiap Jumat ([[t2-pencairan]]) |`,
       `| ${api} | PRD v3 menulis API untuk kasir pihak ketiga sebagai bukan lingkup ([[t3-prd]]). Pihak luar yang memanggil Rekeningo di Tahap 4: gateway lewat webhook ([[t4-webhook]]) dan penerbit kartu ([[t4-kartu]]) |`,
       `| ${timBaru[2]} orang dalam ${timBaru[3]} tim | ${timAnggota} developer dalam tiga tim: Pembayaran ${timLama[1]}, Merchant ${timLama[2]}, Platform ${timLama[3]} (Asumsi cerita), di satu repo dan satu proses ([[t4-modul]]) |`,
@@ -434,6 +434,9 @@ describe("Menuju Tahap 5: tiga keadaan yang cocok dikutip dari halaman ADR-nya; 
   const adr37 = isi(halamanAdr(37));
   const adr40 = isi(halamanAdr(40));
   const adr41 = isi(halamanAdr(41));
+  const adr45 = isi(halamanAdr(45));
+  const pemicu = cocok(adr45, /koneksi database: (\d+) dari pemicu (\d+), atau (\d+)%/);
+  const persenPemicu = Number(pemicu[3]);
   const adr44 = isi(halamanAdr(44));
   const salah36 = kapanSalah(adr36);
   const salah37 = kapanSalah(adr37);
@@ -447,14 +450,25 @@ describe("Menuju Tahap 5: tiga keadaan yang cocok dikutip dari halaman ADR-nya; 
     harus("Dua pilihan lain di tebakan tidak cocok dengan isi PRD v5:");
   });
   test("ADR 45: pemicu read replica dan PgBouncer adalah laporan merchant real-time (naskah 4)", () => {
-    harus("- ADR 45: pemicu read replica dan PgBouncer adalah laporan merchant real-time ([[t4-adr-45]]).");
+    harus(`- ADR 45: satu dari tiga pemicu read replica adalah laporan merchant real-time yang diminta PRD v${N5}. Empat pemicu berangka di halaman itu belum terlewati, dan yang terdekat ${persenPemicu}% ([[t4-adr-45]]).`);
     expect(halamanAdr(45).id).toBe("t4-adr-45");
+    ada(adr45, "Empat pemicu berupa angka beban bisa dibaca hari ini, di tiga dari delapan butir, dan tak satu pun terlewati. Yang terdekat adalah koneksi database: 40 dari pemicu 70, atau 57%.", "4.29");
+    expect(Number(pemicu[1])).toBe(jumlahKoneksi);
+    expect(Math.round((Number(pemicu[1]) / Number(pemicu[2])) * 100)).toBe(persenPemicu);
+    const butir4 = adr45.split("\n").filter((b) => b.startsWith("| 4. Read replica dan PgBouncer |"));
+    expect(butir4.length).toBeGreaterThanOrEqual(2);
+    ada(butir4.join("\n"), "atau laporan merchant real-time diminta PRD v5", "4.29");
+    ada(butir4.join("\n"), "Read replica: query baca yang sudah memakai index menahan 5 koneksi, atau laporan berat membuat p95 request bayar melewati ambang", "4.29");
+    ada(adr45, "[[t4-jembatan]] meminta kamu menebak keputusan Tahap 4 mana yang pecah lebih dulu. Tahap 5 membaca daftar ini terhadap PRD v5, dengan angka tahap itu.", "4.29");
+    ada(T4("m39-prd-v5.mdx"), "- [[t4-jembatan]]: pratinjau PRD v5, dengan tebakan mana yang pecah lebih dulu.", "4.27");
     expect(naskah4.split("\n").filter((b) => b.startsWith("| 45 | "))[0]!).toContain("read replica dan PgBouncer (40 dari 100 koneksi; pemicu laporan merchant real-time)");
     expect(POLA_V5.test(bag6)).toBe(true);
     expect(bag6).toContain("ADR 45 menunda read replica sampai");
   });
   test("ADR 36: breaker di memori satu proses worker, dua worker tidak berbagi hitungan; 125 menit dari naskah", () => {
-    harus(`- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam; [[t4-breaker]]). Pengumuman ke ${titik(HP)} HP lewat satu queue butuh ${menitHp} menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).`);
+    harus(`- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam; [[t4-breaker]]). Pengumuman ke ${titik(HP)} HP lewat satu queue butuh paling sedikit ${menitHp} menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).`);
+    ada(T4("m39-prd-v5.mdx"), `Pengumuman ke ${titik(HP)} HP dihitung ${titik(HP)} × 0,3 ÷ 4 = ${titik(HP / kapasitas)} detik, yaitu ${menitHp} menit (Hitungan, Tidak dijalankan: lab tidak menulis ${titik(HP)} baris).`, "4.27");
+    ada(T4("m39-prd-v5.mdx"), `${menitHp} menit adalah batas bawah karena worker juga mengirim notifikasi uang`, "4.27");
     expect(salah36).toHaveLength(5);
     const butir = salah36.filter((b) => b.startsWith("Saat worker lebih dari satu."));
     expect(butir).toHaveLength(1);
@@ -519,7 +533,9 @@ describe("Menuju Tahap 5: tiga keadaan yang cocok dikutip dari halaman ADR-nya; 
     expect(hitung(badan, "[perlu verifikasi]")).toBe(1);
   });
   test("satu hal yang belum selesai: kapasitas satu server belum terukur; make beban memberi batas di satu laptop", () => {
-    harus("Satu hal dari Tahap 4 belum selesai dan ikut masuk ke PRD v5. Kapasitas satu server belum terukur: `make beban` di lab `api-t4` memberi batas di satu laptop, bukan kapasitas produksi ([[t4-m39]]).");
+    harus("Satu hal dari Tahap 4 belum selesai dan ikut masuk ke PRD v5. Kapasitas satu server belum terukur. `make beban` di lab `api-t4` memeriksa status 200 atau 201 dan p95 di bawah 500 ms di satu laptop. Itu batas lab (Asumsi), bukan kapasitas produksi ([[t4-m39]]).");
+    ada(T4("m39-prd-v5.mdx"), "Jawaban server hanya dilihat oleh status 200 atau 201 dan p95 di bawah 500 ms, dan keduanya batas lab, bukan kapasitas produksi.", "4.27");
+    ada(T4("m39-prd-v5.mdx"), "Rekaman hanya menulis bahwa p95 di bawah 500 ms, batas lab (Asumsi).", "4.27");
     ada(naskah4, "Kapasitas satu server tetap belum terukur. Target `make beban` di lab `api-t4` memberi beban berjadwal 138,9 request per detik dan mengukur koneksi dan p95 di laptop lab. Itu bukan kapasitas produksi", "naskah 4");
     expect(fs.existsSync(path.join(akar, "labs/api-t4/Makefile"))).toBe(true);
     expect(baca("labs/api-t4/Makefile")).toContain("beban:");
@@ -583,9 +599,9 @@ describe("widget tebak: tepat satu pilihan cocok, posisi dan panjang tidak membo
     harus('<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v5">');
     const a = data.pilihan[j]!.alasan;
     expect(a.startsWith("Tiga keadaan itu ditulis di halaman ADR-nya. ADR 45 menunda")).toBe(true);
-    ada(a, "ADR 45 menunda read replica dan PgBouncer sampai laporan merchant real-time diminta.");
+    ada(a, "ADR 45 menunda read replica, dan satu dari tiga pemicunya adalah laporan merchant real-time yang diminta PRD v5.");
     ada(a, "ADR 36 menulis bahwa breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam).");
-    ada(a, `Pengumuman ke ${titik(HP)} HP butuh ${menitHp} menit di satu queue (Hitungan atas Asumsi, Tidak dijalankan), jadi menambah worker adalah langkah yang masuk akal (penalaran).`);
+    ada(a, `Pengumuman ke ${titik(HP)} HP butuh paling sedikit ${menitHp} menit di satu queue (Hitungan atas Asumsi, Tidak dijalankan), jadi menambah worker adalah langkah yang masuk akal (penalaran).`);
     ada(a, "ADR 37 salah bila tim membuat deploy bersama tidak lagi masuk akal, dan ADR 44 menulis bahwa tim yang naik membagi pipeline dan giliran jaga per tim.");
     ada(a, "Ini bacaan dari halaman Tahap 4 (Asumsi), bukan hitungan beban untuk 1 juta user.");
     expect(data.pilihan[j]!.teks).toBe("ADR 36, ADR 37, ADR 44, dan ADR 45: worker notifikasi, batas modul dan pipeline per tim, dan database yang sama untuk laporan.");
@@ -636,7 +652,7 @@ describe("kartu Cek diri: tiga kartu sama dengan kartu.json, fakta sama dengan h
     );
     expect(soal[1]!.tanya).toBe("Sebutkan keadaan yang ditulis ADR 36, ADR 37, ADR 44, dan ADR 45 sendiri.");
     expect(soal[1]!.jawab).toBe(
-      "ADR 36: breaker di memori satu proses worker, jadi dua worker tidak berbagi hitungan. ADR 37: tim yang membuat deploy bersama tidak lagi masuk akal. ADR 44: tim yang naik, sehingga pipeline dan giliran jaga dibagi per tim. ADR 45: pemicu read replica dan PgBouncer adalah laporan merchant real-time.",
+      `ADR 36: breaker di memori satu proses worker, jadi dua worker tidak berbagi hitungan. ADR 37: tim yang membuat deploy bersama tidak lagi masuk akal. ADR 44: tim yang naik, sehingga pipeline dan giliran jaga dibagi per tim. ADR 45: satu pemicu read replica adalah laporan merchant real-time yang diminta PRD v${N5}.`,
     );
     expect(soal[2]!.tanya).toBe('Kenapa "pecah lebih dulu" di halaman ini berlabel Asumsi, bukan Rekaman lab?');
     expect(soal[2]!.jawab).toBe(
@@ -684,7 +700,7 @@ describe("struktur halaman dan dunia angka tertutup", () => {
     expect([...new Set(token.filter((x) => !boleh.has(x)))], "token berkoma di halaman yang tidak dihitung dari sumber").toEqual([]);
     for (const b of boleh) expect(token, `nilai yang dihitung tidak dipakai halaman: ${b}`).toContain(b);
     expect([...new Set([...badan.matchAll(/\d{1,3}(?:\.\d{3})+/g)].map((m) => m[0]))].sort()).toEqual([titik(a4.user), titik(a5.user)].sort());
-    expect([...new Set([...badan.matchAll(/\d+(?:,\d+)?%/g)].map((m) => m[0]))]).toEqual([`${koma((15 / 460) * 100, 1)}%`]);
+    expect([...new Set([...badan.matchAll(/\d+(?:,\d+)?%/g)].map((m) => m[0]))].sort()).toEqual([`${koma((15 / 460) * 100, 1)}%`, `${Math.round((jumlahKoneksi / Number(cocok(isi(halamanAdr(45)), /dari pemicu (\d+), atau/)[1])) * 100)}%`].sort());
     expect(new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set(["34", "36", "37", "40", "41", "44", "45"]));
     expect(new Set([...badan.matchAll(/Tahap \d+/g)].map((m) => m[0]))).toEqual(new Set(["Tahap 4", "Tahap 5"]));
     const bersih = badan.replace(/\[\[[^\]]+\]\]/g, "").split("\n").filter((b) => !/^(import|export|  \.)/.test(b) && !b.startsWith("<Tebak")).join("\n");
@@ -694,6 +710,7 @@ describe("struktur halaman dan dunia angka tertutup", () => {
       cocok(badan, /<p class="meta">Baca (\d+) menit/)[1]!, "2", // menit baca; prioritas P2 di PRD v4
       String(N4), String(N5), String(cerita.tahap[2]!.no), String(rasio), "1", "15", "21", "50", koneksi[3]!, String(menitHp), "400", "460", "60",
       "34", "36", "37", "40", "41", "44", "45",
+      "200", "201", "500", "95", // status 200 atau 201 dan p95 di bawah 500 ms, dari 4.27 (diperiksa di test make beban)
     ]);
     expect([...bulat].sort((x, y) => Number(x) - Number(y)), "bilangan bulat di halaman yang tidak diturunkan dari sumber").toEqual([...harapan].sort((x, y) => Number(x) - Number(y)));
     const tokenW = [...teksWidget.matchAll(/\d+,\d+/g)].map((m) => m[0]);
@@ -735,9 +752,11 @@ describe("token versi PRD dan nomor Tahap: urutan di tiap baris sama dengan yang
       [P(N5)], // klaim izin
       [T(N5)], // nama blok Menuju Tahap 5
       [T(N5), T(N4)], // jawaban dibuka di halaman pertama
+      [P(N5)], // bullet ADR 45: diminta PRD v5
       [P(N5)], // dua pilihan lain
       [T(N4), P(N5)], // satu hal belum selesai
       [P(N5)], // kartu 1
+      [P(N5)], // kartu 2: ADR 45 diminta PRD v5
       [P(N5), T(N5)], // kartu 3
       [T(N4)], // penutup
     ]);

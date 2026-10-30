@@ -1,0 +1,55 @@
+{
+  "id": "t4-m39-kalkulator",
+  "judul": "Beban di jam paling ramai, Tahap 4",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah dari cerita.json, bukan pengukuran."
+  },
+  "skenario": [
+    { "label": "Tahap 4", "tahap": 4 },
+    {
+      "label": "Semua aktif",
+      "tahap": 4,
+      "ubah": {
+        "aktif": 100
+      }
+    },
+    {
+      "label": "Satu jam",
+      "tahap": 4,
+      "ubah": {
+        "puncak": 24
+      }
+    }
+  ],
+  "awal": 0,
+  "tebak": {
+    "q": "Seandainya semua 100.000 user terdaftar memakai Rekeningo setiap hari, bukan 20%. Berapa kali lipat puncak request per detik dibanding asumsi naskah?",
+    "pilihan": [
+      "2 kali",
+      "10 kali",
+      "4 kali",
+      "5 kali"
+    ],
+    "jawaban": 3,
+    "skenario": 1,
+    "alasan": "Persentase aktif naik dari 20% ke 100%, jadi puncak naik 100 ÷ 20 = 5 kali, dari 138,9 ke 694,4 request per detik. User terdaftar tetap 100.000, jadi bukan 10 kali."
+  },
+  "label": {
+    "sumber": "Asumsi",
+    "tebakDulu": "Tebak dulu:",
+    "lanjut": "Sekarang pilih skenario “Semua aktif” di atas tabel.",
+    "ubah": "Skenario",
+    "asumsi": "asumsi",
+    "detik": "detik",
+    "ms": "ms",
+    "baris": {
+      "user": "User terdaftar",
+      "dau": "User aktif per hari",
+      "reqHari": "Request per hari",
+      "rata": "Rata-rata, request per detik",
+      "puncak": "Puncak, request per detik"
+    },
+    "kesimpulan": "Di jam paling ramai, satu request datang kira-kira tiap {jarak}."
+  }
+}

@@ -56,8 +56,8 @@ PRD v4 sudah menulis empat isi PRD v5 sebagai P2 yang ditunda ke v5 ([[t4-prd]])
 | Isi PRD v5 | Keadaan terdekat di Tahap 4 |
 |---|---|
 | Skala nasional: 1 juta user dan ratusan ribu merchant | 100.000 user terdaftar, ±400 merchant luar, dan ±60 warung (Asumsi). Puncak 138,9 request per detik dan 40 dari 100 koneksi database (Hitungan atas Asumsi, [[t4-estimasi]]) |
-| Laporan merchant real-time | Dasbor web warung dari PRD v3 ([[t3-prd]]). ADR 45 menunda read replica, yaitu salinan database untuk bacaan, dan PgBouncer sampai laporan ini diminta ([[t4-adr-45]]) |
-| Notifikasi massal | Notifikasi uang memakai 7,52 dari 13,33 pengiriman per detik di puncak, dan pengumuman ke 100.000 HP butuh 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]) |
+| Laporan merchant real-time | Dasbor web warung dari PRD v3 ([[t3-prd]]). ADR 45 menunda read replica, yaitu salinan database untuk bacaan, dan satu pemicunya adalah laporan ini ([[t4-adr-45]]) |
+| Notifikasi massal | Notifikasi uang memakai 7,52 dari 13,33 pengiriman per detik di puncak, dan pengumuman ke 100.000 HP butuh paling sedikit 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]) |
 | Cicilan dan tabungan, dengan proses batch harian | Proses terjadwal yang ada: rekonsiliasi harian dengan gateway ([[t4-rekonsiliasi]]) dan pencairan warung tiap Jumat ([[t2-pencairan]]) |
 | API publik untuk POS pihak ketiga | PRD v3 menulis API untuk kasir pihak ketiga sebagai bukan lingkup ([[t3-prd]]). Pihak luar yang memanggil Rekeningo di Tahap 4: gateway lewat webhook ([[t4-webhook]]) dan penerbit kartu ([[t4-kartu]]) |
 | 20 sampai 40 orang dalam 5 sampai 7 tim | 13 developer dalam tiga tim: Pembayaran 5, Merchant 4, Platform 4 (Asumsi cerita), di satu repo dan satu proses ([[t4-modul]]) |
@@ -74,8 +74,8 @@ Di halaman ini "pecah lebih dulu" adalah penalaran dari kalimat halaman ADR (Asu
 
 Tiga keadaan yang cocok ditulis di halaman ADR-nya:
 
-- ADR 45: pemicu read replica dan PgBouncer adalah laporan merchant real-time ([[t4-adr-45]]).
-- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam; [[t4-breaker]]). Pengumuman ke 100.000 HP lewat satu queue butuh 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).
+- ADR 45: satu dari tiga pemicu read replica adalah laporan merchant real-time yang diminta PRD v5. Empat pemicu berangka di halaman itu belum terlewati, dan yang terdekat 57% ([[t4-adr-45]]).
+- ADR 36: breaker hidup di memori satu proses worker, jadi dua worker tidak berbagi hitungan (dibaca dari kode, tidak direkam; [[t4-breaker]]). Pengumuman ke 100.000 HP lewat satu queue butuh paling sedikit 125 menit (Hitungan atas Asumsi, Tidak dijalankan; [[t4-m39]]).
 - ADR 37: keputusannya salah saat tim membuat deploy bersama tidak lagi masuk akal, dan dari 13 developer itu belum terlihat ([[t4-modul]]). ADR 44 menulis hal yang sama untuk tim: pipeline dan giliran jaga dibagi per tim, dan batas modul perlu menjadi batas deploy ([[t4-tim-infra]]).
 
 Dua pilihan lain di tebakan tidak cocok dengan isi PRD v5:
@@ -85,7 +85,7 @@ Dua pilihan lain di tebakan tidak cocok dengan isi PRD v5:
 
 Satu heuristik praktisi menyebut bahwa microservices baru masuk akal di atas ±50 developer. [[t4-modul]] tidak menemukan sumber primer untuk angka itu [perlu verifikasi], jadi halaman ini tidak memakainya.
 
-Satu hal dari Tahap 4 belum selesai dan ikut masuk ke PRD v5. Kapasitas satu server belum terukur: `make beban` di lab `api-t4` memberi batas di satu laptop, bukan kapasitas produksi ([[t4-m39]]).
+Satu hal dari Tahap 4 belum selesai dan ikut masuk ke PRD v5. Kapasitas satu server belum terukur. `make beban` di lab `api-t4` memeriksa status 200 atau 201 dan p95 di bawah 500 ms di satu laptop. Itu batas lab (Asumsi), bukan kapasitas produksi ([[t4-m39]]).
 
 </Blok>
 
@@ -107,7 +107,7 @@ Satu hal dari Tahap 4 belum selesai dan ikut masuk ke PRD v5. Kapasitas satu ser
 <details class="success">
 <summary>Jawaban</summary>
 
-ADR 36: breaker di memori satu proses worker, jadi dua worker tidak berbagi hitungan. ADR 37: tim yang membuat deploy bersama tidak lagi masuk akal. ADR 44: tim yang naik, sehingga pipeline dan giliran jaga dibagi per tim. ADR 45: pemicu read replica dan PgBouncer adalah laporan merchant real-time.
+ADR 36: breaker di memori satu proses worker, jadi dua worker tidak berbagi hitungan. ADR 37: tim yang membuat deploy bersama tidak lagi masuk akal. ADR 44: tim yang naik, sehingga pipeline dan giliran jaga dibagi per tim. ADR 45: satu pemicu read replica adalah laporan merchant real-time yang diminta PRD v5.
 
 </details>
 

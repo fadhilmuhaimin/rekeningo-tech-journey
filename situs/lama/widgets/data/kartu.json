@@ -3240,6 +3240,62 @@
   "jawab": "1 ÷ 4 = 25% sebelum, dan 1 ÷ 3 = 33% sesudah. Batas buku SRE adalah 25% waktu (Hitungan atas Asumsi naskah)."
  },
  {
+  "id": "t4-m39-1",
+  "halaman": "t4-m39",
+  "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+  "url": "tahap-4/m39-prd-v5/",
+  "tanya": "Puncak request naik dari 17,4 ke 138,9 per detik, padahal user naik 10 kali. Kenapa hanya 8 kali?",
+  "jawab": "User aktif turun dari 25% ke 20%, jadi pengali kedua 0,8, dan request per user tetap 60. Hasil kalinya 10 × 0,8 × 1 = 8 (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t4-m39-2",
+  "halaman": "t4-m39",
+  "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+  "url": "tahap-4/m39-prd-v5/",
+  "tanya": "Rekaman beban menulis koneksi paling banyak 10. Kenapa itu bukan bukti pool tidak sesak?",
+  "jawab": "Batas 10 dipasang pool sendiri, jadi pool tidak bisa melewatinya. Jadwal yang tidak tertinggal hanya menunjukkan generator tepat waktu. Jawaban server hanya dilihat oleh status 200 atau 201 dan p95 di bawah 500 ms, dan keduanya batas lab, bukan kapasitas produksi."
+ },
+ {
+  "id": "t4-m39-3",
+  "halaman": "t4-m39",
+  "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+  "url": "tahap-4/m39-prd-v5/",
+  "tanya": "Worker terpakai 56%, dan pengumuman ke 100.000 HP dihitung 125 menit. Apa label masing-masing, dan apa yang tidak dijalankan lab?",
+  "jawab": "Keduanya Hitungan atas Asumsi: kapasitas 4 ÷ 0,3 = 13,33 per detik, dengan lama pengiriman 0,3 detik sebagai Asumsi. Lab hanya menguras 100 notifikasi dan memeriksa laju dalam 15% dari 13,33 per detik. Lab tidak menulis atau mengirim 100.000 baris, dan 125 menit adalah batas bawah karena worker juga mengirim notifikasi uang."
+ },
+ {
+  "id": "t4-m39-4",
+  "halaman": "t4-m39",
+  "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+  "url": "tahap-4/m39-prd-v5/",
+  "tanya": "Sebutkan tiga hal yang diminta PRD v5 dan belum pernah diuji di Tahap 4.",
+  "jawab": "Laporan merchant real-time di database yang sama dengan transaksi, notifikasi massal lewat satu worker, dan 13 orang menjadi 20 sampai 40 di satu repo. Campuran beban lab hanya baca saldo, riwayat, katalog, dan pembayaran."
+ },
+ {
+  "id": "t4-adr-45-1",
+  "halaman": "t4-adr-45",
+  "judul": "4.29 ADR 45: Sengaja belum dilakukan",
+  "url": "tahap-4/sengaja-belum/",
+  "tanya": "Koneksi database sekarang 40 dari 100. Berapa instance API dengan pool 10 sampai koneksi mencapai pemicu 70?",
+  "jawab": "Lima instance, jadi tiga lagi di atas dua yang ada. Rumusnya instance × 10 + 20 = 70, jadi instance = (70 − 20) ÷ 10 = 5. Angka 20 adalah 2 × 5 + 4 + 3 + 3. Angka 70 adalah Asumsi 3.30 ADR 33, dan pool pembayaran, worker, admin, serta cadangan superuser adalah Asumsi naskah."
+ },
+ {
+  "id": "t4-adr-45-2",
+  "halaman": "t4-adr-45",
+  "judul": "4.29 ADR 45: Sengaja belum dilakukan",
+  "url": "tahap-4/sengaja-belum/",
+  "tanya": "Kenapa HTTP dan OpenAPI masih cukup untuk panggilan dari service pembayaran ke ledger?",
+  "jawab": "Top-up memanggil ledger 0,579 kali per detik pada puncak. Satu lompatan HTTP yang menahan koneksi 50 ms memakai L = 0,579 × 0,05 = 0,029 koneksi (Hitungan atas Asumsi). Rekaman lab `latensi.txt` bagian A memeriksa tambahan p95 di bawah 50 ms, dan jawabannya ya, di localhost satu mesin. Jaringan antar host tidak diukur, jadi itulah pemicunya."
+ },
+ {
+  "id": "t4-adr-45-3",
+  "halaman": "t4-adr-45",
+  "judul": "4.29 ADR 45: Sengaja belum dilakukan",
+  "url": "tahap-4/sengaja-belum/",
+  "tanya": "ID token punya signature yang sah, tetapi `aud` menyebut app lain. Apa yang dilakukan API Rekeningo, dan kenapa?",
+  "jawab": "API menolaknya dengan 401. Signature hanya membuktikan token diterbitkan server identitas, yang menerbitkan token untuk banyak app. OpenID Connect Core §3.1.3.7 meminta ID token ditolak bila `aud` tidak memuat client id Rekeningo. Rekaman lab lama `b5-2-oidc` bagian D merekam 401 untuk `aud` app lain."
+ },
+ {
   "id": "t4-jembatan-1",
   "halaman": "t4-jembatan",
   "judul": "4.31 Jembatan: pratinjau PRD v5",
@@ -3253,7 +3309,7 @@
   "judul": "4.31 Jembatan: pratinjau PRD v5",
   "url": "tahap-4/jembatan-prd-v5/",
   "tanya": "Sebutkan keadaan yang ditulis ADR 36, ADR 37, ADR 44, dan ADR 45 sendiri.",
-  "jawab": "ADR 36: breaker di memori satu proses worker, jadi dua worker tidak berbagi hitungan. ADR 37: tim yang membuat deploy bersama tidak lagi masuk akal. ADR 44: tim yang naik, sehingga pipeline dan giliran jaga dibagi per tim. ADR 45: pemicu read replica dan PgBouncer adalah laporan merchant real-time."
+  "jawab": "ADR 36: breaker di memori satu proses worker, jadi dua worker tidak berbagi hitungan. ADR 37: tim yang membuat deploy bersama tidak lagi masuk akal. ADR 44: tim yang naik, sehingga pipeline dan giliran jaga dibagi per tim. ADR 45: satu pemicu read replica adalah laporan merchant real-time yang diminta PRD v5."
  },
  {
   "id": "t4-jembatan-3",
