@@ -24,9 +24,9 @@ Lalu Sinta membagikan PRD v5: skala nasional, merchant massal, cicilan dan tabun
 
 *Angka cerita (Ilustrasi):* minggu 12, 100.000 user terdaftar, 14 hari berturut-turut, dan selisih Rp0 atau insiden tertutup dalam satu hari kerja berasal dari naskah. Naskah menulisnya sebagai target (Asumsi), tanpa rekaman yang mengulangnya.
 
-Isi PRD v5 juga dari naskah (Ilustrasi), jadi halaman ini tidak menulis angkanya. Pertanyaan Sinta ditambahkan halaman ini. PT Rekeningo adalah perusahaan fiktif, dan halaman ini tidak menyebut izin atau regulasi apa pun.
+*Catatan:* Isi PRD v5 juga dari naskah (Ilustrasi), jadi halaman ini tidak menulis angkanya. Pertanyaan Sinta ditambahkan halaman ini. PT Rekeningo adalah perusahaan fiktif, dan halaman ini tidak menyebut izin atau regulasi apa pun.
 
-Hitungan di halaman ini berarti hasil rumus yang ditulis di sebelahnya, dan labelnya mengikuti masukan terlemahnya. Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].
+Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]]. Hitungan di halaman ini berarti hasil rumus yang ditulis di sebelahnya, dan labelnya mengikuti masukan terlemahnya.
 
 </Blok>
 
@@ -43,7 +43,7 @@ Ketiganya mengira kapasitas yang kurang. Satu rekaman beban Tahap 4 bisa memerik
 <details class="question">
 <summary>Tebak dulu: p95 di bawah 500 ms pada 138,9 request per detik. Apa yang dibuktikan hasil itu untuk server produksi dan PRD v5?</summary>
 
-Hanya bahwa satu proses di satu laptop menjawab semua permintaan berjadwal dalam batas yang dipasang lab. Hasil itu bukan kapasitas produksi, dan tidak menjalankan laporan merchant, notifikasi massal, atau tim yang lebih besar. Blok berikutnya memisahkan yang dihitung, yang direkam, dan yang belum diuji.
+Hanya bahwa satu proses di satu laptop menjawab 95% permintaan berjadwal di bawah batas waktu yang dipasang lab. Hasil itu bukan kapasitas produksi, dan tidak menjalankan laporan merchant, notifikasi massal, atau tim yang lebih besar. Blok berikutnya memisahkan yang dihitung, yang direkam, dan yang belum diuji.
 
 </details>
 
@@ -88,11 +88,11 @@ Dua batas lain tidak membuktikan pool tidak sesak. Koneksi paling banyak 10 adal
 
 <Snippet file="labs/api-t4/cmd/api/main.go" lines="341:342" lang="go" title="Kode lab: labs/api-t4/cmd/api/main.go baris 341 sampai 342 (batas pool)" />
 
-Pool tidak bisa melewati batas itu, jadi baris rekaman tersebut tidak bisa gagal. Jadwal yang tidak tertinggal lebih dari 100 ms hanya menunjukkan bahwa generator mengirim tepat waktu:
+Pool tidak bisa melewati batas itu, jadi baris rekaman tersebut tidak bisa gagal. Baris pool setelah beban membaca batas yang sama, bukan koneksi yang sedang terpakai. Jadwal yang tidak tertinggal lebih dari 100 ms hanya menunjukkan bahwa generator mengirim tepat waktu:
 
 <Snippet file="labs/api-t4/cmd/beban/main.go" lines="111:115" lang="go" title="Kode lab: labs/api-t4/cmd/beban/main.go baris 111 sampai 115 (selisih jadwal)" />
 
-Kode mengukur selisih antara jadwal dan saat generator berhenti tidur, tanpa menunggu jawaban server. Jadwal itu syarat agar p95 berarti, bukan bukti untuk pool. Yang melihat jawaban server hanya p95, dan batas 500 ms hanya menangkap request yang sudah menumpuk panjang.
+Kode mengukur selisih antara jadwal dan saat generator berhenti tidur, tanpa menunggu jawaban server. Jadwal itu syarat agar p95 berarti, bukan bukti untuk pool. Jawaban server dilihat oleh status, yang semuanya harus 200 atau 201, dan oleh p95. Keduanya batas longgar, jadi request yang menunggu sebentar di pool tidak terlihat.
 
 Campuran lab membayar dua kali lebih sering daripada hitungan naskah: 295 ÷ 2.778 = 10,6% request, sedangkan 6,94 ÷ 138,9 = 5,0% (Hitungan). Bagian A tidak menjalankan worker (dibaca dari `run.py`, Tidak dijalankan), jadi notifikasi tidak ikut diukur di sana.
 
@@ -108,7 +108,7 @@ Angka itu batas bawah. Pada puncak worker yang sama juga mengirim 7,52 notifikas
 
 Pool 10 baru terdesak bila L melebihi 9. Itu terjadi pada 9 ÷ 0,02 = 450 request per detik, yaitu 3,24 kali puncak 138,9 (Hitungan untuk kedatangan berjadwal tetap). Kedatangan acak mengantre lebih awal.
 
-Itu hitungan untuk koneksi database di satu proses saja. Kapasitas server produksi belum diukur: `make beban` memakai satu proses, satu laptop, dan 20 detik. Koneksi 40 dari 100 adalah Hitungan atas pool Asumsi, dan lab tidak mengukurnya.
+Itu hitungan untuk koneksi database di satu proses saja. Dua instance API memakai dua pool 10, jadi di produksi L baru terdesak bila melebihi 18, bukan 9 ([[t3-estimasi]]; Hitungan atas Asumsi desain). Kapasitas server produksi belum diukur: `make beban` memakai satu proses, satu laptop, dan 20 detik. Koneksi 40 dari 100 adalah Hitungan atas pool Asumsi, dan lab tidak mengukurnya.
 
 **Tiga hal yang belum pernah diuji.** Naskah menyebut ketiganya, dan tiap hal punya batas yang bisa dibaca di Tahap 4:
 
@@ -126,7 +126,7 @@ Rencana Bayu menambah instance tanpa kerja tangan. Hitungan koneksi memakai dua 
 
 Dugaan Nadia sudah dijawab [[t4-modul]]. ADR 37 memilih modular monolith dan satu service pembayaran karena tiga tim bentrok di [[t4-m32]], dan menulis bahwa beban bukan alasan memecah. Ia juga menulis kapan keputusannya salah: saat satu modul punya profil beban atau tim yang membuat deploy bersama tidak lagi masuk akal. Dari 13 developer dan 6,94 transaksi uang per detik, itu belum terlihat (Asumsi).
 
-Dugaan Raka, Bayu, dan Nadia menjawab pertanyaan yang hitungannya tidak mempersoalkan. PRD v5 mengajukan pertanyaan lain: apa yang terjadi bila laporan, notifikasi massal, dan tim yang lebih besar berbagi database, worker, dan repo yang sama. Beban PRD v5 dihitung dengan rumus yang sama di [[t4-estimasi]]. Pemicu terukur untuk tiap dugaan ditulis di [[t4-adr-45]].
+Dugaan Raka, Bayu, dan Nadia menjawab pertanyaan yang hitungannya tidak mempersoalkan. PRD v5 mengajukan pertanyaan lain: apa yang terjadi bila laporan, notifikasi massal, dan tim yang lebih besar berbagi database, worker, dan repo yang sama. Beban PRD v5 dihitung dengan rumus yang sama di [[t4-estimasi]]. Pemicu terukur untuk Kubernetes dan service per modul ditulis di [[t4-adr-45]].
 
 </Blok>
 
@@ -145,7 +145,7 @@ Jadi "tidak sesak" berlaku untuk 138,9 request per detik, bukan untuk setiap ske
 <Blok nama="Konsep yang lahir">
 
 - [[t4-estimasi]]: estimasi Tahap 4 → 5. Beban PRD v5 dihitung dari angka Tahap 4 sebelum memilih komponen.
-- [[t4-adr-45]]: ADR 45, "Sengaja belum dilakukan". Service per modul, Kubernetes, gRPC, read replica, BFF terpisah, dan login sosial ditunda, masing-masing dengan pemicunya.
+- [[t4-adr-45]]: ADR 45, "Sengaja belum dilakukan". Kubernetes, service per modul, dan komponen lain sengaja belum dipasang di Tahap 4, masing-masing dengan pemicunya.
 - [[t4-modul]]: modular monolith dan batas modul, jawaban atas dugaan satu service per modul.
 - [[t3-pool]]: L = λ × W menghitung koneksi yang terpegang. Hitungan 2,78 di halaman ini memakainya.
 - [[t3-m28]]: pertanyaan yang sama di Tahap 3, dengan puncak 17,4 request per detik.
@@ -170,7 +170,7 @@ User aktif turun dari 25% ke 20%, jadi pengali kedua 0,8, dan request per user t
 <details class="success">
 <summary>Jawaban</summary>
 
-Batas 10 dipasang pool sendiri, jadi pool tidak bisa melewatinya. Jadwal yang tidak tertinggal hanya menunjukkan generator tepat waktu. Yang melihat jawaban server hanya p95 di bawah 500 ms, dan itu batas lab, bukan kapasitas produksi.
+Batas 10 dipasang pool sendiri, jadi pool tidak bisa melewatinya. Jadwal yang tidak tertinggal hanya menunjukkan generator tepat waktu. Jawaban server hanya dilihat oleh status 200 atau 201 dan p95 di bawah 500 ms, dan keduanya batas lab, bukan kapasitas produksi.
 
 </details>
 

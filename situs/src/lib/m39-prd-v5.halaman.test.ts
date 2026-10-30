@@ -195,16 +195,19 @@ describe("registry, naskah, blok, dan tautan", () => {
     }
     expect(dari("A0").ada).toBe(true);
     expect(cara).toContain("Label sumber");
-    for (const [idh, n] of [["t4-modul", 3], ["t3-estimasi", 2], ["t3-pool", 2], ["t3-m28", 2], ["t4-estimasi", 2], ["t4-adr-45", 2], ["t4-tim-infra", 1], ["t4-rekonsiliasi", 1], ["t4-prd", 1], ["t4-skema", 1], ["t3-m27", 1], ["t3-dua-instance", 1], ["t4-m32", 1], ["t4-jembatan", 1]] as [string, number][]) {
+    for (const [idh, n] of [["t4-modul", 3], ["t3-estimasi", 3], ["t3-pool", 2], ["t3-m28", 2], ["t4-estimasi", 2], ["t4-adr-45", 2], ["t4-tim-infra", 1], ["t4-rekonsiliasi", 1], ["t4-prd", 1], ["t4-skema", 1], ["t3-m27", 1], ["t3-dua-instance", 1], ["t4-m32", 1], ["t4-jembatan", 1]] as [string, number][]) {
       expect(hitung(badan, `[[${idh}]]`), idh).toBe(n);
     }
   });
   test("janji halaman ini ke halaman lain ditepati: 4.28 menghitung beban Tahap 5, 4.29 menulis pemicu, 4.31 memuat tebakan, PRD v4 menulis Pak Hadi dan rekonsiliasi", () => {
     expect(dari("t4-estimasi").masalah).toBe("Menghitung beban Tahap 5 dari angka Tahap 4 sebelum memilih komponen");
-    harus("Beban PRD v5 dihitung dengan rumus yang sama di [[t4-estimasi]]. Pemicu terukur untuk tiap dugaan ditulis di [[t4-adr-45]].");
+    harus("Beban PRD v5 dihitung dengan rumus yang sama di [[t4-estimasi]]. Pemicu terukur untuk Kubernetes dan service per modul ditulis di [[t4-adr-45]].");
     expect(dari("t4-adr-45").masalah).toContain("Tergoda memecah semua modul jadi service, memakai Kubernetes, gRPC, dan read replica");
     expect(naskah).toContain('ADR 45 "Sengaja belum dilakukan": tanpa service per modul, Kubernetes, gRPC, read replica, BFF terpisah, login sosial');
-    harus('- [[t4-adr-45]]: ADR 45, "Sengaja belum dilakukan". Service per modul, Kubernetes, gRPC, read replica, BFF terpisah, dan login sosial ditunda, masing-masing dengan pemicunya.');
+    // Isi ADR 45 milik halaman 4.29: halaman ini hanya menyebut dua komponen yang naskah dan dugaan M39 sama-sama memuat.
+    harus('- [[t4-adr-45]]: ADR 45, "Sengaja belum dilakukan". Kubernetes, service per modul, dan komponen lain sengaja belum dipasang di Tahap 4, masing-masing dengan pemicunya.');
+    expect(naskah).toMatch(/tanpa service per modul, Kubernetes, gRPC/);
+    expect(badan).not.toMatch(/gRPC|BFF|login sosial|read replica/);
     expect(dari("t4-jembatan").masalah).toContain("pecah lebih dulu");
     harus("- [[t4-jembatan]]: pratinjau PRD v5, dengan tebakan mana yang pecah lebih dulu.");
     expect(naskah).toContain("Pembaca diminta menebak: dari ADR Tahap 4, mana yang pecah lebih dulu?");
@@ -499,6 +502,22 @@ describe("kode lab: batas pool dipasang pool sendiri; jadwal diukur sesudah tidu
     harus("Jadwal itu syarat agar p95 berarti, bukan bukti untuk pool.");
     harus("Jadwal yang tidak tertinggal lebih dari 100 ms hanya menunjukkan bahwa generator mengirim tepat waktu:");
   });
+  test("jawaban server dilihat status dan p95 (bukan hanya p95); baris pool setelah beban membaca batas, bukan koneksi terpakai; batas L di produksi 18", () => {
+    const bagianA = runPy.slice(runPy.indexOf("def rekam_beban"), runPy.indexOf('bagian("B. Kapasitas worker'));
+    // pembanding atas keluaran generator di bagian A: tepat delapan, dan hanya status dan p95 yang bergantung pada jawaban server
+    const label = [...bagianA.matchAll(/harap\([^\n]+?, "([^"]+)"\)/g)].map((m) => m[1]);
+    expect(label).toEqual(["jumlah permintaan terjadwal", "semua permintaan selesai", "tidak ada error", "p95", "generator tidak tertinggal", "koneksi tidak melewati pool", "koneksi aktif tidak melewati pool", "pool 10"]);
+    expect(bagianA).toContain('harap(set(m["status"]) <= {"200", "201"}, True, "tidak ada error")');
+    expect(bagianA).toContain('harap(m["p95_ms"] < batas_p95, True, "p95")');
+    expect(bebanGo).toContain('"p95_ms": pct(0.95)');
+    expect(bebanGo).toContain('kode = fmt.Sprint(resp.StatusCode)');
+    // generator dan koneksi tidak memeriksa jawaban server; pool dibaca dari batas, tidak dari antrean (WaitCount tidak dibaca)
+    expect(bagianA).not.toMatch(/WaitCount|\[['"](menunggu|dipakai)['"]\]/);
+    expect(bagianA).toContain("pool setelah beban: maks {j(isi)['maks']}");
+    expect(mainGo).toContain('"maks": st.MaxOpenConnections');
+    expect(2 * BATAS_L).toBe(18);
+    expect(hal329).toContain("Batasnya 2 pool × (10 − 1) = 18");
+  });
   test("campuran beban: hanya baca saldo, riwayat 20 baris, katalog, dan POST /transfers; tanpa kueri laporan di cmd/beban; pemindai diuji pada contoh", () => {
     const punyaLaporan = (teks: string) => /laporan|report|rekap|agregat/i.test(teks);
     expect(punyaLaporan('req, _ = http.NewRequest("GET", url+"/laporan/warung", nil)')).toBe(true);
@@ -689,7 +708,7 @@ describe("kartu Cek diri: empat kartu sama dengan kartu.json dan fakta yang sama
     expect(soal[0]!.tanya).toBe(`Puncak request naik dari ${koma(T3.puncak, 1)} ke ${koma(T4.puncak, 1)} per detik, padahal user naik ${reg4.user / reg3.user} kali. Kenapa hanya ${T4.puncak / T3.puncak} kali?`);
     expect(soal[0]!.jawab).toContain(`User aktif turun dari ${reg3.aktif}% ke ${reg4.aktif}%, jadi pengali kedua ${koma(reg4.aktif / reg3.aktif, 1)}, dan request per user tetap ${reg4.req}. Hasil kalinya ${reg4.user / reg3.user} × ${koma(reg4.aktif / reg3.aktif, 1)} × ${reg4.req / reg3.req} = ${T4.puncak / T3.puncak} (Hitungan atas Asumsi).`);
     expect(soal[1]!.tanya).toBe(`Rekaman beban menulis koneksi paling banyak ${POOL}. Kenapa itu bukan bukti pool tidak sesak?`);
-    expect(soal[1]!.jawab).toContain(`Batas ${POOL} dipasang pool sendiri, jadi pool tidak bisa melewatinya. Jadwal yang tidak tertinggal hanya menunjukkan generator tepat waktu. Yang melihat jawaban server hanya p95 di bawah 500 ms, dan itu batas lab, bukan kapasitas produksi.`);
+    expect(soal[1]!.jawab).toContain(`Batas ${POOL} dipasang pool sendiri, jadi pool tidak bisa melewatinya. Jadwal yang tidak tertinggal hanya menunjukkan generator tepat waktu. Jawaban server hanya dilihat oleh status 200 atau 201 dan p95 di bawah 500 ms, dan keduanya batas lab, bukan kapasitas produksi.`);
     expect(soal[2]!.tanya).toBe(`Worker terpakai ${Math.round(pakai4 * 100)}%, dan pengumuman ke ${ribu(reg4.user)} HP dihitung ${(reg4.user * T_KIRIM) / SERENTAK / 60} menit. Apa label masing-masing, dan apa yang tidak dijalankan lab?`);
     expect(soal[2]!.jawab).toContain(`kapasitas ${SERENTAK} ÷ ${koma(T_KIRIM, 1)} = ${koma(KAPASITAS, 2)} per detik, dengan lama pengiriman ${koma(T_KIRIM, 1)} detik sebagai Asumsi.`);
     expect(soal[2]!.jawab).toContain(`Lab hanya menguras 100 notifikasi dan memeriksa laju dalam 15% dari ${koma(KAPASITAS, 2)} per detik. Lab tidak menulis atau mengirim ${ribu(reg4.user)} baris, dan ${(reg4.user * T_KIRIM) / SERENTAK / 60} menit adalah batas bawah karena worker juga mengirim notifikasi uang.`);
@@ -718,7 +737,7 @@ describe("struktur halaman: tingkat heading, daftar, label, dan tanpa ID interna
     expect(hitung(badan, "<noscript")).toBe(0);
   });
   test("jawaban tebakan dan butir Konsep yang lahir sama dengan naskah dan halaman tetangga", () => {
-    harus("Hanya bahwa satu proses di satu laptop menjawab semua permintaan berjadwal dalam batas yang dipasang lab.");
+    harus("Hanya bahwa satu proses di satu laptop menjawab 95% permintaan berjadwal di bawah batas waktu yang dipasang lab.");
     harus("Blok berikutnya memisahkan yang dihitung, yang direkam, dan yang belum diuji.");
     harus("- [[t4-estimasi]]: estimasi Tahap 4 → 5. Beban PRD v5 dihitung dari angka Tahap 4 sebelum memilih komponen.");
     harus("- [[t4-modul]]: modular monolith dan batas modul, jawaban atas dugaan satu service per modul.");
@@ -805,7 +824,7 @@ describe("dunia angka tertutup: tiap token angka dan konteksnya dihitung dari su
   });
   test("bilangan bulat berkonteks: persen, menit, detik, ms, koneksi, dan hitungan kali dari sumber", () => {
     const himpunan = (re: RegExp) => new Set([...badan.matchAll(re)].map((m) => m[1]!));
-    expect(himpunan(/(?<![\d,.])(\d+(?:,\d+)?)%/g)).toEqual(new Set([`${reg4.aktif}`, `${reg3.aktif}`, "5", "5,0", "10,6", "15", "40", "56", "56,4", "6,5", "72", "80"]));
+    expect(himpunan(/(?<![\d,.])(\d+(?:,\d+)?)%/g)).toEqual(new Set([`${reg4.aktif}`, `${reg3.aktif}`, "5", "5,0", "10,6", "15", "40", "56", "56,4", "6,5", "72", "80", "95"]));
     expect(himpunan(/(?<![\d,.])(\d+) menit/g)).toEqual(new Set(["10", "3", "90", "125"]));
     expect(himpunan(/(?<![\d,.])(\d+) ms/g)).toEqual(new Set(["500", "100", "20"]));
     expect(himpunan(/(?<![\d,.])(\d+) detik/g)).toEqual(new Set(["20"]));
@@ -873,7 +892,9 @@ describe("kalimat klaim kunci: ditulis di tes, bukan dibangkitkan dari halaman, 
   test("rekaman dan kapasitas: lead tebal, batas yang tidak membuktikan, dan label pengumuman", () => {
     harus("**Rekaman: yang dibuktikan dan yang tidak.**");
     harus("Dua batas lain tidak membuktikan pool tidak sesak.");
-    harus("Yang melihat jawaban server hanya p95, dan batas 500 ms hanya menangkap request yang sudah menumpuk panjang.");
+    harus("Jawaban server dilihat oleh status, yang semuanya harus 200 atau 201, dan oleh p95. Keduanya batas longgar, jadi request yang menunggu sebentar di pool tidak terlihat.");
+    harus("Baris pool setelah beban membaca batas yang sama, bukan koneksi yang sedang terpakai.");
+    harus("Dua instance API memakai dua pool 10, jadi di produksi L baru terdesak bila melebihi 18, bukan 9 ([[t3-estimasi]]; Hitungan atas Asumsi desain).");
     harus("**Kapasitas worker terukur, pengumuman tidak.**");
     harus(`Koneksi ${KONEKSI4} dari 100 adalah Hitungan atas pool Asumsi, dan lab tidak mengukurnya.`);
     harus("Itu hitungan untuk koneksi database di satu proses saja.");

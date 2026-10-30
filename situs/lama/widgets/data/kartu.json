@@ -3253,7 +3253,7 @@
   "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
   "url": "tahap-4/m39-prd-v5/",
   "tanya": "Rekaman beban menulis koneksi paling banyak 10. Kenapa itu bukan bukti pool tidak sesak?",
-  "jawab": "Batas 10 dipasang pool sendiri, jadi pool tidak bisa melewatinya. Jadwal yang tidak tertinggal hanya menunjukkan generator tepat waktu. Yang melihat jawaban server hanya p95 di bawah 500 ms, dan itu batas lab, bukan kapasitas produksi."
+  "jawab": "Batas 10 dipasang pool sendiri, jadi pool tidak bisa melewatinya. Jadwal yang tidak tertinggal hanya menunjukkan generator tepat waktu. Jawaban server hanya dilihat oleh status 200 atau 201 dan p95 di bawah 500 ms, dan keduanya batas lab, bukan kapasitas produksi."
  },
  {
   "id": "t4-m39-3",
