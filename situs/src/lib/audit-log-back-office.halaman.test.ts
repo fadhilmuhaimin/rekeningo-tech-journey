@@ -1125,6 +1125,17 @@ describe("tinjauan 1365: kalimat mekanisme, role, README, kode MCP, dan label ta
     harus("Satu baris audit memuat alasan yang berbunyi seperti perintah:");
     harus("MCP (Model Context Protocol) adalah protokol tempat sebuah client memanggil alat milik server.");
     harus("Catatan yang bergantung pada event melewatkan keduanya.");
+    // seed ketiga (777): aksi yang butuh penyetuju diturunkan dari kode (tepat buka blokir dan ubah batas), hak tabel, dan kalimat tab Supabase
+    harus("Membuka blokir dan mengubah batas butuh penyetuju, yaitu akun risk kedua yang aktif.");
+    for (const f of ["BukaBlokirBO", "UbahBatasHarianBO"]) {
+      const awal = kodeBo.indexOf(`func (s Service) ${f}(`);
+      expect(awal, f).toBeGreaterThan(0);
+      const badan = kodeBo.slice(awal, kodeBo.indexOf("\nfunc ", awal + 10));
+      expect(badan, f).toContain("s.penyetuju(ctx, ");
+    }
+    harus("Hak tabel ada di database, jadi berlaku walaupun kode aplikasi dibajak.");
+    expect(tab(5)).toContain("ekstensi PGAudit menambah kemampuan log bawaan Postgres");
+    expect(barisRiset("R4-234")).toContain("PGAudit memperluas log bawaan Postgres");
     // Node.js: apakah HMAC menutup baris palsu adalah pertanyaan terbuka, bukan hasil dokumentasi
     expect(tab(1)).toContain("HMAC memakai kunci rahasia. Apakah itu menutup baris palsu dari aplikasi yang diambil alih Tidak dijalankan di lab. Halaman itu tidak memuat kata audit.");
     // daftar review kode AI: enam butir persis
