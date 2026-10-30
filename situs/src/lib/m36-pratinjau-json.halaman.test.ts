@@ -414,7 +414,7 @@ describe("rekaman alamat.txt dan batas.txt: nilai yang dikutip, Hitungan, dan kl
     expect(aEmpat).toBe(aSimpul + 1);
     expect(A.baris[aEmpat]).toBe("--- PASS: TestSSRFKelasAlamatIsPrivateTidakCukup");
     expect(alamatTxt.split("\n")[1]).toBe("# go1.27.1 · tanpa database · server uji hanya di 127.0.0.1 di dalam proses tes");
-    harus(`Rekaman menguji ${TERLARANG} alamat contoh, dan versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
+    harus(`Rekaman menguji ${TERLARANG} alamat contoh, dan pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
     harus("go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat private dan link-local di rekaman adalah angka karangan lab.");
     expect(readmeSsrf).toContain("Alamat contoh private dan link-local di `alamat.txt` adalah angka karangan lab");
   });
@@ -646,7 +646,7 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     expect(kartu.every((k) => k.url === "tahap-4/m36-pratinjau-json/" && k.judul === "4.20 M36: Pratinjau gambar yang berisi JSON")).toBe(true);
     expect(kartu[0]!.jawab).toContain(`menaruh ${AWAL_GALAT} byte pertama isinya di pesan galat`);
     expect(kartu[0]!.jawab).toContain("di kolom `galat` (dibaca dari kode, Tidak dijalankan)");
-    expect(kartu[1]!.tanya).toBe(`Versi aman menolak ${TERLARANG} dari ${TERLARANG} alamat terlarang. Kenapa pemeriksaan \`IsPrivate\` saja tidak cukup?`);
+    expect(kartu[1]!.tanya).toBe(`Pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG} alamat terlarang. Kenapa pemeriksaan \`IsPrivate\` saja tidak cukup?`);
     expect(kartu[1]!.jawab).toBe(`Hanya ${kata(PRIVAT.length)} dari ${TERLARANG} alamat itu ditandai private, jadi ${TERLARANG - PRIVAT.length} lolos bila hanya \`IsPrivate\` yang diperiksa (\`alamat.txt\`).`);
     expect(kartu[2]!.jawab).toContain(`server tujuan redirect tersentuh nol kali di ${kata(KODE_REDIRECT.length)} kode (\`batas.txt\`)`);
     expect(kartu[2]!.jawab).toContain("mengikuti redirect sampai 10 request beruntun (dokumentasi, Tidak dijalankan)");
@@ -700,7 +700,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
   });
   test("paragraf dengan bilangan: alamat, ubah satu hal, dan noscript diturunkan dari tabel alamat.txt", () => {
     const L = TERLARANG - PRIVAT.length, E = TERLARANG - EMPAT.length;
-    harus(`**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji ${TERLARANG} alamat contoh, dan versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
+    harus(`**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji ${TERLARANG} alamat contoh, dan pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
     harus(`Sesudah langkah terakhir, centang **Ubah satu hal: pemeriksaan alamat hanya memakai IsPrivate**. Pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG} alamat terlarang di tabel rekaman. Bila \`IsPrivate\` satu-satunya pemeriksaan, ${L} lolos. Bila hanya empat penanda bawaan Go yang diperiksa, ${E} lolos (Rekaman lab, \`alamat.txt\`).`);
     harus(`Bila hanya \`IsPrivate\` yang diperiksa, ${L} dari ${TERLARANG} alamat terlarang lolos. Rekaman alamat ada di lipatan di bawah.`);
   });

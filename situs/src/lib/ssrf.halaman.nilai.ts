@@ -17,7 +17,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "Server yang mengunduh alamat dari merchant menghubunginya atas nama server, jadi yang diperiksa adalah alamat yang dihubungi, bukan teks URL.",
  "<Rantai data={intiDiagram} ringkas />",
  "SSRF (server-side request forgery) adalah serangan yang membuat server mengirim permintaan ke alamat pilihan pihak lain, dengan hak jaringan server. Fetcher adalah fungsi yang mengunduh isi sebuah URL, di sini gambar produk. Alamat terlarang adalah alamat yang tidak boleh dijadikan tujuan, seperti alamat server itu sendiri dan alamat jaringan dalam.",
- "`IsPrivate` adalah metode bawaan Go yang menjawab apakah alamat ada di rentang private. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)), fetcher versi aman menolak 32 dari 32 alamat terlarang. Lima alamat publik sebagai kontrol lolos (`alamat.txt`). `IsPrivate` hanya menolak 3 dari 32 alamat itu, jadi 29 lolos bila ia satu-satunya pemeriksaan. Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini: 32 − 3 = 29.",
+ "`IsPrivate` adalah metode bawaan Go yang menjawab apakah alamat ada di rentang private. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)), pemeriksaan alamat di fetcher versi aman menolak 32 dari 32 alamat terlarang, tanpa membuat koneksi. Lima alamat publik sebagai kontrol lolos (`alamat.txt`). `IsPrivate` hanya menolak 3 dari 32 alamat itu, jadi 29 lolos bila ia satu-satunya pemeriksaan. Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini: 32 − 3 = 29.",
  "Versi aman hanya menerima https, memeriksa alamat saat dihubungi, dan tidak mengikuti redirect, yaitu jawaban server yang menyuruh client pindah ke alamat lain. Isinya dibatasi 2 MiB (2.097.152 byte) dan waktunya 3 detik, dan hanya status 200 yang diterima (`batas.txt`). Pesan galatnya tidak memuat isi respons.",
  "<details class=\"question\">",
  "<summary>Sudah tahu? Cek 3 pertanyaan</summary>",
@@ -243,7 +243,7 @@ export const KUNCI_JSON: Record<string, string[]> = {
   "#label",
   "Saat dihubungi",
   "#sub",
-  "pemeriksaan alamat fetcher",
+  "fungsi alamat fetcher, tanpa koneksi",
   "#simpul",
   "#teks",
   "32 alamat terlarang",
@@ -382,7 +382,7 @@ export const KUNCI_JSON: Record<string, string[]> = {
   "#rujukan",
   "t4-ssrf",
   "#teks",
-  "Fetcher gambar versi aman menolak 32 dari 32 alamat terlarang. Bila `IsPrivate` satu-satunya pemeriksaan, 29 dari 32 lolos (`alamat.txt`).",
+  "Pemeriksaan alamat di fetcher gambar versi aman menolak 32 dari 32 alamat terlarang, tanpa membuat koneksi. Bila `IsPrivate` satu-satunya pemeriksaan, 29 dari 32 lolos (`alamat.txt`).",
   "#mekanisme",
   "Server menerima alamat dari pihak luar, misalnya URL gambar di katalog merchant.",
   "Server mengunduh alamat itu dengan hak jaringan server, termasuk alamat jaringan dalam yang tidak terlihat dari luar.",
@@ -410,6 +410,6 @@ export const KUNCI_JSON: Record<string, string[]> = {
   "#rekaman",
   "labs/t4-ssrf/output/alamat.txt",
   "#catatan",
-  "Fetcher aman menolak 32 dari 32 alamat terlarang, dan 29 dari 32 lolos bila IsPrivate satu-satunya pemeriksaan."
+  "Pemeriksaan alamat fetcher aman menolak 32 dari 32 alamat terlarang, dan 29 dari 32 lolos bila IsPrivate satu-satunya pemeriksaan."
  ]
 };

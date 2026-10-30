@@ -303,7 +303,7 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
     harus("Fetcher adalah fungsi yang mengunduh isi sebuah URL, di sini gambar produk.");
     harus("Alamat terlarang adalah alamat yang tidak boleh dijadikan tujuan, seperti alamat server itu sendiri dan alamat jaringan dalam.");
     harus("`IsPrivate` adalah metode bawaan Go yang menjawab apakah alamat ada di rentang private.");
-    harus(`fetcher versi aman menolak ${nTolak[1]} dari ${nTolak[2]} alamat terlarang. Lima alamat publik sebagai kontrol lolos (\`alamat.txt\`).`);
+    harus(`pemeriksaan alamat di fetcher versi aman menolak ${nTolak[1]} dari ${nTolak[2]} alamat terlarang, tanpa membuat koneksi. Lima alamat publik sebagai kontrol lolos (\`alamat.txt\`).`);
     expect(kontrol).toHaveLength(5);
     harus(`\`IsPrivate\` hanya menolak ${terlarang.filter((b) => b.priv === "ya").length} dari ${terlarang.length} alamat itu, jadi ${nTolak[3]} lolos bila ia satu-satunya pemeriksaan. Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini: ${terlarang.length} − ${terlarang.filter((b) => b.priv === "ya").length} = ${nTolak[3]}.`);
     harus(`Isinya dibatasi 2 MiB (${titik(batasUkuran)} byte) dan waktunya ${batasWaktu} detik, dan hanya status 200 yang diterima (\`batas.txt\`).`);
@@ -312,7 +312,7 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
     const r = DataRantai.parse(rantaiMentah);
     expect(r.baris.map((b) => [b.label, b.sub, b.simpul.map((s) => [s.teks, s.nada])])).toEqual([
       ["Hanya IsPrivate", "metode bawaan Go", [[`${terlarang.length} alamat terlarang`, "biasa"], [`${terlarang.filter((b) => b.priv === "ya").length} ditolak`, "biasa"], [`${nTolak[3]} lolos`, "warn"]]],
-      ["Saat dihubungi", "pemeriksaan alamat fetcher", [[`${nTolak[1]} alamat terlarang`, "biasa"], [`${nTolak[1]} ditolak`, "good"], [`${kontrol.length} alamat publik lolos`, "good"]]],
+      ["Saat dihubungi", "fungsi alamat fetcher, tanpa koneksi", [[`${nTolak[1]} alamat terlarang`, "biasa"], [`${nTolak[1]} ditolak`, "good"], [`${kontrol.length} alamat publik lolos`, "good"]]],
     ]);
     expect(r.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab t4-ssrf, alamat.txt" });
     expect(halaman.indexOf("Hitungan")).toBe(halaman.indexOf("Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini") + "Itu ".length);
@@ -400,6 +400,9 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
     harus('Nama yang diselesaikan ke alamat terlarang dijawab "tujuan tidak diizinkan", sedangkan nama yang tidak ada dijawab "tidak menjawab".');
     harus("Ini belum diperbaiki, dan tes menetapkan perilaku sekarang.");
     harus("Versi aman menolak dua URL bernama IDNA tanpa satu pun permintaan sampai");
+    harus("Satu URL memakai angka dan titik lebar penuh, dan satu memakai titik ideografis.");
+    expect(BIdna[0]).toContain("lebar penuh");
+    expect(BIdna[1]).toContain("ideografis");
     harus("Isu itu masih terbuka pada 2026-10-30, dengan label NeedsInvestigation.");
     harus("Perilaku di versi Go sesudah go1.27.1 adalah [perlu verifikasi], yaitu klaim yang belum bisa dicek ke sumber primer.");
     harus("OWASP menyebut pemisahan jaringan sangat dianjurkan, tetapi lab tidak punya jaringan container untuk ini: Tidak dijalankan.");
@@ -727,7 +730,7 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
     expect(istilah.stack).toBeNull();
     expect(istilah.cerita).toHaveLength(1);
     expect(istilah.cerita[0]!.rujukan).toBe("t4-ssrf");
-    expect(istilah.cerita[0]!.teks).toBe(`Fetcher gambar versi aman menolak ${nTolak[1]} dari ${nTolak[2]} alamat terlarang. Bila \`IsPrivate\` satu-satunya pemeriksaan, ${nTolak[3]} dari ${nTolak[2]} lolos (\`alamat.txt\`).`);
+    expect(istilah.cerita[0]!.teks).toBe(`Pemeriksaan alamat di fetcher gambar versi aman menolak ${nTolak[1]} dari ${nTolak[2]} alamat terlarang, tanpa membuat koneksi. Bila \`IsPrivate\` satu-satunya pemeriksaan, ${nTolak[3]} dari ${nTolak[2]} lolos (\`alamat.txt\`).`);
     expect(istilah.mekanisme[3]).toBe(`Pemeriksaan yang menentukan berjalan pada alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi. Di lab, ${kodeRedirect.length === 7 ? "tujuh" : "?"} kode 3xx ditolak dan server tujuan redirect tidak tersentuh (\`batas.txt\`).`);
     expect(istilah.jebakan[1]).toBe(`Memakai \`IsPrivate\` Go sebagai satu-satunya pemeriksaan. Di lab, ${nTolak[3]} dari ${nTolak[2]} alamat terlarang lolos (\`alamat.txt\`).`);
     expect(istilah.jebakan[2]).toContain("sampai 10 permintaan berturut-turut");

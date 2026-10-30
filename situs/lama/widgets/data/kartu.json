@@ -3012,7 +3012,7 @@
   "halaman": "t4-m36",
   "judul": "4.20 M36: Pratinjau gambar yang berisi JSON",
   "url": "tahap-4/m36-pratinjau-json/",
-  "tanya": "Versi aman menolak 32 dari 32 alamat terlarang. Kenapa pemeriksaan `IsPrivate` saja tidak cukup?",
+  "tanya": "Pemeriksaan alamat versi aman menolak 32 dari 32 alamat terlarang. Kenapa pemeriksaan `IsPrivate` saja tidak cukup?",
   "jawab": "Hanya tiga dari 32 alamat itu ditandai private, jadi 29 lolos bila hanya `IsPrivate` yang diperiksa (`alamat.txt`)."
  },
  {

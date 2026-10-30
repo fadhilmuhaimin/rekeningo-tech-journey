@@ -4,7 +4,7 @@
   "cerita": [
     {
       "rujukan": "t4-ssrf",
-      "teks": "Fetcher gambar versi aman menolak 32 dari 32 alamat terlarang. Bila `IsPrivate` satu-satunya pemeriksaan, 29 dari 32 lolos (`alamat.txt`)."
+      "teks": "Pemeriksaan alamat di fetcher gambar versi aman menolak 32 dari 32 alamat terlarang, tanpa membuat koneksi. Bila `IsPrivate` satu-satunya pemeriksaan, 29 dari 32 lolos (`alamat.txt`)."
     }
   ],
   "mekanisme": [
@@ -33,7 +33,7 @@
     {
       "judul": "Rekaman lab t4-ssrf: alamat.txt dan batas.txt",
       "rekaman": "labs/t4-ssrf/output/alamat.txt",
-      "catatan": "Fetcher aman menolak 32 dari 32 alamat terlarang, dan 29 dari 32 lolos bila IsPrivate satu-satunya pemeriksaan."
+      "catatan": "Pemeriksaan alamat fetcher aman menolak 32 dari 32 alamat terlarang, dan 29 dari 32 lolos bila IsPrivate satu-satunya pemeriksaan."
     }
   ]
 }

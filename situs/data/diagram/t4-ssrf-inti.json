@@ -27,7 +27,7 @@
     },
     {
       "label": "Saat dihubungi",
-      "sub": "pemeriksaan alamat fetcher",
+      "sub": "fungsi alamat fetcher, tanpa koneksi",
       "simpul": [
         {
           "teks": "32 alamat terlarang",

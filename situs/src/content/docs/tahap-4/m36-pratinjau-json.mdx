@@ -81,7 +81,7 @@ Jadi "kolom pratinjau" di cerita adalah Ilustrasi, dan di kode lab teks itu ada 
 
 *Kondisi rekaman:* go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat private dan link-local di rekaman adalah angka karangan lab.
 
-**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji 32 alamat contoh, dan versi aman menolak 32 dari 32.
+**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji 32 alamat contoh, dan pemeriksaan alamat versi aman menolak 32 dari 32.
 
 Tiga di antaranya ditandai `IsPrivate`, yaitu satu dari empat penanda bawaan Go di tabel rekaman. Bila hanya penanda itu yang diperiksa, 29 alamat lolos. Itu Hitungan, yaitu angka dari angka lain di rekaman: 32 − 3 = 29, dan rekaman mencetak 29 juga:
 
@@ -148,7 +148,7 @@ Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang
 
 </details>
 
-**2.** Versi aman menolak 32 dari 32 alamat terlarang. Kenapa pemeriksaan `IsPrivate` saja tidak cukup?
+**2.** Pemeriksaan alamat versi aman menolak 32 dari 32 alamat terlarang. Kenapa pemeriksaan `IsPrivate` saja tidak cukup?
 
 <details class="success">
 <summary>Jawaban</summary>
