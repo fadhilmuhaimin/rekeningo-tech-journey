@@ -1,0 +1,106 @@
+[
+  {
+    "id": "t4-rekap-k1",
+    "halaman": "t4-m29",
+    "judul": "4.6 M29: Top-up Budi masuk dua kali",
+    "url": "tahap-4/m29-topup-dua-kali/",
+    "tanya": "M29: gateway mengirim kabar yang sama dua kali, handler pertama menjurnal tiap kiriman, dan saldo Budi naik Rp400.000 untuk Rp200.000 yang dibayar. Kalimat apa yang lahir?",
+    "jawab": "Kabar dari luar adalah klaim: periksa tanda tangannya, catat satu kali, baru percaya (ADR 34: tanda tangan atas byte mentah, event satu kali, status hanya maju). Dipersempit: \"satu kali\" ditahan tiga lapis, dan tanpa lapis status event kedua pada 25 jam menghasilkan 2 jurnal."
+  },
+  {
+    "id": "t4-rekap-k2",
+    "halaman": "t4-m30",
+    "judul": "4.8 M30: Saldo Citra tidak naik, padahal bank sudah memotong",
+    "url": "tahap-4/m30-saldo-tidak-naik/",
+    "tanya": "M30: gateway merotasi secret dan api-t4 masih memegang yang lama. Enam kiriman dijawab 401, dan tabel event tetap 0 baris. Kalimat apa yang lahir?",
+    "jawab": "Kalau satu-satunya jalan kabar putus, jalan kedua harus sudah ada (ADR 35: dua lapis, insiden bernomor, dan koreksi lewat jurnal normal). Batas: ambang 30 menit adalah Asumsi, jadwal 342 menit adalah Ilustrasi dengan waktu yang diperankan, dan insiden yang menunggu keputusan manusia belum punya jalur penutupan di lab."
+  },
+  {
+    "id": "t4-rekap-k3",
+    "halaman": "t4-m31",
+    "judul": "4.10 M31: 146 pendaftar tertahan \"Sedang diverifikasi\"",
+    "url": "tahap-4/m31-verifikasi-tertahan/",
+    "tanya": "M31: layanan verifikasi mati dan sepuluh pendaftar masuk. Vendor menerima 50 permintaan, sepuluh pekerjaan mati, dan sesudah layanan pulih worker mengklaim 0 pekerjaan. Kalimat apa yang lahir?",
+    "jawab": "Vendor yang mati tidak boleh menghabiskan percobaan pekerjaan yang tidak bersalah (ADR 36: satu pembuat client, key dari id internal, breaker per vendor, dan lajur dijeda). Dipersempit: dengan breaker satu dari sepuluh pekerjaan tetap mati, karena ambang breaker bawaan lebih tinggi daripada batas lima percobaan."
+  },
+  {
+    "id": "t4-rekap-k4",
+    "halaman": "t4-m32",
+    "judul": "4.12 M32: Rilis Kamis memecahkan top-up",
+    "url": "tahap-4/m32-rilis-kamis/",
+    "tanya": "M32: tim Merchant mengganti nama kolom, tiga langkah CI tim Pembayaran tetap hijau, dan top-up gagal dengan kolom tidak ada. Kalimat apa yang lahir?",
+    "jawab": "Aturan yang hanya ditulis di dokumen dilanggar saat orangnya berlipat; batas harus dijaga mesin (ADR 37: modular monolith dengan batas yang dijaga mesin, dan satu service pembayaran). Dipersempit: batas mesin berlaku untuk modul pembayaran dan paket baru, dan proses monolith memakai satu role yang membaca 17 tabel."
+  },
+  {
+    "id": "t4-rekap-k5",
+    "halaman": "t4-m33",
+    "judul": "4.14 M33: Uji pulih mingguan makin lama",
+    "url": "tahap-4/m33-uji-pulih/",
+    "tanya": "M33: foto kartu identitas disimpan di kolom bytea, dan dump membawa 1,1 kali ukuran file pada 2, 4, dan 8 pengajuan. Dengan file di penyimpanan objek, dump di bawah 0,01 kali. Kalimat apa yang lahir?",
+    "jawab": "File bukan data transaksi: database menyimpan kunci dan checksum, dan file hidup di tempat lain (ADR 38). Batas: isi file di lab adalah karangan 500.000 byte (Ilustrasi), rasio foto nyata tidak diukur, dan pencadangan penyimpanan objek Tidak dijalankan."
+  },
+  {
+    "id": "t4-rekap-k6",
+    "halaman": "t4-m33",
+    "judul": "4.14 M33: Uji pulih mingguan makin lama",
+    "url": "tahap-4/m33-uji-pulih/",
+    "tanya": "M33: dua pemegang URL unggah yang sama mengirim file 120.000 byte dan 90.000 byte, keduanya dijawab 200, dan isi akhirnya 90.000 byte. Sesudah umur URL lewat, PUT dijawab 403. Kalimat apa yang lahir?",
+    "jawab": "URL unggah adalah izin bagi siapa pun yang membawanya, dan izin itu punya umur (ADR 38: unggah lewat presigned PUT 5 menit, unduh hanya lewat server). Dipersempit: penimpaan direkam untuk URL unggah, umur di lab 5 detik dan di ADR 38 5 menit (Asumsi), dan unduh tidak lewat URL."
+  },
+  {
+    "id": "t4-rekap-k7",
+    "halaman": "t4-m34",
+    "judul": "4.16 M34: Semua verifikasi ditolak sesudah pindah hosting",
+    "url": "tahap-4/m34-verifikasi-ditolak/",
+    "tanya": "M34: sesudah pindah hosting, tiga pengajuan dijawab 403 lima kali tiap pekerjaan, yaitu 15 penolakan, padahal vendor sehat. Kalimat apa yang lahir?",
+    "jawab": "Pindahan membawa tiga hal yang tidak tertulis di kode: alamat keluar, secret, dan state IaC (ADR 39: layanan terkelola untuk data, file, dan secret, IaC, dan alamat keluar tetap). Batas: staging yang memakai kunci produksi tidak direkam, hosting terkelola Tidak dijalankan, dan OpenBao berjalan dalam mode dev."
+  },
+  {
+    "id": "t4-rekap-k8",
+    "halaman": "t4-m35",
+    "judul": "4.18 M35: QR di kasir Bu Marni",
+    "url": "tahap-4/m35-qr-bu-marni/",
+    "tanya": "M35: Budi membayar Rp35.000 ke stiker Toko Andalan yang tertempel di kasir Bu Marni. Server menjawab 201, dan CRC yang dihitung ulang tanpa key lolos pemindai. Kalimat apa yang lahir?",
+    "jawab": "CRC menangkap salah baca, bukan penggantian; nama dari server memperlihatkan stiker yang salah tempat, tetapi tidak mencegahnya (ADR 40). Dipersempit: \"salah baca\" terekam untuk satu payload contoh dan dua jenis kesalahan, dan layar konfirmasi Tidak dijalankan."
+  },
+  {
+    "id": "t4-rekap-k9",
+    "halaman": "t4-m36",
+    "judul": "4.20 M36: Pratinjau gambar yang berisi JSON",
+    "url": "tahap-4/m36-pratinjau-json/",
+    "tanya": "M36: pratinjau gambar toko berisi teks JSON dari layanan dalam. Di rekaman, IsPrivate saja hanya menandai 3 dari 32 alamat terlarang, jadi 29 lolos. Kalimat apa yang lahir?",
+    "jawab": "Server yang mengambil URL dari user mengambil atas nama server, jadi yang diperiksa adalah alamat yang dihubungi, bukan teks URL (ADR 41: satu fungsi unduh gambar, hanya https, alamat diperiksa saat dihubungi, tanpa redirect). Dipersempit: lab hanya menjalankan sisi pembela, dan versi pertama hanya dibaca dari kode."
+  },
+  {
+    "id": "t4-rekap-k10",
+    "halaman": "t4-m37",
+    "judul": "4.22 M37: Kartu virtual disetujui dua kali dengan satu saldo",
+    "url": "tahap-4/m37-kartu-dua-kali/",
+    "tanya": "M37: tanpa dana tertahan, dua otorisasi Rp80.000 untuk saldo Rp100.000 sama-sama disetujui, dan otorisasi ketiga juga. Kalimat apa yang lahir?",
+    "jawab": "Di lab, Rekeningo tidak punya rute untuk menarik persetujuan kartu, jadi dana ditahan sebelum menjawab setuju (ADR 42: hold di ledger lewat satu panggilan, lock_timeout 1 detik, kill switch). Batas: dasarnya pembacaan kode rute, dan kill switch kembali aktif sesudah proses dimulai ulang."
+  },
+  {
+    "id": "t4-rekap-k11",
+    "halaman": "t4-m38",
+    "judul": "4.24 M38: Siapa yang membuka data Budi?",
+    "url": "tahap-4/m38-siapa-membuka/",
+    "tanya": "M38: Ratih menjalankan enam aksi atas data Dina, dan tabel catatan menjawab 0 baris untuk Dina dan 0 baris untuk Eko yang tidak pernah dibuka. Kalimat apa yang lahir?",
+    "jawab": "Di tabel catatan tanpa audit, jawaban \"tidak ada\" sama nilainya dengan \"tidak tahu\" (ADR 43: peran dan persetujuan dua orang, audit log berantai dengan jangkar harian, dan agen baca-saja). Dipersempit: yang terbukti hanya tabel catatan di database lab, dan rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis."
+  },
+  {
+    "id": "t4-rekap-k12",
+    "halaman": "t4-tim-infra",
+    "judul": "4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44",
+    "url": "tahap-4/tim-infra/",
+    "tanya": "Tim dan infra: tag dipindah ke image lain sebelum ditandatangani, dan cosign verify atas tag lulus dengan digest D, padahal build CI menghasilkan digest C. Kalimat apa yang lahir?",
+    "jawab": "Image harus bisa dibuktikan sama dengan digest hasil build CI, bukan hanya bertanda tangan (ADR 44: pipeline per modul, tanda tangan atas digest, dan rilis bertahap). Dipersempit: yang direkam adalah image di registry lab, bukan produksi, dan pipeline GitHub Actions Tidak dijalankan."
+  },
+  {
+    "id": "t4-rekap-k13",
+    "halaman": "t4-m39",
+    "judul": "4.27 M39: Uji coba publik lolos, PRD v5 datang",
+    "url": "tahap-4/m39-prd-v5/",
+    "tanya": "M39: uji coba publik lolos, dan Sinta datang dengan PRD v5. Puncak 138,9 request per detik naik 8 kali (Hitungan atas Asumsi), dan Raka menduga server harus lebih besar. Kalimat apa yang lahir?",
+    "jawab": "Masalah Tahap 4 adalah kepercayaan pada pihak lain dan koordinasi tim, bukan jumlah request per detik (ADR 45: delapan komponen sengaja belum dipasang, masing-masing dengan pemicu). Dipersempit: rekaman beban bukan kapasitas produksi, dan kapasitas satu server belum diukur."
+  }
+]

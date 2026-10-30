@@ -1,0 +1,73 @@
+{
+  "id": "t4-rekap-kejadian",
+  "judul": "Kejadian Tahap 4 dalam urutan minggu",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Naskah Tahap 4 · urutan kejadian"
+  },
+  "baris": [
+    {
+      "label": "Sampai minggu 7",
+      "sub": "kabar dari luar dan kode bersama",
+      "simpul": [
+        {
+          "teks": "PRD v4",
+          "sub": "kabar dari luar",
+          "nada": "system"
+        },
+        {
+          "teks": "M29 ganda",
+          "sub": "top-up dan webhook"
+        },
+        {
+          "teks": "M30 secret",
+          "sub": "rekonsiliasi"
+        },
+        {
+          "teks": "M31 vendor",
+          "sub": "breaker dan lajur"
+        },
+        {
+          "teks": "M32 rilis",
+          "sub": "batas modul"
+        },
+        {
+          "teks": "M33 file",
+          "sub": "penyimpanan objek"
+        }
+      ]
+    },
+    {
+      "label": "Minggu 8 sampai 12",
+      "sub": "pindahan, keamanan, beban",
+      "simpul": [
+        {
+          "teks": "M34 alamat",
+          "sub": "secret dan IaC"
+        },
+        {
+          "teks": "M35 QR",
+          "sub": "CRC dan nama"
+        },
+        {
+          "teks": "M36 SSRF",
+          "sub": "alamat yang dihubungi"
+        },
+        {
+          "teks": "M37 kartu",
+          "sub": "dana tertahan"
+        },
+        {
+          "teks": "M38 audit",
+          "sub": "audit berantai"
+        },
+        {
+          "teks": "M39 PRD v5",
+          "sub": "estimasi",
+          "nada": "system"
+        }
+      ]
+    }
+  ],
+  "catatan": "Sebelas kalimat lahir dari PRD v4 dan M29 sampai M38, dan M33 melahirkan dua; satu kalimat lahir dari tim dan infra, dan satu dari M39."
+}
