@@ -381,9 +381,10 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
   test("Inti, Rantai, dan Cek 3 pertanyaan", () => {
     harus(`Pada puncak ${koma(h4.puncak, 1)} request per detik, worker terpakai ${Math.round(pakai4 * 100)}%, dan ${Math.round((siang4 / KAP) * 100)}% saat makan siang (Asumsi naskah;`);
     harus(`Dikali ${a5.user / a4.user} untuk Tahap 5, dengan perilaku per user tetap, puncaknya ${kali(h5.puncak, 1)} dan pemakaian worker ${Math.round((notif5Tulis / kapTulis) * 100)}%.`);
-    harus(`User naik ${a5.user / a4.user} kali dari Tahap 4 ke Tahap 5. Berapa kali puncak request naik, dan kenapa tidak ${Math.round(h4.puncak / h3.puncak)} kali seperti Tahap 3 ke Tahap 4?`);
-    harus(`Worker terpakai ${Math.round(pakai4 * 100)}% di Tahap 4. Berapa persen bila hanya jumlah user yang naik ${a5.user / a4.user} kali dan kapasitasnya tetap?`);
-    harus(`Rekaman beban menulis koneksi paling banyak ≤ ${POOL}. Apakah itu bukti bahwa pool tidak sesak?`);
+    harus(`1. User naik ${a5.user / a4.user} kali dari Tahap 4 ke Tahap 5. Berapa kali puncak request naik, dan kenapa tidak ${Math.round(h4.puncak / h3.puncak)} kali seperti Tahap 3 ke Tahap 4?`);
+    harus(`2. Worker terpakai ${Math.round(pakai4 * 100)}% di Tahap 4. Berapa persen bila hanya jumlah user yang naik ${a5.user / a4.user} kali dan kapasitasnya tetap?`);
+    harus(`**2.** Worker terpakai ${Math.round(pakai4 * 100)}% di Tahap 4. Berapa persen bila hanya jumlah user yang naik ${a5.user / a4.user} kali dan kapasitasnya tetap?`);
+    harus(`3. Rekaman beban menulis koneksi paling banyak ≤ ${POOL}. Apakah itu bukti bahwa pool tidak sesak?`);
     expect(Math.round(pakai5 * 100)).toBe(Math.round((notif5Tulis / kapTulis) * 100));
   });
   test("Coba: skenario Aktif 10% dan Satu jam", () => {
@@ -410,7 +411,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`Puncak per detik adalah rata-rata per detik dikali faktor puncak.`);
   });
   test("Paham 2: tabel kelas pekerjaan dan kalimat sesudahnya", () => {
-    harus(`per hari ÷ ${ribu(DETIK)} × ${a4.puncak}.`);
+    harus(`Semua kelas memakai faktor puncak ${a4.puncak} yang sama: per hari ÷ ${ribu(DETIK)} × ${a4.puncak}.`);
     harus(`| Semua request | ${ribu(h4.reqHari)} | ${koma(h4.puncak, 1)} | tabel di atas |`);
     harus(`| Transaksi uang: bayar, transfer, QR | ${ribu(trx4Hari)} | ${koma(lamTrx4, 2)} | ${ribu(h4.dau)} × ${TRX} transaksi |`);
     harus(`| Top-up dari bank | ${ribu(topupHari)} | ${koma(lamTop, 3)} | ${ribu(h4.dau)} × ${koma(TOPUP_PER_AKTIF, 2)} top-up |`);
@@ -751,6 +752,25 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
       expect(b.split("|").length, `${id} lima kolom`).toBe(7);
       expect(b.split("|")[4]!, `${id} kolom dipakai halaman`).toContain("4.28");
     }
+    const kolom = (id: string, k: number): string => riset4.split("\n").find((x) => x.startsWith(`| ${id} |`))!.split("|")[k]!.trim();
+    expect(kolom("R4-245", 2)).toBe("Kapasitas bukan request per detik (Google SRE, Handling Overload; dibuka ulang 2026-10-30)");
+    expect(kolom("R4-246", 2)).toBe("max_connections dan superuser_reserved_connections (dibuka ulang 2026-10-30)");
+    expect(kolom("R4-247", 2)).toBe("Hitungan 4.28 atas angka yang tertulis di halaman (Hitungan, Asumsi)");
+    expect(kolom("R4-248", 2)).toBe("Rekaman dan kode lab api-t4 untuk beban dan kapasitas worker (dibaca untuk halaman 4.28, tanpa menjalankan ulang)");
+    expect(kolom("R4-249", 2)).toBe("Masukan Tahap 5 di registry dan selisih jumlah transaksi (dibaca untuk halaman 4.28)");
+    expect(kolom("R4-245", 4)).toBe('4.28 (bagian "Yang tidak dijawab estimasi" butir 1 dan Bacaan lanjut)');
+    expect(kolom("R4-246", 4)).toBe("4.28 (koneksi database 40 dari 100, suku cadangan superuser, dan Bacaan lanjut)");
+    expect(kolom("R4-247", 4)).toBe("4.28 (semua tabel, Cek diri, kalkulator)");
+    expect(kolom("R4-248", 4)).toBe('4.28 (butir 1 "Yang tidak dijawab estimasi", kapasitas worker, Cek diri 3)');
+    expect(kolom("R4-249", 4)).toBe('4.28 (langkah "Satu langkah ke Tahap 5", butir 3 "Yang tidak dijawab estimasi")');
+    expect(["R4-245", "R4-246", "R4-247", "R4-248", "R4-249"].map((id) => kolom(id, 5))).toEqual(["Tidak berubah", "Tidak berubah", "Baru", "Baru", "Baru"]);
+    // tanggal akses: dua kali 2026-10-30 di tiap baris sumber luar (judul dan sumber), dan tidak ada tanggal lain
+    for (const id of ["R4-245", "R4-246"]) {
+      const baris = riset4.split("\n").find((x) => x.startsWith(`| ${id} |`))!;
+      expect([...baris.matchAll(/\d{4}-\d{2}-\d{2}/g)].map((m) => m[0])).toEqual(["2026-10-30", "2026-10-30"]);
+    }
+    expect([...kolom("R4-249", 3).matchAll(/\d{4}-\d{2}-\d{2}/g)].map((m) => m[0])).toEqual(["2026-10-29"]);
+    expect(riset4.split("\n").find((x) => x.startsWith("| R4-247 |"))!.match(/\d{4}-\d{2}-\d{2}/)).toBeNull();
     const h = riset4.split("\n").find((x) => x.startsWith("| R4-247 |"))!;
     for (const kunci of [
       `${koma(h4.puncak, 1)} ÷ ${koma(h3.puncak, 1)} = 7,98`,
