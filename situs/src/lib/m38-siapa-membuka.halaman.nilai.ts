@@ -4,7 +4,7 @@
 export const SIDIK = {
   frontmatter: "90422027a6ded00f",
   riset: ["d0e98aff8ed95618","219d20f2ad69199c","bf83ddff989930a2","352d1ab8362ffaab","075d63f9cc170694"],
-  diagram: "c3e4cee7937a39a5",
+  diagram: "d7690196cebb9c54",
   skenario: "4bfbbc4ffe67f181",
 };
 
@@ -40,7 +40,7 @@ export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".baris[0].sub",
-  "rantai.txt bagian A"
+  "bagian A di rantai.txt"
  ],
  [
   ".baris[0].simpul[0].teks",
@@ -76,7 +76,7 @@ export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".baris[1].sub",
-  "rantai.txt bagian B"
+  "bagian B di rantai.txt"
  ],
  [
   ".baris[1].simpul[0].teks",
@@ -112,7 +112,7 @@ export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".baris[2].sub",
-  "role.txt bagian C"
+  "bagian C di role.txt"
  ],
  [
   ".baris[2].simpul[0].teks",

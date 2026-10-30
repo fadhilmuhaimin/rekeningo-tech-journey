@@ -5,7 +5,7 @@
   "baris": [
     {
       "label": "Tanpa catatan",
-      "sub": "rantai.txt bagian A",
+      "sub": "bagian A di rantai.txt",
       "simpul": [
         { "teks": "Dina: 6 aksi", "sub": "disentuh" },
         { "teks": "Catatan: 0 baris", "sub": "untuk Dina", "nada": "warn" },
@@ -14,7 +14,7 @@
     },
     {
       "label": "Log biasa",
-      "sub": "rantai.txt bagian B",
+      "sub": "bagian B di rantai.txt",
       "simpul": [
         { "teks": "6 baris", "sub": "tercatat" },
         { "teks": "Satu diubah, satu dihapus", "sub": "role aplikasi" },
@@ -23,7 +23,7 @@
     },
     {
       "label": "Baca tabel langsung",
-      "sub": "role.txt bagian C",
+      "sub": "bagian C di role.txt",
       "simpul": [
         { "teks": "Role lab", "sub": "pemilik schema" },
         { "teks": "Baca verifikasi", "sub": "1 pengajuan" },
