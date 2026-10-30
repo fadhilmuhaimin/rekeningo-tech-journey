@@ -14,7 +14,7 @@ import cerita from "../../../data/cerita.json";
 import { cekTemplat, daftarBlok } from "../../lib/blok";
 import { DataTebak } from "./skema";
 import { nilai } from "./logika";
-import { BARIS_MDX, BENTUK_MDX, NILAI_TEBAK } from "./jembatan-prd-v5.halaman.nilai";
+import { BARIS_MDX, BARIS_RISET, BENTUK_MDX, NILAI_TEBAK } from "./jembatan-prd-v5.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../../..");
 const terlacak: Set<string> | null = (() => {
@@ -281,6 +281,9 @@ describe("jejak riset: lima baris R4-260 sampai R4-264, urut, lima kolom, tangga
     expect(sel, `${id} harus punya lima kolom`).toHaveLength(5);
     return sel;
   };
+  test("baris riset terkunci: lima baris sama dengan nilai terkunci", () => {
+    expect(riset.filter((x) => /^\| R4-26[0-4] \|/.test(x))).toEqual(BARIS_RISET);
+  });
   test("lima baris urut tanpa ID ganda, tiap kolom terisi, tanggal baca 2026-10-31 atau ditandai", () => {
     const urut = riset.map((x, i) => [x.match(/^\| (R4-\d+) \|/)?.[1], i] as const).filter(([id]) => id && /^R4-26[0-4]$/.test(id));
     expect(urut.map(([id]) => id)).toEqual(["R4-260", "R4-261", "R4-262", "R4-263", "R4-264"]);
