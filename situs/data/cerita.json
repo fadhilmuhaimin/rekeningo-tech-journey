@@ -3877,8 +3877,9 @@
       "lab": [
         "t4-audit"
       ],
-      "ada": false,
-      "nomor": "4.25"
+      "ada": true,
+      "nomor": "4.25",
+      "menit": 25
     },
     {
       "id": "t4-tim-infra",

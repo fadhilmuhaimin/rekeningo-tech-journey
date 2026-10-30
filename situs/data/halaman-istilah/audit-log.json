@@ -1,0 +1,38 @@
+{
+  "istilah": "Audit log",
+  "sehari_hari": "Audit log adalah catatan siapa membuka atau mengubah apa, kapan. Tanpa catatan itu, pertanyaan siapa yang membuka data seseorang tidak bisa dijawab, dan jawaban tidak ada sama nilainya dengan tidak tahu.",
+  "cerita": [
+    {
+      "rujukan": "t4-audit",
+      "teks": "Di versi pertama back office, dua akun dijawab sama: nol baris, untuk akun yang disentuh enam aksi dan yang tidak pernah disentuh (`rantai.txt` bagian A). Di log berantai, pemeriksaan menunjuk baris 3 saat staf pada baris itu diganti (`rantai.txt` bagian C)."
+    }
+  ],
+  "mekanisme": [
+    "Tiap aksi staf yang berhasil menulis satu baris: waktu, pelaku, peran, aksi, objek, alasan, dan penyetuju bila ada.",
+    "Baris ditulis di transaction yang sama dengan aksinya, jadi aksi yang dibatalkan tidak meninggalkan catatan.",
+    "Role aplikasi hanya boleh menambah baris, dan hash tiap baris disambungkan ke hash baris sebelumnya supaya perubahan di tengah terdeteksi.",
+    "Hash baris terakhir dicatat di luar database, supaya pemotongan ekor log ketahuan. Di lab, jangkar nomor 6 yang hilang dilaporkan baris-hilang (`jangkar.txt` bagian B)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira log yang ada hash-nya membuktikan siapa yang menulis. Tanpa kunci rahasia, baris palsu dengan hash yang benar lolos (`rantai.txt` bagian C).",
+    "Mengira log mencakup semua jalur. Membaca tabel sebagai pemilik schema tidak meninggalkan baris audit (`role.txt` bagian C)."
+  ],
+  "terkait": [
+    "Jangkar hash",
+    "RBAC (Role-Based Access Control)"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-230",
+      "judul": "Crosby dan Wallach: Efficient Data Structures for Tamper-Evident Logging (USENIX Security 2009, dibuka 2026-10-30)",
+      "url": "https://www.usenix.org/legacy/event/sec09/tech/full_papers/crosby.pdf",
+      "catatan": "Tamper-resistance mungkin mustahil, dan tamper-detection yang harus dijamin. Rancangan mereka membuat logger menandatangani ringkasan log, dan auditor menantangnya."
+    },
+    {
+      "judul": "Rekaman lab t4-audit: rantai.txt bagian A sampai C",
+      "rekaman": "labs/t4-audit/output/rantai.txt",
+      "catatan": "Nol baris untuk dua akun di versi pertama; UPDATE di log biasa tanpa pemeriksaan; UPDATE di log berantai rusak di baris 3."
+    }
+  ]
+}
