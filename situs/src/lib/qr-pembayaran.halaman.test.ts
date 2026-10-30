@@ -167,8 +167,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(badan).toContain('<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>');
     expect([...badan.matchAll(/<Fragment slot="(t\d)">/g)].map((m) => m[1])).toEqual(["t0", "t1", "t2", "t3", "t4", "t5"]);
     expect(badan.match(/<noscript>/g)).toHaveLength(1);
-    expect(badan.match(/<Snippet /g)).toHaveLength(15);
-    expect(berkasSnippet).toHaveLength(12);
+    expect(badan.match(/<Snippet /g)).toHaveLength(16);
+    expect(berkasSnippet).toHaveLength(13);
     expect([...badan.matchAll(/^import (\w+) from "([^"]+)";$/gm)].map((m) => `${m[1]} ${m[2]}`)).toEqual([
       "Blok ../../../components/Blok.astro", "Rantai ../../../components/Rantai.astro", "Snippet ../../../components/Snippet.astro",
       "TabSet ../../../components/TabSet.astro", "Tebak ../../../widgets/tebak/Tebak.tsx", "intiDiagram ../../../../data/diagram/t4-qr-inti.json",
@@ -396,7 +396,7 @@ describe("rekaman lapor.txt: pembekuan lebih dulu, dampak pada merchant sah, bat
     expect(qrGo).toContain('tx.BekukanAkun(ctx, q.AkunID)');
     expect(qrGo).toContain('s.Audit(ctx, tx, pelapor, a.Jenis, "laporan_qr"');
     harus("empat percobaan yang tidak memenuhi syarat dijawab 403 dan Bu Marni tetap beku. Lalu staf risk dengan penyetuju kedua membuka akunnya dengan 204.");
-    harus("Yang diperiksa hanya panjang alasan, 20 sampai 200 karakter, dan laju laporan per akun.");
+    harus("Dari isi laporan, yang diperiksa hanya panjang alasan, 20 sampai 200 karakter, dan laju laporan per akun.");
     harus("pembukaan itu sudah menulis baris `buka_blokir` di audit log lab (`lapor.txt` bagian F)");
   });
 });
@@ -462,10 +462,20 @@ describe("kode lab dan klaim negatif berlingkup", () => {
     const bayar0 = Q.nomor((b) => b.startsWith("func (s Service) BayarQR("));
     const switch0 = Q.nomor((b) => b.trim() === "switch q.Status {", bayar0);
     const jumlah0 = Q.nomor((b) => b.trim() === "jumlah = *nominal", switch0);
+    // satu rentang untuk "mengunci, membaca status, menolak terpakai dan kedaluwarsa" (dari KunciQR sampai akhir pemeriksaan masa berlaku)
+    // dan satu untuk "ditandai terpakai di transaction yang sama dengan jurnalnya" (dari CatatJurnal sampai akhir TandaiQRTerpakai)
+    const kunci0 = Q.nomor((b) => b.trim() === "q, err := tx.KunciQR(ctx, qrID)", bayar0);
+    const exp0 = Q.nomor((b) => b.trim() === "return tx.TandaiQRKedaluwarsa(ctx, q.ID)", switch0);
+    const akhirKedaluwarsa = exp0 + 1;
+    expect(Q.baris[akhirKedaluwarsa - 1]).toBe("\t\t}");
+    const jurnal0 = Q.nomor((b) => b.includes('tx.CatatJurnal(ctx, "bayar"'), jumlah0);
+    const tandai0 = Q.nomor((b) => b.includes("tx.TandaiQRTerpakai("), jurnal0);
+    const akhirTandai = Q.nomor((b) => b === "\t\t}", tandai0);
     const diharapkan: [string, string][] = [
       ["labs/t4-qr/output/crc.txt", cr(C, (b) => b.startsWith("$ qrlab buat -jenis dinamis"), (b) => b === "(10 rows)")],
       ["labs/api-t4/internal/qrpayload/qrpayload.go", `${awalFungsi(P, "PasangCRC")}:${akhirFungsi(P, "PasangCRC")}`],
-      ["labs/api-t4/internal/service/qr.go", `${switch0}:${jumlah0 + 1}`],
+      ["labs/api-t4/internal/service/qr.go", `${kunci0}:${akhirKedaluwarsa}`],
+      ["labs/api-t4/internal/service/qr.go", `${jurnal0}:${akhirTandai}`],
       ["labs/t4-qr/output/dinamis.txt", `${D.nomor((b) => b.startsWith("$ curl -i -X POST '/qr/<qr dinamis 1>/bayar'"), dB0)}:${(() => { const u = D.baris.map((b, i) => [b, i + 1] as const).filter(([b, i]) => i > dB0 && i < dC0 && b.startsWith('{"type":"/problems/qr-terpakai"')); return u[1]![1]; })()}`],
       ["labs/t4-qr/output/dinamis.txt", `${D.nomor((b) => b.includes('-d \'{"nominal": 1}\''), dC0)}:${(() => { const u = D.baris.map((b, i) => [b, i + 1] as const).filter(([b, i]) => i > dC0 && i < dD0 && b.startsWith('{"type":"/problems/validasi"')); return u[2]![1]; })()}`],
       ["labs/t4-qr/output/dinamis.txt", cr(D, (b) => b === "# jam server: dibuat + 300 detik", (b) => b.startsWith('{"type":"/problems/qr-kedaluwarsa"'), dD0)],
@@ -480,9 +490,9 @@ describe("kode lab dan klaim negatif berlingkup", () => {
     // rentang dibuka lewat judul: bagian rekaman yang disebut judul benar-benar ada di rentang itu
     const judul = tag.map((t) => t.match(/title="([^"]+)"/)?.[1] ?? "");
     expect(judul.filter((j) => /bagian [A-D]/.test(j))).toHaveLength(8);
-    expect(L.teks(Number(berkasSnippet[9]![1].split(":")[0]), Number(berkasSnippet[9]![1].split(":")[1]))).toContain("QR ini tampak janggal");
+    expect(L.teks(Number(berkasSnippet[10]![1].split(":")[0]), Number(berkasSnippet[10]![1].split(":")[1]))).toContain("QR ini tampak janggal");
     expect(P.teks(66, 66)).toContain("func CRC16(");
-    expect(D.nomor((b) => b === "# jam server: dibuat + 301 detik") > Number(berkasSnippet[5]![1].split(":")[1])).toBe(true);
+    expect(D.nomor((b) => b === "# jam server: dibuat + 301 detik") > Number(berkasSnippet[6]![1].split(":")[1])).toBe(true);
   });
   test("Snippet tidak menampilkan komentar lab internal atau baris kepala rekaman", () => {
     for (const [f, l] of berkasSnippet) {
@@ -502,6 +512,37 @@ describe("Hitungan dan label sumber: arti di pemakaian pertama, versi dari rekam
     harus(`${rib(KONST_TINGKAT)} ÷ ${rib(BATAS_STATIS)} = ${KONST_TINGKAT / BATAS_STATIS} pembayaran sampai saldo habis (Hitungan)`);
     harus(`saldo maksimum tingkat terverifikasi, Rp${rib(KONST_TINGKAT)} (Asumsi produk PRD v4)`);
     harus("Batas Rp200.000 dan masa berlaku 5 menit adalah Asumsi, yaitu pilihan produk yang tidak diukur.");
+  });
+  test("tinjauan 4.19: penyebut 460 memuat warung yang kode lab tidak izinkan menerbitkan atau dibekukan; hasil tanpa warung 3,75% ditulis berdampingan", () => {
+    const seed = baca("labs/api-t4/cmd/api/seed.go");
+    expect(seed).toContain("SELECT i, 'warung', 'Warung ' || i");
+    expect(seed).toContain("30000 + i, 'merchant'");
+    expect(qrGo).toContain('if a.Jenis != "merchant" {\n\t\treturn repo.QR{}, ErrDilarang');
+    expect(qrGo).toContain('if q.MerchantJenis == "merchant" {\n\t\t\tif _, err := tx.BekukanAkun(ctx, q.AkunID)');
+    expect(naskah).toContain("kini juga menerima QR");
+    const tanpaWarung = ((TOKEN_LAPOR * TOKEN_DAFTAR * 100) / MERCHANT_LUAR).toFixed(2).replace(".", ",");
+    expect(tanpaWarung).toBe("3,75");
+    harus(`Bila hanya merchant luar yang dihitung, hasilnya ${TOKEN_LAPOR * TOKEN_DAFTAR} ÷ ${MERCHANT_LUAR} = ${tanpaWarung}%.`);
+    harus("Kode lab hanya menerbitkan QR dan membekukan akun berjenis merchant, sedangkan warung Lestari berjenis lain.");
+    expect(barisRiset("R4-204")).toContain(`15 ÷ ${MERCHANT_LUAR} = ${tanpaWarung}% bila hanya merchant luar`);
+  });
+  test("tinjauan 4.19: halaman Mastercard memuat tag 01 dan tag 63 tetapi tidak cara menghitung CRC; cara itu dari dokumen pihak ketiga", () => {
+    expect(barisRiset("R4-101")).toContain("halaman tidak menyebut algoritma CRC");
+    expect(barisRiset("R4-331")).toContain("polinomial `1021` heksadesimal dan nilai awal `FFFF`");
+    expect(barisRiset("R4-331")).toContain("tag 00 bernilai `01`");
+    harus("Tidak dijalankan) memuat tag 01 dan tag 63.");
+    harus("Tag 01 bernilai 11 untuk QR statis dan 12 untuk QR dinamis, dan tag 63 adalah data object terakhir. Halaman itu tidak menyebut cara menghitung CRC.");
+    harus("Nilai tag 00 dan cara menghitung CRC dibaca dari dokumen pihak ketiga yang menyatakan isinya mengikuti spesifikasi EMVCo, bukan dari spesifikasi itu sendiri.");
+  });
+  test("tinjauan 4.19: jawaban konfirmasi (GET) seragam 404, tetapi pembayaran membedakan 409 dan 410, jadi daftar periksa menyebut layar konfirmasi", () => {
+    expect(qrGo).toContain("ErrQRTerpakai");
+    expect(qrGo).toContain("ErrQRKedaluwarsa");
+    expect(dinamis).toContain("HTTP/1.1 409 Conflict");
+    expect(dinamis).toContain("HTTP/1.1 410 Gone");
+    harus("- [ ] Jawaban layar konfirmasi untuk QR yang tidak aktif tidak membocorkan sebabnya.");
+    harus("Dari isi laporan, yang diperiksa hanya panjang alasan, 20 sampai 200 karakter, dan laju laporan per akun.");
+    harus("QR pada detik ke-300 atau sesudahnya 410.");
+    harus("Id QR dinamis pada detik ke-300 atau sesudahnya dijawab 410");
   });
   test("arti label muncul di pemakaian pertama dan sebelum dipakai", () => {
     const awal = (s: string) => badan.indexOf(s);
@@ -553,7 +594,11 @@ describe("Hitungan dan label sumber: arti di pemakaian pertama, versi dari rekam
   });
   test("kasus industri dibaca sampai batasnya: peringatan umum, tanpa statistik, fokus tautan; tidak membuktikan opsi D", () => {
     expect(barisRiset("R4-201")).toContain("peringatan umum lembaga di Amerika Serikat, tanpa statistik kasus");
-    harus("itu peringatan umum lembaga di Amerika Serikat, tanpa statistik kasus, dan fokus utamanya tautan berbahaya, bukan QR pembayaran merchant.");
+    harus("itu peringatan umum lembaga di Amerika Serikat, tanpa statistik kasus.");
+    harus("Fokus utamanya situs berbahaya yang mencuri data login dan data keuangan, dengan satu paragraf tentang QR pembayaran bisnis yang diganti sehingga pembayaran dialihkan.");
+    harus("QR di sana mengarahkan ke situs pembayaran, bukan ke id yang dijawab server seperti di Rekeningo.");
+    expect(barisRiset("R4-201")).toContain("satu paragraf membahas QR pembayaran bisnis yang diganti sehingga pembayaran dialihkan");
+    expect(barisRiset("R4-201")).not.toContain("tanpa membahas QR pembayaran merchant");
     harus("Ia tidak membuktikan bahwa QR dinamis atau layar konfirmasi mencegahnya.");
   });
 });
@@ -585,7 +630,7 @@ describe("data Tebak, diagram Rantai, halaman istilah, baris riset, dan kartu Ce
     const s = diagram.baris[1]!.simpul;
     expect(s[0]!.teks).toBe(`Bayar pertama: ${cocok(dB, /HTTP\/1\.1 (201) Created/)[1]}`);
     expect(s[1]!.teks).toBe(`Bayar kedua: ${cocok(dB, /HTTP\/1\.1 (409) Conflict/)[1]}`);
-    expect(s[2]!.teks).toBe(`Sesudah ${DETIK_BERLAKU} detik: ${cocok(dD, /HTTP\/1\.1 (410) Gone/)[1]}`);
+    expect(s[2]!.teks).toBe(`Pada ${DETIK_BERLAKU} detik: ${cocok(dD, /HTTP\/1\.1 (410) Gone/)[1]}`);
     expect(s[2]!.sub).toBe(`${JAM_UJI[0]} detik: terbayar`);
     expect(diagram.baris[0]!.simpul[2]!.sub).toBe("bukan nama di payload");
     expect(diagram.sumber.jenis).toBe("rekaman");

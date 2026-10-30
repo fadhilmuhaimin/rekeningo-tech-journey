@@ -51,7 +51,7 @@ Tidak dijalankan berarti dicek ke kode atau dokumentasi, tanpa menjalankannya. [
 <p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: pemindai menerima, dan server menjawab nama Toko Andalan, bukan nama Toko Sumber Rejeki di payload (`statis.txt` bagian C).</p>
 </noscript>
 
-**Ubah satu hal:** bayangkan QR itu dinamis, bukan statis. Id QR dinamis yang sudah dibayar sekali dijawab 409 untuk pembayar mana pun. Id yang lewat 300 detik dijawab 410 (`dinamis.txt` bagian B dan D).
+**Ubah satu hal:** bayangkan QR itu dinamis, bukan statis. Id QR dinamis yang sudah dibayar sekali dijawab 409 untuk pembayar mana pun. Id QR dinamis pada detik ke-300 atau sesudahnya dijawab 410 (`dinamis.txt` bagian B dan D).
 
 Stiker yang berisi QR dinamis tidak bisa dibayar lagi sesudah pembayaran pertama dan sesudah 300 detik. Itu dibaca dari kedua rekaman, karena stiker tidak ada di lab (Ilustrasi).
 
@@ -71,7 +71,9 @@ Ubah satu hal lagi: payload dinamis dengan nominal diganti Rp1 dan CRC baru lolo
 
 <Snippet file="labs/t4-qr/output/crc.txt" lines="32:46" title="Rekaman lab: labs/t4-qr/output/crc.txt, bagian B (payload QR dinamis dan tag-nya)" />
 
-Format di lab bergaya EMV. Nilai tag 00 dan 01, tag 63 di ujung, dan cara menghitung CRC berasal dari sumber yang bisa dibuka, dan selebihnya pilihan lab (Asumsi). Sumbernya satu halaman dokumentasi merchant ([Mastercard Developers: Generate QR Code for Merchants](https://developer.mastercard.com/mastercard-checkout-solutions/documentation/use-cases/sqr/generate-qr-codes/sqr-generate-qr/), dibuka 2026-10-26, Tidak dijalankan) dan dokumen turunan pihak ketiga.
+Format di lab bergaya EMV, dan selebihnya pilihan lab (Asumsi). Satu halaman dokumentasi merchant ([Mastercard Developers: Generate QR Code for Merchants](https://developer.mastercard.com/mastercard-checkout-solutions/documentation/use-cases/sqr/generate-qr-codes/sqr-generate-qr/), dibuka 2026-10-26, Tidak dijalankan) memuat tag 01 dan tag 63.
+
+Tag 01 bernilai 11 untuk QR statis dan 12 untuk QR dinamis, dan tag 63 adalah data object terakhir. Halaman itu tidak menyebut cara menghitung CRC. Nilai tag 00 dan cara menghitung CRC dibaca dari dokumen pihak ketiga yang menyatakan isinya mengikuti spesifikasi EMVCo, bukan dari spesifikasi itu sendiri.
 
 PDF spesifikasi EMVCo belum terbaca, jadi parameter CRC dan nilai tag menurut spesifikasi itu [perlu verifikasi di PDF EMVCo]. Halaman ini tidak mengklaim kepatuhan atau izin apa pun.
 
@@ -89,9 +91,13 @@ RFC 2104 menulis HMAC sebagai mekanisme otentikasi pesan dengan fungsi hash krip
 | Dipakai berapa kali | Berulang: dua pembayaran Rp200.000 berturut-turut diterima (`statis.txt` bagian D) | Sekali: pembayaran kedua dijawab 409 (`dinamis.txt` bagian B) |
 | Masa berlaku | `berlaku_sampai` kosong, jadi tanpa batas waktu (dibaca dari kode `bisaDibayar`) | 300 detik: terbayar pada 299 detik, dijawab 410 pada 300 dan 301 detik (`dinamis.txt` bagian D) |
 
-Sekali pakai dijaga di dalam transaction. `BayarQR` mengunci baris QR, membaca statusnya, dan menolak QR yang `terpakai` atau `kedaluwarsa`. QR dinamis ditandai terpakai di transaction yang sama dengan jurnalnya:
+Sekali pakai dijaga di dalam transaction. `BayarQR` mengunci baris QR, membaca statusnya, dan menolak QR yang `terpakai` atau `kedaluwarsa`:
 
-<Snippet file="labs/api-t4/internal/service/qr.go" lines="176:200" lang="go" title="labs/api-t4/internal/service/qr.go" />
+<Snippet file="labs/api-t4/internal/service/qr.go" lines="166:188" lang="go" title="labs/api-t4/internal/service/qr.go" />
+
+QR dinamis ditandai terpakai di transaction yang sama dengan jurnalnya:
+
+<Snippet file="labs/api-t4/internal/service/qr.go" lines="212:225" lang="go" title="labs/api-t4/internal/service/qr.go" />
 
 Di rekaman, pembayaran pertama dijawab 201 dan jurnalnya terikat pada id QR. Pembayaran kedua oleh pembayar yang sama dan oleh pembayar lain dijawab 409:
 
@@ -129,17 +135,19 @@ Jawaban 404 dari `GET /qr/{id}` sengaja sama untuk QR yang tidak aktif, kedaluwa
 
 **Laporan QR palsu membekukan merchant lebih dulu.** `LaporkanQR` membekukan merchant pemilik QR dan menulis satu baris audit di transaction yang sama. Tim risk memeriksa kemudian. Di `lapor.txt` bagian B, Budi melaporkan QR Toko Andalan yang tertempel di kasir Bu Marni, dan Toko Andalan menjadi `dibekukan`.
 
-Server tidak membedakan laporan yang benar dari yang salah. Yang diperiksa hanya panjang alasan, 20 sampai 200 karakter, dan laju laporan per akun. Di bagian C, Eko, akun terverifikasi, melaporkan QR Bu Marni yang asli. Bu Marni ikut beku, dan QR-nya dijawab 404, sama dengan jawaban untuk QR yang sudah dibayar atau kedaluwarsa:
+Server tidak membedakan laporan yang benar dari yang salah. Dari isi laporan, yang diperiksa hanya panjang alasan, 20 sampai 200 karakter, dan laju laporan per akun. Di bagian C, Eko, akun terverifikasi, melaporkan QR Bu Marni yang asli. Bu Marni ikut beku, dan QR-nya dijawab 404, sama dengan jawaban untuk QR yang sudah dibayar atau kedaluwarsa:
 
 <Snippet file="labs/t4-qr/output/lapor.txt" lines="78:92" title="Rekaman lab: labs/t4-qr/output/lapor.txt, bagian C (laporan atas QR yang asli)" />
 
-Uang yang sudah diterima tidak ditarik: saldo Bu Marni tetap Rp20.000, karena pembekuan mengubah status akun, bukan posting. Di bagian D, akun yang baru didaftarkan dan belum terverifikasi membekukan tiga merchant. Laporan keempat dijawab 429 dengan `Retry-After` 1200 detik:
+Uang yang sudah diterima tidak ditarik. Budi membayar Rp20.000 ke QR itu sebelum laporan, dan saldo Bu Marni tetap Rp20.000 sesudahnya, karena pembekuan mengubah status akun, bukan posting (`lapor.txt` bagian C). Di bagian D, akun yang baru didaftarkan dan belum terverifikasi membekukan tiga merchant. Laporan keempat dijawab 429 dengan `Retry-After` 1200 detik:
 
 <Snippet file="labs/t4-qr/output/lapor.txt" lines="128:138" title="Rekaman lab: labs/t4-qr/output/lapor.txt, bagian D (laporan keempat)" />
 
 Satu alamat boleh mendaftarkan 5 akun, dan tiap akun boleh membekukan 3 merchant sebelum batas laju menolak. Jadi 5 × 3 = 15 merchant dalam satu rentetan.
 
 Itu 15 ÷ 460 = 3,3% dari ±460 merchant: ±400 merchant luar dan ±60 warung Lestari. Hitungan ini memakai batas laju yang Asumsi lab dan jumlah merchant yang Asumsi naskah. Lima akun Tidak dijalankan, karena rekaman hanya memuat satu akun dan tiga merchant.
+
+Kode lab hanya menerbitkan QR dan membekukan akun berjenis merchant, sedangkan warung Lestari berjenis lain. Naskah menulis warung ikut menerima QR. Bila hanya merchant luar yang dihitung, hasilnya 15 ÷ 400 = 3,75%.
 
 Di lab, pembukaan hanya lewat tim risk. Di bagian F, empat percobaan yang tidak memenuhi syarat dijawab 403 dan Bu Marni tetap beku. Lalu staf risk dengan penyetuju kedua membuka akunnya dengan 204. Berapa lama sampai pembukaan terjadi tidak terukur (Asumsi).
 
@@ -253,7 +261,7 @@ Di app Flutter, `mobile_scanner` membaca QR di Android, iOS, macOS, dan web (Lin
 **Keputusan: opsi D.** Enam aturan:
 
 1. Merchant yang punya layar kasir atau app memakai QR dinamis (tag 01 = 12). Server membuat baris `qr` dengan id, nominal, dan masa berlaku 5 menit (Asumsi). Payload disusun penerbit stiker atau app merchant dari jawaban server, dan server tidak punya endpoint payload.
-2. QR dinamis dibayar sekali dan nominalnya terikat pada id QR. Pembayaran kedua dijawab 409, nominal lain 422, dan QR yang lewat 300 detik 410.
+2. QR dinamis dibayar sekali dan nominalnya terikat pada id QR. Pembayaran kedua dijawab 409, nominal lain 422, dan QR pada detik ke-300 atau sesudahnya 410.
 3. QR statis (tag 01 = 11) tetap untuk toko kecil. Satu pembayaran paling banyak Rp200.000 (Asumsi produk), dan nominal diisi pembeli.
 4. Layar konfirmasi menampilkan nama merchant, dan kota bila ada, dari jawaban server atas id QR, bukan dari payload. Sumber kota merchant luar belum ditentukan.
 5. Laporan QR palsu dari app membekukan merchant lebih dulu, dan tim risk memeriksa kemudian. Pembukaan butuh staf risk dan penyetuju kedua.
@@ -267,7 +275,9 @@ Di app Flutter, `mobile_scanner` membaca QR di Android, iOS, macOS, dan web (Lin
 
 **Kasus industri: peringatan FBI (2022).** Internet Crime Complaint Center FBI menerbitkan pemberitahuan I-011822-PSA pada 2022-01-18. Pemberitahuan itu menulis bahwa pelaku mengubah QR digital dan fisik untuk mengganti kode yang sah dengan kode berbahaya, termasuk untuk mengalihkan pembayaran. Anjurannya memeriksa QR fisik dari stiker yang ditempel di atas kode asli ([FBI IC3: I-011822-PSA](https://www.ic3.gov/PSA/2022/PSA220118), dibuka 2026-10-30).
 
-Batasnya: itu peringatan umum lembaga di Amerika Serikat, tanpa statistik kasus, dan fokus utamanya tautan berbahaya, bukan QR pembayaran merchant. Ia mendukung satu hal: stiker di atas QR asli adalah cara pemalsuan yang dikenal. Ia tidak membuktikan bahwa QR dinamis atau layar konfirmasi mencegahnya.
+Batasnya: itu peringatan umum lembaga di Amerika Serikat, tanpa statistik kasus. Fokus utamanya situs berbahaya yang mencuri data login dan data keuangan, dengan satu paragraf tentang QR pembayaran bisnis yang diganti sehingga pembayaran dialihkan.
+
+QR di sana mengarahkan ke situs pembayaran, bukan ke id yang dijawab server seperti di Rekeningo. Ia mendukung satu hal: stiker di atas QR asli adalah cara pemalsuan yang dikenal. Ia tidak membuktikan bahwa QR dinamis atau layar konfirmasi mencegahnya.
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
@@ -342,7 +352,7 @@ QR merchant itu dijawab 404 dan ia tetap beku sampai staf risk dengan penyetuju 
 - [ ] QR dinamis ditandai terpakai di transaction yang sama dengan jurnalnya, dan nominalnya dibandingkan dengan nilai di server.
 - [ ] Masa berlaku diperiksa dengan jam server, dan batas tepatnya diuji di kedua sisi.
 - [ ] QR statis punya batas nominal per pembayaran yang dijaga server.
-- [ ] Jawaban untuk QR yang tidak aktif tidak membocorkan sebabnya.
+- [ ] Jawaban layar konfirmasi untuk QR yang tidak aktif tidak membocorkan sebabnya.
 - [ ] Laporan QR palsu punya batas laju dan tercatat di audit log.
 
 ### Bacaan lanjut

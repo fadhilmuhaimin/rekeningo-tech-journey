@@ -15,7 +15,7 @@
   ],
   "stack": null,
   "jebakan": [
-    "Mengira QR dinamis mencegah penempelan stiker di semua kasus. Rekaman hanya menunjukkan bahwa id yang sudah dibayar atau lewat 300 detik ditolak, bukan di mana QR itu tertempel.",
+    "Mengira QR dinamis mencegah penempelan stiker di semua kasus. Rekaman hanya menunjukkan bahwa id yang sudah dibayar atau sudah berumur 300 detik ditolak, bukan di mana QR itu tertempel.",
     "Mengira batas Rp200.000 berlaku per QR atau per hari. Batas itu per pembayaran: dua pembayaran Rp200.000 berturut-turut diterima (`statis.txt` bagian D)."
   ],
   "terkait": [

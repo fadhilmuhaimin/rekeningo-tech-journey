@@ -16,7 +16,7 @@
       "simpul": [
         { "teks": "Bayar pertama: 201", "sub": "terikat pada id QR" },
         { "teks": "Bayar kedua: 409", "sub": "pembayar mana pun", "nada": "good" },
-        { "teks": "Sesudah 300 detik: 410", "sub": "299 detik: terbayar", "nada": "good" }
+        { "teks": "Pada 300 detik: 410", "sub": "299 detik: terbayar", "nada": "good" }
       ]
     }
   ],
