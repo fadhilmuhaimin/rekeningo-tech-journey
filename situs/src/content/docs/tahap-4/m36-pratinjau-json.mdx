@@ -55,7 +55,7 @@ OWASP memakai contoh serupa, yaitu user yang mengisi URL gambar avatarnya untuk 
 1. Pemeriksaan alamat hanya mencocokkan teks: fungsi mencari dua teks, `localhost` dan `127.0.0.1`, di dalam URL.
 2. Alamat hasil resolusi tidak diperiksa. Resolusi DNS adalah proses mengubah nama di URL menjadi alamat IP, dan jawabannya langsung dipakai.
 3. Redirect diikuti. Redirect adalah jawaban server yang menyuruh client pindah ke alamat lain.
-4. Untuk jawaban yang bukan gambar atau berstatus bukan 200, pesan kesalahan memuat 200 byte pertama isinya. Pesan itu dikembalikan ke merchant.
+4. Untuk jawaban yang bukan gambar atau berstatus bukan 200, pesan galat memuat 200 byte pertama isinya. Pesan itu dikembalikan ke merchant.
 
 Butir 1 adalah deny-list, yaitu daftar yang dilarang. Alamat yang sama bisa ditulis dengan cara lain, dan nama yang diselesaikan ke alamat dalam tidak memuat dua teks itu. OWASP menulis bahwa deny-list mudah dilewati dan hanya pilihan terakhir (Tidak dijalankan: dibaca dari sumber). Bentuk penulisan yang lolos bergantung pada resolver platform, yaitu bagian sistem yang mengubah nama menjadi alamat, jadi halaman ini tidak mencatatnya.
 
@@ -79,7 +79,7 @@ Jadi "kolom pratinjau" di cerita adalah Ilustrasi, dan di kode lab teks itu ada 
 
 **Yang direkam: sisi pembela.** Lab `t4-ssrf` hanya menjalankan versi aman dari fetcher, yaitu fungsi yang mengunduh gambar dari URL. Menjalankan versi pertama terhadap layanan tiruan di jaringan container Tidak dijalankan di lab ini, karena lingkup lab dipersempit ke verifikasi sisi pembela.
 
-*Kondisi rekaman:* go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat contoh di rekaman adalah angka karangan lab.
+*Kondisi rekaman:* go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat private dan link-local di rekaman adalah angka karangan lab.
 
 **Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji 32 alamat contoh, dan versi aman menolak 32 dari 32.
 
@@ -87,7 +87,7 @@ Tiga di antaranya ditandai `IsPrivate`, yaitu satu dari empat penanda bawaan Go 
 
 <Snippet file="labs/t4-ssrf/output/alamat.txt" lines="44:45" title="Rekaman lab: labs/t4-ssrf/output/alamat.txt baris 44 sampai 45 (alamat terlarang dan yang lolos bila IsPrivate saja)" />
 
-**Redirect.** Di tujuh kode redirect, server pertama tersentuh satu kali dan server tujuan redirect nol kali:
+**Redirect.** Di tujuh kode 3xx, server pertama tersentuh satu kali dan server tujuan redirect nol kali:
 
 <Snippet file="labs/t4-ssrf/output/batas.txt" lines="12:18" title="Rekaman lab: labs/t4-ssrf/output/batas.txt baris 12 sampai 18 (redirect tidak diikuti)" />
 
@@ -135,7 +135,7 @@ Bila hanya `IsPrivate` yang diperiksa, 29 dari 32 alamat terlarang lolos. Rekama
 
 - [[t4-ssrf]]: SSRF, alamat tujuan yang diperiksa saat server menghubunginya, dan batas unduhan. Keputusannya ADR 41.
 
-Di M36 server sudah mengunduh gambar dengan akses jaringan dalam. Yang kurang adalah batas pada alamat tujuan, pada redirect, dan pada isi pesan kesalahan.
+Di M36 server sudah mengunduh gambar dengan akses jaringan dalam. Yang kurang adalah batas pada alamat tujuan, pada redirect, dan pada isi pesan galat.
 
 ### Cek diri
 
@@ -144,7 +144,7 @@ Di M36 server sudah mengunduh gambar dengan akses jaringan dalam. Yang kurang ad
 <details class="success">
 <summary>Jawaban</summary>
 
-Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan kesalahan. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan).
+Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan galat. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan).
 
 </details>
 

@@ -4,8 +4,8 @@
 export const SIDIK = {
   frontmatter: "5f184305261ba02e",
   riset: ["ec844cee4f2ee54d","a769235f92afbc8b","0b00e9bd8267a763"],
-  diagram: "5abfaefbc8dd57fe",
-  skenario: "b4281043ee7a2e9b",
+  diagram: "dd58e78cd856bc84",
+  skenario: "25c56c88ea49e156",
 };
 
 // Nilai terpisah dari kalimat terkunci: tiga baris riset utuh, tiap daun diagram dan skenario, dan profil kata penentu
@@ -106,7 +106,7 @@ export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".catatan",
-  "Alamat contoh adalah angka karangan lab, dan server uji hanya di 127.0.0.1 di dalam proses tes. Kotak oranye adalah akibat yang direkam."
+  "Alamat private dan link-local adalah angka karangan lab, dan server uji hanya di 127.0.0.1 di dalam proses tes. Kotak oranye adalah akibat yang direkam."
  ]
 ];
 export const SKENARIO_DAUN: [string, string | number | boolean][] = [
@@ -132,7 +132,7 @@ export const SKENARIO_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".sumber.catatan",
-  "Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat contoh adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
+  "Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat private dan link-local adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
  ],
  [
   ".pengantar",
@@ -236,7 +236,7 @@ export const SKENARIO_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".langkah[1].jelas",
-  "Tujuh kode redirect diuji, dari 300 sampai 308 tanpa 305 dan 306. Di tiap kode server pertama tersentuh satu kali, dan server tujuan redirect tidak tersentuh sama sekali."
+  "Tujuh kode 3xx diuji, dari 300 sampai 308 tanpa 305 dan 306. Di tiap kode server pertama tersentuh satu kali, dan server tujuan redirect tidak tersentuh sama sekali."
  ],
  [
   ".langkah[1].nada",
@@ -391,7 +391,7 @@ export const PROFIL_BARIS: string[] = [
  "hanya:1 dua:1 alamat:1",
  "tidak:1 alamat:1",
  "alamat:1 server:1",
- "pertama:1 bukan:2 200:2 merchant:1",
+ "pertama:1 bukan:2 200:2 galat:1 merchant:1",
  "tidak:2 hanya:1 sama:1 dua:1 Tidak dijalankan:1 lolos:1 deny-list:2 OWASP:1 alamat:2",
  "hanya:1 lab:1",
  "tidak:1 hanya:1 sesudah:1 pertama:1 tanpa:1 Tidak dijalankan:1 redirect:2 OWASP:1 10:1 alamat:2",
@@ -407,7 +407,7 @@ export const PROFIL_BARIS: string[] = [
  "tidak:1 terlarang:1 32:3 versi aman:1 alamat:4",
  "hanya:1 satu:1 empat:1 Hitungan:1 lolos:1 IsPrivate:1 32:1 29:3 alamat:1",
  "Rekaman lab:1 lolos:1 terlarang:1 IsPrivate:1 alamat:3 lab:1",
- "satu:1 tujuh:1 pertama:1 redirect:2 server:2",
+ "satu:1 tujuh:1 pertama:1 redirect:1 server:2",
  "tidak:1 Rekaman lab:1 redirect:1 lab:1",
  "tidak:1 sama:1 satu:1 versi aman:1 alamat:1 galat:1 server:1",
  "tanpa:1 Rekaman lab:1 26:2 galat:1 lab:1",
@@ -434,12 +434,12 @@ export const PROFIL_BARIS: string[] = [
  "",
  "",
  "ADR 41:1 alamat:1 server:1",
- "redirect:1 alamat:1 server:1",
+ "redirect:1 alamat:1 galat:1 server:1",
  "",
  "hanya:1 alamat:1 merchant:1",
  "",
  "",
- "pertama:2 bukan:1 Tidak dijalankan:1 200:1 versi pertama:1 alamat:1 galat:1 merchant:1",
+ "pertama:2 bukan:1 Tidak dijalankan:1 200:1 versi pertama:1 alamat:1 galat:2 merchant:1",
  "",
  "tidak:1 terlarang:1 IsPrivate:1 32:2 alamat:1",
  "",
@@ -487,7 +487,7 @@ export const KALIMAT_TERKUNCI: string[] = [
   "1. Pemeriksaan alamat hanya mencocokkan teks: fungsi mencari dua teks, `localhost` dan `127.0.0.1`, di dalam URL.",
   "2. Alamat hasil resolusi tidak diperiksa. Resolusi DNS adalah proses mengubah nama di URL menjadi alamat IP, dan jawabannya langsung dipakai.",
   "3. Redirect diikuti. Redirect adalah jawaban server yang menyuruh client pindah ke alamat lain.",
-  "4. Untuk jawaban yang bukan gambar atau berstatus bukan 200, pesan kesalahan memuat 200 byte pertama isinya. Pesan itu dikembalikan ke merchant.",
+  "4. Untuk jawaban yang bukan gambar atau berstatus bukan 200, pesan galat memuat 200 byte pertama isinya. Pesan itu dikembalikan ke merchant.",
   "Butir 1 adalah deny-list, yaitu daftar yang dilarang. Alamat yang sama bisa ditulis dengan cara lain, dan nama yang diselesaikan ke alamat dalam tidak memuat dua teks itu. OWASP menulis bahwa deny-list mudah dilewati dan hanya pilihan terakhir (Tidak dijalankan: dibaca dari sumber). Bentuk penulisan yang lolos bergantung pada resolver platform, yaitu bagian sistem yang mengubah nama menjadi alamat, jadi halaman ini tidak mencatatnya.",
   "<Snippet file=\"labs/api-t4/internal/unduh/unduh.go\" lines=\"279:281\" lang=\"go\" title=\"Kode lab: labs/api-t4/internal/unduh/unduh.go baris 279 sampai 281 (pemeriksaan hanya teks)\" />",
   "Butir 3 datang dari client bawaan. Dokumentasi Go menulis bahwa tanpa `CheckRedirect` client berhenti sesudah 10 request beruntun ([net/http, Client](https://pkg.go.dev/net/http#Client), go1.27.3, dibuka 2026-10-30, Tidak dijalankan). OWASP menyarankan redirect dimatikan di client. Pemeriksaan teks hanya melihat URL pertama, jadi alamat luar yang menjawab redirect ke alamat dalam tidak diperiksa lagi.",
@@ -499,11 +499,11 @@ export const KALIMAT_TERKUNCI: string[] = [
   "Jadi \"kolom pratinjau\" di cerita adalah Ilustrasi, dan di kode lab teks itu ada di kolom `galat`. Dua tes unit `api-t4` menjaga butir 3 dan butir 4, dan keduanya tercatat lulus. Hanya nama tes dan hasilnya yang tercatat, tanpa rekaman tingkat endpoint (Rekaman lab api-t4, tidak dijalankan ulang di lab ini):",
   "<Snippet file=\"labs/api-t4/output/testing.txt\" lines=\"491:492\" title=\"Rekaman lab: labs/api-t4/output/testing.txt baris 491 sampai 492 (tes butir 4 dan butir 3, lulus)\" />",
   "**Yang direkam: sisi pembela.** Lab `t4-ssrf` hanya menjalankan versi aman dari fetcher, yaitu fungsi yang mengunduh gambar dari URL. Menjalankan versi pertama terhadap layanan tiruan di jaringan container Tidak dijalankan di lab ini, karena lingkup lab dipersempit ke verifikasi sisi pembela.",
-  "*Kondisi rekaman:* go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat contoh di rekaman adalah angka karangan lab.",
+  "*Kondisi rekaman:* go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat private dan link-local di rekaman adalah angka karangan lab.",
   "**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji 32 alamat contoh, dan versi aman menolak 32 dari 32.",
   "Tiga di antaranya ditandai `IsPrivate`, yaitu satu dari empat penanda bawaan Go di tabel rekaman. Bila hanya penanda itu yang diperiksa, 29 alamat lolos. Itu Hitungan, yaitu angka dari angka lain di rekaman: 32 − 3 = 29, dan rekaman mencetak 29 juga:",
   "<Snippet file=\"labs/t4-ssrf/output/alamat.txt\" lines=\"44:45\" title=\"Rekaman lab: labs/t4-ssrf/output/alamat.txt baris 44 sampai 45 (alamat terlarang dan yang lolos bila IsPrivate saja)\" />",
-  "**Redirect.** Di tujuh kode redirect, server pertama tersentuh satu kali dan server tujuan redirect nol kali:",
+  "**Redirect.** Di tujuh kode 3xx, server pertama tersentuh satu kali dan server tujuan redirect nol kali:",
   "<Snippet file=\"labs/t4-ssrf/output/batas.txt\" lines=\"12:18\" title=\"Rekaman lab: labs/t4-ssrf/output/batas.txt baris 12 sampai 18 (redirect tidak diikuti)\" />",
   "**Pesan galat.** Isi JSON dari server uji tidak ikut ke pesan versi aman. Delapan penolakan karena alamat literal memakai satu pesan yang sama:",
   "<Snippet file=\"labs/t4-ssrf/output/batas.txt\" lines=\"122:126\" title=\"Rekaman lab: labs/t4-ssrf/output/batas.txt baris 122 sampai 126 (pesan galat tanpa isi respons)\" />",
@@ -530,12 +530,12 @@ export const KALIMAT_TERKUNCI: string[] = [
   "</Blok>",
   "<Blok nama=\"Konsep yang lahir\">",
   "- [[t4-ssrf]]: SSRF, alamat tujuan yang diperiksa saat server menghubunginya, dan batas unduhan. Keputusannya ADR 41.",
-  "Di M36 server sudah mengunduh gambar dengan akses jaringan dalam. Yang kurang adalah batas pada alamat tujuan, pada redirect, dan pada isi pesan kesalahan.",
+  "Di M36 server sudah mengunduh gambar dengan akses jaringan dalam. Yang kurang adalah batas pada alamat tujuan, pada redirect, dan pada isi pesan galat.",
   "### Cek diri",
   "**1.** Kolom `gambar_url` hanya berisi alamat. Kenapa teks JSON dari layanan lain bisa sampai ke merchant?",
   "<details class=\"success\">",
   "<summary>Jawaban</summary>",
-  "Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan kesalahan. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan).",
+  "Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan galat. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan).",
   "</details>",
   "**2.** Versi aman menolak 32 dari 32 alamat terlarang. Kenapa pemeriksaan `IsPrivate` saja tidak cukup?",
   "<details class=\"success\">",
