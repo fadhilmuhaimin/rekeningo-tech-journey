@@ -854,6 +854,7 @@ describe("kalimat klaim kunci: ditulis di tes, bukan dibangkitkan dari halaman, 
     harus("Pak Hadi membuka laporan rekonsiliasi hari ke-14 berturut-turut ([[t4-rekonsiliasi]]). Tiap hari selisihnya Rp0, atau insiden yang muncul sudah tertutup dalam satu hari kerja.");
     harus("berasal dari naskah. Naskah menulisnya sebagai target (Asumsi), tanpa rekaman yang mengulangnya.");
     harus("Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].");
+    harus("*Angka cerita (Ilustrasi):* minggu 12, 100.000 user terdaftar, 14 hari berturut-turut, dan selisih Rp0 atau insiden tertutup dalam satu hari kerja berasal dari naskah.");
     harus("Raka, Bayu, dan Nadia membaca daftar PRD v5 dan mengira bebannya naik lagi. Masing-masing mengusulkan jawaban yang sudah ia kenal.");
     harus(`Ketiganya mengira kapasitas yang kurang. Satu rekaman beban Tahap 4 bisa memeriksanya: lab menjadwalkan ${p} request per detik selama ${LAMA} detik ke satu proses API di satu laptop.`);
     harus(`<summary>Tebak dulu: p95 di bawah 500 ms pada ${p} request per detik. Apa yang dibuktikan hasil itu untuk server produksi dan PRD v5?</summary>`);
