@@ -57,7 +57,7 @@ export const BARIS_MDX: string[] = [
  "| Otorisasi kartu virtual | 1.000 | 0,116 | 5% × 20.000 × 1 |",
  "| Unggahan file | 2.000 | 0,231 | 1.000 pendaftar × 2 file |",
  "Rata-rata sehari untuk transaksi uang adalah 0,694 per detik dan untuk top-up 0,058. Transaksi uang adalah 5% dari semua request (60.000 ÷ 1.200.000). Jendela makan siang memuat 80% transaksi sehari dalam 90 menit, yaitu 5.400 detik: 60.000 × 0,8 ÷ 5.400 = 8,89 per detik.",
- "Top-up punya satu tambahan. Gateway mengulang kiriman yang gagal sampai kiriman ke-6. Bila semua kiriman gagal, λ menjadi 6 × 0,579 = 3,47 per detik (Hitungan atas jadwal tiruan, Asumsi). Dari kelas baru di PRD v4, registry hanya memuat unggahan per hari dan ukuran file; angka kelas lain adalah Asumsi naskah.",
+ "Top-up punya satu tambahan. Jadwal gateway tiruan mengulang kiriman yang gagal sampai kiriman ke-6. Bila semua kiriman gagal, λ menjadi 6 × 0,579 = 3,47 per detik (Hitungan atas jadwal tiruan, Asumsi). Dari kelas baru di PRD v4, registry hanya memuat unggahan per hari dan ukuran file; angka kelas lain adalah Asumsi naskah.",
  "**3. Bandingkan tiap hasil dengan batas komponennya.** Kapasitas bukan request per detik. Worker punya kapasitas c ÷ t, dengan c = 4 pengirim serentak dan t = 0,3 detik per pengiriman. Jadi 4 ÷ 0,3 = 13,33 per detik (Asumsi dari Tahap 3).",
  "[Rekaman lab](/cara-pakai/#label-sumber) api-t4 (`beban.txt` bagian B) menguras 100 pesan promo dari outbox dengan satu worker dan push tiruan 300 ms. Laju terukurnya dalam 15% dari 13,3 per detik; nilainya tidak direkam. Itu batas pada satu mesin, bukan kapasitas produksi.",
  "| Besaran | Tahap 3 | Tahap 4 | Batas |",

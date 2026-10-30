@@ -421,7 +421,7 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
     harus(`Rata-rata sehari untuk transaksi uang adalah ${koma(lamTrx4 / a4.puncak, 3)} per detik dan untuk top-up ${koma(lamTop / a4.puncak, 3)}.`);
     harus(`Transaksi uang adalah ${Math.round((trx4Hari / h4.reqHari) * 100)}% dari semua request (${ribu(trx4Hari)} ÷ ${ribu(h4.reqHari)}).`);
     harus(`Jendela makan siang memuat ${FRAKSI_SIANG * 100}% transaksi sehari dalam ${DETIK_SIANG / 60} menit, yaitu ${ribu(DETIK_SIANG)} detik: ${ribu(trx4Hari)} × ${koma(FRAKSI_SIANG, 1)} ÷ ${ribu(DETIK_SIANG)} = ${koma((trx4Hari * FRAKSI_SIANG) / DETIK_SIANG, 2)} per detik.`);
-    harus(`Gateway mengulang kiriman yang gagal sampai kiriman ke-${KIRIMAN}. Bila semua kiriman gagal, λ menjadi ${KIRIMAN} × ${koma(lamTopTulis, 3)} = ${koma(KIRIMAN * lamTopTulis, 2)} per detik (Hitungan atas jadwal tiruan, Asumsi).`);
+    harus(`Jadwal gateway tiruan mengulang kiriman yang gagal sampai kiriman ke-${KIRIMAN}. Bila semua kiriman gagal, λ menjadi ${KIRIMAN} × ${koma(lamTopTulis, 3)} = ${koma(KIRIMAN * lamTopTulis, 2)} per detik (Hitungan atas jadwal tiruan, Asumsi).`);
     harus("Dari kelas baru di PRD v4, registry hanya memuat unggahan per hari dan ukuran file; angka kelas lain adalah Asumsi naskah.");
     harus("Tiap kelas punya λ sendiri, yaitu jumlah kedatangan per detik.");
     expect(TRX).toBe(3);
