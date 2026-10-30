@@ -383,3 +383,38 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - Gejala dan Cek diri memakai "pelanggan", bagian lain "pembeli" untuk orang yang sama; samakan di 4.19.
 - Tooltip "Merchant" (glosarium) masih menulis "Di Tahap 1 sampai 3 merchant adalah warung"; tambahkan merchant di luar Lestari untuk Tahap 4.
 - Layar pertama 375×667 menampilkan Gejala sampai kalimat kedua paragraf kedua; tombol Berikutnya baru terlihat sesudah gulir, sama dengan halaman Masalah lain (hanya "Blok 1 dari 5" yang menunjukkan struktur).
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- 4.20: `/cara-pakai/` belum mendefinisikan Hitungan dan Simulasi; 4.20 mendefinisikan Hitungan di pemakaian pertama (butir TODO MEMORI).
+- 4.20: widget alur (WidgetLama) sesudah langkah terakhir menjatuhkan `document.activeElement` ke `BODY` (diukur di 375×667); polesan widget lama yang sama untuk semua halaman alur.
+- 4.20 dan lab: pesan galat versi aman membedakan nama yang ada dari yang tidak ada (`batas.txt` bagian terakhir, belum diperbaiki); 4.20 menulis ini di "Yang tidak direkam", 4.21 harus konsisten dengannya atau menunggu perbaikan lab.
+- 4.20: `penyimpanan-internal` hanya konstanta di `labs/api-t4/internal/unduh/unduh_test.go` (`jsonDalam`); bila pemilik ingin rekaman tingkat endpoint untuk sisi rentan, itu tugas lab baru.
+- 4.20: `fitur.txt` dan `rentan.txt` api-t4 hanya menyebut nama mode `unduh-rentan` pada baris komentar; halaman tidak mengutip keduanya.
+- 4.20 (tinjauan): blok "Yang Raka kira" memuat dugaan tanpa menyebut siapa yang menduga (naskah tidak menamainya); bila pemilik mau, sebut tokoh dari naskah atau ganti judul blok untuk halaman ini.
+- 4.20 dan 4.21: satu kosakata untuk pesan kesalahan. Halaman 4.20 memakai "pesan kesalahan" (naskah, butir 4, Cek diri) dan "pesan galat" (rekaman `batas.txt`, kode, judul Snippet); samakan di 4.21 dengan ADR 41.
+- 4.20 (tinjauan): "tujuh kode redirect" memuat 300 dan 304 yang termasuk kelas 3xx (RFC 9110 bagian 15.4) tetapi bukan redirect dalam arti sempit; tulis "tujuh kode 3xx" bila halaman disentuh lagi.
+- 4.20 dan 4.18: tebakan jawaban benar sama-sama di pilihan pertama (`t4-m35` dan `t4-m36`); variasikan di widget berikutnya.
+- 4.20 (tinjauan): "Alamat contoh di rekaman adalah angka karangan lab" (halaman, skenario, diagram) melampaui README, yang menyebut hanya alamat private dan link-local contoh sebagai karangan; tiga alamat kontrol publik di `alamat.txt` adalah alamat publik sungguhan (tidak ditampilkan di halaman dan tidak dihubungi).
+- Lab `t4-ssrf` (opsional): `alamat.txt` tidak mencatat penanda yang menangkap tiap alamat (`IsMulticast` dan daftar awalan); halaman 4.20 membacanya dari kode.
+- 4.19 (`qr-pembayaran.mdx`): widget Tebak tidak punya jalur "Ubah satu hal"; bagian itu prosa statis dari `dinamis.txt`. Bila ada widget alur QR, pindahkan "Ubah satu hal" ke sana.
+- 4.19 tab Dart: nama dan konstruktor kelas CRC 16 bit di `crclib` (selain `ParametricCrc`) dan keluaran `mobile_scanner` tidak dibaca; lengkapi dari dokumentasi API bila tab itu diperluas.
+- 4.19 tab Node, Laravel, dan Django: dokumentasi Laravel, Django, dan paket npm CRC 16 bit tidak dibaca; hanya `zlib.crc32`, `hash_algos`, dan `binascii.crc_hqx` yang dirujuk.
+- 4.19 dan 4.18 sama-sama menjelaskan CRC bukan autentikasi; bila 4.18 diubah, baca ulang bagian "CRC bukan autentikasi" di 4.19 supaya tidak berbeda.
+- 4.19 (peninjau): widget Tebak bersama (`Tebak.tsx`) memakai `disabled` sesudah memilih, jadi fokus jatuh ke body (juga sesudah "Coba pilihan lain"); tanpa JavaScript empat tombol pilihan tampil tidak berfungsi; wilayah `role=status` memuat judul, dua alasan, penutup, dan tombol (bukan satu kalimat). Pakai `aria-disabled` dan pindahkan fokus ke hasil dan ke pilihan pertama; sembunyikan tombol tanpa JS. Berlaku bagi semua halaman yang memakai Tebak.
+- 4.19 (peninjau): "Nama dari server berbeda" di Rantai Inti tidak menyebut berbeda dari apa saat sub disembunyikan di HP; pertimbangkan "Nama dari server: Toko Andalan" (ukur ulang layar pertama, margin 32 px).
+- 4.19 (peninjau): satu kosakata untuk pelaku bayar ("pembeli" di prosa, "pembayar" di tabel dan Rantai); pertanyaan 2 di "Sudah tahu?" menanyakan "kapan QR itu berhenti berlaku" untuk QR yang sudah dibayar (maksudnya yang belum dibayar).
+- 4.19 (peninjau): `POST /qr/{id}/bayar` dibungkus `idempoten`; dengan header `Idempotency-Key` yang sama dari pembayar yang sama jawaban pertama diputar ulang (dibaca dari rute, tidak direkam di t4-qr); rekaman memakai pembayaran tanpa header. Tambahkan bagian rekaman bila halaman perlu menyebutnya.
+- 4.19 (peninjau): rujukan `bagian X` di kalimat tanpa bilangan atau nama (sel "Bukti" tabel ADR) hanya terjaga sidik kalimat dan profil; tambahkan sumber yang bisa diturunkan bila ada.
+- `labs/api-t4/internal/service/katalog_impor.go`: komentar menulis ±19 detik untuk "7 gelombang × 3 detik" (= 21); samakan rumus dan angkanya.
+- Pesan galat versi aman membedakan nama dalam yang ada ("tujuan tidak diizinkan") dari yang tidak ada ("tidak menjawab"): samakan pesan dan ubah `TestSSRFBatasPesanMembedakanNamaDikenalDariTidakDikenal` (pre-mortem 2 ADR 41).
+- Pengunduhan ulang registri IANA dan pencocokan `alamatKhusus` otomatis (job) belum ada; daftar dicocokkan sekali dengan berkas 2025-10-09.
+- Jalankan tes IDNA yang sama di tiap versi Go sebelum dipakai (golang/go#80417 terbuka).
+- `labs/api-t4/output/testing.txt` mencetak daftar bentuk alamat yang lolos deny-list di platform pembuat rekaman; pertimbangkan tidak mencetaknya ke rekaman yang dikutip halaman.
+- (Sudah dikerjakan peninjau di komit ce43ae23, keputusan 1349.) Halaman 4.20 (`m36-pratinjau-json.mdx`): "Di tujuh kode redirect" (300 dan 304 termasuk kelas 3xx, bukan redirect biasa) dan "Alamat contoh di rekaman adalah angka karangan lab" (README hanya menyebut private dan link-local; tiga kontrol publik di `alamat.txt` alamat sungguhan).
+- Tiga angka 24 berbeda di sekitar 4.21: kode lama menolak 24 dari 32, daftar awalan mentah 24 dari 32 (25 sesudah Unmap), dan 24 dari 26 sisa sesudah empat penanda. Tulis "versi sebelum perbaikan" dan "dari 26 sisa" di tiap pemakaian, atau cetak kedua jumlah daftar awalan di `alamat.txt`.
+- Widget cari-bug dirender statis sebagai 29 tombol mati dan tombol Periksa tanpa JavaScript (pola lama 1.19, 3.4, dan halaman lain); tampilkan daftar baris sebagai teks biasa di dalam `noscript`.
+- Tab "Django" memuat dokumentasi Requests dan HTTPX, bukan Django; ganti label tab menjadi "Django (Python)" atau tambahkan dokumentasi Django bila ada pembatasan alamat keluar.
+- `fetch` Node (undici): periksa kodenya apakah `blockList` atau `lookup` dapat dipasang lewat dispatcher, lalu ganti [perlu verifikasi] di tab Node.
+- Pembanding untuk 21 detik (waktu paling lama yang masih diterima satu request impor) belum ada di naskah; produk menentukan, lalu ADR 41 menulis ambang dengan satuan yang sama.
+- Rekaman `alamat.txt` mencetak dua jumlah daftar awalan saja (mentah dan sesudah Unmap) bila halaman ingin menulis angka daftar saja; sekarang halaman hanya menulis "24 + 2 dari 26" (Tidak dijalankan: dibaca dari `alamatDilarang`).
