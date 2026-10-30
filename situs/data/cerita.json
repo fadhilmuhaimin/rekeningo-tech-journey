@@ -3969,8 +3969,9 @@
       "prasyarat": [
         "t4-estimasi"
       ],
-      "ada": false,
-      "nomor": "4.29"
+      "ada": true,
+      "nomor": "4.29",
+      "menit": 23
     },
     {
       "id": "t4-rekap",

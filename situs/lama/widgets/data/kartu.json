@@ -3168,6 +3168,30 @@
   "jawab": "Server memeriksa pemegang token, yaitu akun risk lain yang aktif, bukan aksi yang disetujui. Buka blokir Eko dan ubah batas Eko sama-sama dijawab 204 (`persetujuan.txt` bagian D)."
  },
  {
+  "id": "t4-adr-45-1",
+  "halaman": "t4-adr-45",
+  "judul": "4.29 ADR 45: Sengaja belum dilakukan",
+  "url": "tahap-4/sengaja-belum/",
+  "tanya": "Koneksi database sekarang 40 dari 100. Berapa instance API dengan pool 10 sampai koneksi mencapai pemicu 70?",
+  "jawab": "Lima instance, jadi tiga lagi di atas dua yang ada. Rumusnya instance × 10 + 20 = 70, jadi instance = (70 − 20) ÷ 10 = 5. Angka 20 adalah 2 × 5 + 4 + 3 + 3. Angka 70 adalah Asumsi 3.30 ADR 33, dan pool pembayaran, worker, admin, serta cadangan superuser adalah Asumsi naskah."
+ },
+ {
+  "id": "t4-adr-45-2",
+  "halaman": "t4-adr-45",
+  "judul": "4.29 ADR 45: Sengaja belum dilakukan",
+  "url": "tahap-4/sengaja-belum/",
+  "tanya": "Kenapa HTTP dan OpenAPI masih cukup untuk panggilan dari service pembayaran ke ledger?",
+  "jawab": "Top-up memanggil ledger 0,579 kali per detik pada puncak. Satu lompatan HTTP yang menahan koneksi 50 ms memakai L = 0,579 × 0,05 = 0,029 koneksi (Hitungan atas Asumsi). Rekaman lab `latensi.txt` bagian A memeriksa tambahan p95 di bawah 50 ms, dan jawabannya ya, di localhost satu mesin. Jaringan antar host tidak diukur, jadi itulah pemicunya."
+ },
+ {
+  "id": "t4-adr-45-3",
+  "halaman": "t4-adr-45",
+  "judul": "4.29 ADR 45: Sengaja belum dilakukan",
+  "url": "tahap-4/sengaja-belum/",
+  "tanya": "ID token punya signature yang sah, tetapi `aud` menyebut app lain. Apa yang dilakukan API Rekeningo, dan kenapa?",
+  "jawab": "API menolaknya dengan 401. Signature hanya membuktikan token diterbitkan server identitas, yang menerbitkan token untuk banyak app. OpenID Connect Core §3.1.3.7 meminta ID token ditolak bila `aud` tidak memuat client id Rekeningo. Rekaman lab lama `b5-2-oidc` bagian D merekam 401 untuk `aud` app lain."
+ },
+ {
   "id": "B11-1",
   "halaman": "B11",
   "judul": "Integrasi pihak ketiga",
