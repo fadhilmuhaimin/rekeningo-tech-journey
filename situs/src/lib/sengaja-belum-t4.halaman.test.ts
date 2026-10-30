@@ -446,6 +446,13 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     expect(badan).toContain("[[t4-jembatan]] meminta kamu menebak keputusan Tahap 4 mana yang pecah lebih dulu");
     expect(naskah).toContain("Pembaca diminta menebak: dari ADR Tahap 4, mana yang pecah lebih dulu?");
   });
+  test("semua tabel: jumlah kolom header, pemisah, dan tiap baris sama (tabel GFM yang tidak seimbang dirender sebagai teks)", () => {
+    const tabelTabel: string[][] = [];
+    let cur: string[] = [];
+    for (const l of badan.split("\n")) { if (l.startsWith("|")) cur.push(l); else if (cur.length) { tabelTabel.push(cur); cur = []; } }
+    expect(tabelTabel.map((t) => [t.length, new Set(t.map((l) => l.split("|").length - 2)).size, t[0]!.split("|").length - 2])).toEqual([[5, 1, 4], [7, 1, 5], [10, 1, 3], [8, 1, 3], [10, 1, 5]]);
+    for (const t of tabelTabel) expect(t[1]!.split("|").slice(1, -1).every((c) => /^-+$/.test(c.trim()))).toBe(true);
+  });
   test("template adr: enam blok dalam urutan, dua pertama terbuka, dan tiap blok ditutup", () => {
     const b = daftarBlok(halaman);
     expect(b.map((x) => x.nama)).toEqual(["Kebutuhan", "Opsi", "Yang dipilih dan kenapa", "Wujud di kode", "Coba keduanya", "Kapan keputusan ini salah"]);
