@@ -452,3 +452,26 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - 4.24 (tinjauan): widget `alur` bersama tidak memasang `aria-pressed` pada opsi tebakan (opsi berubah `disabled` dengan kelas `is-picked`), dan wilayah `aria-live` detail memuat seluruh teks langkah, bukan satu kalimat; polesan widget bersama untuk semua halaman alur.
 - 4.24 (tinjauan): istilah "catatan", "audit log", dan "log" dipakai bergantian untuk satu konsep; samakan setelah halaman istilah "Audit log" ditulis di 4.25.
 - 4.24 (tinjauan): 4.25 sudah menulis halaman istilah audit-log dan mcp; 4.24 masih mendefinisikan "audit log" dan "hash" inline (halaman istilah hash belum ada): tautkan atau samakan kalimat definisi.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- 4.23: widget race untuk replay dua otorisasi serentak belum ada. Butuh rekaman langkah per statement dari lab t4-kartu (JSON bentuk `run_ledger.py` atau widget baru), lalu halaman memasangnya di blok Coba sebagai pengganti atau tambahan Tebak.
+- 4.23: halaman istilah `hold` dan `kill-switch` memakai `stack: null` (belum ditulis); lengkapi enam stack (kunci baris dan `lock_timeout` per stack; feature flag per stack, dengan OpenFeature spesifikasi v0.9.0 belum 1.0).
+- 4.23: bagian Di stack lain (enam stack) tidak ditulis karena ANTREAN tidak memintanya; tambahkan bila pemilik ingin seragam dengan 4.7, 4.11, 4.13, 4.15, 4.17.
+- 4.23: label turunan Simulasi tidak dipakai; Hitungan didefinisikan di pemakaian pertama (Paham, hitungan tiga penantian), sesuai brief.
+- 4.23: meta prasyarat menulis "4.22 M37 (segera)" sampai 4.22 merge; tidak ada perubahan halaman yang perlu, sinkron registry saja.
+- 4.23: mutasi peninjau yang layak ditambah: tukar Snippet antar bagian rekaman yang rentangnya sama panjang; ubah `bagian B` menjadi `bagian C` di judul Snippet (dikunci kalimat, belum diturunkan per jangkar).
+- 4.23: label turunan "penalaran dari kode" pertama muncul di Paham (Celah 5) tanpa kalimat arti; artinya baru ditulis di bawah tabel ADR ("penalaran dari desain, tanpa rekaman"). Pindahkan satu kalimat arti ke pemakaian pertama.
+- 4.23: dokumentasi penerbit menandai bagian Autopilot "Public preview"; halaman menyebut bagian itu tanpa label tersebut (perilaku jaringan menyetujui sendiri berlaku untuk fitur preview).
+- 4.23: Sengaja belum menulis "Muncul lagi di 4.26" untuk flag di luar proses dan rilis bertahap 1%, 5%, 25%, 100%; draf 4.26 hanya menyebut feature flag untuk fitur uang sebagai Tidak dijalankan. Periksa janji ini saat 4.26 merge.
+- 4.23: ADR 42 "Kapan salah" butir 3 memakai 0,116 x 1 detik = 0,116 otorisasi baru per detik penantian: itu hanya λ x 1 detik dan belum membandingkan dengan ambang; pertimbangkan pembanding yang menyatakan kapan jawaban lambat jadi masalah.
+- 4.23: jawaban benar Tebak adalah pilihan terpendek (65 lawan 71 sampai 78 karakter); pertimbangkan variasi panjang di tebakan Tahap 4 berikutnya.
+- 4.23: penjaga tanpa kunci kalimat tidak menangkap 408 dari 1.289 mutan prosa bebas (kata hubung, urutan kalimat, modalitas); batas penjaga, ditutup oleh kunci kalimat.
+- Halaman 4.26 membaca ±23 menit (4.756 kata, lebih dari 10 menit): bila pemilik ingin, pecah dua (pipeline dan supply chain; rilis bertahap, jaga, dan ADR). Registry tidak dipecah.
+- `audit_bahasa.py` membaca atribut `file=` dan `title=` komponen Snippet sebagai prosa, jadi nama file rekaman berbahasa Indonesia (`klien.txt`) memicu galat "klien (client)". Di 4.26 rekaman itu dikutip lewat blok kode berpagar; perbaikan alat: abaikan atribut Snippet (jangan ubah dari halaman).
+- `pilah.js` (widget lama): fokus jatuh ke body sesudah memilih dan tombol tanpa fungsi tanpa JavaScript; 4.26 mewarisinya (noscript menampilkan jawaban per kartu).
+- Rantai ringkas Inti 4.26 (dua baris data) terukur 4 garis di 360 dan 375 px (`ukur-rantai.mjs`, dicetak saja).
+- `make test` lab t4-pipeline (105 tes) belum masuk gerbang `tools/cek_situs.sh`.
+- Tinjauan: status role=status widget pilah memuat empat kalimat (hasil dan tiga kalimat penutup) dan fokus tetap di tombol Cek yang `disabled`; urutan jawaban pilah 1,0,0,1,1,0,1 sama dengan 3.27; paragraf SBOM dan "Empat belas temuan" lima kalimat; audit_bahasa menandai "kontrak (API)" 29 kali di halaman ini; mutan sisipan bilangan pada kalimat penjelas tanpa nilai turunan hanya terjaga kunci baris (batas penjaga); Firefox dan Safari belum diuji.
+- Percobaan oasdiff v1.35.0 (23 perbandingan identik) belum direkam di lab; halaman menulisnya "tidak direkam".
+- `audit-log-back-office.halaman.test.ts` (4.25) mengharuskan baris riset sesudah R4-234 adalah R4-300; baris R4-235 sampai R4-239 milik 4.26 membuatnya gagal, jadi satu baris tesnya dilonggarkan (nomor berikutnya lebih besar dari 234). 4.23 dan 4.24 (R4-220 sampai R4-229) tidak terpengaruh oleh perubahan itu.

@@ -1,0 +1,53 @@
+{
+  "id": "t4-m39-batas",
+  "judul": "Yang dihitung dan direkam di Tahap 4, dan yang diminta PRD v5",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Hitungan atas Asumsi naskah dan registry; rekaman lab api-t4, beban.txt bagian A, hanya untuk batas di satu laptop"
+  },
+  "baris": [
+    {
+      "label": "Dihitung dan direkam",
+      "sub": "Tahap 4",
+      "simpul": [
+        {
+          "teks": "Puncak 138,9 per detik",
+          "sub": "naik 8 kali, Hitungan",
+          "nada": "system"
+        },
+        {
+          "teks": "Worker 56%",
+          "sub": "naik dari 6,5%, Hitungan",
+          "nada": "system"
+        },
+        {
+          "teks": "p95 di bawah 500 ms",
+          "sub": "satu laptop, 20 detik",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Belum pernah diuji",
+      "sub": "diminta PRD v5",
+      "simpul": [
+        {
+          "teks": "Laporan dan transaksi",
+          "sub": "satu database",
+          "nada": "warn"
+        },
+        {
+          "teks": "Notifikasi massal",
+          "sub": "satu worker",
+          "nada": "warn"
+        },
+        {
+          "teks": "20 sampai 40 orang",
+          "sub": "satu repo",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Puncak dan worker adalah Hitungan atas Asumsi. p95 di bawah 500 ms adalah batas lab dari rekaman, bukan kapasitas produksi, dan kapasitas satu server belum terukur."
+}
