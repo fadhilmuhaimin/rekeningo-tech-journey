@@ -759,12 +759,14 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect([jadwal, selesai[1], selesai[2]]).toEqual(["2778", "2778", "2778"]);
     expect(Math.floor(Number(PUNCAK4.replace(",", ".")) * 20)).toBe(2778);
     expect(ada(A, /^p95 di bawah 500 ms \(batas lab, Asumsi; nilai ukur tidak direkam\): ya$/)).toBe(true);
-    harus(butir(13).pertama, `Satu rekaman beban di satu laptop menyelesaikan ${titik(Number(selesai[1]))} dari ${titik(Number(selesai[2]))} permintaan tanpa error. Nilai p95 di bawah batas lab 500 ms (\`beban.txt\` bagian A, lab api-t4).`);
+    harus(butir(13).pertama, `Satu rekaman beban di satu laptop menyelesaikan ${titik(Number(selesai[1]))} dari ${titik(Number(selesai[2]))} permintaan tanpa error. Hasilnya p95, yaitu waktu jawab yang dilewati 5% permintaan paling lambat, di bawah batas lab 500 ms (\`beban.txt\` bagian A, lab api-t4).`);
     const B = bag(beban, "B").join("\n");
     cocok(B, /100000 \/ \(4 \/ 0,3\) = |hitungan: 100000 \/ \(4 \/ 0,3\) = 7500 detik|hitungan: 100000 \/ \(4 \/ 0,3\)/);
     expect(Math.round((100000 * 0.3) / 4 / 60)).toBe(125);
     harus(butir(13).batas, "Pengumuman ke 100.000 HP butuh 125 menit (Hitungan, Tidak dijalankan).");
-    harus(butir(13).batas, "rekaman beban bukan kapasitas produksi, karena memakai satu proses, satu laptop, dan 20 detik. Kapasitas satu server belum diukur.");
+    harus(butir(13).batas, "rekaman beban memeriksa batas lab, yaitu status 200 atau 201 dan p95 di bawah 500 ms. Itu bukan kapasitas produksi, karena memakai satu proses, satu laptop, dan 20 detik. Kapasitas satu server belum diukur.");
+    expect(ada(A, /^status: 200 x\d+, 201 x\d+/)).toBe(true);
+    harus(fileHalaman("t4-m39"), "p95, yaitu waktu jawab yang dilewati 5% request paling lambat");
     harus(butir(13).batas, "Tiga hal yang diminta PRD v5 belum pernah diuji. Laporan merchant akan berbagi database dengan transaksi, notifikasi massal berbagi satu worker, dan 13 orang menjadi 20 sampai 40 di satu repo (Asumsi).");
     harus(fileHalaman("t4-prd"), "13 engineer");
     expect(a4.tim).toBe("13 developer, 3 tim");
