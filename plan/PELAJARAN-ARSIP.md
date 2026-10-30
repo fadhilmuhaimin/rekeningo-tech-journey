@@ -457,3 +457,14 @@ Tabel di MEMORI: 4.1–4.3 127/140/105, 4.4–4.6 61/60/69, 4.7–4.10 377/329/3
 | Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
 | --- | --- | --- | --- | --- |
 | ERD4; W4-webhook, W4-breaker; KONSISTENSI-4 | #419; #425, #426; #427 | 116; 89, 221 (jeda limit #8 ±107 menit; kerja ±150); 201 (idem; kerja ±55) | 1; 1, 2; 0 | 0 |
+
+## Perlu dicek pemilik, halaman 4.19–4.21 (2026-10-30)
+
+- Naskah vs kode/dokumentasi: naskah ADR 41 'deny-list string pada URL (pilihan terakhir menurut OWASP)' padahal OWASP menaruh 'Deny-list (Last Resort)' pada daftar blokir atas alamat (= opsi D), bukan pencocokan teks URL; naskah M36 menyebut CSV padahal kode lab menerima JSON (produk[].gambar_url), Gejala menulis kolom 'pratinjau' berisi JSON padahal isi masuk kolom galat; naskah menulis warung ikut menerima QR, lab hanya jenis merchant (penyebut 460 atau 400: 15 ÷ 460 = 3,3% vs 15 ÷ 400 = 3,75%); kasus FBI PSA 2022 memuat QR pembayaran bisnis yang diganti (halaman ditulis sampai batas sumber); sumber Mastercard memuat tag 01 dan tag 63 tetapi tak cara menghitung CRC.
+- Keputusan produk/teknis: bobot pelapor QR palsu, batas harian atau per QR untuk pembeli, sumber kota merchant luar; perilaku pembeli di layar konfirmasi tak terukur; PDF EMVCo hanya lewat formulir bersyarat (polinomial/nilai awal CRC [perlu verifikasi]; dua Specification Bulletin SB 254 dan SB 270 belum dibaca); lab ssrf tanpa rekaman sisi rentan tingkat endpoint (dipersempit): cukup atau perlu lab baru; OWASP cheat sheet tanpa tanggal pembaruan; apakah fetch (undici) memakai blockList atau lookup [perlu verifikasi]; pembanding untuk 21 detik (waktu paling lama satu request impor; komentar kode ±19) belum ada di naskah; tiga angka 24 berbeda (kode lama, daftar awalan mentah, 24 dari 26) ditulis terpisah; dokumentasi Laravel, Django, Serverpod, paket npm CRC 16 bit, Web Crypto di Supabase berlabel [perlu verifikasi]; penyebab penolakan nama IDNA bergantung jalur (go1.27.1 diamati tangan, tak direkam).
+
+## Ukur antrean merge, baris halaman 4.11–4.14 (arsip 2026-10-30)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| Halaman 4.11–4.14 | #439, #441, #442, #443 | 372 (jeda limit #9 + sesi pengatur dimulai ulang; kerja ±110), 85, 64, 60 | 1, 3, 2, 3 | 0 (median 74 menit dari 4 PR) |

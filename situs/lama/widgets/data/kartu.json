@@ -3088,6 +3088,30 @@
   "jawab": "Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil dengan alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi (dokumentasi Go)."
  },
  {
+  "id": "t4-m37-1",
+  "halaman": "t4-m37",
+  "judul": "4.22 M37: Kartu virtual disetujui dua kali dengan satu saldo",
+  "url": "tahap-4/m37-kartu-dua-kali/",
+  "tanya": "Dua otorisasi Rp80.000 untuk saldo Rp100.000 sama-sama disetujui. Kenapa menunggu otorisasi pertama selesai tidak menolong?",
+  "jawab": "Handler versi pertama hanya membaca saldo dan tidak menahan dana, jadi saldo yang dibaca otorisasi berikutnya tetap Rp100.000. Otorisasi ketiga yang datang sesudah dua yang pertama selesai juga disetujui (`otorisasi.txt` bagian A)."
+ },
+ {
+  "id": "t4-m37-2",
+  "halaman": "t4-m37",
+  "judul": "4.22 M37: Kartu virtual disetujui dua kali dengan satu saldo",
+  "url": "tahap-4/m37-kartu-dua-kali/",
+  "tanya": "Ledger menolak penagihan kedua. Kenapa itu tidak menyelesaikan masalahnya?",
+  "jawab": "Penolakan datang sesudah persetujuan, dan persetujuan sudah sampai ke penerbit dan toko. Rp240.000 disetujui untuk saldo Rp100.000, dan dua penagihan ditolak dengan 409 (`otorisasi.txt` bagian B)."
+ },
+ {
+  "id": "t4-m37-3",
+  "halaman": "t4-m37",
+  "judul": "4.22 M37: Kartu virtual disetujui dua kali dengan satu saldo",
+  "url": "tahap-4/m37-kartu-dua-kali/",
+  "tanya": "Jawaban Rekeningo lewat dari 2 detik karena satu buku terkunci. Siapa yang memutuskan otorisasinya, dan apa yang dicatat Rekeningo?",
+  "jawab": "Penerbit memutuskan menurut setelan timeout-nya, yang di lab berarti setuju. Rekeningo tidak punya baris dan tidak menahan dana, dan penagihannya dijawab 404 (`penerbit.txt` bagian A)."
+ },
+ {
   "id": "t4-m38-1",
   "halaman": "t4-m38",
   "judul": "4.24 M38: Siapa yang membuka data Budi?",
