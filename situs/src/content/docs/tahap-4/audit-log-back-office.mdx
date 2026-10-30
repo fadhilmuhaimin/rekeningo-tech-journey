@@ -119,7 +119,7 @@ Pemeriksaan membaca seluruh log menurut nomor, lalu mencatat baris pertama yang 
 
 <Snippet file="labs/api-t4/internal/repo/audit.go" lines="115:119" lang="go" title="labs/api-t4/internal/repo/audit.go (verifikasiRantai)" />
 
-Rekaman `rantai.txt` bagian C menjalankan empat perubahan oleh pemilik tabel, dan tiap hasilnya ditulis di tabel ini:
+Skrip lab berperan sebagai pemilik tabel dan menjalankan empat perubahan lewat SQL (`rantai.txt` bagian C). Tiap hasilnya ditulis di tabel ini:
 
 | Perubahan | Jawaban pemeriksaan |
 |---|---|
@@ -241,9 +241,9 @@ Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelny
 | | A. Tanpa catatan | B. Log biasa | C. Penyimpanan tak bisa diubah di luar database | D. Peran, dua orang, log berantai, jangkar, agen baca-saja |
 |---|---|---|---|---|
 | Cara kerja | Aksi berjalan, tidak ada yang menulis catatan | Aksi dicatat di tabel biasa, dan role aplikasi boleh INSERT, UPDATE, dan DELETE | Tiap baris log dikirim ke penyimpanan yang tidak menerima ubah dan hapus | Aksi dicatat di `audit_log` berantai hash di transaction yang sama dengan aksinya, hash baris terakhir dijangkarkan di luar database, dan role aplikasi hanya INSERT dan SELECT |
-| Kelebihan | Tidak ada kode tambahan | Satu tabel dan tanpa hitungan hash | Penulis log tidak bisa mengubah yang sudah terkirim (klaim sumber, Tidak dijalankan) | Perubahan di tengah dan pemotongan ekor terdeteksi, tanpa layanan baru |
-| Kekurangan | Pertanyaan Pak Hadi dijawab nol baris, untuk akun yang disentuh dan yang tidak | Siapa pun yang boleh menulis tabel bisa mengubah atau menghapus tanpa catatan | Layanan, kredensial, dan jalur kirim tambahan | Penulis yang menghitung ulang rantai dan memangkas jangkar tidak terdeteksi, dan aplikasi yang diambil alih masih bisa INSERT |
-| Biaya operasional | Nol | Nol, dan tabelnya tumbuh | Tidak diukur (Asumsi) | Satu job harian yang membaca seluruh log, dan satu file jangkar yang hak tulisnya dijaga |
+| Kelebihan | Tidak ada kode tambahan | Satu tabel dan tanpa hitungan hash | Penulis log tidak bisa mengubah yang sudah terkirim (klaim naskah, Tidak dijalankan) | Perubahan di tengah dan pemotongan ekor terdeteksi, dengan satu job dan satu file, tanpa penyimpanan log baru |
+| Kekurangan | Pertanyaan Pak Hadi dijawab nol baris, untuk akun yang disentuh dan yang tidak | Siapa pun yang boleh menulis tabel bisa mengubah atau menghapus tanpa catatan | Biayanya besar menurut naskah, dan lab tidak menjalankannya | Penulis yang menghitung ulang rantai dan memangkas jangkar tidak terdeteksi, dan aplikasi yang diambil alih masih bisa INSERT |
+| Biaya operasional | Nol | Nol, dan tabelnya tumbuh | Besar menurut naskah, tidak diukur (Asumsi) | Satu job harian yang membaca seluruh log, satu file jangkar yang hak tulisnya dijaga, dan satu server MCP kecil bila agen dipakai |
 | Bukti | `rantai.txt` bagian A | `rantai.txt` bagian B | Tidak dijalankan | `rantai.txt` bagian C, `jangkar.txt`, `role.txt`, dan `persetujuan.txt` |
 
 **Keputusan: opsi D.** Sembilan aturan:
@@ -262,7 +262,7 @@ Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelny
 
 - **A ditolak** karena jawabannya sama untuk akun yang disentuh enam aksi dan yang tidak pernah disentuh: nol baris (`rantai.txt` bagian A). Jawaban tidak ada sama nilainya dengan tidak tahu.
 - **B ditolak** karena tabel biasa bisa diubah tanpa catatan. Sebagai `api_t4`, satu UPDATE mengganti staf yang membuka kartu identitas Dina, dan satu DELETE menghapus pembekuan (`rantai.txt` bagian B).
-- **C ditolak untuk sekarang** karena menambah layanan dan kredensial, dan lab tidak menjalankannya. Opsi ini kembali bila tempat jangkar yang tak bisa ditulis penulis log tidak bisa disediakan.
+- **C ditolak untuk sekarang** karena biayanya besar menurut naskah, dan lab tidak menjalankannya. Opsi ini kembali bila tempat jangkar yang tak bisa ditulis penulis log tidak bisa disediakan.
 - **D tidak menutup semuanya.** Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis, dan hak tabel menahan aplikasi, bukan pemilik tabel.
 
 **Kasus industri: CloudTrail.** Dokumentasi AWS CloudTrail menulis bahwa log file integrity validation memakai SHA-256 untuk hash dan SHA-256 dengan RSA untuk tanda tangan digital. Tiap jam CloudTrail membuat digest file, yaitu file yang memuat hash tiap log file jam itu. Ia menandatangani digest dengan kunci privat dan menaruhnya di penyimpanan yang sama, di folder terpisah. Tiap digest membawa tanda tangan digest sebelumnya ([AWS: validating log file integrity](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html), dibuka 2026-10-30).

@@ -444,7 +444,7 @@ describe("audit-log-back-office.mdx: tiap angka turunan dari rekaman, kode, nask
     expect((halaman.match(/<noscript>/g) ?? []).length).toBe(2);
   });
   test("widget banding: lima fitur, tiap catatan sama dengan rekaman, simpul ada, dan label Tidak dijalankan dan Tidak berlaku", () => {
-    const d = bandingMentah as { opsi: { id: string; nama: string; baris: { id: string }[][] }[]; fitur: { label: string; sorot: Record<string, string[]>; catatan: Record<string, string>; nada?: Record<string, string> }[] };
+    const d = bandingMentah as unknown as { opsi: { id: string; nama: string; baris: { id: string }[][] }[]; fitur: { label: string; sorot: Record<string, string[]>; catatan: Record<string, string>; nada?: Record<string, string> }[] };
     expect(d.opsi.map((o) => o.id)).toEqual(["biasa", "berantai"]);
     expect(d.fitur.map((f) => f.label)).toEqual(["UPDATE baris tengah", "DELETE baris tengah", "Ekor dipotong", "Rantai dihitung ulang sampai ujung", "File jangkar ikut dipangkas"]);
     const ids = Object.fromEntries(d.opsi.map((o) => [o.id, o.baris.flat().map((s) => s.id)]));
@@ -511,6 +511,9 @@ describe("audit-log-back-office.mdx: tiap angka turunan dari rekaman, kode, nask
   });
   test("Paham: rantai (HashAudit, verifikasi, tabel empat perubahan), Crosby dan Wallach, dan jangkar (tabel delapan baris dari jangkar.txt)", () => {
     harus("Hash tiap baris dihitung dari hash baris sebelumnya dan isi baris:");
+    harus("Skrip lab berperan sebagai pemilik tabel dan menjalankan empat perubahan lewat SQL (`rantai.txt` bagian C). Tiap hasilnya ditulis di tabel ini:");
+    expect(readme).toContain("**Skrip berperan sebagai penyerang dengan hak tulis.**");
+    expect(readme).toContain("**Hash dihitung ulang oleh skrip.**");
     harus("Pemeriksaan membaca seluruh log menurut nomor, lalu mencatat baris pertama yang sambungannya atau hash-nya tidak cocok:");
     const t = tabel("| Perubahan | Jawaban pemeriksaan |").slice(2);
     expect(t).toEqual([
@@ -621,7 +624,14 @@ describe("ADR 43: tabel opsi, sembilan aturan, kasus industri, pre-mortem, kapan
     expect(t[6]).toEqual(["Bukti", "`rantai.txt` bagian A", "`rantai.txt` bagian B", "Tidak dijalankan", "`rantai.txt` bagian C, `jangkar.txt`, `role.txt`, dan `persetujuan.txt`"]);
     expect(t[4]![2]).toBe("Siapa pun yang boleh menulis tabel bisa mengubah atau menghapus tanpa jejak".replace("jejak", "catatan"));
     expect(t[4]![1]).toBe("Pertanyaan Pak Hadi dijawab nol baris, untuk akun yang disentuh dan yang tidak");
-    expect(t[5]![4]).toBe("Satu job harian yang membaca seluruh log, dan satu file jangkar yang hak tulisnya dijaga");
+    expect(t[5]![4]).toBe("Satu job harian yang membaca seluruh log, satu file jangkar yang hak tulisnya dijaga, dan satu server MCP kecil bila agen dipakai");
+    expect(t[3]).toEqual(["Kelebihan", "Tidak ada kode tambahan", "Satu tabel dan tanpa hitungan hash", "Penulis log tidak bisa mengubah yang sudah terkirim (klaim naskah, Tidak dijalankan)", "Perubahan di tengah dan pemotongan ekor terdeteksi, dengan satu job dan satu file, tanpa penyimpanan log baru"]);
+    expect(t[4]![3]).toBe("Biayanya besar menurut naskah, dan lab tidak menjalankannya");
+    expect(t[5]![3]).toBe("Besar menurut naskah, tidak diukur (Asumsi)");
+    expect(t[2]).toEqual(["Cara kerja", "Aksi berjalan, tidak ada yang menulis catatan", "Aksi dicatat di tabel biasa, dan role aplikasi boleh INSERT, UPDATE, dan DELETE", "Tiap baris log dikirim ke penyimpanan yang tidak menerima ubah dan hapus", "Aksi dicatat di `audit_log` berantai hash di transaction yang sama dengan aksinya, hash baris terakhir dijangkarkan di luar database, dan role aplikasi hanya INSERT dan SELECT"]);
+    expect(t[5]![1]).toBe("Nol");
+    expect(t[5]![2]).toBe("Nol, dan tabelnya tumbuh");
+    expect(RB).toContain("(hak SELECT, INSERT, UPDATE, DELETE atas audit_biasa");
     expect(naskah).toContain("log ke penyimpanan tak-bisa-diubah di luar database (kuat, tetapi biayanya besar dan Tidak dijalankan di lab)");
     expect(naskah).toContain("RBAC dengan tabel log biasa tanpa rantai");
     expect(naskah).toContain("agen dengan hak tulis (ditolak)");
@@ -647,7 +657,7 @@ describe("ADR 43: tabel opsi, sembilan aturan, kasus industri, pre-mortem, kapan
     harus("- **A ditolak** karena jawabannya sama untuk akun yang disentuh enam aksi dan yang tidak pernah disentuh: nol baris (`rantai.txt` bagian A). Jawaban tidak ada sama nilainya dengan tidak tahu.");
     harus("- **B ditolak** karena tabel biasa bisa diubah tanpa catatan. Sebagai `api_t4`, satu UPDATE mengganti staf yang membuka kartu identitas Dina, dan satu DELETE menghapus pembekuan (`rantai.txt` bagian B).");
     expect(RA).toContain("Enam aksi sudah terjadi");
-    harus("- **C ditolak untuk sekarang** karena menambah layanan dan kredensial, dan lab tidak menjalankannya. Opsi ini kembali bila tempat jangkar yang tak bisa ditulis penulis log tidak bisa disediakan.");
+    harus("- **C ditolak untuk sekarang** karena biayanya besar menurut naskah, dan lab tidak menjalankannya. Opsi ini kembali bila tempat jangkar yang tak bisa ditulis penulis log tidak bisa disediakan.");
     harus("- **D tidak menutup semuanya.** Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis, dan hak tabel menahan aplikasi, bukan pemilik tabel.");
     const r233 = barisRiset("R4-233");
     for (const k of ["SHA-256 untuk hash", "SHA-256 dengan RSA", "tiap jam", "folder terpisah", "tanda tangan digest sebelumnya", "S3 MFA Delete", "dokumentasi vendor tentang fitur sendiri", "tanpa angka insiden", "docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html"]) expect(r233, k).toContain(k);
