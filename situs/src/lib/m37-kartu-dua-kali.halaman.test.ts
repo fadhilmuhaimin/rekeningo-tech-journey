@@ -259,7 +259,12 @@ describe("naskah M37: gejala, yang dikira, dan yang sebenarnya", () => {
     harus("Minggu 10 Tahap 4.");
     harus(`Budi menerbitkan kartu virtual dari saldonya, ${rp(NASKAH_SALDO)}, untuk belanja online.`);
     harus(`Ia membeli barang ${rp(NASKAH_NOMINAL)} di satu toko online. Beberapa detik kemudian ia membeli barang lain ${rp(NASKAH_NOMINAL)} di toko online yang berbeda.`);
+    harus("Kedua toko menjawab pembayaran berhasil.");
+    harus("Esok harinya Pak Hadi membuka laporan harian.");
+    expect(barisM37).toContain("Esok harinya");
+    expect(barisM37).toContain("Pak Hadi menemukan");
     harus(`Penagihan toko pertama masuk, dan saldo Budi turun ke ${rp(NASKAH_SALDO - NASKAH_NOMINAL)}.`);
+    harus("Penagihan toko kedua ditolak ledger, karena saldo tidak boleh negatif.");
     harus(`${rp(NASKAH_NOMINAL)} itu sudah disetujui Rekeningo kepada toko, dan tidak ada saldo yang menutupinya.`);
     harus(`${rp(NASKAH_TOTAL)} adalah Hitungan, yaitu angka yang dihitung dari angka lain di halaman (2 × ${rp(NASKAH_NOMINAL)}), dan masukannya Ilustrasi.`);
     expect(badan.match(/Hitungan, yaitu angka yang dihitung dari angka lain di halaman/g)).toHaveLength(1);
@@ -334,6 +339,8 @@ describe("rekaman otorisasi.txt: bagian A, B, dan D; nilai yang dikutip", () => 
     expect(DITERIMA_TOKO).toBe(JUMLAH_DISETUJUI);
     expect(bagOB).toContain("Hanya satu clearing yang punya penutup, dua yang lain ditolak ledger (409) dan tidak punya jurnal.");
     expect(SALDO_SESUDAH).toBeLessThan(NOMINAL);
+    expect(bagOB).toContain("# Disetujui kepada toko Rp240.000;");
+    harus("Ledger menjaga uang, tetapi terlambat. Persetujuan sudah sampai ke penerbit dan toko.");
     harus(`Penagihan pertama memindahkan ${rp(NOMINAL)} dari saldo ke buku \`settlement_kartu\`, jadi saldo Budi tinggal ${rp(SALDO_SESUDAH)} (Hitungan: ${rp(SALDO)} − ${rp(NOMINAL)}). Dua penagihan lain ditolak dengan 409, karena ${rp(SALDO_SESUDAH)} kurang dari ${rp(NOMINAL)}. Dari ${rp(JUMLAH_DISETUJUI)} yang disetujui, ${rp(JUMLAH_DISETUJUI - NOMINAL)} tidak punya saldo yang menutupinya (${rp(JUMLAH_DISETUJUI)} − ${rp(NOMINAL)}, Hitungan).`);
     expect(O.baris[oClearing + 1]).toBe("clearing AUTH-C Rp80.000: HTTP 409, /problems/saldo-kurang");
     harus("Penagihan dari toko lewat penerbit disebut clearing. Di cerita ia datang esok harinya, sedangkan lab memanggilnya segera sesudah otorisasi karena jedanya tidak diukur. Lab menagih ketiga otorisasi satu per satu:");
@@ -406,9 +413,15 @@ describe("kode lab: handler versi pertama, Clearing, rute kartu, dan migrasi; kl
     expect(baca("labs/api-t4/internal/service/t4_aturan.go")).toContain('RentanKartuTanpaHold  = "kartu-tanpa-hold"');
     expect(runLab).toContain('mulai_api(["-rentan", "kartu-tanpa-hold", "-lab-jeda-cek-tulis", "300ms"]');
     harus("Handler membaca saldo kartu, memeriksa statusnya, lalu menulis satu baris `otorisasi_kartu` lewat fungsi `catat` dan menjawab setuju.");
+    // arti hold di halaman: dana pindah dari saldo ke buku sistem dana_tertahan lewat satu jurnal (rekaman bagian C, versi yang menahan dana)
+    expect(otorisasi).toMatch(/ kartu_tahan \| -80000\s+\| pemakai\n kartu_tahan \| 80000\s+\| dana_tertahan\n/);
+    harus("Dana itu dicatat di buku sistem `dana_tertahan` lewat satu jurnal.");
+    harus("[[t2-m9]] memuat pola yang sama pada dua transfer.");
+    expect(baca("situs/src/content/docs/tahap-2/m9-saldo-minus.mdx")).toContain("Rp70.000 dari HP dan Rp50.000 dari tablet");
     harus("Pola ini bernama cek-lalu-tulis: kode membaca satu nilai, memutuskan dari nilai itu, lalu menulis hasilnya sebagai langkah terpisah. Di antara keduanya, nilai itu bisa sudah berubah.");
     harus("Jeda lab di cuplikan memperlebar celah di antara cek dan tulis, supaya hasilnya tidak bergantung pada waktu. Lebar celah tanpa jeda tidak diukur.");
     expect(baca("labs/api-t4/README.md")).toContain("Asumsi lab: celah alami hanya mikrodetik");
+    harus("Jeda 300 ms di antara cek dan tulis hanya ada di lab. Lab tidak punya app, toko online, atau layanan kartu nyata.");
     harus("Server memakai mode `-rentan kartu-tanpa-hold`: kode lab yang ditulis seperti uraian naskah, bukan salinan kode yang pernah berjalan di cerita.");
   });
   test("Clearing: SQLSTATE 23514 dengan constraint saldo_karyawan_tidak_negatif dipetakan ke ErrSaldoKurang; trigger ditunda sampai COMMIT di api-t2; berlaku untuk buku pemakai sejak api-t4 (Tidak dijalankan)", () => {
