@@ -823,7 +823,7 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
   (tanpaKunci ? test.skip : test)("setiap string Rantai, tebakan, dan halaman istilah sama dengan yang dikunci", () => {
     expect(sekarang.json).toEqual(KUNCI_JSON);
   });
-  test("sidik kata penentu halaman, Rantai, tebakan, dan halaman istilah (kunci agregat, bukan turunan)", () => {
+  (process.env.TANPA_SIDIK === "1" ? test.skip : test)("sidik kata penentu halaman, Rantai, tebakan, dan halaman istilah (kunci agregat, bukan turunan)", () => {
     expect(sekarang.sidik).toEqual(SIDIK);
   });
   test("sidik angka: deretan angka tiap baris halaman dan tiap string JSON tidak berubah (jalan juga tanpa kunci kalimat)", () => {
