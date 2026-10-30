@@ -247,8 +247,8 @@ describe("registry, naskah, blok, dan tautan", () => {
     }
     expect(dari("A0").ada).toBe(true);
     expect(cara).toContain("Label sumber");
-    // Halaman yang sudah ada di main dirujuk sebagai tautan biasa; tiga halaman yang masih ditulis tetap "segera" di registry sampai merge.
-    for (const x of ["t2-pencairan", "t3-prd", "t4-prd", "t4-webhook", "t4-rekonsiliasi", "t4-breaker", "t4-modul", "t4-qr", "t4-ssrf", "t4-kartu", "t4-tim-infra"]) expect(dari(x).ada, x).toBe(true);
+    // Semua halaman Tahap 4 yang dirujuk sudah ada di main (4.27 sampai 4.30 sudah merge), jadi tautannya tanpa "(segera)".
+    for (const x of ["t2-pencairan", "t3-prd", "t4-prd", "t4-webhook", "t4-rekonsiliasi", "t4-breaker", "t4-modul", "t4-qr", "t4-ssrf", "t4-kartu", "t4-tim-infra", "t4-storage", "t4-m39", "t4-estimasi", "t4-adr-45", "t4-rekap"]) expect(dari(x).ada, x).toBe(true);
   });
   test("tidak menautkan atau menjanjikan isi halaman Tahap 5 di luar kalimat 'dibuka di halaman pertama Tahap 5'", () => {
     const semua = badan + "\n" + teksWidget;
@@ -278,6 +278,7 @@ describe("registry, naskah, blok, dan tautan", () => {
 // ---- Jejak riset -------------------------------------------------------------------------------------------------------------
 describe("jejak riset: lima baris R4-260 sampai R4-264, urut, lima kolom, tanggal baca, dan sumber yang dikutip ada", () => {
   const riset = baca("plan/RISET-TAHAP-4.md").split("\n");
+  const adr37Naskah4 = naskah4.split("\n").filter((x) => x.startsWith("| 37 | "))[0]!;
   const baris = (id: string): string[] => {
     const b = riset.filter((x) => x.startsWith(`| ${id} |`));
     expect(b, `baris riset ${id}`).toHaveLength(1);
@@ -310,10 +311,16 @@ describe("jejak riset: lima baris R4-260 sampai R4-264, urut, lima kolom, tangga
   });
   test("R4-261 dan R4-263: berkas yang dibaca ada dan memuat kalimat yang dikutip; heuristik tidak dipakai", () => {
     const b = baris("R4-261")[2]!;
-    for (const f of ["timeout-retry-breaker", "modular-monolith", "qr-pembayaran", "ssrf", "tim-infra", "sengaja-belum", "m39-prd-v5"]) {
+    for (const f of ["timeout-retry-breaker", "modular-monolith", "qr-pembayaran", "ssrf", "tim-infra", "sengaja-belum", "m39-prd-v5", "object-storage-presigned", "estimasi"]) {
       ada(b, `tahap-4/${f}.mdx`, "R4-261");
       expect(terlacak?.has(`situs/src/content/docs/tahap-4/${f}.mdx`) ?? true, f).toBe(true);
     }
+    for (const kalimat of ["`tahap-3/prd-v3.mdx` serta `tahap-3/estimasi.mdx`", "`tahap-4/modular-monolith.mdx` aturan 1 (lima modul di satu proses, modul pembayaran satu service terpisah)"]) ada(b, kalimat, "R4-261");
+    ada(baris("R4-263")[2]!, "Naskah Tahap 4 ADR 37 menyebutnya heuristik praktisi (tingkat 4, bukan studi terkontrol), dan ADR 45 menyebutnya pemicu", "R4-263");
+    const adr45Naskah = naskah4.split("\n").filter((x) => x.startsWith("| 45 | "))[0]!;
+    ada(adr37Naskah4, "Heuristik praktisi (tingkat 4, bukan studi terkontrol): microservices baru masuk akal di atas ±50 developer", "naskah ADR 37");
+    ada(adr45Naskah, "pemicu ±50 developer", "naskah ADR 45");
+    expect(adr45Naskah).not.toContain("tingkat 4");
     ada(baris("R4-263")[2]!, "pencarian 2026-10-29 tidak menemukan sumber primer", "R4-263");
     ada(T4("modular-monolith.mdx"), "Pencarian 2026-10-29 tidak menemukan sumber primer", "4.13");
     expect(baris("R4-263")[3]).toContain("tidak ada hitungan yang bergantung padanya");
@@ -447,6 +454,10 @@ describe("ruang lingkup: lima isi PRD v5 dan tim, tiap baris dengan keadaan terd
     expect(baca("situs/data/halaman-istilah/pgbouncer.json")).toContain("PgBouncer");
   });
   test("halaman ini tidak menghitung ulang beban untuk 1 juta user", () => {
+    const est = T4("estimasi.mdx");
+    ada(est, "dikali 10 untuk Tahap 5 menjadi 1.388,9, tanpa memilih komponen", "4.28");
+    ada(est, "Belum diputuskan di Tahap 4. [[t4-adr-45]] menulis pemicu yang ditunda, dan Tahap 5 membacanya dengan angka tahap itu", "4.28");
+    expect(dari("t4-estimasi")).toMatchObject({ nomor: "4.28", ada: true });
     const semua = badan + "\n" + teksWidget;
     expect(semua).not.toMatch(/1\.389|1\.250 menit|75\.000 detik|20,8 jam|5,79|1\.157/);
     harus(`Halaman ini juga tidak menghitung beban tiap komponen untuk 1 juta user, yang ${rasio} kali ${titik(a4.user)} (Hitungan: ${titik(a5.user)} ÷ ${titik(a4.user)}). Hitungan beban Tahap ${N5} ada di [[t4-estimasi]] (Hitungan atas Asumsi), dan halaman ini tidak memakainya untuk memilih ADR.`);
