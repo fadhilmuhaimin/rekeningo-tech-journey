@@ -40,6 +40,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **ADR** (Architecture Decision Record) | Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya. | [[t4-modul]] |
 | **Alamat keluar** | Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak. | [[t4-m34]] |
 | **Alert** | Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang. | [[t3-tim-infra]] |
+| **Allowlist** | Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak. | [[t4-ssrf]] |
 | **API gateway** | Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing. | [[C4]] |
 | **Argon2id** | Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar. | [[t2-login-aman]] |
 | **At-least-once** | Jaminan pengiriman: setiap pesan sampai minimal sekali, jadi bisa sampai dua kali dan penerimanya harus tahan pesan ganda. | [[t3-at-least-once]] |
@@ -75,6 +76,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Dead-letter queue** | Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya. | [[t3-at-least-once]] |
 | **Deadlock** | Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya. | [[t2-race-lock]] |
 | **Debit** | Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit. | [[t2-ledger]] |
+| **Deny-list** | Daftar yang ditolak; yang tidak ada di daftar diterima, jadi daftar itu harus memuat semua yang terlarang. | [[t4-ssrf]] |
 | **Double-entry** | Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol. | [[t2-ledger]] |
 | **Eager loading** | Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru. | [[t2-n-plus-1]] |
 | **Enumerasi** | Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada. | [[t1-idor]] |
@@ -197,6 +199,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Snapshot** | Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang. | [[t2-isolation-level]] |
 | **Source of truth** | Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan. | [[A1]] |
 | **SSE** (Server-Sent Events) | Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client. | [[E4]] |
+| **SSRF** (server-side request forgery) | Serangan yang membuat server mengirim permintaan ke alamat pilihan pihak lain, dengan hak jaringan server. | [[t4-ssrf]] |
 | **Staging** | Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya. | [[t3-tim-infra]] |
 | **Stale** | Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache. | [[B9]] |
 | **Stateless** | Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun. | [[D2]] |

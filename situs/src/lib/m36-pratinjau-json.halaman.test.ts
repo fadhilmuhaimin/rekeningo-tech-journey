@@ -303,7 +303,7 @@ describe("kode lab: impor katalog, versi pertama (Rentan), klaim negatif berling
     expect(rentanTubuh).toContain("if len(awal) > awalGalatRentan {");
     expect(rentanTubuh).toContain('fmt.Errorf("bukan gambar (status %d): %s", resp.StatusCode, awal)');
     expect(rentanTubuh).toContain("resp.StatusCode != http.StatusOK || !strings.HasPrefix(tipe, \"image/\")");
-    harus("4. Untuk jawaban yang bukan gambar atau berstatus bukan 200, pesan kesalahan memuat 200 byte pertama isinya. Pesan itu dikembalikan ke merchant.");
+    harus("4. Untuk jawaban yang bukan gambar atau berstatus bukan 200, pesan galat memuat 200 byte pertama isinya. Pesan itu dikembalikan ke merchant.");
     harus("Versi pertama bernama `Rentan` di kode lab.");
     expect(unduhGo).toContain("// Rentan adalah versi pertama minggu 9 (mode unduh-rentan, M36)");
     expect(badan.match(/^\d+\. /gm)!.map((s) => s.replace(/\D/g, ""))).toEqual(["1", "2", "3", "4"]);
@@ -414,8 +414,8 @@ describe("rekaman alamat.txt dan batas.txt: nilai yang dikutip, Hitungan, dan kl
     expect(aEmpat).toBe(aSimpul + 1);
     expect(A.baris[aEmpat]).toBe("--- PASS: TestSSRFKelasAlamatIsPrivateTidakCukup");
     expect(alamatTxt.split("\n")[1]).toBe("# go1.27.1 · tanpa database · server uji hanya di 127.0.0.1 di dalam proses tes");
-    harus(`Rekaman menguji ${TERLARANG} alamat contoh, dan versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
-    harus("go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat contoh di rekaman adalah angka karangan lab.");
+    harus(`Rekaman menguji ${TERLARANG} alamat contoh, dan pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
+    harus("go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat private dan link-local di rekaman adalah angka karangan lab.");
     expect(readmeSsrf).toContain("Alamat contoh private dan link-local di `alamat.txt` adalah angka karangan lab");
   });
   test("Hitungan: tiga alamat ditandai IsPrivate (32 − 3 = 29) dan enam oleh salah satu dari empat penanda (32 − 6 = 26)", () => {
@@ -439,13 +439,13 @@ describe("rekaman alamat.txt dan batas.txt: nilai yang dikutip, Hitungan, dan kl
     expect(KODE_REDIRECT).toEqual([300, 301, 302, 303, 304, 307, 308]);
     expect(redirect.every((m) => m[2] === "1" && m[3] === "0")).toBe(true);
     expect(bRedirect + 1).toBe(bRedirectAkhir - redirect.length);
-    harus(`Di ${kata(KODE_REDIRECT.length)} kode redirect, server pertama tersentuh satu kali dan server tujuan redirect nol kali:`);
+    harus(`Di ${kata(KODE_REDIRECT.length)} kode 3xx, server pertama tersentuh satu kali dan server tujuan redirect nol kali:`);
     expect(Math.min(...KODE_REDIRECT)).toBe(300);
     expect(Math.max(...KODE_REDIRECT)).toBe(308);
     const hilang = Array.from({ length: 9 }, (_, i) => 300 + i).filter((k) => !KODE_REDIRECT.includes(k));
     expect(hilang).toEqual([305, 306]);
-    expect(skenario.langkah[1]!.jelas).toBe(`${Kata(KODE_REDIRECT.length)} kode redirect diuji, dari 300 sampai 308 tanpa ${hilang.join(" dan ")}. Di tiap kode server pertama tersentuh satu kali, dan server tujuan redirect tidak tersentuh sama sekali.`);
-    harus(`Di ${kata(KODE_REDIRECT.length)} kode redirect`);
+    expect(skenario.langkah[1]!.jelas).toBe(`${Kata(KODE_REDIRECT.length)} kode 3xx diuji, dari 300 sampai 308 tanpa ${hilang.join(" dan ")}. Di tiap kode server pertama tersentuh satu kali, dan server tujuan redirect tidak tersentuh sama sekali.`);
+    harus(`Di ${kata(KODE_REDIRECT.length)} kode 3xx`);
     harus("Versi aman menolak redirect, dan server tujuan redirect tersentuh nol kali di tujuh kode (`batas.txt`).");
   });
   test("pesan galat: 200 bukan gambar, 403 404 500 gambar tidak bisa diunduh, delapan penolakan satu pesan, server uji tersentuh 0, lima kalimat tetap dari kode", () => {
@@ -528,7 +528,7 @@ describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
     expect(p!.simpul.map((s) => s.teks)).toEqual([`${TERLARANG} alamat terlarang`, `${TERLARANG - PRIVAT.length} lolos`, `${KONTROL} alamat kontrol`]);
     expect(p!.simpul.map((s) => s.sub)).toEqual([`${PRIVAT.length} ditandai private`, `${TERLARANG} − ${PRIVAT.length}`, "tetap lolos"]);
     expect(p!.simpul.map((s) => s.nada)).toEqual(["biasa", "warn", "biasa"]);
-    expect(diagram.catatan).toBe("Alamat contoh adalah angka karangan lab, dan server uji hanya di 127.0.0.1 di dalam proses tes. Kotak oranye adalah akibat yang direkam.");
+    expect(diagram.catatan).toBe("Alamat private dan link-local adalah angka karangan lab, dan server uji hanya di 127.0.0.1 di dalam proses tes. Kotak oranye adalah akibat yang direkam.");
     expect(diagram.judul).toBe("Yang direkam dari sisi pembela: alamat dalam, redirect, dan pesan galat");
   });
   test("diagram dikunci dengan sidik jari", () => {
@@ -563,7 +563,7 @@ describe("skenario alur t4-m36.json: valid, nilai dari rekaman, tebakan, dan var
     expect(skenario.sumber.catatan).toContain("make -C labs/t4-ssrf run");
     expect(skenario.sumber.catatan).toContain("go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes");
     expect(skenario.sumber.catatan).toContain("versi pertama Tidak dijalankan di lab ini");
-    expect(skenario.sumber.catatan).toContain("Alamat contoh adalah angka karangan lab");
+    expect(skenario.sumber.catatan).toContain("Alamat private dan link-local adalah angka karangan lab");
   });
   test("tebakan: empat pilihan, jawaban benar (kalimat tetap bukan gambar) sama dengan rekaman, bukan yang terpanjang, posisi berbeda dari tebakan lain", () => {
     const p = skenario.predict;
@@ -644,9 +644,9 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
     const kartu = kartuSemua.filter((k) => k.halaman === "t4-m36");
     expect(kartu.map((k) => k.id)).toEqual(["t4-m36-1", "t4-m36-2", "t4-m36-3"]);
     expect(kartu.every((k) => k.url === "tahap-4/m36-pratinjau-json/" && k.judul === "4.20 M36: Pratinjau gambar yang berisi JSON")).toBe(true);
-    expect(kartu[0]!.jawab).toContain(`menaruh ${AWAL_GALAT} byte pertama isinya di pesan kesalahan`);
+    expect(kartu[0]!.jawab).toContain(`menaruh ${AWAL_GALAT} byte pertama isinya di pesan galat`);
     expect(kartu[0]!.jawab).toContain("di kolom `galat` (dibaca dari kode, Tidak dijalankan)");
-    expect(kartu[1]!.tanya).toBe(`Versi aman menolak ${TERLARANG} dari ${TERLARANG} alamat terlarang. Kenapa pemeriksaan \`IsPrivate\` saja tidak cukup?`);
+    expect(kartu[1]!.tanya).toBe(`Pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG} alamat terlarang. Kenapa pemeriksaan \`IsPrivate\` saja tidak cukup?`);
     expect(kartu[1]!.jawab).toBe(`Hanya ${kata(PRIVAT.length)} dari ${TERLARANG} alamat itu ditandai private, jadi ${TERLARANG - PRIVAT.length} lolos bila hanya \`IsPrivate\` yang diperiksa (\`alamat.txt\`).`);
     expect(kartu[2]!.jawab).toContain(`server tujuan redirect tersentuh nol kali di ${kata(KODE_REDIRECT.length)} kode (\`batas.txt\`)`);
     expect(kartu[2]!.jawab).toContain("mengikuti redirect sampai 10 request beruntun (dokumentasi, Tidak dijalankan)");
@@ -660,7 +660,7 @@ describe("kartu Cek diri dan konsep yang lahir", () => {
   test("konsep yang lahir: satu tautan; penutup tanpa klaim baru; akhir halaman memuat SkripLama; noscript memakai angka rekaman", () => {
     const blok = badan.slice(badan.indexOf('<Blok nama="Konsep yang lahir">'), badan.indexOf("### Cek diri"));
     expect([...blok.matchAll(/^- \[\[([^\]]+)\]\]/gm)].map((m) => m[1])).toEqual(["t4-ssrf"]);
-    harus("Di M36 server sudah mengunduh gambar dengan akses jaringan dalam. Yang kurang adalah batas pada alamat tujuan, pada redirect, dan pada isi pesan kesalahan.");
+    harus("Di M36 server sudah mengunduh gambar dengan akses jaringan dalam. Yang kurang adalah batas pada alamat tujuan, pada redirect, dan pada isi pesan galat.");
     expect(badan.trimEnd().endsWith('<SkripLama daftar={["hp","alur-core","alur"]} />')).toBe(true);
     const noscript = cocok(badan, /<noscript>([\s\S]*?)<\/noscript>/)[1]!;
     expect(noscript).toContain(`jawaban ${galat[0]![1]} yang bukan gambar dijawab "${galat[0]![2]}", dan tujuan redirect tersentuh nol kali.`);
@@ -692,7 +692,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
     harus("Butir 4 menjawab kenapa isi layanan dalam sampai ke merchant:");
     harus("Jadi \"kolom pratinjau\" di cerita adalah Ilustrasi, dan di kode lab teks itu ada di kolom `galat`. Dua tes unit `api-t4` menjaga butir 3 dan butir 4, dan keduanya tercatat lulus. Hanya nama tes dan hasilnya yang tercatat, tanpa rekaman tingkat endpoint (Rekaman lab api-t4, tidak dijalankan ulang di lab ini):");
     harus("**Yang direkam: sisi pembela.** Lab `t4-ssrf` hanya menjalankan versi aman dari fetcher, yaitu fungsi yang mengunduh gambar dari URL. Menjalankan versi pertama terhadap layanan tiruan di jaringan container Tidak dijalankan di lab ini, karena lingkup lab dipersempit ke verifikasi sisi pembela.");
-    harus("*Kondisi rekaman:* go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat contoh di rekaman adalah angka karangan lab.");
+    harus("*Kondisi rekaman:* go1.27.1, tanpa database, dan server uji hanya di 127.0.0.1 di dalam proses tes. Alamat private dan link-local di rekaman adalah angka karangan lab.");
     harus("**Pesan galat.** Isi JSON dari server uji tidak ikut ke pesan versi aman. Delapan penolakan karena alamat literal memakai satu pesan yang sama:");
     harus("Widget ini mengikuti rekaman `alamat.txt` dan `batas.txt`, dengan satu varian dari `alamat.txt`. Tebak dulu pesan yang diterima merchant, lalu tekan Berikutnya atau panah kanan.");
     harus("Batasnya: tabel itu memuat alamat contoh, bukan semua alamat yang mungkin. Kenapa satu pemeriksaan tidak cukup dibahas di [[t4-ssrf]].");
@@ -700,7 +700,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
   });
   test("paragraf dengan bilangan: alamat, ubah satu hal, dan noscript diturunkan dari tabel alamat.txt", () => {
     const L = TERLARANG - PRIVAT.length, E = TERLARANG - EMPAT.length;
-    harus(`**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji ${TERLARANG} alamat contoh, dan versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
+    harus(`**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji ${TERLARANG} alamat contoh, dan pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
     harus(`Sesudah langkah terakhir, centang **Ubah satu hal: pemeriksaan alamat hanya memakai IsPrivate**. Pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG} alamat terlarang di tabel rekaman. Bila \`IsPrivate\` satu-satunya pemeriksaan, ${L} lolos. Bila hanya empat penanda bawaan Go yang diperiksa, ${E} lolos (Rekaman lab, \`alamat.txt\`).`);
     harus(`Bila hanya \`IsPrivate\` yang diperiksa, ${L} dari ${TERLARANG} alamat terlarang lolos. Rekaman alamat ada di lipatan di bawah.`);
   });
@@ -724,7 +724,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
       "Merchant hanya menerima kalimat tetap",
     ]);
     expect(skenario.varian.langkah[2]!.judul).toBe(`Kontrol: ${kata(KONTROL)} alamat yang bukan terlarang tetap lolos`);
-    expect(skenario.sumber.catatan).toBe("Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat contoh adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log.");
+    expect(skenario.sumber.catatan).toBe("Lab t4-ssrf, go1.27.1, tanpa database, server uji hanya di 127.0.0.1 di dalam proses tes (make -C labs/t4-ssrf run). Jalur utama: alamat.txt (alamat terlarang) dan batas.txt (redirect dan pesan galat). Ubah satu hal: alamat.txt, hanya IsPrivate yang diperiksa. Lab ini hanya menjalankan versi aman; versi pertama Tidak dijalankan di lab ini. Alamat private dan link-local adalah angka karangan lab. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log.");
     expect(barisRiset("R4-205")).toContain('"Server-Side Request Forgery Prevention"');
     expect(barisRiset("R4-205")).toContain('"Deny-list (Last Resort)"');
     expect(barisRiset("R4-206")).toContain('"If CheckRedirect is nil, the Client uses its default policy, which is to stop after 10 consecutive requests."');
