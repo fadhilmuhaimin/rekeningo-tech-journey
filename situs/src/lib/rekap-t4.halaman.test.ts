@@ -744,7 +744,7 @@ describe("angka di tiga belas kalimat dan batasnya: dari rekaman, registry, dan 
     expect(WORKER4).toBe("56%");
     expect(WORKER3).toBe("6,5%");
     expect(KONEKSI).toBe(40);
-    harus(butir(13).pertama, `Puncak ${PUNCAK4} request per detik naik 8 kali dari ${PUNCAK3} (Hitungan atas Asumsi, ${koma(NAIK, 2)} sebelum pembulatan).`);
+    harus(butir(13).pertama, `Puncak ${PUNCAK4} request per detik naik 8 kali dari ${PUNCAK3} (Hitungan atas Asumsi: ${PUNCAK4} ÷ ${PUNCAK3} = ${koma(NAIK, 2)}).`);
     harus(butir(13).pertama, `Worker notifikasi terpakai ${WORKER4}, naik dari ${WORKER3}, dan koneksi database ${KONEKSI} dari 100 (Hitungan atas Asumsi).`);
     harus(butir(13).pertama, "uji coba publik lolos dengan 100.000 user terdaftar (target, Asumsi), lalu Sinta datang dengan PRD v5 (Ilustrasi).");
     expect(a4.user).toBe(100000);
