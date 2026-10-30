@@ -3,7 +3,7 @@
   "judul": "Jarak dua komponen ke pemicunya",
   "sumber": {
     "jenis": "asumsi",
-    "teks": "Hitungan atas Asumsi naskah Tahap 4; pemicu 70 dan 5 adalah Asumsi ADR 33"
+    "teks": "Hitungan atas Asumsi naskah Tahap 4; pemicu 70 adalah Asumsi ADR 33 dan pemicu 5 Asumsi ADR 21"
   },
   "baris": [
     {
@@ -20,7 +20,7 @@
       "sub": "koneksi tertahan oleh bacaan",
       "simpul": [
         { "teks": "2,64 koneksi", "sub": "(138,9 − 6,94) × 0,02; semua selain uang dianggap baca" },
-        { "teks": "pemicu 5", "sub": "Asumsi ADR 33, separuh pool 10", "nada": "warn" },
+        { "teks": "pemicu 5", "sub": "Asumsi ADR 21, separuh pool 10", "nada": "warn" },
         { "teks": "bacaan ×1,9", "sub": "5 ÷ 2,64 = 1,9 kali bacaan sekarang", "nada": "good" }
       ]
     }

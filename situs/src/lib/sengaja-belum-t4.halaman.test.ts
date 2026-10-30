@@ -230,6 +230,7 @@ describe("tabel 'Delapan yang ditunda' dan 'Kapan keputusan ini salah': delapan 
     expect(k[0]![3]).toContain(`${fmt(topupT, 3)} × ${timeoutGateway} = ${fmt(lGateway, 2)}, atau ${persen(lGateway, ambangL)} dari ${ambangL}`);
     expect(k[1]![1]).toContain("lima tim atau lebih");
     expect(k[1]![1]).toContain(`${pemicuPesan} pesan per detik terus-menerus`);
+    expect(k[1]![3]).toContain("Satu jalur antar service yang ditulis ADR 37");
     expect(k[1]![3]).toContain(`${fmt(notifT, 2)} ÷ ${pemicuPesan} = ${persen(notifT, pemicuPesan, 1)} dari pemicu (Hitungan atas Asumsi)`);
     expect(k[2]![1]).toContain(`melewati ${anggaranMs} ms`);
     expect(k[2]![3]).toContain(`di bawah ${anggaranMs} ms di localhost satu mesin`);
@@ -502,10 +503,10 @@ describe("diagram Inti dan Tebak: nilai diturunkan dari hitungan, bukan ditulis 
     expect(b.simpul[0]!.sub).toBe(`(${fmt(rpsT, 1)} − ${fmt(trxT, 2)}) × ${fmt(waktuBaca, 2)}; semua selain uang dianggap baca`);
     expect(b.simpul[2]!.sub).toBe(`${ambangL} ÷ ${fmt(lBaca, 2)} = ${fmt(ambangL / lBaca, 1)} kali bacaan sekarang`);
     expect(a.simpul[1]!.sub).toBe(`Asumsi ADR 33: ${pemicuKoneksi}% dari max_connections`);
-    expect(b.simpul[1]!.sub).toBe("Asumsi ADR 33, separuh pool 10");
+    expect(b.simpul[1]!.sub).toBe("Asumsi ADR 21, separuh pool 10");
     expect(a.simpul.map((s) => s.nada)).toEqual(["biasa", "warn", "good"]);
     expect(b.simpul.map((s) => s.nada)).toEqual(["biasa", "warn", "good"]);
-    expect(rantai.sumber.teks).toBe(`Hitungan atas Asumsi naskah Tahap 4; pemicu ${pemicuKoneksi} dan ${ambangL} adalah Asumsi ADR 33`);
+    expect(rantai.sumber.teks).toBe(`Hitungan atas Asumsi naskah Tahap 4; pemicu ${pemicuKoneksi} adalah Asumsi ADR 33 dan pemicu ${ambangL} Asumsi ADR 21`);
     expect(rantai.catatan).toBe("Dua dari empat pemicu berupa angka beban. Keduanya masih di bawah pemicu; kapasitas satu server belum diukur di server sungguhan, jadi jarak ini hitungan, bukan bukti.");
     expect(badan).toContain("Delapan penundaan punya pemicu tertulis, dan kapasitas satu server belum diukur.");
   });
@@ -524,6 +525,10 @@ describe("diagram Inti dan Tebak: nilai diturunkan dari hitungan, bukan ditulis 
     expect(per[3]).toContain(`${persen(lBaca, ambangL)} masih di bawah ${persen(koneksi, pemicuKoneksi)}`);
     expect(tebak.penutup).toContain(`baru ${persen(koneksi, pemicuKoneksi)} dari pemicunya, dan pemicunya Asumsi`);
     expect(tebak.sumber.jenis).toBe("asumsi");
+    expect(tebak.sumber.teks).toBe(`Hitungan atas Asumsi naskah Tahap 4; pemicu ${pemicuKoneksi} dan ${pemicuPesan} adalah Asumsi ADR 33, dan pemicu ${ambangL} Asumsi ADR 21`);
+    expect(t3).toContain("keduanya Asumsi halaman ini");
+    expect(t3).toContain("ambang 5 koneksi (Asumsi dari [[t2-adr-21]]");
+    expect(tebak.adegan[0]).toBe("Dari delapan komponen yang ditunda, empat pemicu berupa angka beban punya nilai yang bisa dihitung hari ini: laju pesan outbox, koneksi tertahan oleh satu modul, koneksi database, dan koneksi tertahan oleh bacaan.");
     expect(tebak.adegan.join(" ")).toContain(`puncak ${fmt(rpsT, 1)} request per detik, ${fmt(trxT, 2)} transaksi uang per detik dan ${fmt(notifT, 2)} notifikasi uang per detik, dua instance API dengan pool ${poolApi}, dan dua instance pembayaran dengan pool 5`);
     const noscript = cari(/<noscript>\s*<p>(.*)<\/p>\s*<\/noscript>/s, badan, "noscript")[1]!;
     expect(noscript).toContain(`Jawaban yang tepat: PgBouncer. Koneksi ${koneksi} dari pemicu ${pemicuKoneksi} adalah ${persen(koneksi, pemicuKoneksi)}, sedangkan read replica ${persen(lBaca, ambangL)}, service per modul ${persen(lGateway, ambangL)}, dan Kafka ${persen(notifT, pemicuPesan, 1)}.`);

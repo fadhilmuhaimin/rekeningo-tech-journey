@@ -3,10 +3,10 @@
   "judul": "Empat pemicu berupa angka beban: mana yang paling dekat?",
   "sumber": {
     "jenis": "asumsi",
-    "teks": "Hitungan atas Asumsi naskah Tahap 4; pemicu 70, 5, dan 100 adalah Asumsi ADR 33 yang dipakai ulang"
+    "teks": "Hitungan atas Asumsi naskah Tahap 4; pemicu 70 dan 100 adalah Asumsi ADR 33, dan pemicu 5 Asumsi ADR 21"
   },
   "adegan": [
-    "Empat dari delapan komponen yang ditunda punya pemicu berupa angka beban: laju pesan outbox, koneksi tertahan oleh satu modul, koneksi database, dan koneksi tertahan oleh bacaan.",
+    "Dari delapan komponen yang ditunda, empat pemicu berupa angka beban punya nilai yang bisa dihitung hari ini: laju pesan outbox, koneksi tertahan oleh satu modul, koneksi database, dan koneksi tertahan oleh bacaan.",
     "Angka Tahap 4: puncak 138,9 request per detik, 6,94 transaksi uang per detik dan 7,52 notifikasi uang per detik, dua instance API dengan pool 10, dan dua instance pembayaran dengan pool 5."
   ],
   "pertanyaan": "Mana dari keempatnya yang paling dekat ke pemicunya sekarang?",
