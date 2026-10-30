@@ -7,7 +7,7 @@
 // menangkap SALAHNYA kalimat. Elemen non-prosa (frontmatter, diagram, data Tebak, halaman istilah, baris riset) dikunci dengan
 // sidik jari dan nilai terkunci di berkas nilai.
 import { createHash } from "node:crypto";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -710,6 +710,174 @@ describe("tinjauan: klaim negatif dan penolakan kalimat tambahan", () => {
       if (!/^\|[-| ]+\|$/.test(b) && !b.startsWith("| |")) for (const x of sel) expect(x.trim().length, b).toBeGreaterThan(0);
     }
     expect(tabel).toHaveLength(5 + 7 + 7);
+  });
+});
+
+describe("tinjauan 4.19: rujukan bagian rekaman, kode ilustrasi yang dijalankan, parameter CRC, kosakata, dan data turunan", () => {
+  const seksi = (r: ReturnType<typeof bagian>): Record<string, string> => {
+    const huruf = r.baris.map((b) => b.match(/^# --- ([A-F])\. /)?.[1]).filter((x): x is string => !!x);
+    return Object.fromEntries(huruf.map((h, i) => [h, bagianDari(r, h, huruf[i + 1] ?? null)]));
+  };
+  const SEKSI: Record<string, Record<string, string>> = { crc: seksi(C), statis: seksi(S), dinamis: seksi(D), lapor: seksi(L) };
+  test("setiap rujukan bagian X menunjuk bagian yang ada, dan bilangan serta nama di kalimatnya ada di bagian yang dirujuk kalimat itu", () => {
+    const NAMA = ["Toko Andalan", "Toko Sumber Rejeki", "Bu Marni", "Budi", "Eko"];
+    const gagal: string[] = [];
+    let jumlah = 0, denganToken = 0;
+    const baris = badan.split("\n");
+    let berkasTerakhir = "";
+    for (const b of baris) {
+      if (!b.trim()) continue;
+      if (b.startsWith("#")) berkasTerakhir = "";
+      if (b.startsWith("<Snippet") || b.startsWith("import ")) continue;
+      // batas kalimat: awal baris, sesudah ". ", dan sesudah "| "
+      const potong = [0, ...[...b.matchAll(/\. |\| /g)].map((m) => m.index! + m[0].length), b.length];
+      for (let k = 0; k < potong.length - 1; k++) {
+        const kalimat = b.slice(potong[k]!, potong[k + 1]!);
+        const rujukan = [...kalimat.matchAll(/bagian ([A-F])((?:(?:, dan|,| dan| sampai) [A-F])*)/g)];
+        const berkasDiKalimat = [...kalimat.matchAll(/`(crc|statis|dinamis|lapor)\.txt`/g)];
+        const saksi: string[] = [];
+        for (const m of rujukan) {
+          jumlah++;
+          const sebelum = [...b.slice(0, potong[k]! + m.index!).matchAll(/`(crc|statis|dinamis|lapor)\.txt`/g)].pop();
+          const berkas = sebelum?.[1] ?? berkasTerakhir;
+          if (!berkas) { gagal.push(`${m[0]}: berkas tidak ada`); continue; }
+          const huruf = [m[1]!];
+          for (const x of m[2]!.matchAll(/(, dan|,| dan| sampai) ([A-F])/g)) {
+            if (x[1] === " sampai") for (let c = huruf[huruf.length - 1]!.charCodeAt(0) + 1; c <= x[2]!.charCodeAt(0); c++) huruf.push(String.fromCharCode(c));
+            else huruf.push(x[2]!);
+          }
+          for (const h of huruf) {
+            if (!SEKSI[berkas]![h]) gagal.push(`${berkas} bagian ${h} tidak ada`);
+            else saksi.push(SEKSI[berkas]![h]!);
+          }
+        }
+        if (berkasDiKalimat.length) berkasTerakhir = berkasDiKalimat[berkasDiKalimat.length - 1]![1]!;
+        if (!rujukan.length) continue;
+        const witness = saksi.join("\n").replace(/(\d)\.(\d{3})/g, "$1$2");
+        const token = [...kalimat.matchAll(/(?<![\w.`/-])(?:Rp)?(\d{1,3}(?:\.\d{3})+|\d{3,})(?![\w-])/g)].map((t) => t[1]!.replace(/\./g, "")).concat(NAMA.filter((n) => kalimat.includes(n)));
+        if (token.length) denganToken++;
+        for (const t of token) if (!witness.includes(t)) gagal.push(`${kalimat.trim().slice(0, 60)}: '${t}' tidak ada di bagian yang dirujuk`);
+      }
+    }
+    expect(jumlah).toBeGreaterThan(35);
+    expect(denganToken).toBeGreaterThan(12);
+    expect(gagal).toEqual([]);
+  });
+  test("rentang baris tiap Snippet rekaman ada di dalam bagian yang disebut judulnya", () => {
+    let diperiksa = 0;
+    for (const t of tag) {
+      const f = t.match(/file="labs\/t4-qr\/output\/(crc|statis|dinamis|lapor)\.txt"/)?.[1];
+      const h = t.match(/title="[^"]*bagian ([A-F])/)?.[1];
+      const r = t.match(/lines="(\d+):(\d+)"/);
+      if (!f || !h || !r) continue;
+      const R = { crc: C, statis: S, dinamis: D, lapor: L }[f]!;
+      const huruf = R.baris.map((x) => x.match(/^# --- ([A-F])\. /)?.[1]).filter((x): x is string => !!x);
+      const mulai = R.nomor((x) => x.startsWith(`# --- ${h}. `));
+      const berikut = huruf[huruf.indexOf(h) + 1];
+      const akhir = berikut ? R.nomor((x) => x.startsWith(`# --- ${berikut}. `)) - 1 : R.baris.length;
+      expect(Number(r[1]), `${f} bagian ${h}`).toBeGreaterThanOrEqual(mulai);
+      expect(Number(r[2]), `${f} bagian ${h}`).toBeLessThanOrEqual(akhir);
+      diperiksa++;
+    }
+    expect(diperiksa).toBe(8);
+  });
+  test("kode ilustrasi di tab Node, Python, dan PHP dijalankan: CRC sama dengan crc.txt (nilai uji 29B1 dan dua payload bagian B)", () => {
+    const kode = (lang: string): string => badan.match(new RegExp(`<Snippet lang="${lang}" code=\\{\`([\\s\\S]*?)\`\\} />`))![1]!;
+    const payload = cB.split("\n").filter((l) => /^0002010102(11|12)/.test(l)).map((l) => [l.slice(0, -4), l.slice(-4)] as const);
+    expect(payload).toHaveLength(2);
+    const kasus: (readonly [string, string])[] = [["123456789", "29B1"], ...payload];
+    expect(cA).toContain("CRC('123456789') Go 29B1");
+    const js = new Function(`${kode("js")}\nreturn crc16;`)() as (t: string) => string;
+    for (const [teks, hasil] of kasus) expect(js(teks), `js ${teks.slice(0, 12)}`).toBe(hasil);
+    for (const [teks, hasil] of kasus) {
+      const r = spawnSync("python3", ["-I", "-c", `import sys\nteks = sys.argv[1]\n${kode("python")}\nprint(crc)`, teks], { encoding: "utf8" });
+      expect(r.stdout.trim(), `python ${teks.slice(0, 12)}`).toBe(hasil);
+    }
+    // PHP dijalankan bila terpasang; tanpa PHP bagian ini dilewati (CI tidak memasangnya), dan tab PHP tetap dijaga sidik kalimat.
+    if (spawnSync("php", ["-v"], { encoding: "utf8" }).status === 0) {
+      for (const [teks, hasil] of kasus) {
+        const r = spawnSync("php", ["-r", `${kode("php")}\necho crc16($argv[1]);`, "--", teks], { encoding: "utf8" });
+        expect(r.stdout.trim(), `php ${teks.slice(0, 12)}`).toBe(hasil);
+      }
+    }
+  });
+  test("parameter CRC di halaman sama dengan kode Go dan kepala rekaman; tag 01 dari rekaman", () => {
+    expect(payloadGo).toContain("crc = crc<<1 ^ 0x1021");
+    expect(payloadGo).toContain("crc := uint16(0xFFFF)");
+    expect(crc).toContain("polinomial 0x1021, nilai awal 0xFFFF");
+    expect(crc).toContain("CRC-16/IBM-3740");
+    harus("CRC-16/IBM-3740 dengan polinomial 0x1021 dan nilai awal 0xFFFF");
+    expect(cB).toMatch(/ 01\s+\| 02\s+\| 11\s+\| 11 statis, 12 dinamis/);
+    expect(cB).toMatch(/ 01\s+\| 02\s+\| 12\s+\| 11 statis, 12 dinamis/);
+    harus("Tag 01 bernilai 11 untuk QR statis dan 12 untuk QR dinamis");
+    harus("Tag 01 bernilai 11 untuk QR statis dan 12 untuk QR dinamis, dan tag 63 adalah data object terakhir.");
+  });
+  test("kosakata dan antonim berlingkup: tingkat 'terverifikasi' (bukan 'terdaftar'), batas atas 'paling banyak' (bukan 'paling sedikit'), 'per hari' hanya dalam penyangkalan, mengunci dan jam diperankan dari kode dan rekaman", () => {
+    expect(qrGo).toContain('a.Tingkat != "terverifikasi"');
+    expect(badan).not.toContain("terdaftar");
+    expect(badan).not.toContain("paling sedikit");
+    expect(hitung(badan, "per hari")).toBe(hitung(badan, "bukan per QR atau per hari"));
+    expect(hitung(badan, "per hari")).toBe(2);
+    harus("Batas itu per pembayaran, bukan per QR atau per hari.");
+    harus("Batas itu berlaku per pembayaran, bukan per QR atau per hari, jadi hanya membatasi kerugian satu pembayaran.");
+    expect(baca("labs/api-t4/internal/repo/qr.go")).toContain("FOR UPDATE OF q");
+    harus("`BayarQR` mengunci baris QR, membaca statusnya");
+    expect(dinamis).toContain("jam service diperankan lewat POST /lab/jam: 5 menit tidak ditunggu");
+    harus("Jam server diperankan lewat endpoint lab, jadi 5 menit tidak ditunggu.");
+    harus("dengan jam yang diperankan (bagian D).");
+    expect(diagram.catatan).toContain(`Jam di baris kedua diperankan, tidak ditunggu ${DETIK_BERLAKU} detik.`);
+    expect(barisRiset("R4-203")).toContain("Linux dan Windows tidak didukung");
+    harus("(Linux dan Windows tidak didukung)");
+    expect(badan).not.toContain("web, dan Linux");
+  });
+  test("data Tebak, diagram, dan halaman istilah: kalimat yang menyebut hasil rekaman cocok dengan rekaman dan registry", () => {
+    expect(tebak.adegan[0]).toContain(`nama ${NAMA_PAYLOAD[1]} dan kota ${NAMA_PAYLOAD[2]}`);
+    expect(tebak.adegan[0]).toContain(`id QR milik ${NAMA_SERVER[1]}.`);
+    expect(tebak.pertanyaan).toBe("Apa yang dilakukan pemindai, dan nama apa yang dijawab server?");
+    expect(tebak.pilihan[0]!.alasan).toContain("galat crc");
+    expect(crc).toContain("galat crc: CRC tidak cocok");
+    expect(tebak.penutup).toContain("CRC menangkap salah baca, bukan penggantian.");
+    expect(crc).toContain("mendeteksi salah baca, bukan penggantian");
+    expect(sC).toContain(`pemindai: ${diagram.baris[0]!.simpul[1]!.sub};`);
+    expect(dB).toContain(`${diagram.baris[1]!.label} ini sudah dibayar`);
+    expect(diagram.baris[0]!.label).toBe("Payload diganti");
+    expect(diagram.baris.map((b) => b.simpul.length)).toEqual([3, 3]);
+    expect(istilah.mekanisme[0]).toContain("bernilai 11 untuk QR statis dan 12 untuk QR dinamis");
+    expect(istilah.jebakan[1]).toContain("Batas itu per pembayaran");
+    expect(istilah.terkait).toEqual(["HMAC (hash-based message authentication code)", "Jurnal"]);
+    const mc = "developer.mastercard.com/mastercard-checkout-solutions/documentation/use-cases/sqr/generate-qr-codes/sqr-generate-qr/";
+    expect(istilah.sumber[0]!.url).toBe(`https://${mc}`);
+    expect(istilah.sumber[0]!.riset).toBe("R4-101");
+    expect(barisRiset("R4-101")).toContain(`${mc}, dibuka 2026-10-26`);
+    expect(istilah.sumber[0]!.judul).toContain("dibuka 2026-10-26");
+    expect(istilah.sumber[1]!.rekaman).toBe("labs/t4-qr/output/dinamis.txt");
+    expect(istilah.cerita[0]!.rujukan).toBe(dari("t4-qr").id);
+    expect(istilah.cerita[0]!.teks).toContain(`dijawab ${cocok(dB, /HTTP\/1\.1 (409) Conflict/)[1]} untuk pembayaran kedua`);
+  });
+  test("setiap tautan luar di halaman ada di baris riset (nama host dan path), dan Hitungan 300 detik ÷ 60 = 5 menit ada di baris riset", () => {
+    const luar = [...badan.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((m) => m[1]!).filter((u) => !u.includes("/cara-pakai"));
+    expect(luar.length).toBeGreaterThanOrEqual(12);
+    for (const u of new Set(luar)) {
+      const kunci = u.replace(/^https:\/\/(www\.)?/, "").replace(/\/$/, "");
+      const paket = u.match(/^https:\/\/pub\.dev\/packages\/(\w+)$/)?.[1];
+      // baris riset menulis paket pub.dev dengan nama berkutip bila tanpa alamat
+      expect(riset.includes(kunci) || (!!paket && riset.includes(`\`${paket}\``)), u).toBe(true);
+    }
+    expect(DETIK_BERLAKU / 60).toBe(MENIT_DIN);
+    expect(barisRiset("R4-204")).toContain(`${DETIK_BERLAKU} detik ÷ 60 = ${MENIT_DIN} menit`);
+  });
+  test("heading halaman: urutan dan teks (kunci; heading tidak punya sumber luar)", () => {
+    expect([...badan.matchAll(/^(#{2,3}) (.+)$/gm)].map((m) => `${m[1]} ${m[2]}`)).toEqual([
+      "## Inti",
+      "### Kenapa ini ada",
+      "### Cara kerjanya",
+      "### Di stack lain",
+      `### ADR ${dari("t4-qr").adr![0]}: QR dinamis untuk merchant dengan layar, QR statis berbatas dengan nama dari server, laporan membekukan dulu`,
+      "### Sengaja belum dilakukan",
+      "### Cek diri",
+      "### Saat me-review kode AI, cek ini",
+      "### Bacaan lanjut",
+    ]);
   });
 });
 
