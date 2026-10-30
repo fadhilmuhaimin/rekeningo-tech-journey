@@ -756,7 +756,7 @@ describe("tinjauan 4.19: rujukan bagian rekaman, kode ilustrasi yang dijalankan,
         const witness = saksi.join("\n").replace(/(\d)\.(\d{3})/g, "$1$2");
         const token = [...kalimat.matchAll(/(?<![\w.`/-])(?:Rp)?(\d{1,3}(?:\.\d{3})+|\d{3,})(?![\w-])/g)].map((t) => t[1]!.replace(/\./g, "")).concat(NAMA.filter((n) => kalimat.includes(n)));
         if (token.length) denganToken++;
-        for (const t of token) if (!witness.includes(t)) gagal.push(`${kalimat.trim().slice(0, 60)}: '${t}' tidak ada di bagian yang dirujuk`);
+        for (const t of token) if (!new RegExp(`(?<!\\d)${t}(?!\\d)`).test(witness)) gagal.push(`${kalimat.trim().slice(0, 60)}: '${t}' tidak ada di bagian yang dirujuk`);
       }
     }
     expect(jumlah).toBeGreaterThan(35);
@@ -881,14 +881,35 @@ describe("tinjauan 4.19: rujukan bagian rekaman, kode ilustrasi yang dijalankan,
     for (const m of badan.matchAll(/Rp(\d{1,3}(?:\.\d{3})*)/g)) expect(boleh.has(angka(m[1]!)), `Rp${m[1]}`).toBe(true);
     for (const k of kalimat.filter((x) => x.includes(`Rp${rib(SALDO_EKO_AKHIR)}`))) expect(k, k.slice(0, 50)).toMatch(/Eko|Saldonya/);
     // tanggal akses di halaman ada di baris riset yang dirujuk
-    const tanggalRiset = new Set([...[barisRiset("R4-101"), barisRiset("R4-200"), barisRiset("R4-201"), barisRiset("R4-202"), barisRiset("R4-203"), barisRiset("R4-204"), baca("plan/RISET-TAHAP-4.md")].join("\n").matchAll(/dibuka (2026-\d\d-\d\d)/g)].map((m) => m[1]!));
-    for (const m of badan.matchAll(/dibuka (2026-\d\d-\d\d)/g)) expect(tanggalRiset.has(m[1]!), m[1]).toBe(true);
+    const tanggalRiset = new Set([...[barisRiset("R4-101"), barisRiset("R4-200"), barisRiset("R4-201"), barisRiset("R4-202"), barisRiset("R4-203"), barisRiset("R4-204"), barisRiset("R4-332")].join("\n").matchAll(/dibuka (2026-\d\d-\d\d)/g)].map((m) => m[1]!));
+    for (const m of badan.matchAll(/(?:dibuka|pada) (2026-\d\d-\d\d)/g)) expect(tanggalRiset.has(m[1]!), m[1]).toBe(true);
+    // tanggal di samping tiap tautan luar sama dengan tanggal di baris riset yang memuat tautan itu
+    for (const m of badan.matchAll(/\]\((https:\/\/[^)]+)\)[^.]{0,80}?dibuka (2026-\d\d-\d\d)/g)) {
+      const kunci = m[1]!.replace(/^https:\/\/(www\.)?/, "").replace(/\/$/, "");
+      const paket = m[1]!.match(/^https:\/\/pub\.dev\/packages\/(\w+)$/)?.[1];
+      const baris = riset.split("\n").find((b) => b.includes(kunci) || (!!paket && b.includes(`\`${paket}\``)));
+      expect(baris, m[1]).toBeDefined();
+      expect(baris!, m[1]).toContain(`dibuka ${m[2]}`);
+    }
     for (const m of badan.matchAll(/RFC (\d+)/g)) expect(m[1], "RFC").toBe(cocok(badan, /rfc(\d+)\)/)[1]);
     const psa = cocok(badan, /PSA(\d\d)(\d\d)(\d\d)\)/);
     harus(`I-${psa[2]}${psa[3]}${psa[1]}-PSA`);
     harus(`20${psa[1]}-${psa[2]}-${psa[3]}`);
     harus("2022-01-18");
     expect([...badan.matchAll(/RFC (\d+)/g)].length).toBeGreaterThanOrEqual(3);
+  });
+  test("satuan waktu dan hitungan kata di halaman sama dengan rekaman: detik, menit, jumlah pembayaran Eko, jumlah merchant beku", () => {
+    const detik = new Set([DETIK_BERLAKU, ...JAM_UJI, RETRY]);
+    expect([...detik].sort((a, b) => a - b)).toEqual([299, 300, 301, 1200]);
+    for (const m of badan.matchAll(/(?<![\w-])(\d+) detik/g)) expect(detik.has(Number(m[1])), `${m[0]}`).toBe(true);
+    const coba = Number(cocok(badan, /coba (\d+) menit/)[1]);
+    const menit = new Set([MENIT_DIN, dari("t4-qr").menit! - coba, coba]);
+    for (const m of badan.matchAll(/(?<![\w-])(\d+) menit/g)) expect(menit.has(Number(m[1])), `${m[0]}`).toBe(true);
+    const nBayar = (sD.match(/HTTP\/1\.1 201 Created/g) ?? []).length;
+    expect(nBayar).toBe(2);
+    for (const m of badan.matchAll(/\b(\w+) pembayaran Rp200\.000/g)) expect(["satu", "dua", "Satu"].includes(m[1]!) ? m[1]!.toLowerCase() : m[1], m[0]).toBe(KATA[nBayar]);
+    expect(BEKU_D).toHaveLength(3);
+    for (const m of badan.matchAll(/(?:membekukan|dan) (\w+) merchant/g)) if (/^(satu|dua|tiga|empat|lima)$/.test(m[1]!)) expect(m[1], m[0]).toBe(KATA[BEKU_D.length]);
   });
   test("kosakata lab: tim risk, penyetuju kedua, membekukan (bukan menghapus), dan lang Snippet sesuai berkas dan tab", () => {
     expect(badan).not.toMatch(/\b(menghapus|dihapus|tim cs|satu staf)\b/);
