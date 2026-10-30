@@ -142,6 +142,7 @@ const num = (s: string): number => Number(s.replace(/\./g, "").replace(",", ".")
 describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
   test("rantai.txt: versi pertama nol baris untuk dua akun, log biasa nomor bolong 1, dan empat hasil rantai berantai", () => {
     expect(nolBarisA).toEqual([0, 0]);
+    expect(RA).toContain(" baris_audit\n-------------\n 0\n(1 row)");
     expect(RA).toContain("'Tidak ada catatan' sama nilainya dengan 'tidak tahu'");
     expect(bolong).toBe(1);
     expect(RB).toContain("UPDATE 1");
@@ -177,7 +178,8 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
     expect(jangkarTxt).toContain("Tempat jangkar harus tidak bisa ditulis oleh siapa pun yang bisa menulis log (akun lain, tulis-sekali): Tidak dijalankan di lab.");
   });
   test("role.txt: api_t4 hanya a dan r, 11 perintah ditolak (8 permission denied, 3 must be owner, semua 42501), pemilik dan superuser melewati, INSERT lolos", () => {
-    expect(roleTxt).toContain("api_t4=ar/t4a_pemilik");
+    expect(roleTxt).toMatch(/^ ?api_t4=ar\/t4a_pemilik$/m);
+    expect(roleTxt).toContain("t4a_verifikator=r/t4a_pemilik");
     expect(roleTxt).toContain("t4a_pemilik=arwdDxtm/t4a_pemilik");
     expect(roleTxt).toContain("lab             | t");
     expect(roleTxt).toContain("t4a_pemilik     | f");
@@ -573,6 +575,7 @@ describe("audit-log-back-office.mdx: tiap angka turunan dari rekaman, kode, nask
     expect(readme).toContain("jalur HTTP hilir");
     harus("OWASP menulis bahwa injeksi tidak langsung terjadi saat model menerima masukan dari sumber luar seperti situs atau file. Mitigasinya membatasi hak model ke minimum dan meminta persetujuan manusia untuk aksi berisiko ([OWASP LLM01:2025](https://genai.owasp.org/llmrisk/llm01-prompt-injection/), dibuka 2026-10-30).");
     expect(barisRiset("R4-102")).toContain("injeksi tidak langsung terjadi saat model menerima masukan dari sumber luar seperti situs atau file");
+    harus("Alat `cari_audit` mengembalikannya sebagai nilai string, dan sesudahnya tidak ada akun, audit, atau pengajuan yang berubah (`mcp.txt` bagian D).");
     harus("Apakah sebuah model menurutinya adalah perilaku model, bukan server, dan Tidak dijalankan. Yang terbukti hanya kontrol yang deterministik.");
     harus("Lisensi go-sdk v1.8.0 sedang berpindah dari MIT ke Apache-2.0, dan GitHub tidak memberi satu pengenal SPDX. Untuk produk lisensi itu perlu ditinjau [perlu verifikasi], yaitu klaim yang belum bisa dicek ke sumber primer.");
     expect(r233).toContain("digest file");
