@@ -1,0 +1,44 @@
+{
+  "id": "t4-audit-tebak",
+  "judul": "Baris audit yang tidak pernah terjadi",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t4-audit/output/rantai.txt bagian C"
+  },
+  "adegan": [
+    "Log berantai berisi enam baris dan pemeriksaan rantai menjawab utuh. Salah satunya mencatat staf 420 membuka kartu identitas Dina.",
+    "Pemilik tabel, yaitu role database yang memegang semua hak atas tabel itu, menambah baris ke-7. Isinya: staf 421 membuka swafoto Dina, aksi yang tidak pernah terjadi. Hash baris itu ia hitung sendiri dengan rumus yang sama."
+  ],
+  "pertanyaan": "Apa jawaban pemeriksaan rantai sesudah baris ke-7 ditambah?",
+  "pilihan": [
+    {
+      "teks": "Utuh dengan 7 baris: hash baris ke-7 benar, jadi pemeriksaan tidak membedakannya dari baris asli.",
+      "benar": true,
+      "alasan": "rantai.txt bagian C: 7 baris, utuh: ya. Pemeriksaan hanya menghitung ulang hash dan sambungannya. Ia tidak tahu siapa yang menulis, karena rantai ini tidak memakai kunci rahasia."
+    },
+    {
+      "teks": "Rusak di baris 7, karena staf 421 tidak pernah membuka swafoto itu dan pemeriksaan membandingkannya dengan kejadian.",
+      "benar": false,
+      "alasan": "Pemeriksaan tidak punya daftar kejadian untuk dibandingkan. Yang dihitung ulang hanya hash dari isi baris dan hash baris sebelumnya (rantai.txt bagian C)."
+    },
+    {
+      "teks": "Database menolak INSERT itu, karena pemilik tabel pun tidak boleh menambah baris di luar aplikasi.",
+      "benar": false,
+      "alasan": "INSERT oleh pemilik tabel dijawab INSERT 0 1. Pemilik tabel memegang semua hak atas tabelnya (rantai.txt bagian C dan role.txt bagian A)."
+    },
+    {
+      "teks": "Rusak di baris 1, karena menambah baris mengubah hash semua baris sebelumnya.",
+      "benar": false,
+      "alasan": "Hash sebuah baris dihitung dari hash baris sebelumnya dan isinya sendiri. Baris di belakang tidak memengaruhi baris di depan (rantai.txt bagian C: 6 baris yang lama tetap utuh)."
+    }
+  ],
+  "penutup": "Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis. Hak role menahan UPDATE dan DELETE oleh aplikasi, dan jangkar di luar database menangkap pemotongan ekor.",
+  "label": {
+    "sumber": "Rekaman lab · rantai.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

@@ -3112,6 +3112,38 @@
   "jawab": "Penerbit memutuskan menurut setelan timeout-nya, yang di lab berarti setuju. Rekeningo tidak punya baris dan tidak menahan dana, dan penagihannya dijawab 404 (`penerbit.txt` bagian A)."
  },
  {
+  "id": "t4-audit-1",
+  "halaman": "t4-audit",
+  "judul": "4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43",
+  "url": "tahap-4/audit-log-back-office/",
+  "tanya": "Pemilik tabel menambah baris ke-7 dengan hash yang ia hitung sendiri. Apa jawaban pemeriksaan rantai, dan kenapa?",
+  "jawab": "7 baris, utuh. Hash dihitung tanpa kunci rahasia, jadi pemeriksaan hanya tahu bahwa hash dan sambungannya benar, bukan siapa yang menulis (`rantai.txt` bagian C)."
+ },
+ {
+  "id": "t4-audit-2",
+  "halaman": "t4-audit",
+  "judul": "4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43",
+  "url": "tahap-4/audit-log-back-office/",
+  "tanya": "Baris 5 sampai 8 dihapus. Apa jawaban pemeriksaan tanpa jangkar, dan apa jawabannya dengan file jangkar?",
+  "jawab": "Tanpa jangkar: 4 baris, rantai utuh, exit status 0. Dengan file jangkar: jangkar nomor 6 baris-hilang, exit status 2 (`jangkar.txt` bagian B)."
+ },
+ {
+  "id": "t4-audit-3",
+  "halaman": "t4-audit",
+  "judul": "4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43",
+  "url": "tahap-4/audit-log-back-office/",
+  "tanya": "Role aplikasi `api_t4` diambil alih. Tiga perintah apa yang ditolak pada `audit_log`, dan satu perintah apa yang masih boleh?",
+  "jawab": "UPDATE, DELETE, dan TRUNCATE ditolak dengan SQLSTATE 42501. INSERT masih boleh, jadi baris palsu dengan hash yang benar lolos pemeriksaan (`role.txt` bagian B dan E)."
+ },
+ {
+  "id": "t4-audit-4",
+  "halaman": "t4-audit",
+  "judul": "4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43",
+  "url": "tahap-4/audit-log-back-office/",
+  "tanya": "Satu token penyetuju dipakai untuk dua aksi yang berbeda. Apa yang diperiksa server, dan apa yang tidak?",
+  "jawab": "Server memeriksa pemegang token, yaitu akun risk lain yang aktif, bukan aksi yang disetujui. Buka blokir Eko dan ubah batas Eko sama-sama dijawab 204 (`persetujuan.txt` bagian D)."
+ },
+ {
   "id": "t4-tim-infra-1",
   "halaman": "t4-tim-infra",
   "judul": "4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44",

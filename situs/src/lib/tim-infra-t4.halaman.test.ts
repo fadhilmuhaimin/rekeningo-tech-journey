@@ -67,6 +67,7 @@ const hal417 = baca("situs/src/content/docs/tahap-4/secret-iac-alamat-keluar.mdx
 const hal421 = baca("situs/src/content/docs/tahap-4/ssrf.mdx");
 const hal140 = baca("situs/src/content/docs/tahap-1/sengaja-belum.mdx");
 const hal327 = baca("situs/src/content/docs/tahap-3/tim-infra.mdx");
+const hal425 = baca("situs/src/content/docs/tahap-4/audit-log-back-office.mdx");
 
 interface H { bagian?: number; label?: string; id: string; judul: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; path?: string; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[] }
 const hal = cerita.halaman as unknown as H[];
@@ -219,10 +220,10 @@ describe("registry, meta, susunan blok, dan tautan", () => {
   });
   test("tautan [[id]]: himpunan sama dengan yang diharapkan; nomor dan judul sama dengan registry", () => {
     const id = [...new Set([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!))].sort();
-    expect(id).toEqual(["E1", "berikutnya", "t1-adr-12", "t1-secret", "t2-skema-tanpa-downtime", "t3-tim-infra", "t4-adr-45", "t4-breaker", "t4-infra-secret", "t4-m32", "t4-m34", "t4-modul", "t4-prd", "t4-rekonsiliasi", "t4-ssrf"]);
+    expect(id).toEqual(["E1", "berikutnya", "t1-adr-12", "t1-secret", "t2-skema-tanpa-downtime", "t3-tim-infra", "t4-adr-45", "t4-audit", "t4-breaker", "t4-infra-secret", "t4-m32", "t4-m34", "t4-modul", "t4-prd", "t4-rekonsiliasi", "t4-ssrf"]);
     const sesuai: [string, string, string][] = [
       ["E1", "1.33", "App versi lama"], ["t1-adr-12", "1.40", "Sengaja belum dilakukan"], ["t1-secret", "1.35", "Secret di repo dan di server"],
-      ["t2-skema-tanpa-downtime", "2.22", "Ubah skema tanpa downtime"], ["t3-tim-infra", "3.27", "Tim dan infra Tahap 3"], ["t4-adr-45", "4.29", "ADR 45"],
+      ["t2-skema-tanpa-downtime", "2.22", "Ubah skema tanpa downtime"], ["t3-tim-infra", "3.27", "Tim dan infra Tahap 3"], ["t4-adr-45", "4.29", "ADR 45"], ["t4-audit", "4.25", "Keamanan 9"],
       ["t4-breaker", "4.11", "Timeout, retry"], ["t4-infra-secret", "4.17", "Secret manager, IaC"], ["t4-m32", "4.12", "M32"], ["t4-m34", "4.16", "M34"],
       ["t4-modul", "4.13", "Modular monolith"], ["t4-prd", "4.1", "PRD v4"], ["t4-rekonsiliasi", "4.9", "Rekonsiliasi dengan gateway"], ["t4-ssrf", "4.21", "Keamanan 8"],
     ];
@@ -234,7 +235,7 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(dari("A0").ada).toBe(true);
     harus("([Label sumber](/cara-pakai/#label-sumber))");
     expect(cara).toContain("Label sumber");
-    for (const h of ["t4-adr-45", "t4-breaker", "t4-infra-secret", "t4-m32", "t4-m34", "t4-modul", "t4-prd", "t4-rekonsiliasi", "t4-ssrf", "t1-adr-12", "t1-secret", "E1", "t2-skema-tanpa-downtime", "t3-tim-infra"]) {
+    for (const h of ["t4-adr-45", "t4-audit", "t4-breaker", "t4-infra-secret", "t4-m32", "t4-m34", "t4-modul", "t4-prd", "t4-rekonsiliasi", "t4-ssrf", "t1-adr-12", "t1-secret", "E1", "t2-skema-tanpa-downtime", "t3-tim-infra"]) {
       if (h !== "t4-adr-45") expect(dari(h).ada, h).toBe(true);
     }
   });
@@ -253,6 +254,8 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(staging).toContain("$ pindairahasia -awalan gw_live_ -sidik produksi.sidik staging.env penerbit.env");
     expect(staging.slice(staging.indexOf("$ pindairahasia -awalan gw_live_ -sidik produksi.sidik staging.env penerbit.env"))).toMatch(/staging\.env:2: kunci produksi \(awalan\)\npenerbit\.env:1: kunci produksi \(sidik\)\n# exit status 1/);
     harus("Gitleaks dari ADR 11 ([[t1-secret]]) tetap menjaga riwayat git.");
+    expect(hal425).toContain("[[t4-tim-infra]] menulis security review Laras sebagai syarat sebelum Rekeningo dibuka ke publik (ADR 44). Kontrol di halaman ini termasuk yang ia nilai (penalaran penulis).");
+    harus("Kontrol back office dan audit log berantai di [[t4-audit]] termasuk yang ia nilai (penalaran penulis, Tidak dijalankan).");
   });
   test("ADR yang disebut: hanya 10, 11, 12, dan 44; halaman tidak membuka isi 4.27 sampai 4.31", () => {
     expect([...new Set(badan.match(/ADR \d+/g))].sort()).toEqual(["ADR 10", "ADR 11", "ADR 12", "ADR 44"]);
@@ -743,7 +746,7 @@ describe("baris riset, tanggal akses, dan ID internal tidak tampil", () => {
     const semua = riset.split("\n").filter((b) => /^\| R4-\d+ \|/.test(b)).map((b) => b.match(/^\| (R4-\d+) \|/)![1]!);
     expect(new Set(semua).size).toBe(semua.length);
     for (const i of ids) expect(barisRiset(i).split(" | ").length, i).toBe(5);
-    expect(semua.indexOf("R4-235")).toBe(semua.indexOf("R4-219") + 1);
+    expect(semua.indexOf("R4-235")).toBe(semua.indexOf("R4-234") + 1);
     expect(semua.slice(semua.indexOf("R4-235"), semua.indexOf("R4-235") + 5)).toEqual(ids);
     for (const i of ["R4-235", "R4-236", "R4-237", "R4-238"]) expect(barisRiset(i), i).toContain("2026-10-30");
   });
@@ -944,7 +947,7 @@ describe("kalimat bernomor di halaman diturunkan: versi alat, nomor masalah, bab
   const versi = (alat: string): string => cocok(readme.slice(readme.indexOf("## Versi dan asal alat")), new RegExp(`^\\| ${alat} \\| (v[\\d.]+)`, "m"))[1]!;
   test("urutan tautan [[id]] di seluruh halaman, satu per satu", () => {
     expect([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1])).toEqual([
-      "t4-modul", "t3-tim-infra", "berikutnya", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t1-adr-12", "E1", "E1", "t3-tim-infra", "t4-rekonsiliasi", "t4-breaker",
+      "t4-modul", "t3-tim-infra", "berikutnya", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t4-modul", "t1-adr-12", "E1", "E1", "t4-audit", "t3-tim-infra", "t4-rekonsiliasi", "t4-breaker",
       "t3-tim-infra", "t4-m32", "t4-m34", "t4-prd", "t4-m34", "t4-infra-secret", "t4-ssrf", "t3-tim-infra", "t1-secret", "t2-skema-tanpa-downtime", "t4-modul", "t4-m32", "t4-adr-45", "t4-adr-45",
     ]);
   });
