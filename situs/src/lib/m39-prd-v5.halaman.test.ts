@@ -229,6 +229,20 @@ describe("registry, naskah, blok, dan tautan", () => {
 });
 
 describe("naskah M39 dan gejala: lingkup PRD v5, dugaan, dan target yang bukan rekaman", () => {
+  // Pemindai W3 melewati paragraf berawalan bintang atau 'Arti label': kalimat definisi tidak boleh pindah ke adegan.
+  test("blok Gejala: adegan empat paragraf tanpa kalimat definisi; tiga catatan diawali tanda bintang atau Arti label (pemindai W3 di tools/eval_tahap.py)", () => {
+    const gejala = badan.split('<Blok nama="Gejala" buka>')[1]!.split("</Blok>")[0]!;
+    const paragraf = gejala.trim().split("\n\n").map((x) => x.trim()).filter(Boolean);
+    const catatan = paragraf.filter((x) => /^(\*|Arti label)/.test(x));
+    const adegan = paragraf.filter((x) => !/^(\*|Arti label)/.test(x));
+    expect(adegan).toHaveLength(4);
+    expect(catatan).toHaveLength(3);
+    expect(catatan[0]!.startsWith("*Angka cerita (Ilustrasi):*")).toBe(true);
+    expect(catatan[1]!.startsWith("*Catatan:* Isi PRD v5 juga dari naskah (Ilustrasi)")).toBe(true);
+    expect(catatan[2]!.startsWith("Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].")).toBe(true);
+    expect(baca("tools/eval_tahap.py")).toContain('DEFINISI = re.compile(r"\\b(adalah|yaitu|disebut|artinya|berarti|maksudnya|merupakan)\\b")');
+    expect(adegan.join(" ")).not.toMatch(/\b(adalah|yaitu|disebut|artinya|berarti|maksudnya|merupakan)\b/);
+  });
   const barisM39 = naskah.split("\n").find((b) => b.startsWith("| M39 |"))!;
   test("baris M39: minggu, gejala berlabel target dan Ilustrasi, dugaan, angka beban, belum pernah diuji, ADR 45", () => {
     expect(barisM39).toContain("| 12 | Uji coba publik lolos: 100.000 user terdaftar, dan rekonsiliasi harian selisih Rp0 atau insiden tertutup dalam satu hari kerja selama 14 hari berturut-turut (target, Asumsi).");
@@ -898,6 +912,8 @@ describe("kalimat klaim kunci: ditulis di tes, bukan dibangkitkan dari halaman, 
     harus("**Kapasitas worker terukur, pengumuman tidak.**");
     harus(`Koneksi ${KONEKSI4} dari 100 adalah Hitungan atas pool Asumsi, dan lab tidak mengukurnya.`);
     harus("Itu hitungan untuk koneksi database di satu proses saja.");
+    harus("Hitungan untuk kedatangan berjadwal tetap). Kedatangan acak mengantre lebih awal.");
+    expect(hal328).toContain("Hitungan untuk kedatangan berjadwal tetap, [[t3-pool]]). Kedatangan acak mengantre lebih awal.");
     harus("Itu hitungan untuk koneksi database di satu proses, dan kapasitas server belum diukur.");
     harus("**Tiga hal yang belum pernah diuji.**");
     harus("Rencana itu masuk akal bila instance tumbuh sampai kerja tangan tidak lagi memadai, dan bila koneksinya dihitung lebih dulu.");
