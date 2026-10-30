@@ -13,7 +13,7 @@ import rantai from "../../data/diagram/t4-kartu-inti.json";
 import tebak from "../../data/widget/t4-kartu-tebak.json";
 import registry from "../../data/cerita.json";
 import templat from "../../data/templat.json";
-import { ANGKA_BARIS, ANGKA_JSON, KALIMAT_TERKUNCI, KUNCI_JSON, SIDIK } from "./kartu-virtual.halaman.nilai";
+import { ANGKA_BARIS, ANGKA_JSON, KALIMAT_TERKUNCI, KUNCI_JSON, SIDIK, URUTAN_AWAL } from "./kartu-virtual.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const baca = (rel: string): string => fs.readFileSync(path.join(akar, rel), "utf8");
@@ -802,6 +802,7 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
   const angkaToken = (t: string): string[] => t.match(/\d+(?:[.,]\d+)*/g) ?? [];
   const angkaBaris = halaman.split("\n").filter((b) => b.trim() !== "").map((b, i) => [i, angkaToken(b)] as const).filter(([, t]) => t.length > 0).map(([i, t]) => `${i}|${t.join(" ")}`);
   const angkaJson = Object.fromEntries(Object.entries({ rantai, tebak, hold: istilahHold, kill: istilahKill }).map(([k, v]) => [k, tekstual(v).map((x, i) => [i, angkaToken(x)] as const).filter(([, t]) => t.length > 0).map(([i, t]) => `${i}|${t.join(" ")}`)]));
+  const urutanAwal = halaman.split("\n").filter((b) => b.trim() !== "").map((b) => b.slice(0, 18));
   const sekarang = {
     halaman: halaman.split("\n").filter((b) => b.trim() !== ""),
     json: { rantai: tekstual(rantai), tebak: tekstual(tebak), hold: tekstual(istilahHold), kill: tekstual(istilahKill) },
@@ -814,7 +815,7 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
     },
   };
   if (process.env.PERBARUI_KUNCI === "1") {
-    const isi = `// Dihasilkan dari berkas saat ini oleh PERBARUI_KUNCI=1 (lihat kartu-virtual.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\nexport const KALIMAT_TERKUNCI: string[] = ${JSON.stringify(sekarang.halaman, null, 1)};\nexport const KUNCI_JSON: Record<string, string[]> = ${JSON.stringify(sekarang.json, null, 1)};\nexport const SIDIK: Record<string, Record<string, number>> = ${JSON.stringify(sekarang.sidik, null, 1)};\nexport const ANGKA_BARIS: string[] = ${JSON.stringify(angkaBaris, null, 1)};\nexport const ANGKA_JSON: Record<string, string[]> = ${JSON.stringify(angkaJson, null, 1)};\n`;
+    const isi = `// Dihasilkan dari berkas saat ini oleh PERBARUI_KUNCI=1 (lihat kartu-virtual.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\nexport const KALIMAT_TERKUNCI: string[] = ${JSON.stringify(sekarang.halaman, null, 1)};\nexport const KUNCI_JSON: Record<string, string[]> = ${JSON.stringify(sekarang.json, null, 1)};\nexport const SIDIK: Record<string, Record<string, number>> = ${JSON.stringify(sekarang.sidik, null, 1)};\nexport const ANGKA_BARIS: string[] = ${JSON.stringify(angkaBaris, null, 1)};\nexport const ANGKA_JSON: Record<string, string[]> = ${JSON.stringify(angkaJson, null, 1)};\nexport const URUTAN_AWAL: string[] = ${JSON.stringify(urutanAwal, null, 1)};\n`;
     fs.writeFileSync(path.join(__dirname, "kartu-virtual.halaman.nilai.ts"), isi);
   }
   (tanpaKunci ? test.skip : test)("setiap baris halaman sama dengan yang dikunci, dalam urutan yang sama", () => {
@@ -829,6 +830,9 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
   test("sidik angka: deretan angka tiap baris halaman dan tiap string JSON tidak berubah (jalan juga tanpa kunci kalimat)", () => {
     expect(angkaBaris).toEqual(ANGKA_BARIS);
     expect(angkaJson).toEqual(ANGKA_JSON);
+  });
+  test("urutan awal baris: 18 karakter pertama tiap baris tidak kosong, berurutan (baris yang bertukar tempat atau hilang gagal)", () => {
+    expect(urutanAwal).toEqual(URUTAN_AWAL);
   });
 });
 
