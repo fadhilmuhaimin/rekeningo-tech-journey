@@ -19,7 +19,7 @@ import { DaftarAsumsi, DataKalkulator } from "../widgets/kalkulator/skema";
 import { duaAngka, hitung, siapkan } from "../widgets/kalkulator/logika";
 import { daftarBlok, cekTemplat } from "./blok";
 import { DataRantai } from "./rantai";
-import { BARIS_MDX, BENTUK_MDX, NILAI_JSON } from "./estimasi-t4.halaman.nilai";
+import { BARIS_MDX, BARIS_RISET, BENTUK_MDX, NILAI_JSON } from "./estimasi-t4.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -176,6 +176,9 @@ describe("kata-kata halaman terkunci (lapis 2)", () => {
   test("bentuk baris kosong terkunci (baris kosong menentukan cara MDX mengurai)", () => {
     const bentuk = mdx.split("\n").map((b) => (b.trim() ? "#" : "-")).join("");
     expect(bentuk).toBe(BENTUK_MDX);
+  });
+  test("lima baris RISET R4-245 sampai R4-249 sama dengan nilai terkunci", () => {
+    expect(riset4.split("\n").filter((b) => /^\| R4-24[5-9] \|/.test(b))).toEqual(BARIS_RISET);
   });
   test("nilai string JSON Rantai dan widget sama dengan nilai terkunci", () => {
     const ratakan = (x: unknown, jalur = ""): string[] =>
@@ -789,6 +792,106 @@ describe("halaman estimasi.mdx: tiap angka turunan", () => {
       expect(teks).not.toMatch(POLA_ID_INTERNAL);
       expect(teks).not.toMatch(/\bR\d-\d+\b/);
     }
+  });
+});
+
+describe("struktur halaman dan kalimat klaim (tanpa kunci baris)", () => {
+  test("judul bagian dengan tingkatnya, langkah bernomor, judul tabel, dan nomor daftar", () => {
+    expect([...badan.matchAll(/^(#{2,6}) (.+)$/gm)].map((m) => `${m[1]} ${m[2]}`)).toEqual([
+      "## Inti", "### Kenapa ini ada", "### Cara kerjanya", "### Trade-off: kapan pakai apa", "### Aturan estimasi antar tahap di Rekeningo",
+      "### Yang diputuskan di halaman lain", "### Cek diri", "### Saat me-review kode AI, cek ini", "### Bacaan lanjut",
+    ]);
+    expect([...badan.matchAll(/^\*\*(\d)\. (.+?)\*\*/gm)].map((m) => `${m[1]}. ${m[2]}`)).toEqual([
+      "1. Hitung ulang request dari masukan registry.", "2. Hitung per kelas pekerjaan.", "3. Bandingkan tiap hasil dengan batas komponennya.",
+      "4. Pihak ketiga: yang dihitung adalah lamanya.", "5. Pembulatan.", "6. Ukuran data dan file dihitung sebagai ukuran.",
+      "7. Satu langkah ke Tahap 5.", "8. Yang tidak dijawab estimasi.",
+    ]);
+    const baris = badan.split("\n");
+    expect(baris.filter((b, i) => baris[i + 1]?.startsWith("|---"))).toEqual([
+      "| Besaran | Nilai | Cara hitung (Asumsi) |",
+      "| Kelas | Per hari | Puncak per detik | Masukan (Asumsi) |",
+      "| Besaran | Tahap 3 | Tahap 4 | Batas |",
+      "| Kasus (semua Asumsi) | λ per detik | W | L |",
+      "| Besaran | Hitungan | Hasil per tahun |",
+      "| Besaran | Tahap 4 | Tahap 5 | Cara hitung Tahap 5 |",
+      "| Cara memperkirakan Tahap 5 | Kelebihan | Kekurangan |",
+      "| Pertanyaan | Angka dari halaman ini | Keputusannya ditulis di |",
+    ]);
+    expect(baris.filter((b) => /^\|[-|]+\|$/.test(b))).toHaveLength(8);
+    expect([...badan.matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))).toEqual([1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 6]);
+    harus("<summary>Sudah tahu? Cek 3 pertanyaan</summary>");
+    expect(badan.match(/Tiga pertanyaan tetap terbuka/)).not.toBeNull();
+    expect(hitungKali(badan, "<summary>Jawaban</summary>")).toBe(4);
+    expect(frontmatter).toContain("description: Estimasi dari angka Tahap 4, berlabel Asumsi atau Hitungan.");
+  });
+  test("kalimat klaim yang memuat angka, nama tahap, atau label: Mulai, Coba, dan Paham 1 sampai 4", () => {
+    harus("Estimasi menghitung tiap kelas pekerjaan sendiri, lalu membandingkan hasilnya dengan batas komponen yang dipakainya.");
+    harus("Worker adalah proses yang mengirim notifikasi dari queue. Yang berbahaya dari pihak ketiga tetap lamanya, seperti di [[t3-m18]].");
+    harus("Itu Hitungan: hasil rumus dari angka yang tertulis di halaman, dan tetap Asumsi karena masukannya Asumsi. Kapasitas satu server belum terukur.");
+    harus(`<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: dari Tahap 4 ke Tahap 5 puncak naik ${a5.user / a4.user} kali, bukan ${Math.round(h4.puncak / h3.puncak)} kali,`);
+    harus("Rumusnya sama dengan [[t3-estimasi]], sekarang untuk Tahap 4 dan Tahap 5. Tebak dulu berapa kali lipat puncaknya naik, lalu pilih Tahap 5 dan baca baris mana yang berubah.");
+    harus(`PRD v5 ([[t4-m39]]) menaikkan user terdaftar ke ${ribu(a5.user)}, sepuluh kali Tahap 4.`);
+    harus("[[t3-estimasi]] melakukannya untuk Tahap 3 ke 4 saat integrasi pihak ketiga belum ada. Sekarang tiap kelas Tahap 4 punya lab,");
+    harus(`Selisihnya dari ${Math.round(h4.puncak / h3.puncak)} hanya pembulatan.`);
+    harus("Semua angka di tabel ini Asumsi naskah, bukan pengukuran.");
+    harus("Tabel di blok Paham memakai");
+    harus("Jeda antar percobaan tidak memegang worker (Asumsi).");
+    harus("L = λ × W memberi koneksi atau worker yang tertahan, dengan W sebagai Asumsi karena gateway dan vendor di lab adalah tiruan lokal.");
+    harus("Top-up dari bank dan verifikasi identitas memanggil pihak ketiga.");
+    harus(`Partisi \`posting\` dijadwalkan saat ±${PARTISI_POSTING / 1e6} juta posting per tahun di Tahap 5 ([[t2-skema]]).`);
+    harus("Notifikasi uang yang menunggu di belakangnya terlambat, dan urutan queue ditulis di [[t3-m27]].");
+    harus("Pengumuman ke semua HP memakai satu queue.");
+    harus("Kapasitas bukan request per detik.");
+    harus("api-t4 (`beban.txt` bagian B) menguras");
+    expect(beban).toMatch(/# --- B\. Kapasitas worker/);
+    expect(beban).toMatch(/# --- A\. 20 detik pada 138\.9 permintaan per detik/);
+    harus("Itu batas pada satu mesin, bukan kapasitas produksi.");
+  });
+  test("kalimat klaim yang memuat angka, nama tahap, atau label: Paham 5 sampai 8", () => {
+    harus("Tabel ini mengalikannya, dan mengandaikan perilaku per user tetap seperti Tahap 4.");
+    harus("Tabel ini bukan desain Tahap 5; ia hanya menunjuk angka yang melewati batas bila yang berubah cuma jumlah user.");
+    harus("Tiga pertanyaan tetap terbuka sesudah semua hitungan di atas.");
+    harus("*Berapa request per detik yang sanggup dilayani satu server?* Tidak terjawab.");
+    harus("*Berapa lama gateway dan vendor menjawab?*");
+    harus("*Bagaimana tim yang lebih besar mengubah satu codebase?*");
+    harus("Ada tiga besaran ukuran, semuanya Hitungan atas Asumsi.");
+    harus("File memakai hitungan lain.");
+    harus("Di mana file disimpan adalah keputusan tersendiri.");
+    harus("| Per kelas pekerjaan, dikali masukan tahap itu, lalu dibanding batas | Menunjuk komponen yang melewati batas lebih dulu, dan kelas yang menunggu pihak ketiga | Perilaku per user dianggap tetap, dan kelas baru PRD v5 belum punya λ dan W |");
+    harus("Aturan ini salah bila perilaku per user berubah, misalnya satu pembayaran memicu dua notifikasi. Ia juga salah bila beban datang bergelombang, seperti pengumuman ke semua HP sekaligus ([[t3-m27]]).");
+    harus("Dugaan, belum direkam: ia salah bila W naik saat sistem sibuk, karena L ikut naik lebih jauh dari hitungan W yang tetap.");
+    harus("Lajunya kecil,");
+    harus("Yakin dengan ketiganya? Lompat ke [[berikutnya]].");
+  });
+  test("aturan estimasi dan daftar periksa review kode AI: tiap butir", () => {
+    for (const b of [
+      "1. Hitung ulang dari registry tahap itu dan tulis rumus serta masukannya.",
+      "2. Pisahkan kelas pekerjaan. Kelas yang menahan koneksi, worker, atau disk dihitung dengan λ-nya sendiri.",
+      "3. Bandingkan tiap hasil dengan batas komponennya,",
+      "4. Hitung pihak ketiga dengan beberapa W: normal, batas timeout, dan tanpa timeout. Tulis semuanya sebagai Asumsi sampai ada rekaman.",
+      "5. Hitung file sebagai ukuran, terpisah dari ukuran tabel.",
+      "6. Catat apa yang tidak dijawab estimasi.",
+      "- [ ] Estimasi menyebut rumus, masukan, dan label (Asumsi, Hitungan, atau Rekaman lab) untuk setiap angka.",
+      "- [ ] Tahap berikutnya dihitung dari masukan registry tahap itu. Bila mengalikan hasil tahap lama, itu ditulis terang.",
+      "- [ ] Setiap kelas pekerjaan punya λ sendiri, dan L = λ × W dihitung untuk kelas yang memegang koneksi atau worker.",
+      "- [ ] Hitungan koneksi menulis semua suku: pool tiap instance, worker, admin, dan cadangan superuser.",
+      "- [ ] Rekaman beban yang batasnya dipasang sendiri, seperti pool, tidak dipakai sebagai bukti kapasitas.",
+      "- [ ] Ukuran file dihitung terpisah dari ukuran tabel.",
+    ]) harus(b);
+    expect([...badan.matchAll(/^- \[ \] /gm)]).toHaveLength(6);
+  });
+  test("teks Rantai dan widget yang tidak berangka: judul, sub, dan label", () => {
+    expect(diagram.id).toBe("t4-estimasi-inti");
+    expect(diagram.judul).toBe("Hitungan Tahap 4 ke Tahap 5");
+    expect(diagram.baris[0]!.sub).toBe("dari angka tertulis");
+    expect(diagram.baris[0]!.simpul[0]!.sub).toBe("per detik, puncak");
+    expect(diagram.baris[1]!.simpul[2]!.sub).toBe("per tahun");
+    expect(diagram.baris[1]!.simpul[2]!.nada).toBe("system");
+    expect(data.label).toEqual({
+      sumber: "Asumsi", tebakDulu: "Tebak dulu:", lanjut: "Sekarang pilih “Tahap 5” di atas tabel.", ubah: "Skenario", asumsi: "asumsi", detik: "detik", ms: "ms",
+      baris: { user: "User terdaftar", dau: "User aktif per hari", reqHari: "Request per hari", rata: "Rata-rata, request per detik", puncak: "Puncak, request per detik" },
+      kesimpulan: "Di jam paling ramai, satu request datang kira-kira tiap {jarak}.",
+    });
   });
 });
 
