@@ -289,7 +289,7 @@ describe("naskah M37: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(barisRiset("R4-216")).toContain("docs.stripe.com/issuing/controls/real-time-authorizations (dibuka 2026-10-30;");
     expect(barisRiset("R4-216")).toContain("within 2 seconds, the `Authorization` is automatically approved or declined based on your timeout settings");
     expect(penerbitGo).toContain("tenggat");
-    expect(runLab.slice(runLab.indexOf("def rekam_otorisasi():"), runLab.indexOf("# ---------- tenggat.txt"))).toContain("aturan_penerbit(tenggat_ms=10_000)");
+    expect(runLab.slice(runLab.indexOf("def rekam_otorisasi():"), runLab.indexOf('bagian("A. Tanpa hold'))).toContain("aturan_penerbit(tenggat_ms=10_000)");
     expect(otorisasi).toContain("# Tenggat penerbit tiruan dinaikkan ke 10 detik di bagian ini: yang direkam di sini bukan batas waktu, tetapi apakah dana ditahan.");
     harus("Tenggat penerbit di bagian ini dinaikkan ke 10 detik, jadi waktu tidak ikut menentukan hasilnya:");
     harus("Di lab, penerbit adalah proses tiruan di komputer sendiri: tidak ada kartu, nomor, atau layanan nyata.");
@@ -352,6 +352,8 @@ describe("rekaman otorisasi.txt: bagian A, B, dan D; nilai yang dikutip", () => 
     expect(D_AUTH1[1]).toBe("90.000");
     expect(bagOD).toContain(`"jumlah":${angka(D_AUTH1[1]!)}}`);
     expect(bagOD).toContain("HTTP/1.1 409 Conflict");
+    expect(bagOD).toContain('"status":409}');
+    expect(bagOD).toContain('"id_penerbit":"AUTH-1"');
     expect(bagOD).toContain("Tiruan ini memperlakukan semua balasan yang bukan 200 sebagai tidak ada jawaban, lalu memutuskan menurut setelan timeout (setuju).");
     expect(bagOD).toContain("tanpa merinci status HTTP lain [perlu verifikasi]");
     expect(penerbitGo).toContain("status != http.StatusOK");
@@ -389,6 +391,9 @@ describe("rekaman penerbit.txt: jawaban terlambat, penagihan tanpa jurnal, dan r
   });
   test("B dan C: penagihan atas otorisasi ditolak dijawab 409 tanpa jurnal dengan saldo tidak cukup; rekonsiliasi SQL menemukan AUTH-P1; job rekonsiliasi kartu belum ada", () => {
     expect(bagPB).toContain("AUTH-P3 Rp150.000: tolak (sumber: rekeningo, alasan: saldo-kurang)");
+    expect(bagPB).toContain("# Yang diperankan lab: Rekeningo menolak AUTH-P3 (saldo kurang). Jaringan yang menyetujui dan menagihnya diperankan lab dengan mengirim clearing sendiri; penerbit tiruan tidak punya jaringan dan tidak memerankan keadaan ini.");
+    expect(bagPB).toContain("Penagihan Rp150.000 itu tidak punya penutup di ledger");
+    expect(angka(cocok(penerbit, /# Kiki \(akun 40310\): saldo Rp([\d.]+),/)[1]!)).toBe(SALDO);
     expect(bagPB).toContain("clearing AUTH-P3 Rp150.000 (diperankan lab): HTTP 409, /problems/otorisasi-status");
     expect(bagPB).toMatch(/ AUTH-P3\s+\| ditolak \| f\n\(1 row\)/);
     expect(bagPB).toMatch(/saldo_cache\n-+\n 100000\n\(1 row\)/);
@@ -405,7 +410,7 @@ describe("rekaman penerbit.txt: jawaban terlambat, penagihan tanpa jurnal, dan r
     // dari kode: status selain ditahan dan ditangkap dijawab ErrOtorisasiStatus sebelum jurnal; id yang tidak ada dijawab ErrOtorisasiTidakAda
     expect(badanClearing).toContain('if o.Status != "ditahan" && o.Status != "ditangkap" {\n\t\t\treturn ErrOtorisasiStatus');
     expect(badanClearing).toContain("return ErrOtorisasiTidakAda");
-    harus("- Penagihan atas otorisasi yang tidak dikenal (404) atau yang ditolak Rekeningo (409) tidak dijurnal di lab. Rekaman `penerbit.txt` bagian B memakai saldo pemilik yang tidak cukup. Apakah penagihan itu didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.");
+    harus("- Penagihan atas otorisasi yang tidak dikenal (404) atau yang ditolak Rekeningo (409) tidak dijurnal di lab. Rekaman `penerbit.txt` bagian B memakai saldo pemilik yang tidak cukup, dan penagihannya dikirim skrip lab. Apakah penagihan itu didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.");
     harus("- Rekonsiliasi kartu, yaitu mencocokkan catatan penerbit dengan tabel `otorisasi_kartu`, belum ada sebagai job di lab. Perbandingannya dijalankan dengan SQL di `penerbit.txt` bagian C, dan menemukan `AUTH-P1`: setuju di penerbit, tidak ditahan di Rekeningo.");
   });
 });

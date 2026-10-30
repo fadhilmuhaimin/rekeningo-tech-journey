@@ -99,7 +99,7 @@ Itu angka yang sama dengan cerita Budi, dari jalan yang berbeda. Apa yang membed
 **Yang belum terjawab.**
 
 - Penerbit tiruan membaca setiap balasan selain 200 sebagai tidak ada jawaban, lalu memutuskan menurut setelan timeout. Di rekaman, satu balasan 409 dari Rekeningo menjadi persetujuan dengan sumber `timeout` (`otorisasi.txt` bagian D). Dokumentasi satu penerbit kartu memberi dua alasan kegagalan, `webhook_error` dan `webhook_timeout`, tetapi tidak merinci status HTTP selain 200. Apakah balasan 409 atau 500 dihitung sebagai kegagalan itu, belum bisa dicek ke sumber primer [perlu verifikasi].
-- Penagihan atas otorisasi yang tidak dikenal (404) atau yang ditolak Rekeningo (409) tidak dijurnal di lab. Rekaman `penerbit.txt` bagian B memakai saldo pemilik yang tidak cukup. Apakah penagihan itu didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.
+- Penagihan atas otorisasi yang tidak dikenal (404) atau yang ditolak Rekeningo (409) tidak dijurnal di lab. Rekaman `penerbit.txt` bagian B memakai saldo pemilik yang tidak cukup, dan penagihannya dikirim skrip lab. Apakah penagihan itu didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.
 - Rekonsiliasi kartu, yaitu mencocokkan catatan penerbit dengan tabel `otorisasi_kartu`, belum ada sebagai job di lab. Perbandingannya dijalankan dengan SQL di `penerbit.txt` bagian C, dan menemukan `AUTH-P1`: setuju di penerbit, tidak ditahan di Rekeningo.
 
 **Yang tidak direkam.**
