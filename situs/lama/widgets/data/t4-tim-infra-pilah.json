@@ -1,0 +1,47 @@
+{
+  "judul": "Jalan di PR, atau di rilis sesudah merge?",
+  "kelompok": ["Di PR, sebelum merge", "Di rilis, sesudah merge"],
+  "item": [
+    {
+      "teks": "Pindai ulang kerentanan dengan basis data hari ini, padahal kode tidak berubah.",
+      "jawab": 1,
+      "kenapa": "Hasilnya bergantung pada basis data kerentanan, bukan hanya pada kode. Kode api-t4 tidak diubah, tetapi govulncheck menemukan 10 kerentanan stdlib yang dipanggil (sast.txt bagian E), dan grype 15 temuan atas SBOM image (sbom.txt bagian C)."
+    },
+    {
+      "teks": "go vet dan tes Go untuk modul yang berubah.",
+      "jawab": 0,
+      "kenapa": "Pemetaan lab mengirim file modul ke tes modul dan SAST modul itu. Di testing.txt api-t4 bagian A, go vet tanpa temuan dan 17 paket lolos dengan PostgreSQL sungguhan. CI yang menjalankannya Tidak dijalankan."
+    },
+    {
+      "teks": "oasdiff breaking atas dua versi openapi.yaml.",
+      "jawab": 0,
+      "kenapa": "Alat ini hanya perlu dua versi kontrak, tanpa image. Di kontrak.txt api-t4, perubahan dari api-t3 ke api-t4 menambah tiga nilai enum jenis dan menghasilkan 3 error dengan exit code 1."
+    },
+    {
+      "teks": "cosign sign atas digest yang dibangun CI.",
+      "jawab": 1,
+      "kenapa": "Digest baru ada sesudah image di-push. Di tanda-tangan.txt bagian D, tanda tangan atas digest lulus verify, dan kunci publik lain ditolak. Kunci cosign dibuat per run lab; keyless Tidak dijalankan."
+    },
+    {
+      "teks": "SBOM dari image: apakah memuat semua modul go.mod?",
+      "jawab": 1,
+      "kenapa": "SBOM image baru ada sesudah image dibangun. Di sbom.txt bagian C, 12 modul dari go.mod ada semua di SBOM. SBOM folder kosong lolos grype dengan nol temuan, jadi pemeriksaan isi inilah yang menolaknya (bagian B)."
+    },
+    {
+      "teks": "gosec atas kode modul yang berubah.",
+      "jawab": 0,
+      "kenapa": "SAST membaca kode, jadi tidak butuh image. Di sast.txt bagian A gosec melapor G701 pada contoh yang disiapkan, tetapi hanya karena input mengalir ke query: dengan masukan konstanta, nol temuan (kasus tandingan di bagian yang sama)."
+    },
+    {
+      "teks": "Perbandingan digest di referensi image dengan digest hasil build.",
+      "jawab": 1,
+      "kenapa": "Inilah pemeriksaan yang menolak image yang salah. Di tanda-tangan.txt bagian C, tag dipindah sebelum ditandatangani: verify atas tag dan atas digest D lulus, dan hanya perbandingan dengan digest C hasil build yang menggagalkannya."
+    },
+    {
+      "teks": "Pemindai kunci produksi atas file konfigurasi staging.",
+      "jawab": 0,
+      "kenapa": "Pemindai membaca file, bukan image. Di staging.txt bagian B ia menemukan dua kunci produksi di dua file contoh dan keluar dengan status 1. Pemindaian seluruh konfigurasi dan state IaC Tidak dijalankan."
+    }
+  ],
+  "penutup": "Pemeriksaan yang cukup membaca file berjalan di PR. Pemeriksaan yang butuh image atau basis data kerentanan hari ini berjalan sesudah merge. Pembagian ini keputusan halaman ini (Ilustrasi): lab hanya merekam alatnya, bukan CI yang memanggilnya."
+}
