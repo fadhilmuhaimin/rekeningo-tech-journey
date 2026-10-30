@@ -176,10 +176,18 @@ describe("angka beban, hitungan, dan ambang diturunkan dari registry, naskah, da
     expect(bebanTxt).toContain("# --- A. 20 detik pada 138.9 permintaan per detik");
     expect(badan).toContain("Rekaman lab `latensi.txt` bagian A: tambahan p95");
     expect(badan).toContain("Rekaman lab `latensi.txt` bagian A memeriksa tambahan p95 di bawah 50 ms");
-    expect(badan).toContain("Rekaman lab `beban.txt` bagian A: p95 di bawah");
+    expect(badan).toContain("Rekaman lab `beban.txt` bagian A: selama 20 detik pada");
+    // Lab memeriksa tiga hal sekaligus: semua permintaan selesai, hanya status 200 dan 201, dan p95 campuran (bukan p95 request bayar).
+    expect(bebanTxt).toMatch(/permintaan selesai: (\d+) dari \1\n/);
+    expect(bebanTxt).toMatch(/status: 200 x\d+, 201 x\d+/);
+    expect(bebanTxt).toContain("campuran baca saldo, riwayat, katalog, dan pembayaran");
+    expect(badan).toContain("semua permintaan selesai dengan status 200 atau 201 dan p95 di bawah");
+    expect(badan).toContain("dihitung atas campuran semua request");
     expect(badan).toContain("(`beban.txt` bagian A)");
-    expect(badan).toContain(`p95 di bawah ${p95Lab} ms pada ${fmt(rpsT, 1)} request per detik, ya (batas lab di laptop)`);
-    expect(badan).toContain(`melewati ${p95Lab} ms (batas lab, Asumsi)`);
+    expect(badan).toContain(`p95 di bawah ${p95Lab} ms, ya (batas lab di laptop, dihitung atas campuran semua request)`);
+    expect(badan).toContain(`${fmt(rpsT, 1)} request per detik, semua permintaan selesai`);
+    expect(badan).toContain(`sementara ${p95Lab} ms (batas lab untuk campuran semua request, Asumsi)`);
+    expect(badan).not.toContain("p95 bayar melewati");
     expect(badan).toContain("Ambang 70 koneksi dan 100 pesan per detik adalah Asumsi [[t3-adr-33]]");
     expect(badan).toContain("Ambang 5 koneksi adalah Asumsi [[t2-adr-21]]");
   });
@@ -245,7 +253,7 @@ describe("tabel 'Delapan yang ditunda' dan 'Kapan keputusan ini salah': delapan 
     expect(k[3]![1]).toContain(`menahan ${ambangL} koneksi`);
     expect(k[3]![3]).toContain(`${koneksi} dari ${maxKoneksi}, atau ${persen(koneksi, pemicuKoneksi)} dari pemicu ${pemicuKoneksi}`);
     expect(k[3]![3]).toContain(`L baca paling banyak ${fmt(lBaca, 2)}, atau ${persen(lBaca, ambangL)} dari ${ambangL} (Hitungan atas Asumsi)`);
-    expect(k[3]![3]).toContain(`p95 di bawah ${p95Lab} ms pada beban berjadwal di laptop (batas, bukan kapasitas)`);
+    expect(k[3]![3]).toContain(`p95 campuran semua request di bawah ${p95Lab} ms pada beban berjadwal di laptop (batas, bukan kapasitas; p95 request bayar sendiri tidak diukur)`);
     expect(k[4]![1]).toContain("lebih dari 3 request yang harus berurutan (Asumsi)");
     expect(k[4]![3]).toContain("Empat kelompok pemanggil, satu kontrak. Request berurutan per layar belum diukur");
     expect(k[5]![3]).toContain("PRD v4 tidak memintanya. Funnel pendaftaran belum diukur");
@@ -437,8 +445,8 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     for (const id of new Set(tautan)) if (id !== "berikutnya") expect(hal.some((x) => x.id === id), id).toBe(true);
     const hitung: Record<string, number> = {};
     for (const t of tautan) hitung[t] = (hitung[t] ?? 0) + 1;
-    expect(Object.keys(hitung).sort()).toEqual(["A0", "berikutnya", "t1-adr-12", "t2-adr-21", "t2-race-lock", "t3-adr-33", "t4-breaker", "t4-estimasi", "t4-infra-secret", "t4-jembatan", "t4-m39", "t4-modul", "t4-prd", "t4-tim-infra", "t4-webhook"]);
-    expect(hitung).toEqual({ "A0": 1, "berikutnya": 1, "t1-adr-12": 1, "t2-adr-21": 5, "t2-race-lock": 1, "t3-adr-33": 6, "t4-breaker": 3, "t4-estimasi": 3, "t4-infra-secret": 1, "t4-jembatan": 1, "t4-m39": 1, "t4-modul": 6, "t4-prd": 3, "t4-tim-infra": 5, "t4-webhook": 1 });
+    expect(Object.keys(hitung).sort()).toEqual(["A0", "berikutnya", "t1-adr-12", "t2-adr-21", "t2-race-lock", "t3-adr-33", "t3-estimasi", "t4-breaker", "t4-estimasi", "t4-infra-secret", "t4-jembatan", "t4-m39", "t4-modul", "t4-prd", "t4-tim-infra", "t4-webhook"]);
+    expect(hitung).toEqual({ "A0": 1, "berikutnya": 1, "t1-adr-12": 1, "t2-adr-21": 5, "t2-race-lock": 1, "t3-adr-33": 6, "t3-estimasi": 1, "t4-breaker": 3, "t4-estimasi": 3, "t4-infra-secret": 1, "t4-jembatan": 1, "t4-m39": 1, "t4-modul": 6, "t4-prd": 3, "t4-tim-infra": 5, "t4-webhook": 1 });
     expect(dari("t4-m39").nomor).toBe("4.27");
     expect(dari("t4-jembatan").nomor).toBe("4.31");
     expect(dari("t4-tim-infra")).toMatchObject({ nomor: "4.26", ada: true, adr: [44] });
@@ -713,6 +721,84 @@ const sidikSekarang = {
   berkas: { rantai: h16(JSON.stringify(rantaiMentah)), tebak: h16(JSON.stringify(tebakMentah)), frontmatter: h16(halaman.split("\n---\n")[0]!) },
 };
 const sekarang = { halaman: halaman.split("\n").filter((b) => b.trim() !== ""), json: { rantai: tekstual(rantaiMentah), tebak: tekstual(tebakMentah) } };
+// Penutup celah mutasi tinjauan (keputusan 1381): kalimat keputusan, status, dan jawaban kartu yang lolos putaran tanpa kunci baris.
+describe("keputusan, status, syarat login sosial, bacaan lanjut, dan jawaban kartu (penutup mutasi tinjauan)", () => {
+  test("opsi terpilih diturunkan dari kolom tabel Opsi, dan tiap alasan 'bukan X' menunjuk kolom yang benar", () => {
+    const kepala = tabel("| | A.")[0]!;
+    const huruf = kepala.slice(1).map((k) => k.match(/^([A-D])\. (.*)$/)!);
+    expect(huruf.map((m) => m[1])).toEqual(["A", "B", "C", "D"]);
+    const terpilih = huruf.find((m) => /^Tunda dengan pemicu dan alat ukur$/.test(m[2]!))![1]!;
+    expect(terpilih).toBe("C");
+    expect(badan).toContain(`**Keputusan: opsi ${terpilih}.** Enam aturan:`);
+    const alasan: Record<string, RegExp> = { A: /Pemasangan sekaligus membuat/, B: /Server lebih besar tidak mengubah/, D: /PgBouncer paling dekat/ };
+    for (const [h, pola] of Object.entries(alasan)) {
+      expect(huruf.some((m) => m[1] === h)).toBe(true);
+      expect(badan, h).toMatch(new RegExp(`\\*\\*Kenapa ${terpilih}, bukan ${h}\\.\\*\\* ${pola.source}`));
+    }
+    expect(huruf.find((m) => m[1] === "A")![2]).toBe("Pasang semuanya");
+    expect(huruf.find((m) => m[1] === "B")![2]).toBe("Server lebih besar");
+    expect(huruf.find((m) => m[1] === "D")![2]).toBe("Pasang yang terdekat");
+  });
+  test("status ADR: diterima di minggu M39 naskah, sebelum PRD v5 dikerjakan", () => {
+    const minggu = cari(/\| M39 \| (\d+) \|/, naskah, "minggu M39")[1]!;
+    expect(badan).toContain(`**Status:** diterima di minggu ${minggu} Tahap 4, sebelum PRD v5 dikerjakan.`);
+    expect(badan).toContain(`Minggu ${minggu}, uji coba publik lolos, lalu Sinta datang dengan PRD v5`);
+  });
+  test("lima syarat login sosial: judul, urutan, dan arah tiap syarat; kalimat larangan sama dengan teks RFC di baris riset", () => {
+    const judul = ["Browser sistem, bukan WebView.", "PKCE di app dan di server.", "Tanpa implicit grant.", "Tanpa client secret di app.", "API memeriksa ID token."];
+    judul.forEach((j, i) => expect(badan, j).toContain(`${i + 1}. ${j} `));
+    const urut = judul.map((j) => badan.indexOf(j));
+    expect([...urut].sort((a, b) => a - b)).toEqual(urut);
+    expect(barisRiset("R4-250")).toContain("native apps MUST NOT use embedded user-agents");
+    expect(badan).toContain("RFC 8252 §8.12 melarang app native memakai embedded user-agent");
+    expect(barisRiset("R4-250")).toContain("public native app client MUST mengimplementasikan PKCE");
+    expect(barisRiset("R4-250")).toContain("clients SHOULD NOT use the implicit grant");
+    expect(badan).toContain("client sebaiknya tidak memakai response type `token`");
+    expect(barisRiset("R4-250")).toContain("NOT RECOMMENDED bagi server mewajibkan autentikasi client dengan shared secret");
+    expect(badan).toContain("secret yang ikut terpasang di app untuk banyak user tidak dianggap rahasia, dan tidak dianjurkan sebagai syarat server");
+    expect(badan).toContain("- [ ] Login lewat akun lain memakai browser sistem dan PKCE S256, tanpa implicit grant dan client secret di app. API memeriksa `iss`, `aud`, dan `exp`.");
+  });
+  test("daftar periksa review AI dan Ubah satu hal terkunci per kalimat", () => {
+    for (const k of [
+      "- [ ] Setiap komponen baru disertai masalah tahap ini yang dijawabnya, dengan angka dan pemicu.",
+      "- [ ] Saldo yang menentukan bayar dibaca dari primary di dalam transaction, bukan dari replica atau cache.",
+      "- [ ] Service baru disertai Idempotency-Key di panggilan yang mengubah keadaan, dan rencana rekonsiliasi bila satu transaction tidak lagi membungkusnya.",
+      "**Ubah satu hal:** pemicu PgBouncer dihitung dari rumus koneksi, jadi ubah satu masukannya dan baca hasilnya.",
+    ]) expect(badan, k.slice(0, 50)).toContain(k);
+  });
+  test("bacaan lanjut: judul tautan sama dengan dokumen yang dibuka dan alamat tiap tautan sama dengan yang dicatat di baris riset", () => {
+    const bagian = badan.slice(badan.indexOf("### Bacaan lanjut"));
+    const tautan = [...bagian.matchAll(/^- \[([^\]]+)\]\(([^)]+)\)$/gm)].map((m) => [m[1], m[2]]);
+    expect(tautan).toEqual([
+      ["RFC 8252: OAuth 2.0 for Native Apps", "https://www.rfc-editor.org/rfc/rfc8252.html"],
+      ["RFC 7636: PKCE", "https://www.rfc-editor.org/rfc/rfc7636.html"],
+      ["RFC 9700: Best Current Practice for OAuth 2.0 Security", "https://www.rfc-editor.org/rfc/rfc9700.html"],
+      ["OpenID Connect Core 1.0", "https://openid.net/specs/openid-connect-core-1_0.html"],
+      ["Kubernetes: komponen cluster", "https://kubernetes.io/docs/concepts/overview/components/"],
+      ["Apache Kafka: pengantar event streaming", "https://github.com/apache/kafka/blob/trunk/docs/getting-started/introduction.md"],
+      ["gRPC: pengantar", "https://grpc.io/docs/what-is-grpc/introduction/"],
+      ["Azure Architecture Center: pola Backends for Frontends", "https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends"],
+    ]);
+    // RFC 9700 adalah BCP 240 dan Januari 2025 (header RFC), bukan Standards Track; baris riset mencatatnya.
+    expect(barisRiset("R4-250")).toContain("RFC 9700 (BCP 240, Januari 2025)");
+    expect(barisRiset("R4-250")).toContain("RFC 8252 (BCP 212, Oktober 2017)");
+  });
+  test("jawaban tiga kartu ulang sama dengan jawaban Cek diri di halaman (hanya tautan [[id]] yang diganti nomor dan nama)", () => {
+    const kartu = (JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as { id: string; halaman: string; jawab: string }[]).filter((k) => k.halaman === "t4-adr-45");
+    const jawaban = [...badan.matchAll(/<details class="success">\n<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)].map((m) => m[1]!);
+    expect(jawaban).toHaveLength(3);
+    expect(kartu).toHaveLength(3);
+    jawaban.forEach((j, i) => {
+      let dari = 0;
+      for (const bagianJawab of j.split(/\[\[[^\]]+\]\]/).map((x) => x.trim()).filter(Boolean)) {
+        const pos = kartu[i]!.jawab.indexOf(bagianJawab, dari);
+        expect(pos, `kartu ${i + 1}: "${bagianJawab.slice(0, 50)}"`).toBeGreaterThanOrEqual(0);
+        dari = pos + bagianJawab.length;
+      }
+    });
+  });
+});
+
 if (process.env.PERBARUI_KUNCI === "1") {
   const isi = `// Dihasilkan dari file saat ini oleh PERBARUI_KUNCI=1 (lihat sengaja-belum-t4.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\n` +
     `export const SIDIK = ${JSON.stringify(sidikSekarang)};\n` +
