@@ -524,3 +524,17 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - 4.30: pertanyaan di "Sudah tahu?" memakai breaker, CRC, dan lajur sebelum diberi arti di bawahnya; pembaca yang masuk lewat tautan langsung bisa tersandung.
 - Komit 18301c31 di PR 4.30 membawa penanda konflik di `plan/RISET-TAHAP-4.md` (dipulihkan be15c475, kepala akhir bersih): jalankan `git grep -n '^<<<<<<<'` sebelum push gabung main.
 - Asersi "sebelum R4-300" di penjaga halaman lain (`audit-log-back-office`, `qr-pembayaran`) sudah memakai rentang; yang di `sengaja-belum-t4` dilonggarkan di PR ini. Periksa penjaga 4.28 dan 4.31 bila alokasi R4-245 sampai R4-249 dan R4-260 sampai R4-264 menyisip.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- 4.31: komponen Tebak bersama menjatuhkan fokus ke `body` sesudah memilih (semua tombol `disabled`) dan `role=status` memuat alasan 650 sampai 840 karakter; diwarisi, sudah tercatat di SETELAH-TAHAP-3.
+- 4.31: posisi benar jembatan 1.42, 3.32, dan 4.31 sama-sama indeks 1 (pilihan kedua); variasikan bila salah satu ditulis ulang.
+- 4.31: tautan hasil tebakan memakai `h.ada`; periksa bahwa tautan 4.28 muncul sesudah merge.
+- 4.31: "read replica" belum punya halaman istilah; halaman memberi arti satu klausa di pemakaian pertama. Tulis halaman istilah bila halaman Tahap 5 memakainya.
+- 4.31 dan 4.29: penjaga 4.29 mengunci urutan baris riset (R4-254 diikuti R4-300); dilonggarkan di PR ini. Penjaga halaman Tahap 4 sebaiknya tidak mengunci tetangga baris riset yang akan disisipi halaman berikutnya.
+- 4.31: tabel PRD di 320 px dengan font lebar tidak punya alat ukur otomatis (`ukur-luapan` hanya 360 dan 375): satu kata panjang di sel (143 px untuk "pengumuman") melebarkan tabel di wadah 288 px; usul alat ukur 320 px dengan Verdana untuk tabel `prd-*` dan "Ruang lingkup".
+- 4.31: SRE di kepala dokumen dipakai sebelum artinya (arti di blok pertama); beri arti di kepala bila pola kepala PRD diubah.
+- 4.31: janji "dibuka di halaman pertama Tahap 5" (halaman, kartu Cek diri 3, penutup widget, noscript) belum punya halaman penerima; Berikutnya dari 4.31 menuju `/cerita/tahap-5/` (kerangka lama yang menulis database penuh oleh query baca). T5-siap harus membuka jawaban tebakan (ADR 36, 37, 44, 45) di halaman pertama Tahap 5 yang baru.
+- 4.31: istilah p95, batch, queue, breaker (halaman) dan NAT64 (alasan tebakan) dipakai tanpa arti di halaman ini; arti ada di halaman asal yang ditaut. Beri satu klausa arti atau halaman istilah bila halaman Tahap 5 memakainya.
+- 4.31: `eval_tahap.py adr 4` exit 1 hanya karena 4.9 (parser opsi membaca 0); periksa parser atau tabel 4.9 di EVAL-4.
+- 4.31: R4-260 sampai R4-264 prosa baris riset hanya dijaga kunci baris (10 dari 293 mutan tanpa kunci); pilihan benar tebakan terpanjang dalam kata (23 lawan 18 dan 21), bukan dalam karakter.

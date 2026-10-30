@@ -493,3 +493,7 @@ Tabel di MEMORI: 4.1–4.3 127/140/105, 4.4–4.6 61/60/69, 4.7–4.10 377/329/3
 | --- | --- | --- | --- | --- |
 | Halaman 4.15–4.18 | #445–#448 | 77, 41, 39, 42 | 2, 2, 2, 1 | 0 (median 42 menit; tanpa jeda limit) |
 
+## Perlu dicek pemilik, halaman 4.31 (2026-10-31)
+
+- PROPOSAL baris Tahap 5 menulis '20–40 (5–7 tim + platform + SRE + security)', naskah Tahap 4 menulis '20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security': halaman memakai kalimat naskah dan tidak menghitung orang per tim; pemilik memutuskan 20 sampai 40 termasuk atau di luar platform, SRE, security. Naskah bagian 6 'satu worker notifikasi tidak muat' tanpa nomor ADR Tahap 4: halaman memetakannya ke ADR 36 (penalaran penulis; ADR 25 Tahap 3 bisa juga): bila pilihan benar hanya yang halaman ADR-nya menyebut isi PRD v5 tertulis, ADR 36 keluar dan tinggal ADR 37, 44, 45. Label hasil tebakan 'Cocok dengan halaman ADR' (bukan 'Tepat' seperti 3.32): bila pemilik ingin jawaban dinyatakan di jembatan, label dan penutup diubah. Naskah bagian 6 'mendekati ambang ±50 developer di ADR 37' padahal 20 sampai 40 belum mendekati 50 dan ADR 37 tidak memakai angka itu; naskah ADR 45 'pemicu ±50 developer' tanpa 'tingkat 4' (ADR 37 menulis tingkat 4); naskah bagian 6 '125 menit' tanpa 'paling sedikit'. Janji 'dibuka di halaman pertama Tahap 5' belum punya halaman penerima: T5-siap harus membuka jawaban (ADR 36, 37, 44, 45) di sana; Berikutnya 4.31 kini menuju /cerita/tahap-5/ (halaman lama kerangka). Alat ukur lebar tabel 320 px berfont lebar tidak ada di gerbang.
+
