@@ -657,6 +657,15 @@
   "h": "/istilah/hmac/"
  },
  {
+  "t": "Hold (dana tertahan)",
+  "d": "Dana yang dipisahkan sementara dari saldo untuk satu otorisasi kartu, dicatat sebagai jurnal ke buku sistem dan dilepas saat ditagih, dibatalkan, atau kedaluwarsa.",
+  "b": "t4-kartu",
+  "n": "4.23 Kartu virtual",
+  "u": "/tahap-4/kartu-virtual/",
+  "s": "istilah-hold",
+  "h": "/istilah/hold/"
+ },
+ {
   "t": "HSTS (HTTP Strict Transport Security)",
   "d": "Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.",
   "b": "t3-tls-pinning",
@@ -790,6 +799,15 @@
   "u": "/tahap-3/m27-hari-promo/",
   "s": "istilah-kelas-queue",
   "h": null
+ },
+ {
+  "t": "Kill switch",
+  "d": "Feature flag yang tugasnya mematikan satu fitur seketika tanpa deploy, mis. menolak semua otorisasi kartu baru.",
+  "b": "t4-kartu",
+  "n": "4.23 Kartu virtual",
+  "u": "/tahap-4/kartu-virtual/",
+  "s": "istilah-kill-switch",
+  "h": "/istilah/kill-switch/"
  },
  {
   "t": "Kredit",

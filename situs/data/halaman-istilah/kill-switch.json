@@ -1,0 +1,38 @@
+{
+  "istilah": "Kill switch",
+  "sehari_hari": "Kill switch adalah sakelar untuk mematikan satu fitur seketika, tanpa deploy dan tanpa memulai ulang server. Ia berupa feature flag yang dibaca tiap kali fitur dipakai. Yang mematikannya biasanya petugas yang berwenang, dengan alasan yang tercatat.",
+  "cerita": [
+    {
+      "rujukan": "t4-kartu",
+      "teks": "Ratih dari tim risk mematikan flag kartu. Otorisasi baru dijawab tolak `kill-switch` oleh proses yang sama, sedangkan otorisasi Rp50.000 yang sudah disetujui tetap bisa ditagih (`kill-switch.txt` bagian A)."
+    }
+  ],
+  "mekanisme": [
+    "Flag dibaca di awal tiap otorisasi, sebelum kartu dan saldo diperiksa. Bila mati, jawabannya tolak dengan alasan `kill-switch`, dan tidak ada baris atau hold yang ditulis (`kill-switch.txt` bagian A dan C).",
+    "Flag diubah lewat rute back office untuk peran risk. Alasan wajib, dan audit log mencatat aksinya sebelum flag berubah (`kill-switch.txt` bagian A).",
+    "Otorisasi yang sudah disetujui tidak dibatalkan, jadi penagihannya tetap diterima (`kill-switch.txt` bagian A).",
+    "Di lab, flag adalah penanda di memori satu proses. Sesudah proses dimulai ulang, flag kembali aktif (`kill-switch.txt` bagian B)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menyimpan flag di memori proses. Proses yang dimulai ulang kembali aktif tanpa ada yang menyalakannya, dan tiap instance punya flag sendiri (`kill-switch.txt` bagian B, dibaca dari kode untuk dua instance).",
+    "Mengira kill switch menarik persetujuan yang sudah keluar. Ia hanya menolak otorisasi baru."
+  ],
+  "terkait": [
+    "Canary",
+    "Circuit breaker"
+  ],
+  "sumber": [
+    {
+      "judul": "Rekaman lab t4-kartu: kill switch tanpa deploy",
+      "rekaman": "labs/t4-kartu/output/kill-switch.txt",
+      "catatan": "Bagian A: flag mati menolak otorisasi baru dalam proses yang sama. Bagian B: flag kembali aktif sesudah proses dimulai ulang. Bagian C: service pembayaran."
+    },
+    {
+      "riset": "R4-222",
+      "judul": "OpenFeature: rilis spesifikasi",
+      "url": "https://github.com/open-feature/spec/releases",
+      "catatan": "Rilis spesifikasi tertinggi v0.9.0 dan belum ada rilis 1.0. Lab tidak memakai OpenFeature. Dibuka 30 Oktober 2026."
+    }
+  ]
+}

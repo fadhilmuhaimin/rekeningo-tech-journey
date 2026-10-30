@@ -1,0 +1,44 @@
+{
+  "id": "t4-kartu-tebak",
+  "judul": "Dua otorisasi Rp80.000 untuk saldo Rp100.000, dengan hold",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t4-kartu/output/otorisasi.txt bagian C"
+  },
+  "adegan": [
+    "Saldo Budi Rp100.000 dan satu kartu virtual. Rekeningo menahan dana sebelum menjawab setuju.",
+    "Lab memegang lock buku Budi, seperti transaction lain yang sedang berjalan. AUTH-A (Rp80.000) mengantre di lock itu, lalu AUTH-B (Rp80.000), lalu lab melepas lock."
+  ],
+  "pertanyaan": "Apa jawaban Rekeningo untuk AUTH-B?",
+  "pilihan": [
+    {
+      "teks": "Setuju. Saldo Rp100.000 cukup untuk Rp80.000, dan AUTH-A belum ditagih.",
+      "benar": false,
+      "alasan": "Itu jawaban versi pertama, tanpa hold (bagian A): saldo yang dibaca AUTH-B tetap Rp100.000. Di versi ini AUTH-A sudah menahan Rp80.000 sebelum dijawab setuju."
+    },
+    {
+      "teks": "Tolak karena sibuk. AUTH-B tidak mendapat lock dalam 1 detik.",
+      "benar": false,
+      "alasan": "Rekaman bagian C menjawab saldo-kurang, bukan sibuk. Jawaban sibuk hanya muncul bila lock tidak didapat dalam lock_timeout 1 detik, seperti di tenggat.txt bagian A."
+    },
+    {
+      "teks": "Tolak karena saldo kurang. AUTH-B membaca Rp20.000 sesudah mendapat lock.",
+      "benar": true,
+      "alasan": "AUTH-A menahan Rp80.000 lewat jurnal tahan, jadi saldo Budi Rp20.000 saat AUTH-B mendapat giliran. Saldo dibaca sesudah lock, bukan sebelum mengantre."
+    },
+    {
+      "teks": "Setuju oleh penerbit sendiri, karena jawaban Rekeningo terlambat.",
+      "benar": false,
+      "alasan": "Itu keadaan lain: jawaban lewat dari tenggat. Rekaman ini memakai tenggat 10 detik, dan sumber jawaban AUTH-B adalah rekeningo."
+    }
+  ],
+  "penutup": "Hold membuat urutan di lock menentukan siapa yang melihat saldo sisa. Tanpa hold, urutan tidak berpengaruh: otorisasi ketiga yang datang sesudah dua yang pertama selesai pun disetujui.",
+  "label": {
+    "sumber": "Rekaman lab · otorisasi.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

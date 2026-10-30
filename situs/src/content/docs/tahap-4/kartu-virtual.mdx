@@ -1,0 +1,306 @@
+---
+title: "4.23 Kartu virtual: otorisasi, dana tertahan, kill switch + ADR 42"
+description: Rekeningo menahan dana sebagai jurnal sebelum menjawab setuju atas otorisasi kartu, dengan lock_timeout 1 detik dan kill switch. ADR 42 menimbang tiga cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import intiDiagram from "../../../../data/diagram/t4-kartu-inti.json";
+import dataTebak from "../../../../data/widget/t4-kartu-tebak.json";
+
+<p class="meta">Baca 21 menit · coba 3 menit · Prasyarat: [[t4-m37]], [[t4-modul]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Rekeningo menahan dana sebagai jurnal lebih dulu, baru menjawab setuju, karena persetujuan kartu tidak bisa ditarik.
+
+<Rantai data={intiDiagram} ringkas />
+
+Otorisasi adalah pertanyaan penerbit kartu sebelum pembelian: "setujui Rp80.000 dari kartu ini?". Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `otorisasi.txt`, saldo Budi Rp100.000 dan dua otorisasi Rp80.000 datang bersamaan. Versi pertama menyetujui keduanya, dan ledger menolak penagihan kedua (bagian A dan B). Versi ADR 42 menahan Rp80.000 untuk otorisasi pertama, jadi yang kedua membaca Rp20.000 dan ditolak (bagian C).
+
+Hold adalah dana yang dipisahkan sementara dari saldo untuk satu otorisasi, dicatat sebagai jurnal ke buku sistem `dana_tertahan`. Clearing adalah penagihan yang datang kemudian, dan memindahkan dana itu ke buku `settlement_kartu`. Penerbit menunggu jawaban paling lama 2 detik, jadi `lock_timeout` 1 detik (batas waktu PostgreSQL untuk menunggu satu lock) menjaga jawaban sibuk keluar sebelum tenggat itu. Kill switch, sakelar yang menolak otorisasi baru tanpa deploy, melengkapinya.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Dua otorisasi Rp80.000 datang bersamaan untuk saldo Rp100.000, dan Rekeningo menahan dana. Apa jawaban untuk yang kedua, dan kenapa?
+2. `lock_timeout` 1 detik dan tenggat penerbit 2 detik. Kenapa jawaban Rekeningo masih bisa lewat dari tenggat?
+3. Kill switch dimatikan, lalu proses server mulai ulang. Apa yang terjadi pada otorisasi berikutnya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: dengan hold, otorisasi kedua membaca saldo yang sudah berkurang dan ditolak, sedangkan tanpa hold keduanya disetujui.">
+
+Widget ini menebak hasil rekaman `otorisasi.txt` bagian C. Lab memegang lock buku Budi, mengantrekan dua otorisasi, lalu melepas lock. Rekaman ini menaikkan tenggat penerbit tiruan ke 10 detik, karena yang direkam adalah apakah dana ditahan, bukan batas waktu. Tebak dulu jawaban untuk otorisasi kedua, lalu baca alasan tiap pilihan.
+
+<Tebak client:visible data={dataTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: AUTH-B ditolak dengan alasan saldo-kurang, karena AUTH-A sudah menahan Rp80.000 dan saldo Budi Rp20.000 saat AUTH-B mendapat lock (otorisasi.txt bagian C).</p>
+</noscript>
+
+Rekaman bagian C, dengan jurnal tahan yang dibuat AUTH-A:
+
+<Snippet file="labs/t4-kartu/output/otorisasi.txt" lines="56:76" title="Rekaman lab: labs/t4-kartu/output/otorisasi.txt (bagian C)" />
+
+**Ubah satu hal:** buang hold. Server versi pertama membaca saldo lalu menjawab setuju, tanpa lock dan tanpa jurnal tahan. Dua otorisasi serentak sama-sama disetujui, `ada_jurnal_tahan` bernilai `f`, dan buku `dana_tertahan` berisi 0:
+
+<Snippet file="labs/t4-kartu/output/otorisasi.txt" lines="9:22" title="Rekaman lab: labs/t4-kartu/output/otorisasi.txt (bagian A)" />
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t4-m37]] menunjukkan dua jalan ke gejala yang sama: Rekeningo menyetujui tanpa menahan dana, dan penerbit menyetujui sendiri karena jawaban Rekeningo terlambat. Halaman ini menutup keduanya sejauh yang lab buktikan, dan menulis yang belum tertutup.
+
+ADR 22 menulis bahwa panggilan luar yang harus atomik dengan uang, seperti otorisasi kartu, butuh pengaman lain ([[t3-pool]]). [[t4-prd]] memasukkan kartu virtual sebagai P1, dan ADR 42 menjawab ADR 22 untuk jalur kartu. [[t4-breaker]] menjawabnya untuk panggilan keluar ke gateway dan vendor.
+
+ADR 22 menulis bahwa aturan 1, panggilan luar di luar transaction, tidak bisa dipenuhi untuk otorisasi kartu. Arah kartu ternyata terbalik dari gateway: penerbit yang memanggil Rekeningo. Jadi tidak ada panggilan keluar di dalam transaction, aturan 1 tetap bisa dipenuhi, dan yang butuh pengaman lain adalah tenggat dan penahanan dana.
+
+### Cara kerjanya
+
+**Otorisasi punya tenggat, dan jawaban setuju tidak bisa ditarik.** Penerbit memanggil Rekeningo tiap kali kartu dipakai. Panggilannya membawa `id_penerbit`, yaitu nomor yang penerbit berikan untuk satu otorisasi, token kartu, dan jumlah.
+
+Dokumentasi satu penerbit kartu menulis tenggat 2 detik. Sesudahnya penerbit memutuskan menurut setelan timeout miliknya ([Stripe Issuing: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30, Tidak dijalankan). Penerbit di lab adalah proses tiruan lokal dengan tenggat yang sama.
+
+Di `labs/api-t4/internal/handler/handler_kartu.go`, rute untuk pemilik kartu hanya menerbitkan, melihat, membekukan, dan membuka kartu. Satu-satunya rute HTTP yang membatalkan otorisasi, `POST /penerbit/reversal`, hanya menerima panggilan penerbit (Tidak dijalankan: dibaca dari kodenya). Karena itu dana harus tertahan sebelum jawaban setuju keluar.
+
+**Hold adalah satu transaction: lock, baca saldo, tulis jurnal.** Di versi ADR 42, handler memasang `lock_timeout`, mengunci buku pemilik dengan `ORDER BY id FOR UPDATE`, membaca saldo sesudah lock, lalu menulis jurnal tahan dan baris `otorisasi_kartu`. Jawaban setuju baru keluar sesudah semuanya tercatat. Cuplikan ini memuat langkah akhirnya:
+
+<Snippet file="labs/api-t4/internal/service/kartu.go" lines="277:297" lang="go" title="labs/api-t4/internal/service/kartu.go baris 277 sampai 297 (hold di versi satu proses)" />
+
+Jurnal tahan memindahkan Rp80.000 dari buku Budi ke `dana_tertahan` ([[t2-ledger]]). Saldo tetap jumlah posting, jadi tidak ada kolom saldo tersedia yang harus dijaga sama dengan saldo. Kode mengunci buku menurut `id`, dan `lock_timeout` hanya berlaku di transaction itu (`SET LOCAL`):
+
+<Snippet file="labs/api-t4/internal/repo/ledger.go" lines="27:35" lang="go" title="labs/api-t4/internal/repo/ledger.go baris 27 sampai 35" />
+
+<Snippet file="labs/api-t4/internal/repo/kartu.go" lines="141:146" lang="go" title="labs/api-t4/internal/repo/kartu.go baris 141 sampai 146" />
+
+Dokumentasi PostgreSQL menulis bahwa `SELECT FOR UPDATE` menunggu transaction lain yang memegang baris itu, lalu mengunci dan mengembalikan baris yang sudah diperbarui. Dokumentasi yang sama menulis bahwa urutan lock yang konsisten adalah pertahanan terbaik terhadap deadlock ([PostgreSQL 17: Explicit Locking](https://www.postgresql.org/docs/17/explicit-locking.html), bagian 13.3.2 dan 13.3.4, dibuka 2026-10-30).
+
+Rekaman bagian C memperlihatkan akibatnya: AUTH-B menunggu, lalu membaca Rp20.000 (Rekaman lab). Mekanisme itu sama dengan [[t2-race-lock]].
+
+**`id_penerbit` yang sama dua kali menghasilkan satu hold.** Penerbit bisa mengirim ulang permintaan yang sama. Sesudah lock, kode memeriksa baris dengan `id_penerbit` itu: bila ada, jawabannya diulang tanpa hold kedua.
+
+Di rekaman bagian D, permintaan kedua yang berurutan menghasilkan satu baris dan satu jurnal tahan. Dua permintaan yang mengantre di lock yang sama juga menghasilkan satu baris dan satu jurnal. Id yang sama dengan jumlah lain dijawab 409 `id-penerbit-dipakai`:
+
+<Snippet file="labs/t4-kartu/output/otorisasi.txt" lines="87:103" title="Rekaman lab: labs/t4-kartu/output/otorisasi.txt (bagian D, berurutan)" />
+
+**`lock_timeout` menjaga jawaban dalam tenggat, tetapi hanya per penantian.** Bila buku Eko dikunci transaction lain, otorisasinya menunggu paling lama 1 detik, lalu dijawab tolak dengan alasan sibuk. Lamanya di antara `lock_timeout` 1 detik dan tenggat 2 detik, tanpa baris dan tanpa hold (batas yang diperiksa, nilainya tidak direkam):
+
+<Snippet file="labs/t4-kartu/output/tenggat.txt" lines="8:21" title="Rekaman lab: labs/t4-kartu/output/tenggat.txt (bagian A)" />
+
+Percobaan lab dengan `lock_timeout` 3 detik, setelan yang salah, memperlihatkan sisi lain. Penerbit tidak menunggu dan memutuskan sendiri: setuju menurut setelan timeout, tanpa baris dan tanpa hold di Rekeningo. Penagihannya dijawab 404:
+
+<Snippet file="labs/t4-kartu/output/tenggat.txt" lines="31:49" title="Rekaman lab: labs/t4-kartu/output/tenggat.txt (bagian C)" />
+
+Dokumentasi PostgreSQL menulis bahwa batas itu berlaku terpisah untuk tiap upaya mendapatkan lock ([PostgreSQL 17: lock_timeout](https://www.postgresql.org/docs/17/runtime-config-client.html), dibuka 2026-10-30). Hold bisa menunggu dua buku: buku pemilik, lalu `dana_tertahan` yang di-UPDATE oleh semua hold. Di bagian E, buku `dana_tertahan` yang terkunci membuat otorisasi Fajar, yang tidak berhubungan dengan pemegang lock itu, ditolak sibuk. Bila dua buku dilepas lab sesudah 0,6 detik masing-masing, Fajar disetujui sesudah lebih dari 1 detik:
+
+<Snippet file="labs/t4-kartu/output/tenggat.txt" lines="82:98" title="Rekaman lab: labs/t4-kartu/output/tenggat.txt (bagian E)" />
+
+Tiga penantian 0,9 detik, masing-masing di bawah `lock_timeout`, berjumlah 3 × 0,9 = 2,7 detik, di atas tenggat 2 detik (Hitungan; tiga penantian Tidak dijalankan). Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini. Jadi jaminan jawaban sebelum tenggat butuh batas untuk seluruh panggilan.
+
+**Di jalur dua service, satu panggilan ke API ledger membawa key `id_penerbit`.** Setelah [[t4-modul]], service pembayaran memeriksa kill switch, kartu, dan batas harian dari tabelnya sendiri, lalu memanggil ledger satu kali. Key idempotency (Idempotency-Key, [[t2-idempotency]]) adalah `id_penerbit`. Baris `otorisasi_kartu` ditulis sesudahnya di schema pembayaran.
+
+Ledger yang sibuk dijawab tolak sibuk, dan ledger yang tidak menjawab dijawab tolak:
+
+<Snippet file="labs/api-t4/internal/modul/pembayaran/kartu.go" lines="185:200" lang="go" title="labs/api-t4/internal/modul/pembayaran/kartu.go baris 185 sampai 200" />
+
+Di tenggat.txt bagian D, `lock_timeout` ledger 1 detik dan batas panggilan pembayaran ke ledger 1,5 detik (Asumsi lab) menjaga jawaban dalam tenggat 2 detik. Bila `lock_timeout` salah dipasang 3 detik, batas 1,5 detik yang menyelamatkan jawaban. Tenggat 2.000 ms dikurangi `lock_timeout` 1.000 ms menyisakan 1.000 ms untuk lompatan HTTP ([[t4-modul]]).
+
+Rekaman `dua-service.txt` bagian A memanggil ledger langsung dengan key yang sama: 200 dan `ulang=true`. Jumlah lain dijawab 422, dan penolakan saldo kurang di-ROLLBACK sehingga key tidak tertahan.
+
+Key ledger hidup 24 jam ([[t2-idempotency]]). Sesudahnya hanya baris `otorisasi_kartu` yang menahan id yang sama. Bila proses mati sebelum baris ditulis dan ulangan datang sesudah 24 jam, ledger menahan lagi (hanya tes Go `LedgerTahanKartuKeyHabisSesudah24Jam`, tidak direkam).
+
+Bagian B mematikan service pembayaran dengan SIGKILL tepat sesudah ledger menahan dan sebelum baris ditulis. Penerbit tidak mendengar jawaban dan memutuskan setuju menurut setelannya. Ulangan dengan `id_penerbit` yang sama mendapat hold yang sama, jadi hanya satu jurnal tahan:
+
+<Snippet file="labs/t4-kartu/output/dua-service.txt" lines="57:87" title="Rekaman lab: labs/t4-kartu/output/dua-service.txt (bagian B, ulangan)" />
+
+Bila penerbit tidak pernah mengulang, hold itu yatim: ada di ledger, tanpa baris `otorisasi_kartu`. Job kedaluwarsa bekerja dari baris, jadi ia tidak melihatnya:
+
+<Snippet file="labs/t4-kartu/output/dua-service.txt" lines="89:99" title="Rekaman lab: labs/t4-kartu/output/dua-service.txt (bagian B, hold yatim)" />
+
+**Hold kedaluwarsa sesudah 7 hari lewat job yang idempoten.** Hold yang tidak pernah ditagih atau dibatalkan penerbit tidak boleh menahan dana selamanya. Umur 7 hari adalah Asumsi naskah.
+
+Job `-kedaluwarsa-hold` melepasnya lewat jurnal pembalik, dan lab memerankan jam dengan waktu maya supaya 7 hari tidak ditunggu. Satu detik sebelum batas dan tepat pada batas job tidak melepas. Satu detik sesudahnya melepas, dan dijalankan lagi tidak melakukan apa pun ([[t2-job-rekonsiliasi]]):
+
+<Snippet file="labs/t4-kartu/output/kedaluwarsa.txt" lines="15:23" title="Rekaman lab: labs/t4-kartu/output/kedaluwarsa.txt (bagian A)" />
+
+Dua job yang menunggu lock baris otorisasi yang sama dan dilepas bersama menghasilkan satu pelepasan, dan saldo kembali Rp100.000. Pelepasan ganda akan membuat saldo Rp20.000 + 2 × Rp80.000 = Rp180.000 (Hitungan):
+
+<Snippet file="labs/t4-kartu/output/kedaluwarsa.txt" lines="44:64" title="Rekaman lab: labs/t4-kartu/output/kedaluwarsa.txt (bagian B)" />
+
+Hold yang sudah ditagih tidak dilepas job, dan reversal sesudah kedaluwarsa dijawab 200 tanpa jurnal kedua (bagian C).
+
+**Kill switch menolak otorisasi baru tanpa deploy.** Feature flag adalah sakelar di konfigurasi yang menyalakan atau mematikan fitur tanpa deploy, dan kill switch adalah flag yang tugasnya mematikan. Di lab, flag adalah `Dep.KartuAktif`, penanda boolean di memori satu proses.
+
+Ratih dari tim risk mematikannya lewat `POST /bo/flag/kartu` dengan alasan wajib, dan audit log mencatat aksi `flag_kartu`. Otorisasi baru dijawab tolak `kill-switch` oleh proses yang sama, sedangkan otorisasi yang sudah disetujui tetap bisa ditagih:
+
+<Snippet file="labs/t4-kartu/output/kill-switch.txt" lines="7:32" title="Rekaman lab: labs/t4-kartu/output/kill-switch.txt (bagian A)" />
+
+Batasnya terlihat di bagian B: sesudah proses dimulai ulang, flag yang dimatikan kembali aktif, dan otorisasi berikutnya disetujui. Dua instance Tidak dijalankan, tetapi flag ada di satu proses, jadi tiap instance punya flag sendiri (dibaca dari kode). Service pembayaran juga punya penanda sendiri di `labs/api-t4/cmd/pembayaran/main.go`, yang di lab dimatikan lewat rute lab, bukan lewat rute risk (Tidak dijalankan: dibaca dari kodenya). Bagian C merekam penolakan `kill-switch` di service pembayaran tanpa baris dan tanpa panggilan ke ledger.
+
+Flag di luar proses, misalnya di tabel atau di penyedia flag, akan menutup batas itu. OpenFeature dan flagd tidak dipakai di lab. Spesifikasi OpenFeature masih v0.9.0 dan belum punya rilis 1.0 ([OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases), dibuka 2026-10-30). Rilis bertahap 1%, 5%, 25%, 100% adalah Asumsi ADR 42, dan Tidak dijalankan.
+
+**Dua keadaan saat penerbit memutuskan sendiri.** Dokumentasi satu penerbit menulis dua keadaan. Pertama, jawaban yang tidak datang dalam tenggat diputuskan menurut setelan timeout. Kedua, penerbit menolak karena tidak bisa menghubungi jaringan kartu, tetapi jaringan menyetujui, jadi dana tidak ditahan dan bisa tetap ditangkap.
+
+Keadaan kedua ada di bagian Autopilot untuk user dengan BIN sendiri (halaman Stripe di atas, Tidak dijalankan).
+
+Keadaan pertama direkam. AUTH-P1 disetujui penerbit oleh timeout, Rekeningo tidak punya baris, dan saldo Joko tidak berkurang. AUTH-P2 untuk dana yang sama disetujui lagi oleh Rekeningo. Penerbit menyetujui Rp160.000 untuk saldo Rp100.000, dan hanya penagihan AUTH-P2 yang punya penutup:
+
+<Snippet file="labs/t4-kartu/output/penerbit.txt" lines="9:21" title="Rekaman lab: labs/t4-kartu/output/penerbit.txt (bagian A)" />
+
+Keadaan kedua hanya sebagian. Penerbit tiruan tidak punya jaringan kartu, jadi lab memerankan penagihan dengan mengirim clearing atas otorisasi yang Rekeningo tolak. Jawabannya 409 tanpa jurnal, apa pun saldo pemiliknya. Penagihan Rp150.000 itu tidak punya penutup di ledger, dan apakah ia didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.
+
+Rekonsiliasi kartu tetap perlu. Lab membandingkan catatan keputusan penerbit tiruan dengan `otorisasi_kartu` lewat SQL, dan menemukan AUTH-P1: setuju di penerbit, tidak ditahan di Rekeningo. Jobnya belum ada:
+
+<Snippet file="labs/t4-kartu/output/penerbit.txt" lines="42:47" title="Rekaman lab: labs/t4-kartu/output/penerbit.txt (bagian C)" />
+
+Sebaliknya, bila service pembayaran sudah menahan dana tetapi jawabannya datang sesudah tenggat, penerbit memutuskan tolak dan Rp60.000 tertahan untuk keputusan yang sudah tolak di sana. Tanpa reversal dari penerbit, hanya job kedaluwarsa sesudah 7 hari yang melepasnya (`penerbit.txt` bagian D).
+
+**Celah yang lab temukan.** Delapan hal tidak sesuai dengan kalimat "hold menutup M37":
+
+1. `lock_timeout` berlaku per penantian, bukan per transaction. Dua penantian 0,6 detik lolos dengan jawaban setuju sesudah lebih dari 1 detik (`tenggat.txt` bagian E).
+2. Titik panas bukan hanya buku pemilik. Semua hold meng-UPDATE satu baris `dana_tertahan`, dan baris itu yang terkunci menolak pemilik lain (bagian E). Pada 0,116 otorisasi per detik (Asumsi) belum terukur sebagai masalah.
+3. Hold yang tidak pernah diulang penerbit menjadi yatim: ada di ledger tanpa baris, dan job kedaluwarsa tidak melihatnya (`dua-service.txt` bagian B).
+4. Batas harian kartu tidak diserialisasi di jalur dua service. Dua otorisasi Rp60.000 serentak untuk batas Rp100.000 disetujui keduanya, Rp120.000 jumlahnya, sedangkan versi satu proses menolak yang kedua (`dua-service.txt` bagian C). Celah ini tidak ditutup di lab.
+5. Penerbit tiruan membaca setiap balasan selain 200 sebagai timeout dan menyetujui tanpa hold. Satu balasan 409 dari Rekeningo menjadi persetujuan dengan sumber `timeout` (`otorisasi.txt` bagian D). Galat internal seperti deadlock atau koneksi putus akan menjadi 5xx yang dibaca sama, karena `Otorisasi` hanya memetakan 55P03 ke tolak sibuk (penalaran dari kode, Tidak dijalankan). Dokumentasi satu penerbit tidak merinci status HTTP selain 200 [perlu verifikasi], jadi usulannya: jawab tolak untuk galat sendiri.
+6. Flag kill switch hilang saat proses dimulai ulang dan tidak lintas instance.
+7. Penagihan atas otorisasi yang ditolak atau tidak dikenal tidak dijurnal. Itu keputusan produk, bukan akibat desain hold.
+8. Rekonsiliasi kartu belum ada sebagai job, padahal dua keadaan penerbit membuatnya perlu.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 42: hold di ledger lewat satu panggilan, lock_timeout 1 detik, kill switch
+
+**Kebutuhan.** [[t4-prd]] meminta kartu virtual sebagai P1. Penerbit meminta jawaban dalam 2 detik, dan persetujuan tidak bisa ditarik, jadi dana harus tertahan sebelum jawaban setuju. Tanpa hold, tiga persetujuan Rp80.000 untuk saldo Rp100.000 berjumlah Rp240.000, dan hanya satu penagihan punya penutup (`otorisasi.txt` bagian A dan B).
+
+Bebannya 1.000 otorisasi per hari: 5% dari 20.000 user aktif, satu otorisasi tiap orang (Asumsi naskah). Laju puncaknya λ = 1.000 ÷ 86.400 × 10 = 0,1157, dibulatkan 0,116 otorisasi per detik, dengan faktor puncak 10 (Asumsi). Little's Law menghubungkan λ, lama satu otorisasi W, dan rata-rata otorisasi yang berjalan bersamaan L. Untuk W = 2 detik, yaitu tenggat penerbit, L = λ × W = 0,116 × 2 = 0,232, dibulatkan 0,23 (Hitungan atas Asumsi).
+
+**Status:** diterima sesudah M37 ([[t4-m37]]). ADR 42 memakai API ledger dengan Idempotency-Key dari ADR 37 ([[t4-modul]]) dan ADR 14 ([[t2-idempotency]]). Ia mengunci buku dengan urutan ADR 13 ([[t2-race-lock]]) dan menjawab ADR 22 untuk jalur kartu ([[t3-pool]]). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
+
+| | A. Cek saldo tanpa menahan | B. Saldo tersedia di kolom terpisah | C. Tolak bila lock tidak langsung didapat | D. Hold di ledger, satu panggilan, lock_timeout 1 detik |
+|---|---|---|---|---|
+| Cara kerja | Handler membaca saldo dan status kartu, lalu menjawab setuju tanpa menulis ke buku | Tabel kartu menyimpan saldo tersedia, yaitu saldo dikurangi hold, dan mengubahnya tiap otorisasi, clearing, dan reversal | Otorisasi yang tidak langsung mendapat lock buku ditolak, tanpa menunggu | Satu transaction di ledger: lock buku, saldo dibaca sesudah lock, jurnal tahan, key = id_penerbit |
+| Kelebihan | Tidak ada lock, jadi handler tidak menunggu | Otorisasi tidak menyentuh buku ledger | Jawaban tidak pernah menunggu lock | Persetujuan hanya sesudah dana tertahan, dan saldo tetap jumlah posting |
+| Kekurangan | Dua otorisasi di bawah saldo sama-sama disetujui, dan penagihan kedua ditolak ledger | Dua sumber kebenaran untuk uang yang sama, dan bertentangan dengan saldo = jumlah posting (penalaran dari desain ledger) | Menolak user sah tiap kali ada transaction lain di buku yang sama | Menunggu lock sampai 1 detik, dan `lock_timeout` berlaku per penantian |
+| Biaya operasional | Rekonsiliasi hanya menemukan selisih sesudah penagihan | Rekonsiliasi antara kolom dan ledger, dan dua tempat yang harus diubah bersama | Rasio tolak naik saat buku sibuk | Alert untuk rasio tolak sibuk (Asumsi), job kedaluwarsa, dan rekonsiliasi kartu yang belum ada |
+| Bukti | Rekaman lab `otorisasi.txt` A dan B: tiga setuju, Rp240.000 | Tidak dijalankan | Tidak dijalankan sebagai opsi tersendiri; jawaban sibuk yang sama direkam lewat `lock_timeout` (`tenggat.txt` A) | Rekaman lab `otorisasi.txt` C dan D, `tenggat.txt`, `dua-service.txt`, `kedaluwarsa.txt`, `kill-switch.txt` |
+
+**Keputusan: opsi D.** Tujuh aturan:
+
+1. Service pembayaran menjawab penerbit dengan satu panggilan ke API ledger, dengan Idempotency-Key = `id_penerbit` (ADR 37). Tidak ada panggilan keluar di dalam transaction (ADR 22).
+2. Di ledger, hold adalah satu transaction. Urutannya: `lock_timeout` 1 detik, `ORDER BY id FOR UPDATE` pada buku pemilik (ADR 13), saldo dibaca sesudah lock, jurnal tahan (pemilik ke `dana_tertahan`), lalu key diikat ke jurnalnya. Penolakan di-ROLLBACK, jadi key tidak tertahan.
+3. Baris `otorisasi_kartu` dengan `id_penerbit` unik ditulis sesudahnya di schema `pembayaran`. Jawaban untuk satu `id_penerbit` harus satu keputusan: bila dua permintaan kembar bertemu, yang tercatat lebih dulu berlaku.
+4. Persetujuan hanya diberikan sesudah hold tercatat. Lock yang tidak didapat dalam 1 detik dijawab tolak, alasan sibuk.
+5. Seluruh panggilan pembayaran ke ledger dibatasi 1,5 detik (Asumsi lab), karena `lock_timeout` hanya membatasi satu penantian.
+6. Hold kedaluwarsa 7 hari (Asumsi) dan dilepas job idempoten lewat jurnal pembalik ([[t2-job-rekonsiliasi]]). Clearing memindahkan dana tertahan ke `settlement_kartu`.
+7. Kill switch lewat feature flag menolak otorisasi baru tanpa deploy. Rilis bertahap 1%, 5%, 25%, 100% (Asumsi) memakai metrik penjaga: rasio tolak, p95 otorisasi, dan selisih rekonsiliasi kartu. Flag harus hidup di luar proses supaya bertahan saat proses dimulai ulang dan berlaku di semua instance. Di lab flag ada di memori satu proses, dan flag di luar proses Tidak dijalankan.
+
+**Kenapa D, bukan A, B, atau C.**
+
+- **A ditolak** karena persetujuan tidak bisa ditarik: Rp240.000 disetujui untuk saldo Rp100.000, dan ledger baru menolak saat clearing (`otorisasi.txt` bagian A dan B). Itu pola cek-lalu-tulis yang sama dengan [[t2-m9]].
+- **B ditolak** karena kolom saldo tersedia menjadi sumber kebenaran kedua. Kolom itu harus berubah di transaction yang sama dengan jurnal. Bila keduanya berselisih, tidak ada yang tahu mana yang benar (penalaran dari desain ledger, Tidak dijalankan).
+- **C ditolak** sebagai aturan tunggal karena menolak user sah tiap kali buku sedang dipakai transaction lain. D tetap memakainya sesudah 1 detik menunggu, lewat `lock_timeout`.
+
+**Kasus industri: penerbit kartu dengan otorisasi real-time.** Dokumentasi satu penyedia penerbit kartu menulis bahwa webhook sinkronnya harus dijawab dalam 2 detik. Bila tidak, otorisasi diputuskan menurut setelan timeout atau Autopilot. Penyedia itu menyimpan jumlah yang diminta di `pending_request`, dan jumlah yang ditahan bisa diatur bila `is_amount_controllable` bernilai `true` ([Stripe Issuing: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30).
+
+Batasnya: itu dokumentasi satu penyedia, bukan studi, dan tidak memuat angka kegagalan. Halaman itu mendukung dua hal: tenggat 2 detik, dan jawaban terlambat diputuskan oleh setelan penerbit. Ia juga menulis bahwa pada kasus jaringan menyetujui sendiri, dana tidak ditahan tetapi bisa ditangkap. Ia tidak membuktikan bahwa hold di ledger memadai, dan tidak merinci status HTTP selain 200.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Penerbit memutuskan sendiri karena jawaban terlambat. Jawaban yang lewat dari tenggat 2 detik tidak punya hold, seperti AUTH-P1 (`penerbit.txt` bagian A). Pencegahannya `lock_timeout` di bawah tenggat dan batas seluruh panggilan 1,5 detik, tetapi batas kedua hanya ada di jalur dua service. Rekonsiliasi kartu menemukan selisihnya, dan jobnya belum ada.
+2. Hold yatim menahan dana user. Proses pembayaran yang mati sesudah ledger menahan dan penerbit tidak mengulang menyisakan hold tanpa baris (`dua-service.txt` bagian B: Rp30.000 untuk saldo Rp100.000). Pencegahannya rekonsiliasi hold di ledger tanpa baris, yang belum ada.
+3. Kill switch tidak menolong saat dibutuhkan. Flag hilang saat proses dimulai ulang, dan instance lain punya flag sendiri (`kill-switch.txt` bagian B). Pencegahannya flag di luar proses, yang di lab Tidak dijalankan dan keputusan produknya belum final.
+
+**Kapan keputusan ini salah.** Semua pembanding memakai satuan yang sama dengan hitungan beban: 0,116 otorisasi per detik di puncak, dan L = 0,23 untuk tenggat 2 detik.
+
+- Saat penerbit menuntut jawaban lebih cepat dari tenggat 2 detik. Lab hanya memeriksa bahwa p95 otorisasi tanpa kontensi di bawah 250 ms, seperdelapan tenggat (Asumsi lab, nilai p95 tidak direkam). Jalur dua service menambah satu lompatan HTTP, dengan anggaran 50 ms ([[t4-modul]]).
+- Saat satu akun menerima banyak otorisasi serentak. Pada L = 0,23, rata-rata kurang dari satu otorisasi berjalan bersamaan di seluruh sistem. Itu belum terukur sebagai masalah, tetapi semua hold berbagi baris `dana_tertahan`. Satu pemegang lock lebih dari 1 detik di sana membuat otorisasi pemilik lain ditolak sibuk (`tenggat.txt` bagian E).
+- Saat jawaban melewati tenggat 2 detik dan penerbit menyetujui sendiri (keadaan pertama). Pada 0,116 otorisasi per detik, tiap detik jawaban lambat berarti rata-rata 0,116 otorisasi baru yang ikut menunggu (Hitungan atas Asumsi). Tiga penantian 0,9 detik berjumlah 2,7 detik, di atas tenggat (Hitungan, Tidak dijalankan).
+- Saat penerbit menolak dan jaringan menyetujui (keadaan kedua). Dana tidak ditahan dan penagihan datang. Rekeningo menjawab 409 tanpa jurnal (`penerbit.txt` bagian B), jadi desain hold tidak menutupnya dan perlakuan penagihan itu menunggu keputusan produk.
+- Saat batas harian harus ketat di jalur dua service. Rp120.000 disetujui untuk batas Rp100.000 (`dua-service.txt` bagian C).
+- Saat Rekeningo berjalan di lebih dari satu instance. Kill switch di memori tidak lintas instance (dibaca dari kode, tidak direkam).
+
+**Yang akan merevisinya.** [[t4-tim-infra]] memasang rilis bertahap di atas feature flag ADR 42. Batas flag di memori proses harus dijawab di sana atau di tahap berikutnya, dan itu belum diputuskan. Tidak ada ADR yang dijadwalkan untuk rekonsiliasi kartu dan batas harian dua service, jadi keduanya ditulis di tabel berikut.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Job rekonsiliasi kartu: penerbit lawan `otorisasi_kartu`, dan hold tanpa baris | Lab membandingkan lewat SQL, dan job belum ada | Belum dijadwalkan |
+| Flag kill switch di luar proses atau di tabel | Di lab flag di memori satu proses, dan keputusan produknya belum final | [[t4-tim-infra]] |
+| Serialisasi batas harian di jalur dua service | Celah ditemukan lab dan tidak ditutup | Belum dijadwalkan |
+| Perlakuan penagihan atas otorisasi yang ditolak atau tidak dikenal | Keputusan produk: didebit, ditolak, atau insiden bernomor | Belum dijadwalkan |
+| Rilis bertahap 1%, 5%, 25%, 100% | Tidak dijalankan di lab, dan angkanya Asumsi | [[t4-tim-infra]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Dua otorisasi Rp80.000 datang bersamaan untuk saldo Rp100.000, dan Rekeningo menahan dana. Apa jawaban untuk yang kedua, dan kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tolak dengan alasan saldo-kurang. Otorisasi pertama menahan Rp80.000, jadi yang kedua membaca saldo Rp20.000 sesudah mendapat lock (`otorisasi.txt` bagian C).
+
+</details>
+
+**2.** `lock_timeout` 1 detik dan tenggat penerbit 2 detik. Kenapa jawaban Rekeningo masih bisa lewat dari tenggat?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`lock_timeout` membatasi satu penantian lock, bukan seluruh transaction, dan hold bisa menunggu dua buku. Dua penantian 0,6 detik lolos dengan jawaban setuju sesudah lebih dari 1 detik, dan tiga penantian 0,9 detik berjumlah 2,7 detik (`tenggat.txt` bagian E, Hitungan). Batas untuk seluruh panggilan ada di jalur dua service (1,5 detik, Asumsi lab).
+
+</details>
+
+**3.** Service pembayaran mati sesudah ledger menahan dana dan sebelum baris ditulis, dan penerbit tidak pernah mengulang. Apa akibatnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hold yatim: ada di ledger tanpa baris `otorisasi_kartu`, dan job kedaluwarsa tidak melihatnya. Saldo Mina tinggal Rp70.000 karena Rp30.000 tertahan (`dua-service.txt` bagian B). Bila penerbit mengulang dengan `id_penerbit` yang sama dalam 24 jam, ia mendapat hold yang sama.
+
+</details>
+
+**4.** Kill switch dimatikan, lalu proses server mulai ulang. Apa yang terjadi pada otorisasi berikutnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Disetujui. Flag adalah penanda di memori satu proses, jadi proses baru kembali aktif tanpa ada yang menyalakannya (`kill-switch.txt` bagian B). Flag di luar proses menutup batas itu, dan di lab Tidak dijalankan.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Otorisasi menahan dana dalam transaction yang sama dengan pembacaan saldo, dan saldo dibaca sesudah lock.
+- [ ] Jawaban setuju hanya keluar sesudah hold tercatat, karena persetujuan tidak bisa ditarik.
+- [ ] `id_penerbit` yang sama menghasilkan satu hold, dan jumlah yang berbeda ditolak.
+- [ ] `lock_timeout` lebih pendek dari tenggat penerbit, dan seluruh panggilan punya batas waktu sendiri.
+- [ ] Galat sendiri dijawab tolak, bukan dibiarkan menjadi balasan yang penerbit baca sebagai timeout.
+- [ ] Hold punya kedaluwarsa dan job pelepasnya idempoten, dan hold tanpa baris punya rekonsiliasi.
+- [ ] Kill switch hidup di luar proses dan perubahannya tercatat dengan alasan.
+
+### Bacaan lanjut
+
+- [Stripe Issuing: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations)
+- [PostgreSQL 17: Explicit Locking](https://www.postgresql.org/docs/17/explicit-locking.html)
+- [PostgreSQL 17: lock_timeout](https://www.postgresql.org/docs/17/runtime-config-client.html)
+- [OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases)
+
+</Blok>
