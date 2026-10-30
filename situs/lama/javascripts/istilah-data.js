@@ -686,6 +686,15 @@ window.ISTILAH = {
   "t": "Health check",
   "u": "tahap-3/dua-instance/"
  },
+ "Hold": {
+  "b": "t4-kartu",
+  "d": "Dana yang dipisahkan sementara dari saldo untuk satu otorisasi kartu, dicatat sebagai jurnal ke buku sistem dan dilepas saat ditagih, dibatalkan, atau kedaluwarsa.",
+  "h": "istilah/hold/",
+  "n": "4.23 Kartu virtual",
+  "s": "istilah-hold",
+  "t": "Hold (dana tertahan)",
+  "u": "tahap-4/kartu-virtual/"
+ },
  "IDOR": {
   "b": "t1-idor",
   "d": "Celah saat server memakai ID dari request tanpa bertanya apakah peminta boleh menyentuh data itu. OWASP API Security menyebutnya BOLA.",
@@ -830,6 +839,15 @@ window.ISTILAH = {
   "s": "istilah-kelas-queue",
   "t": "Kelas queue",
   "u": "tahap-3/m27-hari-promo/"
+ },
+ "Kill switch": {
+  "b": "t4-kartu",
+  "d": "Feature flag yang tugasnya mematikan satu fitur seketika tanpa deploy, mis. menolak semua otorisasi kartu baru.",
+  "h": "istilah/kill-switch/",
+  "n": "4.23 Kartu virtual",
+  "s": "istilah-kill-switch",
+  "t": "Kill switch",
+  "u": "tahap-4/kartu-virtual/"
  },
  "Kredit": {
   "b": "t2-ledger",
@@ -2282,6 +2300,15 @@ window.ISTILAH = {
   "t": "Health check",
   "u": "tahap-3/dua-instance/"
  },
+ "hold": {
+  "b": "t4-kartu",
+  "d": "Dana yang dipisahkan sementara dari saldo untuk satu otorisasi kartu, dicatat sebagai jurnal ke buku sistem dan dilepas saat ditagih, dibatalkan, atau kedaluwarsa.",
+  "h": "istilah/hold/",
+  "n": "4.23 Kartu virtual",
+  "s": "istilah-hold",
+  "t": "Hold (dana tertahan)",
+  "u": "tahap-4/kartu-virtual/"
+ },
  "idempotency key": {
   "b": "t2-idempotency",
   "d": "Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali.",
@@ -2385,6 +2412,15 @@ window.ISTILAH = {
   "s": "istilah-kelas-queue",
   "t": "Kelas queue",
   "u": "tahap-3/m27-hari-promo/"
+ },
+ "kill switch": {
+  "b": "t4-kartu",
+  "d": "Feature flag yang tugasnya mematikan satu fitur seketika tanpa deploy, mis. menolak semua otorisasi kartu baru.",
+  "h": "istilah/kill-switch/",
+  "n": "4.23 Kartu virtual",
+  "s": "istilah-kill-switch",
+  "t": "Kill switch",
+  "u": "tahap-4/kartu-virtual/"
  },
  "kredit": {
   "b": "t2-ledger",
