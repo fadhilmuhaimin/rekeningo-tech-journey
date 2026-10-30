@@ -1,0 +1,44 @@
+{
+  "istilah": "MCP (Model Context Protocol)",
+  "sehari_hari": "MCP adalah protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server. Alatnya didaftarkan server, dan tiap pemanggilan membawa nama alat dan argumennya.",
+  "cerita": [
+    {
+      "rujukan": "t4-audit",
+      "teks": "Server MCP lab hanya punya empat alat baca. Enam alat tulis yang dipanggil client dijawab galat -32602, dan tidak ada baris yang berubah (`mcp.txt` bagian B)."
+    }
+  ],
+  "mekanisme": [
+    "Server mengumumkan daftar alat, dan di lab semuanya baca-saja: cari_audit, siapa_membuka, ringkasan_akun, dan verifikasi_rantai.",
+    "Client memanggil satu alat dengan argumen. Argumen yang tidak dikenal atau bertipe salah ditolak sebelum alat berjalan (`mcp.txt` bagian E).",
+    "Server menerima hanya token yang diterbitkan untuknya. Token sesi back office ditolak 401, dan token agen ditolak back office (`mcp.txt` bagian F).",
+    "Hak tulis tidak ada di kredensial database server, jadi alat yang ditambahkan nanti pun tidak bisa menulis ke tabel yang dilindungi hak (`mcp.txt` bagian G)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menganggap anotasi readOnlyHint sebagai jaminan. Spesifikasi menyuruh client menganggap anotasi alat tidak tepercaya kecuali dari server tepercaya.",
+    "Meneruskan token masuk ke API hilir. Spesifikasi melarang server menerima token yang tidak diterbitkan untuknya, dan menyebutnya token passthrough."
+  ],
+  "terkait": [
+    "Token passthrough",
+    "Token"
+  ],
+  "sumber": [
+    {
+      "riset": "R4-232",
+      "judul": "MCP spesifikasi 2026-07-28: Security Best Practices (dibuka 2026-10-30)",
+      "url": "https://modelcontextprotocol.io/specification/2026-07-28/basic/security_best_practices",
+      "catatan": "Token passthrough dilarang: server tidak boleh menerima token yang tidak diterbitkan untuk server itu."
+    },
+    {
+      "riset": "R4-232",
+      "judul": "MCP spesifikasi 2026-07-28: Tools (dibuka 2026-10-30)",
+      "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+      "catatan": "Client harus menganggap anotasi alat tidak tepercaya kecuali dari server tepercaya. Alat yang tidak dikenal adalah galat protokol -32602."
+    },
+    {
+      "judul": "Rekaman lab t4-audit: mcp.txt bagian A sampai G",
+      "rekaman": "labs/t4-audit/output/mcp.txt",
+      "catatan": "Empat alat baca, enam alat tulis ditolak, token tidak diteruskan, dan role server tanpa hak tulis."
+    }
+  ]
+}
