@@ -1,0 +1,24 @@
+{
+  "id": "t4-qr-inti",
+  "judul": "Payload yang diganti lolos CRC, QR dinamis sekali bayar",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-qr · crc, statis, dinamis" },
+  "baris": [
+    {
+      "label": "Payload diganti",
+      "simpul": [
+        { "teks": "CRC dihitung ulang", "sub": "rumus terbuka, tanpa key" },
+        { "teks": "Pemindai menerima", "sub": "CRC cocok", "nada": "warn" },
+        { "teks": "Nama dari server berbeda", "sub": "bukan nama di payload", "nada": "good" }
+      ]
+    },
+    {
+      "label": "QR dinamis",
+      "simpul": [
+        { "teks": "Bayar pertama: 201", "sub": "terikat pada id QR" },
+        { "teks": "Bayar kedua: 409", "sub": "pembayar mana pun", "nada": "good" },
+        { "teks": "Pada 300 detik: 410", "sub": "299 detik: terbayar", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Pemindai dan pemalsu adalah skrip lab, bukan app dan bukan penyerang. Jam di baris kedua diperankan, tidak ditunggu 300 detik."
+}
