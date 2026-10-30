@@ -3,7 +3,7 @@
   "opsi": [
     {
       "id": "biasa",
-      "nama": "A · Log biasa: tabel audit_biasa tanpa hash (alternatif yang ditolak)",
+      "nama": "B · Log biasa: tabel audit_biasa tanpa hash (alternatif yang ditolak)",
       "baris": [
         [
           {
@@ -32,7 +32,7 @@
     },
     {
       "id": "berantai",
-      "nama": "B · ADR 43: log berantai hash, jangkar harian di luar database",
+      "nama": "D · ADR 43: log berantai hash, jangkar harian di luar database",
       "baris": [
         [
           {

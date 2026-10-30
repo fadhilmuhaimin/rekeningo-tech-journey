@@ -18,7 +18,7 @@ import dataTebak from "../../../../data/widget/t4-audit-tebak.json";
 
 ## Inti
 
-Rantai hash mendeteksi baris tengah yang diubah, tetapi ekor yang dipotong baru ketahuan bila ada jangkar di luar database.
+Rantai hash mendeteksi baris tengah yang diubah tanpa hitung ulang, tetapi ekor yang dipotong butuh jangkar di luar database.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -69,7 +69,7 @@ Pilih satu kejadian, lalu baca catatan di tiap sisi. Catatan memakai `rantai.txt
 
 [[t4-m38]] adalah masalahnya: Rekeningo tidak bisa menjawab siapa yang membuka data identitas Budi dalam 30 hari terakhir. Back office adalah layar internal tim risk untuk melihat akun dan pengajuan verifikasi, membuka file identitas, membekukan akun, dan mengubah batas harian. Halaman ini memutuskan siapa boleh melakukan apa di back office, apa yang dicatat, dan apa yang dibuktikan catatan itu.
 
-PRD v4 menulis ukuran 100% akses staf ke file dan data identitas tercatat di audit log ([[t4-prd]]). [[t4-storage]] sudah menulis satu baris audit tiap kali staf membuka file lewat server. Rekaman lab memakai akun Dina (40001) sebagai pemilik data, bukan Budi, karena Dina punya pengajuan verifikasi dan file di data awal lab. Penyerang di halaman ini adalah orang dalam yang mencoba, yaitu staf atau engineer dengan hak tulis, bukan peretas yang masuk ke server.
+PRD v4 menulis ukuran 100% akses staf ke file dan data identitas tercatat di audit log ([[t4-prd]]). [[t4-storage]] sudah menulis satu baris audit tiap kali staf membuka file lewat server. Rekaman lab memakai akun Dina (40001) sebagai pemilik data, bukan Budi, karena Dina punya pengajuan verifikasi dan file yang dibuat skrip lab. Penyerang di halaman ini adalah orang dalam yang mencoba, yaitu staf atau engineer dengan hak tulis, bukan peretas yang masuk ke server.
 
 ### Cara kerjanya
 
@@ -251,7 +251,7 @@ Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelny
 1. Peran `cs`, `risk`, `keuangan`, dan `admin-sistem` dengan kolom minimal per peran. Di lab hanya `risk` yang ada.
 2. Membuka file, membekukan, membuka blokir, dan mengubah batas wajib alasan 20 sampai 300 karakter. Kolom alasan adalah teks bebas, dan tidak ada penyaring data pribadi.
 3. Membuka blokir dan mengubah batas butuh penyetuju: akun risk kedua yang aktif dan berbeda dari pelaku. Pembekuan darurat tanpa penyetuju.
-4. Tiap aksi yang berhasil menulis satu baris `audit_log` di transaction yang sama dengan aksinya, dan percobaan yang ditolak tidak menulis baris (`persetujuan.txt` bagian B; transaction dibaca dari `bo.go`).
+4. Tiap aksi yang berhasil menulis satu baris `audit_log`, dan percobaan yang ditolak tidak menulis baris (`persetujuan.txt` bagian B). Aksi yang mengubah data menulis baris di transaction yang sama. Membuka file menulis baris lebih dulu. Pembacaan file ada di luar transaction, jadi file yang hilang atau rusak tetap meninggalkan baris ([[t4-storage]]; transaction dibaca dari `bo.go`).
 5. `hash` adalah SHA-256 dari hash sebelumnya dan isi baris, dan pemeriksaan harian membaca seluruh log.
 6. Jangkar harian, yaitu hash dan nomor baris terakhir, dicatat di file di luar database oleh role baca-saja. Jangkar hanya ditambah bila rantai utuh dan semua jangkar lama cocok.
 7. Role aplikasi tanpa UPDATE dan DELETE pada `audit_log`, tetapi tetap boleh INSERT.
@@ -263,7 +263,7 @@ Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelny
 - **A ditolak** karena jawabannya sama untuk akun yang disentuh enam aksi dan yang tidak pernah disentuh: nol baris (`rantai.txt` bagian A). Jawaban tidak ada sama nilainya dengan tidak tahu.
 - **B ditolak** karena tabel biasa bisa diubah tanpa catatan. Sebagai `api_t4`, satu UPDATE mengganti staf yang membuka kartu identitas Dina, dan satu DELETE menghapus pembekuan (`rantai.txt` bagian B).
 - **C ditolak untuk sekarang** karena biayanya besar menurut naskah, dan lab tidak menjalankannya. Opsi ini kembali bila tempat jangkar yang tak bisa ditulis penulis log tidak bisa disediakan.
-- **D tidak menutup semuanya.** Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis, dan hak tabel menahan aplikasi, bukan pemilik tabel.
+- **D tidak menutup semuanya.** Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis, dan hak tabel menahan aplikasi, bukan pemilik tabel. Ukuran 100% dari PRD juga belum terpenuhi: percobaan yang ditolak dan akses lewat role pemilik schema tidak meninggalkan baris.
 
 **Kasus industri: CloudTrail.** Dokumentasi AWS CloudTrail menulis bahwa log file integrity validation memakai SHA-256 untuk hash dan SHA-256 dengan RSA untuk tanda tangan digital. Tiap jam CloudTrail membuat digest file, yaitu file yang memuat hash tiap log file jam itu. Ia menandatangani digest dengan kunci privat dan menaruhnya di penyimpanan yang sama, di folder terpisah. Tiap digest membawa tanda tangan digest sebelumnya ([AWS: validating log file integrity](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html), dibuka 2026-10-30).
 
@@ -330,7 +330,7 @@ UPDATE, DELETE, dan TRUNCATE ditolak dengan SQLSTATE 42501. INSERT masih boleh, 
 
 </details>
 
-**4.** Satu token penyetuju dipakai untuk dua aksi atas dua akun. Apa yang diperiksa server, dan apa yang tidak?
+**4.** Satu token penyetuju dipakai untuk dua aksi yang berbeda. Apa yang diperiksa server, dan apa yang tidak?
 
 <details class="success">
 <summary>Jawaban</summary>

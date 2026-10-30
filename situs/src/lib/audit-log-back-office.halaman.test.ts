@@ -393,7 +393,9 @@ describe("rekaman dan kode: nilai turunan yang dipakai halaman", () => {
 
 describe("audit-log-back-office.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", () => {
   test("Inti: kalimat, Rantai ringkas, definisi di pemakaian pertama, dan angka rekaman jangkar.txt B dan rantai.txt C", () => {
-    harus("Rantai hash mendeteksi baris tengah yang diubah, tetapi ekor yang dipotong baru ketahuan bila ada jangkar di luar database.");
+    harus("Rantai hash mendeteksi baris tengah yang diubah tanpa hitung ulang, tetapi ekor yang dipotong butuh jangkar di luar database.");
+    // tinjauan 1365: "tanpa hitung ulang" karena penulis yang menghitung ulang sampai ujung lolos tanpa jangkar (jangkar.txt bagian C)
+    expect(jangkarTxt).toContain("# --- C. Baris tengah ditulis ulang dan rantainya dihitung ulang sampai ujung oleh pemilik tabel ---");
     expect(halaman.match(/^Rantai hash mendeteksi baris tengah[^\n]*$/m)![0].length).toBeLessThanOrEqual(150);
     harus("Audit log adalah catatan siapa membuka atau mengubah apa, kapan. Hash adalah sidik SHA-256 dari isi sebuah baris, dan di rantai tiap baris menyimpan hash baris sebelumnya. Jangkar adalah hash baris terakhir yang dicatat di luar database. Pemilik tabel adalah role, yaitu akun database dengan hak tertentu, yang memegang semua hak atas tabel itu.");
     harus("Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)), pemilik tabel menghapus baris 5 sampai 8. Tanpa jangkar, pemeriksaan rantai menjawab 4 baris dan utuh. Dengan file jangkar, ia menunjuk jangkar nomor 6 sebagai baris-hilang (`jangkar.txt` bagian B). Baris ke-7 yang ditambah pemilik tabel dengan hash hitungannya sendiri lolos, karena rantai tanpa kunci rahasia tidak membuktikan siapa yang menulis (`rantai.txt` bagian C).");
@@ -466,8 +468,9 @@ describe("audit-log-back-office.mdx: tiap angka turunan dari rekaman, kode, nask
     expect(per("E")[0]!.temuan).toBe(0);
     expect(RB).toContain("Tidak ada pemeriksaan yang bisa dijalankan atas tabel ini");
     expect(d.fitur.map((f) => f.nada)).toEqual([{ biasa: "warn" }, { biasa: "warn" }, { biasa: "warn" }, { biasa: "warn" }, { berantai: "warn" }]);
-    expect(d.opsi[0]!.nama).toBe("A · Log biasa: tabel audit_biasa tanpa hash (alternatif yang ditolak)");
-    expect(d.opsi[1]!.nama).toBe("B · ADR 43: log berantai hash, jangkar harian di luar database");
+    // tinjauan 1365: huruf opsi sama dengan tabel ADR 43 (B log biasa, D terpilih); sebelumnya A dan B bentrok dengan huruf tabel
+    expect(d.opsi[0]!.nama).toBe("B · Log biasa: tabel audit_biasa tanpa hash (alternatif yang ditolak)");
+    expect(d.opsi[1]!.nama).toBe("D · ADR 43: log berantai hash, jangkar harian di luar database");
     expect(Object.keys(d).sort()).toEqual(["fitur", "judul", "opsi"]);
     const { cekData } = createRequire(import.meta.url)("../../lama/widgets/banding.js") as { cekData: (x: unknown) => string[] };
     expect(cekData(bandingMentah)).toEqual([]);
@@ -479,7 +482,9 @@ describe("audit-log-back-office.mdx: tiap angka turunan dari rekaman, kode, nask
     harus("PRD v4 menulis ukuran 100% akses staf ke file dan data identitas tercatat di audit log ([[t4-prd]]). [[t4-storage]] sudah menulis satu baris audit tiap kali staf membuka file lewat server.");
     expect(naskah).toContain("- 100% akses staf ke file dan data identitas tercatat di audit log.");
     expect(baca("labs/t4-storage/output/unduh.txt")).toContain("audit_log");
-    harus("Rekaman lab memakai akun Dina (40001) sebagai pemilik data, bukan Budi, karena Dina punya pengajuan verifikasi dan file di data awal lab.");
+    harus("Rekaman lab memakai akun Dina (40001) sebagai pemilik data, bukan Budi, karena Dina punya pengajuan verifikasi dan file yang dibuat skrip lab.");
+    // tinjauan 1365: pengajuan Dina dibuat skrip lab (bukan data awal): POST /verifikasi di awal aksi_bo
+    expect(baca("labs/t4-audit/run.py")).toContain('"Dina mengajukan verifikasi"');
     expect(readme).toContain("Pemilik data** di rekaman adalah Dina (akun publik 40001)");
     harus("Penyerang di halaman ini adalah orang dalam yang mencoba, yaitu staf atau engineer dengan hak tulis, bukan peretas yang masuk ke server.");
     harus("Peran di lab adalah jenis akun, dan hanya jenis `risk` yang bisa memakai back office.");
@@ -646,7 +651,12 @@ describe("ADR 43: tabel opsi, sembilan aturan, kasus industri, pre-mortem, kapan
     harus("1. Peran `cs`, `risk`, `keuangan`, dan `admin-sistem` dengan kolom minimal per peran. Di lab hanya `risk` yang ada.");
     harus(`2. Membuka file, membekukan, membuka blokir, dan mengubah batas wajib alasan ${minAlasan} sampai ${maksAlasan} karakter. Kolom alasan adalah teks bebas, dan tidak ada penyaring data pribadi.`);
     harus("3. Membuka blokir dan mengubah batas butuh penyetuju: akun risk kedua yang aktif dan berbeda dari pelaku. Pembekuan darurat tanpa penyetuju.");
-    harus("4. Tiap aksi yang berhasil menulis satu baris `audit_log` di transaction yang sama dengan aksinya, dan percobaan yang ditolak tidak menulis baris (`persetujuan.txt` bagian B; transaction dibaca dari `bo.go`).");
+    harus("4. Tiap aksi yang berhasil menulis satu baris `audit_log`, dan percobaan yang ditolak tidak menulis baris (`persetujuan.txt` bagian B). Aksi yang mengubah data menulis baris di transaction yang sama. Membuka file menulis baris lebih dulu. Pembacaan file ada di luar transaction, jadi file yang hilang atau rusak tetap meninggalkan baris ([[t4-storage]]; transaction dibaca dari `bo.go`).");
+    // tinjauan 1365: BukaBerkas menulis audit di transaction sendiri, lalu membaca objek di luar transaction (kode dan halaman 4.15)
+    expect(kodeBo).toContain("Pembacaan dari penyimpanan objek tidak ada di dalam transaction");
+    expect(kodeBo).toContain("baris audit percobaan ini tetap tertulis");
+    expect(kodeBo.indexOf("s.t4.Objek.Baca(ctx, kunci)")).toBeGreaterThan(kodeBo.indexOf('"buka_berkas"'));
+    expect(baca("situs/src/content/docs/tahap-4/object-storage-presigned.mdx")).toContain("file hilang atau rusak tetap meninggalkan catatan");
     harus("5. `hash` adalah SHA-256 dari hash sebelumnya dan isi baris, dan pemeriksaan harian membaca seluruh log.");
     harus("6. Jangkar harian, yaitu hash dan nomor baris terakhir, dicatat di file di luar database oleh role baca-saja. Jangkar hanya ditambah bila rantai utuh dan semua jangkar lama cocok.");
     harus("7. Role aplikasi tanpa UPDATE dan DELETE pada `audit_log`, tetapi tetap boleh INSERT.");
@@ -661,7 +671,11 @@ describe("ADR 43: tabel opsi, sembilan aturan, kasus industri, pre-mortem, kapan
     harus("- **B ditolak** karena tabel biasa bisa diubah tanpa catatan. Sebagai `api_t4`, satu UPDATE mengganti staf yang membuka kartu identitas Dina, dan satu DELETE menghapus pembekuan (`rantai.txt` bagian B).");
     expect(RA).toContain("Enam aksi sudah terjadi");
     harus("- **C ditolak untuk sekarang** karena biayanya besar menurut naskah, dan lab tidak menjalankannya. Opsi ini kembali bila tempat jangkar yang tak bisa ditulis penulis log tidak bisa disediakan.");
-    harus("- **D tidak menutup semuanya.** Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis, dan hak tabel menahan aplikasi, bukan pemilik tabel.");
+    harus("- **D tidak menutup semuanya.** Rantai tanpa kunci rahasia mendeteksi perubahan, bukan penulis, dan hak tabel menahan aplikasi, bukan pemilik tabel. Ukuran 100% dari PRD juga belum terpenuhi: percobaan yang ditolak dan akses lewat role pemilik schema tidak meninggalkan baris.");
+    // tinjauan 1365: dua jalur tanpa baris itu terekam, dan ukuran 100% ada di naskah PRD v4
+    expect(setujuTxt).toContain("percobaan yang ditolak tidak meninggalkan baris audit");
+    expect(roleTxt).toContain("# Baris audit sebelum dan sesudah membaca: sama.");
+    expect(naskah).toContain("- 100% akses staf ke file dan data identitas tercatat di audit log.");
     const r233 = barisRiset("R4-233");
     for (const k of ["SHA-256 untuk hash", "SHA-256 dengan RSA", "tiap jam", "folder terpisah", "tanda tangan digest sebelumnya", "S3 MFA Delete", "dokumentasi vendor tentang fitur sendiri", "tanpa angka insiden", "docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html"]) expect(r233, k).toContain(k);
     harus("**Kasus industri: CloudTrail.** Dokumentasi AWS CloudTrail menulis bahwa log file integrity validation memakai SHA-256 untuk hash dan SHA-256 dengan RSA untuk tanda tangan digital. Tiap jam CloudTrail membuat digest file, yaitu file yang memuat hash tiap log file jam itu. Ia menandatangani digest dengan kunci privat dan menaruhnya di penyimpanan yang sama, di folder terpisah. Tiap digest membawa tanda tangan digest sebelumnya ([AWS: validating log file integrity](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html), dibuka 2026-10-30).");
@@ -735,7 +749,7 @@ describe("rujukan [[ID]], registry, struktur, dan kata", () => {
   test("tautan [[id]]: himpunan, jumlah per tujuan, nomor dan judul sama dengan registry dan peta naskah", () => {
     const semua = [...halaman.matchAll(/\[\[([A-Za-z0-9.-]+)\]\]/g)].map((m) => m[1]!);
     const hitung = Object.fromEntries([...new Set(semua)].sort().map((id) => [id, semua.filter((x) => x === id).length]));
-    expect(hitung).toEqual({ berikutnya: 1, "t4-m38": 3, "t4-modul": 1, "t4-prd": 2, "t4-storage": 1, "t4-tim-infra": 1 });
+    expect(hitung).toEqual({ berikutnya: 1, "t4-m38": 3, "t4-modul": 1, "t4-prd": 2, "t4-storage": 2, "t4-tim-infra": 1 });
     expect(halaman).not.toMatch(/\[\[[^\]]*\|/);
     const sesuai: [string, string, string][] = [["t4-m38", "4.24", "M38"], ["t4-prd", "4.1", "PRD v4"], ["t4-storage", "4.15", "Keamanan 7"], ["t4-modul", "4.13", "Modular monolith"], ["t4-tim-infra", "4.26", "Tim dan infra"]];
     for (const [idh, nomor, awal] of sesuai) {
@@ -828,7 +842,9 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
     expect(kartu[1]!.jawab).toBe(`Tanpa jangkar: ${per("B")[0]!.baris} baris, rantai utuh, exit status ${per("B")[0]!.exit}. Dengan file jangkar: jangkar nomor 6 baris-hilang, exit status ${per("B")[1]!.exit} (\`jangkar.txt\` bagian B).`);
     expect(kartu[2]!.jawab).toBe("UPDATE, DELETE, dan TRUNCATE ditolak dengan SQLSTATE 42501. INSERT masih boleh, jadi baris palsu dengan hash yang benar lolos pemeriksaan (`role.txt` bagian B dan E).");
     expect(kartu[3]!.jawab).toBe("Server memeriksa pemegang token, yaitu akun risk lain yang aktif, bukan aksi yang disetujui. Buka blokir Eko dan ubah batas Eko sama-sama dijawab 204 (`persetujuan.txt` bagian D).");
-    expect(kartu[3]!.tanya).toBe("Satu token penyetuju dipakai untuk dua aksi atas dua akun. Apa yang diperiksa server, dan apa yang tidak?");
+    // tinjauan 1365: rekaman bagian D memakai satu akun (Eko) untuk kedua aksi, jadi "dua aksi yang berbeda", bukan "dua akun"
+    expect(kartu[3]!.tanya).toBe("Satu token penyetuju dipakai untuk dua aksi yang berbeda. Apa yang diperiksa server, dan apa yang tidak?");
+    expect(setujuTxt).toContain("token yang sama dari Tim Risk Dua: buka blokir Eko HTTP 204, ubah batas Eko HTTP 204");
     expect(halaman.match(/<details class="success">/g)).toHaveLength(4);
     expect(RoB).toContain("TRUNCATE audit_log\nERROR:  permission denied for table audit_log (SQLSTATE 42501)");
   });
@@ -1055,5 +1071,89 @@ describe("tinjauan: versi rekaman, kutipan bagian, tautan per ID, dan bahasa Sni
     for (const m of rujuk) for (const huruf of [m[2]!, m[3]].filter(Boolean) as string[]) {
       expect(new RegExp(`^# --- ${huruf}\\. `, "m").test(kunci[m[1]!]!), `${m[1]}.txt bagian ${huruf}`).toBe(true);
     }
+  });
+});
+
+// Tinjauan 1365 (PR 455): mutan yang lolos putaran TANPA kunci baris dan mutan atas sumber rekaman, README, dan kode MCP yang tidak dibaca penjaga.
+// Tiap tes diturunkan dari rekaman, kode, atau baris riset, bukan dari daftar yang ditulis sendiri.
+describe("tinjauan 1365: kalimat mekanisme, role, README, kode MCP, dan label tab", () => {
+  const kodeAgen = baca("labs/t4-audit/mcp/agen/agen.go");
+  test("role.txt A: tiap role lab bukan superuser kecuali lab, dan role.txt D: tiap pembacaan kolom identitas oleh t4a_agen ditolak", () => {
+    const A = bagian(roleTxt, "A");
+    const su = Object.fromEntries([...A.matchAll(/^ (api_t4|lab|t4a_agen|t4a_pemilik|t4a_verifikator)\s+\| ([ft])$/gm)].map((m) => [m[1]!, m[2]!]));
+    expect(su).toEqual({ api_t4: "f", lab: "t", t4a_agen: "f", t4a_pemilik: "f", t4a_verifikator: "f" });
+    const ls = RoD.split("\n");
+    const identitas = ls.map((b, i) => [b, ls[i + 1]] as const).filter(([b]) => /^=> \[t4a_agen\] SELECT (email|nama|\*|berkas_|count\(\*\) FROM sesi)/.test(b));
+    expect(identitas.length).toBeGreaterThanOrEqual(6);
+    for (const [b, e] of identitas) expect(e, b).toMatch(/^ERROR:  permission denied for table (akun|verifikasi|sesi) \(SQLSTATE 42501\)$/);
+    expect(identitas.some(([b]) => b.includes("berkas_kartu_kunci, checksum_kartu"))).toBe(true);
+  });
+  test("go.sum di testing.txt, README, dan kode server MCP sama dengan yang ditulis halaman: versi go-sdk, lisensi, spesifikasi, Stateless, readOnlyHint, empat alat", () => {
+    const sdk = [...testingTxt.matchAll(/github\.com\/modelcontextprotocol\/go-sdk v([\d.]+)(\/go\.mod)? h1:/g)].map((m) => m[1]);
+    expect(sdk).toEqual(["1.8.0", "1.8.0"]);
+    expect(readme).toContain("kode baru Apache-2.0, kontribusi lama tetap MIT sampai ada izin relisensi");
+    expect(readme).toContain("| MCP spesifikasi | 2026-07-28 (halaman");
+    expect(kodeAgen).toContain("Stateless: true");
+    expect(kodeAgen).toContain("ReadOnlyHint: true");
+    expect((kodeAgen.match(/mcp\.AddTool\(s, &mcp\.Tool\{Name: "/g) ?? []).length).toBe(4);
+    expect(kodeAgen).toContain("subtle.ConstantTimeCompare(");
+  });
+  test("kalimat mekanisme bertebal: lima kalimat pembuka paragraf Cara kerjanya, token MCP, dan batas kasus CloudTrail (celah mutasi TANPA kunci)", () => {
+    for (const k of [
+      "**Aksi berisiko wajib alasan, dan dua aksi butuh penyetuju.**", "**Hak role di database menahan aplikasi, bukan pemilik tabel.**",
+      "**Rantai hash mendeteksi perubahan oleh pihak yang tetap boleh menulis.**", "**Jangkar menutup dua celah rantai, dengan batasnya sendiri.**",
+      "**Server MCP baca-saja memberi agen jalan masuk tanpa hak tulis.**",
+    ]) harus(k);
+    // dua aksi butuh penyetuju: tepat buka blokir dan ubah batas, bukan semua aksi (kode bo.go)
+    expect((kodeBo.match(/s\.penyetuju\(ctx, /g) ?? []).length).toBe(2);
+    harus("Server hanya menerima token agen. Tanpa token, token sembarang, dan token sesi back office Ratih dijawab 401, dan token agen di dua endpoint back office juga 401 (bagian F).");
+    expect(MF).toContain("POST /mcp (tanpa token): HTTP 401");
+    expect(MF).toContain("POST /mcp (token sembarang): HTTP 401");
+    expect(MF).toContain("POST /mcp (token sesi back office Ratih): HTTP 401");
+    harus("Spesifikasi menamai pola sebaliknya token passthrough: server menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir.");
+    harus("Spesifikasi menulis bahwa server tidak boleh (MUST NOT) menerima token yang tidak diterbitkan untuk server itu");
+    harus("Server lab tidak meneruskan token ke mana pun.");
+    // seed kedua seri mutasi peninjau: kalimat mekanisme yang lolos TANPA kunci (jangkar hanya ditambah, hak tabel tidak menahan INSERT, hak UPDATE aplikasi, definisi MCP)
+    harus("Ia memeriksa rantai dan semua jangkar lama dalam satu lintasan, dan menambah jangkar baru hanya bila hasilnya sehat");
+    expect(kodeJangkar).toContain("b.Tambah(baru)");
+    harus("Karena itu tempat jangkar harus tidak bisa ditulis siapa pun yang bisa menulis log.");
+    harus("Hak tabel juga tidak menahan penambahan.");
+    harus("Aplikasi juga masih boleh mengubah kolom `status` akun dan kolom `batas_harian` buku.");
+    harus("Satu baris audit memuat alasan yang berbunyi seperti perintah:");
+    harus("MCP (Model Context Protocol) adalah protokol tempat sebuah client memanggil alat milik server.");
+    harus("Catatan yang bergantung pada event melewatkan keduanya.");
+    // Node.js: apakah HMAC menutup baris palsu adalah pertanyaan terbuka, bukan hasil dokumentasi
+    expect(tab(1)).toContain("HMAC memakai kunci rahasia. Apakah itu menutup baris palsu dari aplikasi yang diambil alih Tidak dijalankan di lab. Halaman itu tidak memuat kata audit.");
+    // daftar review kode AI: enam butir persis
+    for (const butir of [
+      "- [ ] Role aplikasi tidak punya UPDATE dan DELETE pada tabel log, dan INSERT-nya tidak dianggap bukti bahwa aksinya terjadi.",
+      "- [ ] Hash tiap baris dihitung dari hash sebelumnya dan semua kolom, dan pemeriksaan melaporkan baris pertama yang putus.",
+      "- [ ] Hash baris terakhir dicatat di luar database, dan file jangkar yang hilang atau menyusut menjadi peringatan.",
+      "- [ ] Persetujuan kedua terikat ke satu aksi, bukan ke pemegang token.",
+      "- [ ] Server MCP tidak punya alat tulis, memakai role baca-saja, dan menolak token yang tidak diterbitkan untuknya.",
+      "- [ ] Isi catatan yang dibaca agen diperlakukan sebagai data, bukan perintah.",
+    ]) harus(butir);
+    harus("Kuncinya dipegang CloudTrail, sedangkan rantai di lab tidak punya kunci.");
+    expect(barisRiset("R4-233")).toContain("kunci dipegang CloudTrail");
+    harus("Karena itu kasus ini memperlihatkan arah D, yaitu bukti di luar tempat log ditulis, tetapi bukan pembuktian bahwa D sekuat itu.");
+    harus("Halaman ini memutuskan siapa boleh melakukan apa di back office, apa yang dicatat, dan apa yang dibuktikan catatan itu.");
+  });
+  test("tab Di stack lain: label tautan dan versi tiap stack sama dengan URL dan baris riset", () => {
+    const r234 = barisRiset("R4-234");
+    const tautan: [number, string, string, string][] = [
+      [1, "Node.js v26.13.0: crypto", "https://nodejs.org/api/crypto.html", "nodejs.org/api/crypto.html"],
+      [2, "Laravel 13.x: Eloquent", "https://laravel.com/docs/13.x/eloquent", "laravel.com/docs/13.x/eloquent"],
+      [3, "Django 6.1: admin site", "https://docs.djangoproject.com/en/6.1/ref/contrib/admin/", "docs.djangoproject.com/en/6.1/ref/contrib/admin/"],
+      [4, "llms-full.txt", "https://docs.serverpod.dev/llms-full.txt", "docs.serverpod.dev/llms-full.txt"],
+      [5, "Supabase: PGAudit", "https://supabase.com/docs/guides/database/extensions/pgaudit", "supabase.com/docs/guides/database/extensions/pgaudit"],
+    ];
+    for (const [n, label, url, dalamRiset] of tautan) {
+      expect(tab(n), `tab ${n}`).toContain(`[${label}](${url})`);
+      expect(r234, `riset tab ${n}`).toContain(dalamRiset);
+      expect(r234, `riset tab ${n} (nama)`).toContain(label.split(":")[0]!.replace(/^(Node\.js v[\d.]+)$/, "$1"));
+    }
+    expect(r234).toContain("Laravel 13.x");
+    expect(r234).toContain("Django 6.1");
+    expect(r234).toContain("Supabase supabase.com/docs/guides/database/extensions/pgaudit");
   });
 });

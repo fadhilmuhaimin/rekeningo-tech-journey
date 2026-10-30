@@ -3140,7 +3140,7 @@
   "halaman": "t4-audit",
   "judul": "4.25 Keamanan 9: Back office, audit log berantai, agen baca-saja + ADR 43",
   "url": "tahap-4/audit-log-back-office/",
-  "tanya": "Satu token penyetuju dipakai untuk dua aksi atas dua akun. Apa yang diperiksa server, dan apa yang tidak?",
+  "tanya": "Satu token penyetuju dipakai untuk dua aksi yang berbeda. Apa yang diperiksa server, dan apa yang tidak?",
   "jawab": "Server memeriksa pemegang token, yaitu akun risk lain yang aktif, bukan aksi yang disetujui. Buka blokir Eko dan ubah batas Eko sama-sama dijawab 204 (`persetujuan.txt` bagian D)."
  },
  {
