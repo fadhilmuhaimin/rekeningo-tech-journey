@@ -337,6 +337,20 @@ describe("jejak riset: lima baris R4-260 sampai R4-264, urut, lima kolom, tangga
     expect(b[0]).toBe("R4-262");
     expect(b[4]).toBe("Tidak berlaku");
   });
+  test("kolom konsep dan kolom perubahan tiap baris riset tidak tertukar", () => {
+    const harapan: [string, string, string][] = [
+      ["R4-260", "Hitungan atas angka yang tertulis di halaman 4.31", "Tidak berlaku (hitungan atas angka sendiri)"],
+      ["R4-261", "Kalimat halaman ADR Tahap 4 yang dikutip tebakan 4.31", "Tidak berubah"],
+      ["R4-262", "Pola jembatan: halaman berikutnya membuka jawaban tebakan", "Tidak berlaku"],
+      ["R4-263", "Heuristik ±50 developer untuk microservices", "Belum dicek ulang 2026-10-31"],
+      ["R4-264", "Ukuran tim PRD v5: PROPOSAL dan naskah membaca", "Tidak berubah"],
+    ];
+    for (const [id, konsep, berubah] of harapan) {
+      const sel = baris(id);
+      expect(sel[1]!.startsWith(konsep), `${id} kolom konsep`).toBe(true);
+      expect(sel[4], `${id} kolom berubah sejak Okt 2026`).toBe(berubah);
+    }
+  });
   test("R4-264: PROPOSAL dan naskah membaca 'ditambah' berbeda; halaman memakai kalimat naskah", () => {
     const proposal = baca("plan/PROPOSAL.md");
     ada(proposal, "| 5 | 100rb–1jt | 20–40 (5–7 tim + platform + SRE + security) |", "PROPOSAL");
@@ -381,7 +395,7 @@ describe("kepala dokumen dan tabel PRD v4 ke PRD v5", () => {
     expect(baris).toEqual([
       `| Lingkup | Publik: ${titik(a4.user)} user terdaftar, merchant di luar Lestari | Nasional: ${skala.replace("Skala nasional: ", "")} |`,
       `| Laporan | Dasbor web warung dari PRD v3 | ${laporan} |`,
-      `| Notifikasi | Notifikasi uang per kejadian, dan pengumuman promo atau top-up massal sampai ${titik(a3.user)} notifikasi sekaligus ([[t3-prd]]) | ${notifikasi} |`,
+      `| Notifikasi | Notifikasi uang per kejadian, dan promo atau top-up massal sampai ${titik(a3.user)} notifikasi sekaligus ([[t3-prd]]) | ${notifikasi} |`,
       `| Produk uang | Saldo, top-up dari bank, QR, dan kartu virtual | ${cicilan} |`,
       `| Integrasi | Gateway, layanan verifikasi, dan penerbit kartu | ${api} |`,
       `| Tim | ${timAnggota} developer dalam tiga tim (Asumsi cerita) | ${timBaru[2]} orang dalam ${timBaru[3]} tim, ditambah platform, SRE, dan security (Asumsi cerita) |`,
