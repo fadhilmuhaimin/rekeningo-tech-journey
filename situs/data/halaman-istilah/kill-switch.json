@@ -9,7 +9,7 @@
   ],
   "mekanisme": [
     "Flag dibaca di awal tiap otorisasi, sebelum kartu dan saldo diperiksa. Bila mati, jawabannya tolak dengan alasan `kill-switch`, dan tidak ada baris atau hold yang ditulis (`kill-switch.txt` bagian A dan C).",
-    "Flag diubah lewat rute back office untuk peran risk. Alasan wajib, dan audit log mencatat aksinya sebelum flag berubah (`kill-switch.txt` bagian A).",
+    "Flag diubah lewat rute back office untuk peran risk. Alasan wajib, dan audit log mencatat aksinya (`kill-switch.txt` bagian A). Kode menyimpan audit lebih dulu dan mengubah flag sesudah audit tersimpan (dibaca dari kode, Tidak dijalankan).",
     "Otorisasi yang sudah disetujui tidak dibatalkan, jadi penagihannya tetap diterima (`kill-switch.txt` bagian A).",
     "Di lab, flag adalah penanda di memori satu proses. Sesudah proses dimulai ulang, flag kembali aktif (`kill-switch.txt` bagian B)."
   ],

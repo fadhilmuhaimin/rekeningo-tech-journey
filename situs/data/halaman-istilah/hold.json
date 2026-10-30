@@ -36,7 +36,7 @@
     },
     {
       "riset": "R4-221",
-      "judul": "Stripe Issuing: real-time authorizations",
+      "judul": "Dokumentasi satu penerbit kartu: real-time authorizations",
       "url": "https://docs.stripe.com/issuing/controls/real-time-authorizations",
       "catatan": "Jumlah yang ditahan bisa diatur bila is_amount_controllable bernilai true. Dibuka 30 Oktober 2026."
     }

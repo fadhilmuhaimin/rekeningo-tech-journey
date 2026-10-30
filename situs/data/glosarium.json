@@ -819,15 +819,6 @@
   "h": null
  },
  {
-  "t": "Kredit",
-  "d": "Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.",
-  "b": "t2-ledger",
-  "n": "2.7 Ledger double-entry",
-  "u": "/tahap-2/ledger/",
-  "s": "istilah-kredit",
-  "h": "/istilah/kredit/"
- },
- {
   "t": "Kill switch",
   "d": "Feature flag yang tugasnya mematikan satu fitur seketika tanpa deploy, mis. menolak semua otorisasi kartu baru.",
   "b": "t4-kartu",
@@ -835,6 +826,15 @@
   "u": "/tahap-4/kartu-virtual/",
   "s": "istilah-kill-switch",
   "h": "/istilah/kill-switch/"
+ },
+ {
+  "t": "Kredit",
+  "d": "Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.",
+  "b": "t2-ledger",
+  "n": "2.7 Ledger double-entry",
+  "u": "/tahap-2/ledger/",
+  "s": "istilah-kredit",
+  "h": "/istilah/kredit/"
  },
  {
   "t": "Kunci akun",

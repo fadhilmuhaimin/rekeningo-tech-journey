@@ -72,7 +72,7 @@ ADR 22 menulis bahwa aturan 1, panggilan luar di luar transaction, tidak bisa di
 
 **Otorisasi punya tenggat, dan jawaban setuju tidak bisa ditarik.** Penerbit memanggil Rekeningo tiap kali kartu dipakai. Panggilannya membawa `id_penerbit`, yaitu nomor yang penerbit berikan untuk satu otorisasi, token kartu, dan jumlah.
 
-Dokumentasi satu penerbit kartu menulis tenggat 2 detik. Sesudahnya penerbit memutuskan menurut setelan timeout miliknya ([Stripe Issuing: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30, Tidak dijalankan). Penerbit di lab adalah proses tiruan lokal dengan tenggat 2 detik. Rekaman `otorisasi.txt` menaikkannya ke 10 detik, karena yang direkam adalah apakah dana ditahan.
+Dokumentasi satu penerbit kartu menulis tenggat 2 detik. Sesudahnya penerbit memutuskan menurut setelan timeout miliknya ([dokumentasi satu penerbit kartu: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30, Tidak dijalankan). Penerbit di lab adalah proses tiruan lokal dengan tenggat 2 detik. Rekaman `otorisasi.txt` menaikkannya ke 10 detik, karena yang direkam adalah apakah dana ditahan.
 
 Di `labs/api-t4/internal/handler/handler_kartu.go`, rute untuk pemilik kartu hanya menerbitkan, melihat, membekukan, dan membuka kartu. Satu-satunya rute HTTP yang membatalkan otorisasi, `POST /penerbit/reversal`, hanya menerima panggilan penerbit (Tidak dijalankan: dibaca dari kodenya). Karena itu dana harus tertahan sebelum jawaban setuju keluar.
 
@@ -92,9 +92,11 @@ Rekaman bagian C memperlihatkan akibatnya: AUTH-B menunggu, lalu membaca Rp20.00
 
 **`id_penerbit` yang sama dua kali menghasilkan satu hold.** Penerbit bisa mengirim ulang permintaan yang sama. Sesudah lock, kode memeriksa baris dengan `id_penerbit` itu: bila ada, jawabannya diulang tanpa hold kedua.
 
-Di rekaman bagian D, permintaan kedua yang berurutan menghasilkan satu baris dan satu jurnal tahan. Dua permintaan yang mengantre di lock yang sama juga menghasilkan satu baris dan satu jurnal. Id yang sama dengan jumlah lain dijawab 409 `id-penerbit-dipakai`:
+Di rekaman bagian D, permintaan kedua yang berurutan menghasilkan satu baris dan satu jurnal tahan. Dua permintaan yang mengantre di lock yang sama juga menghasilkan satu baris dan satu jurnal. Cuplikan ini memuat yang berurutan:
 
 <Snippet file="labs/t4-kartu/output/otorisasi.txt" lines="87:103" title="Rekaman lab: labs/t4-kartu/output/otorisasi.txt (bagian D, berurutan)" />
+
+Id yang sama dengan jumlah lain dijawab 409 `id-penerbit-dipakai` (bagian D).
 
 **`lock_timeout` menjaga jawaban dalam tenggat, tetapi hanya per penantian.** Bila buku Eko dikunci transaction lain, otorisasinya menunggu paling lama 1 detik, lalu dijawab tolak dengan alasan sibuk. Lamanya di antara `lock_timeout` 1 detik dan tenggat 2 detik, tanpa baris dan tanpa hold (batas yang diperiksa, nilainya tidak direkam):
 
@@ -108,9 +110,11 @@ Dokumentasi PostgreSQL menulis bahwa batas itu berlaku terpisah untuk tiap upaya
 
 <Snippet file="labs/t4-kartu/output/tenggat.txt" lines="82:98" title="Rekaman lab: labs/t4-kartu/output/tenggat.txt (bagian E)" />
 
-Tiga penantian 0,9 detik, masing-masing di bawah `lock_timeout`, berjumlah 3 × 0,9 = 2,7 detik, di atas tenggat 2 detik. Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini, dan tiga penantian Tidak dijalankan. Jadi jaminan jawaban sebelum tenggat butuh batas untuk seluruh panggilan.
+Tiga penantian 0,9 detik, masing-masing di bawah `lock_timeout`, berjumlah 3 × 0,9 = 2,7 detik, di atas tenggat 2 detik. Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini, dan tiga penantian Tidak dijalankan. Tiga titik tunggu itu dibaca dari kode: buku pemilik (`FOR UPDATE`), key `id_penerbit` bila permintaan kembar masih berjalan (`INSERT` menunggu pemegang key), dan baris `dana_tertahan` (`UPDATE`). Jadi jaminan jawaban sebelum tenggat butuh batas untuk seluruh panggilan.
 
-**Di jalur dua service, satu panggilan ke API ledger membawa key `id_penerbit`.** Setelah [[t4-modul]], service pembayaran memeriksa kill switch, kartu, dan batas harian dari tabelnya sendiri, lalu memanggil ledger satu kali. Key idempotency (Idempotency-Key, [[t2-idempotency]]) adalah `id_penerbit`. Baris `otorisasi_kartu` ditulis sesudahnya di schema pembayaran.
+**Di jalur dua service, satu panggilan ke API ledger membawa key `id_penerbit`.** Setelah [[t4-modul]], service pembayaran memeriksa kill switch, kartu, dan batas harian dari tabelnya sendiri, lalu memanggil ledger satu kali. Key idempotency (Idempotency-Key, [[t2-idempotency]]) adalah `id_penerbit`.
+
+Baris `otorisasi_kartu` ditulis sesudahnya oleh service pembayaran. ADR 37 menaruhnya di schema `pembayaran`, sedangkan lab ini memakai satu schema untuk semua tabel dan pemisahan schema ada di lab `t4-modul`.
 
 Ledger yang sibuk dijawab tolak sibuk, dan ledger yang tidak menjawab dijawab tolak:
 
@@ -148,13 +152,15 @@ Ratih dari tim risk mematikannya lewat `POST /bo/flag/kartu` dengan alasan wajib
 
 <Snippet file="labs/t4-kartu/output/kill-switch.txt" lines="7:32" title="Rekaman lab: labs/t4-kartu/output/kill-switch.txt (bagian A)" />
 
-Batasnya terlihat di bagian B: sesudah proses dimulai ulang, flag yang dimatikan kembali aktif, dan otorisasi berikutnya disetujui. Dua instance Tidak dijalankan, tetapi flag ada di satu proses, jadi tiap instance punya flag sendiri (dibaca dari kode). Service pembayaran juga punya penanda sendiri di `labs/api-t4/cmd/pembayaran/main.go`, yang di lab dimatikan lewat rute lab, bukan lewat rute risk (Tidak dijalankan: dibaca dari kodenya). Bagian C merekam penolakan `kill-switch` di service pembayaran tanpa baris dan tanpa panggilan ke ledger.
+Batasnya terlihat di bagian B: sesudah proses dimulai ulang, flag yang dimatikan kembali aktif, dan otorisasi berikutnya disetujui. Dua instance Tidak dijalankan, tetapi flag ada di satu proses, jadi tiap instance punya flag sendiri (dibaca dari kode). Service pembayaran juga punya penanda sendiri di `labs/api-t4/cmd/pembayaran/main.go`, yang di lab dimatikan lewat rute lab, bukan lewat rute risk (Tidak dijalankan: dibaca dari kodenya).
+
+Bagian C merekam penolakan `kill-switch` di service pembayaran tanpa baris. Tes Go `KartuKillSwitchTanpaBarisDanTanpaLedger` memeriksa bahwa ledger tidak dipanggil, dan hasilnya tidak direkam.
 
 Flag di luar proses, misalnya di tabel atau di penyedia flag, akan menutup batas itu. OpenFeature dan flagd tidak dipakai di lab. Spesifikasi OpenFeature masih v0.9.0 dan belum punya rilis 1.0 ([OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases), dibuka 2026-10-30). Rilis bertahap 1%, 5%, 25%, 100% adalah Asumsi ADR 42, dan Tidak dijalankan.
 
 **Dua keadaan saat penerbit memutuskan sendiri.** Dokumentasi satu penerbit menulis dua keadaan. Pertama, jawaban yang tidak datang dalam tenggat diputuskan menurut setelan timeout. Kedua, penerbit menolak karena tidak bisa menghubungi jaringan kartu, tetapi jaringan menyetujui, jadi dana tidak ditahan dan bisa tetap ditangkap.
 
-Keadaan kedua ada di bagian Autopilot untuk user dengan BIN sendiri (halaman Stripe di atas, Tidak dijalankan).
+Keadaan kedua ada di bagian Autopilot untuk user dengan BIN sendiri (halaman dokumentasi penerbit di atas, Tidak dijalankan).
 
 Keadaan pertama direkam. AUTH-P1 disetujui penerbit oleh timeout, Rekeningo tidak punya baris, dan saldo Joko tidak berkurang. AUTH-P2 untuk dana yang sama disetujui lagi oleh Rekeningo. Penerbit menyetujui Rp160.000 untuk saldo Rp100.000, dan hanya penagihan AUTH-P2 yang punya penutup:
 
@@ -221,7 +227,7 @@ Isi sel Kelebihan, Kekurangan, dan Biaya operasional untuk opsi B dan C adalah p
 - **B ditolak** karena kolom saldo tersedia menjadi sumber kebenaran kedua. Kolom itu harus berubah di transaction yang sama dengan jurnal. Bila keduanya berselisih, tidak ada yang tahu mana yang benar (penalaran dari desain ledger, Tidak dijalankan).
 - **C ditolak** sebagai aturan tunggal karena menolak user sah tiap kali buku sedang dipakai transaction lain. D tetap memakainya sesudah 1 detik menunggu, lewat `lock_timeout`.
 
-**Kasus industri: penerbit kartu dengan otorisasi real-time.** Dokumentasi satu penyedia penerbit kartu menulis bahwa webhook sinkronnya harus dijawab dalam 2 detik. Bila tidak, otorisasi diputuskan menurut setelan timeout atau Autopilot. Penyedia itu menyimpan jumlah yang diminta di `pending_request`, dan jumlah yang ditahan bisa diatur bila `is_amount_controllable` bernilai `true` ([Stripe Issuing: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30).
+**Kasus industri: penerbit kartu dengan otorisasi real-time.** Dokumentasi satu penyedia penerbit kartu menulis bahwa webhook sinkronnya harus dijawab dalam 2 detik. Bila tidak, otorisasi diputuskan menurut setelan timeout atau Autopilot. Penyedia itu menyimpan jumlah yang diminta di `pending_request`, dan jumlah yang ditahan bisa diatur bila `is_amount_controllable` bernilai `true` ([dokumentasi satu penerbit kartu: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations), dibuka 2026-10-30).
 
 Batasnya: itu dokumentasi satu penyedia, bukan studi, dan tidak memuat angka kegagalan. Halaman itu mendukung dua hal: tenggat 2 detik, dan jawaban terlambat diputuskan oleh setelan penerbit. Ia juga menulis bahwa pada kasus jaringan menyetujui sendiri, dana tidak ditahan tetapi bisa ditangkap. Ia tidak membuktikan bahwa hold di ledger memadai, dan tidak merinci status HTTP selain 200.
 
@@ -306,7 +312,7 @@ Disetujui. Flag adalah penanda di memori satu proses, jadi proses baru kembali a
 
 ### Bacaan lanjut
 
-- [Stripe Issuing: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations)
+- [Dokumentasi satu penerbit kartu: real-time authorizations](https://docs.stripe.com/issuing/controls/real-time-authorizations)
 - [PostgreSQL 17: Explicit Locking](https://www.postgresql.org/docs/17/explicit-locking.html)
 - [PostgreSQL 17: lock_timeout](https://www.postgresql.org/docs/17/runtime-config-client.html)
 - [OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases)

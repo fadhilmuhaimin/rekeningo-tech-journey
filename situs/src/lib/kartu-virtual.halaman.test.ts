@@ -13,7 +13,7 @@ import rantai from "../../data/diagram/t4-kartu-inti.json";
 import tebak from "../../data/widget/t4-kartu-tebak.json";
 import registry from "../../data/cerita.json";
 import templat from "../../data/templat.json";
-import { ANGKA_BARIS, ANGKA_JSON, KALIMAT_TERKUNCI, KUNCI_JSON, SIDIK, URUTAN_AWAL } from "./kartu-virtual.halaman.nilai";
+import { ANGKA_BARIS, ANGKA_JSON, KALIMAT_TERKUNCI, KODE_BARIS, KODE_JSON, KUNCI_JSON, RISET_KUNCI, SIDIK, URUTAN_AWAL } from "./kartu-virtual.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const baca = (rel: string): string => fs.readFileSync(path.join(akar, rel), "utf8");
@@ -38,6 +38,9 @@ const kodeBo = baca("labs/api-t4/internal/service/bo.go");
 const repoLedger = baca("labs/api-t4/internal/repo/ledger.go");
 const repoKartu = baca("labs/api-t4/internal/repo/kartu.go");
 const kodePembayaran = baca("labs/api-t4/internal/modul/pembayaran/kartu.go");
+const kodePembayaranTes = baca("labs/api-t4/internal/modul/pembayaran/kartu_test.go");
+const kodeKunciLedger = baca("labs/api-t4/internal/repo/kunci_ledger.go");
+const modulSql = baca("labs/t4-modul/modul.sql");
 const mainPembayaran = baca("labs/api-t4/cmd/pembayaran/main.go");
 const mainPenerbit = baca("labs/api-t4/cmd/penerbit/main.go");
 const mainApi = baca("labs/api-t4/cmd/api/main.go");
@@ -348,7 +351,8 @@ describe("kalimat berangka halaman diturunkan dari rekaman labs/t4-kartu", () =>
     expect(OT).toContain("HTTP/1.1 409 Conflict");
     expect(OT).toContain("AUTH-1 Rp90.000: setuju (sumber: timeout)");
     expect(OT).toContain("Tiruan ini memperlakukan semua balasan yang bukan 200 sebagai tidak ada jawaban");
-    harus("Id yang sama dengan jumlah lain dijawab 409 `id-penerbit-dipakai`");
+    harus("Id yang sama dengan jumlah lain dijawab 409 `id-penerbit-dipakai` (bagian D).");
+    harus("Cuplikan ini memuat yang berurutan:");
     harus("Satu balasan 409 dari Rekeningo menjadi persetujuan dengan sumber `timeout` (`otorisasi.txt` bagian D)");
     harus("menghasilkan satu baris dan satu jurnal tahan. Dua permintaan yang mengantre di lock yang sama juga menghasilkan satu baris dan satu jurnal.");
     expect(mainPenerbit).toContain("status != http.StatusOK");
@@ -380,6 +384,13 @@ describe("kalimat berangka halaman diturunkan dari rekaman labs/t4-kartu", () =>
     harus(`Dua penantian 0,6 detik lolos dengan jawaban setuju sesudah lebih dari ${LOCK} detik, dan tiga penantian ${satu} detik berjumlah ${jum} detik`);
     harus("Penagihannya dijawab 404");
     harus("Jaminan jawaban sebelum tenggat butuh batas untuk seluruh panggilan.".replace("Jaminan", "Jadi jaminan"));
+    // Tiga titik tunggu yang disebut halaman dibaca dari kode (peninjau 1357): buku pemilik, key id_penerbit, dan baris dana_tertahan.
+    harus("Tiga titik tunggu itu dibaca dari kode: buku pemilik (`FOR UPDATE`), key `id_penerbit` bila permintaan kembar masih berjalan (`INSERT` menunggu pemegang key), dan baris `dana_tertahan` (`UPDATE`).");
+    urut(wilayah(kodeKartu, "func (s Service) otorisasiDalamTx", "// --8<-- [end:otorisasi]"), "KunciBukuAkun", "KunciLedger", "BukuSistem(ctx, \"dana_tertahan\")", "CatatJurnal");
+    expect(repoLedger).toMatch(/FROM buku WHERE akun_id = ANY\(\$1\)\s+ORDER BY id\s+FOR UPDATE/);
+    expect(kodeKunciLedger).toContain("INSERT INTO kunci_idempotensi (kunci, akun_id, hash_permintaan, status, kedaluwarsa)");
+    expect(kodeKunciLedger).toContain("transaction lain menunggu di INSERT sampai pemegang COMMIT");
+    expect(repoLedger).toMatch(/UPDATE buku b SET saldo_cache = b\.saldo_cache \+ p\.jumlah/);
   });
   test("tenggat.txt F: batas 250 ms adalah Asumsi lab seperdelapan tenggat dan p95 tidak direkam", () => {
     expect(BATAS).toBe(0.25);
@@ -421,7 +432,9 @@ describe("kalimat berangka halaman diturunkan dari rekaman labs/t4-kartu", () =>
     expect(adaBaris(KSS.C!.baris, "AUTH-K5 (kill switch dinyalakan lagi) Rp20.000: setuju (sumber: rekeningo)")).toBe(true);
     harus("Ratih dari tim risk mematikannya lewat `POST /bo/flag/kartu` dengan alasan wajib, dan audit log mencatat aksi `flag_kartu`.");
     harus("Batasnya terlihat di bagian B: sesudah proses dimulai ulang, flag yang dimatikan kembali aktif, dan otorisasi berikutnya disetujui.");
-    harus("Bagian C merekam penolakan `kill-switch` di service pembayaran tanpa baris dan tanpa panggilan ke ledger.");
+    harus("Bagian C merekam penolakan `kill-switch` di service pembayaran tanpa baris. Tes Go `KartuKillSwitchTanpaBarisDanTanpaLedger` memeriksa bahwa ledger tidak dipanggil, dan hasilnya tidak direkam.");
+    expect(kodePembayaranTes).toContain("func TestKartuKillSwitchTanpaBarisDanTanpaLedger(");
+    expect(kodePembayaranTes).toContain("ada || l.pen.n.Load() != 0");
     harus("Rilis bertahap 1%, 5%, 25%, 100% adalah Asumsi ADR 42, dan Tidak dijalankan.");
   });
   test("penerbit.txt: AUTH-P1 setuju oleh timeout, Rp160.000 lawan saldo Rp100.000, penagihan Rp150.000 409 tanpa jurnal, dan Rp60.000 tertahan", () => {
@@ -523,6 +536,11 @@ describe("kalimat tentang kode diperiksa terhadap kode labs/api-t4", () => {
     expect(regionPembayaran).toContain("if !s.kartuAktif() {");
     expect(mainPembayaran).toContain('"ledger-timeout", klien.BatasBawaan');
     harus("Ledger yang sibuk dijawab tolak sibuk, dan ledger yang tidak menjawab dijawab tolak:");
+    // Letak tabel (peninjau 1357): ADR 37 menaruh otorisasi_kartu di schema pembayaran, tetapi lab t4-kartu memakai satu schema.
+    harus("ADR 37 menaruhnya di schema `pembayaran`, sedangkan lab ini memakai satu schema untuk semua tabel dan pemisahan schema ada di lab `t4-modul`.");
+    expect(runPy).toMatch(/^SCH = "tahap4_kartu"\s+# schema lab ini \(22 tabel api-t4, satu schema\)/m);
+    expect(modulSql).toContain("ALTER TABLE {s}.otorisasi_kartu SET SCHEMA t4m_pembayaran;");
+    expect(naskah).toContain("| `pembayaran` (service sendiri) | `topup_bank`, `webhook_event`, `insiden_rekon`, `kartu`, `otorisasi_kartu` | 5 |");
   });
   test("klaim 'satu-satunya rute HTTP yang membatalkan otorisasi' dan rute pemilik kartu, dalam lingkup handler_kartu.go", () => {
     const rute = [...handlerKartu.matchAll(/mux\.HandleFunc\("([A-Z]+ [^"]+)", (s\.wajibLogin|s\.dariPenerbit)/g)].map((m) => `${m[1]} ${m[2]}`);
@@ -774,6 +792,51 @@ describe("halaman istilah hold dan kill-switch, glosarium, dan baris RISET R4-22
     expect(baris("R4-223")).toContain("0,116 × 2 = 0,232");
     expect(baris("R4-223")).toContain("Rp20.000 + 2 × Rp80.000 = Rp180.000");
   });
+  test("nama penyedia tidak tampil di teks halaman, Rantai, tebakan, dan halaman istilah (hanya di href dan baris RISET), seperti 4.22", () => {
+    expect(halaman.replace(/\]\([^)]*\)/g, "]")).not.toMatch(/stripe/i);
+    const tampil = (x: unknown, keluar: string[] = []): string[] => {
+      if (typeof x === "string") { if (!x.startsWith("https://")) keluar.push(x); }
+      else if (Array.isArray(x)) for (const y of x) tampil(y, keluar);
+      else if (x && typeof x === "object") for (const y of Object.values(x)) tampil(y, keluar);
+      return keluar;
+    };
+    for (const j of [rantai, tebak, istilahHold, istilahKill]) expect(tampil(j).join("\n")).not.toMatch(/stripe/i);
+  });
+  test("baris RISET R4-220 sampai R4-224: URL, tanggal akses, dan versi sama dengan tautan halaman; hitungan dan rekaman diturunkan", () => {
+    const tautan = [...halaman.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((m) => m[1]!);
+    const tanpaSkema = (u: string): string => u.replace(/^https:\/\/(www\.)?/, "");
+    const pg1 = tautan.find((u) => u.includes("runtime-config-client.html"))!;
+    const pg2 = tautan.find((u) => u.includes("explicit-locking.html"))!;
+    const st = tautan.find((u) => u.includes("real-time-authorizations"))!;
+    const of = tautan.find((u) => u.includes("open-feature/spec/releases"))!;
+    const r220 = baris("R4-220"), r221 = baris("R4-221"), r222 = baris("R4-222"), r223 = baris("R4-223"), r224 = baris("R4-224");
+    expect(r220).toContain(tanpaSkema(pg1) + ", bagian lock_timeout (dibuka 2026-10-30)");
+    expect(r220).toContain(tanpaSkema(pg2) + " bagian 13.3.2");
+    expect(r220).toContain("Lab memakai PostgreSQL 17.11");
+    expect(OT).toContain("PostgreSQL 17.11");
+    expect(pg1).toContain("/docs/17/");
+    expect(r221).toContain(tanpaSkema(st) + ", dibuka 2026-10-30)");
+    expect(r221).toContain("(dibuka ulang 2026-10-30 untuk halaman 4.23)");
+    expect(r222).toContain(tanpaSkema(of) + " (dibuka 2026-10-30)");
+    expect(r222).toContain("rilis spesifikasi tertinggi v0.9.0 (29 Jul");
+    expect(r222).toContain("(dibuka ulang 2026-10-30 untuk halaman 4.23)");
+    expect(halaman).toContain("dibuka 2026-10-30");
+    expect([...halaman.matchAll(/dibuka (\d{4}-\d{2}-\d{2})/g)].every((m) => m[1] === "2026-10-30")).toBe(true);
+    expect(r223).toContain(`λ = ${titik(perHari)} ÷ 86.400 × ${tahap4.asumsi.puncak} = ${koma(lambda, 4)} per detik, dibulatkan ${koma(lambdaBulat, 3)}`);
+    expect(r223).toContain(`L = λ × W = ${koma(lambdaBulat, 3)} × ${TENGGAT} = ${koma(L, 3)}, dibulatkan ${koma(L, 2)}`);
+    expect(r223).toContain(`tiga penantian 0,9 detik: 3 × 0,9 = 2,7 detik, di atas tenggat ${TENGGAT} detik`);
+    expect(r223).toContain(`pelepasan ganda: ${rp(sisa)} + 2 × ${rp(jumlah)} = ${rp(sisa + 2 * jumlah)}`);
+    expect(r223).toContain(`${rp(saldoAwal)} − ${rp(jumlah)} = ${rp(sisa)}`);
+    expect(r223).toContain(`3 × ${rp(jumlah)} = ${rp(3 * jumlah)}`);
+    expect(r223).toContain(`tenggat ${titik(TENGGAT * 1000)} ms − lock_timeout ${titik(LOCK * 1000)} ms = ${titik((TENGGAT - LOCK) * 1000)} ms`);
+    expect(r224).toContain(`tiga setuju ${rp(3 * jumlah)}`);
+    expect(r224).toContain("penagihan 200, 409, 409");
+    expect(clearingB.map((b) => b.match(/HTTP (\d+)/)![1]).join(", ")).toBe("200, 409, 409");
+    const lulus = (TS.match(/^--- PASS/gm) ?? TS.match(/PASS/g) ?? []).length;
+    expect(lulus).toBeGreaterThan(0);
+    expect(r224).toContain(`\`testing.txt\` (${lulus} tes PASS)`);
+    for (const n of [220, 221, 222, 223, 224]) expect(RISET_KUNCI[`R4-${n}`], `kunci baris R4-${n}`).toBe(baris(`R4-${n}`));
+  });
   test("frontmatter, deskripsi, dan label sumber: jumlah per jenis dan definisi di pemakaian pertama", () => {
     expect(halaman).toContain("description: Rekeningo menahan dana sebagai jurnal sebelum menjawab setuju atas otorisasi kartu, dengan lock_timeout 1 detik dan kill switch. ADR 42 menimbang tiga cara lain dan menulis kapan pilihan ini salah.");
     expect((halaman.match(/Rekaman lab/g) ?? []).length).toBe(Label.rekaman);
@@ -808,7 +871,7 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
   };
   const sidik = (teks: string, kata: string[]): Record<string, number> =>
     Object.fromEntries(kata.map((k) => [k, (teks.toLowerCase().match(new RegExp(`(?<![\\w-])${k}(?![\\w-])`, "g")) ?? []).length]));
-  const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "lebih tinggi", "sampai", "kedua", "pertama"];
+  const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "lebih tinggi", "sampai", "kedua", "pertama", "setuju", "disetujui", "tolak", "ditolak", "penerbit", "ledger", "hold", "lock", "detik", "satu", "dua", "bersamaan", "berurutan", "serentak", "paling lama", "sama-sama", "lebih dulu", "di atas", "di bawah", "tetap", "masih", "hari"];
   const nilaiString = (x: unknown, keluar: string[] = []): string[] => {
     if (typeof x === "string") keluar.push(x);
     else if (Array.isArray(x)) for (const y of x) nilaiString(y, keluar);
@@ -818,6 +881,10 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
   const angkaToken = (t: string): string[] => t.match(/\d+(?:[.,]\d+)*/g) ?? [];
   const angkaBaris = halaman.split("\n").filter((b) => b.trim() !== "").map((b, i) => [i, angkaToken(b)] as const).filter(([, t]) => t.length > 0).map(([i, t]) => `${i}|${t.join(" ")}`);
   const angkaJson = Object.fromEntries(Object.entries({ rantai, tebak, hold: istilahHold, kill: istilahKill }).map(([k, v]) => [k, tekstual(v).map((x, i) => [i, angkaToken(x)] as const).filter(([, t]) => t.length > 0).map(([i, t]) => `${i}|${t.join(" ")}`)]));
+  const kodeToken = (t: string): string[] => t.match(/`[^`\n]+`|bagian [A-F](?: dan [A-F])?\b|\b[a-z0-9-]+\.txt\b/g) ?? [];
+  const kodeBaris = halaman.split("\n").filter((b) => b.trim() !== "").map((b, i) => [i, kodeToken(b)] as const).filter(([, t]) => t.length > 0).map(([i, t]) => `${i}|${t.join(" ")}`);
+  const kodeJson = Object.fromEntries(Object.entries({ rantai, tebak, hold: istilahHold, kill: istilahKill }).map(([k, v]) => [k, tekstual(v).map((x, i) => [i, kodeToken(x)] as const).filter(([, t]) => t.length > 0).map(([i, t]) => `${i}|${t.join(" ")}`)]));
+  const risetKunci = Object.fromEntries(["R4-220", "R4-221", "R4-222", "R4-223", "R4-224"].map((id) => [id, baris(id)]));
   const urutanAwal = halaman.split("\n").filter((b) => b.trim() !== "").map((b) => b.slice(0, 18));
   const sekarang = {
     halaman: halaman.split("\n").filter((b) => b.trim() !== ""),
@@ -831,7 +898,7 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
     },
   };
   if (process.env.PERBARUI_KUNCI === "1") {
-    const isi = `// Dihasilkan dari berkas saat ini oleh PERBARUI_KUNCI=1 (lihat kartu-virtual.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\nexport const KALIMAT_TERKUNCI: string[] = ${JSON.stringify(sekarang.halaman, null, 1)};\nexport const KUNCI_JSON: Record<string, string[]> = ${JSON.stringify(sekarang.json, null, 1)};\nexport const SIDIK: Record<string, Record<string, number>> = ${JSON.stringify(sekarang.sidik, null, 1)};\nexport const ANGKA_BARIS: string[] = ${JSON.stringify(angkaBaris, null, 1)};\nexport const ANGKA_JSON: Record<string, string[]> = ${JSON.stringify(angkaJson, null, 1)};\nexport const URUTAN_AWAL: string[] = ${JSON.stringify(urutanAwal, null, 1)};\n`;
+    const isi = `// Dihasilkan dari berkas saat ini oleh PERBARUI_KUNCI=1 (lihat kartu-virtual.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\nexport const KALIMAT_TERKUNCI: string[] = ${JSON.stringify(sekarang.halaman, null, 1)};\nexport const KUNCI_JSON: Record<string, string[]> = ${JSON.stringify(sekarang.json, null, 1)};\nexport const SIDIK: Record<string, Record<string, number>> = ${JSON.stringify(sekarang.sidik, null, 1)};\nexport const ANGKA_BARIS: string[] = ${JSON.stringify(angkaBaris, null, 1)};\nexport const ANGKA_JSON: Record<string, string[]> = ${JSON.stringify(angkaJson, null, 1)};\nexport const URUTAN_AWAL: string[] = ${JSON.stringify(urutanAwal, null, 1)};\nexport const KODE_BARIS: string[] = ${JSON.stringify(kodeBaris, null, 1)};\nexport const KODE_JSON: Record<string, string[]> = ${JSON.stringify(kodeJson, null, 1)};\nexport const RISET_KUNCI: Record<string, string> = ${JSON.stringify(risetKunci, null, 1)};\n`;
     fs.writeFileSync(path.join(__dirname, "kartu-virtual.halaman.nilai.ts"), isi);
   }
   (tanpaKunci ? test.skip : test)("setiap baris halaman sama dengan yang dikunci, dalam urutan yang sama", () => {
@@ -846,6 +913,11 @@ describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terk
   test("sidik angka: deretan angka tiap baris halaman dan tiap string JSON tidak berubah (jalan juga tanpa kunci kalimat)", () => {
     expect(angkaBaris).toEqual(ANGKA_BARIS);
     expect(angkaJson).toEqual(ANGKA_JSON);
+  });
+  test("sidik kode: token `kode`, rujukan `berkas.txt`, dan huruf `bagian X` tiap baris halaman dan tiap string JSON tidak berubah (jalan juga tanpa kunci kalimat)", () => {
+    expect(kodeBaris).toEqual(KODE_BARIS);
+    expect(kodeJson).toEqual(KODE_JSON);
+    expect(risetKunci).toEqual(RISET_KUNCI);
   });
   test("urutan awal baris: 18 karakter pertama tiap baris tidak kosong, berurutan (baris yang bertukar tempat atau hilang gagal)", () => {
     expect(urutanAwal).toEqual(URUTAN_AWAL);
@@ -979,7 +1051,7 @@ describe("struktur halaman, sel tabel, dan isi JSON diperiksa per bagian (tanpa 
       sumber: [
         { judul: "Rekaman lab t4-kartu: tanpa hold lawan dengan hold", rekaman: "labs/t4-kartu/output/otorisasi.txt", catatan: `Bagian A: tiga persetujuan ${rp(jumlah)} untuk saldo ${rp(saldoAwal)} tanpa jurnal tahan. Bagian C: jurnal tahan dan penolakan saldo-kurang.` },
         { judul: "Rekaman lab t4-kartu: kedaluwarsa hold 7 hari", rekaman: "labs/t4-kartu/output/kedaluwarsa.txt", catatan: "Jam maya, satu pelepasan walau dua job berjalan, dan hold yang sudah ditagih tidak dilepas." },
-        { riset: "R4-221", judul: "Stripe Issuing: real-time authorizations", url: "https://docs.stripe.com/issuing/controls/real-time-authorizations", catatan: "Jumlah yang ditahan bisa diatur bila is_amount_controllable bernilai true. Dibuka 30 Oktober 2026." },
+        { riset: "R4-221", judul: "Dokumentasi satu penerbit kartu: real-time authorizations", url: "https://docs.stripe.com/issuing/controls/real-time-authorizations", catatan: "Jumlah yang ditahan bisa diatur bila is_amount_controllable bernilai true. Dibuka 30 Oktober 2026." },
       ],
     });
     expect(istilahKill).toEqual({
@@ -988,7 +1060,7 @@ describe("struktur halaman, sel tabel, dan isi JSON diperiksa per bagian (tanpa 
       cerita: [{ rujukan: "t4-kartu", teks: "Ratih dari tim risk mematikan flag kartu. Otorisasi baru dijawab tolak `kill-switch` oleh proses yang sama, sedangkan otorisasi Rp50.000 yang sudah disetujui tetap bisa ditagih (`kill-switch.txt` bagian A)." }],
       mekanisme: [
         "Flag dibaca di awal tiap otorisasi, sebelum kartu dan saldo diperiksa. Bila mati, jawabannya tolak dengan alasan `kill-switch`, dan tidak ada baris atau hold yang ditulis (`kill-switch.txt` bagian A dan C).",
-        "Flag diubah lewat rute back office untuk peran risk. Alasan wajib, dan audit log mencatat aksinya sebelum flag berubah (`kill-switch.txt` bagian A).",
+        "Flag diubah lewat rute back office untuk peran risk. Alasan wajib, dan audit log mencatat aksinya (`kill-switch.txt` bagian A). Kode menyimpan audit lebih dulu dan mengubah flag sesudah audit tersimpan (dibaca dari kode, Tidak dijalankan).",
         "Otorisasi yang sudah disetujui tidak dibatalkan, jadi penagihannya tetap diterima (`kill-switch.txt` bagian A).",
         "Di lab, flag adalah penanda di memori satu proses. Sesudah proses dimulai ulang, flag kembali aktif (`kill-switch.txt` bagian B).",
       ],
