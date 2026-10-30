@@ -1087,7 +1087,7 @@ describe("widget kalkulator t4-estimasi-kalkulator.json", () => {
 // mutan: tautan [[id]] ditukar di satu tempat, impor tambahan, kelas details, kata "laptop", kolom registry, dan persamaan berunit di
 // baris riset (pemeriksa aritmetika di atas hanya membaca rantai angka murni, jadi "× 250 byte" dan "= 125 menit" tidak dihitung ulang).
 describe("penutup celah mutasi tinjauan", () => {
-  test("jumlah tautan [[id]] per halaman, impor, kelas details, dan kata laptop terkunci terhadap penukaran di satu tempat", () => {
+  test("jumlah tautan [[id]] per halaman, impor, kelas details, summary, dan kata laptop tetap sama (penutup celah)", () => {
     const hitungId: Record<string, number> = {};
     for (const m of badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)) hitungId[m[1]!] = (hitungId[m[1]!] ?? 0) + 1;
     expect(hitungId).toEqual({ D1: 7, berikutnya: 1, "t2-estimasi": 1, "t2-skema": 1, "t3-estimasi": 4, "t3-m18": 1, "t3-m27": 2, "t3-pool": 3, "t4-adr-45": 4, "t4-m39": 2, "t4-modul": 1 });
@@ -1095,12 +1095,42 @@ describe("penutup celah mutasi tinjauan", () => {
     expect(hitungKali(badan, '<details class="question">')).toBe(1);
     expect(hitungKali(badan, '<details class="success">')).toBe(4);
     expect(hitungKali(badan, "<details")).toBe(5);
+    expect(hitungKali(badan, "<summary>Jawaban</summary>")).toBe(4);
+    expect(hitungKali(badan, "<summary>Sudah tahu? Cek 3 pertanyaan</summary>")).toBe(1);
+    expect(hitungKali(badan, "</details>")).toBe(5);
     // beban.txt dijalankan di satu laptop lab (kepala rekaman), bukan server: tiga kalimat memakai kata itu
     expect(beban).toContain("Dijalankan di laptop lab: bukan kapasitas produksi.");
     expect(hitungKali(badan, "laptop")).toBe(3);
     expect(hitungKali(badan, "di laptop")).toBe(2);
     harus("rekaman beban api-t4 hanya memeriksa batas di laptop (rincian di bawah)");
     harus("Di satu laptop dengan campuran lab, 95% permintaan selesai di bawah 500 ms");
+  });
+  test("urutan baris tiap tabel (kolom pertama) dan asal tiap pilihan tebakan kalkulator", () => {
+    const tabel: string[][] = [];
+    let kini: string[] = [];
+    for (const b of badan.split("\n")) {
+      if (/^\|[-| ]+\|$/.test(b)) continue;
+      if (b.startsWith("|")) kini.push(b.slice(1).split("|")[0]!.trim());
+      else if (kini.length) { tabel.push(kini); kini = []; }
+    }
+    if (kini.length) tabel.push(kini);
+    expect(tabel).toEqual([
+      ["Besaran", "User terdaftar", "User aktif harian", "Request per hari", "Rata-rata request per detik", "Puncak request per detik"],
+      ["Kelas", "Semua request", "Transaksi uang: bayar, transfer, QR", "Top-up dari bank", "Verifikasi identitas", "Otorisasi kartu virtual", "Unggahan file"],
+      ["Besaran", "Notifikasi uang per detik, puncak", "Pemakaian worker, puncak", "Pemakaian worker, makan siang", "Koneksi database", "Koneksi tertahan oleh semua request (W 20 ms)", "Posting per tahun"],
+      ["Kasus (semua Asumsi)", "Gateway di dalam request, menjawab normal", "Gateway di dalam request, menjawab lambat", "Gateway di dalam request, timeout 3 detik", "Gateway di dalam request, menggantung 15 detik", "Gateway di dalam request, menggantung 30 detik", "Verifikasi saat vendor mati: 5 percobaan × 3 detik", "Notifikasi uang di worker yang sama"],
+      ["Besaran", "Posting ledger", "Rumus data per tahun [[D1]]", "File verifikasi identitas"],
+      ["Besaran", "User aktif harian", "Puncak request per detik", "Notifikasi uang per detik, puncak", "Pemakaian worker, puncak", "Koneksi tertahan oleh semua request (W 20 ms)", "Unggahan file per tahun"],
+      ["Cara memperkirakan Tahap 5", "Hanya request per detik (rumus [[D1]])", "Per kelas pekerjaan, dikali masukan tahap itu, lalu dibanding batas", "Load test di server sungguhan"],
+      ["Pertanyaan", "Perlu pooler seperti PgBouncer?", "Perlu memecah modul jadi service?", "Perlu komponen lain untuk beban Tahap 5?"],
+    ].map((t) => t));
+    // pilihan tebakan: 8 = Tahap 3 ke 4 (10 × 0,8), 10 = jawaban, 5 = 100 ÷ 20 (semua user aktif), 12,5 = 10 ÷ 0,8 (pengali 0,8 dibalik)
+    expect(data.tebak.pilihan).toEqual([
+      `${Math.round(h4.puncak / h3.puncak)} kali`,
+      `${Math.round(h5.puncak / h4.puncak)} kali`,
+      `${koma(100 / a4.aktif, 0)} kali`,
+      `${koma((a5.user / a4.user) / (a4.aktif / a3.aktif), 1)} kali`,
+    ]);
   });
   test("kalimat halaman tidak menjawab tebakan 4.31 dan tidak memilih komponen", () => {
     expect(badan).not.toMatch(/pecah lebih dulu|yang pecah|jawaban(nya)? (tebakan|Tahap 5)|paling dulu|harus diganti/i);
