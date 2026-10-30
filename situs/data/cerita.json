@@ -3909,8 +3909,9 @@
         "api-t4",
         "t4-pipeline"
       ],
-      "ada": false,
-      "nomor": "4.26"
+      "ada": true,
+      "nomor": "4.26",
+      "menit": 28
     },
     {
       "id": "t4-m39",
