@@ -1,0 +1,49 @@
+{
+  "id": "t4-m37-tanpa-dana-tertahan",
+  "judul": "Tanpa menahan dana, dua otorisasi lolos; bila jawaban terlambat, penerbit memutuskan sendiri",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t4-kartu · otorisasi.txt bagian A dan B, penerbit.txt bagian A"
+  },
+  "baris": [
+    {
+      "label": "Tanpa menahan dana",
+      "sub": "otorisasi.txt bagian A dan B",
+      "simpul": [
+        {
+          "teks": "Otorisasi 1: setuju",
+          "sub": "saldo dibaca Rp100.000"
+        },
+        {
+          "teks": "Otorisasi 2: setuju",
+          "sub": "saldo masih Rp100.000"
+        },
+        {
+          "teks": "Penagihan 2: ditolak ledger",
+          "sub": "saldo tidak boleh negatif",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Jawaban lewat dari 2 detik",
+      "sub": "penerbit.txt bagian A",
+      "simpul": [
+        {
+          "teks": "Jawaban Rekeningo terlambat",
+          "sub": "satu buku terkunci lebih dari 2 detik"
+        },
+        {
+          "teks": "Penerbit setuju sendiri",
+          "sub": "setelan lab: setuju bila timeout"
+        },
+        {
+          "teks": "Rekeningo tidak mencatat",
+          "sub": "tanpa baris, dana tidak ditahan",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Toko online, jam, dan laporan harian adalah Ilustrasi. Kotak oranye adalah akibat yang direkam."
+}
