@@ -3000,6 +3000,30 @@
   "jawab": "Tidak. Angka itu untuk satu payload contoh 138 karakter dan dua jenis kesalahan: satu karakter berubah dan dua karakter bersebelahan bertukar. Sifat CRC terhadap kesalahan lain tidak dibuktikan lab (`crc.txt` bagian C)."
  },
  {
+  "id": "t4-m36-1",
+  "halaman": "t4-m36",
+  "judul": "4.20 M36: Pratinjau gambar yang berisi JSON",
+  "url": "tahap-4/m36-pratinjau-json/",
+  "tanya": "Kolom `gambar_url` hanya berisi alamat. Kenapa teks JSON dari layanan lain bisa sampai ke merchant?",
+  "jawab": "Server mengunduh alamat itu dengan akses jaringannya sendiri. Untuk jawaban yang bukan gambar, versi pertama menaruh 200 byte pertama isinya di pesan kesalahan. Pesan itu dikembalikan ke merchant di kolom `galat` (dibaca dari kode, Tidak dijalankan)."
+ },
+ {
+  "id": "t4-m36-2",
+  "halaman": "t4-m36",
+  "judul": "4.20 M36: Pratinjau gambar yang berisi JSON",
+  "url": "tahap-4/m36-pratinjau-json/",
+  "tanya": "Versi aman menolak 32 dari 32 alamat terlarang. Kenapa pemeriksaan `IsPrivate` saja tidak cukup?",
+  "jawab": "Hanya tiga dari 32 alamat itu ditandai private, jadi 29 lolos bila hanya `IsPrivate` yang diperiksa (`alamat.txt`)."
+ },
+ {
+  "id": "t4-m36-3",
+  "halaman": "t4-m36",
+  "judul": "4.20 M36: Pratinjau gambar yang berisi JSON",
+  "url": "tahap-4/m36-pratinjau-json/",
+  "tanya": "Alamat luar menjawab redirect ke alamat lain. Apa yang direkam di versi aman, dan apa yang dilakukan client bawaan?",
+  "jawab": "Versi aman menolak redirect, dan server tujuan redirect tersentuh nol kali di tujuh kode (`batas.txt`). Client bawaan Go mengikuti redirect sampai 10 request beruntun (dokumentasi, Tidak dijalankan)."
+ },
+ {
   "id": "t4-m37-1",
   "halaman": "t4-m37",
   "judul": "4.22 M37: Kartu virtual disetujui dua kali dengan satu saldo",

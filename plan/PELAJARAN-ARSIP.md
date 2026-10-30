@@ -445,3 +445,15 @@ Tabel di MEMORI: #418 12, #421 12, #422 8, #423 13 menit; lab #415 344, #416 385
 ## Ukur antrean merge, baris halaman 4.1–4.10 (arsip 2026-10-30)
 
 Tabel di MEMORI: 4.1–4.3 127/140/105, 4.4–4.6 61/60/69, 4.7–4.10 377/329/341/354 menit (jeda limit #9 ±3,5 jam + sesi menganggur; kerja ±100 per halaman); median 134 menit dari 10 PR (pembanding pemilik 160); run main merah 0.
+
+## Perlu dicek pemilik, halaman 4.15–4.18 (2026-10-30)
+
+- Naskah vs kode/dokumentasi: ADR 38 'server tidak menyangga setiap file' hanya sebagian benar (periksaObjek membaca tiap objek); naskah M35 app Budi mencatat 'Toko Sumber Rejeki' padahal stiker sah menghasilkan nama pemilik stiker (Toko Andalan), 'pelaku menghitung CRC' hanya untuk payload dipalsukan, '8.562 dari 8.562' hanya payload tes Go (Bandung) dengan 63 karakter pilihan, asal nama di layar versi pertama tak tertulis; naskah dan README lab Terraform v1.17.0 (kini v1.17.1, terbit 2026-10-28); naskah ADR 35 dan ADR 39 belum menyebut destroy; '±42 per jam' = rata-rata sehari penuh; unduh.txt B 'keempat percobaan' padahal lima (run.py baris 685); tooltip Merchant 'Tahap 1 sampai 3'.
+- Keputusan produk/teknis: 500 KB naskah lawan batas 1 MiB lab; retensi 30 hari Asumsi produk; penolakan peran/alasan tidak menulis audit_log; ukuran_kartu opsional (URL tanpa batas ukuran, 5 MiB diterima); bidang nomor identitas tak ada di PRD v4; file sah bisa ditimpa lewat presigned URL sampai URL habis dan isi asli hilang; kunci objek tidak unik dan file yatim tak disapu; penilaian 401/403/408/429 di breaker menentukan apakah M34 membuat pekerjaan mati atau menunggu; M34 pada 4 slot worker tak direkam (lab t4-infra bila diinginkan); dua hari kerja pendaftaran alamat dan 1.000 pendaftar per hari Asumsi naskah; data source Vault/OpenBao memasukkan nilai ke state [perlu verifikasi]; lama operator menulis secret baru belum diputuskan (±17 kabar batas bawah, Asumsi) dan apakah destroy cukup untuk rotasi karena kebocoran; pembacaan secret terakhir tanpa batas umur dan alert kegagalan beruntun; tinjauan hukum BSL belum ada; rekomendasi OpenBao pisah instance [perlu verifikasi]; jeda baca 30 detik Asumsi; penyedia layanan terkelola belum dipilih; PDF EMVCo QRCPS v1.1 (27 Nov 2020) hanya lewat formulir bersyarat: polinomial 0x1021 dan nilai awal 0xFFFF [perlu verifikasi]; dua Specification Bulletin EMVCo (SB 254, 23 Jun 2021; SB 270, 31 Mei 2022) belum dibaca.
+- Alat/lingkungan: pengecualian `berkas_x` di tools/audit_bahasa.py dipersempit ke file data dan diuji (#443); cache Playwright Chromium masih hilang (agen memakai Chrome sistem); widget bersama: pilah.js menjatuhkan fokus ke body dan wilayah status tiga kalimat (satu PR menutup 3.27, 4.2, 4.17), Tebak tanpa JS menampilkan empat tombol mati, banding lama tanpa role=status.
+
+## Ukur antrean merge, baris ERD4/widget Tahap 4 dan KONSISTENSI-4 (arsip 2026-10-30)
+
+| Halaman | PR | Menit dibuka → merge | Gabung main | Run main merah |
+| --- | --- | --- | --- | --- |
+| ERD4; W4-webhook, W4-breaker; KONSISTENSI-4 | #419; #425, #426; #427 | 116; 89, 221 (jeda limit #8 ±107 menit; kerja ±150); 201 (idem; kerja ±55) | 1; 1, 2; 0 | 0 |
