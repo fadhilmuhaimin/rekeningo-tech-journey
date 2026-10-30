@@ -1228,3 +1228,31 @@ describe("kalimat prosa tanpa angka tertaut ke dasarnya (tinjauan)", () => {
     }
   });
 });
+
+describe("kalimat pembuka tiap butir tertaut ke rekaman dan halaman asalnya, tanpa bergantung pada kunci baris (tinjauan)", () => {
+  test("butir 1, 2, 3, 5, 6, 9: pelaku, label, dan urutan kejadian dibaca dari sumbernya", () => {
+    // butir 1: kiriman kedua dua kali (kali: 2) dan kartu pertama menyebut dua kali
+    harus(rk("t4-webhook", "ganda.txt"), `"kali":2`);
+    expect(semua(bag(ganda, "A"), /^ (\d+) +\| karyawan +\| (\d+)$/)).toHaveLength(2);
+    harus(kartu[0]!.tanya, "gateway mengirim kabar yang sama dua kali, handler pertama menjurnal tiap kiriman");
+    harus(butir(1).pertama, "gateway mengirim kabar yang sama dua kali, dan handler pertama menjurnal tiap kiriman.");
+    // butir 2: rahasia dirotasi, api-t4 belum disamakan
+    harus(butir(2).pertama, "Di [[t4-m30]], gateway merotasi secret dan api-t4 masih memegang yang lama.");
+    harus(rk("t4-webhook", "retry.txt"), "M30: gateway merotasi rahasia, api-t4 belum disamakan");
+    // butir 3: sepuluh pendaftar, 50 permintaan, sepuluh pekerjaan mati
+    harus(butir(3).pertama, "Di [[t4-m31]], layanan verifikasi mati dan sepuluh pendaftar masuk: vendor menerima 50 permintaan, sepuluh pekerjaan mati");
+    harus(rk("t4-integrasi", "lajur.txt"), "# vendor mati: 50 permintaan masuk, 0 objek dibuat");
+    harus(rk("t4-integrasi", "lajur.txt"), "vendor mati, 10 pendaftar masuk, semua pekerjaan habis sebelum vendor pulih");
+    // butir 5: file di kolom bytea
+    harus(butir(5).pertama, "Di [[t4-m33]], foto kartu identitas disimpan di kolom `bytea`.");
+    harus(rk("t4-storage", "ukuran.txt"), "file di kolom bytea, satu database dengan data transaksi");
+    // butir 6: ADR 38 memindahkan unggahan ke penyimpanan objek lewat URL bertanda tangan
+    harus(butir(6).pertama, "Sebagai jawaban atas [[t4-m33]], ADR 38 memindahkan unggahan file ke penyimpanan objek lewat URL bertanda tangan.");
+    harus(fileHalaman("t4-storage"), "unggah lewat presigned PUT 5 menit");
+    harus(fileHalaman("t4-storage"), "Presigned URL adalah alamat di penyimpanan objek yang sudah ditandatangani server.");
+    // butir 9: kejadian M36 adalah cerita (Ilustrasi), dan jalur versi pertama hanya dibaca dari kode (Tidak dijalankan)
+    harus(butir(9).pertama, "(cerita, Ilustrasi). Sebabnya, server mengambil alamat yang diisi merchant dengan akses jaringan miliknya (Tidak dijalankan).");
+    harus(fileHalaman("t4-m36"), "*Angka cerita (Ilustrasi):*");
+    harus(fileHalaman("t4-m36"), "Teks itu lalu ikut dikirim kembali ke merchant (dibaca dari kode di blok berikutnya, Tidak dijalankan).");
+  });
+});
