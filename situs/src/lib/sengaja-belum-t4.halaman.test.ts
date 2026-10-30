@@ -34,6 +34,9 @@ const kodeLatensi = baca("labs/api-t4/internal/handler/latensi_ledger_test.go").
 const kodeMain = baca("labs/api-t4/cmd/api/main.go").split("\n");
 const kodeOidc = baca("labs/b5-2-oidc/main.go");
 const tanpaKunci = process.env.TANPA_KUNCI === "1";
+// Nama yang dipindai di lab dan nama yang ditulis halaman diturunkan dari dua regex ini (tertulis = dipindai).
+const DITUNDA = /pgbouncer|kafka|debezium|kubectl|kubernetes|\bk3s\b|\bhelm\b|istio|linkerd|grpc|protobuf|temporal|hot_standby|primary_conninfo|pg_basebackup|walsender|replication slot|wal_level/i;
+const API_SAJA = /\bbff\b|oidc|oauth|pkce|sosial/i;
 
 interface H { id: string; judul: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; adr?: number[]; peran?: string[]; path?: string }
 const hal = registry.halaman as unknown as H[];
@@ -318,14 +321,19 @@ describe("rekaman, kontrak, dan kode lab yang dikutip halaman", () => {
     expect(semuaBerkas.length).toBeGreaterThan(80);
     expect(apiBerkas.length).toBeGreaterThan(30);
     const hit = (daftar: string[], pola: RegExp): string[] => daftar.filter((f) => pola.test(fs.readFileSync(f, "utf8"))).map((f) => path.relative(akar, f));
-    const ditunda = /pgbouncer|kafka|debezium|kubectl|kubernetes|\bk3s\b|\bhelm\b|istio|linkerd|grpc|protobuf|temporal|hot_standby|primary_conninfo|pg_basebackup|walsender|replication slot|wal_level/i;
-    expect(hit(semuaBerkas, ditunda)).toEqual([]);
-    expect(hit(apiBerkas, /\bbff\b|oidc|oauth|pkce|sosial/i)).toEqual([]);
+    expect(hit(semuaBerkas, DITUNDA)).toEqual([]);
+    expect(hit(apiBerkas, API_SAJA)).toEqual([]);
+    const nama = (r: RegExp): string[] => r.source.split("|").map((x) => x.replace(/\\b/g, "")).sort();
+    const tertulis = (awal: string, akhir: string): string[] => {
+      const a = badan.indexOf(awal) + awal.length;
+      return badan.slice(a, badan.indexOf(akhir, a)).split(/, (?:atau )?| atau /).map((x) => x.replace(/`/g, "").trim()).sort();
+    };
+    expect(tertulis("Tes itu tidak menemukan nama ", ". Di `labs/api-t4`")).toEqual(nama(DITUNDA));
+    expect(tertulis("tes juga tidak menemukan ", ". Klaim ini hanya")).toEqual(nama(API_SAJA));
     // kontrol positif: pemindai membaca file, dan lingkup api-t4 bukan seluruh lab (oauth ada di go.mod server MCP t4-audit)
     expect(hit(semuaBerkas, /oauth/i)).toContain("labs/t4-audit/mcp/go.mod");
     expect(hit(apiBerkas, /postgres/i).length).toBeGreaterThan(5);
     for (const k of ["compose, `go.mod`, `go.sum`, Makefile, skrip Python, kode Go, SQL, dan YAML", "sebelas folder lab Tahap 4", "`api-t4` dan sepuluh `t4-*`", "di luar `output/`", "Klaim ini hanya untuk folder dan jenis file itu."]) expect(badan, k).toContain(k);
-    for (const n of ["pgbouncer", "kafka", "debezium", "kubectl", "kubernetes", "k3s", "helm", "istio", "linkerd", "grpc", "protobuf", "temporal", "`hot_standby`", "`primary_conninfo`", "`pg_basebackup`", "`walsender`", "`replication slot`", "`wal_level`", "bff", "oidc", "oauth", "pkce", "sosial"]) expect(badan, n).toContain(n);
   });
   test("klaim 'PRD v4 tidak memintanya' dan 'tak satu pun dari delapan diminta PRD v4': bagian PRD naskah tidak memuat satu pun nama", () => {
     const prd = naskah.slice(naskah.indexOf("## 1. PRD v4"), naskah.indexOf("## 2. Dari fitur"));
@@ -437,12 +445,17 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     expect(halaman).toContain("<Rantai data={intiDiagram} ringkas />");
     expect(halaman).toContain("<Tebak client:visible data={dataTebak} />");
     expect(halaman).toContain("<noscript>");
+    expect((halaman.match(/<details class="question">/g) ?? []).length).toBe(1);
+    expect((halaman.match(/<details class="success">/g) ?? []).length).toBe(3);
+    expect((halaman.match(/<summary>Jawaban<\/summary>/g) ?? []).length).toBe(3);
+    expect(halaman).toContain("<summary>Sudah tahu? Cek 3 pertanyaan</summary>");
   });
   test("tautan luar: tiap alamat ada di baris riset R4-250 sampai R4-254 atau di baris riset lama yang disebut, dengan tanggal buka 2026-10-31", () => {
     const tautan = [...badan.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((m) => m[1]!.replace(/^https:\/\//, "").replace(/#.*$/, "").replace(/\/$/, "").replace(/^www\./, ""));
     const ids = ["R4-250", "R4-251", "R4-252", "R4-253", "R4-254"];
     const sumber = ids.map(barisRiset).join("\n");
-    expect([...new Set(tautan)].filter((u) => !sumber.includes(u)).sort()).toEqual([]);
+    const esc = (x: string): string => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    expect([...new Set(tautan)].filter((u) => !new RegExp(`${esc(u)}/?(?![\\w./#-])`).test(sumber)).sort()).toEqual([]);
     expect(new Set(tautan).size).toBe(16);
     expect(tautan.length).toBe(21);
     expect(badan.match(/dibuka 2026-10-31/g) ?? []).toHaveLength(2);
@@ -610,7 +623,7 @@ describe("kasus industri Shopify dan klaim yang tidak melampaui sumber", () => {
 });
 
 // --- lapis 2: kunci per baris, sidik kata penentu, struktur, angka, dan label
-const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "atau", "dan", "kecuali", "hanya"];
+const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "atau", "dan", "kecuali", "saja", "baru", "masih", "kurang", "cukup", "ya"];
 const sidik = (teks: string, kata: string[]): Record<string, number> =>
   Object.fromEntries(kata.map((k) => [k, (teks.toLowerCase().match(new RegExp(`(?<![\\w-])${k}(?![\\w-])`, "g")) ?? []).length]));
 const nilaiString = (x: unknown, keluar: string[] = []): string[] => {
