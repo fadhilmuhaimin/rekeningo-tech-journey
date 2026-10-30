@@ -843,17 +843,19 @@ describe("tinjauan 4.19: rujukan bagian rekaman, kode ilustrasi yang dijalankan,
     expect(dB).toContain(`${diagram.baris[1]!.label} ini sudah dibayar`);
     expect(diagram.baris[0]!.label).toBe("Payload diganti");
     expect(diagram.baris.map((b) => b.simpul.length)).toEqual([3, 3]);
-    expect(istilah.mekanisme[0]).toContain("bernilai 11 untuk QR statis dan 12 untuk QR dinamis");
-    expect(istilah.jebakan[1]).toContain("Batas itu per pembayaran");
+    const sumber0 = istilah.sumber![0] as { riset: string; judul: string; url: string; catatan: string };
+    const sumber1 = istilah.sumber![1] as { judul: string; rekaman: string; catatan: string };
+    expect(istilah.mekanisme![0]).toContain("bernilai 11 untuk QR statis dan 12 untuk QR dinamis");
+    expect(istilah.jebakan![1]).toContain("Batas itu per pembayaran");
     expect(istilah.terkait).toEqual(["HMAC (hash-based message authentication code)", "Jurnal"]);
     const mc = "developer.mastercard.com/mastercard-checkout-solutions/documentation/use-cases/sqr/generate-qr-codes/sqr-generate-qr/";
-    expect(istilah.sumber[0]!.url).toBe(`https://${mc}`);
-    expect(istilah.sumber[0]!.riset).toBe("R4-101");
+    expect(sumber0.url).toBe(`https://${mc}`);
+    expect(sumber0.riset).toBe("R4-101");
     expect(barisRiset("R4-101")).toContain(`${mc}, dibuka 2026-10-26`);
-    expect(istilah.sumber[0]!.judul).toContain("dibuka 2026-10-26");
-    expect(istilah.sumber[1]!.rekaman).toBe("labs/t4-qr/output/dinamis.txt");
-    expect(istilah.cerita[0]!.rujukan).toBe(dari("t4-qr").id);
-    expect(istilah.cerita[0]!.teks).toContain(`dijawab ${cocok(dB, /HTTP\/1\.1 (409) Conflict/)[1]} untuk pembayaran kedua`);
+    expect(sumber0.judul).toContain("dibuka 2026-10-26");
+    expect(sumber1.rekaman).toBe("labs/t4-qr/output/dinamis.txt");
+    expect(istilah.cerita![0]!.rujukan).toBe(dari("t4-qr").id);
+    expect(istilah.cerita![0]!.teks).toContain(`dijawab ${cocok(dB, /HTTP\/1\.1 (409) Conflict/)[1]} untuk pembayaran kedua`);
   });
   test("setiap tautan luar di halaman ada di baris riset (nama host dan path), dan Hitungan 300 detik ÷ 60 = 5 menit ada di baris riset", () => {
     const luar = [...badan.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((m) => m[1]!).filter((u) => !u.includes("/cara-pakai"));
