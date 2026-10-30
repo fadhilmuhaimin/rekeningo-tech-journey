@@ -312,7 +312,7 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
     const r = DataRantai.parse(rantaiMentah);
     expect(r.baris.map((b) => [b.label, b.sub, b.simpul.map((s) => [s.teks, s.nada])])).toEqual([
       ["Hanya IsPrivate", "metode bawaan Go", [[`${terlarang.length} alamat terlarang`, "biasa"], [`${terlarang.filter((b) => b.priv === "ya").length} ditolak`, "biasa"], [`${nTolak[3]} lolos`, "warn"]]],
-      ["Saat dihubungi", "daftar alamat lengkap", [[`${nTolak[1]} alamat terlarang`, "biasa"], [`${nTolak[1]} ditolak`, "good"], [`${kontrol.length} alamat publik lolos`, "good"]]],
+      ["Saat dihubungi", "pemeriksaan alamat fetcher", [[`${nTolak[1]} alamat terlarang`, "biasa"], [`${nTolak[1]} ditolak`, "good"], [`${kontrol.length} alamat publik lolos`, "good"]]],
     ]);
     expect(r.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab t4-ssrf, alamat.txt" });
     expect(halaman.indexOf("Hitungan")).toBe(halaman.indexOf("Itu Hitungan, yaitu hasil rumus dari angka yang tertulis di halaman ini") + "Itu ".length);
@@ -395,7 +395,7 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
     harus("Batas header jawaban 64 KiB adalah Asumsi lab: header gambar yang sehat jauh di bawahnya.");
     harus('Jawaban 200 berisi JSON layanan dalam dijawab "bukan gambar", dan jawaban 403, 404, dan 500 dijawab "gambar tidak bisa diunduh".');
     harus('Delapan penolakan karena alamat literal memakai satu pesan, "tujuan tidak diizinkan"');
-    harus("Versi pertama sebaliknya: pesan kesalahannya memuat sampai 200 byte pertama isi respons. Hasil tiap baris impor punya tiga field, yaitu nama, pratinjau, dan galat, dan pesan itu disimpan di galat (`katalog_impor.go`).");
+    harus("Versi pertama sebaliknya: pesan galatnya memuat sampai 200 byte pertama isi respons. Hasil tiap baris impor punya tiga field, yaitu nama, pratinjau, dan galat, dan pesan itu disimpan di galat (`katalog_impor.go`).");
     expect([...kodeImpor.slice(kodeImpor.indexOf("type HasilImpor struct"), kodeImpor.indexOf("}", kodeImpor.indexOf("type HasilImpor struct"))).matchAll(/^\t(\w+)\s+\S+\s+`json:"(\w+)"`/gm)].map((x) => x[2])).toEqual(["nama", "pratinjau", "galat"]);
     harus('Nama yang diselesaikan ke alamat terlarang dijawab "tujuan tidak diizinkan", sedangkan nama yang tidak ada dijawab "tidak menjawab".');
     harus("Ini belum diperbaiki, dan tes menetapkan perilaku sekarang.");
@@ -472,7 +472,10 @@ describe("ssrf.mdx: tiap angka turunan dari rekaman, kode, naskah, dan RISET", (
     harus("runtime Edge Functions berbasis Deno, dengan fungsi dibundel dalam format ESZip.");
     harus("`fetch` adalah implementasi yang kompatibel dengan browser dan berbasis undici.");
     harus("MDN menulis bahwa mode redirect `Request` bawaannya `follow`, dengan pilihan `error` dan `manual`.");
-    harus("opsi `lookup` di `socket.connect`, bawaannya `dns.lookup()`.");
+    harus("Kedua `blockList` di `new net.Socket(options)`, yang menurut dokumentasinya dapat menutup akses keluar ke alamat, rentang, atau subnet tertentu.");
+    harus("Pertama `lookup` di `socket.connect`, bawaannya `dns.lookup()`.");
+    expect(baris("R4-214")).toContain("blockList");
+    expect(baris("R4-214")).toContain("disabling outbound access to specific IP addresses, IP ranges, or IP subnets");
     for (const kata of ["Guzzle", "allow_redirects", "followRedirects", "ESZip", "undici", "kecuali HEAD", "tidak mengikuti redirect secara bawaan", "lookup"]) {
       expect(baris("R4-214").toLowerCase(), kata).toContain(kata.toLowerCase());
     }
@@ -534,7 +537,8 @@ describe("ADR 41: tabel opsi, delapan aturan, kasus industri, pre-mortem, kapan 
     harus("- **B ditolak** karena yang diperiksa teks, bukan tujuan.");
     harus("- **C ditolak** karena impor katalog ratusan produk menjadi unggahan satu per satu (Asumsi naskah). Opsi ini kembali bila fitur impor URL jarang dipakai.");
     harus("- **D juga daftar blokir.** Bedanya, daftar itu dipakai pada alamat yang dihubungi, dan diuji dari dua sisi tepi tiap blok.");
-    harus("OWASP memakai pendekatan itu untuk kasus tanpa allowlist, dan tetap menyebut daftar blokir rawan dilewati.");
+    harus("OWASP memakai pendekatan itu untuk kasus tanpa allowlist, memberinya bagian bernama Deny-list (Last Resort), dan menulis bahwa daftar blokir rawan dilewati.");
+    expect(baris("R4-210")).toContain("Deny-list (Last Resort)");
     harus("**Kasus industri: IMDSv2.** Tulisan AWS Security Blog tertanggal 2019-11-19 menjelaskan bahwa IMDSv2 memulai sesi dengan permintaan PUT, mengembalikan token, dan meminta token itu di permintaan berikutnya.");
     harus("Layanan itu juga tidak memberi token kepada pemanggil yang membawa header `X-Forwarded-For`");
     harus("Batasnya: itu tulisan vendor tentang layanannya sendiri, untuk satu layanan metadata, tanpa angka kerugian.");
@@ -558,6 +562,8 @@ describe("ADR 41: tabel opsi, delapan aturan, kasus industri, pre-mortem, kapan 
     expect(salah).toContain(`${titik(batasRentan / 1024)} KiB`.slice(0, 0));
     expect(salah).toContain("Bawaan `http.Transport` menerima header sampai 10 MiB (kode go1.27.1, dibaca dari README lab)");
     expect(salah).toContain("Memori sebenarnya tidak diukur.");
+    expect(salah).toContain("Pembanding untuk 21 detik, yaitu waktu paling lama yang masih diterima satu request impor, belum ditentukan di halaman ini.");
+    expect(salah).not.toContain("Di atas itu");
     expect(salah).toContain("Gambar sah ditolak dengan \"tidak menjawab\", dan frekuensinya tidak diukur lab.");
     expect(salah).toContain("Awalan itu tidak bisa didaftar di kode, dan penempatan jaringan menjadi satu-satunya penutup (Tidak dijalankan).");
     expect((halaman.match(/usul penulis|penalaran penulis|penilaian penulis/g) ?? []).length).toBe(JumlahPenulis);
@@ -707,7 +713,7 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
     expect(new Set(tujuanRedirect).size).toBe(1);
     expect(tanya[2]![1]).toBe(`Gambar sah berukuran ${titik(batasUkuran)} byte dan gambar lain ${titik(batasUkuran + 1)} byte. Mana yang diterima?`);
     expect(tanya[2]![2]).toBe(`${titik(batasUkuran)} byte, yaitu tepat 2 MiB, diterima. ${titik(batasUkuran + 1)} byte ditolak "terlalu besar" (\`batas.txt\`, bagian batas 2 MiB).`);
-    expect(tanya[3]![2]).toBe("Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil sebelum koneksi benar-benar dibuat dengan alamat yang akan dihubungi (dokumentasi Go).");
+    expect(tanya[3]![2]).toBe("Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil dengan alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi (dokumentasi Go).");
   });
   test("daftar review kode AI: enam butir dan tiap butir punya padanan di halaman", () => {
     const b = halaman.slice(halaman.indexOf("### Saat me-review kode AI"), halaman.indexOf("### Bacaan lanjut"));
@@ -722,7 +728,7 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
     expect(istilah.cerita).toHaveLength(1);
     expect(istilah.cerita[0]!.rujukan).toBe("t4-ssrf");
     expect(istilah.cerita[0]!.teks).toBe(`Fetcher gambar versi aman menolak ${nTolak[1]} dari ${nTolak[2]} alamat terlarang. Bila \`IsPrivate\` satu-satunya pemeriksaan, ${nTolak[3]} dari ${nTolak[2]} lolos (\`alamat.txt\`).`);
-    expect(istilah.mekanisme[3]).toBe(`Pemeriksaan yang menentukan berjalan pada alamat yang akan dihubungi, sebelum koneksi dibuat. Di lab, ${kodeRedirect.length === 7 ? "tujuh" : "?"} kode 3xx ditolak dan server tujuan redirect tidak tersentuh (\`batas.txt\`).`);
+    expect(istilah.mekanisme[3]).toBe(`Pemeriksaan yang menentukan berjalan pada alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi. Di lab, ${kodeRedirect.length === 7 ? "tujuh" : "?"} kode 3xx ditolak dan server tujuan redirect tidak tersentuh (\`batas.txt\`).`);
     expect(istilah.jebakan[1]).toBe(`Memakai \`IsPrivate\` Go sebagai satu-satunya pemeriksaan. Di lab, ${nTolak[3]} dari ${nTolak[2]} alamat terlarang lolos (\`alamat.txt\`).`);
     expect(istilah.jebakan[2]).toContain("sampai 10 permintaan berturut-turut");
     expect(istilah.terkait).toEqual(["Allowlist", "Deny-list"]);

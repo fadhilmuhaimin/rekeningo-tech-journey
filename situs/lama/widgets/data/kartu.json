@@ -3053,7 +3053,7 @@
   "judul": "4.21 Keamanan 8: SSRF + ADR 41",
   "url": "tahap-4/ssrf/",
   "tanya": "Kenapa memeriksa teks URL seperti `localhost` tidak menutup SSRF, dan di mana pemeriksaan seharusnya berjalan?",
-  "jawab": "Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil sebelum koneksi benar-benar dibuat dengan alamat yang akan dihubungi (dokumentasi Go)."
+  "jawab": "Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil dengan alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi (dokumentasi Go)."
  },
  {
   "id": "B11-1",

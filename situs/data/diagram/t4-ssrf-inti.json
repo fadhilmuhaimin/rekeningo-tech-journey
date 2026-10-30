@@ -27,7 +27,7 @@
     },
     {
       "label": "Saat dihubungi",
-      "sub": "daftar alamat lengkap",
+      "sub": "pemeriksaan alamat fetcher",
       "simpul": [
         {
           "teks": "32 alamat terlarang",
@@ -35,7 +35,7 @@
         },
         {
           "teks": "32 ditolak",
-          "sub": "oleh daftar alamat",
+          "sub": "oleh pemeriksaan alamat",
           "nada": "good"
         },
         {

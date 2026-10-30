@@ -51,7 +51,7 @@ Fungsi di bawah adalah versi pertama minggu 9 yang dipakai [[t4-m36]], tanpa kom
 
 Baris lain wajar sebagai potongan kode, termasuk yang tampak berbahaya: batas waktu, batas ukuran, dan pembacaan tipe isi. Ketiganya tidak menentukan alamat mana yang dihubungi.
 
-**Ubah satu hal:** tekan Lihat versi benar sesudah memeriksa. Baris pemeriksaan teks hilang, dan pemeriksaan pindah ke `ControlContext`, yang dipanggil dengan alamat yang akan dihubungi sebelum koneksi benar-benar dibuat.
+**Ubah satu hal:** tekan Lihat versi benar sesudah memeriksa. Baris pemeriksaan teks hilang, dan pemeriksaan pindah ke `ControlContext`, yang dipanggil dengan alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi.
 
 </Blok>
 
@@ -133,7 +133,7 @@ Batas 2 MiB berlaku untuk byte sesudah dekompresi (`batas.txt`, bagian jawaban g
 
 <Snippet file="labs/api-t4/internal/unduh/unduh.go" region="batas-ukuran" lang="go" title="labs/api-t4/internal/unduh/unduh.go (batas ukuran)" />
 
-**Pesan galat tidak membawa isi respons.** Jawaban 200 berisi JSON layanan dalam dijawab "bukan gambar", dan jawaban 403, 404, dan 500 dijawab "gambar tidak bisa diunduh". Delapan penolakan karena alamat literal memakai satu pesan, "tujuan tidak diizinkan" (`batas.txt`, bagian pesan galat). Versi pertama sebaliknya: pesan kesalahannya memuat sampai 200 byte pertama isi respons. Hasil tiap baris impor punya tiga field, yaitu nama, pratinjau, dan galat, dan pesan itu disimpan di galat (`katalog_impor.go`).
+**Pesan galat tidak membawa isi respons.** Jawaban 200 berisi JSON layanan dalam dijawab "bukan gambar", dan jawaban 403, 404, dan 500 dijawab "gambar tidak bisa diunduh". Delapan penolakan karena alamat literal memakai satu pesan, "tujuan tidak diizinkan" (`batas.txt`, bagian pesan galat). Versi pertama sebaliknya: pesan galatnya memuat sampai 200 byte pertama isi respons. Hasil tiap baris impor punya tiga field, yaitu nama, pratinjau, dan galat, dan pesan itu disimpan di galat (`katalog_impor.go`).
 
 Satu batas belum tertutup. Nama yang diselesaikan ke alamat terlarang dijawab "tujuan tidak diizinkan", sedangkan nama yang tidak ada dijawab "tidak menjawab". Pemanggil yang mencoba banyak nama bisa membedakan nama dalam yang ada dari yang tidak (`batas.txt`, bagian batas yang belum tertutup). Ini belum diperbaiki, dan tes menetapkan perilaku sekarang.
 
@@ -163,7 +163,9 @@ Tab Go dijalankan di lab. Tab lain Tidak dijalankan, dan hanya dicek ke dokument
 
 *Tidak dijalankan. Dicek ke dokumentasi Node.js v26.13.0 ([fetch](https://nodejs.org/api/globals.html#fetch) dan [net](https://nodejs.org/api/net.html)) dan [MDN: Request.redirect](https://developer.mozilla.org/en-US/docs/Web/API/Request/redirect), dibuka 2026-10-30.*
 
-**Yang berbeda di stack ini:** `fetch` adalah implementasi yang kompatibel dengan browser dan berbasis undici. MDN menulis bahwa mode redirect `Request` bawaannya `follow`, dengan pilihan `error` dan `manual`. Titik periksa alamat yang disebut dokumentasi `net` adalah opsi `lookup` di `socket.connect`, bawaannya `dns.lookup()`. Apakah `lookup` dipanggil untuk alamat yang ditulis langsung, dan apakah ia setara `ControlContext`: [perlu verifikasi].
+**Yang berbeda di stack ini:** `fetch` adalah implementasi yang kompatibel dengan browser dan berbasis undici. MDN menulis bahwa mode redirect `Request` bawaannya `follow`, dengan pilihan `error` dan `manual`.
+
+Dokumentasi `net` menyebut dua opsi yang menyentuh alamat tujuan. Pertama `lookup` di `socket.connect`, bawaannya `dns.lookup()`. Kedua `blockList` di `new net.Socket(options)`, yang menurut dokumentasinya dapat menutup akses keluar ke alamat, rentang, atau subnet tertentu. Apakah `fetch` meneruskan salah satunya, apakah `lookup` dipanggil untuk alamat literal, dan apakah salah satunya setara `ControlContext`: [perlu verifikasi].
 
 </Fragment>
 <Fragment slot="t2">
@@ -230,7 +232,7 @@ Tab Go dijalankan di lab. Tab lain Tidak dijalankan, dan hanya dicek ke dokument
 - **A ditolak** karena merchant bebas memilih domain. OWASP menulis bahwa allowlist tidak bisa dipakai bila daftar tujuan tidak diketahui di muka.
 - **B ditolak** karena yang diperiksa teks, bukan tujuan. Pemeriksaan yang sama dilewati bentuk alamat lain dan tidak berlaku untuk tujuan redirect.
 - **C ditolak** karena impor katalog ratusan produk menjadi unggahan satu per satu (Asumsi naskah). Opsi ini kembali bila fitur impor URL jarang dipakai.
-- **D juga daftar blokir.** Bedanya, daftar itu dipakai pada alamat yang dihubungi, dan diuji dari dua sisi tepi tiap blok. OWASP memakai pendekatan itu untuk kasus tanpa allowlist, dan tetap menyebut daftar blokir rawan dilewati. Sejarah daftar di lab menunjukkan alasannya: kode lama menolak 24 dari 32 alamat, dan 13 dari 19 alamat berzona lolos (README lab, Tidak dijalankan di halaman ini).
+- **D juga daftar blokir.** Bedanya, daftar itu dipakai pada alamat yang dihubungi, dan diuji dari dua sisi tepi tiap blok. OWASP memakai pendekatan itu untuk kasus tanpa allowlist, memberinya bagian bernama Deny-list (Last Resort), dan menulis bahwa daftar blokir rawan dilewati. Sejarah daftar di lab menunjukkan alasannya: kode lama menolak 24 dari 32 alamat, dan 13 dari 19 alamat berzona lolos (README lab, Tidak dijalankan di halaman ini).
 
 **Kasus industri: IMDSv2.** Tulisan AWS Security Blog tertanggal 2019-11-19 menjelaskan bahwa IMDSv2 memulai sesi dengan permintaan PUT, mengembalikan token, dan meminta token itu di permintaan berikutnya. Layanan itu juga tidak memberi token kepada pemanggil yang membawa header `X-Forwarded-For` ([AWS Security Blog](https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service/), dibuka 2026-10-30).
 
@@ -244,7 +246,7 @@ Batasnya: itu tulisan vendor tentang layanannya sendiri, untuk satu layanan meta
 
 **Kapan keputusan ini salah.**
 
-- Saat satu impor 50 produk (Asumsi lab) membawa gambar yang semuanya menggantung sampai batas. Dengan 8 unduhan serentak, 50 ÷ 8 = 6,25 menjadi 7 gelombang, dan 7 × 3 detik = 21 detik dalam satu request (Hitungan atas Asumsi lab). Di atas itu, unduhan pindah ke queue, dan itu Tidak dijalankan di lab.
+- Saat satu impor 50 produk (Asumsi lab) membawa gambar yang semuanya menggantung sampai batas. Dengan 8 unduhan serentak, 50 ÷ 8 = 6,25 menjadi 7 gelombang, dan 7 × 3 detik = 21 detik dalam satu request (Hitungan atas Asumsi lab). Pembanding untuk 21 detik, yaitu waktu paling lama yang masih diterima satu request impor, belum ditentukan di halaman ini. Bila 21 detik tidak bisa diterima, unduhan pindah ke queue, dan itu Tidak dijalankan di lab.
 - Saat header jawaban tidak dibatasi. Bawaan `http.Transport` menerima header sampai 10 MiB (kode go1.27.1, dibaca dari README lab), jadi 8 × 10 MiB = 80 MiB dalam satu impor. Dengan batas 64 KiB, 8 × 64 KiB = 512 KiB (Hitungan atas Asumsi lab). Memori sebenarnya tidak diukur.
 - Saat server merchant yang sah sering lebih lambat dari 3 detik. Gambar sah ditolak dengan "tidak menjawab", dan frekuensinya tidak diukur lab.
 - Saat fitur impor URL jarang dipakai. Opsi C lebih aman dan lebih ringan dipelihara.
@@ -300,7 +302,7 @@ Ditolak dengan "tujuan tidak diizinkan" untuk ketujuh kode 3xx yang diuji, dan s
 <details class="success">
 <summary>Jawaban</summary>
 
-Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil sebelum koneksi benar-benar dibuat dengan alamat yang akan dihubungi (dokumentasi Go).
+Yang dihubungi server adalah alamat hasil resolusi nama, bukan teks URL. Pemeriksaan berjalan di `ControlContext`, yang dipanggil dengan alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi (dokumentasi Go).
 
 </details>
 

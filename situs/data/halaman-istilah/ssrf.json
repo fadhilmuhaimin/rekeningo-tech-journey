@@ -11,7 +11,7 @@
     "Server menerima alamat dari pihak luar, misalnya URL gambar di katalog merchant.",
     "Server mengunduh alamat itu dengan hak jaringan server, termasuk alamat jaringan dalam yang tidak terlihat dari luar.",
     "Pemeriksaan teks URL tidak mencakup tujuan sebenarnya, karena satu alamat punya beberapa penulisan dan satu nama bisa menunjuk ke alamat dalam.",
-    "Pemeriksaan yang menentukan berjalan pada alamat yang akan dihubungi, sebelum koneksi dibuat. Di lab, tujuh kode 3xx ditolak dan server tujuan redirect tidak tersentuh (`batas.txt`)."
+    "Pemeriksaan yang menentukan berjalan pada alamat yang akan dihubungi, sebelum alamat itu benar-benar dihubungi. Di lab, tujuh kode 3xx ditolak dan server tujuan redirect tidak tersentuh (`batas.txt`)."
   ],
   "stack": null,
   "jebakan": [

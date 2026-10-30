@@ -45,7 +45,7 @@
   "alasan": {
     "1": "Yang diperiksa adalah teks URL, bukan alamat yang dihubungi. Satu alamat punya beberapa penulisan, dan satu nama bisa menunjuk ke alamat dalam, jadi daftar kata tidak mencakup tujuan sebenarnya. OWASP menyebut deny-list rawan dilewati. Satu tes unit api-t4 lulus dan memastikan versi ini meloloskan bentuk lain sedangkan versi aman menolaknya (testing.txt, tanpa rekaman tingkat endpoint). Bentuk yang lolos bergantung resolver platform, jadi halaman ini tidak menyalinnya.",
     "10": "Client bawaan Go berhenti sesudah 10 permintaan berturut-turut, jadi redirect diikuti. Pemeriksaan teks di baris 2 tidak diulang untuk tujuan redirect, dan tidak ada yang memeriksa alamat yang benar-benar dihubungi. Di tes unit api-t4 yang lulus, server dalam tersentuh tepat 1 kali lewat redirect (dibaca dari kode tes).",
-    "25": "Pesan kesalahan memuat sampai 200 byte pertama isi respons. Pesan itu sampai ke merchant lewat field galat di hasil tiap baris impor, bersama nama dan pratinjau. Satu tes unit api-t4 lulus dan memastikan isi layanan dalam muncul di pesan (dibaca dari kode tes, tanpa rekaman tingkat endpoint)."
+    "25": "Pesan galat memuat sampai 200 byte pertama isi respons. Pesan itu sampai ke merchant lewat field galat di hasil tiap baris impor, bersama nama dan pratinjau. Satu tes unit api-t4 lulus dan memastikan isi layanan dalam muncul di pesan (dibaca dari kode tes, tanpa rekaman tingkat endpoint)."
   },
   "aman": {
     "4": "Batas waktu ada, tetapi 10 detik, bukan 3 detik seperti di ADR 41. Batas ini membatasi lamanya unduhan, bukan tujuannya, jadi ia bukan sumber masalah ini.",
