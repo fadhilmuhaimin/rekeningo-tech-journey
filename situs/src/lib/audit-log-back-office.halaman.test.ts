@@ -909,7 +909,9 @@ describe("Cek diri, kartu, halaman istilah, glosarium, dan baris RISET", () => {
     const posisi = ids.map((id) => semuaId.indexOf(id));
     expect(posisi).toEqual([posisi[0]!, posisi[0]! + 1, posisi[0]! + 2, posisi[0]! + 3, posisi[0]! + 4]);
     expect(posisi[0]).toBeGreaterThan(semuaId.indexOf("R4-214"));
-    expect(semuaId[posisi[4]! + 1]).toBe("R4-300");
+    // baris sesudah R4-234 milik halaman lain (R4-235 dan seterusnya) dan sebelum R4-300: urutan ID naik, bukan harus langsung R4-300
+    expect(Number(semuaId[posisi[4]! + 1]!.slice(3))).toBeGreaterThan(234);
+    expect(semuaId.indexOf("R4-234")).toBeLessThan(semuaId.indexOf("R4-300"));
     for (const id of ids) {
       const b = barisRiset(id);
       expect(b.split(" | ").length, id).toBeGreaterThanOrEqual(5);
