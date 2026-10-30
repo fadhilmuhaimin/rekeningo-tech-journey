@@ -83,7 +83,7 @@ Rata-rata sehari untuk transaksi uang adalah 0,694 per detik dan untuk top-up 0,
 
 Top-up punya satu tambahan. Gateway mengulang kiriman yang gagal sampai kiriman ke-6. Bila semua kiriman gagal, λ menjadi 6 × 0,579 = 3,47 per detik (Hitungan atas jadwal tiruan, Asumsi). Dari kelas baru di PRD v4, registry hanya memuat unggahan per hari dan ukuran file; angka kelas lain adalah Asumsi naskah.
 
-**3. Bandingkan tiap hasil dengan batas komponennya.** Kapasitas bukan request per detik. Worker punya kapasitas c ÷ t. Di sini c = 4 pengirim serentak dan t = 0,3 detik per pengiriman. Jadi 4 ÷ 0,3 = 13,33 per detik (Asumsi dari Tahap 3).
+**3. Bandingkan tiap hasil dengan batas komponennya.** Kapasitas bukan request per detik. Worker punya kapasitas c ÷ t, dengan c = 4 pengirim serentak dan t = 0,3 detik per pengiriman. Jadi 4 ÷ 0,3 = 13,33 per detik (Asumsi dari Tahap 3).
 
 [Rekaman lab](/cara-pakai/#label-sumber) api-t4 (`beban.txt` bagian B) menguras 100 pesan promo dari outbox dengan satu worker dan push tiruan 300 ms. Laju terukurnya dalam 15% dari 13,3 per detik; nilainya tidak direkam. Itu batas pada satu mesin, bukan kapasitas produksi.
 
@@ -102,7 +102,7 @@ Bila laju sebenarnya 15% di bawah 13,33, yaitu 11,33 per detik, pemakaiannya nai
 
 Koneksi database: 2 × 10 + 2 × 5 + 4 + 3 + 3 = 40 dari 100. Suku 2 × 10 adalah dua instance monolith dengan pool 10 koneksi; 2 × 5 adalah dua instance service pembayaran dengan pool 5 (Asumsi desain).
 
-Suku 4 adalah worker, 3 koneksi admin, dan 3 cadangan superuser (`superuser_reserved_connections`). Angka 100 adalah `max_connections` bawaan. Tahap 3 memakai 2 × 10 + 4 + 3 + 3 = 30 ([[t3-pool]]).
+Suku 4 adalah worker, 3 koneksi admin, dan 3 cadangan superuser (`superuser_reserved_connections`). Angka 100 adalah nilai `max_connections` bawaan yang biasa. Tahap 3 memakai 2 × 10 + 4 + 3 + 3 = 30 ([[t3-pool]]).
 
 Menjumlah tanpa cadangan superuser memberi 37, bukan 40. Lab api-t4 hanya menjalankan satu proses dengan pool 10, jadi angka 40 tidak diukur: itu Hitungan atas Asumsi desain.
 
@@ -169,7 +169,7 @@ Laporan merchant real-time, cicilan, dan API publik belum punya λ atau W, jadi 
 
 **8. Yang tidak dijawab estimasi.** Tiga pertanyaan tetap terbuka sesudah semua hitungan di atas.
 
-1. *Berapa request per detik yang sanggup dilayani satu server?* Tidak terjawab. Load test kapasitas di server sungguhan Tidak dijalankan, dan rekaman beban api-t4 hanya memeriksa batas di laptop, seperti dijelaskan di bawah daftar ini.
+1. *Berapa request per detik yang sanggup dilayani satu server?* Tidak terjawab. Buku SRE Google menyebut "queries per second" sering menjadi ukuran kapasitas yang buruk, karena biaya tiap query berbeda dan bisa berubah. Load test kapasitas di server sungguhan Tidak dijalankan, dan rekaman beban api-t4 hanya memeriksa batas di laptop, seperti dijelaskan di bawah daftar ini.
 2. *Berapa lama gateway dan vendor menjawab?* Keduanya tiruan lokal, jadi 0,3, 2, 3, 15, dan 30 detik adalah Asumsi.
 3. *Bagaimana tim yang lebih besar mengubah satu codebase?* Tim Tahap 4 berjumlah 13 orang: 5 + 4 + 4 (Asumsi naskah). Tidak ada rumus di halaman ini yang memuat koordinasi, dan ambang ±50 developer di [[t4-modul]] hanya heuristik [perlu verifikasi].
 
