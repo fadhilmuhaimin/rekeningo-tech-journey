@@ -1162,6 +1162,18 @@ describe("tinjauan: ambang, tingkat keparahan, pembagian PR dan rilis, dan label
     harus(`Di \`tanda-tangan.txt\` bagian C, tag \`2.0\` dipindah ke image lain sebelum cosign`);
     expect(ttC2).toContain("$ docker push 127.0.0.1:18295/api-t4-ci:2.0   # pihak lain memindahkan tag ke image lain");
   });
+  test("jawaban Cek diri 2 memakai bagian dan digest dari tanda-tangan.txt; kalimat Melos sama dengan baris riset; pipeline Tahap 3 tidak memuat langkah kompatibilitas", () => {
+    const bagianC = cocok(tanda, /# --- (C)\. Tag dipindah SEBELUM ditandatangani/)[1]!;
+    const hasilBuild = cocok(ttC2, /hasil build CI: <digest (\w)>/)[1]!;
+    const dalamTag = cocok(ttC2.slice(ttC2.indexOf("api-t4-ci:2.0\nVerification")), /tanda tangan memuat digest <digest (\w)>/)[1]!;
+    harus(`Di \`tanda-tangan.txt\` bagian ${bagianC}, verify atas tag lulus dan memuat digest ${dalamTag}, sedangkan build CI menghasilkan digest ${hasilBuild}.`);
+    harus("Dokumentasi Melos menulis bahwa penautan paket lokal di Dart ditangani pub workspaces, dan Melos dibangun di atasnya");
+    expect(barisRiset("R4-238")).toContain("'this part' = menautkan paket lokal, 'link local packages together'");
+    const barisPipelineT3 = hal327.split("\n").find((b) => b.startsWith("PROPOSAL menambah lima hal ke pipeline backend di Tahap 3."))!;
+    expect(barisPipelineT3).toBeDefined();
+    expect(barisPipelineT3).not.toMatch(/contract|kontrak|kompatibilitas|SAST|gosec|govulncheck|SBOM|cosign/i);
+    harus("dua kejadian menunjukkan pipeline Tahap 3 tidak memeriksa kompatibilitas lintas modul dan kunci produksi sebelum rilis.");
+  });
   test("oasdiff breaking menerima dua file kontrak (sebelum dan sesudah), dan kalimat penjelas memakai bilangan itu", () => {
     const perintah = [...kontrak.matchAll(/^\$ oasdiff breaking (\S+\.yaml) (\S+\.yaml)/gm)];
     expect(perintah.length).toBeGreaterThan(8);
