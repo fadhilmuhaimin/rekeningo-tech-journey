@@ -443,8 +443,8 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     const ids = ["R4-250", "R4-251", "R4-252", "R4-253", "R4-254"];
     const sumber = ids.map(barisRiset).join("\n");
     expect([...new Set(tautan)].filter((u) => !sumber.includes(u)).sort()).toEqual([]);
-    expect(new Set(tautan).size).toBe(15);
-    expect(tautan.length).toBe(20);
+    expect(new Set(tautan).size).toBe(16);
+    expect(tautan.length).toBe(21);
     expect(badan.match(/dibuka 2026-10-31/g) ?? []).toHaveLength(2);
     for (const id of ids) expect(barisRiset(id), id).toContain("2026-10-31");
     expect(badan).not.toMatch(/dibuka 2026-10-(?!31)/);
