@@ -21,7 +21,9 @@ Rekeningo menahan dana sebagai jurnal lebih dulu, baru menjawab setuju, karena p
 
 Otorisasi adalah pertanyaan penerbit kartu sebelum pembelian: "setujui Rp80.000 dari kartu ini?". Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `otorisasi.txt`, saldo Budi Rp100.000 dan dua otorisasi Rp80.000 datang bersamaan. Versi pertama menyetujui keduanya, dan ledger menolak penagihan kedua (bagian A dan B). Versi ADR 42 menahan Rp80.000 untuk otorisasi pertama, jadi yang kedua membaca Rp20.000 dan ditolak (bagian C).
 
-Hold adalah dana yang dipisahkan sementara dari saldo untuk satu otorisasi, dicatat sebagai jurnal ke buku sistem `dana_tertahan`. Clearing adalah penagihan yang datang kemudian, dan memindahkan dana itu ke buku `settlement_kartu`. Penerbit menunggu jawaban paling lama 2 detik, jadi `lock_timeout` 1 detik (batas waktu PostgreSQL untuk menunggu satu lock) menjaga jawaban sibuk keluar sebelum tenggat itu. Kill switch, sakelar yang menolak otorisasi baru tanpa deploy, melengkapinya.
+Hold adalah dana yang dipisahkan sementara dari saldo untuk satu otorisasi, dicatat sebagai jurnal ke buku sistem `dana_tertahan`. Clearing adalah penagihan yang datang kemudian, dan memindahkan dana itu ke buku `settlement_kartu`.
+
+Penerbit menunggu jawaban paling lama 2 detik. Jadi `lock_timeout` 1 detik, batas waktu PostgreSQL untuk menunggu satu lock, menjaga jawaban sibuk keluar sebelum tenggat itu bila satu lock terkunci. Kill switch, sakelar yang menolak otorisasi baru tanpa deploy, melengkapinya.
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -158,7 +160,11 @@ Keadaan pertama direkam. AUTH-P1 disetujui penerbit oleh timeout, Rekeningo tida
 
 <Snippet file="labs/t4-kartu/output/penerbit.txt" lines="9:21" title="Rekaman lab: labs/t4-kartu/output/penerbit.txt (bagian A)" />
 
-Keadaan kedua hanya sebagian. Penerbit tiruan tidak punya jaringan kartu, jadi lab memerankan penagihan dengan mengirim clearing atas otorisasi yang Rekeningo tolak. Jawabannya 409 tanpa jurnal, apa pun saldo pemiliknya. Penagihan Rp150.000 itu tidak punya penutup di ledger, dan apakah ia didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.
+Keadaan kedua hanya sebagian. Penerbit tiruan tidak punya jaringan kartu, jadi lab memerankan penagihan dengan mengirim clearing atas otorisasi yang Rekeningo tolak. Jawabannya 409 tanpa jurnal.
+
+Rekaman memakai saldo pemilik yang kurang dari jumlah penagihan. Kode `Clearing` menolak status `ditolak` sebelum membaca saldo, jadi saldo yang memadai pun tidak mengubahnya (dibaca dari kode, Tidak dijalankan).
+
+Penagihan Rp150.000 itu tidak punya penutup di ledger. Apakah ia didebit, ditolak, atau menjadi insiden bernomor adalah keputusan produk yang belum final.
 
 Rekonsiliasi kartu tetap perlu. Lab membandingkan catatan keputusan penerbit tiruan dengan `otorisasi_kartu` lewat SQL, dan menemukan AUTH-P1: setuju di penerbit, tidak ditahan di Rekeningo. Jobnya belum ada:
 
@@ -166,7 +172,7 @@ Rekonsiliasi kartu tetap perlu. Lab membandingkan catatan keputusan penerbit tir
 
 Sebaliknya, bila service pembayaran sudah menahan dana tetapi jawabannya datang sesudah tenggat, penerbit memutuskan tolak dan Rp60.000 tertahan untuk keputusan yang sudah tolak di sana. Tanpa reversal dari penerbit, hanya job kedaluwarsa sesudah 7 hari yang melepasnya (`penerbit.txt` bagian D).
 
-**Celah yang lab temukan.** Delapan hal tidak sesuai dengan kalimat "hold menutup M37":
+**Celah yang lab temukan.** Hold menutup M37, tetapi delapan hal lain tetap terbuka:
 
 1. `lock_timeout` berlaku per penantian, bukan per transaction. Dua penantian 0,6 detik lolos dengan jawaban setuju sesudah lebih dari 1 detik (`tenggat.txt` bagian E).
 2. Titik panas bukan hanya buku pemilik. Semua hold meng-UPDATE satu baris `dana_tertahan`, dan baris itu yang terkunci menolak pemilik lain (bagian E). Pada 0,116 otorisasi per detik (Asumsi) belum terukur sebagai masalah.

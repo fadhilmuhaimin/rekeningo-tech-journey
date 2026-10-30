@@ -531,6 +531,18 @@ describe("kalimat tentang kode diperiksa terhadap kode labs/api-t4", () => {
     harus("penanda boolean di memori satu proses");
     harus("Service pembayaran juga punya penanda sendiri di `labs/api-t4/cmd/pembayaran/main.go`");
   });
+  test("klaim penagihan: Clearing menolak status ditolak sebelum membaca saldo, jadi saldo cukup pun tidak mengubah 409", () => {
+    const c = wilayah(kodeKartu, "func (s Service) Clearing", "// --8<-- [end:clearing]");
+    urut(c, "ErrOtorisasiTidakAda", 'o.Status != "ditahan" && o.Status != "ditangkap"', "return ErrOtorisasiStatus", "KunciBukuAkun", "CatatJurnal");
+    expect(adaBaris(PB.B!.baris, "di sini saldo Kiki memang tidak cukup")).toBe(true);
+    harus("Rekaman memakai saldo pemilik yang kurang dari jumlah penagihan. Kode `Clearing` menolak status `ditolak` sebelum membaca saldo, jadi saldo yang memadai pun tidak mengubahnya (dibaca dari kode, Tidak dijalankan).");
+    harus("Jawabannya 409 tanpa jurnal.");
+  });
+  test("daftar celah: delapan butir bernomor, sama dengan kalimat pembukanya", () => {
+    const celah = halaman.slice(halaman.indexOf("**Celah yang lab temukan.**"), halaman.indexOf("</Blok>", halaman.indexOf("**Celah yang lab temukan.**")));
+    expect([...celah.matchAll(/^(\d+)\. /gm)].map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
+    expect(celah.startsWith("**Celah yang lab temukan.** Hold menutup M37, tetapi delapan hal lain tetap terbuka:")).toBe(true);
+  });
   test("klaim 'OpenFeature dan flagd tidak dipakai di lab': tidak ada di go.mod dan kode Go labs/api-t4", () => {
     const berkas: string[] = [];
     const telusur = (d: string): void => {
@@ -762,7 +774,7 @@ describe("halaman istilah hold dan kill-switch, glosarium, dan baris RISET R4-22
 });
 
 // ---- 9. kunci kalimat: lapis 2 -------------------------------------------------------------------
-const Label = { rekaman: 17, tidak: 16, asumsi: 15, hitungan: 6, penalaran: 3 };
+const Label = { rekaman: 17, tidak: 17, asumsi: 15, hitungan: 6, penalaran: 3 };
 describe("kunci kalimat: teks halaman, Rantai, tebakan, dan halaman istilah terkunci per baris (lapis 2)", () => {
   const tekstual = (x: unknown, keluar: string[] = []): string[] => {
     if (typeof x === "string") keluar.push(x);
