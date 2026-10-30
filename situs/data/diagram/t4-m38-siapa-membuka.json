@@ -1,0 +1,35 @@
+{
+  "id": "t4-m38-siapa-membuka",
+  "judul": "Yang direkam: tiga cara pertanyaan Pak Hadi tidak terjawab",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t4-audit · rantai.txt dan role.txt" },
+  "baris": [
+    {
+      "label": "Tanpa catatan",
+      "sub": "rantai.txt bagian A",
+      "simpul": [
+        { "teks": "Dina: 6 aksi", "sub": "disentuh" },
+        { "teks": "Catatan: 0 baris", "sub": "untuk Dina", "nada": "warn" },
+        { "teks": "Eko: 0 aksi", "sub": "0 baris juga" }
+      ]
+    },
+    {
+      "label": "Log biasa",
+      "sub": "rantai.txt bagian B",
+      "simpul": [
+        { "teks": "6 baris", "sub": "tercatat" },
+        { "teks": "Satu diubah, satu dihapus", "sub": "role aplikasi" },
+        { "teks": "5 baris", "sub": "pelaku baris 3 berganti", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Baca tabel langsung",
+      "sub": "role.txt bagian C",
+      "simpul": [
+        { "teks": "Role lab", "sub": "pemilik schema" },
+        { "teks": "Baca verifikasi", "sub": "1 pengajuan" },
+        { "teks": "Catatan: tetap", "sub": "tidak bertambah", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Pemilik data di rekaman adalah Dina (akun 40001), bukan Budi. Kotak oranye adalah akibat yang direkam."
+}

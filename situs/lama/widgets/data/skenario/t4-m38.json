@@ -1,0 +1,99 @@
+{
+  "versi": 2,
+  "judul": "Siapa yang membuka data Dina: tanpa catatan, log biasa, dan baca tabel langsung",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t4-audit/output/rantai.txt",
+    "fileVarian": "labs/t4-audit/output/rantai.txt",
+    "catatan": "Lab t4-audit, PostgreSQL 17.11, go1.27.1 (make -C labs/t4-audit run). Jalur utama: rantai.txt bagian A (tanpa catatan) dan bagian B (log biasa), lalu role.txt bagian C (baca tabel verifikasi sebagai role lab). Ubah satu hal: rantai.txt bagian C (log berantai). Pemilik data di rekaman adalah Dina (akun 40001), bukan Budi. Stafnya Ratih (akun 420) dan Tim Risk Dua (akun 421), masing-masing dengan akun sendiri. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
+  },
+  "pengantar": "Back office versi pertama diuji dengan enam aksi atas akun Dina. Tebak dulu apa yang bisa dibaca Pak Hadi sesudahnya, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "ptg", "label": "Staf risk (Ratih)" },
+    { "id": "bo", "label": "Back office" },
+    { "id": "cat", "label": "Catatan aksi" },
+    { "id": "eng", "label": "Engineer (role lab)" }
+  ],
+  "predict": {
+    "q": "Ratih menjalankan enam aksi atas akun Dina. Akun Eko tidak pernah dibuka siapa pun. Back office versi pertama tidak menulis catatan. Berapa baris yang ditemukan Pak Hadi untuk Dina dan untuk Eko?",
+    "options": [
+      "Enam baris untuk Dina dan nol untuk Eko, sama seperti bila semua aksi tercatat",
+      "Tiga baris untuk Dina, yaitu tiga aksi yang mengubah data, dan nol untuk Eko",
+      "Nol baris untuk Dina dan nol baris untuk Eko, jadi dua jawaban itu sama",
+      "Dua baris untuk Dina, yaitu dua aksi membaca, dan nol untuk Eko"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Mode bo-tanpa-audit tidak menulis catatan, jadi tabel audit_log kosong. Rekaman rantai.txt bagian A: enam aksi atas Dina menghasilkan nol baris, dan Eko yang tidak pernah disentuh juga nol baris."
+  },
+  "langkah": [
+    {
+      "dari": "ptg",
+      "ke": "bo",
+      "judul": "Enam aksi atas data Dina berjalan, catatan tidak bertambah",
+      "kirim": "# Enam aksi sudah terjadi: Ratih melihat akun, melihat pengajuan, membuka kartu identitas, membekukan, membuka, mengubah batas.\nSELECT count(*) AS baris_audit FROM audit_log: 0",
+      "jelas": "Versi pertama menjalankan semua aksi dan tidak menulis apa pun. Tabel audit_log tetap kosong.",
+      "nada": "warn"
+    },
+    {
+      "dari": "cat",
+      "judul": "Dina dan Eko dijawab sama: nol baris",
+      "kirim": "Dina (akun 40001), disentuh enam aksi: 0 baris\nEko (akun 40002), tidak pernah disentuh: 0 baris\n# 'Tidak ada catatan' sama nilainya dengan 'tidak tahu'.",
+      "jelas": "Nol baris untuk Dina tidak berarti tidak ada yang membuka datanya. Eko memang tidak pernah dibuka, dan jawabannya juga nol baris. Tabel kosong tidak membedakan keduanya.",
+      "nada": "warn"
+    },
+    {
+      "dari": "bo",
+      "ke": "cat",
+      "judul": "Log biasa: enam aksi yang sama tercatat",
+      "kirim": "audit_biasa: 6 baris (lihat_akun, lihat_verifikasi, buka_berkas, bekukan, buka_blokir, ubah_batas)\npelaku 420 di keenam baris; penyetuju 421 di buka_blokir dan ubah_batas",
+      "jelas": "Mode bo-log-biasa menulis aksi yang sama ke tabel biasa tanpa hash. Pertanyaan Pak Hadi kini punya jawaban, selama isi tabel itu tidak berubah.",
+      "nada": "good"
+    },
+    {
+      "dari": "bo",
+      "ke": "cat",
+      "judul": "Role aplikasi mengubah satu baris dan menghapus satu baris",
+      "kirim": "[api_t4] UPDATE audit_biasa SET pelaku_id = 421 WHERE aksi = 'buka_berkas': UPDATE 1\n[api_t4] DELETE FROM audit_biasa WHERE aksi = 'bekukan': DELETE 1\nbaris 5, nomor terbesar 6, nomor bolong 1",
+      "jelas": "Kartu identitas Dina kini tercatat dibuka oleh akun 421, dan pembekuan tidak pernah terjadi. Nomor yang bolong menunjukkan satu penghapusan. Ubahan pelaku tidak meninggalkan petunjuk apa pun.",
+      "nada": "warn"
+    },
+    {
+      "dari": "eng",
+      "judul": "Engineer membaca tabel verifikasi lewat role lab: catatan tidak bertambah",
+      "kirim": "[lab] SELECT count(*) AS pengajuan_dibaca FROM verifikasi: 1\n# Baris audit sebelum dan sesudah membaca: sama.",
+      "jelas": "Role lab adalah pemilik schema dan superuser di lab ini. Pembacaan langsung ke database tidak menambah satu baris pun di tabel catatan.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "catatan berantai hash menggantikan log biasa",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "bo",
+        "ke": "cat",
+        "judul": "Pemilik tabel mengubah baris 3: terdeteksi di baris 3",
+        "kirim": "[t4a_pemilik] UPDATE audit_log SET pelaku_id = 421 WHERE id = 3: UPDATE 1\nverifikasi rantai: 6 baris, utuh: tidak, rusak di baris 3",
+        "jelas": "Tiap baris menyimpan hash, yaitu sidik tetap dari isi baris dan hash baris sebelumnya. Ubahan satu baris membuat verifikasi menunjuk baris itu. Pelakunya di sini pemilik tabel, bukan role aplikasi.",
+        "nada": "good"
+      },
+      {
+        "dari": "bo",
+        "ke": "cat",
+        "judul": "Pemilik tabel menambah baris ke-7 dengan hash hitungannya sendiri: lolos",
+        "kirim": "[t4a_pemilik] INSERT INTO audit_log (...) VALUES (... 'buka_berkas', 'verifikasi:1/swafoto', ..., <hash_sebelumnya>, <hash hitungan skrip>): INSERT 0 1\nverifikasi rantai: 7 baris, utuh: ya",
+        "jelas": "Rantai tanpa kunci rahasia bukan tanda tangan. Siapa pun yang bisa menulis dan tahu rumusnya bisa menambah baris palsu yang lolos. Hash baris palsu itu dihitung skrip lab.",
+        "nada": "warn"
+      },
+      {
+        "dari": "bo",
+        "ke": "cat",
+        "judul": "Pemilik tabel menghapus baris 2: terdeteksi di baris 3",
+        "kirim": "[t4a_pemilik] DELETE FROM audit_log WHERE id = 2: DELETE 1\nverifikasi rantai: 6 baris, utuh: tidak, rusak di baris 3",
+        "jelas": "Penghapusan di tengah terdeteksi di baris sesudah yang hilang, karena baris itu tidak lagi menyambung ke hash baris sebelumnya.",
+        "nada": "good"
+      }
+    ]
+  }
+}
