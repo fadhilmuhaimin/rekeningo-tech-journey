@@ -429,7 +429,7 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     expect(dari("t2-job-rekonsiliasi").adr).toContain(19);
     const dipakai = [...new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => Number(m[1])))].sort((a, b) => a - b);
     const dikenal = new Set(hal.flatMap((h) => h.adr ?? []));
-    expect(dipakai).toEqual([19, 23, 33, 34, 36, 37, 39, 44]);
+    expect(dipakai).toEqual([19, 23, 33, 34, 36, 37, 39, 44, 45]);
     for (const n of dipakai) expect(dikenal.has(n), `ADR ${n}`).toBe(true);
   });
   test("tautan [[id]]: semua id ada di registry, himpunan dan jumlah per tujuan terkunci, dan ADR yang dijanjikan ditepati", () => {
@@ -438,10 +438,10 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     const hitung: Record<string, number> = {};
     for (const t of tautan) hitung[t] = (hitung[t] ?? 0) + 1;
     expect(Object.keys(hitung).sort()).toEqual(["A0", "berikutnya", "t1-adr-12", "t2-adr-21", "t2-race-lock", "t3-adr-33", "t4-breaker", "t4-estimasi", "t4-infra-secret", "t4-jembatan", "t4-m39", "t4-modul", "t4-prd", "t4-tim-infra", "t4-webhook"]);
-    expect(hitung).toEqual({ "A0": 1, "berikutnya": 1, "t1-adr-12": 1, "t2-adr-21": 5, "t2-race-lock": 1, "t3-adr-33": 6, "t4-breaker": 3, "t4-estimasi": 3, "t4-infra-secret": 1, "t4-jembatan": 1, "t4-m39": 1, "t4-modul": 6, "t4-prd": 3, "t4-tim-infra": 3, "t4-webhook": 1 });
+    expect(hitung).toEqual({ "A0": 1, "berikutnya": 1, "t1-adr-12": 1, "t2-adr-21": 5, "t2-race-lock": 1, "t3-adr-33": 6, "t4-breaker": 3, "t4-estimasi": 3, "t4-infra-secret": 1, "t4-jembatan": 1, "t4-m39": 1, "t4-modul": 6, "t4-prd": 3, "t4-tim-infra": 5, "t4-webhook": 1 });
     expect(dari("t4-m39").nomor).toBe("4.27");
     expect(dari("t4-jembatan").nomor).toBe("4.31");
-    expect(dari("t4-tim-infra").nomor).toBe("4.26");
+    expect(dari("t4-tim-infra")).toMatchObject({ nomor: "4.26", ada: true, adr: [44] });
     expect(dari("t4-jembatan").prasyarat).toEqual(["t4-rekap"]);
     expect(badan).toContain("[[t4-jembatan]] meminta kamu menebak keputusan Tahap 4 mana yang pecah lebih dulu");
     expect(naskah).toContain("Pembaca diminta menebak: dari ADR Tahap 4, mana yang pecah lebih dulu?");
@@ -476,12 +476,15 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     for (const id of ids) expect(barisRiset(id), id).toContain("2026-10-31");
     expect(badan).not.toMatch(/dibuka 2026-10-(?!31)/);
   });
-  test("baris riset: lima baris berurutan R4-250 sampai R4-254 sesudah R4-234 dan sebelum R4-300, lima kolom, tanpa ID ganda", () => {
+  test("baris riset: lima baris berurutan R4-250 sampai R4-254 sesudah R4-234 sampai R4-239 dan sebelum R4-300, lima kolom, tanpa ID ganda", () => {
     const ids = ["R4-250", "R4-251", "R4-252", "R4-253", "R4-254"];
     const semua = [...riset.matchAll(/^\| (R4-\d+) \|/gm)].map((m) => m[1]!);
     expect(new Set(semua).size).toBe(semua.length);
     const i = semua.indexOf("R4-250");
-    expect(semua.slice(i - 1, i + 6)).toEqual(["R4-234", ...ids, "R4-300"]);
+    const sebelum = Number(semua[i - 1]!.slice(3)); // R4-234, atau R4-235 sampai R4-239 milik 4.26 bila sudah merge
+    expect(sebelum).toBeGreaterThanOrEqual(234);
+    expect(sebelum).toBeLessThan(250);
+    expect(semua.slice(i, i + 6)).toEqual([...ids, "R4-300"]);
     for (const id of ids) { const b = barisRiset(id); expect(b.split(" | ").length, id).toBe(5); expect(b.split("\n")).toHaveLength(1); }
     expect(barisRiset("R4-250")).toContain("| 4.29: lima syarat login sosial");
     expect(barisRiset("R4-254")).toContain("Shopify Engineering, Deconstructing the Monolith (Westeinde, 2019-02-21)");
@@ -635,7 +638,16 @@ describe("kasus industri Shopify dan klaim yang tidak melampaui sumber", () => {
     expect(adr(19) + naskah).toContain("job idempoten (ADR 19)");
     expect(naskah).toContain("Cicilan dan tabungan, dengan proses batch harian.");
     expect(naskah).toContain("Tim naik dari 13 menjadi 20 sampai 40 orang dalam 5 sampai 7 tim");
-    expect(badan).toContain("Naskah ADR 44 menandatangani image per digest dan membuat SBOM");
+    expect(badan).toContain("ADR 44 menandatangani image per digest dengan kunci sendiri dan membuat SBOM ([[t4-tim-infra]])");
+    const tim = baca("situs/src/content/docs/tahap-4/tim-infra.mdx");
+    expect(tim).toContain("| Provenance SLSA | Hanya disebut di naskah, Tidak dijalankan | [[t4-adr-45]] |");
+    expect(tim).toContain("| Keyless signing, Fulcio, dan Rekor | Lab memakai kunci sendiri. Keyless Tidak dijalankan | Belum dijadwalkan |");
+    for (const butir of ["| Atestasi app |", "| Tempat flag kill switch kartu di luar proses |", "| Rilis kartu bertahap 1%, 5%, 25%, 100% |", "| Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC |"]) {
+      expect(tim, butir).toContain(butir);
+      expect(naskah.split("\n").find((b) => b.startsWith("| 45 |")) ?? "", butir).not.toMatch(/atestasi|state IaC|di luar proses|rilis kartu bertahap/i);
+    }
+    expect(badan).toContain("Halaman [[t4-tim-infra]] mencatat penundaannya sendiri di bagian \"Sengaja belum dilakukan\", dan menunjuk ke halaman ini untuk provenance SLSA.");
+    expect(badan).toContain("atestasi app (sinyal dari platform bahwa panggilan datang dari app asli), tempat flag kill switch kartu di luar proses, rilis kartu bertahap, dan pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC");
     expect(badan).toContain("HMAC-SHA256 atas timestamp dan byte mentah body (ADR 34)");
     expect(openapi).toContain('Tanda tangan HMAC-SHA256 atas "<timestamp>.<byte mentah body>"');
   });

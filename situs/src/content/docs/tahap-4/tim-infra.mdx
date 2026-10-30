@@ -1,0 +1,463 @@
+---
+title: "4.26 Tim dan infra Tahap 4: pipeline per modul, supply chain, rilis bertahap + ADR 44"
+description: Tiga tim merilis ke uang publik lewat pipeline yang memeriksa tiap modul, tiap kontrak, dan tiap image. ADR 44 memilih pemeriksaan per modul dan tanda tangan atas digest, lalu menulis kapan pilihan itu salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t4-tim-infra-inti.json";
+import pipelineDiagram from "../../../../data/diagram/t4-tim-infra-pipeline.json";
+import pilah from "../../../../lama/widgets/data/t4-tim-infra-pilah.json";
+
+<p class="meta">Baca 25 menit · coba 3 menit · Prasyarat: [[t4-modul]], [[t3-tim-infra]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Pipeline per modul menahan kontrak yang merusak dan menolak image bukan hasil CI.
+
+<Rantai data={intiDiagram} ringkas />
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `kontrak.txt` api-t4, oasdiff membandingkan kontrak api-t3 dan api-t4. Kontrak adalah file OpenAPI yang menjadi janji server kepada client, dan oasdiff adalah alat pembandingnya. Ia melapor tiga error: nilai `merchant`, `pemakai`, dan `risk` ditambah ke enum `jenis` di respons `GET /akun/{id}`. Gerbang berakhir dengan exit code 1.
+
+Di `tanda-tangan.txt` bagian C, tag `2.0` dipindah ke image lain sebelum cosign, alat penanda tangan image, menandatanganinya. Verifikasi atas tag lulus untuk digest D, bukan digest C hasil build CI. Digest adalah sidik jari isi image, sedangkan tag hanya nama yang bisa dipindah. Hanya perbandingan dengan digest C yang menolaknya, jadi ADR 44 menandatangani dan memverifikasi digest.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. oasdiff `breaking` meloloskan perubahan yang menghapus satu field opsional dari respons. Apa yang bisa menangkapnya?
+2. `cosign verify` atas tag lulus, padahal tag itu dipindah sebelum ditandatangani. Apa yang menolak image itu?
+3. govulncheck atas api-t4 menemukan 10 kerentanan stdlib walau kodenya tidak diubah. Kenapa pindai kerentanan atas image juga berjalan sesudah merge?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+### Siapa menjalankan setiap pekerjaan
+
+Tahap 4 dikerjakan 13 developer dalam tiga tim selama 12 minggu (Asumsi cerita): Pembayaran 5 orang, Merchant 4, dan Platform 4. Jumlahnya 5 + 4 + 4 = 13. Hasil rumus atas angka yang tertulis di halaman ini disebut Hitungan, dan labelnya mengikuti masukan terlemahnya. Naskah tidak menyebut siapa merawat pipeline, jadi baris itu Asumsi penulis.
+
+| Pekerjaan | Siapa | Tertulis di |
+|---|---|---|
+| Pemeriksaan merge untuk gateway, top-up, rekonsiliasi, dan kartu | Tim Pembayaran, dipimpin Nadia | [[t4-modul]] |
+| Pemeriksaan merge untuk merchant luar, QR, katalog, dan dasbor | Tim Merchant, dipimpin Wulan | [[t4-modul]] |
+| Akun, identitas, outbox, infrastruktur, dan keamanan | Tim Platform, dipimpin Bayu | [[t4-modul]] |
+| Perawatan pipeline dan image | Tim Platform (Asumsi penulis) | ADR 44 |
+| Paket inti app | Raka, di dalam tim Platform | naskah Tahap 4 |
+| Client dari OpenAPI dan rilis store | Raka (Asumsi penulis) | Blok Paham |
+| Security review sebelum dibuka ke publik | Laras, security engineer | ADR 44 |
+| CODEOWNERS dan ADR wajib untuk perubahan lintas modul | Ketiga tim | [[t4-modul]] |
+
+Kalau kamu pernah merilis app berdua atau bertiga, urutannya sudah kamu kenal. Build, tanda tangan, dan unggah ke store berjalan dari satu pipeline. Bedanya, di Tahap 4 backend punya tiga tim, dan satu rilis yang salah mengenai uang orang di luar Lestari.
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: pemeriksaan yang cukup membaca file berjalan di PR, dan pemeriksaan yang butuh image atau basis data kerentanan hari ini berjalan sesudah merge.">
+
+Delapan pemeriksaan di bawah ini punya rekaman lab, kecuali CI yang memanggilnya. Tidak dijalankan berarti dicek ke dokumentasi atau kode tanpa menjalankannya. Penalaran penulis berarti kesimpulan dari sumber yang tidak dikutip dari sumber itu. Pilah tiap pemeriksaan: jalan di PR, atau di rilis sesudah merge.
+
+<WidgetLama nama="pilah" src="data/t4-tim-infra-pilah.json" />
+
+<noscript>
+<p>Tanpa JavaScript, kartu di atas tidak bisa dipilah. Berikut jawaban tiap pemeriksaan.</p>
+<ol>
+{pilah.item.map((it) => (
+<li><strong>{pilah.kelompok[it.jawab]}.</strong> {it.teks} {it.kenapa}</li>
+))}
+</ol>
+</noscript>
+
+**Ubah satu hal:** ganti file yang disentuh PR. README lab t4-pipeline mencatat satu contoh nyata: lab audit mengubah 13 file di `labs/api-t4`, termasuk `internal/service/bo.go` dan `internal/repo/audit.go`. Fungsi `langkah_untuk` hanya mengembalikan langkah `image`, karena satu dari 13 file, `cmd/api/main.go`, cocok dengan aturannya (Hitungan atas README lab).
+
+<Snippet file="labs/t4-pipeline/gerbang.py" lines="257:277" lang="python" title="Kode lab: labs/t4-pipeline/gerbang.py baris 257 sampai 277 (file yang berubah menentukan langkah)" />
+
+Tes dan SAST atas `internal/service`, `internal/repo`, dan `internal/jangkar` tidak terpicu. Satu tes lab mencatat celah itu dengan dua file lain:
+
+<Snippet file="labs/t4-pipeline/tes_gerbang.py" lines="414:417" lang="python" title="Kode lab: labs/t4-pipeline/tes_gerbang.py baris 414 sampai 417 (kode bersama belum dipetakan)" />
+
+Apa yang seharusnya jalan untuk kode bersama belum diputuskan. ADR 44 menyebutnya sebagai pertanyaan terbuka.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Satu PR menjalankan apa
+
+Naskah menulis bahwa merge per modul menjalankan pemeriksaan ADR 44. Lab t4-pipeline menerjemahkannya menjadi satu fungsi: file yang berubah menentukan langkah yang jalan. Tabel ini membaca aturan di `gerbang.py`, yang dites oleh `tes_gerbang.py`. CI sungguhan Tidak dijalankan.
+
+| File yang berubah | Langkah yang jalan |
+|---|---|
+| `internal/modul/<nama>/*.go` | tes modul `<nama>` dan SAST modul `<nama>` |
+| `openapi.yaml` | tes contract dan client dibuat ulang |
+| `go.mod` atau `go.sum` | audit dependensi dan SBOM |
+| `Dockerfile` atau `cmd/api/*` | build image |
+| `internal/service`, `internal/handler`, `internal/repo`, `migrasi` | tidak ada |
+
+SAST berarti static application security testing, pemeriksaan keamanan yang membaca kode tanpa menjalankannya. SBOM adalah daftar komponen yang membentuk satu software, dan bagian berikutnya membahasnya. Tes contract membandingkan dua versi kontrak dan menggagalkan perubahan yang merusak client lama. Lint adalah pemeriksaan gaya dan kesalahan umum tanpa menjalankan kode: di api-t4 `go vet`, dan di kontrak Redocly.
+
+Pemetaan ini punya satu masalah di GitHub. Required status check adalah check yang harus hijau sebelum PR boleh di-merge. Menurut dokumentasi GitHub, workflow yang dilewati karena path filtering, branch filtering, atau pesan commit membuat check-nya tetap "Pending" dan menahan merge. Job yang dilewati oleh kondisi justru melapor "Success" ([GitHub Docs: Troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), dibuka 2026-10-30).
+
+Jadi lebih aman memakai satu job yang selalu jalan dan memutuskan langkah mana yang perlu, bukan filter path di tiap workflow (penalaran penulis, Tidak dijalankan).
+
+Branch protection dan CODEOWNERS per modul sudah dibahas di [[t4-modul]]. Keduanya fitur GitHub, dan plan repositori pemilik belum diketahui [perlu verifikasi: plan pemilik]. Cadangannya checklist PR manual.
+
+Lab mengunduh oasdiff, gosec, syft, grype, dan cosign dari rilis resmi proyeknya, lalu mencocokkan SHA-256 arsipnya dengan file checksum rilis. openapi-generator berjalan dari image yang dikunci dengan digest, dan govulncheck dipasang dari modul Go:
+
+| Alat | Versi di lab | Dipakai untuk |
+|---|---|---|
+| oasdiff | v1.34.1 | tes contract |
+| openapi-generator | v7.26.0 | client Dart dari kontrak |
+| gosec | v2.30.0 | SAST atas kode |
+| govulncheck | v1.9.0 | kerentanan yang dipanggil kode |
+| syft | v1.55.0 | SBOM |
+| grype | v0.121.0 | pindai SBOM |
+| cosign | v3.1.4 | tanda tangan image |
+
+[oasdiff](https://github.com/oasdiff/oasdiff) v1.35.0 terbit 2026-10-28, sesudah lab dibuat. Peninjau lab menjalankan 23 perbandingan kontrak yang sama pada versi itu dan hasilnya identik, tetapi percobaan itu tidak direkam. Rekaman `kontrak.txt` di api-t4 memakai image oasdiff yang dikunci dengan digest, dan versinya tidak tertulis di skrip.
+
+### Kontrak: yang ditangkap dan yang lolos
+
+ADR 12 menunda satu hal sampai Tahap 4: tes yang mencocokkan kontrak OpenAPI di CI ([[t1-adr-12]]). Lab mengerjakan dua bagian dari itu. oasdiff membandingkan dua versi kontrak. Satu tes Go di api-t4 memastikan tiap rute handler ada di `openapi.yaml` dan sebaliknya (`TestRuteHandlerSamaDenganOpenAPI` di `testing.txt`). Mencocokkan isi response server dengan kontrak tidak dikerjakan siapa pun di lab (Tidak dijalankan).
+
+Rekaman api-t4 menunjukkan perubahan nyata. Kontrak api-t3 ke api-t4 menambah tiga nilai ke enum `jenis`:
+
+<Snippet file="labs/api-t4/output/kontrak.txt" lines="17:22" title="Rekaman lab: labs/api-t4/output/kontrak.txt baris 17 sampai 22 (enum respons ditambah)" />
+
+Pesan oasdiff menyebut jalan keluarnya: nilai yang memang akan bertambah dideklarasikan dengan `x-extensible-enum`. Apa yang dilakukan client Dart terhadap deklarasi itu tidak diuji (Tidak dijalankan).
+
+Lab t4-pipeline mengulang pola itu dengan enam perubahan atas kontrak api-t4, memakai ambang ERR:
+
+| Perubahan atas kontrak | Hasil `breaking` |
+|---|---|
+| Nilai enum ditambah di respons | gagal (ERR) |
+| Nilai enum dikurangi di request | gagal (ERR) |
+| Field wajib dihapus dari respons | gagal (ERR) |
+| Nilai enum ditambah di request | lulus |
+| Nilai enum dikurangi di respons | lulus |
+| Field opsional dihapus dari respons | lulus (INFO) |
+
+Baris terakhir adalah celah pertama. `breaking` hanya memuat ERR dan WARN, sedangkan field opsional yang dihapus berstatus INFO. Client lama yang menampilkan field itu terpengaruh, tetapi gerbang tidak melihatnya:
+
+<Snippet file="labs/t4-pipeline/output/kontrak.txt" lines="66:75" title="Rekaman lab: labs/t4-pipeline/output/kontrak.txt baris 66 sampai 75 (bagian B, field opsional dihapus)" />
+
+File `--severity-levels` yang berisi satu baris, `response-optional-property-removed err`, menaikkannya menjadi error (bagian B).
+
+Celah kedua ada di parameter. Parameter tingkat path adalah parameter yang ditulis sekali di satu path dan berlaku untuk semua operasinya. Di kontrak mini lab, perubahan itu lolos tanpa flag dan tertangkap dengan `--flatten-params` pada ambang WARN, sedangkan ambang ERR tidak menahan penghapusan parameter. Perubahan `explode`, cara array ditulis di query, tidak tertangkap di tingkat mana pun:
+
+<Snippet file="labs/t4-pipeline/output/kontrak.txt" lines="91:94" title="Rekaman lab: labs/t4-pipeline/output/kontrak.txt baris 91 sampai 94 (bagian C, parameter jadi wajib)" />
+
+<Snippet file="labs/t4-pipeline/output/kontrak.txt" lines="106:109" title="Rekaman lab: labs/t4-pipeline/output/kontrak.txt baris 106 sampai 109 (bagian C, perubahan explode)" />
+
+Isu oasdiff #1163 dan #1164 masih terbuka pada 2026-10-30 (GitHub API). Kontrak api-t4 sendiri tidak memakai parameter tingkat path maupun `explode`. Risikonya muncul bila tim mulai memakainya.
+
+### Client Dart dibuat ulang dari kontrak
+
+`api_client` adalah package Dart yang dihasilkan dari OpenAPI. Di `klien.txt`, openapi-generator menghasilkan 258 file, dan kontrak yang sama menghasilkan client yang identik. Karena itu setiap beda berasal dari kontrak.
+
+Menghapus satu field wajib mengubah tiga file, dan 12 baris hilang dari `akun.dart`. Menambah satu nilai enum mengubah satu file dengan dua baris tambahan. Kode hasil generasi membaca `jenis` dengan tanda `!`:
+
+```text title="Rekaman lab: output client Dart dari t4-pipeline, baris 33 sampai 46 (bagian C, enum ditambah)"
+# --- C. Satu nilai enum ditambah di respons GET /akun/{id}: client berubah di satu berkas ---
+$ diff -rq klien-sebelum klien-enum-respons-tambah
+berbeda: lib/model/akun.dart
+$ diff -u klien-sebelum/lib/model/akun.dart klien-enum-respons-tambah/lib/model/akun.dart
+--- sebelum/lib/model/akun.dart
++++ sesudah/lib/model/akun.dart
++  badan._(r'badan'),
++        case r'badan': return AkunJenisEnum.badan;
+
+# Bagaimana client lama membaca nilai baru (dibaca dari kode yang dihasilkan, Dart tidak dijalankan):
+$ sed -n 138p klien-sebelum/lib/model/akun.dart
+jenis: AkunJenisEnum.fromJson(json[r'jenis'])!,
+$ sed -n 224p klien-sebelum/lib/model/akun.dart
+static AkunJenisEnum? fromJson(dynamic value) => AkunJenisEnumTypeTransformer().decode(value);
+```
+
+Nilai yang tidak dikenal menjadi null, jadi client lama yang menerima `badan` berhenti dengan galat null check. Itu dibaca dari kode hasil generasi, dan Dart Tidak dijalankan. Karena versi lama tetap terpasang di HP user, ADR 10 tetap berlaku ([[E1]]).
+
+Paket app dibagi per tim dengan pub workspaces atau Melos. Pub workspaces mulai ada di Dart 3.6.0, dan seluruh paket memakai satu resolusi dengan satu `pubspec.lock` ([dart.dev: Pub workspaces](https://dart.dev/tools/pub/workspaces), dibuka 2026-10-30). Dokumentasi Melos menulis bahwa penautan paket lokal di Dart ditangani pub workspaces, dan Melos dibangun di atasnya ([Melos](https://melos.invertase.dev/), dibuka 2026-10-30). Lab tidak punya app Flutter, jadi pilihan di antara keduanya Tidak dijalankan.
+
+### SAST dan audit dependensi: tiga pemindai yang bisa lulus palsu
+
+gosec membaca kode Go. Di `sast.txt` bagian A ia melapor G701, analisis taint, pada contoh yang disiapkan: `os.Args[1]` mengalir ke `db.Query`. Kasus tandingan di bagian yang sama memakai query itu dengan masukan konstanta, dan hasilnya nol temuan. Jadi pada contoh ini G701 melapor aliran dari sumber input, bukan setiap `fmt.Sprintf` ke database, dan pola query lain tidak diuji.
+
+Tiga pemindai bisa lulus padahal pemindaiannya gagal:
+
+| Pemindai | Lulus palsu bila | Sumber |
+|---|---|---|
+| gosec `-quiet` | kode tidak terkompilasi: keluaran kosong dan exit code 0 | `sast.txt` bagian B |
+| govulncheck `-format json` | exit code selalu 0, berapa pun temuannya | dokumentasi alat, Tidak dijalankan di sini |
+| grype atas SBOM kosong | tidak ada yang dipindai, jadi nol temuan | `sbom.txt` bagian B |
+
+Dokumentasi govulncheck menulis bahwa alat itu keluar dengan kode 0 untuk format JSON, SARIF, dan OpenVEX, berapa pun kerentanan yang ditemukan ([pkg.go.dev: govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck), dibuka 2026-10-30). Karena itu gerbang lab membaca keluaran terstruktur dan menolak pemindaian tidak lengkap. Rekaman ini menunjukkan kasus gosec:
+
+<Snippet file="labs/t4-pipeline/output/sast.txt" lines="24:36" title="Rekaman lab: labs/t4-pipeline/output/sast.txt baris 24 sampai 36 (bagian B, pemindaian tidak lengkap)" />
+
+govulncheck melapor kerentanan yang dipanggil kode. grype melapor yang ada di komponen. Atas contoh, govulncheck memanggil satu kerentanan dan grype mencatat tiga advisory untuk `golang.org/x/text` v0.3.7. Dua advisory lain ada di modul itu tetapi tidak dipanggil (`sast.txt` bagian C, `sbom.txt` bagian A).
+
+### SBOM, tanda tangan, dan hasil gerbang atas api-t4
+
+SBOM adalah catatan komponen yang dipakai membangun software (NTIA, 2021). Halaman NTIA tidak membahas apakah SBOM memperbaiki kerentanan ([NTIA: Minimum Elements For an SBOM](https://www.ntia.gov/report/2021/minimum-elements-software-bill-materials-sbom), 2021-07-12, dibuka 2026-10-30). README syft menulis bahwa alat itu menghasilkan SBOM, dan sangat baik untuk deteksi kerentanan bila dipasangkan dengan pemindai seperti grype ([syft](https://github.com/anchore/syft), dibuka 2026-10-30). SBOM mendaftar. Yang menolak komponen rentan adalah pemindainya (penalaran dari definisi, bukan kutipan).
+
+Pemindai yang menerima SBOM kosong menyisakan satu pemeriksaan yang bisa dijaga: apakah SBOM memuat semua modul dari `go.mod`:
+
+<Snippet file="labs/t4-pipeline/output/sbom.txt" lines="27:31" title="Rekaman lab: labs/t4-pipeline/output/sbom.txt baris 27 sampai 31 (bagian B, SBOM folder kosong)" />
+
+Lab juga memindai image api-t4 yang sebenarnya, tanpa mengubah kodenya. SBOM image memuat 13 modul Go, stdlib termasuk, dan lima paket Debian dari image dasar. Ke-12 modul dari `go.mod` ada semua di SBOM. grype menemukan 15 temuan: dua Critical, sembilan High, dua Medium, dan dua Unknown. Empat belas di antaranya berasal dari stdlib Go 1.27.1, dan satu dari `golang.org/x/crypto` v0.57.0 tanpa versi perbaikan.
+
+govulncheck atas kode yang sama menemukan 10 kerentanan stdlib yang dipanggil:
+
+<Snippet file="labs/t4-pipeline/output/sast.txt" lines="55:70" title="Rekaman lab: labs/t4-pipeline/output/sast.txt baris 55 sampai 70 (bagian E, audit atas api-t4)" />
+
+Empat belas temuan stdlib dikurangi 10 yang dipanggil menyisakan empat yang ada tetapi tidak dipanggil (Hitungan atas dua daftar). Dua Critical menunjukkan bedanya. GO-2026-6612, HTTP/2 di `net/http`, ada di daftar yang dipanggil. GO-2026-6604 tidak. README lab mencatat ringkasan advisory-nya: `os.Root.Mkdir` mengikuti junction di Windows. grype mencocokkan versi stdlib go1.27.1 dengan advisory itu dan melaporkannya sebagai Critical, sedangkan govulncheck tidak menemukan panggilan ke fungsi itu (`sbom.txt` bagian C, `sast.txt` bagian E).
+
+Hasilnya: gerbang lab menolak api-t4 dengan Go 1.27.1 dan basis data grype yang dibangun 2026-10-28. Ambang High menghasilkan 13 temuan: dua Critical, sembilan High, dan dua Unknown yang gerbang hitung paling berat. Alat govulncheck menemukan 10 temuan yang dipanggil. Perbaikannya tercantum di Go 1.27.2 dan 1.27.3.
+
+Lab tidak menaikkan Go, karena itu mengubah api-t4 dan semua rekamannya. Itu tugas terpisah. Hasil ini Rekaman lab dengan Go 1.27.1, bukan kelemahan desain.
+
+Tanda tangan image adalah persoalan lain. cosign v3.1.4 menerima tag dengan peringatan, lalu menandatangani digest yang ditunjuk tag saat itu. Tabel ini merangkum empat bagian `tanda-tangan.txt`:
+
+| Bagian | Kejadian | `cosign verify` | Gerbang digest |
+|---|---|---|---|
+| A | image tanpa tanda tangan | `no signatures found`, exit code 10 | gagal |
+| B | ditandatangani lewat tag, lalu tag dipindah | atas tag gagal, atas digest A lulus | digest A lulus, digest B gagal |
+| C | tag dipindah sebelum ditandatangani | atas tag lulus dan memuat digest D | digest C gagal, digest D gagal |
+| D | ditandatangani lewat digest E | lulus, dan kunci publik lain ditolak | lulus |
+
+Bagian C paling berbahaya. Tanda tangan dan verifikasi atas tag sah, tetapi atas image yang bukan hasil build CI:
+
+<Snippet file="labs/t4-pipeline/output/tanda-tangan.txt" lines="76:93" title="Rekaman lab: labs/t4-pipeline/output/tanda-tangan.txt baris 76 sampai 93 (bagian C, tag dipindah sebelum ditandatangani)" />
+
+Tanda tangannya sah, dan objek yang ditandatangani yang bisa keliru. Hanya perbandingan dengan digest hasil build yang menolak digest D. Kunci cosign lab dibuat per run, dan keyless, Fulcio, serta Rekor Tidak dijalankan.
+
+Lab juga memeriksa alatnya sendiri. `make verifikasi-alat` memverifikasi tanda tangan atas file checksum rilis syft, grype, dan cosign (Verified OK). oasdiff tidak menerbitkan tanda tangan, dan gosec Tidak dijalankan (README lab).
+
+### Supply chain: nama yang bisa dipindah
+
+Supply chain adalah semua yang masuk ke software sebelum sampai ke produksi: dependensi, alat build, workflow, dan image. Tag image, tag action, dan tag git adalah nama. Isi di balik nama itu bisa berubah, dan kasus berikut ada di sisi workflow.
+
+GitHub Advisory Database menulis bahwa serangan supply chain menyusup ke GitHub Action `tj-actions/changed-files`, dengan lebih dari 23.000 repositori terdampak. Kode berbahaya mengambil secret dari memori proses runner dan mencetaknya di log Actions. Penyerang mengubah beberapa tag versi secara surut supaya menunjuk commit berbahaya, dan versi 46.0.1 memperbaikinya ([GHSA-mrrh-fwg8-r2c3](https://github.com/advisories/GHSA-mrrh-fwg8-r2c3), diterbitkan 2025-03-15, dibuka 2026-10-30).
+
+Dokumentasi GitHub menulis bahwa tag bisa dipindah atau dihapus bila penyerang menguasai repositori action. Ia menyebut lockfile dependensi workflow sebagai perlindungan terkuat, yang menggantikan penyematan SHA bagi repositori yang memakainya (Tidak dijalankan di sini). Bagi repositori yang tidak bisa memakai lockfile, ia menyarankan menyematkan action ke commit SHA penuh ([GitHub Docs: Secure use reference](https://docs.github.com/en/actions/reference/security/secure-use), dibuka 2026-10-30). Advisory itu sendiri tidak menyarankan penyematan SHA.
+
+Batasnya: ini dependensi workflow, bukan image kontainer, dan kasusnya tidak membuktikan bahwa tanda tangan digest menahannya. Kesamaannya satu: nama yang bisa dipindah tidak mengikat isinya.
+
+### Rilis bertahap di store
+
+Rilis bertahap mengirim versi baru ke sebagian user dulu. Tabel ini memuat apa yang ditulis dokumentasi tiap store, dibuka 2026-10-30:
+
+| | Google Play | App Store |
+|---|---|---|
+| Berlaku untuk | update, bukan saat app pertama terbit | update, dengan sampel acak dari user yang memakai pembaruan otomatis |
+| Jadwal | persentase dipilih sendiri | 7 hari: 1%, 2%, 5%, 10%, 20%, 50%, 100% |
+| Dihentikan | halt dan resume memengaruhi kelompok yang sama | jeda sampai 30 hari, jumlah jeda tidak dibatasi |
+| Yang sudah menerima | tetap di versi itu | user bisa mengunduh sendiri kapan saja |
+
+Sumbernya [Play Console Help: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149) dan [App Store Connect Help: phased release](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/). Dengan 20.000 user aktif (Asumsi naskah), jangkauan pembaruan otomatis di iOS tiap hari paling banyak 200, 400, 1.000, 2.000, 4.000, 10.000, dan 20.000 user. Itu Hitungan atas jadwal Apple, bila semua user memakai iOS dengan pembaruan otomatis. Unduhan manual dari App Store tidak dibatasi jadwal itu.
+
+Rilis bertahap membatasi berapa user melihat bug app. Bug di server tidak dibatasi rilis bertahap app, jadi server wajib kompatibel mundur ([[E1]]).
+
+### Security review dan temuan
+
+Laras membaca threat model tahap ini dan menjalankan pemeriksaan ADR 44. Threat model di naskah punya empat lapisan: integrasi, data dan kunci, infrastruktur, dan operasional. Naskah menulis bahwa Laras cenderung menandai hampir semua temuan sebagai kritis. Karena itu aturannya tertulis: temuan dengan bukti memblok rilis, dan temuan tanpa bukti ditulis dugaan dan tidak memblok.
+
+| Temuan | Bukti | Putusan |
+|---|---|---|
+| 10 kerentanan stdlib dipanggil kode api-t4 | `sast.txt` bagian E | memblok rilis sampai Go naik |
+| GO-2026-6604, Critical menurut grype. Ringkasan advisory menyebut Windows, dan govulncheck tidak melaporkannya dipanggil | `sbom.txt` bagian C, `sast.txt` bagian E | gerbang grype menahannya sampai Go naik (aturan 5); dampak di image Linux masih dugaan (penalaran penulis) |
+| Staging memakai kunci gateway produksi (dugaan) | hanya pemindai atas dua file contoh, bukan kejadiannya | tidak memblok; jalankan pemindai atas konfigurasi staging yang sebenarnya |
+
+Laras sendiri adalah tokoh cerita, jadi adegan penilaiannya Ilustrasi. Rekamannya adalah hasil alat di tabel itu. Kontrol back office dan audit log berantai di [[t4-audit]] termasuk yang ia nilai (penalaran penulis, Tidak dijalankan).
+
+### On-call per modul dan alert gejala
+
+Rotasi jaga mingguan berlaku per tim untuk modulnya. Buku SRE Google menulis bahwa tidak lebih dari 25% waktu seorang SRE dipakai untuk jaga ([SRE book, bab 11](https://sre.google/sre-book/being-on-call/), dibuka 2026-10-30). Naskah tidak menulis jam jaga, jadi tabel ini menghitung pembagian minggu dengan satu orang jaga per minggu (Asumsi penulis):
+
+| Tim | Orang | Minggu jaga per orang | Terhadap batas 25% |
+|---|---|---|---|
+| Pembayaran | 5 | 1 ÷ 5 = 20% | di bawah batas |
+| Merchant | 4 | 1 ÷ 4 = 25% | tepat di batas |
+| Platform | 4 | 1 ÷ 4 = 25% | tepat di batas |
+
+Satu orang cuti dari tim berempat membuat rotasi 1 ÷ 3 = 33%, di atas batas (Hitungan atas Asumsi naskah). Buku yang sama menghitung dua orang jaga bersamaan, primer dan sekunder, dan menurunkan minimal delapan engineer untuk satu tim satu lokasi dengan jaga 24 jam. Ketiga tim di sini lebih kecil dari itu, jadi satu orang per minggu adalah syarat tabel ini.
+
+Alert hanya untuk gejala yang dirasakan user. Buku SRE menulis bahwa monitoring menjawab apa yang rusak dan kenapa. Tiap page harus mendesak, bisa ditindaklanjuti, dan terlihat user ([SRE book, bab 6](https://sre.google/sre-book/monitoring-distributed-systems/), dibuka 2026-10-30).
+
+Naskah menulis lima gejala: umur notifikasi uang tertua per kelas, error rate, p95, selisih rekonsiliasi harian, dan breaker yang terbuka lebih dari 10 menit. Hanya ambang 30 detik untuk umur notifikasi uang punya dasar di PRD v3 ([[t3-tim-infra]]). Ambang lain Asumsi naskah dan belum diukur.
+
+Selisih rekonsiliasi menjadi insiden bernomor menurut aturan Pak Hadi ([[t4-rekonsiliasi]]). Breaker gobreaker di lab terbuka 60 detik, lalu mencoba satu permintaan ([[t4-breaker]]). Jadi "terbuka lebih dari 10 menit" dibaca sebagai terbuka berulang selama 10 menit (penafsiran penulis).
+
+Testcontainers dan k6 Tidak dijalankan. api-t4 memakai Docker Compose seperti Tahap 3, dan `make beban` memakai generator Go sendiri. Pola tes yang wajib punya database ada di [[t3-tim-infra]]. Rekaman `testing.txt` api-t4 mengulangnya: 17 paket lolos tanpa database, dan dengan `TES_DB_WAJIB=1` dan `TES_REDIS_WAJIB=1` `go test` keluar dengan status 1.
+
+<Rantai data={pipelineDiagram} />
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 44: pipeline per modul, tanda tangan atas digest, dan rilis bertahap
+
+**Kebutuhan.** Tiga tim merilis ke satu codebase, dan dua kejadian menunjukkan pipeline Tahap 3 tidak memeriksa kompatibilitas lintas modul dan kunci produksi sebelum rilis. Di [[t4-m32]], rilis tim Merchant memecahkan top-up, dan tes tiap tim tetap lolos karena tes pembayaran memakai data tiruan. Di [[t4-m34]], pindahan hosting membawa kunci gateway produksi ke staging (Ilustrasi). PRD v4 meminta security review lolos sebelum dibuka ke publik ([[t4-prd]]).
+
+Bebannya bukan alasan. Puncaknya 138,9 request per detik (20.000 × 60 ÷ 86.400 × 10) dan 6,94 transaksi uang per detik (20.000 × 3 ÷ 86.400 × 10). Masukannya Asumsi: 100.000 user dengan 20% aktif (20.000 user aktif), 60 request dan 3 transaksi per user aktif per hari, faktor puncak 10.
+
+**Status:** diterima sesudah M32 dan M34. Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR. Merevisi ADR 12 pada baris tes contract OpenAPI di CI.
+
+**Beda dengan naskah.** Hal ini terbaca dari rekaman lab dan dokumentasi:
+
+- Naskah menulis oasdiff belum memeriksa parameter tingkat path dan `explode`. Itu benar untuk v1.34.1, tetapi `--flatten-params` menutup tingkat path, dan penghapusan parameter hanya tertangkap pada ambang WARN. `explode` tetap lolos.
+- Naskah tidak menyebut bahwa `breaking` tidak melihat field opsional yang dihapus (INFO). `--severity-levels` menaikkannya.
+- Naskah menulis tanda tangani digest. cosign v3.1.4 menerima tag dengan peringatan. Yang berbahaya adalah tag dipindah sebelum ditandatangani.
+- ADR 12 menulis tes yang mencocokkan response dengan kontrak. oasdiff membandingkan dua versi kontrak, dan tes lab hanya mencocokkan rute dengan kontrak.
+- Pemetaan per modul tidak menjalankan apa pun untuk kode di luar `internal/modul/<nama>/`.
+- Halaman [[t4-m34]], [[t4-infra-secret]], dan [[t4-ssrf]] menjanjikan pemindai kunci produksi dan pindai kerentanan di pipeline halaman ini. Naskah ADR 44 tidak menyebut pemindai kunci, jadi aturan 4 menambahkannya.
+
+Keputusan pipeline punya tiga opsi:
+
+| | A. Pipeline Tahap 3 saja | B. Semua pemeriksaan di setiap PR untuk seluruh repo | C. Per modul |
+|---|---|---|---|
+| Cara kerja | Tes dengan PostgreSQL dan Redis, migration dry-run, k6 smoke, staging, approve ([[t3-tim-infra]]), dan gosec dengan aturan G201 dan G202 sejak Tahap 1 ([[C3]]) | Satu workflow menjalankan tes, SAST, SBOM, dan pindai atas seluruh repo di tiap PR | File yang berubah memilih langkah di PR, dan pemeriksaan atas image berjalan sesudah merge |
+| Kelebihan | Tidak ada pekerjaan baru | Tidak ada aturan pemetaan yang bisa salah, dan kode bersama ikut diperiksa | PR cepat, dan pemilik modul melihat hasil modulnya |
+| Kekurangan | Tidak ada tes contract, govulncheck, SBOM, atau tanda tangan, dan gosec hanya memakai aturan G201 dan G202: tiga error kontrak dan 10 kerentanan dipanggil tidak terlihat | Lambat, dan tim cenderung menghindarinya (Asumsi naskah) | Kode bersama belum terpetakan, dan filter path bisa menahan merge |
+| Biaya operasional | Nol | Waktu tunggu tiap PR, tidak diukur | Aturan pemetaan yang harus dites dan dirawat, ditambah satu job penentu |
+| Bukti | Tidak dijalankan: dibaca dari pipeline Tahap 3. Yang terlewat: `kontrak.txt` api-t4, `sast.txt` bagian E | Tidak dijalankan: waktu pipeline tidak diukur | Rekaman lab t4-pipeline dan `tes_gerbang.py` |
+
+Keputusan lain punya opsi sendiri:
+
+| Keputusan | Dipilih | Ditolak | Kenapa ditolak |
+|---|---|---|---|
+| Tanda tangan image | cosign atas digest | Tanda tangan atas tag | Tag bisa dipindah sebelum ditandatangani (`tanda-tangan.txt` bagian C) |
+| Gerbang pemindai | Membaca keluaran terstruktur dan menolak pemindaian tidak lengkap | Memercayai exit code alat | Tiga pemindai lulus palsu (`sast.txt` bagian B, `sbom.txt` bagian B, dokumentasi govulncheck) |
+| Rilis app | Bertahap lewat store | Rilis ke semua user sekaligus | Hari pertama pembaruan otomatis iOS paling banyak 200 dari 20.000 user aktif, lawan 20.000 (Hitungan) |
+
+**Keputusan: opsi C, dengan sembilan aturan.**
+
+1. Di PR, file yang berubah memilih langkah. `internal/modul/<nama>/` memicu tes dan SAST modul itu, dan `openapi.yaml` memicu tes contract dan client. `go.mod` dan `go.sum` memicu audit dependensi dan SBOM, sedangkan `Dockerfile` dan `cmd/api` memicu build image. Satu job yang selalu jalan memutuskan langkah mana yang perlu. Langkah atas image (build, SBOM, pindai, tanda tangan, dan verifikasi digest) berjalan sesudah merge, bukan di PR (aturan 5 dan 6).
+2. Tes contract memakai `oasdiff breaking --flatten-params` dengan ambang ERR dan `--severity-levels` yang menaikkan `response-optional-property-removed`. Penghapusan parameter tingkat path hanya WARN, jadi ambang ini tidak menahannya. Client Dart dibuat ulang dan diff-nya dibaca orang.
+3. SAST: gosec tanpa `-quiet` dan govulncheck dibaca dari JSON. Pemindaian tidak lengkap ditolak.
+4. Pemindai kunci produksi berjalan di PR atas file konfigurasi staging. Memindai state IaC dan seluruh repositori Tidak dijalankan: rekaman hanya dua file contoh. Gitleaks dari ADR 11 ([[t1-secret]]) tetap menjaga riwayat git.
+5. Sesudah merge, CI membangun image, membuat SBOM CycloneDX dengan syft, dan memindainya dengan grype pada ambang High (pilihan lab). SBOM harus memuat semua modul dari `go.mod`.
+6. Image ditandatangani cosign atas digest dan diverifikasi dengan perbandingan digest hasil build sebelum deploy. Lab memakai kunci sendiri, dan keyless hanya dijelaskan.
+7. Deploy blue/green dengan dua instance, migration expand lalu contract ([[t2-skema-tanpa-downtime]]), rilis app bertahap, dan feature flag untuk fitur uang. Semuanya Tidak dijalankan.
+8. CODEOWNERS per modul dengan review wajib bila plan GitHub mengizinkan ([[t4-modul]]), giliran jaga mingguan per tim, dan alert hanya untuk gejala.
+9. Security review Laras lolos sebelum dibuka ke publik. Temuan dengan bukti memblok, dan dugaan tidak.
+
+**Belum diputuskan.** Aturan untuk kode di luar `internal/modul/`. Menjalankan semua langkah aman tetapi lambat. Memetakan tiap folder ke langkah cepat, tetapi folder yang terlupa lolos tanpa pemeriksaan. README lab mencatatnya sebagai keputusan pemilik, dan halaman ini tidak memutuskannya.
+
+**Flag kartu dan rilis bertahap sisi server.** Halaman [[t4-kartu]] menunjuk ke sini untuk dua hal. Di lab flag kill switch kartu hidup di memori satu proses, jadi proses yang dimulai ulang kembali aktif (`kill-switch.txt` bagian B, Rekaman lab), dan dua instance punya flag sendiri-sendiri (dibaca dari kode, Tidak dijalankan). Aturan 7 menyebut feature flag tanpa memilih tempatnya di luar proses, dan rilis kartu bertahap 1%, 5%, 25%, 100% (Asumsi naskah) juga belum diputuskan dan Tidak dijalankan.
+
+**Kenapa C, bukan A atau B.** A sudah gagal di [[t4-m32]]: tidak ada langkah yang melihat kontrak lintas modul atau kerentanan dependensi. B menyelesaikan celah kode bersama dengan satu aturan sederhana, tetapi ongkosnya waktu tunggu yang tidak terukur. C mengambil kecepatan dengan satu risiko yang tertulis, yaitu pemetaan yang bisa bolong.
+
+**Kasus industri: tj-actions/changed-files.** Rangkuman kasusnya ada di blok Paham, bagian supply chain. Pelajarannya untuk ADR ini sempit: nama yang bisa dipindah, seperti tag action atau tag image, tidak mengikat isinya. Batasnya sudah tertulis di sana: kasus ini dependensi workflow dan satu insiden, bukan bukti tentang image kontainer.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Pemetaan melewatkan kode bersama. PR yang hanya mengubah `internal/service` lolos tanpa tes dan SAST, seperti `langkah_untuk` yang mengembalikan daftar kosong di rekaman. Pencegahannya aturan "jalankan semua" atau tes yang menolak folder tanpa aturan. Keduanya belum diputuskan.
+2. Pemindai memberi hijau palsu atau merah mendadak. Gerbang yang memercayai exit code lulus saat pemindaian gagal, dan basis data kerentanan yang baru membuat api-t4 gagal tanpa perubahan kode, seperti hari ini. Pencegahannya gerbang yang membaca keluaran terstruktur, dan versi basis data grype yang dikunci dan dicatat di tiap hasil.
+3. Pipeline sendiri disusupi. Tag action dipindah seperti kasus tj-actions, atau alat tanpa tanda tangan rilis diganti: oasdiff tidak menerbitkannya dan gosec Tidak dijalankan. Pencegahannya menyematkan action ke commit SHA penuh (atau lockfile workflow, yang menurut dokumentasi GitHub menggantikannya), mengunci SHA-256 alat (sudah di lab), dan CODEOWNERS atas file workflow. Tiga pencegahan itu Tidak dijalankan, kecuali checksum alat.
+
+**Kapan keputusan ini salah.**
+
+- Saat satu PR menunggu pipeline lebih dari 10 menit (Asumsi naskah). Tim mulai melewatinya. Lab tidak mengukur waktu CI.
+- Saat satu tim jaga turun menjadi tiga orang: 1 ÷ 3 = 33% minggu jaga lawan batas 25% (Hitungan atas Asumsi naskah).
+- Saat tim memakai parameter tingkat path atau `explode` di kontrak. `explode` tidak tertangkap oasdiff di kedua tingkat (`kontrak.txt` bagian C).
+- Saat gerbang tanpa pemeriksaan isi dianggap cukup. grype atas SBOM kosong lulus (`sbom.txt` bagian B), dan SBOM yang lengkap pun hanya mendaftar komponen.
+- Saat verifikasi memakai tag, bukan digest hasil build. Tanda tangan atas tag yang dipindah sebelum penandatanganan tetap sah (`tanda-tangan.txt` bagian C).
+
+**Yang akan merevisinya.** Tahap 5 menaikkan tim dari 13 menjadi 20 sampai 40 orang dalam 5 sampai 7 tim (naskah Tahap 4, jembatan). Pipeline dan giliran jaga dibagi per tim, dan batas modul perlu menjadi batas deploy. [[t4-adr-45]] mencatat yang sengaja belum dilakukan.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Keyless signing, Fulcio, dan Rekor | Lab memakai kunci sendiri. Keyless Tidak dijalankan | Belum dijadwalkan |
+| Provenance SLSA | Hanya disebut di naskah, Tidak dijalankan | [[t4-adr-45]] |
+| Atestasi app | Hanya disebut di naskah, Tidak dijalankan | Belum dijadwalkan |
+| Workflow GitHub Actions per modul, branch protection, dan CODEOWNERS | Fitur GitHub, lab tidak menjalankan CI. Plan pemilik [perlu verifikasi] | Belum dijadwalkan |
+| Mencocokkan isi response server dengan kontrak | Lab hanya mencocokkan rute dengan kontrak | Belum dijadwalkan |
+| Aturan "jalankan semua" untuk kode bersama | Belum diputuskan | Bila PR kode bersama lolos tanpa tes |
+| Menaikkan Go ke 1.27.3 | Mengubah api-t4 dan semua rekamannya | Sebelum dibuka ke publik |
+| Client Dart yang dijalankan | Hanya kode hasil generasi yang dibaca | Belum dijadwalkan |
+| Tempat flag kill switch kartu di luar proses | Lab memakai flag di memori satu proses, dan tempatnya belum diputuskan | Belum dijadwalkan |
+| Rilis kartu bertahap 1%, 5%, 25%, 100% | Asumsi naskah. Tidak dijalankan | Belum dijadwalkan |
+| Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC | Rekaman hanya dua file contoh ([[t4-infra-secret]]). Tidak dijalankan | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** oasdiff `breaking` pada ambang ERR meloloskan field opsional yang dihapus dari respons. Kenapa, dan apa yang menaikkannya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Perubahan itu berstatus INFO, dan `breaking` hanya memuat ERR dan WARN. File `--severity-levels` dengan satu baris `response-optional-property-removed err` menaikkannya menjadi error (`kontrak.txt` bagian B).
+
+</details>
+
+**2.** `cosign verify` atas tag lulus, padahal tag itu dipindah sebelum ditandatangani. Apa yang menolak image itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Perbandingan digest di referensi dengan digest hasil build CI. Di `tanda-tangan.txt` bagian C, verify atas tag lulus dan memuat digest D, sedangkan build CI menghasilkan digest C.
+
+</details>
+
+**3.** grype menemukan 14 temuan stdlib atas image api-t4, dan govulncheck menemukan 10 yang dipanggil. Berapa yang ada tetapi tidak dipanggil, dan apa contohnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+14 − 10 = 4 (Hitungan atas dua daftar). GO-2026-6604 salah satunya: grype menandainya Critical, tetapi govulncheck tidak melaporkannya dipanggil, dan ringkasan advisory menyebut Windows.
+
+</details>
+
+**4.** Satu PR hanya mengubah `internal/service/bayar.go`. Langkah apa yang jalan menurut pemetaan lab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak ada. `langkah_untuk` mengembalikan daftar kosong untuk kode di luar `internal/modul/<nama>/`. Aturan untuk kode bersama belum diputuskan.
+
+</details>
+
+**5.** Tim Merchant berempat memakai giliran jaga mingguan, lalu satu orang cuti. Berapa persen minggu jaga tiap orang sebelum dan sesudahnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+1 ÷ 4 = 25% sebelum, dan 1 ÷ 3 = 33% sesudah. Batas buku SRE adalah 25% waktu (Hitungan atas Asumsi naskah).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] PR yang mengubah `openapi.yaml` lolos `oasdiff breaking`, dan diff client Dart sudah dibaca orang.
+- [ ] Workflow memakai gosec tanpa `-quiet` dan govulncheck JSON, lalu menolak pemindaian yang tidak lengkap.
+- [ ] Verifikasi image memakai digest hasil build, bukan tag.
+- [ ] Action pihak ketiga di workflow disematkan ke commit SHA penuh.
+- [ ] Folder kode baru di luar `internal/modul/` punya langkah di pemetaan, atau ada tes yang menolaknya.
+
+### Bacaan lanjut
+
+- [oasdiff: breaking changes](https://github.com/oasdiff/oasdiff)
+- [GitHub Docs: Troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks)
+- [GitHub Docs: Secure use reference](https://docs.github.com/en/actions/reference/security/secure-use)
+- [GHSA-mrrh-fwg8-r2c3: tj-actions/changed-files](https://github.com/advisories/GHSA-mrrh-fwg8-r2c3)
+- [NTIA: Minimum Elements For an SBOM](https://www.ntia.gov/report/2021/minimum-elements-software-bill-materials-sbom)
+- [Google SRE book, bab 6: Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/)
+- [Google SRE book, bab 11: Being On-Call](https://sre.google/sre-book/being-on-call/)
+- [Play Console Help: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149)
+- [App Store Connect Help: phased release](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/)
+- [Dart: Pub workspaces](https://dart.dev/tools/pub/workspaces)
+- [Halaman istilah on-call](/istilah/on-call/) · [CODEOWNERS](/istilah/codeowners/) · [branch protection](/istilah/branch-protection/)
+
+</Blok>
+
+<SkripLama daftar={["pilah"]} />
