@@ -286,7 +286,7 @@ describe("kode lab: impor katalog, versi pertama (Rentan), klaim negatif berling
     expect(handlerGo).toMatch(/GambarURL string\s+`json:"gambar_url"`/);
     expect(handlerGo).toContain('"produk"');
     harus("Impor katalog menerima daftar produk, dan tiap produk punya field `gambar_url`. Di cerita daftar itu berasal dari file CSV, dan di kode lab daftar itu dikirim sebagai JSON.");
-    harus("lalu mengembalikan hasil tiap baris dengan dua kolom, `pratinjau` dan `galat` (Tidak dijalankan: dibaca dari kode):");
+    harus("lalu mengembalikan hasil tiap baris: nama produk dan dua kolom hasil, `pratinjau` dan `galat` (Tidak dijalankan: dibaca dari kode):");
     harus("Pesan itu disimpan di kolom `galat`, bukan `pratinjau`, karena `pratinjau` hanya terisi bila unduhan berhasil:");
     harus("Jadi \"kolom pratinjau\" di cerita adalah Ilustrasi, dan di kode lab teks itu ada di kolom `galat`.");
   });
@@ -433,7 +433,7 @@ describe("rekaman alamat.txt dan batas.txt: nilai yang dikutip, Hitungan, dan kl
     }
     harus("Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private).");
     harus(`Bila \`IsPrivate\` satu-satunya pemeriksaan, ${TERLARANG - PRIVAT.length} lolos. Bila hanya empat penanda bawaan Go yang diperiksa, ${TERLARANG - EMPAT.length} lolos (Rekaman lab, \`alamat.txt\`).`);
-    harus(`Daftar alamat terlarang yang ditulis fetcher menolak ${TERLARANG} dari ${TERLARANG}.`);
+    harus(`Pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG} alamat terlarang di tabel rekaman.`);
   });
   test("redirect: tujuh kode, tiap kode server pertama 1 dan tujuan 0; kode yang tidak diuji 305 dan 306", () => {
     expect(KODE_REDIRECT).toEqual([300, 301, 302, 303, 304, 307, 308]);
@@ -681,7 +681,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
     harus("*Angka cerita (Ilustrasi):* hari, nama toko, kata `penyimpanan-internal`, dan temuan Laras berasal dari cerita, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, Tidak dijalankan, dan [perlu verifikasi] ada di [[A0]].");
     harus("Dugaan itu masuk akal. Merchant mengisi kolom `gambar_url` di file CSV sendiri, dan pratinjau dibuat dari kolom itu. Tetapi file CSV hanya memuat alamat, bukan isi gambar.");
     harus("Merchant tidak mengirim JSON itu. Server Rekeningo yang mengambilnya dari alamat yang diisi merchant, lalu mengembalikannya.");
-    harus("**Server yang mengunduh, bukan merchant.** Impor katalog menerima daftar produk, dan tiap produk punya field `gambar_url`. Di cerita daftar itu berasal dari file CSV, dan di kode lab daftar itu dikirim sebagai JSON. Server mengunduh tiap alamat untuk membuat pratinjau, lalu mengembalikan hasil tiap baris dengan dua kolom, `pratinjau` dan `galat` (Tidak dijalankan: dibaca dari kode):");
+    harus("**Server yang mengunduh, bukan merchant.** Impor katalog menerima daftar produk, dan tiap produk punya field `gambar_url`. Di cerita daftar itu berasal dari file CSV, dan di kode lab daftar itu dikirim sebagai JSON. Server mengunduh tiap alamat untuk membuat pratinjau, lalu mengembalikan hasil tiap baris: nama produk dan dua kolom hasil, `pratinjau` dan `galat` (Tidak dijalankan: dibaca dari kode):");
     harus("**Kenapa ini masalah.** Alamat itu diisi merchant, tetapi yang memintanya adalah server Rekeningo, dengan akses jaringan milik server. Merchant luar tidak punya akses ke jaringan dalam, yaitu jaringan tempat service Rekeningo saling memanggil. Server punya. Masalah seperti ini disebut SSRF (server-side request forgery): aplikasi dipakai untuk menghubungi alamat yang dipilih pihak luar.");
     harus("OWASP memakai contoh serupa, yaitu user yang mengisi URL gambar avatarnya untuk diunduh aplikasi ([OWASP SSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html), dibuka 2026-10-30, Tidak dijalankan). Di cerita, pihak yang mencoba adalah merchant luar yang mengisi `gambar_url` dengan nama layanan penyimpanan objek di jaringan dalam (Ilustrasi). Penyimpanan objek dibahas di [[t4-storage]]. Konsep dan keputusannya ada di [[t4-ssrf]].");
     harus("**Empat kelemahan versi pertama.** Versi pertama bernama `Rentan` di kode lab. Keempat kelemahan ini dibaca dari kode (Tidak dijalankan: dibaca dari kode):");
@@ -701,7 +701,7 @@ describe("tinjauan: paragraf penuh dibandingkan utuh, tanpa kunci baris", () => 
   test("paragraf dengan bilangan: alamat, ubah satu hal, dan noscript diturunkan dari tabel alamat.txt", () => {
     const L = TERLARANG - PRIVAT.length, E = TERLARANG - EMPAT.length;
     harus(`**Alamat.** Alamat terlarang adalah alamat yang tidak boleh menjadi tujuan unduhan, misalnya alamat mesin itu sendiri (loopback) dan alamat jaringan internal (private). Rekaman menguji ${TERLARANG} alamat contoh, dan versi aman menolak ${TERLARANG} dari ${TERLARANG}.`);
-    harus(`Sesudah langkah terakhir, centang **Ubah satu hal: pemeriksaan alamat hanya memakai IsPrivate**. Daftar alamat terlarang yang ditulis fetcher menolak ${TERLARANG} dari ${TERLARANG}. Bila \`IsPrivate\` satu-satunya pemeriksaan, ${L} lolos. Bila hanya empat penanda bawaan Go yang diperiksa, ${E} lolos (Rekaman lab, \`alamat.txt\`).`);
+    harus(`Sesudah langkah terakhir, centang **Ubah satu hal: pemeriksaan alamat hanya memakai IsPrivate**. Pemeriksaan alamat versi aman menolak ${TERLARANG} dari ${TERLARANG} alamat terlarang di tabel rekaman. Bila \`IsPrivate\` satu-satunya pemeriksaan, ${L} lolos. Bila hanya empat penanda bawaan Go yang diperiksa, ${E} lolos (Rekaman lab, \`alamat.txt\`).`);
     harus(`Bila hanya \`IsPrivate\` yang diperiksa, ${L} dari ${TERLARANG} alamat terlarang lolos. Rekaman alamat ada di lipatan di bawah.`);
   });
   test("tebakan di details: jawabannya utuh; heading Cek diri tingkat 3; Rantai tampil biasa dengan data yang diimpor", () => {

@@ -42,7 +42,7 @@ Dari jawaban layanan yang beralamat di kolom itu. Server Rekeningo mengunduh ala
 
 Merchant tidak mengirim JSON itu. Server Rekeningo yang mengambilnya dari alamat yang diisi merchant, lalu mengembalikannya.
 
-**Server yang mengunduh, bukan merchant.** Impor katalog menerima daftar produk, dan tiap produk punya field `gambar_url`. Di cerita daftar itu berasal dari file CSV, dan di kode lab daftar itu dikirim sebagai JSON. Server mengunduh tiap alamat untuk membuat pratinjau, lalu mengembalikan hasil tiap baris dengan dua kolom, `pratinjau` dan `galat` (Tidak dijalankan: dibaca dari kode):
+**Server yang mengunduh, bukan merchant.** Impor katalog menerima daftar produk, dan tiap produk punya field `gambar_url`. Di cerita daftar itu berasal dari file CSV, dan di kode lab daftar itu dikirim sebagai JSON. Server mengunduh tiap alamat untuk membuat pratinjau, lalu mengembalikan hasil tiap baris: nama produk dan dua kolom hasil, `pratinjau` dan `galat` (Tidak dijalankan: dibaca dari kode):
 
 <Snippet file="labs/api-t4/internal/service/katalog_impor.go" lines="27:32" lang="go" title="Kode lab: labs/api-t4/internal/service/katalog_impor.go baris 27 sampai 32 (hasil tiap baris: pratinjau dan galat)" />
 
@@ -112,7 +112,7 @@ Widget ini mengikuti rekaman `alamat.txt` dan `batas.txt`, dengan satu varian da
 
 <WidgetLama nama="alur" src="data/skenario/t4-m36.json" />
 
-Sesudah langkah terakhir, centang **Ubah satu hal: pemeriksaan alamat hanya memakai IsPrivate**. Daftar alamat terlarang yang ditulis fetcher menolak 32 dari 32. Bila `IsPrivate` satu-satunya pemeriksaan, 29 lolos. Bila hanya empat penanda bawaan Go yang diperiksa, 26 lolos (Rekaman lab, `alamat.txt`).
+Sesudah langkah terakhir, centang **Ubah satu hal: pemeriksaan alamat hanya memakai IsPrivate**. Pemeriksaan alamat versi aman menolak 32 dari 32 alamat terlarang di tabel rekaman. Bila `IsPrivate` satu-satunya pemeriksaan, 29 lolos. Bila hanya empat penanda bawaan Go yang diperiksa, 26 lolos (Rekaman lab, `alamat.txt`).
 
 Batasnya: tabel itu memuat alamat contoh, bukan semua alamat yang mungkin. Kenapa satu pemeriksaan tidak cukup dibahas di [[t4-ssrf]].
 
