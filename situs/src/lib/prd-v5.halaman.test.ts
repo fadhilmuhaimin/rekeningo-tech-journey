@@ -380,6 +380,7 @@ describe("isi PRD: tujuan, user, lingkup, metrik, batasan, Pak Hadi, tim, tokoh,
   test("aturan Pak Hadi: v1 sampai v3 dari PRD v3, v4 dari PRD v4, v5 dari naskah", () => {
     const m = tabel(badan, "| PRD | Aturan Pak Hadi |");
     expect(m).toHaveLength(6);
+    expect(m.map((r) => r[0])).toEqual(["PRD", "v1", "v2", "v3", "v4", "v5"]);
     for (const [v, sumber] of [["v1", T(3, "prd-v3.mdx")], ["v2", T(3, "prd-v3.mdx")], ["v3", T(3, "prd-v3.mdx")], ["v4", T(4, "prd-v4.mdx")]] as const) {
       expect(`| ${m.find((r) => r[0] === v)!.join(" | ")} |`, v).toBe(barisAwal(sumber, `| ${v} |`));
     }
@@ -680,7 +681,9 @@ describe("kalimat bebas, kepala tabel, dan struktur", () => {
     for (let i = 1; i < baris.length; i++) {
       if (!baris[i - 1]!.trim() || !baris[i]!.trim()) continue;
       const ka = kelas(baris[i - 1]!);
-      expect(ka === kelas(baris[i]!) && ka !== "prosa", `baris ${i} dan ${i + 1} harus dipisah baris kosong: ${baris[i]!.slice(0, 40)}`).toBe(true);
+      // Tag yang berdampingan hanya di dalam kepala dokumen (baris menjorok); `</Blok>` dan `<Blok` dipisah baris kosong.
+      const dalamKepala = baris[i - 1]!.startsWith("  <") || baris[i]!.startsWith("  <");
+      expect(ka === kelas(baris[i]!) && ka !== "prosa" && (ka !== "tag" || dalamKepala), `baris ${i} dan ${i + 1} harus dipisah baris kosong: ${baris[i]!.slice(0, 40)}`).toBe(true);
     }
     let n = 0;
     for (const b of baris) {
@@ -1073,6 +1076,7 @@ describe("kalimat prosa tanpa kunci", () => {
   test("tiap baris prosa habis dikunci: kalimat tambahan di luar daftar kunci gagal", () => {
     if (terkunci.length < 50) return; // dijalankan sebagian (-t): daftar kunci belum lengkap
     const prosa = badan.split("\n").filter((b) => b.trim() !== "" && !/^\s*(\||<|import )/.test(b));
+    expect(new Set(prosa).size, "baris prosa ganda").toBe(prosa.length);
     let sisa = prosa.join("\n");
     for (const k of [...terkunci].sort((x, y) => y.length - x.length)) sisa = sisa.split(k).join("\u0000");
     const tinggal = sisa.replace(/\u0000/g, " ").replace(/^\s*(?:[-*]|\d+\.)\s+/gm, "").replace(/[\s*:.,;()]+/g, " ").trim();
