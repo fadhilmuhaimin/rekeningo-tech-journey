@@ -33,7 +33,7 @@ Sembilan pilihan berikut diambil tanpa bertanya, dengan opsi paling aman dan pal
 2. **Tim: 28 orang, termasuk platform, SRE, dan security.** PROPOSAL menulis "20–40 (5–7 tim + platform, SRE, security)", dan halaman 4.31 menulis "20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security". Dua bacaan itu berbeda. Naskah ini memakai satu bacaan: 28 orang dalam delapan tim, yaitu lima tim produk dan tiga tim fungsi, semuanya dihitung dalam 20 sampai 40 (Asumsi cerita). Registry `tim` bernilai "20+ developer" dan tidak berubah.
 3. **Enam service, satu cluster PostgreSQL.** PROPOSAL menulis "pecah service dengan DB sendiri". Naskah ini memberi tiap service schema dan role sendiri di satu cluster (primary dan replica), seperti ADR 37, karena lab hanya bisa merekam satu primary. Database terpisah per service ditunda ke ADR 60 dengan pemicu tertulis. Pemilik memutuskan mana yang berlaku.
 4. **BFF tetap sengaja belum.** PROPOSAL menulis BFF di bentuk Tahap 4, dan naskah Tahap 4 menundanya ke ADR 45 (TINJAUAN-PEMILIK Tahap 4, butir 3). Naskah ini mengikuti naskah Tahap 4: pemicunya, satu layar app butuh lebih dari 3 request berurutan, belum terukur. Request paralel bukan pemicunya.
-5. **Satu kill switch untuk monolith dan service pembayaran.** TINJAUAN-PEMILIK butir 4b membiarkan terbuka apakah kill switch kartu satu atau dua, dan di luar proses atau tidak. Naskah ini memilih satu sakelar di tabel `sakelar` yang dibaca semua pod, dengan jawaban aman bila tabelnya tidak terbaca (ADR 55).
+5. **Satu kill switch untuk semua pod dan semua service yang menyentuh kartu.** TINJAUAN-PEMILIK butir 4b membiarkan terbuka apakah kill switch kartu satu atau dua (monolith dan service pembayaran), dan di luar proses atau tidak. Naskah ini memilih satu sakelar di tabel `sakelar` yang dibaca semua pod, dengan jawaban tolak bila tabelnya tidak terbaca (ADR 55).
 6. **Penagihan atas otorisasi kartu yang ditolak tetap keputusan produk.** Butir 4a TINJAUAN-PEMILIK membiarkannya terbuka. Naskah ini tidak memutuskannya, dan menulis asumsi aman bila halaman perlu satu bentuk: tidak didebit, dicatat sebagai insiden bernomor.
 7. **RPO dan RTO ditulis di PRD v5.** PRD v3 dan v4 tidak menulis batas waktu pulih atau jendela kehilangan data, sehingga pemicu ADR 33 tetap terbuka (butir 4d). PRD v5 menulisnya sebagai Asumsi produk: tidak ada transaksi uang yang sudah dijawab sukses lalu hilang, dan pulih dalam 15 menit.
 8. **api-t5 memakai Go 1.27.3, lab Tahap 4 tidak dinaikkan.** `api-t4` gagal gerbang ADR 44 pada Go 1.27.1 (TINJAUAN-PEMILIK butir 2). Lab Tahap 5 memakai Go 1.27.3 dari RISET (R5-01, Asumsi sampai lab mengecek ulang). Merekam ulang semua lab Tahap 4 adalah tugas terpisah yang bukan lingkup naskah ini.
@@ -191,4 +191,225 @@ ADR 45 aturan 5 menjadwalkan tiga pengukuran sebelum fitur PRD v5 pertama: load 
 | 28 engineer, delapan tim | Paket app per tim | Pipeline per service, observability penuh, platform sebagai jalan beraspal | Migration per service | OpenTelemetry, SLO, GitOps, on-prem lawan cloud |
 
 Dari tabel ini lahir pertanyaan pertama Tahap 5, sebelum satu baris kode: **salinan boleh banyak, tetapi tempat uang bergerak hanya satu**. Cara pertama yang ditulis tim memperlakukan semua salinan seperti sumber, dan itu bagian 3.
+
+## 3. Inti teknis Tahap 5 · Salinan boleh banyak, tempat uang bergerak hanya satu
+
+Ini jantung Tahap 5. Pertanyaannya dirumuskan di minggu 0, sebelum masalah apa pun muncul. Di Tahap 4 arahnya kabar dari luar. Di Tahap 5 arahnya salinan ke luar: laporan, riwayat, cadangan, pengumuman, dan event membaca data yang sama dari tempat berbeda, dan tiap salinan tertinggal beberapa detik sampai beberapa jam dari sumbernya.
+
+Tiga hal harus selalu benar:
+
+1. Uang bergerak hanya lewat ledger: jurnal seimbang, posting tidak diubah, dan satu primary menerima semua tulisan. Service lain membaca, atau meminta posting dengan Idempotency-Key (PROPOSAL; syarat Pak Hadi sejak Tahap 2).
+2. Keputusan yang menentukan uang dibaca dari sumber yang sama dengan yang menggerakkan uang. Replica, ringkasan, cache, dan event hanya untuk dilihat, dan jarak ketertinggalannya diketahui dan disebut (syarat Pak Hadi di PRD v5; ADR 45 aturan 2).
+3. Pekerjaan yang lebih panjang dari satu proses, satu hari, atau satu mesin tetap benar bila dihentikan dan diulang di titik mana pun: batch, failover, dan deploy (syarat Direksi dan Dewi).
+
+**Versi pertama (minggu 2).** Wulan menulis laporan real-time sebagai satu endpoint yang menjumlah posting hari ini milik merchant dari primary yang sama dengan pembayaran, dan app memanggilnya tiap 30 detik. Raka memakai endpoint riwayat yang sama untuk layar "Berhasil". Hendra menulis cicilan sebagai job malam yang menagih semua jadwal jatuh tempo, lalu menandai angsuran lunas. Nadia mengusulkan event streaming untuk semuanya.
+
+Di staging dengan 200 merchant tiap bagian tampak cukup.
+
+| Kejadian | 1. Uang hanya lewat ledger | 2. Keputusan dari sumber yang sama | 3. Benar bila diulang atau dihentikan |
+| --- | --- | --- | --- |
+| 20.000 merchant membuka laporan tiap 30 detik di primary | Terjaga | Terjaga: laporan hanya melihat | Rusak: query laporan ikut memperlambat pembayaran (M40) |
+| Riwayat dibaca dari replica sesudah bayar | Terjaga | Rusak: pembeli melihat catatan yang tertinggal (M41) | Tidak berlaku |
+| Primary mati saat replica asinkron | Rusak: transaksi yang sudah dijawab sukses ikut hilang (M42) | Tidak berlaku | Tidak berlaku |
+| Pemeriksaan saldo malam membaca semua posting | Terjaga | Terjaga | Rusak: tidak selesai sebelum pagi (M43) |
+| Pengumuman ke semua HP memakai worker notifikasi uang | Terjaga | Tidak berlaku | Rusak: antrean uang menunggu (M45) |
+| Pod notifikasi memanggil ledger tanpa identitas | Rusak: siapa pun di jaringan dalam bisa membuat jurnal baru (M47) | Tidak berlaku | Tidak berlaku |
+| Batch cicilan diulang sesudah 24 jam | Rusak: angsuran terdebit dua kali (M48) | Tidak berlaku | Rusak: key idempotensi sudah habis |
+| Kill switch hanya di memori satu pod | Tidak berlaku | Rusak: pod lain memakai nilai lama (M49) | Tidak berlaku |
+
+Mode rentan yang menjalankan versi pertama (laporan di primary, cicilan satu job) belum ada; `api-t5` akan merekamnya sebagai bagian A (bagian 4, tabel "Yang harus bisa dibuktikan lab"). Kalimat di tabel ini tentang M42 dan M47 adalah penalaran dari dokumentasi (R5-100, R5-20), bukan kejadian yang direkam.
+
+Halaman ini menanam tiga pertanyaan. Di minggu 2 Wulan bertanya siapa yang melambat bila laporan dan pembayaran membaca database yang sama. Pak Hadi bertanya angka mana yang ia tanda tangani bila ada dua salinan. Dewi bertanya apa yang hilang bila database utama mati pukul 02.10.
+
+Jawabannya ada di M40 sampai M43.
+
+**Yang pembaca lakukan.** Widget W5-zona di halaman 5.2: klik tiap zona dari lima lapisan (client, edge, service, data, operasi), tandai zona tempat uang bergerak, lalu lihat tabel di atas terisi.
+
+**Yang dipelajari Raka dengan susah payah.** Pola yang sama muncul lagi di arsip yang dipindah ke penyimpanan objek (ADR 57), di cicilan yang diulang (M48), dan di sakelar kartu (M49). Setiap salinan diberi nama, diberi umur, dan dilarang memutuskan.
+
+### Angka beban Tahap 5 (Asumsi, rumus ditulis)
+
+Masukan registry `tahap[4].asumsi`: 1.000.000 user, aktif 20%, 60 request per user aktif, faktor puncak 10, unggahan 20.000 per hari, 500 KB per file. Transaksi uang 3 per user aktif per hari mengikuti naskah Tahap 2 sampai 4, dan registry `tahap[4].asumsi.trx` bernilai 2. Naskah ini menulis dasar 3 dan hasil dengan 2 di sebelahnya (pilihan draf 1). Hasil rumus memakai label masukan terlemahnya, jadi seluruh tabel berlabel Asumsi.
+
+| Besaran | Rumus | Masukan | Hasil |
+| --- | --- | --- | --- |
+| Request per detik | aktif × request ÷ 86.400 × puncak | 200.000 × 60 = 12 juta per hari | 138,9 rata-rata dan 1.388,9 puncak (Tahap 4: 138,9 puncak; naik 10 kali karena user 10 kali dan persen aktif tetap 20%) (R5-30) |
+| Transaksi uang (bayar, transfer, QR) | aktif × trx ÷ 86.400 × puncak | 200.000 × 3 = 600.000 per hari (trx 2: 400.000) | 6,94 rata-rata dan 69,4 puncak (trx 2: 4,63 dan 46,3). Jendela makan siang (80% dalam 90 menit): 88,9 (trx 2: 59,3) (R5-31) |
+| Transaksi per merchant | transaksi per hari ÷ merchant | 600.000 ÷ 200.000 | 3 per merchant per hari (trx 2: 2); laporan harian satu merchant ringan (R5-36) |
+| Top-up dari bank | aktif × 0,25 ÷ 86.400 × puncak | 50.000 per hari | 0,579 rata-rata dan 5,79 puncak |
+| Notifikasi uang dan worker | (transaksi + top-up) ÷ 86.400 × puncak lawan c ÷ t | 650.000 per hari; c = 4, t = 0,3 detik, kapasitas 13,33 per detik | 75,2 per detik puncak = 564% kapasitas (trx 2: 52,1 = 391%). Makan siang: 650.000 × 0,8 ÷ 5.400 = 96,3 = 722% (trx 2: 66,7 = 500%) (Tahap 4: 56% dan 72%) |
+| Pengirim yang dibutuhkan | L = λ × t | 96,3 × 0,3 = 28,9, dibulatkan 29 | 8 proses × 4 = 32 pengirim = 106,7 per detik, terpakai 90%. 11 proses = 44 pengirim = 146,7 per detik, terpakai 66% (Asumsi desain: paling tinggi ±70%) |
+| Antrean bila tetap 4 pengirim | (λ − c ÷ t) × 5.400 | (96,3 − 13,33) × 5.400 | ±448.000 baris di akhir makan siang; dikuras paling cepat 448.000 ÷ 13,33 = 33.600 detik = 9,3 jam. Umur tertua 40 menit sesudah makan siang mulai, bila antrean urut dan kedatangan tetap: 2.400 × (1 − 13,33 ÷ 96,3) = 2.068 detik = 34,5 menit |
+| Pengumuman ke 1.000.000 HP | N × t ÷ pengirim | 1.000.000 × 0,3 ÷ pengirim | 4 pengirim: 75.000 detik = 20,8 jam (Tahap 4: 100.000 HP = 7.500 detik). 32 pengirim: 9.375 detik = 156 menit. Target 30 menit: 1.000.000 ÷ 1.800 = 555,6 per detik, dikali 0,3 = 167 pengirim = 42 proses |
+| Kuota penyedia push (tiruan lab) | N ÷ detik | 600.000 per menit = 10.000 per detik (mengikuti dokumentasi satu penyedia push, R5-08) | Target 30 menit memakai 555,6 ÷ 10.000 = 5,6% kuota. Semua dalam 1 menit = 16.667 per detik = 167% kuota, dan kelebihannya dijawab 429 |
+| Polling laporan | merchant online ÷ interval | 200.000 × 10% = 20.000 online; polling 30 detik; query 20 ms; 8 vCPU (Asumsi) | 666,7 per detik, atau 9,6 kali transaksi uang puncak (666,7 ÷ 69,4). L = 666,7 × 0,02 = 13,3 query berjalan. CPU 666,7 × 0,02 ÷ 8 = 167% (R5-34) |
+| Baca selain uang | (request − transaksi uang) × W | (1.388,9 − 69,4) × 0,02 | L = 26,4 koneksi, atau 528% dari pemicu read replica ADR 45 (5 koneksi) |
+| Koneksi database | service × instance × pool | 6 × 3 × 10 = 180 terpasang; tersedia 100 − 3 = 97 | 180 ÷ 97 = 186% dari yang tersedia, dan 180 ÷ 70 = 257% dari pemicu PgBouncer ADR 45. Rata-rata terpakai L = 1.388,9 × 0,02 = 27,8 (R5-37) |
+| Data posting | aktif × trx × 2 × 365 × byte | 200.000 × 3 × 2 × 365 = 438 juta; 250 B per posting | 109,5 GB per tahun, atau 36,5 juta posting dan 9,1 GB per bulan. Trx 2: 292 juta dan 73,0 GB. Rumus registry (1 baris 300 B): 43,8 GB (trx 2) dan 65,7 GB (trx 3). Tahap 4: 10,95 GB (R5-32) |
+| Pemeriksaan saldo malam | baris yang dibaca | tanpa snapshot: semua posting sejak awal | 438 juta setelah 1 tahun dan 1.314 juta setelah 3 tahun. Dengan snapshot dan partisi bulan berjalan: paling banyak 36,5 juta, atau 8,3% dari 438 juta di tahun pertama |
+| Snapshot saldo | buku × bulan × byte | 1.200.000 buku (1.000.000 user + 200.000 merchant) × 12 × 50 B (Asumsi) | 720 MB per tahun |
+| File identitas | upload × KB × 365 | 20.000 × 500 KB | 10 GB per hari, 3.650 GB per tahun; 1.157 KB per detik puncak (Tahap 4: 365 GB; 10 kali) (R5-33) |
+| Outbox | (transaksi + top-up) × 365 × byte | 650.000 × 365 × 300 B | 71,2 GB per tahun tanpa pembersihan, dan 1,365 GB dengan retensi 7 hari |
+| Volume trace | RPS × span × byte | 8 span × 500 B (Asumsi) | 5,6 MB per detik puncak, 555,6 KB per detik rata-rata = 48,0 GB per hari. Tail sampling ±6% (1% error + 5% sisanya, Asumsi) = 2,9 GB per hari (R5-38) |
+| RPO replica asinkron | jeda × laju puncak | jeda 1 detik (Asumsi) × 69,4 | 69 transaksi bisa hilang saat failover (trx 2: 46) (R5-39) |
+| Canary tanpa traffic router | 1 ÷ replika | 3 replika; 20 replika | Langkah terkecil 33,3% dengan 3 replika, dan 5% butuh 20 replika (R5-40) |
+| Umur kunci pembungkus | 2^32 ÷ baris per tahun | 4.294.967.296 ÷ 438 juta | 9,8 tahun bila satu data key per posting (trx 2: ÷ 292 juta = 14,7 tahun) (R5-41) |
+| Cicilan | jadwal × bagian jatuh tempo ÷ hari | 100.000 jadwal aktif (10% user, Asumsi); 40% jatuh tempo di tiga hari gajian | 13.333 angsuran per hari puncak dan 3.333 rata-rata (100.000 ÷ 30). Pada 20 per detik: 667 detik = 11,1 menit |
+| Satu mitra POS | λ mitra ÷ puncak semua | 3.000 permintaan per detik ÷ 1.388,9 | 216% dari seluruh puncak. Kuota per mitra 100 per detik (Asumsi) |
+| Anggaran kegagalan | (1 − SLO) × menit | 0,001 × 43.200 | 43,2 menit per 30 hari. Burn rate 14,4 menghabiskannya dalam 720 ÷ 14,4 = 50 jam (R5-17) |
+| Orang per service | tim ÷ service | 28 ÷ 6 | 4,7 (Tahap 4: 13 ÷ 6 = 2,2 di ADR 45) |
+
+Tiga kesimpulan dari tabel ini menentukan tahap. Pertama, beban 1.388,9 request per detik naik 10 kali, dan yang melewati batasnya lebih dulu bukan request: worker 564%, koneksi terpasang 180 lawan 97 tersedia, dan pemeriksaan malam yang membaca 438 juta baris. Kedua, tidak ada hitungan di tabel ini yang menunjukkan primary tidak sanggup 69,4 transaksi uang per detik. Itu belum diukur, dan `make beban` di `api-t5` memberi batas di laptop, bukan kapasitas produksi.
+
+Ketiga, yang berbahaya adalah **salinan yang tertinggal dan pekerjaan yang diulang**, bukan banyaknya request. 69 transaksi dalam jeda 1 detik, angsuran yang ditagih dua kali, dan pengumuman yang menahan antrean uang berasal dari rumus yang sama dengan Tahap 4, Little's Law (R2-35) dan hasil yang tidak diketahui sesudah gagal.
+
+Pemicu ADR 45 dibaca ulang dengan angka di atas. "Terpenuhi" berarti halaman Tahap 5 menulis keadaan yang sama dengan pemicunya, bukan bahwa komponennya terbukti perlu.
+
+| Komponen ADR 45 | Pemicu yang ditulis | Tahap 4 | Tahap 5 (Hitungan atas Asumsi) | Dilanjutkan |
+| --- | --- | --- | --- | --- |
+| 1. Semua modul jadi service | Dua tim atau lebih tidak bisa merilis tanpa saling menunggu | 3 tim | 5 tim produk dan 3 tim fungsi: terpenuhi | M44, ADR 50 |
+| 2. Kubernetes | Lima tim atau lebih perlu merilis tanpa menunggu tim lain | 3 tim | 5 tim produk: terpenuhi | M44, ADR 50 |
+| 2. Service mesh | Lebih dari satu jalur antar service butuh TLS timbal balik dan retry seragam | 1 jalur | Ledger dipanggil dari tiga service (pembayaran, cicilan, merchant): terpenuhi untuk TLS timbal balik, dikerjakan di Go tanpa mesh | M47, ADR 53 |
+| 2. Event streaming | 100 pesan per detik terus-menerus, atau dua consumer atau lebih bergantung pada urutan | 7,5 per detik (7,5%) | 75,2 per detik puncak (75%), pengumuman 555,6 per detik selama 30 menit (556%); tiga consumer atas event pembayaran (rancangan ADR 51) | M45, ADR 51 |
+| 3. gRPC | Tambahan p95 satu lompatan HTTP melewati 50 ms antar host | Di bawah 50 ms di localhost | Jaringan antar host tetap belum diukur: belum terpenuhi | ADR 60 |
+| 4. Read replica | Laporan merchant real-time diminta, atau L baca 5 koneksi | L baca 2,64 (53%) | Laporan diminta; L baca 26,4 (528%): terpenuhi | M40, ADR 46 |
+| 4. PgBouncer | 70 koneksi dari 100 | 40 (57%) | 180 terpasang (257%), rata-rata terpakai 27,8: terpenuhi lewat potensi | M46, ADR 52 |
+| 5. BFF terpisah | Satu layar butuh lebih dari 3 request berurutan | Belum diukur | Belum diukur: belum terpenuhi | ADR 60 |
+| 6. Login sosial | PRD meminta masuk dengan akun penyedia lain | Tidak diminta | Tidak diminta | ADR 60 |
+| 7. SLSA dan HTTP Message Signatures | Pihak luar atau auditor meminta bukti pembuatan image | Tidak diminta | Tidak diminta; mitra POS memakai HMAC bertimestamp seperti ADR 34 | ADR 60 |
+| 8. Durable execution | Alur lebih dari satu hari yang harus lanjut dari tengah | Tidak ada | Cicilan berjalan berbulan-bulan: terpenuhi | M48, ADR 54 |
+
+Lima dari sebelas butir "Sengaja belum" di halaman 4.26 menjadi bahan Tahap 5. Dua dikerjakan di ADR 55: flag kill switch kartu di luar proses dan rilis kartu bertahap (M49). Satu dikerjakan di ADR 58: pemindai kunci produksi atas state IaC dan konfigurasi, karena repo konfigurasi GitOps menambah permukaan yang sama. Dua tetap ditunda di ADR 60: provenance SLSA dan atestasi app.
+
+## 3b. Skema data: ERD dari Tahap 4 ke Tahap 5
+
+Aturan sama dengan Tahap 2 sampai 4: ERD tahap sebelumnya selalu tampil berdampingan dengan tahap sekarang, dari skema lab. Halaman skema Tahap 5 memakai widget ERD bertumbuh dengan Tahap 4 di kiri dan Tahap 5 di kanan, dibuat dari skema lab `api-t5`. Blok mermaid di bawah hanya memuat tabel baru dan tabel yang berubah. Tabel lain tidak berubah dari Tahap 4 (`ERD4`). Kolom persisnya harus dicocokkan dengan skema lab `api-t5`; kalau berbeda, skema lab yang benar dan diagramnya yang diperbarui.
+
+### Apa yang berubah dan kenapa
+
+| Tahap 4 | Tahap 5 | Alasan | Masalah atau syarat |
+| --- | --- | --- | --- |
+| `posting` (PK `id`) | `posting` dipartisi per bulan menurut `dibuat`, PK `(id, dibuat)`; bulan lama dilepas dan diarsip | PRIMARY KEY dan UNIQUE harus memuat kolom kunci partisi (R5-04) | M43 |
+| (tidak ada) | `snapshot_saldo` (`buku_id`, `periode`, `saldo`, `jumlah_posting`, `dibuat`; PK `(buku_id, periode)`) | Saldo akhir tiap bulan, dicocokkan dengan jumlah posting; pemeriksaan membaca posting sesudahnya saja | M43 |
+| (tidak ada) | `arsip_partisi` (`periode` PK, `kunci_objek`, `checksum`, `kunci_data_terbungkus`, `versi_kek`, `dibuat`) | Partisi lama dipindah ke penyimpanan objek terenkripsi, dan arsipnya tercatat | M43, ADR 57 |
+| (tidak ada) | `ringkasan_merchant_harian` (`merchant_akun_id`, `tanggal`, `jumlah_transaksi`, `total`, `diperbarui_pada`; PK `(merchant_akun_id, tanggal)`) | Laporan periode tanpa menjumlah posting; dibaca dari replica | M40 |
+| (tidak ada) | `jadwal_cicilan` (id, `akun_id`, `jenis`: cicilan atau tabungan, `merchant_akun_id` boleh kosong, `jumlah_per_angsuran`, `jumlah_angsuran`, `hari_tagih`, `status`) | Jadwal milik service cicilan | M48 |
+| (tidak ada) | `angsuran` (`jadwal_id`, `ke`, `jatuh_tempo`, `status`: menunggu, terjurnal, dicatat, gagal; `jurnal_id` boleh kosong; PK `(jadwal_id, ke)`) | Kunci bisnis yang tidak kedaluwarsa menahan jurnal kedua | M48 |
+| (tidak ada) | `pengumuman` (id, `judul`, `status`: dibuat, berjalan, selesai, dihentikan; `jumlah_penerima`, `dibuat_oleh`, `mulai`, `selesai`) | Satu baris per pengumuman, bukan satu baris per penerima | M45 |
+| (tidak ada) | `mitra_pos` (id, `nama`, `kunci_hash` UNIK, `status`, `kuota_per_detik`, `dibuat`) | Identitas, kunci, dan kuota per mitra | M50 |
+| (tidak ada) | `sakelar` (`nama` PK, `nilai`, `diubah_oleh`, `diubah`) | Satu kill switch yang dibaca semua pod | M49 |
+| `akun` | `akun` + `mitra_pos_id` boleh kosong (Asumsi cerita: satu merchant, satu mitra POS) | Cakupan kunci mitra: hanya merchant miliknya | M50 |
+| `outbox` (`tujuan`: push, verifikasi) | `outbox` + nilai `tujuan` baru `stream` untuk diteruskan ke event streaming | Outbox tetap pintu masuk atomik; relay yang mengirim ke topik | M45 |
+| `jurnal` (`jenis`) | `jurnal` + nilai `angsuran` dan `tabungan` | Angsuran dan setoran tabungan adalah jurnal biasa | M48 |
+| 22 tabel dalam enam schema modul | 30 tabel dalam enam schema service, tanpa foreign key lintas service | Service tidak boleh terikat migration service lain; konsistensi lintas service dijaga Idempotency-Key dan rekonsiliasi | M44 |
+
+Pembagian service dan schema berikut adalah rancangan (Asumsi desain); lab `api-t5` menentukan bentuk akhirnya. Jumlahnya 30 tabel: 22 dari Tahap 4 dan 8 baru (`snapshot_saldo`, `arsip_partisi`, `ringkasan_merchant_harian`, `jadwal_cicilan`, `angsuran`, `pengumuman`, `mitra_pos`, `sakelar`), sesuai baris Tahap 5 di tabel pertumbuhan Tahap 2 ("±30"). Naskah Tahap 2 menulis "sebagian di service terpisah"; naskah ini membagi ke-30 tabel ke enam service di satu cluster, dan database terpisah per service ditunda ke ADR 60.
+
+| Service (schema) | Tabel | Jumlah |
+| --- | --- | --- |
+| `ledger` | `buku`, `jurnal`, `posting`, `kunci_idempotensi`, `batch_pencairan`, `baris_pencairan`, `snapshot_saldo`, `arsip_partisi`, `outbox` | 9 |
+| `akun` | `akun`, `sesi`, `kota`, `verifikasi`, `audit_log` | 5 |
+| `pembayaran` | `topup_bank`, `webhook_event`, `insiden_rekon`, `kartu`, `otorisasi_kartu`, `sakelar` | 6 |
+| `merchant` | `produk`, `promo`, `operasi_sinkron`, `qr`, `ringkasan_merchant_harian`, `mitra_pos` | 6 |
+| `notifikasi` | `perangkat`, `pengumuman` | 2 |
+| `cicilan` | `jadwal_cicilan`, `angsuran` | 2 |
+
+`outbox` ada di schema `ledger` karena ADR 23 menuntutnya satu transaction dengan jurnal. Di Tahap 4, 21 foreign key melintasi modul. Di Tahap 5 foreign key itu dihapus, dan kolom seperti `buku.akun_id` dan `angsuran.jurnal_id` menjadi referensi tanpa constraint. Lab menghitungnya dari katalog (bagian 4, `api-t5`).
+
+### Pertumbuhan skala database, Tahap 4 sampai 6
+
+Rumus dan angka mengikuti naskah Tahap 2 bagian 3b dan naskah Tahap 4. *Posting per tahun = transaksi per hari × 2 × 365*, ±250 byte per posting termasuk index.
+
+| Tahap | User | Tabel inti | Baris terbesar per tahun | Ukuran per tahun | Perubahan skema penting |
+| --- | --- | --- | --- | --- | --- |
+| 4 | 100.000 | 22, dibagi per modul | `posting` ±44 juta (43,8 juta) | ±11 GB (10,95 GB) | Pembayaran gateway, webhook masuk, verifikasi identitas, kartu virtual, audit log berantai |
+| 5 | 1 juta | 30, dibagi per service | `posting` ±440 juta (438 juta), dipartisi per bulan | ±110 GB (109,5 GB) | Partisi `posting`, snapshot saldo, read replica, cicilan, pengumuman, API untuk POS |
+| 6 (proyeksi, naskah Tahap 2) | 10 juta | per negara | `posting` ±4,4 miliar | ±1 TB | Multi-mata uang, data per negara, pemisahan database per wilayah |
+
+Ukuran data Tahap 5 punya tiga besaran, semuanya Asumsi: 43,8 GB (rumus registry, 2 transaksi, 300 B), 65,7 GB (rumus registry, 3 transaksi), dan 109,5 GB (rumus ledger, 3 transaksi). Ketiganya satu orde besaran, dan batas 32 TB per tabel (R5-04) jauh di atasnya: 32.000 ÷ 109,5 = 292 tahun (Hitungan atas Asumsi). Ukuran bukan alasan partisi. Alasannya retensi, VACUUM, dan pemeriksaan yang membaca terlalu banyak (M43).
+
+Tabel baru Tahap 5 kecil. `ringkasan_merchant_harian` 200.000 × 365 × 100 B = 7,3 GB per tahun (100 B per baris adalah Asumsi). `snapshot_saldo` 720 MB per tahun (tabel beban). `angsuran` 100.000 jadwal × 12 angsuran per tahun = 1,2 juta baris. `outbox` 71,2 GB tanpa pembersihan dan 1,365 GB dengan retensi 7 hari. File identitas 3.650 GB per tahun tidak masuk tabel (ADR 38).
+
+Pola yang ditanam: di Tahap 5 database tumbuh karena **salinan dan retensi**. Tabel terbesar dipartisi, laporan membaca replica, dan arsip keluar dari database utama.
+
+### Spesifikasi untuk Claude Code
+
+Blok di bawah dibaca mesin. Diagram di situs dibuat dari skema lab yang sesungguhnya, lalu dicocokkan dengan blok ini. Garis putus-putus (`..`) adalah referensi tanpa foreign key.
+
+```mermaid
+erDiagram
+  BUKU ||--o{ SNAPSHOT_SALDO : dirangkum_oleh
+  JURNAL ||--|{ POSTING : terdiri_dari
+  BUKU ||--o{ POSTING : dicatat_di
+  JADWAL_CICILAN ||--|{ ANGSURAN : terdiri_dari
+  AKUN ||..o{ JADWAL_CICILAN : menjadwalkan
+  AKUN |o..o{ JADWAL_CICILAN : menerima
+  JURNAL |o..o| ANGSURAN : dicatat_di
+  AKUN ||..o{ RINGKASAN_MERCHANT_HARIAN : dirangkum_untuk
+  MITRA_POS |o..o{ AKUN : melayani
+  AKUN ||..o{ PENGUMUMAN : dibuat_oleh
+  POSTING { bigint id PK
+    bigint jurnal_id FK
+    bigint buku_id FK
+    bigint jumlah
+    timestamptz dibuat PK }
+  SNAPSHOT_SALDO { bigint buku_id PK
+    date periode PK
+    bigint saldo
+    bigint jumlah_posting
+    timestamptz dibuat }
+  ARSIP_PARTISI { date periode PK
+    text kunci_objek
+    text checksum
+    text kunci_data_terbungkus
+    int versi_kek
+    timestamptz dibuat }
+  RINGKASAN_MERCHANT_HARIAN { bigint merchant_akun_id PK
+    date tanggal PK
+    bigint jumlah_transaksi
+    bigint total
+    timestamptz diperbarui_pada }
+  JADWAL_CICILAN { bigint id PK
+    bigint akun_id
+    text jenis
+    bigint merchant_akun_id
+    bigint jumlah_per_angsuran
+    int jumlah_angsuran
+    int hari_tagih
+    text status }
+  ANGSURAN { bigint jadwal_id PK
+    int ke PK
+    date jatuh_tempo
+    text status
+    bigint jurnal_id }
+  PENGUMUMAN { bigint id PK
+    text judul
+    text status
+    int jumlah_penerima
+    bigint dibuat_oleh
+    timestamptz mulai
+    timestamptz selesai }
+  MITRA_POS { bigint id PK
+    text nama
+    text kunci_hash UK
+    text status
+    int kuota_per_detik
+    timestamptz dibuat }
+  SAKELAR { text nama PK
+    boolean nilai
+    bigint diubah_oleh
+    timestamptz diubah }
+  AKUN { bigint mitra_pos_id }
+```
+
+Versi dasar lab (R5-01, dicek 2026-10-25 oleh riset dan belum dicek ulang untuk naskah ini; lab mengecek ulang saat dibangun):
+
+- Database dan bahasa: PostgreSQL 17.11 di lab (terbaru 18.6; dokumentasi dibaca di versi 18; 19 RC 1 belum GA). Go 1.27.3 untuk `api-t5` (Asumsi, pilihan draf 8); `api-t4` tetap 1.27.1. pgx v5.11.0.
+- Cluster dan rilis: Kubernetes 1.37.1 (2026-09-15), k3s v1.37.1+k3s1, k3d v5.9.0, Argo CD v3.5.6, Argo Rollouts v1.10.1. Ingress NGINX dihentikan sejak Maret 2026, jadi canary memakai Gateway API (R5-14; R5-102). Flux v2.9.6 hanya disebut.
+- Event streaming: Kafka 4.3 (dokumentasi; halaman unduhan memuat 4.2.2 dan 4.3.1 dengan urutan tanggal yang janggal, [perlu verifikasi]) dengan KRaft, franz-go v1.22.2. NATS server v2.15.1 dan Redpanda v26.2.2 hanya disebut (lisensi Redpanda [perlu verifikasi]).
+- Pooler dan operasi: PgBouncer 1.26.1. pgBackRest 2.60.0, Patroni v4.1.5, CloudNativePG v1.30.1, dan pg_partman v5.5.0 hanya disebut, Tidak dijalankan.
+- Workflow: DBOS Go v1.7.0 (MIT) dibandingkan dengan tabel langkah buatan sendiri. Temporal v1.32.1 dan TigerBeetle 0.17.9 hanya disebut.
+- Keamanan: Coraza v3.8.1 dengan OWASP CRS v4.30.0, OpenBao (R5-01 menulis v2.7.1; lab Tahap 4 memakai v2.7.2, jadi lab Tahap 5 memakai v2.7.2 atau yang lebih baru), SoftHSM 2.7.0 (Ilustrasi), cert-manager v1.21.3. SPIRE v1.15.5 hanya disebut.
+- Observability: OpenTelemetry Go v1.47.0, Collector v0.163.0, Prometheus v3.15.1, Tempo v3.1.1. Shorebird v1.6.131 untuk app.
+- Hanya dibandingkan, tidak dijalankan: Debezium v3.7.0.Final (CDC), Istio dan Linkerd, multi-region, dan semua layanan terkelola.
 
