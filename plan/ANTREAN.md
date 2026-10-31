@@ -2312,20 +2312,20 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### EVAL-4 · Evaluasi Tahap 4
 
 - jenis: crosscheck
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: 4.31
 - selesai bila: `plan/EVALUASI-TAHAP-4.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 4: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 4), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-4-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
-- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. ALOKASI: keputusan 1394–1396 (cadangan pengatur Tahap 4); tanpa ID riset.
+- catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. ALOKASI: keputusan 1394–1396 (cadangan pengatur Tahap 4); tanpa ID riset. Selesai 2026-10-31 di PR #468 (keputusan 1394–1396; `plan/EVALUASI-TAHAP-4.md`): W1 YA (31/31, 0 segera), W2 YA atas penelusuran (20 baris, lebih dari 40 angka, 6 label sesuai definisi) tetapi ulang `make cek` lima lab TERTUNDA (Docker Desktop menunggu dialog izin administrator di layar Mac; agen tidak memasukkan kata sandi; butir 1 TINJAUAN-PEMILIK Tahap 4), W3 YA (gejala 11/11), W4 YA (axe 124 run 0 pelanggaran, contrast 957/957, keyboard 0 terlewat), W5 TIDAK (tujuh dari 29), W6 YA, W7 YA, W8 YA (31 langkah, cek_tautan 0 rusak); tidak ada tugas perbaikan, EVAL-4-ulang tidak diperlukan kecuali ulang lab gagal; lima hal membingungkan semuanya polesan; temuan alat: eval-keyboard.mjs 6 'terlewat' palsu di 4.13, gerbang rantai hanya Tahap 1–3, run.py:685 'keempat percobaan'.
 
 ### DIRI-4 · Perbaikan diri sesudah Tahap 4
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: EVAL-4
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-4.md` dan pelajaran MEMORI Tahap 4, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 4, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 4 selesai".
-- catatan: Langkah penutup alur tahap. ALOKASI: keputusan 1397–1399 (cadangan pengatur Tahap 4); skill yang diubah dicatat sebagai keputusan satu per satu.
+- catatan: Langkah penutup alur tahap. ALOKASI: keputusan 1397–1399 (cadangan pengatur Tahap 4); skill yang diubah dicatat sebagai keputusan satu per satu. Selesai 2026-10-31 di PR #470 (keputusan 1397–1399): lima SKILL.md dan `plan/USULAN-PERBAIKAN.md` (bagian 'Dari DIRI-4': 13 usulan di luar wewenang dan 6 pelajaran untuk LAPORAN-AKHIR). gaya-bahasa +3 (angka masukan dari halaman lain diberi asal; rujukan 'di atas' dan 'bagian G' harus bisa diikuti; satu kata per konsep), visualisasi +1 (tabel GFM sama jumlah kolom, hitung `<table>` di dist), analisis-kritis +7/−2 (kalimat dua fakta, kata bilangan atas daftar, penjaga mengunci kalimat salah, kelas mutan RISET, penjaga tetangga RISET, pembulatan setengah ke atas, toContain), riset-tahap +1 (kata pelunak sumber), evaluasi-tahap +5/−2 (`docker info` dan kartu 'YA, ulang lab tertunda', keyboard dengan jeda, uji baca dengan nama file lengkap, W5 dan W6 diperluas); ditolak: posisi Tebak, Hitungan lawan Rekaman, nama penyedia, tiga klaim prompt yang tak terbukti. STATUS: Tahap 4 selesai.
 
 ## Tahap 5
 

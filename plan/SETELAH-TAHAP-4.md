@@ -538,3 +538,29 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - 4.31: istilah p95, batch, queue, breaker (halaman) dan NAT64 (alasan tebakan) dipakai tanpa arti di halaman ini; arti ada di halaman asal yang ditaut. Beri satu klausa arti atau halaman istilah bila halaman Tahap 5 memakainya.
 - 4.31: `eval_tahap.py adr 4` exit 1 hanya karena 4.9 (parser opsi membaca 0); periksa parser atau tabel 4.9 di EVAL-4.
 - 4.31: R4-260 sampai R4-264 prosa baris riset hanya dijaga kunci baris (10 dari 293 mutan tanpa kunci); pilihan benar tebakan terpanjang dalam kata (23 lawan 18 dan 21), bukan dalam karakter.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- 4.4 (Coba): "Tiga baris yang kamu tandai mengisi keenam kejadian di atas" menunjuk tabel Enam kejadian yang ada di blok Paham (baris 107); di Coba tidak ada tabel, juga sesudah Periksa. Pindahkan kalimat atau ubah rujukannya.
+- 4.4 (Paham): kutipan `topup.txt:108-133` tidak memuat penanda "# --- G." di baris 106, jadi "bagian G di atas" tidak bisa dicocokkan. Perluas kutipan atau hapus huruf bagian.
+- 4.8: "gateway kedua" dipakai di baris 71 dan baru dijelaskan di baris 77 ("Dua gateway nyata, dua kebiasaan"); pindahkan definisinya.
+- 4.8 (usulan cerita ke pemilik): Bayu menyamakan secret pukul 09.10 (Ilustrasi), 30 menit sebelum keluhan Citra 09.40, dan Bayu muncul tanpa perkenalan; hitungan 910 − 342 = 568 sudah benar.
+- 4.10: judul "tertahan" tidak segaris dengan adegan ("Verifikasi gagal") dan hitungan (layar berganti dalam 45 sampai 48 detik bila slot bebas); 7,52 per detik tidak punya rumus di halaman (6,94 + 0,579 = 7,52 ada di 4.28).
+- 4.9: ADR 35 tidak punya subbagian "Kasus industri" (11 ADR lain punya) dan hanya 3 tautan sumber; 4.23 punya 4.
+- `situs/tools/eval-keyboard.mjs`: balapan hidrasi pada island `client:visible` (4.13, 6 tombol diagram "terlewat" pada Tab tanpa jeda, 0 dengan jeda 150 ms); tambahkan opsi jeda atau tunggu hidrasi.
+- `tools/cek_situs.sh` baris 120: `rantai` hanya `for T in 1 2 3`; tambahkan Tahap 4.
+- `tools/eval_tahap.py adr`: tabel satu opsi per baris (ADR 35) terbaca "opsi 0" dan exit 1; baca juga bentuk itu.
+- `labs/t4-storage/run.py:685`: keterangan "keempat percobaan" padahal lima dicatat (`unduh.txt:21-26`).
+- `/cara-pakai/`: "Hitungan" dan "Simulasi" belum didefinisikan; "Hitungan" diulang di sembilan halaman Tahap 4.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- `situs/tools/eval-coba.mjs` dengan uji diri: kontrol di blok Coba dibaca dari DOM sesudah hidrasi, termasuk yang muncul sesudah Periksa atau menebak (USULAN-PERBAIKAN butir 1).
+- `tools/eval_tahap.py adr`: baca tabel satu opsi per baris (ADR 35 di 4.9) tanpa exit 1, dengan kasus di `tools/test_eval_tahap.py` (butir 2).
+- `situs/tools/eval-keyboard.mjs`: opsi `--jeda <ms>` atau tunggu hidrasi `astro-island`, dengan uji diri (butir 3).
+- `tools/cek_situs.sh` baris 120: `for T in 1 2 3 4` dan `eval_tahap.py gejala N` untuk tahap yang punya halaman Masalah (butir 4).
+- Preload Chrome sistem untuk Playwright di `situs/tools/lib/` dan path-nya di BRIEF-SUBAGEN (butir 5).
+- Tes bersama: tiap "bagian X" di prosa punya baris `# --- X.` di rentang `lines` Snippet terdekat (butir 6).
+- `labs/t4-storage/run.py:685`: "keempat percobaan" jadi "kelima", rekam ulang `unduh.txt` bersama langkah W2 (butir 7).
+- `situs/tools/layar.mjs` dan `ukur-luapan.mjs`: ukur kepala halaman Masalah, PRD, dan ADR; tambah 320 px dengan Verdana untuk tabel `prd-*` (butir 10).
+- `plan/BRIEF-SUBAGEN.md`: `git add <path>` eksplisit dan `git grep -n '<<<<<<<'` sebelum commit, dorong komit pertama segera, periksa klaim prompt EVAL, hidupkan Docker sebelum EVAL (butir 11).
