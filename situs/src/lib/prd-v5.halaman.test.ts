@@ -52,7 +52,7 @@ const rantai = DataRantai.parse(diagramMentah);
 const riset5 = baca("plan/RISET-TAHAP-5.md");
 const glosarium = baca("situs/src/content/docs/alat/glosarium.mdx");
 
-interface H { id: string; judul: string; tahap: number; nomor?: string; ada?: boolean; adr?: number[]; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; path?: string }
+interface H { peran?: string[]; id: string; judul: string; tahap: number; nomor?: string; ada?: boolean; adr?: number[]; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; path?: string }
 const hal = cerita.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
@@ -89,8 +89,6 @@ const harus = (kalimat: string) => {
   expect(badan, `halaman tidak memuat: ${kalimat}`).toContain(kalimat);
 };
 const di = (sumber: string, nama: string, kalimat: string) => expect(sumber, `${nama} tidak memuat: ${kalimat}`).toContain(kalimat);
-const sekali = (sumber: string, nama: string, kalimat: string) => expect(hitung(sumber, kalimat), `${nama}: "${kalimat}" harus muncul tepat sekali`).toBe(1);
-const normal = (s: string) => s.replace(/\s+/g, " ");
 
 // ---- masukan beban: registry dan naskah, bukan halaman ----------------------------------------------------------------
 const a4 = cerita.tahap[3]!.asumsi;
@@ -998,7 +996,7 @@ describe("baris riset R5-110 sampai R5-114: ada, urut, tanpa ganda, dan memuat h
       trxHari + topupHari, trxHari2 + topupHari, bulat(notifPuncak, 1), bulat(notifPuncak2, 1), bulat(kapasitas, 2), bulat(kapasitas, 3), notifPuncak4, // worker (7,52: 4.1 dan 4.28)
       targetMenit * 60, pengirimTarget, cKirim, Number(kon[1]), Number(kon[2]), Number(kon[3]), Number(kon[5]), Number(kon[6]), koneksiTersedia, koneksiTerpasang, // pengumuman dan koneksi
       bulat(reqPuncak, 1), wQuery, 30, 24, 60, 0.001, 43200, 5, 15, a5.upload, a5.fileKB, 2, 6, // 30 hari 24 jam 60 menit; 0,001 dan 5 dari halaman; 15 dari ADR 40
-    ].map((x) => Number(x.toFixed(6))));
+    ].map((x) => Number((x as number).toFixed(6))));
     for (const m of semua) for (const x of m[1]!.split(" ").filter((y) => /^\d/.test(y))) expect(izin.has(angkaId(x)), `operan ${x} di "${m[0]}" tidak berasal dari masukan`).toBe(true);
     for (const m of semua) {
       const ekspresi = m[1]!.split(" ").map((x) => (x === "×" ? "*" : x === "÷" ? "/" : x === "−" ? "-" : x === "+" ? "+" : String(angkaId(x)))).join(" ");
