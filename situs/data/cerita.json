@@ -350,7 +350,7 @@
     {
       "no": 5,
       "nama": "Satu database tidak cukup",
-      "user": "1.000.000",
+      "user": "1 juta",
       "rekap": "PT Rekeningo (fiktif) dipakai di satu negara: 1.000.000 user terdaftar, ±200.000 merchant, 28 engineer dalam delapan tim, 16 minggu.",
       "sebelumnya": "Tahap 4: top-up dari bank, verifikasi identitas, QR merchant luar, kartu virtual, dan back office berjalan untuk 100.000 user; satu primary PostgreSQL menulis uang, melayani laporan, dan menyimpan arsip.",
       "arsitektur": {

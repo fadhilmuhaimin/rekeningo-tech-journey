@@ -135,6 +135,58 @@ describe("registry cerita.json", () => {
     expect(t4.user).toBe("100.000");
   });
 
+  // Peta halaman Tahap 5 dibaca dari naskah (T5-siap, keputusan 1410): nomor, judul, jenis, bagian, ★, lab, peran, dan
+  // nomor ADR registry harus sama dengan naskah (kolom Widget naskah ada di ANTREAN, bukan di registry). Halaman 5.2
+  // memuat bagian 2 dan 3 (naskah "2, 3"); registry memakai bagian 2, dan 5.29 (naskah "Masalah + Konsep") berjenis masalah.
+  it("Tahap 5 punya 32 halaman yang cocok dengan peta halaman naskah", () => {
+    const naskah = fs.readFileSync(path.resolve(__dirname, "../../../plan/CERITA-TAHAP-5.md"), "utf8");
+    const peta = naskah.split("## Peta halaman Tahap 5")[1]!.split("\n## ")[0]!;
+    const JENIS: Record<string, string> = {
+      PRD: "prd", "Fitur → teknis": "fitur", Konsep: "konsep", "Konsep + ADR": "konsep", "Keamanan + ADR": "konsep",
+      ADR: "adr", Masalah: "masalah", "Masalah + Konsep": "masalah", "Tim dan infra": "tim-infra",
+    };
+    const harap = [...peta.matchAll(/^\| (5\.\d+) \| ([\w, ]+?) \| (.+?) \| (.+?) \| (★?) *\| (.+?) \| (.+?) \|$/gm)].map((m) => {
+      const b = m[2]!.split(", ")[0]!;
+      return {
+        nomor: m[1], bagian: /^\d+$/.test(b) ? Number(b) : b, judul: m[3], jenis: JENIS[m[4]!], inti: m[5] === "★",
+        lab: m[6] === "–" ? [] : m[6]!.split(", "),
+      };
+    });
+    expect(harap).toHaveLength(32);
+    const d = Registry.parse(baca());
+    const ada = d.halaman.filter((h) => h.tahap === 5 && h.nomor).map((h) => ({
+      nomor: h.nomor, bagian: h.bagian, judul: h.judul, jenis: h.jenis, inti: !!h.inti, lab: h.lab ?? [],
+    }));
+    expect(ada).toEqual(harap);
+    const peran = (p: string) => d.halaman.filter((h) => h.tahap === 5 && h.peran?.includes(p as never)).map((h) => h.nomor);
+    expect(peran("mobile")).toEqual(["5.2", "5.6", "5.7", "5.14", "5.23", "5.27"]);
+    expect(peran("devops")).toEqual(["5.9", "5.12", "5.13", "5.16", "5.17", "5.22", "5.23", "5.27", "5.28"]);
+    expect(peran("security")).toEqual(["5.18", "5.19", "5.24", "5.25", "5.26"]);
+    // ADR 46 sampai 60 masing-masing satu halaman, berurutan, tanpa ADR ganda.
+    const adr = d.halaman.filter((h) => h.tahap === 5 && h.adr).flatMap((h) => h.adr!);
+    expect(adr).toEqual(Array.from({ length: 15 }, (_, i) => 46 + i));
+    // Tahap 5 punya sepuluh lab (api-t5 dan sembilan t5-*) dan memakai api-t4; tiap lab baru dan tiap halaman punya tugas di ANTREAN.
+    const lab = [...new Set(d.halaman.filter((h) => h.tahap === 5 && h.nomor).flatMap((h) => h.lab ?? []))].sort();
+    expect(lab).toEqual(["api-t4", "api-t5", "t5-cicilan", "t5-fanout", "t5-gabung", "t5-kms", "t5-partisi", "t5-replika", "t5-rollout", "t5-service", "t5-waf"]);
+    const antrean = fs.readFileSync(path.resolve(__dirname, "../../../plan/ANTREAN.md"), "utf8");
+    for (const l of lab.filter((x) => x.endsWith("-t5") || x.startsWith("t5-"))) expect(antrean).toContain(`### lab-${l} · `);
+    for (const h of d.halaman.filter((x) => x.tahap === 5 && x.nomor)) expect(antrean).toContain(`### ${h.nomor} · `);
+  });
+
+  it("Tahap 5: D2, D3, dan D4b dilebur, T5 diganti, data tahap bukan versi lama dan tetap 2 transaksi (keputusan 1411)", () => {
+    const d = Registry.parse(baca());
+    const lama = Object.fromEntries(d.halaman.filter((h) => h.tahap === 5 && h.lebur_ke).map((h) => [h.id, h.lebur_ke]));
+    expect(lama).toEqual({ D2: "t5-read-replica", D3: "t5-lag", D4b: "t5-fanout" });
+    expect(d.halaman.find((h) => h.id === "T5")!.diganti_oleh).toBe("t5-prd");
+    const t5 = d.tahap[4]!;
+    expect(t5.versi).toBeUndefined();
+    expect(t5.nama).toBe("Satu database tidak cukup");
+    expect(t5.user).toBe("1 juta");
+    expect(t5.asumsi.trx).toBe(2);
+    expect(t5.asumsi.tim).toBe("20+ developer");
+    expect(t5.arsitektur.baris.flat().length).toBeLessThanOrEqual(6);
+  });
+
   it("nomor tampilan tidak dipakai dua halaman", () => {
     const nomor = Registry.parse(baca()).halaman.flatMap((h) => (h.nomor ? [h.nomor] : []));
     expect(nomor.filter((n, i) => nomor.indexOf(n) !== i)).toEqual([]);
