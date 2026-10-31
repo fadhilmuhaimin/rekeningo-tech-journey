@@ -82,6 +82,7 @@ if [ "$MODE" != "--ukur" ]; then
   $PY tools/sinkron_cerita.py --check >/dev/null
 
   echo "== antrean loop otomatis"; $PY tools/antrean.py --check
+  echo "== uji pemeriksa alokasi antrean: nomor keputusan dan ID riset tidak bertumpuk (keputusan 1415)"; $PY tools/test_antrean.py | tail -1
   echo "== tabel plan: pipe tanpa escape per baris = header (keputusan 362)"; $PY tools/cek_tabel_plan.py
   echo "== uji pemeriksa tabel plan (lolos palsu, keputusan 362)"; $PY tools/test_cek_tabel_plan.py | tail -1
   echo "== catatan masuk dari PR subagen (keputusan 564)"; $PY tools/lipat_masuk.py --cek

@@ -59,6 +59,35 @@ def bergantung(t):
     return [] if v in ("", "-", "–") else [x.strip() for x in v.split(",") if x.strip()]
 
 
+ALOKASI_KEPUTUSAN = re.compile(r"ALOKASI: keputusan (\d+)[–-](\d+)")
+ALOKASI_RISET = re.compile(r"ID riset (?:bila perlu )?(R\d+)-(\d+) sampai \1-(\d+)")
+
+
+def periksa_alokasi(tugas):
+    """Nomor keputusan ("ALOKASI: keputusan A–B") dan ID riset ("ID riset R5-X sampai R5-Y") yang dialokasikan ke dua tugas
+    tidak boleh bertumpuk, dan tiap rentang berurutan (peninjau T5-siap, keputusan 1415). ID riset dibandingkan hanya
+    dengan ID berawalan sama (R4 lawan R5 boleh memakai angka yang sama)."""
+    kelompok = {}
+    for t in tugas:
+        teks = nilai(t, "catatan")
+        m = ALOKASI_KEPUTUSAN.search(teks)
+        if m:
+            kelompok.setdefault("keputusan", []).append((int(m.group(1)), int(m.group(2)), t["id"]))
+        for r in ALOKASI_RISET.finditer(teks):
+            kelompok.setdefault(f"ID riset {r.group(1)}", []).append((int(r.group(2)), int(r.group(3)), t["id"]))
+    salah = []
+    for nama, rentang in kelompok.items():
+        akhir, pemilik = None, None
+        for awal, ujung, tid in sorted(rentang):
+            if awal > ujung:
+                salah.append(f"{tid}: alokasi {nama} {awal}–{ujung} terbalik")
+            if akhir is not None and awal <= akhir:
+                salah.append(f"{tid}: alokasi {nama} {awal}–{ujung} bertumpuk dengan {pemilik} (sampai {akhir})")
+            if akhir is None or ujung > akhir:
+                akhir, pemilik = ujung, tid
+    return salah
+
+
 def periksa(tugas):
     salah, ids = [], {}
     for t in tugas:
@@ -85,6 +114,7 @@ def periksa(tugas):
                 salah.append(f"{t['id']}: bergantung pada '{d}' yang letaknya sesudahnya")
     if sum(nilai(t, "status") == "dikerjakan" for t in tugas) > 1:
         salah.append("lebih dari satu tugas berstatus dikerjakan (hanya satu pekerja)")
+    salah += periksa_alokasi(tugas)
     return salah
 
 
