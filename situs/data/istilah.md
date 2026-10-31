@@ -118,6 +118,8 @@
 *[ERD]: Gambar skema database: tabel dengan kolom pentingnya, dan garis untuk setiap foreign key di antara tabel.
 *[ERP]: Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.
 *[Enterprise Resource Planning]: Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.
+*[Error budget]: Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.
+*[error budget]: Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.
 *[Event sourcing]: Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.
 *[event sourcing]: Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.
 *[Eventual consistency]: Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar.
@@ -308,6 +310,8 @@
 *[round trip]: Satu kali bolak-balik request dan response antara app dan server. Di jaringan seluler, setiap round trip menambah latency.
 *[Router]: Bagian framework yang mencocokkan method dan path request dengan handler yang tepat.
 *[router]: Bagian framework yang mencocokkan method dan path request dengan handler yang tepat.
+*[RPO]: Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang.
+*[RTO]: Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan.
 *[Saga]: Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.
 *[saga]: Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.
 *[Saldo cache]: Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.

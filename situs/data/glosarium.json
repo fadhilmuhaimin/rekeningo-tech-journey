@@ -558,6 +558,15 @@
   "h": null
  },
  {
+  "t": "Error budget",
+  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.",
+  "b": "t5-prd",
+  "n": "5.1 PRD v5",
+  "u": "/tahap-5/prd-v5/",
+  "s": "istilah-error-budget",
+  "h": null
+ },
+ {
   "t": "Event sourcing",
   "d": "Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.",
   "b": "t2-adr-ledger",
@@ -1500,6 +1509,24 @@
   "n": "1.16 HTTP",
   "u": "/tahap-1/http/",
   "s": "istilah-router",
+  "h": null
+ },
+ {
+  "t": "RPO (recovery point objective)",
+  "d": "Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang.",
+  "b": "t5-prd",
+  "n": "5.1 PRD v5",
+  "u": "/tahap-5/prd-v5/",
+  "s": "istilah-rpo",
+  "h": null
+ },
+ {
+  "t": "RTO (recovery time objective)",
+  "d": "Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan.",
+  "b": "t5-prd",
+  "n": "5.1 PRD v5",
+  "u": "/tahap-5/prd-v5/",
+  "s": "istilah-rto",
   "h": null
  },
  {
