@@ -1,6 +1,6 @@
 ---
 title: "5.28 On-prem lawan cloud + ADR 59"
-description: ADR 59. Rekeningo tetap di cloud milik PT dan menjaga jalan keluarnya. Model biaya tiga tahun dengan masukan Ilustrasi menunjukkan bahwa orang operasi, bukan infrastruktur, yang membalik urutan. Biaya cloud melawan perangkat sendiri belum diukur.
+description: ADR 59. Rekeningo tetap di cloud milik PT dan menjaga jalan keluarnya. Model biaya tiga tahun dengan masukan Ilustrasi menunjukkan bahwa jumlah orang operasi membalik urutan, bukan infrastruktur. Biaya cloud melawan perangkat sendiri belum diukur.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -15,7 +15,7 @@ import dataBiaya from "../../../../data/widget/t5-onprem-biaya.json";
 
 ## Inti
 
-Dalam model biaya tiga tahun, orang operasi yang membalik urutan antara cloud dan perangkat sendiri.
+Dalam model biaya tiga tahun, jumlah orang operasi membalik urutan antara cloud dan perangkat sendiri.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -52,7 +52,9 @@ On-prem di halaman ini berarti perangkat milik PT di ruang milik PT. Colo berart
 
 <Blok nama="Opsi" buka>
 
-Lima cara menjawab direksi. Pertanyaannya lebih sempit dari "cloud atau bukan": ADR 39 sudah menaruh data di akun cloud PT. Yang ditimbang adalah seberapa dalam Rekeningo bergantung pada satu penyedia. Di kolom Bukti, "Tidak dijalankan" berarti dicek ke dokumentasi atau naskah tanpa menjalankannya.
+Lima cara menjawab direksi. Pertanyaannya lebih sempit dari "cloud atau bukan": ADR 39 sudah menaruh data di akun cloud PT. Yang ditimbang adalah seberapa dalam Rekeningo bergantung pada satu penyedia.
+
+Di kolom Bukti, "Tidak dijalankan" berarti dicek ke dokumentasi atau kode tanpa menjalankannya. "Asumsi cerita" berarti hanya dibaca dari naskah Tahap 5, tanpa dokumentasi penyedia.
 
 | | A. Layanan terkelola khusus penyedia | B. On-prem atau colo | C. Campuran | D. Tetap seperti Tahap 4 | E. Cloud milik PT, jalan keluar dijaga |
 |---|---|---|---|---|---|
@@ -60,7 +62,7 @@ Lima cara menjawab direksi. Pertanyaannya lebih sempit dari "cloud atau bukan": 
 | Kelebihan | Penyedia mengambil operasi replica, pooler, dan queue | Infrastruktur 6.500 lawan 9.150 di model dasar (Ilustrasi) | Bagian yang stabil pindah, bagian yang naik turun tetap elastis | Tidak ada pekerjaan baru | Bentuk standar bisa dijalankan di tempat lain, dan ADR 48 dan 52 bisa direkam di lab |
 | Kekurangan | Fitur khusus menutup jalan keluar, dan ADR 48 tidak bisa direkam di lab | Butuh orang operasi perangkat dan jaringan yang belum ada, dan migrasi satu kali | Tiap query ledger melewati jaringan antar lokasi yang belum diukur | M42 menghilangkan dua top-up, dan M44 membuat lima tim berebut rilis | Aturan bentuk standar membatasi fitur yang boleh dipakai, dan jalan keluar harus dilatih |
 | Biaya operasional | Tagihan per pemakaian, orang operasi paling sedikit | Orang operasi bertambah, perangkat dibeli di muka | Dua set operasi sekaligus | Sama dengan Tahap 4 | Tagihan cloud ditambah orang operasi 4 + 2 |
-| Bukti | Tidak dijalankan: dibaca dari naskah | Model Ilustrasi di halaman ini dan kasus industri | Tidak dijalankan: jaringan antar lokasi tidak diukur | Adegan [[t5-m42]] dan [[t5-m44]] (Ilustrasi) | Model Ilustrasi, dokumentasi k3s dan PostgreSQL (Tidak dijalankan) |
+| Bukti | Asumsi cerita: dibaca dari naskah, tanpa dokumentasi penyedia | Model Ilustrasi di halaman ini dan kasus industri | Tidak dijalankan: jaringan antar lokasi tidak diukur | Adegan [[t5-m42]] dan [[t5-m44]] (Ilustrasi) | Model Ilustrasi, dokumentasi k3s dan PostgreSQL (Tidak dijalankan) |
 
 Lab dua Compose dari PROPOSAL, satu berbatas sumber daya tetap dan satu dengan autoscale tiruan, juga Tidak dijalankan. Batas sumber daya di laptop tidak merekam biaya atau kapasitas dengan jujur, dan pemilik boleh memintanya.
 
@@ -77,6 +79,10 @@ Biaya tiga tahun = infrastruktur + orang operasi + migrasi + risiko, ditulis unt
 | Risiko per tahun | 10% × 3.000 | 10% × 4.000 |
 
 Semua masukan di tabel itu Ilustrasi dalam juta rupiah, kecuali 6 orang: Platform 4 dan SRE 2 di [[t5-tim-infra]] (Asumsi naskah). Satu orang operasi 480 per tahun, dampak risiko, dan pertumbuhan adalah pilihan penulis tanpa sumber. Model tidak menghitung apa yang hilang karena tidak memakai fitur khusus penyedia, dan tidak menghitung biaya latihan pindah.
+
+Kapasitas relatif, yaitu kelipatan kapasitas tahun 1, bernilai 1 di tahun 1 dan 1 × 1,25 = 1,25 di tahun 2. Di tahun 3 nilainya 1,25 × 1,25 = 1,5625. Cloud tahun 2 dan 3: 2.400 × 1,25 = 3.000 dan 2.400 × 1,5625 = 3.750.
+
+Kenaikan kapasitas on-prem adalah 1,25 − 1 = 0,25 di tahun 2 dan 1,5625 − 1,25 = 0,3125 di tahun 3. Perangkat on-prem: 3.200 × 0,25 = 800 di tahun 2 dan 3.200 × 0,3125 = 1.000 di tahun 3. Masing-masing ditambah sewa 500, jadi 1.300 dan 1.500.
 
 Hasilnya, dihitung dari masukan itu (Hitungan: hasil rumus dari angka yang tertulis di halaman, berlabel Ilustrasi karena masukannya Ilustrasi), dengan dua orang operasi tambahan:
 
@@ -114,17 +120,17 @@ Produksi database dijalankan sendiri atau terkelola belum diputuskan. Itu keputu
 **Kenapa E, bukan A, B, C, atau D.**
 
 - **A tidak dipilih untuk bagian fitur khusus penyedia.** Layanan terkelola yang memakai PostgreSQL standar tetap boleh. Yang ditolak adalah fitur yang hanya ada di satu penyedia, karena menutup jalan keluar dan tidak bisa direkam di lab.
-- **B belum**, karena butuh orang operasi perangkat dan jaringan yang belum ada: tim sekarang 4 + 2 = 6. Model menunjukkan jumlah orang itu yang menentukan, dan nilainya belum ada dari PT.
+- **B belum**, karena butuh orang operasi perangkat dan jaringan yang belum ada: tim sekarang 4 + 2 = 6. Model menunjukkan bahwa jumlah orang itu menentukan urutan, dan nilainya belum ada dari PT.
 - **C ditolak** karena tiap query ke ledger akan melewati jaringan antar lokasi, dan jaringan itu belum diukur (Tidak dijalankan).
 - **D ditolak** karena [[t5-m42]] meminta replica sinkron dan [[t5-m44]] meminta rilis per service, dua hal yang D tidak punya.
 
-**Kasus industri: 37signals.** Dua tulisan pendirinya, David Heinemeier Hansson, menjadi bahan. Tulisan pertama (19 Oktober 2022) menyebut pengeluaran lebih dari US$500 ribu per tahun untuk layanan database dan pencarian dari satu penyedia cloud besar. Ia menulis bahwa menyewa komputer sebagian besar kesepakatan yang buruk bagi perusahaan menengah dengan pertumbuhan stabil seperti mereka.
+**Kasus industri: 37signals.** Dua tulisan pendirinya, David Heinemeier Hansson, menjadi bahan. Tulisan pertama (19 Oktober 2022) menyebut pengeluaran lebih dari US$500 ribu per tahun untuk layanan database dan pencarian dari satu penyedia cloud besar. Ia menulis bahwa menyewa komputer pada umumnya adalah kesepakatan yang buruk bagi perusahaan menengah dengan pertumbuhan stabil seperti mereka.
 
 Cloud, tulisnya, unggul di dua ujung: aplikasi yang sangat sederhana, dan beban yang sangat tidak teratur. Hanya satu ujung yang relevan bagi mereka. Ia juga belum mendengar organisasi sebesar mereka yang mengecilkan tim operasinya secara berarti hanya karena pindah ke cloud ([Why we're leaving the cloud](https://world.hey.com/dhh/why-we-re-leaving-the-cloud-654b47e0), dibuka 2026-10-31).
 
 Tulisan kedua (23 Juni 2023) menyebut pindah selesai dalam enam bulan, tanpa mengubah ukuran tim operasi sama sekali. Mereka memakai KVM, Docker, dan Kamal, tanpa Kubernetes. Penghematan "setidaknya US$1,5 juta per tahun" ia sebut sendiri hitungan di belakang serbet. Tulisan itu tidak menyebut audit independen ([We have left the cloud](https://world.hey.com/dhh/we-have-left-the-cloud-251760fb), dibuka 2026-10-31).
 
-Batasnya: satu perusahaan dengan pertumbuhan yang ia sebut mudah ditebak, dan dua tulisan pendirinya tentang keputusannya sendiri. Angka dolar mereka tidak dipakai di model. Di kasus mereka tim operasi tidak berubah, sama dengan nol orang tambahan. Di model ini nol orang tambahan membuat on-prem hemat 1.150, dan satu orang tambahan membaliknya.
+Batasnya: satu perusahaan dengan pertumbuhan yang ia sebut sebagian besar dapat diprediksi, dan dua tulisan pendirinya tentang keputusannya sendiri. Angka dolar mereka tidak dipakai di model. Di kasus mereka tim operasi tidak berubah, sama dengan nol orang tambahan. Di model ini nol orang tambahan membuat on-prem hemat 1.150, dan satu orang tambahan membaliknya.
 
 Untuk Rekeningo nilai itu belum diketahui, karena naskah menulis tim operasi perangkat belum ada. Faktor puncak 10 (Asumsi) mengarah ke ujung beban tidak teratur. Puncak harian sepuluh kali rata-rata belum sama dengan lonjakan yang tidak bisa ditebak (penalaran, bukan pengukuran).
 
