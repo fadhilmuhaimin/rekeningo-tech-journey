@@ -2321,11 +2321,11 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 4 disisipkan ole
 ### DIRI-4 · Perbaikan diri sesudah Tahap 4
 
 - jenis: perbaikan
-- status: antre
+- status: selesai
 - percobaan: 0
 - bergantung: EVAL-4
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-4.md` dan pelajaran MEMORI Tahap 4, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 4, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 4 selesai".
-- catatan: Langkah penutup alur tahap. ALOKASI: keputusan 1397–1399 (cadangan pengatur Tahap 4); skill yang diubah dicatat sebagai keputusan satu per satu.
+- catatan: Langkah penutup alur tahap. ALOKASI: keputusan 1397–1399 (cadangan pengatur Tahap 4); skill yang diubah dicatat sebagai keputusan satu per satu. Selesai 2026-10-31 di PR #470 (keputusan 1397–1399): lima SKILL.md dan `plan/USULAN-PERBAIKAN.md` (bagian 'Dari DIRI-4': 13 usulan di luar wewenang dan 6 pelajaran untuk LAPORAN-AKHIR). gaya-bahasa +3 (angka masukan dari halaman lain diberi asal; rujukan 'di atas' dan 'bagian G' harus bisa diikuti; satu kata per konsep), visualisasi +1 (tabel GFM sama jumlah kolom, hitung `<table>` di dist), analisis-kritis +7/−2 (kalimat dua fakta, kata bilangan atas daftar, penjaga mengunci kalimat salah, kelas mutan RISET, penjaga tetangga RISET, pembulatan setengah ke atas, toContain), riset-tahap +1 (kata pelunak sumber), evaluasi-tahap +5/−2 (`docker info` dan kartu 'YA, ulang lab tertunda', keyboard dengan jeda, uji baca dengan nama file lengkap, W5 dan W6 diperluas); ditolak: posisi Tebak, Hitungan lawan Rekaman, nama penyedia, tiga klaim prompt yang tak terbukti. STATUS: Tahap 4 selesai.
 
 ## Tahap 5
 

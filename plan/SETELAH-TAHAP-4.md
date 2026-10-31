@@ -552,3 +552,15 @@ Polesan dari tinjauan Tahap 4 yang sengaja tidak dikerjakan (lingkup dibekukan).
 - `tools/eval_tahap.py adr`: tabel satu opsi per baris (ADR 35) terbaca "opsi 0" dan exit 1; baca juga bentuk itu.
 - `labs/t4-storage/run.py:685`: keterangan "keempat percobaan" padahal lima dicatat (`unduh.txt:21-26`).
 - `/cara-pakai/`: "Hitungan" dan "Simulasi" belum didefinisikan; "Hitungan" diulang di sembilan halaman Tahap 4.
+
+## Dari PR subagen (dilipat tools/lipat_masuk.py)
+
+- `situs/tools/eval-coba.mjs` dengan uji diri: kontrol di blok Coba dibaca dari DOM sesudah hidrasi, termasuk yang muncul sesudah Periksa atau menebak (USULAN-PERBAIKAN butir 1).
+- `tools/eval_tahap.py adr`: baca tabel satu opsi per baris (ADR 35 di 4.9) tanpa exit 1, dengan kasus di `tools/test_eval_tahap.py` (butir 2).
+- `situs/tools/eval-keyboard.mjs`: opsi `--jeda <ms>` atau tunggu hidrasi `astro-island`, dengan uji diri (butir 3).
+- `tools/cek_situs.sh` baris 120: `for T in 1 2 3 4` dan `eval_tahap.py gejala N` untuk tahap yang punya halaman Masalah (butir 4).
+- Preload Chrome sistem untuk Playwright di `situs/tools/lib/` dan path-nya di BRIEF-SUBAGEN (butir 5).
+- Tes bersama: tiap "bagian X" di prosa punya baris `# --- X.` di rentang `lines` Snippet terdekat (butir 6).
+- `labs/t4-storage/run.py:685`: "keempat percobaan" jadi "kelima", rekam ulang `unduh.txt` bersama langkah W2 (butir 7).
+- `situs/tools/layar.mjs` dan `ukur-luapan.mjs`: ukur kepala halaman Masalah, PRD, dan ADR; tambah 320 px dengan Verdana untuk tabel `prd-*` (butir 10).
+- `plan/BRIEF-SUBAGEN.md`: `git add <path>` eksplisit dan `git grep -n '<<<<<<<'` sebelum commit, dorong komit pertama segera, periksa klaim prompt EVAL, hidupkan Docker sebelum EVAL (butir 11).
