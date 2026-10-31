@@ -118,7 +118,7 @@ export const BARIS_MDX: string[] = [
  "Terpasang berarti batas pool: tiap pool boleh membuka sampai 10 koneksi. Pada puncak, rata-rata hanya 27,8 koneksi dipakai bersamaan: 1.388,9 request per detik × 0,02 detik lama satu request memegang koneksi (Asumsi, seperti [[t4-estimasi]]).",
  "</Blok>",
  "<Blok nama=\"Tim dan risiko\">",
- "Tim tumbuh dari 13 menjadi 28 orang selama 16 minggu (Asumsi cerita), dan engineer baru masuk bertahap. Tiga tim Tahap 4 dibagi ulang menjadi delapan tim. Satu anggota Pembayaran pindah ke Ledger dan Tabungan, sedangkan Platform melepas akun dan identitas ke Akun, outbox ke Notifikasi, dan keamanan ke Security. SLO adalah target ketersediaan yang diukur, dan failover adalah memindahkan tugas database utama ke salinannya.",
+ "Tim tumbuh dari 13 menjadi 28 orang selama 16 minggu (Asumsi cerita), dan engineer baru masuk bertahap. Tiga tim Tahap 4 dibagi ulang menjadi delapan tim. Satu anggota Pembayaran pindah ke Ledger dan Tabungan, sedangkan Platform melepas akun dan identitas ke Akun, outbox ke Notifikasi, dan keamanan ke Security. SLO adalah target yang diukur untuk satu ukuran mutu, misalnya ketersediaan, dan failover adalah memindahkan tugas database utama ke salinannya.",
  "| Tim | Memegang |",
  "|---|---|",
  "| Pembayaran: 4 orang, dipimpin Nadia | gateway, top-up bank, kartu virtual |",

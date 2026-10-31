@@ -416,7 +416,7 @@ describe("isi PRD: tujuan, user, lingkup, metrik, batasan, Pak Hadi, tim, tokoh,
     expect(13).toBe(5 + 4 + 4);
     di(T(4, "prd-v4.mdx"), "4.1", "| Pembayaran: 5 orang, dipimpin Nadia |");
     di(latar, "naskah", "Tim tumbuh dari 13 menjadi 28 orang selama 16 minggu (Asumsi cerita)");
-    harus("Tiga tim Tahap 4 dibagi ulang menjadi delapan tim. Satu anggota Pembayaran pindah ke Ledger dan Tabungan, sedangkan Platform melepas akun dan identitas ke Akun, outbox ke Notifikasi, dan keamanan ke Security. SLO adalah target ketersediaan yang diukur, dan failover adalah memindahkan tugas database utama ke salinannya.");
+    harus("Tiga tim Tahap 4 dibagi ulang menjadi delapan tim. Satu anggota Pembayaran pindah ke Ledger dan Tabungan, sedangkan Platform melepas akun dan identitas ke Akun, outbox ke Notifikasi, dan keamanan ke Security. SLO adalah target yang diukur untuk satu ukuran mutu, misalnya ketersediaan, dan failover adalah memindahkan tugas database utama ke salinannya.");
     di(naskah5, "naskah", "Satu anggota Pembayaran pindah ke Ledger dan Tabungan, dan Platform melepas akun dan identitas ke Akun, outbox ke Notifikasi, dan keamanan ke Security.");
   });
   test("tokoh baru dan tokoh lama dari naskah; risiko Sinta dan tiga pertanyaan terbuka", () => {
@@ -924,7 +924,7 @@ describe("label kejujuran dan arti istilah", () => {
       ["RPO", "adalah titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang."],
       ["RTO", "adalah lama waktu paling lama sampai sistem pulih."],
       ["Error budget", "adalah 100% dikurangi target ketersediaan, dikalikan lama periode."],
-      ["SLO", "adalah target ketersediaan yang diukur,"],
+      ["SLO", "adalah target yang diukur untuk satu ukuran mutu, misalnya ketersediaan,"],
       ["failover", "adalah memindahkan tugas database utama ke salinannya."],
       ["batch harian", ", yaitu program terjadwal yang tiap hari memproses banyak angsuran,"],
       ["Read replica", "adalah salinan database yang melayani bacaan."],
@@ -1033,6 +1033,30 @@ describe("baris riset R5-110 sampai R5-114: ada, urut, tanpa ganda, dan memuat h
     expect(sel(r110)[3]).toBe("Tabel Beban, tabel ruang lingkup, bagian Latar masalah, tim, dan bullet ADR di 5.1; masukan terlemah Asumsi, jadi hasilnya Asumsi");
     expect(sel(r110)[4]).toBe("Tidak berlaku (hitungan atas angka sendiri)");
     expect(sel(r110)[1]).toBe("Hitungan atas angka yang tertulis di halaman 5.1 (Hitungan, Asumsi)");
+  });
+  test("R5-110: tiga puluh persamaan dikunci per butir (persamaan lain yang tetap benar secara aritmetika tidak lolos), dan tiap persamaan di halaman ada di baris itu", () => {
+    // Tinjauan: tes sebelumnya hanya menghitung ulang tiap persamaan, jadi "4 × 6 + 2 × 3 = 30" menggantikan "4 × 6 + 2 × 2 = 28" tanpa gagal.
+    const r110 = baris.find((b) => b.startsWith("| R5-110 |"))!;
+    const PERSAMAAN = /(\d+(?:[.,]\d+)*(?: [×÷+−] \d+(?:[.,]\d+)*)+) = (\d+(?:[.,]\d+)*)( juta|%)?/g;
+    expect([...r110.matchAll(PERSAMAAN)].map((m) => m[0])).toEqual([
+      "1.000.000 ÷ 100.000 = 10", "200.000 ÷ 460 = 434,78", "200.000 × 60 = 12.000.000", "12.000.000 ÷ 86.400 × 10 = 1.388,89",
+      "12.000.000 ÷ 86.400 = 138,89", "600.000 ÷ 86.400 × 10 = 69,44", "400.000 ÷ 86.400 × 10 = 46,30", "50.000 ÷ 86.400 × 10 = 5,79",
+      "200.000 × 3 × 2 × 365 = 438 juta", "200.000 × 2 × 2 × 365 = 292 juta", "4 ÷ 0,3 = 13,33", "650.000 ÷ 86.400 × 10 = 75,23",
+      "450.000 ÷ 86.400 × 10 = 52,08", "75,2 ÷ 13,33 = 564%", "52,1 ÷ 13,33 = 391%", "7,52 ÷ 13,333 = 56%",
+      "1.000.000 × 0,3 ÷ 4 = 75.000", "1.000.000 ÷ 1.800 × 0,3 = 166,7", "167 ÷ 4 = 41,75", "6 × 3 × 10 = 180", "100 − 3 = 97",
+      "180 ÷ 97 = 186%", "1.388,9 × 0,02 = 27,8", "30 × 24 × 60 = 43.200", "0,001 × 43.200 = 43,2", "30 + 5 = 35", "15 ÷ 460 = 3,3%",
+      "15 ÷ 200.000 = 0,0075%", "20.000 × 500 ÷ 86.400 × 10 = 1.157", "4 × 6 + 2 × 2 = 28",
+    ]);
+    // Jumlah orang dari tabel tim halaman, bukan dari baris riset: 4 × 6 + 2 × 2 = 28.
+    const orang = tabel(badan, "| Tim | Memegang |").slice(1).map((r) => Number(r[0]!.match(/: (\d+) orang/)![1]));
+    const n4 = orang.filter((x) => x === 4).length;
+    const n2 = orang.filter((x) => x === 2).length;
+    expect(`4 × ${n4} + 2 × ${n2} = ${orang.reduce((a, b) => a + b, 0)}`).toBe("4 × 6 + 2 × 2 = 28");
+    // Tiap persamaan yang tertulis di halaman ada di baris riset (satu-satunya selisih: 434,8 ditulis, 434,78 dihitung).
+    const tanpaTautan = badan.replace(/\[\[[^\]]+\]\]/g, "");
+    const dihalaman = [...tanpaTautan.matchAll(PERSAMAAN)].map((m) => m[0]);
+    expect(dihalaman.length).toBeGreaterThanOrEqual(7);
+    for (const e of dihalaman) expect(r110.includes(e) || e === "200.000 ÷ 460 = 434,8", `persamaan di halaman tidak ada di baris riset: ${e}`).toBe(true);
   });
   test("R5-111: tiap halaman ADR dibaca dari registry (jalur dan nomor ADR), hasil pemindaian dari pemindaian, dan rekaman proses-mati", () => {
     const r111 = baris.find((b) => b.startsWith("| R5-111 |"))!;
