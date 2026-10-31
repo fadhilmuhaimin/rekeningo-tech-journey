@@ -520,6 +520,166 @@ describe("kebersihan teks: tanpa ID internal, merek, kata terlarang, label lebih
   });
 });
 
+describe("celah turunan yang ditutup sesudah uji mutasi tanpa sidik: kepala, nomor, kata bilangan, sel tabel, kutipan riset", () => {
+  test("frontmatter description memuat ADR dari registry, label Ilustrasi, dan kalimat belum diukur", () => {
+    const d = cari(/^description: (.+)$/m, halaman, "description")[1]!;
+    expect(d).toBe(`ADR ${dari("t5-onprem").adr![0]}. Rekeningo tetap di cloud milik PT dan menjaga jalan keluarnya. Model biaya tiga tahun dengan masukan Ilustrasi menunjukkan bahwa orang operasi, bukan infrastruktur, yang membalik urutan. Biaya cloud melawan perangkat sendiri belum diukur.`);
+    expect(d.length).toBeLessThan(300);
+  });
+  test("nomor ADR dan nomor tahap yang disebut halaman: tiap angka dihitung, dan setiap ADR punya sumber di registry atau halaman ini", () => {
+    const hitung = (pola: RegExp) => { const o: Record<string, number> = {}; for (const m of badan.matchAll(pola)) o[m[1]!] = (o[m[1]!] ?? 0) + 1; return o; };
+    expect(hitung(/ADR (\d+)/g)).toEqual({ 39: 4, 48: 4, 50: 1, 51: 1, 52: 2, 59: 5 });
+    for (const n of [39, 48, 50, 51, 52, 59]) expect(hal.some((h) => h.adr?.includes(n)), `ADR ${n} ada di registry`).toBe(true);
+    expect(hitung(/Tahap (\d)/g)).toEqual({ 4: 4, 5: 7 });
+    expect(hitung(/\bM(\d\d)\b/g)).toEqual({ 42: 1, 44: 1 });
+    expect(kali(badan, "37signals")).toBe(4);
+    harusAda("Kubernetes (ADR 50, [[t5-service]]) dan Kafka (ADR 51, [[t5-fanout]]) ikut datang.");
+    harusAda("dan ADR 48 dan 52 bisa direkam di lab");
+    harusAda("ADR 59 tidak memilih dari angka itu.");
+  });
+  test("daftar bernomor berurutan dari 1 dan kata bilangan atas daftar dihitung ulang", () => {
+    const baris = badan.split("\n");
+    const daftar: number[][] = [];
+    let cur: number[] = [];
+    for (const b of baris) {
+      const m = b.match(/^(\d+)\. /);
+      if (m) cur.push(Number(m[1]));
+      else if (b.trim() === "" || b.startsWith("<")) { /* jeda di dalam daftar tidak memutus */ }
+      else if (cur.length) { daftar.push(cur); cur = []; }
+    }
+    if (cur.length) daftar.push(cur);
+    for (const d of daftar) expect(d, `daftar ${d}`).toEqual(d.map((_, i) => i + 1));
+    expect(daftar.map((d) => d.length)).toEqual([3, 7, 3]);
+    const aturan = badan.slice(badan.indexOf("**Keputusan: opsi E.**"), badan.indexOf("Produksi database"));
+    expect([...aturan.matchAll(/^\d+\. /gm)].length).toBe(7);
+    harusAda("**Keputusan: opsi E.** Tujuh aturan:");
+    const pre = badan.slice(badan.indexOf("**Pre-mortem.**"), badan.indexOf("</Blok>", badan.indexOf("**Pre-mortem.**")));
+    expect([...pre.matchAll(/^\d+\. /gm)].length).toBe(3);
+    harusAda("Tiga penyebab yang paling mungkin:");
+    harusAda("Yakin dengan ketiganya?");
+    harusAda("<summary>Sudah tahu? Cek 3 pertanyaan</summary>");
+    harusAda("Empat jalan keluar dan keadaannya hari ini:");
+    harusAda("Lima cara menjawab direksi.");
+    harusAda("Total tiga tahun lima skenario, semua Ilustrasi:");
+    harusAda("kodenya ada di tiga tempat");
+    expect([...badan.matchAll(/^(Pertama|Kedua|Ketiga), /gm)].map((m) => m[1])).toEqual(["Pertama", "Kedua", "Ketiga"]);
+    expect([...badan.matchAll(/^\*\*\d\.\*\* /gm)].length).toBe(4);
+    expect([...badan.matchAll(/^\*\*(\d)\.\*\* /gm)].map((m) => m[1]).join("")).toBe("1234");
+    harusAda("Dua tulisan pendirinya, David Heinemeier Hansson, menjadi bahan.");
+    expect(W.skenario.length).toBe(5);
+    harusAda("Tiga hal belum ada: biaya cloud dan perangkat PT sendiri, jumlah orang operasi perangkat yang dibutuhkan, dan faktor puncak dari beban nyata.");
+    harusAda("Tiga konfigurasi OpenTofu");
+  });
+  test("angka yang tersisa di prosa: orang, faktor puncak, tahap, bulan, dan tanggal", () => {
+    const m = W.masukan;
+    harusAda(`Tim platform dan SRE melewati ${m.orangDasar} orang`);
+    harusAda(`| ${m.orangDasar} orang × ${m.biayaOrang} per tahun |`);
+    harusAda(`Faktor puncak ${registry.tahap[4]!.asumsi.puncak} (Asumsi) mengarah ke ujung beban tidak teratur.`);
+    harusAda("Puncak harian sepuluh kali rata-rata belum sama dengan lonjakan yang tidak bisa ditebak (penalaran, bukan pengukuran).");
+    harusAda("Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:");
+    harusAda("Selisih sebesar");
+    harusAda(`kecuali ${m.orangDasar} orang: Platform 4 dan SRE 2`);
+    harusAda("Tagihan cloud ditambah orang operasi 4 + 2");
+    harusAda("Klaim ini hanya untuk folder dan jenis file itu, dan bukan untuk migrasi Tahap 5.");
+    harusAda("Ketiganya dari lab Tahap 4, bukan dari lab Tahap 5.");
+    harusAda("Tahap 5 menambah komponen yang menentukan jawabannya.");
+    harusAda("**Status:** diterima di Tahap 5. Naskah tidak menulis tanggal ADR.");
+    harusAda("lab k3s Tahap 5 belum direkam");
+    harusAda("Satuannya sama dengan beban Tahap 5: request per detik, orang, dan juta rupiah Ilustrasi.");
+    harusAda("D. Tetap seperti Tahap 4", 1);
+    harusAda("Pemindai otomatis atas dependency dan migrasi belum dibuat (Tidak dijalankan).");
+    harusAda("Pencegahannya aturan 6: masukan diganti tagihan PT");
+    harusAda("latihan pindah ke lokasi lain sekali setahun (Asumsi)");
+    harusAda("6. Perbandingan biaya tiga tahun ditulis tiap tahun dengan rumus di atas.");
+    expect(badan.indexOf("6. Perbandingan biaya")).toBeGreaterThan(badan.indexOf("5. Jalan keluar data"));
+    harusAda("| Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |");
+    harusAda("| | A. Layanan terkelola khusus penyedia | B. On-prem atau colo | C. Campuran | D. Tetap seperti Tahap 4 | E. Cloud milik PT, jalan keluar dijaga |");
+    harusAda("| Yang dijaga | Cara memeriksa | Keadaan |");
+  });
+  test("Bacaan lanjut: lima tautan dengan nama dan alamat yang tepat", () => {
+    const lanjut = badan.slice(badan.indexOf("### Bacaan lanjut")).split("\n").filter((b) => b.startsWith("- "));
+    expect(lanjut).toEqual([
+      "- [37signals: Why we're leaving the cloud](https://world.hey.com/dhh/why-we-re-leaving-the-cloud-654b47e0)",
+      "- [37signals: We have left the cloud](https://world.hey.com/dhh/we-have-left-the-cloud-251760fb)",
+      "- [OpenTofu: pengantar](https://opentofu.org/docs/intro/)",
+      "- [PostgreSQL 17: replikasi logikal](https://www.postgresql.org/docs/17/logical-replication.html)",
+      "- [K3s: dokumentasi](https://docs.k3s.io/)",
+    ]);
+  });
+  // kata kunci per sel: tiap sel memuat kata yang membedakannya dari sel tetangga di kolom yang sama (menangkap sel yang tertukar)
+  const SEL_OPSI: string[][] = [
+    ["Cara kerja", "layanan satu penyedia", "membeli perangkat", "tanpa state di cloud", "Modular monolith", "bentuk standar"],
+    ["Kelebihan", "Penyedia mengambil operasi", `Infrastruktur ${fmt(dasar.jo.infra)} lawan ${fmt(dasar.jc.infra)}`, "elastis", "Tidak ada pekerjaan baru", "dijalankan di tempat lain"],
+    ["Kekurangan", "menutup jalan keluar", "belum ada", "antar lokasi", "M42", "jalan keluar harus dilatih"],
+    ["Biaya operasional", "Tagihan per pemakaian", "dibeli di muka", "Dua set operasi", "Sama dengan Tahap 4", "Tagihan cloud ditambah orang operasi"],
+    ["Bukti", "Tidak dijalankan: dibaca dari naskah", "kasus industri", "jaringan antar lokasi tidak diukur", "[[t5-m42]]", "dokumentasi k3s dan PostgreSQL"],
+  ];
+  const SEL_KELUAR: string[][] = [
+    ["Manifest Kubernetes standar", "k3s dan ke cluster penyedia", "lab k3s Tahap 5 belum direkam"],
+    ["PostgreSQL tanpa fitur khusus", "Memindai dependency dan migrasi", "Terbaca di `labs/api-t4`"],
+    ["Data bisa keluar", "dump dan restore", "large object tidak ikut"],
+    ["IaC bisa menunjuk penyedia lain", "tofu plan", "provider `local` dan `random`"],
+  ];
+  const SEL_SALAH: string[][] = [
+    ["Biaya cloud tiga tahun melebihi on-prem", "tagihan dan harga PT", "Model dasar: cloud", "penawaran perangkat"],
+    ["Beban menjadi stabil", "Faktor puncak", "request per detik (Asumsi)", "Metrik request per detik"],
+    ["Data harus tinggal di lokasi tertentu", "Syarat dari PRD", "Tidak ada permintaan di PRD v5", "perjanjian dengan mitra"],
+    ["melewati 6 orang", "Jumlah orang operasi", "Asumsi naskah", "Daftar tim"],
+    ["Horizon melebihi tiga tahun", "Selisih kumulatif", "Sesudah tahun 3 tidak dihitung", "masukan PT"],
+    ["Jalan keluar tidak bisa dijalankan", "Latihan pindah", "pemindai belum dibuat", "Catatan latihan SRE"],
+  ];
+  test.each([
+    ["| | A. Layanan terkelola", SEL_OPSI, true],
+    ["| Yang dijaga | Cara memeriksa | Keadaan |", SEL_KELUAR, false],
+    ["| Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |", SEL_SALAH, false],
+  ] as [string, string[][], boolean][])("tabel %s: tiap sel memuat kata kuncinya", (awalan, harap) => {
+    const t = tabelMdx(awalan).slice(2);
+    expect(t.length).toBe(harap.length);
+    harap.forEach((baris, i) => baris.forEach((kata, j) => expect(t[i]![j], `${awalan} baris ${i} kolom ${j}`).toContain(kata)));
+  });
+  test("baris riset memuat kutipan, versi, angka, dan kolom 'dipakai halaman' dengan nomor halaman dari registry", () => {
+    const nomor = dari("t5-onprem").nomor;
+    const KUTIPAN: Record<string, string[]> = {
+      "R5-245": ["2022-10-19", "US$500 ribu", "(mostly) a bad deal", "only one end was ever relevant for us", "materially shrink", `${nomor}: kasus industri ADR 59`],
+      "R5-246": ["2023-06-23", "after six months", "at all", "KVM, Docker, dan Kamal, tanpa Kubernetes", "at least $1.5 million per year", "back of the napkin math", `${nomor}: kasus industri ADR 59`],
+      "R5-247": ["OpenTofu 1.13.0 is released!", "a Series of LF Projects, LLC", "MPL-2.0 dan v1.13.2, terbit 2026-10-21", "R4-190", `${nomor}: Wujud di kode (IaC)`],
+      "R5-248": ["PostgreSQL 17.11 bab 29", "for example Linux to Windows", "Bagian 29.7", "Large objects", `${nomor}: aturan 5 ADR 59`],
+      "R5-249": ["fully compliant Kubernetes distribution", "a binary of less than 100 MB", "v1.37.X", `${nomor}: aturan 2 ADR 59`],
+    };
+    for (const [id, daftar] of Object.entries(KUTIPAN)) for (const k of daftar) expect(barisRiset(id), `${id}: ${k}`).toContain(k);
+    harusAda("lab k3s Tahap 5 belum direkam");
+  });
+  test("widget: id, judul, tebak, dan label sama persis dengan yang dikunci dari sumber di halaman", () => {
+    expect(W.id).toBe("t5-onprem-biaya");
+    expect(W.judul).toBe("Biaya tiga tahun: cloud lawan perangkat sendiri");
+    expect(W.tebak.q).toBe(`Skenario dasar menaruh ${bilangan[dasar.m.orangTambahan]} orang operasi tambahan di on-prem, dan cloud lebih hemat. Bila on-prem tidak butuh orang tambahan sama sekali, mana yang lebih hemat dalam tiga tahun?`);
+    expect(W.tebak.pilihan).toEqual(["Cloud tetap lebih hemat, dengan selisih yang sama", "Cloud tetap lebih hemat, tetapi selisihnya menyusut", "On-prem menjadi lebih hemat", "Keduanya sama"]);
+    expect(W.label).toEqual({
+      sumber: "Ilustrasi", tebakDulu: "Tebak dulu:", lanjut: W.label.lanjut, benar: "Tepat:", belum: "Belum tepat:", ubah: "Skenario",
+      captionKomponen: "Biaya tiga tahun per komponen (juta rupiah)", captionKumulatif: "Biaya kumulatif sampai akhir tiap tahun (juta rupiah)",
+      cloud: "Cloud", onprem: "On-prem", komponen: { infra: "Infrastruktur", orang: "Orang operasi", migrasi: "Migrasi", risiko: "Risiko", total: "Total" },
+      tahun: "Tahun", kumulatif: "Kumulatif", kesimpulan: { ...W.label.kesimpulan, sama: "Biaya tiga tahun sama, {total} juta rupiah." },
+    });
+    expect(DataRantai.parse(rantaiMentah).id).toBe("t5-onprem-inti");
+    expect(DataRantai.parse(rantaiMentah).baris.map((b) => b.simpul.length)).toEqual([3, 3]);
+  });
+  test("halaman istilah: judul sumber dan catatan sama dengan baris riset dan tanggal dari riset", () => {
+    const [a, b] = istilahMentah.sumber!;
+    expect(a!.judul).toBe("37signals: We have left the cloud (23 Juni 2023, dibuka 2026-10-31)");
+    expect(barisRiset("R5-246")).toContain("terbit 2023-06-23");
+    expect(b!.judul).toBe("OpenTofu: pengantar (v1.13, dibuka 2026-10-31)");
+    expect(barisRiset("R5-247")).toContain("OpenTofu 1.13.0");
+    expect(a!.catatan).toBe("Pindah dari cloud ke perangkat sendiri selesai dalam enam bulan, dengan ukuran tim operasi tetap. Penghematan adalah hitungan pendirinya, tanpa audit independen yang disebut di tulisan.");
+    expect(b!.catatan).toBe("Alat IaC yang mendefinisikan resource cloud dan on-prem dalam file konfigurasi.");
+    expect(barisRiset("R5-246")).toContain("after six months");
+    expect(barisRiset("R5-246")).toContain("at all");
+    expect(istilahMentah.sehari_hari).toBe("On-prem berarti perangkat dan jaringan milik PT sendiri dijalankan di ruang milik PT. Colo berarti perangkat milik PT berdiri di ruang sewaan. Kebalikannya cloud: perangkat milik penyedia disewa sesuai pemakaian.");
+    expect(istilahMentah.cerita![0]!.teks).toContain(`dengan semua masukan Ilustrasi`);
+    expect(istilahMentah.cerita![0]!.teks).toContain("infrastruktur, orang operasi, migrasi, dan risiko");
+    expect(naskah).toContain("biaya = infrastruktur + orang operasi + migrasi + risiko");
+  });
+});
+
 describe("kartu ulang dan peta: turunan registry sama dengan Cek diri di halaman", () => {
   test("empat kartu t5-onprem: pertanyaan dan jawaban sama dengan Cek diri, judul dan url dari registry", () => {
     const kartu = (JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as { id: string; halaman: string; judul: string; url: string; tanya: string; jawab: string }[]).filter((k) => k.halaman === "t5-onprem");
