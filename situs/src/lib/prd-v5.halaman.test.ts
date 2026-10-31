@@ -663,6 +663,22 @@ describe("kalimat bebas, kepala tabel, dan struktur", () => {
     }
     expect(jumlahTabel).toBe(7);
   });
+  test("struktur baris: tiap blok (prosa, daftar, tabel, tag) dipisah baris kosong, paragraf satu baris, dan daftar bernomor naik dari 1", () => {
+    const kelas = (b: string) => (b.startsWith("|") ? "tabel" : /^(- |\d+\. )/.test(b) ? "daftar" : /^\s*</.test(b) ? "tag" : b.startsWith("import ") ? "import" : "prosa");
+    const baris = badan.split("\n");
+    for (let i = 1; i < baris.length; i++) {
+      if (!baris[i - 1]!.trim() || !baris[i]!.trim()) continue;
+      const ka = kelas(baris[i - 1]!);
+      expect(ka === kelas(baris[i]!) && ka !== "prosa", `baris ${i} dan ${i + 1} harus dipisah baris kosong: ${baris[i]!.slice(0, 40)}`).toBe(true);
+    }
+    let n = 0;
+    for (const b of baris) {
+      const m = b.match(/^(\d+)\. /);
+      if (m) expect(Number(m[1]), `nomor daftar: ${b.slice(0, 30)}`).toBe(++n);
+      else n = 0;
+    }
+    expect(baris.filter((b) => /^\d+\. /.test(b))).toHaveLength(3 + 5 + 3 + 3);
+  });
   test("kepala tabel persis, dan kepala PRD sama dengan halaman PRD tetangga", () => {
     for (const k of ["| User | Kebutuhan baru | Yang membuatnya berhenti memakai |", "| Prioritas | Fitur | Keterangan |", "| PRD | Aturan Pak Hadi |", "| Besaran | Nilai | Cara hitung | Dengan 2 transaksi |", "| Besaran | Nilai | Cara hitung |", "| Tim | Memegang |", "| ADR | Kalimat di halaman Tahap 4 | Isi PRD v5 yang memenuhinya | Dilanjutkan di |"]) {
       expect(badan.split("\n"), k).toContain(k);
@@ -962,6 +978,14 @@ describe("baris riset R5-110 sampai R5-114: ada, urut, tanpa ganda, dan memuat h
     const PERSAMAAN = /(\d+(?:[.,]\d+)*(?: [×÷+−] \d+(?:[.,]\d+)*)+) = (\d+(?:[.,]\d+)*)( juta|%)?/g;
     const semua = [...r110.matchAll(PERSAMAAN)];
     expect(semua).toHaveLength(30);
+    // Operan kiri berasal dari masukan registry, naskah, atau halaman Tahap 3 dan 4; angka literal diberi sumbernya di komentar.
+    const izin = new Set<number>([
+      a5.user, a4.user, aktif, merchant4, a5.req, reqHari, 86400, a5.puncak, trxHari, trxHari2, topupHari, trxDasar, a5.trx, 365, cKirim, tKirim, // masukan beban
+      trxHari + topupHari, trxHari2 + topupHari, bulat(notifPuncak, 1), bulat(notifPuncak2, 1), bulat(kapasitas, 2), bulat(kapasitas, 3), notifPuncak4, // worker (7,52: 4.1 dan 4.28)
+      targetMenit * 60, pengirimTarget, cKirim, Number(kon[1]), Number(kon[2]), Number(kon[3]), Number(kon[5]), Number(kon[6]), koneksiTersedia, koneksiTerpasang, // pengumuman dan koneksi
+      bulat(reqPuncak, 1), wQuery, 30, 24, 60, 0.001, 43200, 5, 15, a5.upload, a5.fileKB, 2, 6, // 30 hari 24 jam 60 menit; 0,001 dan 5 dari halaman; 15 dari ADR 40
+    ].map((x) => Number(x.toFixed(6))));
+    for (const m of semua) for (const x of m[1]!.split(" ").filter((y) => /^\d/.test(y))) expect(izin.has(angkaId(x)), `operan ${x} di "${m[0]}" tidak berasal dari masukan`).toBe(true);
     for (const m of semua) {
       const ekspresi = m[1]!.split(" ").map((x) => (x === "×" ? "*" : x === "÷" ? "/" : x === "−" ? "-" : x === "+" ? "+" : String(angkaId(x)))).join(" ");
       let nilai = Function(`"use strict"; return (${ekspresi});`)() as number;
@@ -999,6 +1023,7 @@ describe("baris riset R5-110 sampai R5-114: ada, urut, tanpa ganda, dan memuat h
     }
     di(r111, "R5-111", "`labs/t4-modul/output/proses-mati.txt` bagian C (+23 jam satu jurnal, +25 jam dua; jam ledger diperankan)");
     di(r111, "R5-111", "menemukan tujuh ADR: 4, 6, 12, 26, 38, 44, dan 45; ADR 14, 33, 34, 36, 37, dan 42 tidak menulis kata itu");
+    di(r111, "R5-111", "Pemindaian teks kata \"Tahap 5\" atas halaman yang punya ADR di Tahap 1 sampai 4 menemukan");
     expect(hitung(r111, "Dibaca 2026-10-31 di main")).toBe(1);
     expect(sel(r111)[1]).toBe("Kalimat halaman ADR Tahap 1 sampai 4 yang dikutip halaman 5.1 dibaca ke halaman, bukan ke sumber luar (Asumsi)");
     expect(sel(r111)[4]).toBe("Tidak berubah");
