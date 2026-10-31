@@ -165,6 +165,10 @@ describe("angka beban, hitungan, dan pembanding diturunkan dari registry dan nas
     expect(badan).toContain(`28 orang dalam delapan tim memelihara enam service`);
     expect(`${fmt(bulat(orangTotal / nService, 1), 1)}`).toBe("4,7");
     expect(badan).toContain("Beban PRD v6 adalah 10 kali beban Tahap 5");
+    expect(naskah).toContain("PRD v6: 10 juta user, multi-region");
+    expect(10_000_000 / asumsi.user).toBe(10);
+    expect(badan).toContain("Alasannya user naik dari 1 juta ke 10 juta, dan masukan lain dianggap sama (Asumsi).");
+    expect(badan).toContain("Angka-angka di halaman ini dihitung dari sana.");
   });
 });
 

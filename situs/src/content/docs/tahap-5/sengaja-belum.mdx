@@ -81,7 +81,7 @@ Dua belas butir bisa dijawab dengan tiga cara.
 
 Masukan Asumsi naskah Tahap 5: 1.000.000 user terdaftar, 20% aktif per hari, dan faktor puncak 10. Tiap user aktif membuat 60 request, 3 transaksi uang, dan 0,25 top-up dari bank per hari. Registry Tahap 5 memakai 2 transaksi, jadi angka dengan 2 ditulis di sebelahnya.
 
-Dari masukan itu, user aktif 1.000.000 × 20% = 200.000 per hari. Angka-angka di tabel berikut dihitung dari sana.
+Dari masukan itu, user aktif 1.000.000 × 20% = 200.000 per hari. Angka-angka di halaman ini dihitung dari sana.
 
 - Transaksi uang puncak: 200.000 × 3 ÷ 86.400 × 10 = 69,4 per detik (dua transaksi: 46,3).
 - Notifikasi uang puncak: (600.000 + 50.000) ÷ 86.400 × 10 = 75,2 per detik. Angka 600.000 adalah transaksi uang per hari, dan 50.000 adalah top-up per hari.
@@ -188,7 +188,7 @@ Pemicu sharding bergantung pada satu angka yang belum ada, yaitu kapasitas tulis
 <p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: di PRD v6, bukan di Tahap 5. Beban Tahap 5 69,4 ÷ 300 = 23% dari kapasitas, dan beban PRD v6 694,4 ÷ 300 = 231%.</p>
 </noscript>
 
-**Ubah satu hal:** kapasitas K adalah angka dari load test di server sungguhan, dalam transaksi uang per detik. Semua nilai K di tabel ini adalah Ilustrasi. Beban PRD v6 adalah 10 kali beban Tahap 5: 69,4 × 10 = 694 per detik, atau 694,4 dari nilai tepat 69,44 ([[t5-m51]]).
+**Ubah satu hal:** kapasitas K adalah angka dari load test di server sungguhan, dalam transaksi uang per detik. Semua nilai K di tabel ini adalah Ilustrasi. Beban PRD v6 adalah 10 kali beban Tahap 5: 69,4 × 10 = 694 per detik, atau 694,4 dari nilai tepat 69,44 ([[t5-m51]]). Alasannya user naik dari 1 juta ke 10 juta, dan masukan lain dianggap sama (Asumsi).
 
 | Kapasitas K | Beban Tahap 5 ÷ K | Beban PRD v6 ÷ K | Pemicu sharding |
 |---|---|---|---|
