@@ -79,7 +79,7 @@ Totalnya 4 × 6 + 2 × 2 = 28 orang. Yang tidak berubah: satu bahasa (Go di back
 
 | Tokoh | Siapa | Ingin | Kelemahan | Yang dibawanya ke cerita |
 | --- | --- | --- | --- | --- |
-| **Dewi** | Site reliability engineer (SRE) yang bergabung di minggu 3. Delapan tahun giliran jaga di sistem pembayaran lain, belum pernah menulis fitur. | Sistem yang berhenti dengan aman dan pulih dalam waktu yang sudah diumumkan | Menolak rilis tanpa metrik penjaga, sehingga perbaikan kecil ikut menunggu | SLO, alert, latihan failover, error budget |
+| **Dewi** | Site reliability engineer (SRE) yang bergabung di minggu 1. Delapan tahun giliran jaga di sistem pembayaran lain, belum pernah menulis fitur. | Sistem yang berhenti dengan aman dan pulih dalam waktu yang sudah diumumkan | Menolak rilis tanpa metrik penjaga, sehingga perbaikan kecil ikut menunggu | SLO, alert, latihan failover, error budget |
 | **Hendra** | Engineer data dari tim akuntansi Lestari, memimpin tim Ledger dan Tabungan. Menguasai tutup buku dan batch malam. | Angka yang bisa dicocokkan sampai rupiah terakhir | Menganggap batch malam selalu bisa diulang dari awal | Cicilan, tabungan, snapshot saldo, arsip |
 | **Tomi** | Engineer di penyedia POS (fiktif), mitra pertama API publik. | Kasir yang tidak pernah menunggu Rekeningo | Mengulang permintaan tanpa batas bila tidak ada jawaban | Sudut pandang pihak luar yang memanggil Rekeningo |
 
