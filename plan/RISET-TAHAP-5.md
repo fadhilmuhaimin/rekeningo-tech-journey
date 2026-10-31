@@ -32,6 +32,8 @@ Dikerjakan 2026-10-25, skill riset-tahap (hierarki bukti dari analisis-kritis). 
 | R5-101 | Partisi: lepas dan pasang | PostgreSQL 18 ALTER TABLE, dibuka 2026-10-31: `DETACH PARTITION ... CONCURRENTLY` memakai dua transaction dan tidak bisa dijalankan di dalam blok transaction atau bila ada partisi default; `FINALIZE` menyelesaikan yang terputus, paling banyak satu partisi pending detach. `ATTACH PARTITION` memindai seluruh tabel kecuali ada `CHECK` yang sudah valid dan setara batas partisi | Partisi tabel, arsip | Tidak berubah |
 | R5-102 | Canary dengan Gateway API | Dokumentasi plugin Gateway untuk Argo Rollouts (rollouts-plugin-trafficrouter-gatewayapi, dibuka 2026-10-31): butuh controller Argo Rollouts, plugin, dan implementasi Gateway API; halaman hanya menyebut HTTPRoute dan tidak memuat nomor versi. Halaman dokumentasi Argo Rollouts untuk Gateway API di `argo-rollouts.readthedocs.io/.../gateway-api/` menjawab 404 | Canary, kill switch | Tidak berubah |
 | R5-103 | pgxpool dan kehabisan koneksi | pgx v5.11.0 pgxpool (pkg.go.dev, dibuka 2026-10-31): `MaxConns` bawaan lebih besar dari 4 atau `runtime.NumCPU()`, `MaxConnLifetime` bawaan 1 jam, `MaxConnLifetimeJitter` bawaan 0. PostgreSQL 18 lampiran SQLSTATE: `53300` = `too_many_connections`, `57P01` = `admin_shutdown` | Pooler, latihan failover | Tidak berubah |
+| R5-104 | Canary tanpa traffic router | Dokumentasi Argo Rollouts, fitur canary (argo-rollouts.readthedocs.io/en/stable/features/canary/, dibuka 2026-10-31): canary dasar mengatur skala canary untuk mendekati bobot; controller memilih bilangan bulat pod dengan selisih terkecil, dibulatkan ke atas bila selisihnya sama (41% dari 10 menjadi 4 pod); kontrol bobot lebih halus butuh traffic management | M49, ADR 55 | Tidak berubah |
+| R5-105 | PgBouncer: batas client dan waktu tunggu | PgBouncer config (pgbouncer.org/config.html, dibuka 2026-10-31): `max_client_conn` bawaan 100 ("Maximum number of client connections allowed"); `default_pool_size` bawaan 20; `query_wait_timeout` bawaan 120,0 detik, client diputus bila tidak mendapat server sampai batas itu, dan 0 mematikan batas sehingga client antre tanpa ujung | M46, ADR 52 | Tidak berubah |
 
 ## Teknik terbaru
 | Teknik | Masuk / tidak | Alasan dengan angka tahap ini | ID |
@@ -80,12 +82,12 @@ Masukan registry `tahap[4].asumsi`: 1.000.000 user, aktif 20%, 60 request, punca
 | R5-32 Data posting | aktif × trx × posting × 365 × byte | 2 × 1 × 300 B lawan 3 × 2 × 250 B | 146 juta baris 43,8 GB lawan 438 juta baris 109,5 GB per tahun | R4-34: 4,38 dan 10,95 GB; 10× |
 | R5-33 File | upload × KB × 365 | 20.000 × 500 KB | 10 GB per hari, 3,65 TB per tahun | R4-35: 365 GB; 10× |
 | R5-34 Polling laporan | merchant online ÷ interval | Asumsi: 200.000 merchant ("ratusan ribu"), 10% online, polling 30 detik, query 20 ms, 8 vCPU | 667 RPS; 13,3 query berjalan; CPU 667 × 0,02 ÷ 8 = 167% | - |
-| R5-35 Fan-out notifikasi | N ÷ (c ÷ t) | N 500.000 (Asumsi); worker Tahap 3 c 4, t 0,3 detik (R3-36); FCM 600 ribu per menit | 13,3 per detik = 10,4 jam; kuota 10.000 per detik = 50 detik; saturasi kuota butuh 1.000 permintaan berjalan (t 0,1 detik, Asumsi); 500 ribu = 83% kuota semenit | R3-36: 1.563 backlog |
+| R5-35 Fan-out notifikasi | N ÷ (c ÷ t) | N 1.000.000 (naskah Tahap 5, Asumsi; riset awal 500.000); worker Tahap 3 c 4, t 0,3 detik (R3-36); FCM 600 ribu per menit | 13,33 per detik = 75.000 detik (20,8 jam; 500.000: 10,4 jam); kuota 10.000 per detik = 100 detik; 1 juta dalam semenit = 167% kuota (500.000: 83%); saturasi kuota butuh 1.000 permintaan berjalan (t 0,1 detik, Asumsi) | R3-36: 1.563 backlog |
 | R5-36 Merchant per akun | trx per hari ÷ merchant | 400.000 ÷ 200.000 | 2 transaksi per merchant per hari (3 dengan trx 3); laporan harian ringan | - |
-| R5-37 Koneksi database | L = λ × W; instance × pool | 1.388,9 × 20 ms (R3-32); 5 service × 3 instance × pool 10 | butuh ±28 koneksi; terpasang 150 lawan 97 tersedia (100 − 3 reserved) | R4-36: 37 dari 100 |
+| R5-37 Koneksi database | L = λ × W; instance × pool | 1.388,9 × 20 ms (R3-32); 6 service × 3 instance × pool 10 (naskah Tahap 5; riset awal 5 service) | butuh ±28 koneksi (27,8); terpasang 180 lawan 97 tersedia (100 − 3 reserved) | R4-36: 37 dari 100 |
 | R5-38 Volume trace | RPS × span × byte | 8 span, 500 B (Asumsi); tail sampling: 1% error + 5% sisanya ≈ 6% | 5,6 MB per detik puncak; rata-rata 48 GB per hari, 7 hari 336 GB; terkurasi ±2,9 GB per hari | - |
 | R5-39 RPO replica asinkron | lag × TPS puncak | lag 1 detik (Asumsi) × 46,3 (trx 3: 69,4) | 46 sampai 69 transaksi bisa hilang saat failover; `remote_apply` menghilangkannya dengan jeda commit | - |
-| R5-40 Canary tanpa router | 100% ÷ replika | langkah terkecil = 1 ÷ replika | 5% butuh 20 replika; 3 replika: 33% | - |
+| R5-40 Canary tanpa router | 100% ÷ replika | langkah terkecil = 1 ÷ replika | 5% butuh 20 replika; 3 replika: 33% (aturan pembulatan: R5-104) | - |
 | R5-41 Umur KEK | 2^32 ÷ baris per tahun | satu data key per baris, wrap AES-GCM acak (R5-18) | 438 juta per tahun: 9,8 tahun; 146 juta: 29,4 tahun | - |
 | R5-42 Ukuran tim | tiga sumber | PROPOSAL 20 sampai 40 (5 sampai 7 tim + platform, SRE, security); registry `asumsi.tim` 20+; `skala.pembuat` sama | konsisten | R4-38: tiga angka beda |
 
@@ -93,7 +95,7 @@ Masukan registry `tahap[4].asumsi`: 1.000.000 user, aktif 20%, 60 request, punca
 | Ancaman | Sumber | Direkam di lab / Ilustrasi |
 |---|---|---|
 | DDoS lapisan 7 dan konsumsi sumber daya | R5-21, OWASP API4:2023 | Lab baru: Coraza + CRS di depan API, k6 10× puncak; Rekaman. Volumetrik L3 dan L4 tidak bisa direkam: Ilustrasi |
-| Enumerasi akun massal | OWASP API6:2023, R3-12 | Rekaman rate limit per akun dan per IP (Redis) pada skala |
+| Enumerasi akun massal | R3-12 (OWASP API6:2023 tidak memuat enumerasi akun, dicek 2026-10-31) | Rekaman rate limit per akun dan per IP (Redis) pada skala |
 | Replay transaksi antar service | R5-20, R2-17 | Lab baru: dua service dengan mTLS dan idempotency key lintas service; Rekaman |
 | Backup bocor | R5-18, R5-24 | Lab baru: envelope encryption Go + OpenBao transit; backup dibuka tanpa KMS tidak terbaca; Rekaman |
 | Rotasi kunci | R5-18, R5-41 | `rotate` lalu rewrap data key; Rekaman bila OpenBao mendukungnya [perlu verifikasi] |
