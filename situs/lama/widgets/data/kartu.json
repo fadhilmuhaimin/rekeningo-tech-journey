@@ -3536,6 +3536,30 @@
   "jawab": "Alternatif dan konsekuensi negatif. AI cenderung menulis keputusan yang terdengar meyakinkan, tapi melewatkan pilihan yang ditolak atau biaya yang muncul. Periksa juga angka di konteks: harus berasal dari data atau asumsi yang ditulis terbuka, bukan karangan."
  },
  {
+  "id": "t5-adr-60-1",
+  "halaman": "t5-adr-60",
+  "judul": "5.30 ADR 60: Sengaja belum dilakukan",
+  "url": "tahap-5/sengaja-belum/",
+  "tanya": "Load test nanti mengukur kapasitas satu primary 300 transaksi uang per detik (angka Ilustrasi). Di mana pemicu sharding terlewati: Tahap 5, PRD v6, atau keduanya?",
+  "jawab": "Di PRD v6 saja. Beban Tahap 5 69,4 ÷ 300 = 23% dari kapasitas, dan beban PRD v6 694,4 ÷ 300 = 231%. Angka 300 adalah Ilustrasi, jadi pemicu baru terbaca sesudah load test di server sungguhan."
+ },
+ {
+  "id": "t5-adr-60-2",
+  "halaman": "t5-adr-60",
+  "judul": "5.30 ADR 60: Sengaja belum dilakukan",
+  "url": "tahap-5/sengaja-belum/",
+  "tanya": "Tiga service memanggil ledger. Kenapa itu belum memenuhi pemicu service mesh di ADR ini?",
+  "jawab": "Pemicu ADR ini menghitung tujuan kritis, bukan jalur. Tiga jalur menuju satu tujuan, yaitu ledger, jadi tujuan kritisnya satu. Tiga jalur itu memenuhi pemicu TLS timbal balik di ADR 45, dan mTLS di Go menjawabnya (ADR 53)."
+ },
+ {
+  "id": "t5-adr-60-3",
+  "halaman": "t5-adr-60",
+  "judul": "5.30 ADR 60: Sengaja belum dilakukan",
+  "url": "tahap-5/sengaja-belum/",
+  "tanya": "Pratinjau PRD v6 meminta multi-region. Kenapa butir itu berstatus menunggu PRD v6, bukan terpenuhi?",
+  "jawab": "Aturan 5 membaca pemicu yang bergantung pada PRD dari PRD yang disetujui. Pratinjau PRD v6 berlabel Ilustrasi dan belum menjadi PRD yang dikerjakan. Pemicu kedua, satu region mati lebih lama dari RTO 15 menit, juga belum terjadi."
+ },
+ {
   "id": "D2-1",
   "halaman": "D2",
   "judul": "Scaling",
