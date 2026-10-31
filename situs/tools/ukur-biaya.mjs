@@ -72,6 +72,8 @@ for (const path of HAL) {
   const fokus = await page.evaluate(() => { const a = document.activeElement; return { tag: a?.tagName, diBaris: !!a?.closest(".bt .bb-row"), pressed: [...document.querySelectorAll(".bt .bb-predict__opts button")].map((b) => b.getAttribute("aria-pressed")) }; });
   lapor(fokus.tag === "BUTTON" && fokus.diBaris, `${path} sesudah menebak fokus di tombol skenario (${fokus.tag}, diBaris ${fokus.diBaris})`);
   lapor(fokus.pressed[0] === "true" && fokus.pressed.slice(1).every((x) => x === "false"), `${path} aria-pressed tebakan: ${fokus.pressed.join(",")}`);
+  const matiTebak = await page.$$eval(".bt .bb-predict__opts button", (b) => b.map((x) => x.disabled));
+  lapor(matiTebak.length === D.tebak.pilihan.length && matiTebak.every(Boolean), `${path} sesudah menebak semua pilihan tebakan nonaktif (${matiTebak.join(",")})`);
   // 3. semua skenario: angka tabel, kalimat kesimpulan, aria-pressed
   for (let i = 0; i < D.skenario.length; i++) {
     await page.locator(".bt .bb-row button").nth(i).click();

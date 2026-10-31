@@ -88,6 +88,11 @@ describe("kalimat kesimpulan", () => {
     expect(kesimpulan(d.label.kesimpulan, h)).toContain("walau kumulatif on-prem lebih rendah sejak tahun 1");
     expect(kesimpulan(d.label.kesimpulan, { cloud: [t(10)], onprem: [t(10)] })).toBe("Biaya tiga tahun sama, 10 juta rupiah.");
   });
+  it("titik impas memakai selisih ketat: kumulatif yang sama di tahun 1 bukan impas, impas jatuh di tahun 2", () => {
+    const h = { cloud: [t(10), t(10), t(10)], onprem: [t(10), t(5), t(5)] };
+    expect(titikImpas(h)).toBe(2);
+    expect(titikImpas({ cloud: [t(10), t(10), t(10)], onprem: [t(10), t(10), t(10)] })).toBeNull();
+  });
   it("titik: ribuan dengan titik, minus dengan tanda minus", () => {
     expect([titik(18690), titik(999), titik(0), titik(-1150)]).toEqual(["18.690", "999", "0", "−1.150"]);
   });
