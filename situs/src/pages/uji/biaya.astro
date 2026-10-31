@@ -1,0 +1,22 @@
+---
+// Halaman uji widget model biaya tiga tahun (ADR 59). Bukan halaman cerita: tidak di registry, tidak di sidebar, tidak diindeks.
+// Dipakai situs/tools/ukur-biaya.mjs (tebak dulu, angka dari hitungan sendiri, ARIA, 320 px, axe, tanpa JavaScript).
+// Halaman 5.28 memasang komponen yang sama.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import BiayaTigaTahun from "../../widgets/biaya-tiga-tahun/BiayaTigaTahun.tsx";
+import data from "../../../data/widget/t5-onprem-biaya.json";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Uji model biaya tiga tahun",
+    description: "Halaman uji widget model biaya tiga tahun.",
+    pagefind: false,
+    tableOfContents: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>Halaman uji widget model biaya tiga tahun. Semua masukan Ilustrasi.</p>
+  <BiayaTigaTahun client:load data={data} />
+  <p>Teks sesudah widget, supaya halaman cukup panjang untuk diuji geser isi saat hydrate.</p>
+</StarlightPage>
