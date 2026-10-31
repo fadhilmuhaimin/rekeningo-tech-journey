@@ -28,7 +28,7 @@ PRD v5 menyebut tujuannya uang elektronik nasional, yaitu Rekeningo yang dipakai
 Tiga hal berubah sekaligus.
 
 1. **Salinan datang.** Laporan, riwayat, pengumuman, dan cadangan membaca data yang sama dari banyak tempat, sehingga Rekeningo untuk pertama kali punya data yang sengaja tertinggal.
-2. **Pihak luar memanggil masuk.** POS milik mitra membuat QR dan membaca status pembayaran lewat API publik.
+2. **Pihak luar memanggil masuk.** POS (point of sale, yaitu kasir elektronik di toko) milik mitra membuat QR dan membaca status pembayaran lewat API publik.
 3. **Tim dan rilis berlipat.** 28 orang dalam delapan tim merilis hampir tiap hari ke enam service.
 
 Angka di dokumen ini adalah angka cerita (Ilustrasi: contoh, bukan hasil sistem), kecuali yang ditulis Asumsi, Hitungan, Rekaman lab, atau Tidak dijalankan. Asumsi adalah angka beban atau pilihan yang rumusnya atau alasannya ditulis di halaman.
@@ -43,7 +43,7 @@ Tahap 5 berangkat dari `api-t4` di akhir Tahap 4, belum dari sistem yang sudah d
 - RPO adalah titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RTO adalah lama waktu paling lama sampai sistem pulih. PRD v4 tidak menulis keduanya ([[t4-prd]]).
 - `api-t4` gagal gerbang pemindaian ADR 44 pada Go 1.27.1 ([[t4-tim-infra]]).
 
-Nama tahap ini, "Satu database tidak cukup", tidak berarti satu primary terbukti kurang untuk menulis. Primary adalah database utama yang menerima semua tulisan, dan kapasitasnya belum terukur. Maksudnya satu database yang dipakai untuk menulis uang, melayani laporan, dan menyimpan arsip tidak cukup.
+Nama tahap ini, "Satu database tidak cukup", tidak berarti satu primary, yaitu database utama yang menerima semua tulisan, terbukti kurang untuk menulis. Kapasitasnya belum terukur. Maksudnya satu database yang dipakai untuk menulis uang, melayani laporan, dan menyimpan arsip tidak cukup.
 
 </Blok>
 
@@ -53,13 +53,13 @@ Nama tahap ini, "Satu database tidak cukup", tidak berarti satu primary terbukti
 2. Merchant melihat penjualan baru dalam 35 detik.
 3. Pembayaran tidak berhenti saat deploy atau saat satu mesin mati, dan tidak ada uang yang hilang.
 4. Penyedia POS pihak ketiga membuat QR dan membaca status lewat API publik.
-5. Cicilan dan tabungan berjalan lewat batch harian yang tidak menagih dua kali.
+5. Cicilan dan tabungan berjalan lewat batch harian, yaitu program terjadwal yang tiap hari memproses banyak angsuran, tanpa menagih dua kali.
 
 </Blok>
 
 <Blok nama="User dan kebutuhan barunya">
 
-**SRE** (site reliability engineer) adalah engineer yang menjaga sistem produksi tetap berjalan, dan **POS** (point of sale) adalah kasir elektronik di toko. **Mitra POS** adalah penyedia POS pihak ketiga yang memanggil API Rekeningo.
+**SRE** (site reliability engineer) adalah engineer yang menjaga sistem produksi tetap berjalan. **Mitra POS** adalah penyedia POS pihak ketiga yang memanggil API Rekeningo.
 
 | User | Kebutuhan baru | Yang membuatnya berhenti memakai |
 |---|---|---|
@@ -77,6 +77,8 @@ Nama tahap ini, "Satu database tidak cukup", tidak berarti satu primary terbukti
 
 Lingkupnya satu negara: 1.000.000 user terdaftar dan 200.000 aktif per hari, dikerjakan 28 orang selama 16 minggu. PRD lengkap menambah satu isi P0 yang belum ada di ringkasan [[t4-jembatan]], yaitu tidak berhenti dan tidak kehilangan uang. Ia juga mengisi angka tim: 28 orang dalam delapan tim, di dalam rentang 20 sampai 40 orang.
 
+Error budget adalah 100% dikurangi target ketersediaan, dikalikan lama periode. Dalam 30 hari ada 30 × 24 × 60 = 43.200 menit, dan 0,001 × 43.200 = 43,2 menit.
+
 | Prioritas | Fitur | Keterangan |
 |---|---|---|
 | P0 | Skala nasional | 1.000.000 user dan ±200.000 merchant (Asumsi). Deploy tanpa error yang terlihat user |
@@ -90,8 +92,6 @@ Lingkupnya satu negara: 1.000.000 user terdaftar dan 200.000 aktif per hari, dik
 | P2 | Ditunda ke v6 | Multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, 10 juta user |
 
 Asumsi produk adalah Asumsi yang berupa pilihan produk. Angka 5 detik, 30 detik, 99,9%, 30 menit, RPO nol, dan RTO 15 menit di tabel ini tidak berasal dari hitungan atau rekaman.
-
-Error budget adalah 100% dikurangi target ketersediaan, dikalikan lama periode. Dalam 30 hari ada 30 × 24 × 60 = 43.200 menit, dan 0,001 × 43.200 = 43,2 menit. Batch harian adalah program terjadwal yang tiap hari memproses banyak angsuran sekaligus.
 
 **Bukan lingkup v5:** pembayaran offline, pencairan merchant otomatis lewat bank (tetap file), tarik tunai, kartu fisik, dan multi-mata uang. Bunga atau pinjaman dari PT juga bukan lingkup, dan tidak ada klaim izin atau kepatuhan regulasi apa pun.
 
