@@ -82,7 +82,12 @@ const barisAwal = (sumber: string, awal: string): string => {
   expect(b, `baris tidak ada: ${awal}`).toBeDefined();
   return b!;
 };
-const harus = (kalimat: string) => expect(badan, `halaman tidak memuat: ${kalimat}`).toContain(kalimat);
+// Tiap kalimat yang dikunci dicatat; tes terakhir memastikan tidak ada teks prosa di halaman di luar catatan ini (keputusan 1502).
+const terkunci: string[] = [];
+const harus = (kalimat: string) => {
+  terkunci.push(kalimat);
+  expect(badan, `halaman tidak memuat: ${kalimat}`).toContain(kalimat);
+};
 const di = (sumber: string, nama: string, kalimat: string) => expect(sumber, `${nama} tidak memuat: ${kalimat}`).toContain(kalimat);
 const sekali = (sumber: string, nama: string, kalimat: string) => expect(hitung(sumber, kalimat), `${nama}: "${kalimat}" harus muncul tepat sekali`).toBe(1);
 const normal = (s: string) => s.replace(/\s+/g, " ");
@@ -306,6 +311,7 @@ describe("isi PRD: tujuan, user, lingkup, metrik, batasan, Pak Hadi, tim, tokoh,
     const item5 = "Cicilan dan tabungan berjalan lewat batch harian, yaitu program terjadwal yang tiap hari memproses banyak angsuran, tanpa menagih dua kali.";
     expect(butir[4]).toBe("Cicilan dan tabungan berjalan lewat batch harian yang tidak menagih dua kali.");
     expect(daftarMdx('<Blok nama="Tujuan">', "</Blok>")).toEqual([...butir.slice(0, 4), item5]);
+    terkunci.push(...butir.slice(0, 4), item5);
   });
   test("tabel user sama dengan naskah, baris demi baris", () => {
     const kepala = "| User | Kebutuhan baru | Yang membuatnya berhenti memakai |";
@@ -349,6 +355,7 @@ describe("isi PRD: tujuan, user, lingkup, metrik, batasan, Pak Hadi, tim, tokoh,
     expect(metrikNaskah).toHaveLength(6);
     harus("**Metrik keberhasilan (target, Asumsi)**");
     expect(daftarMdx("**Metrik keberhasilan (target, Asumsi)**", "**Batasan**")).toEqual(metrikNaskah.map((m) => m.replace(", registry)", ")")));
+    terkunci.push(...metrikNaskah.map((m) => m.replace(", registry)", ")")));
     di(metrikNaskah[0]!, "naskah", "registry");
     harus("- 200.000 user aktif per hari (20% dari 1.000.000).");
     const batas = bagPRD.match(/\*\*Batasan\.\*\* (.+)/)![1]!;
@@ -362,6 +369,7 @@ describe("isi PRD: tujuan, user, lingkup, metrik, batasan, Pak Hadi, tim, tokoh,
       "Kapasitas satu server belum pernah diukur, dan pengukurannya dijadwalkan sebelum fitur pertama yang menambah beban ([[t4-adr-45]], aturan 5).",
       "Direksi meminta perbandingan biaya tiga tahun antara cloud dan perangkat sendiri sebelum anggaran tahun berikutnya (Asumsi cerita).",
     ]);
+    terkunci.push(...mdxBatas);
     expect(kalimat[0]).toBe("28 engineer dalam delapan tim selama 16 minggu");
     expect(kalimat[1]).toBe("Semua pihak ketiga berupa tiruan lokal di lab");
     expect(kalimat[2]).toBe("Security review Laras lolos sebelum tiap rilis ke seluruh negeri");
@@ -425,15 +433,14 @@ describe("isi PRD: tujuan, user, lingkup, metrik, batasan, Pak Hadi, tim, tokoh,
     // Risiko: satu kalimat di naskah dengan tiga risiko.
     di(bagPRD, "naskah 1", "Rekeningo pertama kali punya data yang sengaja tertinggal, enam unit yang dirilis sendiri-sendiri, dan pihak luar yang memanggil masuk dengan laju yang tidak ia kendalikan.");
     harus("Sinta menulis tiga risiko:");
-    expect(daftarMdx("Sinta menulis tiga risiko:", "</Blok>")).toEqual([
-      "Rekeningo pertama kali punya data yang sengaja tertinggal.",
-      "Enam service dirilis sendiri-sendiri.",
-      "Pihak luar memanggil masuk dengan laju yang tidak Rekeningo kendalikan.",
-    ]);
+    const risiko = ["Rekeningo pertama kali punya data yang sengaja tertinggal.", "Enam service dirilis sendiri-sendiri.", "Pihak luar memanggil masuk dengan laju yang tidak Rekeningo kendalikan."];
+    expect(daftarMdx("Sinta menulis tiga risiko:", "</Blok>")).toEqual(risiko);
+    terkunci.push(...risiko);
     // Tiga pertanyaan terbuka sama dengan naskah dan menunjuk ke masalah yang memicunya.
     const q = daftar(bagPRD, "**Pertanyaan terbuka di PRD.**", "Ketiganya tidak dijawab PRD");
     expect(q).toHaveLength(3);
     expect(daftarMdx("Tiga pertanyaan ini ada di PRD v5, tapi belum dijawab:", "Tidak ada yang menjawabnya")).toEqual(q);
+    terkunci.push(...q);
     harus("Tidak ada yang menjawabnya sebelum kode ditulis. Ketiganya jadi masalah terbesar Tahap 5. Jawabannya dimulai di [[t5-m40]] untuk pertanyaan pertama, [[t5-m42]] untuk yang kedua, dan [[t5-m45]] untuk yang ketiga.");
     di(bagPRD, "naskah 1", "Ketiganya tidak dijawab PRD dan menjadi masalah terbesar Tahap 5.");
     const gejala = (id: string) => dari(id).judul;
@@ -558,19 +565,23 @@ describe("yang dibuka lagi dari Tahap 4: tebakan 4.31, tabel empat ADR, dua pili
   });
   test("tiap bullet ADR memakai kalimat yang ada di halaman ADR-nya, angka dari halaman itu, dan rekaman proses-mati.txt", () => {
     const b = (awal: string) => barisAwal(badan, awal);
+    const tepat = (awal: string, kalimat: string) => {
+      terkunci.push(kalimat.replace(/^- /, ""));
+      expect(b(awal)).toBe(kalimat);
+    };
     // ADR 4
     di(teksHalaman("t1-sql-injection"), "ADR 4", "| WAF di depan API | Puncak 0,14 request per detik, satu gedung, penguji internal | Tahap 5 |");
-    expect(b("- ADR 4 (")).toBe("- ADR 4 ([[t1-sql-injection]]) menunda WAF, yaitu penyaring permintaan HTTP di depan API, ke Tahap 5. Alasannya puncak 0,14 request per detik, satu gedung, dan penguji internal. PRD v5 membalik ketiganya, dan [[t5-waf]] mengerjakannya.");
+    tepat("- ADR 4 (", "- ADR 4 ([[t1-sql-injection]]) menunda WAF, yaitu penyaring permintaan HTTP di depan API, ke Tahap 5. Alasannya puncak 0,14 request per detik, satu gedung, dan penguji internal. PRD v5 membalik ketiganya, dan [[t5-waf]] mengerjakannya.");
     expect(fmt(reqPuncak, 1)).toBe("1388,9");
     // ADR 6, ADR 12, halaman 1.13
     di(teksHalaman("t2-adr-ledger"), "ADR 6", "Tahap 5: partisi `posting` per bulan dan snapshot saldo");
-    expect(b("- ADR 6 (")).toBe("- ADR 6 ([[t2-adr-ledger]], revisi di Tahap 2) menjadwalkan partisi `posting` per bulan dan snapshot saldo di Tahap 5, saat posting diperkirakan ±440 juta per tahun (Asumsi). Partisi memecah satu tabel jadi satu bagian per bulan, dan snapshot saldo menyimpan saldo tiap buku per periode. Tabel Beban menghitung 438 juta, dan [[t5-partisi]] mengerjakannya.");
+    tepat("- ADR 6 (", "- ADR 6 ([[t2-adr-ledger]], revisi di Tahap 2) menjadwalkan partisi `posting` per bulan dan snapshot saldo di Tahap 5, saat posting diperkirakan ±440 juta per tahun (Asumsi). Partisi memecah satu tabel jadi satu bagian per bulan, dan snapshot saldo menyimpan saldo tiap buku per periode. Tabel Beban menghitung 438 juta, dan [[t5-partisi]] mengerjakannya.");
     di(teksHalaman("t1-adr-12"), "ADR 12", "| Kubernetes | Puluhan container di beberapa mesin, dengan deploy terpisah per tim | Tahap 5, mulai dari k3s di lab |");
-    expect(b("- ADR 12 (")).toBe("- ADR 12 ([[t1-adr-12]]) menjadwalkan Kubernetes, program yang menjalankan banyak container di banyak mesin, di Tahap 5 mulai dari k3s, Kubernetes ringan, di lab. [[t5-service]] mengerjakannya.");
+    tepat("- ADR 12 (", "- ADR 12 ([[t1-adr-12]]) menjadwalkan Kubernetes, program yang menjalankan banyak container di banyak mesin, di Tahap 5 mulai dari k3s, Kubernetes ringan, di lab. [[t5-service]] mengerjakannya.");
     const p113 = teksHalaman("B2.2");
     di(p113, "1.13", "| Read replica untuk laporan | Laporan v1 kecil dan jarang | Tahap 5 |");
     di(p113, "1.13", "misalnya notifikasi untuk jutaan user. Itu baru mungkin muncul di Tahap 5, dan diukur dulu di sana.");
-    expect(b("- Halaman [[B2.2]]")).toBe("- Halaman [[B2.2]], yang bukan ADR, menjadwalkan read replica untuk laporan di Tahap 5. Ia juga menulis bahwa data besar yang hanya dibaca per kunci, misalnya notifikasi untuk jutaan user, baru mungkin muncul di Tahap 5. PRD v5 memuat laporan merchant real-time, tetapi tidak memuat inbox notifikasi per user, jadi syarat kedua belum terpenuhi dan PostgreSQL tetap source of truth.");
+    tepat("- Halaman [[B2.2]]", "- Halaman [[B2.2]], yang bukan ADR, menjadwalkan read replica untuk laporan di Tahap 5. Ia juga menulis bahwa data besar yang hanya dibaca per kunci, misalnya notifikasi untuk jutaan user, baru mungkin muncul di Tahap 5. PRD v5 memuat laporan merchant real-time, tetapi tidak memuat inbox notifikasi per user, jadi syarat kedua belum terpenuhi dan PostgreSQL tetap source of truth.");
     expect(bagPRD).not.toMatch(/inbox/i);
     expect(naskah5.match(/inbox notifikasi per user/g)).toHaveLength(1);
     di(bagBuka, "naskah 1", "PRD v5 tidak memuat inbox notifikasi per user");
@@ -587,21 +598,21 @@ describe("yang dibuka lagi dari Tahap 4: tebakan 4.31, tabel empat ADR, dua pili
     expect(C).toContain("Jam ledger diperankan");
     const hasilJurnal = [...C.matchAll(/\n (\d) +\| (\d) +\| dibayar/g)].map((m) => Number(m[1]));
     expect(hasilJurnal).toEqual([1, 2]);
-    expect(b("- ADR 14 (")).toBe("- ADR 14 ([[t2-idempotency]]) membatasi umur Idempotency-Key 24 jam, dan ADR 34 ([[t4-webhook]]) mencatat akibatnya. Bila service pembayaran mati di antara ledger dan transaction pembayaran, kiriman ulang sesudah key habis menjurnal lagi. Rekaman lab t4-modul, `proses-mati.txt` bagian C, mencatat satu jurnal pada +23 jam dan dua pada +25 jam (jam ledger diperankan). Batch cicilan yang tertunda lebih dari 24 jam bisa melewati batas yang sama (penalaran), dan [[t5-batch]] menjawabnya.");
+    tepat("- ADR 14 (", "- ADR 14 ([[t2-idempotency]]) membatasi umur Idempotency-Key 24 jam, dan ADR 34 ([[t4-webhook]]) mencatat akibatnya. Bila service pembayaran mati di antara ledger dan transaction pembayaran, kiriman ulang sesudah key habis menjurnal lagi. Rekaman lab t4-modul, `proses-mati.txt` bagian C, mencatat satu jurnal pada +23 jam dan dua pada +25 jam (jam ledger diperankan). Batch cicilan yang tertunda lebih dari 24 jam bisa melewati batas yang sama (penalaran), dan [[t5-batch]] menjawabnya.");
     // ADR 26, 33
     di(teksHalaman("t3-dua-instance"), "ADR 26", "dengan biaya operasional yang tidak dibenarkan oleh dua instance dan empat engineer. PROPOSAL menaruhnya di Tahap 5.");
-    expect(b("- ADR 26 (")).toBe("- ADR 26 ([[t3-dua-instance]]) menolak Kubernetes untuk dua instance dan empat engineer, dan menulis bahwa rencana awal menaruhnya di Tahap 5. PRD v5 punya 28 engineer dalam delapan tim.");
+    tepat("- ADR 26 (", "- ADR 26 ([[t3-dua-instance]]) menolak Kubernetes untuk dua instance dan empat engineer, dan menulis bahwa rencana awal menaruhnya di Tahap 5. PRD v5 punya 28 engineer dalam delapan tim.");
     const p33 = teksHalaman("t3-adr-33");
     di(p33, "ADR 33", "Waktu pulih terukur atau jendela kehilangan data lebih besar dari yang bisa diterima Pak Hadi atau PRD.");
     di(p33, "ADR 33", "Backup `pg_dump` harian: jendela kehilangan data sampai 24 jam");
-    expect(b("- ADR 33 (")).toBe("- ADR 33 ([[t3-adr-33]]) menunda VPS kedua sampai waktu pulih atau jendela kehilangan data melebihi yang diterima Pak Hadi atau PRD. Backup harian berjendela sampai 24 jam, sedangkan PRD v5 menulis RPO nol dan RTO 15 menit, jadi pemicu itu terpenuhi dan [[t5-rpo-rto]] menjawabnya.");
+    tepat("- ADR 33 (", "- ADR 33 ([[t3-adr-33]]) menunda VPS kedua sampai waktu pulih atau jendela kehilangan data melebihi yang diterima Pak Hadi atau PRD. Backup harian berjendela sampai 24 jam, sedangkan PRD v5 menulis RPO nol dan RTO 15 menit, jadi pemicu itu terpenuhi dan [[t5-rpo-rto]] menjawabnya.");
     // ADR 38, 42
-    expect(b("- ADR 38 (")).toBe("- ADR 38 ([[t4-storage]]) menghitung unduhan staf 1.157 KB per detik di Tahap 5, yaitu 20.000 × 500 KB ÷ 86.400 × 10 (Hitungan atas Asumsi). Kapasitas jaringan instance tidak diukur lab (Tidak dijalankan), jadi angka itu belum bisa dibandingkan dengan pemicunya.");
+    tepat("- ADR 38 (", "- ADR 38 ([[t4-storage]]) menghitung unduhan staf 1.157 KB per detik di Tahap 5, yaitu 20.000 × 500 KB ÷ 86.400 × 10 (Hitungan atas Asumsi). Kapasitas jaringan instance tidak diukur lab (Tidak dijalankan), jadi angka itu belum bisa dibandingkan dengan pemicunya.");
     di(teksHalaman("t4-storage"), "ADR 38", "Kapasitas jaringan instance tidak diukur lab (Tidak dijalankan).");
     const p42 = teksHalaman("t4-kartu");
     di(p42, "ADR 42", "Saat Rekeningo berjalan di lebih dari satu instance. Kill switch di memori tidak lintas instance (dibaca dari kode, tidak direkam).");
     di(p42, "ADR 42", "penanda boolean di memori satu proses");
-    expect(b("- ADR 42 (")).toBe("- ADR 42 ([[t4-kartu]]) menaruh kill switch di memori satu proses. Keputusannya salah bila Rekeningo berjalan di lebih dari satu instance. PRD v5 meminta pembayaran tidak berhenti saat satu mesin mati, jadi paling sedikit dua instance berjalan bersamaan (penalaran), dan [[t5-m49]] menjawabnya.");
+    tepat("- ADR 42 (", "- ADR 42 ([[t4-kartu]]) menaruh kill switch di memori satu proses. Keputusannya salah bila Rekeningo berjalan di lebih dari satu instance. PRD v5 meminta pembayaran tidak berhenti saat satu mesin mati, jadi paling sedikit dua instance berjalan bersamaan (penalaran), dan [[t5-m49]] menjawabnya.");
     di(naskah5, "naskah", "ADR 42 menaruh kill switch di memori satu proses, dan Kubernetes menjalankan beberapa pod per service. Itu menjadi M49.");
     expect(dari("t5-m49").nomor).toBe("5.22");
   });
@@ -1052,6 +1063,20 @@ describe("baris riset R5-110 sampai R5-114: ada, urut, tanpa ganda, dan memuat h
     expect(dari("t4-jembatan").path).toBe("tahap-4/jembatan-prd-v5.md");
     expect(30 * 24 * 60).toBe(43200);
     expect(4 * 7).toBe(28);
+  });
+});
+
+describe("kalimat prosa tanpa kunci", () => {
+  // Kalimat yang ditambahkan di akhir paragraf atau daftar lolos tes `toContain`, karena tiap tes mengunci kalimat yang sudah
+  // ada. Tes ini berjalan sebelum sidik dan menolak baris prosa yang sisanya, sesudah semua kalimat terkunci dibuang, masih
+  // berisi teks. Tabel dan tag HTML dikunci per sel di tes lain.
+  test("tiap baris prosa habis dikunci: kalimat tambahan di luar daftar kunci gagal", () => {
+    if (terkunci.length < 50) return; // dijalankan sebagian (-t): daftar kunci belum lengkap
+    const prosa = badan.split("\n").filter((b) => b.trim() !== "" && !/^\s*(\||<|import )/.test(b));
+    let sisa = prosa.join("\n");
+    for (const k of [...terkunci].sort((x, y) => y.length - x.length)) sisa = sisa.split(k).join("\u0000");
+    const tinggal = sisa.replace(/\u0000/g, " ").replace(/^\s*(?:[-*]|\d+\.)\s+/gm, "").replace(/[\s*:.,;()]+/g, " ").trim();
+    expect(tinggal, "kalimat prosa yang tidak dikunci").toBe("");
   });
 });
 
