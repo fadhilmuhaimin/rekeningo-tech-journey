@@ -1125,6 +1125,15 @@
   "h": "/istilah/on-call/"
  },
  {
+  "t": "On-prem (on-premises)",
+  "d": "Perangkat dan jaringan milik PT sendiri yang dijalankan di ruang milik PT. Bila ruangnya sewaan, disebut colo.",
+  "b": "t5-onprem",
+  "n": "5.28 On-prem lawan cloud",
+  "u": "/tahap-5/on-prem-lawan-cloud/",
+  "s": "istilah-on-prem",
+  "h": "/istilah/on-prem/"
+ },
+ {
   "t": "OpenAPI",
   "d": "Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin.",
   "b": "B1.4",

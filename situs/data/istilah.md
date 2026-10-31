@@ -232,6 +232,8 @@
 *[OpenID Connect]: Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya.
 *[On-call]: Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.
 *[on-call]: Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.
+*[On-prem]: Perangkat dan jaringan milik PT sendiri yang dijalankan di ruang milik PT. Bila ruangnya sewaan, disebut colo.
+*[on-prem]: Perangkat dan jaringan milik PT sendiri yang dijalankan di ruang milik PT. Bila ruangnya sewaan, disebut colo.
 *[OpenAPI]: Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin.
 *[Optimistic lock]: Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.
 *[optimistic lock]: Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca.

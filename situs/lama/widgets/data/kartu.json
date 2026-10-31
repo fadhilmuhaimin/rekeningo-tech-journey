@@ -3536,6 +3536,38 @@
   "jawab": "Alternatif dan konsekuensi negatif. AI cenderung menulis keputusan yang terdengar meyakinkan, tapi melewatkan pilihan yang ditolak atau biaya yang muncul. Periksa juga angka di konteks: harus berasal dari data atau asumsi yang ditulis terbuka, bukan karangan."
  },
  {
+  "id": "t5-onprem-1",
+  "halaman": "t5-onprem",
+  "judul": "5.28 On-prem lawan cloud + ADR 59",
+  "url": "tahap-5/on-prem-lawan-cloud/",
+  "tanya": "Dengan dua orang operasi tambahan di on-prem, mana yang lebih hemat dalam tiga tahun, dan berapa selisihnya?",
+  "jawab": "Cloud, 1.730 juta rupiah: 20.420 − 18.690. Hitungan atas masukan Ilustrasi, bukan harga penyedia."
+ },
+ {
+  "id": "t5-onprem-2",
+  "halaman": "t5-onprem",
+  "judul": "5.28 On-prem lawan cloud + ADR 59",
+  "url": "tahap-5/on-prem-lawan-cloud/",
+  "tanya": "Kenapa satu orang operasi tambahan membalik skenario tanpa orang tambahan?",
+  "jawab": "Satu orang memakan 480 × 3 = 1.440 juta rupiah selama tiga tahun. Selisih tanpa orang tambahan hanya 1.150, jadi urutannya terbalik dan cloud lebih hemat 290."
+ },
+ {
+  "id": "t5-onprem-3",
+  "halaman": "t5-onprem",
+  "judul": "5.28 On-prem lawan cloud + ADR 59",
+  "url": "tahap-5/on-prem-lawan-cloud/",
+  "tanya": "Apa yang ADR 59 tidak nyatakan tentang database terkelola?",
+  "jawab": "Ia tidak menyatakan database terkelola salah. ADR 39 tetap berlaku, dan ADR 59 hanya menambah batas bentuk standar. Dijalankan sendiri atau terkelola di produksi menunggu pemilik."
+ },
+ {
+  "id": "t5-onprem-4",
+  "halaman": "t5-onprem",
+  "judul": "5.28 On-prem lawan cloud + ADR 59",
+  "url": "tahap-5/on-prem-lawan-cloud/",
+  "tanya": "Kenapa kasus 37signals tidak membuktikan bahwa perangkat sendiri lebih hemat untuk Rekeningo?",
+  "jawab": "Itu satu perusahaan menengah dengan pertumbuhan yang ia sebut stabil, dan penghematannya hitungan pendirinya sendiri yang tidak menyebut audit independen. Tulisannya juga menyebut tim operasi tetap, yang di Rekeningo belum diketahui."
+ },
+ {
   "id": "D2-1",
   "halaman": "D2",
   "judul": "Scaling",

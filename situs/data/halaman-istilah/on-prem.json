@@ -1,0 +1,39 @@
+{
+  "istilah": "On-prem (on-premises)",
+  "sehari_hari": "On-prem berarti perangkat dan jaringan milik PT sendiri dijalankan di ruang milik PT. Colo berarti perangkat milik PT berdiri di ruang sewaan. Kebalikannya cloud: perangkat milik penyedia disewa sesuai pemakaian.",
+  "cerita": [
+    {
+      "rujukan": "t5-onprem",
+      "teks": "Direksi meminta perbandingan biaya tiga tahun antara cloud dan perangkat sendiri. Model di halaman itu memisahkan biaya menjadi infrastruktur, orang operasi, migrasi, dan risiko, dengan semua masukan Ilustrasi."
+    }
+  ],
+  "mekanisme": [
+    "PT membeli perangkat dan jaringan di muka, sesuai kapasitas yang dibutuhkan beberapa tahun ke depan.",
+    "Orang operasi memasang, memantau, dan memperbaiki perangkat itu, ditambah ruang, listrik, dan jaringan sewaan bila colo.",
+    "Kapasitas baru berarti membeli perangkat lagi, bukan menaikkan batas di panel penyedia.",
+    "Pindah dari atau ke cloud butuh migrasi data satu kali, dan bentuk yang standar membuatnya lebih mudah."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira perbandingan hanya soal harga perangkat. Di model halaman 5.28, jumlah orang operasi tambahan yang membalik urutan.",
+    "Mengira satu kasus perusahaan yang pindah berlaku untuk semua. Penulisnya sendiri menyebut skala dan pertumbuhan perusahaannya."
+  ],
+  "terkait": [
+    "IaC (infrastructure as code)",
+    "ADR (Architecture Decision Record)"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-246",
+      "judul": "37signals: We have left the cloud (23 Juni 2023, dibuka 2026-10-31)",
+      "url": "https://world.hey.com/dhh/we-have-left-the-cloud-251760fb",
+      "catatan": "Pindah dari cloud ke perangkat sendiri selesai dalam enam bulan, dengan ukuran tim operasi tetap. Penghematan adalah hitungan pendirinya, tanpa audit independen yang disebut di tulisan."
+    },
+    {
+      "riset": "R5-247",
+      "judul": "OpenTofu: pengantar (v1.13, dibuka 2026-10-31)",
+      "url": "https://opentofu.org/docs/intro/",
+      "catatan": "Alat IaC yang mendefinisikan resource cloud dan on-prem dalam file konfigurasi."
+    }
+  ]
+}
