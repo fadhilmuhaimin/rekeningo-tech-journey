@@ -580,6 +580,10 @@ describe("celah turunan yang ditutup sesudah uji mutasi tanpa sidik: kepala, nom
     harusAda("Selisih sebesar");
     harusAda(`kecuali ${m.orangDasar} orang: Platform 4 dan SRE 2`);
     harusAda("Tagihan cloud ditambah orang operasi 4 + 2");
+    harusAda(`1. Dengan ${bilangan[dasar.m.orangTambahan]} orang operasi tambahan di on-prem, mana yang lebih hemat dalam tiga tahun, dan berapa selisihnya?`);
+    harusAda(`2. Selisih kumulatif dari tahun 1 ke tahun ${dasar.kc.length} menyusut atau membesar, dan apa artinya bagi horizon lebih dari tiga tahun?`);
+    harusAda("3. ADR 39 sudah menaruh data di layanan terkelola. Apa yang ditambahkan ADR 59 tanpa membatalkannya?");
+    expect(dasar.ko[0]! - dasar.kc[0]!).toBeGreaterThan(dasar.ko[2]! - dasar.kc[2]!);
     harusAda("Klaim ini hanya untuk folder dan jenis file itu, dan bukan untuk migrasi Tahap 5.");
     harusAda("Ketiganya dari lab Tahap 4, bukan dari lab Tahap 5.");
     harusAda("Tahap 5 menambah komponen yang menentukan jawabannya.");
