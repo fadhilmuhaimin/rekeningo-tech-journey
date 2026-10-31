@@ -350,38 +350,48 @@
     {
       "no": 5,
       "nama": "Satu database tidak cukup",
-      "user": "100.000–1.000.000+ user",
-      "rekap": "Rekeningo (fiktif) dipakai di banyak kota, dan database utama penuh oleh query baca.",
-      "sebelumnya": "Tahap 4: integrasi pihak ketiga dan pemecahan layanan pembayaran sudah berjalan.",
+      "user": "1.000.000",
+      "rekap": "PT Rekeningo (fiktif) dipakai di satu negara: 1.000.000 user terdaftar, ±200.000 merchant, 28 engineer dalam delapan tim, 16 minggu.",
+      "sebelumnya": "Tahap 4: top-up dari bank, verifikasi identitas, QR merchant luar, kartu virtual, dan back office berjalan untuk 100.000 user; satu primary PostgreSQL menulis uang, melayani laporan, dan menyimpan arsip.",
       "arsitektur": {
         "baris": [
           [
             {
-              "label": "App Flutter"
+              "label": "App Flutter",
+              "berubah": true,
+              "catatan": "Mengirim token LSN di bacaan sesudah menulis (ADR 47)"
             },
             {
-              "label": "Load balancer",
-              "baru": true
+              "label": "Pintu di tepi",
+              "baru": true,
+              "catatan": "Gateway API dengan WAF, kuota, dan tanda tangan per mitra POS (ADR 56)"
             },
             {
-              "label": "API + service"
+              "label": "Enam service",
+              "baru": true,
+              "catatan": "Ledger, akun, pembayaran, merchant, notifikasi, dan cicilan di Kubernetes, tiga instance tiap service, schema dan role per service (ADR 50); ledger tetap satu-satunya tempat uang bergerak"
             }
           ],
           [
             {
-              "label": "DB primary"
+              "label": "Event streaming",
+              "baru": true,
+              "lepas": true,
+              "catatan": "Pengumuman dan event pembayaran lewat relay dari outbox; consumer idempoten (ADR 51)"
+            },
+            {
+              "label": "Primary + PgBouncer",
+              "berubah": true,
+              "catatan": "PostgreSQL dengan replica sinkron untuk ledger (ADR 48), posting dipartisi per bulan (ADR 49), dan PgBouncer mode transaction di depannya (ADR 52)"
             },
             {
               "label": "Read replica",
               "baru": true,
-              "lepas": true
-            },
-            {
-              "label": "Queue"
+              "catatan": "Replica asinkron untuk laporan merchant dan bacaan berat; yang memutuskan uang tetap dibaca dari primary (ADR 46)"
             }
           ]
         ],
-        "caption": "Tahap 5: query baca dipindah ke replica."
+        "caption": "Tahap 5: laporan dan bacaan berat pindah ke replica, enam service dirilis terpisah, dan pintu di tepi melayani mitra POS. Biru = baru atau berubah; worker, Redis, penyimpanan objek, dan KMS tidak digambar."
       },
       "asumsi": {
         "user": 1000000,
@@ -394,14 +404,44 @@
         "fileKB": 500,
         "tim": "20+ developer"
       },
-      "versi": "lama",
       "skala": {
-        "lingkup": "Nasional",
-        "user": "1 juta user, ratusan ribu merchant",
-        "pembuat": "5–7 tim + platform, SRE, security",
-        "prd": "PRD v5: laporan merchant real-time, notifikasi massal, cicilan",
-        "pendek": "Nasional"
-      }
+        "lingkup": "Satu negara: seluruh kota, merchant mandiri, dan mitra POS",
+        "user": "1.000.000 user terdaftar, ±200.000 merchant",
+        "pembuat": "28 orang dalam delapan tim: lima tim produk, tiga tim fungsi",
+        "prd": "PRD v5: laporan merchant real-time, tidak berhenti dan tanpa uang hilang, notifikasi massal, cicilan dan tabungan, API publik untuk POS",
+        "pendek": "Skala nasional"
+      },
+      "bagian": [
+        {
+          "no": 1,
+          "nama": "PRD"
+        },
+        {
+          "no": 2,
+          "nama": "Dari fitur ke pekerjaan teknis"
+        },
+        {
+          "no": 3,
+          "nama": "Salinan boleh banyak, tempat uang bergerak hanya satu"
+        },
+        {
+          "no": "3b",
+          "nama": "Skema data"
+        },
+        {
+          "no": 4,
+          "nama": "Masalah yang muncul"
+        },
+        {
+          "no": 5,
+          "nama": "Yang dibawa keluar"
+        },
+        {
+          "no": 6,
+          "nama": "Jembatan ke Tahap 6"
+        }
+      ],
+      "naskah": "plan/CERITA-TAHAP-5.md"
     }
   ],
   "halaman": [
@@ -4138,11 +4178,803 @@
       "menit": 6
     },
     {
+      "id": "t5-prd",
+      "judul": "PRD v5: Rekeningo untuk satu negara",
+      "tahap": 5,
+      "path": "tahap-5/prd-v5.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 1,
+      "inti": true,
+      "masalah": "Merchant ingin melihat penjualan sampai detik ini, Rekeningo harus hidup saat satu mesin mati, penyedia POS ingin memakainya, dan tiga pertanyaan belum terjawab",
+      "prasyarat": [
+        "t4-jembatan"
+      ],
+      "ada": false,
+      "nomor": "5.1"
+    },
+    {
+      "id": "t5-fitur-teknis",
+      "judul": "Dari fitur ke pekerjaan teknis v5 dan inti: salinan boleh banyak, uang bergerak di satu tempat",
+      "tahap": 5,
+      "path": "tahap-5/fitur-ke-teknis.md",
+      "topik": "Gambaran besar",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "masalah": "Dari PRD v5, apa yang berubah di app, backend, dan database, dan kenapa salinan boleh banyak tetapi uang bergerak hanya di satu tempat?",
+      "prasyarat": [
+        "t5-prd"
+      ],
+      "lab": [
+        "api-t5"
+      ],
+      "ada": false,
+      "nomor": "5.2"
+    },
+    {
+      "id": "t5-skema",
+      "judul": "Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya",
+      "tahap": 5,
+      "path": "tahap-5/skema-data.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": "3b",
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "masalah": "Tabel mana yang lahir, berubah, dan dibagi per service saat laporan, cicilan, pengumuman, dan mitra POS masuk?",
+      "pendek": "Skema data Tahap 5",
+      "prasyarat": [
+        "t5-fitur-teknis"
+      ],
+      "lab": [
+        "api-t4",
+        "api-t5"
+      ],
+      "ada": false,
+      "nomor": "5.3"
+    },
+    {
+      "id": "t5-m40",
+      "judul": "M40: Pembayaran melambat saat merchant membuka laporan",
+      "tahap": 5,
+      "path": "tahap-5/m40-pembayaran-melambat.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 40 · minggu 2",
+      "masalah": "Laporan merchant yang dibuka tiap 30 detik memperlambat pembayaran karena memakai primary yang sama",
+      "prasyarat": [
+        "t5-skema",
+        "t3-pool"
+      ],
+      "lab": [
+        "api-t5"
+      ],
+      "ada": false,
+      "nomor": "5.4"
+    },
+    {
+      "id": "t5-read-replica",
+      "judul": "Read replica dan model baca untuk laporan + ADR 46",
+      "tahap": 5,
+      "path": "tahap-5/read-replica.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        46
+      ],
+      "masalah": "Laporan dan bacaan berat dibaca dari replica, sedangkan yang memutuskan uang tetap dibaca dari primary",
+      "pendek": "Read replica dan model baca",
+      "prasyarat": [
+        "t5-m40"
+      ],
+      "lab": [
+        "t5-replika"
+      ],
+      "ada": false,
+      "nomor": "5.5"
+    },
+    {
+      "id": "t5-m41",
+      "judul": "M41: Riwayat belum memuat pembayaran yang baru dibuat",
+      "tahap": 5,
+      "path": "tahap-5/m41-riwayat-belum-memuat.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "label": "Masalah 41 · minggu 3",
+      "masalah": "Budi melihat Berhasil, tetapi riwayat dan saldo belum berubah karena dibaca dari replica yang tertinggal",
+      "prasyarat": [
+        "t5-read-replica"
+      ],
+      "lab": [
+        "t5-replika"
+      ],
+      "ada": false,
+      "nomor": "5.6"
+    },
+    {
+      "id": "t5-lag",
+      "judul": "Replication lag dan read-your-writes + ADR 47",
+      "tahap": 5,
+      "path": "tahap-5/replication-lag.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "adr": [
+        47
+      ],
+      "masalah": "Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya",
+      "pendek": "Replication lag dan read-your-writes",
+      "prasyarat": [
+        "t5-m41"
+      ],
+      "lab": [
+        "t5-replika"
+      ],
+      "ada": false,
+      "nomor": "5.7"
+    },
+    {
+      "id": "t5-m42",
+      "judul": "M42: Database utama mati, dua top-up hilang",
+      "tahap": 5,
+      "path": "tahap-5/m42-database-utama-mati.md",
+      "topik": "Operasional",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 42 · minggu 4",
+      "masalah": "Primary mati, replica asinkron belum menerima commit terakhir, dan dua top-up yang sudah dijawab sukses hilang",
+      "prasyarat": [
+        "t5-lag",
+        "t4-rekonsiliasi"
+      ],
+      "lab": [
+        "t5-replika"
+      ],
+      "ada": false,
+      "nomor": "5.8"
+    },
+    {
+      "id": "t5-rpo-rto",
+      "judul": "RPO, RTO, replica sinkron, dan failover + ADR 48",
+      "tahap": 5,
+      "path": "tahap-5/rpo-rto-failover.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        48
+      ],
+      "masalah": "Batas transaksi yang boleh hilang dan waktu pulih ditulis lebih dulu, lalu dibuktikan dengan replica sinkron dan latihan failover",
+      "pendek": "RPO, RTO, dan failover",
+      "prasyarat": [
+        "t5-m42"
+      ],
+      "lab": [
+        "t5-replika"
+      ],
+      "ada": false,
+      "nomor": "5.9"
+    },
+    {
+      "id": "t5-m43",
+      "judul": "M43: Pemeriksaan saldo harian selesai pukul 14.20",
+      "tahap": 5,
+      "path": "tahap-5/m43-pemeriksaan-saldo.md",
+      "topik": "Data",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 43 · minggu 5",
+      "masalah": "Pemeriksaan harian yang membaca semua posting tidak selesai sebelum pagi, dan posting lama tidak boleh dihapus",
+      "prasyarat": [
+        "t5-skema",
+        "t2-ledger"
+      ],
+      "lab": [
+        "t5-partisi"
+      ],
+      "ada": false,
+      "nomor": "5.10"
+    },
+    {
+      "id": "t5-partisi",
+      "judul": "Partisi tabel ledger dan snapshot saldo + ADR 49",
+      "tahap": 5,
+      "path": "tahap-5/partisi-snapshot.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        49
+      ],
+      "masalah": "Tabel ledger dipartisi per bulan, saldo akhir bulan dicatat, dan partisi lama dilepas dan diarsipkan, bukan dihapus",
+      "pendek": "Partisi dan snapshot saldo",
+      "prasyarat": [
+        "t5-m43"
+      ],
+      "lab": [
+        "t5-partisi"
+      ],
+      "ada": false,
+      "nomor": "5.11"
+    },
+    {
+      "id": "t5-m44",
+      "judul": "M44: Rilis Kamis menunggu lima tim",
+      "tahap": 5,
+      "path": "tahap-5/m44-rilis-menunggu-lima-tim.md",
+      "topik": "Struktur kode",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "label": "Masalah 44 · minggu 6",
+      "masalah": "Lima tim bergantung pada satu artefak deploy, dan satu perbaikan kecil menunggu merge queue tim lain",
+      "prasyarat": [
+        "t4-modul",
+        "t4-tim-infra"
+      ],
+      "lab": [
+        "api-t5"
+      ],
+      "ada": false,
+      "nomor": "5.12"
+    },
+    {
+      "id": "t5-service",
+      "judul": "Dari modul ke service, Kubernetes, kapan menggabungkan kembali + ADR 50",
+      "tahap": 5,
+      "path": "tahap-5/modul-ke-service.md",
+      "topik": "Struktur kode",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        50
+      ],
+      "masalah": "Pecah modul jadi service karena jadwal rilis, siapkan konsistensi yang tidak lagi satu transaction, dan tahu kapan menggabungkannya kembali",
+      "pendek": "Dari modul ke service",
+      "prasyarat": [
+        "t5-m44"
+      ],
+      "lab": [
+        "t5-gabung",
+        "t5-rollout"
+      ],
+      "ada": false,
+      "nomor": "5.13"
+    },
+    {
+      "id": "t5-m45",
+      "judul": "M45: Pengumuman ke satu juta HP, notifikasi uang terlambat",
+      "tahap": 5,
+      "path": "tahap-5/m45-pengumuman-satu-juta.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "label": "Masalah 45 · minggu 7",
+      "masalah": "Pengumuman ke satu juta HP dan notifikasi uang makan siang berebut kapasitas worker",
+      "prasyarat": [
+        "t3-tim-infra",
+        "t4-breaker"
+      ],
+      "lab": [
+        "t5-fanout"
+      ],
+      "ada": false,
+      "nomor": "5.14"
+    },
+    {
+      "id": "t5-fanout",
+      "judul": "Fan-out: event streaming, partisi, backpressure + ADR 51",
+      "tahap": 5,
+      "path": "tahap-5/fan-out.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        51
+      ],
+      "masalah": "Satu kejadian untuk banyak penerima ditulis sekali dan dibagi consumer, dengan backpressure ke penyedia push",
+      "pendek": "Fan-out dan event streaming",
+      "prasyarat": [
+        "t5-m45"
+      ],
+      "lab": [
+        "t5-fanout"
+      ],
+      "ada": false,
+      "nomor": "5.15"
+    },
+    {
+      "id": "t5-m46",
+      "judul": "M46: Latihan failover membuat semua service error",
+      "tahap": 5,
+      "path": "tahap-5/m46-failover-semua-error.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "label": "Masalah 46 · minggu 8",
+      "masalah": "Latihan failover berhasil, tetapi semua pod menyambung ulang bersamaan dan koneksi database habis",
+      "prasyarat": [
+        "t5-rpo-rto",
+        "t3-pool"
+      ],
+      "lab": [
+        "api-t5"
+      ],
+      "ada": false,
+      "nomor": "5.16"
+    },
+    {
+      "id": "t5-pooler",
+      "judul": "Pooler koneksi: PgBouncer + ADR 52",
+      "tahap": 5,
+      "path": "tahap-5/pooler-koneksi.md",
+      "topik": "Skala dan kinerja",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        52
+      ],
+      "masalah": "Koneksi yang dihitung adalah yang mungkin dipakai saat semua pod menyambung bersamaan, dan pooler membatasinya",
+      "pendek": "Pooler koneksi PgBouncer",
+      "prasyarat": [
+        "t5-m46"
+      ],
+      "lab": [
+        "api-t5"
+      ],
+      "ada": false,
+      "nomor": "5.17"
+    },
+    {
+      "id": "t5-m47",
+      "judul": "M47: Pod notifikasi membuat jurnal",
+      "tahap": 5,
+      "path": "tahap-5/m47-pod-membuat-jurnal.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 47 · minggu 9",
+      "masalah": "Pod di jaringan dalam membuat jurnal baru di ledger karena ledger mempercayai setiap pemanggil",
+      "prasyarat": [
+        "t5-service",
+        "t2-idempotency"
+      ],
+      "lab": [
+        "t5-service"
+      ],
+      "ada": false,
+      "nomor": "5.18"
+    },
+    {
+      "id": "t5-mtls",
+      "judul": "Keamanan 10: Identitas antar service, mTLS + ADR 53",
+      "tahap": 5,
+      "path": "tahap-5/mtls-antar-service.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        53
+      ],
+      "masalah": "Idempotency-Key mencegah pemrosesan ganda, bukan pemanggil yang tidak berhak: identitas service lewat mTLS dan daftar jenis jurnal",
+      "pendek": "mTLS antar service",
+      "prasyarat": [
+        "t5-m47"
+      ],
+      "lab": [
+        "t5-service"
+      ],
+      "ada": false,
+      "nomor": "5.19"
+    },
+    {
+      "id": "t5-m48",
+      "judul": "M48: Angsuran Budi terdebit dua kali",
+      "tahap": 5,
+      "path": "tahap-5/m48-angsuran-dua-kali.md",
+      "topik": "Operasional",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 48 · minggu 10",
+      "masalah": "Angsuran Budi terdebit dua kali karena batch yang tertunda berhari-hari melewati umur Idempotency-Key",
+      "prasyarat": [
+        "t2-idempotency",
+        "t4-modul"
+      ],
+      "lab": [
+        "t5-cicilan"
+      ],
+      "ada": false,
+      "nomor": "5.20"
+    },
+    {
+      "id": "t5-batch",
+      "judul": "Batch harian tahan crash, saga + ADR 54",
+      "tahap": 5,
+      "path": "tahap-5/batch-tahan-crash.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        54
+      ],
+      "masalah": "Batch harian yang boleh dihentikan dan diulang kapan saja, dengan kunci bisnis yang tidak kedaluwarsa",
+      "pendek": "Batch harian tahan crash",
+      "prasyarat": [
+        "t5-m48"
+      ],
+      "lab": [
+        "t5-cicilan"
+      ],
+      "ada": false,
+      "nomor": "5.21"
+    },
+    {
+      "id": "t5-m49",
+      "judul": "M49: Rilis kartu 5% ternyata sepertiga",
+      "tahap": 5,
+      "path": "tahap-5/m49-canary-sepertiga.md",
+      "topik": "Operasional",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "label": "Masalah 49 · minggu 11",
+      "masalah": "Canary 5% dengan tiga replika menjadi sepertiga, dan kill switch di memori satu pod tidak mematikan pod lain",
+      "prasyarat": [
+        "t4-kartu",
+        "t5-service"
+      ],
+      "lab": [
+        "t5-rollout"
+      ],
+      "ada": false,
+      "nomor": "5.22"
+    },
+    {
+      "id": "t5-rollout",
+      "judul": "Progressive delivery, GitOps, kill switch + ADR 55",
+      "tahap": 5,
+      "path": "tahap-5/progressive-delivery.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        55
+      ],
+      "masalah": "Rilis bertahap dengan traffic router, GitOps, dan satu sakelar yang dibaca semua pod",
+      "pendek": "Progressive delivery dan kill switch",
+      "prasyarat": [
+        "t5-m49"
+      ],
+      "lab": [
+        "t5-rollout"
+      ],
+      "ada": false,
+      "nomor": "5.23"
+    },
+    {
+      "id": "t5-m50",
+      "judul": "M50: Satu POS mengirim 3.000 permintaan per detik",
+      "tahap": 5,
+      "path": "tahap-5/m50-satu-pos.md",
+      "topik": "Keamanan",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "label": "Masalah 50 · minggu 12",
+      "masalah": "Satu POS mengulang permintaan tanpa batas dan membuat merchant lain mendapat 429",
+      "prasyarat": [
+        "t3-rate-limit-redis",
+        "t4-webhook"
+      ],
+      "lab": [
+        "t5-waf"
+      ],
+      "ada": false,
+      "nomor": "5.24"
+    },
+    {
+      "id": "t5-waf",
+      "judul": "Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+      "tahap": 5,
+      "path": "tahap-5/pintu-mitra-waf.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        56
+      ],
+      "masalah": "Kuota per mitra, WAF, tanda tangan bertimestamp, dan cakupan kunci di pintu untuk pihak luar",
+      "pendek": "Pintu untuk pihak luar",
+      "prasyarat": [
+        "t5-m50"
+      ],
+      "lab": [
+        "t5-waf"
+      ],
+      "ada": false,
+      "nomor": "5.25"
+    },
+    {
+      "id": "t5-kms",
+      "judul": "Keamanan 12: Arsip dan cadangan, envelope encryption + ADR 57",
+      "tahap": 5,
+      "path": "tahap-5/arsip-envelope-encryption.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        57
+      ],
+      "masalah": "File arsip dan cadangan dienkripsi dengan kunci yang tidak ikut keluar dari database",
+      "pendek": "Arsip dan envelope encryption",
+      "prasyarat": [
+        "t5-partisi",
+        "t4-audit",
+        "t4-infra-secret"
+      ],
+      "lab": [
+        "t5-kms"
+      ],
+      "ada": false,
+      "nomor": "5.26"
+    },
+    {
+      "id": "t5-tim-infra",
+      "judul": "Tim dan infra Tahap 5: platform, GitOps, OpenTelemetry, SLO + ADR 58",
+      "tahap": 5,
+      "path": "tahap-5/tim-infra.md",
+      "topik": "Operasional",
+      "jenis": "tim-infra",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        58
+      ],
+      "masalah": "Delapan tim dan enam service butuh jalan beraspal, trace lintas service, dan SLO yang memanggil orang dari laju habisnya anggaran kegagalan",
+      "pendek": "Tim dan infra Tahap 5",
+      "prasyarat": [
+        "t4-tim-infra",
+        "t5-rollout"
+      ],
+      "lab": [
+        "t5-service"
+      ],
+      "ada": false,
+      "nomor": "5.27"
+    },
+    {
+      "id": "t5-onprem",
+      "judul": "On-prem lawan cloud + ADR 59",
+      "tahap": 5,
+      "path": "tahap-5/on-prem-lawan-cloud.md",
+      "topik": "Operasional",
+      "jenis": "adr",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        59
+      ],
+      "masalah": "Pilih cloud atau perangkat sendiri dengan rumus biaya tiga tahun dan jalan keluar, bukan dengan selera",
+      "pendek": "On-prem lawan cloud",
+      "prasyarat": [
+        "t4-infra-secret",
+        "t5-tim-infra"
+      ],
+      "ada": false,
+      "nomor": "5.28"
+    },
+    {
+      "id": "t5-m51",
+      "judul": "M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6",
+      "tahap": 5,
+      "path": "tahap-5/m51-prd-v6.md",
+      "topik": "Desain sistem",
+      "jenis": "masalah",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "label": "Masalah 51 · minggu 16",
+      "masalah": "Uji coba nasional lolos, PRD v6 datang, dan beban Tahap 6 dihitung dari angka Tahap 5 sebelum memilih komponen",
+      "prasyarat": [
+        "t5-onprem",
+        "t4-estimasi"
+      ],
+      "lab": [
+        "api-t5"
+      ],
+      "ada": false,
+      "nomor": "5.29"
+    },
+    {
+      "id": "t5-adr-60",
+      "judul": "ADR 60: Sengaja belum dilakukan",
+      "tahap": 5,
+      "path": "tahap-5/sengaja-belum.md",
+      "topik": "Desain sistem",
+      "jenis": "adr",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "backend"
+      ],
+      "adr": [
+        60
+      ],
+      "masalah": "Tergoda memasang service mesh, multi-region, database per service, sharding, dan BFF sebelum angkanya meminta",
+      "prasyarat": [
+        "t5-m51"
+      ],
+      "ada": false,
+      "nomor": "5.30"
+    },
+    {
+      "id": "t5-rekap",
+      "judul": "Yang dibawa keluar dari Tahap 5",
+      "tahap": 5,
+      "path": "tahap-5/rekap.md",
+      "topik": "Gambaran besar",
+      "jenis": "konsep",
+      "bagian": 5,
+      "inti": true,
+      "masalah": "Mengingat enam belas konsep Tahap 5 dalam satu kalimat masing-masing",
+      "prasyarat": [
+        "t5-adr-60"
+      ],
+      "ada": false,
+      "nomor": "5.31"
+    },
+    {
+      "id": "t5-jembatan",
+      "judul": "Jembatan: pratinjau PRD v6",
+      "tahap": 5,
+      "path": "tahap-5/jembatan-prd-v6.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 6,
+      "inti": true,
+      "masalah": "Keputusan Tahap 5 mana yang pecah lebih dulu saat PRD v6 datang?",
+      "pendek": "Pratinjau PRD v6",
+      "prasyarat": [
+        "t5-rekap"
+      ],
+      "ada": false,
+      "nomor": "5.32"
+    },
+    {
       "id": "T5",
       "judul": "Tahap 5 · Ceritanya",
       "tahap": 5,
       "path": "cerita/tahap-5.md",
       "ada": true,
+      "bagian": 1,
+      "diganti_oleh": "t5-prd",
       "menit": 4
     },
     {
@@ -4157,7 +4989,13 @@
       ],
       "masalah": "Database utama penuh oleh query baca",
       "ada": true,
-      "nomor": "5.1",
+      "pendek": "Scaling (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t5-read-replica",
+      "lab": [
+        "t5-replika"
+      ],
       "menit": 10
     },
     {
@@ -4172,7 +5010,13 @@
       ],
       "masalah": "User tidak melihat transaksinya sendiri sesaat",
       "ada": true,
-      "nomor": "5.2",
+      "pendek": "Replica dan consistency (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t5-lag",
+      "lab": [
+        "t5-replika"
+      ],
       "menit": 10
     },
     {
@@ -4187,7 +5031,13 @@
       ],
       "masalah": "Notifikasi ke ratusan ribu user sekaligus",
       "ada": true,
-      "nomor": "5.3",
+      "pendek": "Feed dan notifikasi (versi lama)",
+      "bagian": 4,
+      "lama": true,
+      "lebur_ke": "t5-fanout",
+      "lab": [
+        "t5-fanout"
+      ],
       "menit": 7
     },
     {

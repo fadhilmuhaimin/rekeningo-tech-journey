@@ -539,7 +539,7 @@ window.ISTILAH = {
  "Eventual consistency": {
   "b": "D3",
   "d": "Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-eventual-consistency",
   "t": "Eventual consistency",
   "u": "d-system-design/d3-consistency/"
@@ -564,7 +564,7 @@ window.ISTILAH = {
  "Fan-out": {
   "b": "D4b",
   "d": "Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.",
-  "n": "5.3 Feed dan notifikasi",
+  "n": "Feed dan notifikasi (versi lama)",
   "s": "istilah-fan-out",
   "t": "Fan-out",
   "u": "d-system-design/d4b-feed-notifikasi/"
@@ -870,7 +870,7 @@ window.ISTILAH = {
  "LSN": {
   "b": "D3",
   "d": "Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-lsn",
   "t": "LSN (Log Sequence Number)",
   "u": "d-system-design/d3-consistency/"
@@ -921,7 +921,7 @@ window.ISTILAH = {
  "Load balancer": {
   "b": "D2",
   "d": "Komponen yang membagi request ke beberapa instance server yang sama.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-load-balancer",
   "t": "Load balancer",
   "u": "d-system-design/d2-scaling/"
@@ -946,7 +946,7 @@ window.ISTILAH = {
  "Log Sequence Number": {
   "b": "D3",
   "d": "Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-lsn",
   "t": "LSN (Log Sequence Number)",
   "u": "d-system-design/d3-consistency/"
@@ -1239,7 +1239,7 @@ window.ISTILAH = {
  "Partisi": {
   "b": "D2",
   "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-partitioning",
   "t": "Partitioning",
   "u": "d-system-design/d2-scaling/"
@@ -1247,7 +1247,7 @@ window.ISTILAH = {
  "Partitioning": {
   "b": "D2",
   "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-partitioning",
   "t": "Partitioning",
   "u": "d-system-design/d2-scaling/"
@@ -1315,7 +1315,7 @@ window.ISTILAH = {
  "Primary": {
   "b": "D3",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-primary",
   "t": "Primary",
   "u": "d-system-design/d3-consistency/"
@@ -1441,7 +1441,7 @@ window.ISTILAH = {
  "Read replica": {
   "b": "D2",
   "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-read-replica",
   "t": "Read replica",
   "u": "d-system-design/d2-scaling/"
@@ -1449,7 +1449,7 @@ window.ISTILAH = {
  "Read-your-writes": {
   "b": "D3",
   "d": "Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-read-your-writes",
   "t": "Read-your-writes",
   "u": "d-system-design/d3-consistency/"
@@ -1475,7 +1475,7 @@ window.ISTILAH = {
  "Replication lag": {
   "b": "D3",
   "d": "Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-replication-lag",
   "t": "Replication lag",
   "u": "d-system-design/d3-consistency/"
@@ -1567,7 +1567,7 @@ window.ISTILAH = {
  "Saga": {
   "b": "D3",
   "d": "Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-saga",
   "t": "Saga",
   "u": "d-system-design/d3-consistency/"
@@ -1635,7 +1635,7 @@ window.ISTILAH = {
  "Sharding": {
   "b": "D2",
   "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-sharding",
   "t": "Sharding",
   "u": "d-system-design/d2-scaling/"
@@ -1693,7 +1693,7 @@ window.ISTILAH = {
  "Stateless": {
   "b": "D2",
   "d": "Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-stateless",
   "t": "Stateless",
   "u": "d-system-design/d2-scaling/"
@@ -1833,7 +1833,7 @@ window.ISTILAH = {
  "WAL": {
   "b": "D3",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-wal",
   "t": "WAL (Write-Ahead Log)",
   "u": "d-system-design/d3-consistency/"
@@ -2211,7 +2211,7 @@ window.ISTILAH = {
  "eventual consistency": {
   "b": "D3",
   "d": "Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-eventual-consistency",
   "t": "Eventual consistency",
   "u": "d-system-design/d3-consistency/"
@@ -2228,7 +2228,7 @@ window.ISTILAH = {
  "fan-out": {
   "b": "D4b",
   "d": "Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.",
-  "n": "5.3 Feed dan notifikasi",
+  "n": "Feed dan notifikasi (versi lama)",
   "s": "istilah-fan-out",
   "t": "Fan-out",
   "u": "d-system-design/d4b-feed-notifikasi/"
@@ -2486,7 +2486,7 @@ window.ISTILAH = {
  "load balancer": {
   "b": "D2",
   "d": "Komponen yang membagi request ke beberapa instance server yang sama.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-load-balancer",
   "t": "Load balancer",
   "u": "d-system-design/d2-scaling/"
@@ -2705,7 +2705,7 @@ window.ISTILAH = {
  "partisi": {
   "b": "D2",
   "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-partitioning",
   "t": "Partitioning",
   "u": "d-system-design/d2-scaling/"
@@ -2713,7 +2713,7 @@ window.ISTILAH = {
  "partitioning": {
   "b": "D2",
   "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-partitioning",
   "t": "Partitioning",
   "u": "d-system-design/d2-scaling/"
@@ -2763,7 +2763,7 @@ window.ISTILAH = {
  "primary": {
   "b": "D3",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-primary",
   "t": "Primary",
   "u": "d-system-design/d3-consistency/"
@@ -2839,7 +2839,7 @@ window.ISTILAH = {
  "read replica": {
   "b": "D2",
   "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-read-replica",
   "t": "Read replica",
   "u": "d-system-design/d2-scaling/"
@@ -2847,7 +2847,7 @@ window.ISTILAH = {
  "read-your-writes": {
   "b": "D3",
   "d": "Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-read-your-writes",
   "t": "Read-your-writes",
   "u": "d-system-design/d3-consistency/"
@@ -2864,7 +2864,7 @@ window.ISTILAH = {
  "replication lag": {
   "b": "D3",
   "d": "Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-replication-lag",
   "t": "Replication lag",
   "u": "d-system-design/d3-consistency/"
@@ -2913,7 +2913,7 @@ window.ISTILAH = {
  "saga": {
   "b": "D3",
   "d": "Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "s": "istilah-saga",
   "t": "Saga",
   "u": "d-system-design/d3-consistency/"
@@ -2981,7 +2981,7 @@ window.ISTILAH = {
  "sharding": {
   "b": "D2",
   "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-sharding",
   "t": "Sharding",
   "u": "d-system-design/d2-scaling/"
@@ -3031,7 +3031,7 @@ window.ISTILAH = {
  "stateless": {
   "b": "D2",
   "d": "Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "s": "istilah-stateless",
   "t": "Stateless",
   "u": "d-system-design/d2-scaling/"

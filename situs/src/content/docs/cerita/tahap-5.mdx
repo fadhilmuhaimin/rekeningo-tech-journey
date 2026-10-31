@@ -36,9 +36,41 @@ Angka ini tidak menjawab "butuh berapa server". Jawaban itu hanya datang dari lo
 {/* daftar-tahap */}
 | Masalah | Halaman |
 |---|---|
-| Database utama penuh oleh query baca | [5.1 Scaling](/d-system-design/d2-scaling/) |
-| User tidak melihat transaksinya sendiri sesaat | [5.2 Replica dan consistency](/d-system-design/d3-consistency/) |
-| Notifikasi ke ratusan ribu user sekaligus | [5.3 Feed dan notifikasi](/d-system-design/d4b-feed-notifikasi/) |
+| Merchant ingin melihat penjualan sampai detik ini, Rekeningo harus hidup saat satu mesin mati, penyedia POS ingin memakainya, dan tiga pertanyaan belum terjawab | 5.1 PRD v5: Rekeningo untuk satu negara · *segera* |
+| Dari PRD v5, apa yang berubah di app, backend, dan database, dan kenapa salinan boleh banyak tetapi uang bergerak hanya di satu tempat? | 5.2 Dari fitur ke pekerjaan teknis v5 dan inti: salinan boleh banyak, uang bergerak di satu tempat · *segera* |
+| Tabel mana yang lahir, berubah, dan dibagi per service saat laporan, cicilan, pengumuman, dan mitra POS masuk? | 5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya · *segera* |
+| Laporan merchant yang dibuka tiap 30 detik memperlambat pembayaran karena memakai primary yang sama | 5.4 M40: Pembayaran melambat saat merchant membuka laporan · *segera* |
+| Laporan dan bacaan berat dibaca dari replica, sedangkan yang memutuskan uang tetap dibaca dari primary | 5.5 Read replica dan model baca untuk laporan + ADR 46 · *segera* |
+| Budi melihat Berhasil, tetapi riwayat dan saldo belum berubah karena dibaca dari replica yang tertinggal | 5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat · *segera* |
+| Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya | 5.7 Replication lag dan read-your-writes + ADR 47 · *segera* |
+| Primary mati, replica asinkron belum menerima commit terakhir, dan dua top-up yang sudah dijawab sukses hilang | 5.8 M42: Database utama mati, dua top-up hilang · *segera* |
+| Batas transaksi yang boleh hilang dan waktu pulih ditulis lebih dulu, lalu dibuktikan dengan replica sinkron dan latihan failover | 5.9 RPO, RTO, replica sinkron, dan failover + ADR 48 · *segera* |
+| Pemeriksaan harian yang membaca semua posting tidak selesai sebelum pagi, dan posting lama tidak boleh dihapus | 5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20 · *segera* |
+| Tabel ledger dipartisi per bulan, saldo akhir bulan dicatat, dan partisi lama dilepas dan diarsipkan, bukan dihapus | 5.11 Partisi tabel ledger dan snapshot saldo + ADR 49 · *segera* |
+| Lima tim bergantung pada satu artefak deploy, dan satu perbaikan kecil menunggu merge queue tim lain | 5.12 M44: Rilis Kamis menunggu lima tim · *segera* |
+| Pecah modul jadi service karena jadwal rilis, siapkan konsistensi yang tidak lagi satu transaction, dan tahu kapan menggabungkannya kembali | 5.13 Dari modul ke service, Kubernetes, kapan menggabungkan kembali + ADR 50 · *segera* |
+| Pengumuman ke satu juta HP dan notifikasi uang makan siang berebut kapasitas worker | 5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat · *segera* |
+| Satu kejadian untuk banyak penerima ditulis sekali dan dibagi consumer, dengan backpressure ke penyedia push | 5.15 Fan-out: event streaming, partisi, backpressure + ADR 51 · *segera* |
+| Latihan failover berhasil, tetapi semua pod menyambung ulang bersamaan dan koneksi database habis | 5.16 M46: Latihan failover membuat semua service error · *segera* |
+| Koneksi yang dihitung adalah yang mungkin dipakai saat semua pod menyambung bersamaan, dan pooler membatasinya | 5.17 Pooler koneksi: PgBouncer + ADR 52 · *segera* |
+| Pod di jaringan dalam membuat jurnal baru di ledger karena ledger mempercayai setiap pemanggil | 5.18 M47: Pod notifikasi membuat jurnal · *segera* |
+| Idempotency-Key mencegah pemrosesan ganda, bukan pemanggil yang tidak berhak: identitas service lewat mTLS dan daftar jenis jurnal | 5.19 Keamanan 10: Identitas antar service, mTLS + ADR 53 · *segera* |
+| Angsuran Budi terdebit dua kali karena batch yang tertunda berhari-hari melewati umur Idempotency-Key | 5.20 M48: Angsuran Budi terdebit dua kali · *segera* |
+| Batch harian yang boleh dihentikan dan diulang kapan saja, dengan kunci bisnis yang tidak kedaluwarsa | 5.21 Batch harian tahan crash, saga + ADR 54 · *segera* |
+| Canary 5% dengan tiga replika menjadi sepertiga, dan kill switch di memori satu pod tidak mematikan pod lain | 5.22 M49: Rilis kartu 5% ternyata sepertiga · *segera* |
+| Rilis bertahap dengan traffic router, GitOps, dan satu sakelar yang dibaca semua pod | 5.23 Progressive delivery, GitOps, kill switch + ADR 55 · *segera* |
+| Satu POS mengulang permintaan tanpa batas dan membuat merchant lain mendapat 429 | 5.24 M50: Satu POS mengirim 3.000 permintaan per detik · *segera* |
+| Kuota per mitra, WAF, tanda tangan bertimestamp, dan cakupan kunci di pintu untuk pihak luar | 5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56 · *segera* |
+| File arsip dan cadangan dienkripsi dengan kunci yang tidak ikut keluar dari database | 5.26 Keamanan 12: Arsip dan cadangan, envelope encryption + ADR 57 · *segera* |
+| Delapan tim dan enam service butuh jalan beraspal, trace lintas service, dan SLO yang memanggil orang dari laju habisnya anggaran kegagalan | 5.27 Tim dan infra Tahap 5: platform, GitOps, OpenTelemetry, SLO + ADR 58 · *segera* |
+| Pilih cloud atau perangkat sendiri dengan rumus biaya tiga tahun dan jalan keluar, bukan dengan selera | 5.28 On-prem lawan cloud + ADR 59 · *segera* |
+| Uji coba nasional lolos, PRD v6 datang, dan beban Tahap 6 dihitung dari angka Tahap 5 sebelum memilih komponen | 5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6 · *segera* |
+| Tergoda memasang service mesh, multi-region, database per service, sharding, dan BFF sebelum angkanya meminta | 5.30 ADR 60: Sengaja belum dilakukan · *segera* |
+| Mengingat enam belas konsep Tahap 5 dalam satu kalimat masing-masing | 5.31 Yang dibawa keluar dari Tahap 5 · *segera* |
+| Keputusan Tahap 5 mana yang pecah lebih dulu saat PRD v6 datang? | 5.32 Jembatan: pratinjau PRD v6 · *segera* |
+| Database utama penuh oleh query baca | [Scaling](/d-system-design/d2-scaling/) |
+| User tidak melihat transaksinya sendiri sesaat | [Replica dan consistency](/d-system-design/d3-consistency/) |
+| Notifikasi ke ratusan ribu user sekaligus | [Feed dan notifikasi](/d-system-design/d4b-feed-notifikasi/) |
 {/* /daftar-tahap */}
 
 Dua masalah lain belum punya halaman sendiri. Pertama, memisahkan beban laporan dari transaksi, lewat replica khusus laporan atau data warehouse. Kedua, biaya per transaksi sebagai requirement ([[D1]]).
