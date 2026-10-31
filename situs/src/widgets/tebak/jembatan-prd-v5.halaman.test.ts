@@ -253,7 +253,8 @@ describe("registry, naskah, blok, dan tautan", () => {
   test("tidak menautkan atau menjanjikan isi halaman Tahap 5 di luar kalimat 'dibuka di halaman pertama Tahap 5'", () => {
     const semua = badan + "\n" + teksWidget;
     expect(semua).not.toMatch(/\[\[t5-|\/tahap-5\//);
-    expect(hal.filter((h) => h.tahap === 5 && /^t5-/.test(h.id))).toEqual([]);
+    // T5-siap (keputusan 1410) mendaftarkan 32 halaman t5-* di registry sebagai "segera"; yang dijaga di sini adalah isi
+    // halaman 4.31 (baris di atas), bukan keadaan registry.
     const baris5 = badan.split("\n").filter((b) => /Tahap 5/.test(b));
     expect(baris5.map((b) => b.trim())).toEqual([
       "Ini pratinjau PRD v5, dokumen kelima yang Sinta tulis untuk Rekeningo. Halaman ini hanya menampilkan apa yang diminta; membangunnya adalah isi Tahap 5.",

@@ -570,7 +570,7 @@
   "t": "Eventual consistency",
   "d": "Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar.",
   "b": "D3",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-eventual-consistency",
   "h": null
@@ -597,7 +597,7 @@
   "t": "Fan-out",
   "d": "Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.",
   "b": "D4b",
-  "n": "5.3 Feed dan notifikasi",
+  "n": "Feed dan notifikasi (versi lama)",
   "u": "/d-system-design/d4b-feed-notifikasi/",
   "s": "istilah-fan-out",
   "h": null
@@ -921,7 +921,7 @@
   "t": "Load balancer",
   "d": "Komponen yang membagi request ke beberapa instance server yang sama.",
   "b": "D2",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-load-balancer",
   "h": null
@@ -966,7 +966,7 @@
   "t": "LSN (Log Sequence Number)",
   "d": "Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.",
   "b": "D3",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-lsn",
   "h": null
@@ -1209,7 +1209,7 @@
   "t": "Partitioning",
   "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
   "b": "D2",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-partitioning",
   "h": null
@@ -1281,7 +1281,7 @@
   "t": "Primary",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
   "b": "D3",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-primary",
   "h": null
@@ -1398,7 +1398,7 @@
   "t": "Read replica",
   "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
   "b": "D2",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-read-replica",
   "h": null
@@ -1407,7 +1407,7 @@
   "t": "Read-your-writes",
   "d": "Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.",
   "b": "D3",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-read-your-writes",
   "h": null
@@ -1434,7 +1434,7 @@
   "t": "Replication lag",
   "d": "Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.",
   "b": "D3",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-replication-lag",
   "h": null
@@ -1506,7 +1506,7 @@
   "t": "Saga",
   "d": "Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.",
   "b": "D3",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-saga",
   "h": null
@@ -1587,7 +1587,7 @@
   "t": "Sharding",
   "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.",
   "b": "D2",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-sharding",
   "h": null
@@ -1677,7 +1677,7 @@
   "t": "Stateless",
   "d": "Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.",
   "b": "D2",
-  "n": "5.1 Scaling",
+  "n": "Scaling (versi lama)",
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-stateless",
   "h": null
@@ -1803,7 +1803,7 @@
   "t": "WAL (Write-Ahead Log)",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
   "b": "D3",
-  "n": "5.2 Replica dan consistency",
+  "n": "Replica dan consistency (versi lama)",
   "u": "/d-system-design/d3-consistency/",
   "s": "istilah-wal",
   "h": null

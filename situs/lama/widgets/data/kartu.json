@@ -3538,7 +3538,7 @@
  {
   "id": "D2-1",
   "halaman": "D2",
-  "judul": "5.1 Scaling",
+  "judul": "Scaling",
   "url": "d-system-design/d2-scaling/",
   "tanya": "API Rekeningo menyimpan file upload sementara di disk lokal instance, lalu memprosesnya di request berikutnya. Apa yang terjadi setelah scale out ke tiga instance?",
   "jawab": "Request berikutnya bisa diarahkan ke instance lain yang tidak punya file itu, sama seperti session di memori di widget. File harus disimpan di tempat bersama (object storage), atau diproses dalam request yang sama."
@@ -3546,7 +3546,7 @@
  {
   "id": "D2-2",
   "halaman": "D2",
-  "judul": "5.1 Scaling",
+  "judul": "Scaling",
   "url": "d-system-design/d2-scaling/",
   "tanya": "Jelaskan kenapa angka \"±1.400 request per detik\" saja tidak cukup untuk memutuskan jumlah server.",
   "jawab": "Kebutuhan sumber daya bergantung pada lama kerja tiap request, bukan hanya jumlahnya. Dengan Little's Law, 1.400 request per detik yang masing-masing memegang koneksi 20 ms butuh ±28 koneksi; dengan 200 ms, ±280. Angka ini juga asumsi. Keputusan diambil dari metric sistem sungguhan (Observability: log, metric, trace (versi lama))."
@@ -3554,7 +3554,7 @@
  {
   "id": "D2-3",
   "halaman": "D2",
-  "judul": "5.1 Scaling",
+  "judul": "Scaling",
   "url": "d-system-design/d2-scaling/",
   "tanya": "Laporan bulanan merchant memindai seluruh tabel transaksi. Langkah apa yang paling ringan untuk melindungi transaksi harian?",
   "jawab": "Jalankan laporan di read replica khusus laporan, supaya beban baca berat tidak menyentuh primary. Kalau laporan per bulan, partisi per bulan membuat laporan hanya memindai satu partisi. Data di replica bisa tertinggal sebentar, dan untuk laporan bulanan itu biasanya bisa diterima."
@@ -3562,7 +3562,7 @@
  {
   "id": "D3-1",
   "halaman": "D3",
-  "judul": "5.2 Replica dan consistency",
+  "judul": "Replica dan consistency",
   "url": "d-system-design/d3-consistency/",
   "tanya": "Fitur mana yang aman dibaca dari replica: katalog Warung Ani, saldo untuk cek sebelum transfer, laporan penjualan bulan lalu?",
   "jawab": "Katalog dan laporan bulan lalu. Katalog boleh tertinggal beberapa detik, dan laporan bulan lalu tidak berubah lagi. Cek saldo sebelum transfer harus dari primary, di dalam transaction, karena memutuskan uang."
@@ -3570,7 +3570,7 @@
  {
   "id": "D3-2",
   "halaman": "D3",
-  "judul": "5.2 Replica dan consistency",
+  "judul": "Replica dan consistency",
   "url": "d-system-design/d3-consistency/",
   "tanya": "Jelaskan kenapa \"baca dari primary selama 5 detik setelah menulis\" bisa tetap gagal.",
   "jawab": "Angka 5 detik adalah tebakan tentang lag. Saat replica sedang sibuk atau jaringan lambat, lag bisa lebih dari itu, dan user kembali melihat data lama. Membandingkan LSN tidak menebak: replica dipakai hanya kalau sudah benar-benar sampai posisi tulis."
@@ -3578,7 +3578,7 @@
  {
   "id": "D3-3",
   "halaman": "D3",
-  "judul": "5.2 Replica dan consistency",
+  "judul": "Replica dan consistency",
   "url": "d-system-design/d3-consistency/",
   "tanya": "Pesanan dibuat, lalu pembayaran di service lain gagal. Tulis langkah kompensasinya.",
   "jawab": "Service pembayaran menulis event `pembayaran_gagal` ke outbox. Monolith menerimanya, lalu menjalankan transaction lokal yang mengubah status pesanan jadi dibatalkan dan mengembalikan stok. Setiap langkah harus tahan diproses dua kali, karena event bisa terkirim ulang."
@@ -3586,7 +3586,7 @@
  {
   "id": "D4b-1",
   "halaman": "D4b",
-  "judul": "5.3 Feed dan notifikasi",
+  "judul": "Feed dan notifikasi",
   "url": "d-system-design/d4b-feed-notifikasi/",
   "tanya": "Promo baru dari toko dengan 50.000 pengikut. Dengan fan-out saat tulis, berapa baris yang ditulis, dan di mana pekerjaan itu sebaiknya dijalankan?",
   "jawab": "50.000 baris (asumsi pengikut di atas). Pekerjaan itu dijalankan worker dari queue, bertahap, bukan di request merchant. Atau, untuk toko sebesar ini, pakai fan-out saat baca sehingga tidak ada 50.000 baris yang ditulis."
@@ -3594,7 +3594,7 @@
  {
   "id": "D4b-2",
   "halaman": "D4b",
-  "judul": "5.3 Feed dan notifikasi",
+  "judul": "Feed dan notifikasi",
   "url": "d-system-design/d4b-feed-notifikasi/",
   "tanya": "Jelaskan kenapa push \"pesanan siap\" dan push promo tidak dimasukkan ke queue yang sama.",
   "jawab": "Push promo massal bisa memenuhi queue dan kuota layanan push selama beberapa menit. Kalau satu queue, \"pesanan siap\" untuk Budi menunggu di belakang ratusan ribu promo. Queue terpisah dengan prioritas membuat push transaksi tetap cepat."
@@ -3602,7 +3602,7 @@
  {
   "id": "D4b-3",
   "halaman": "D4b",
-  "judul": "5.3 Feed dan notifikasi",
+  "judul": "Feed dan notifikasi",
   "url": "d-system-design/d4b-feed-notifikasi/",
   "tanya": "Merchant menghapus promo yang salah harga lima menit setelah dipasang. Apa bedanya untuk fan-out saat tulis dan saat baca?",
   "jawab": "Dengan fan-out saat baca, promo hilang dari semua feed begitu dihapus dari tabel promo. Dengan fan-out saat tulis, baris di setiap feed pengikut juga harus dihapus, dan push yang sudah terkirim tidak bisa ditarik. Ini alasan lain untuk menunda push promo beberapa menit."
