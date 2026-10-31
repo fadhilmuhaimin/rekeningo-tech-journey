@@ -1143,6 +1143,15 @@ window.ISTILAH = {
   "t": "On-call",
   "u": "tahap-3/tim-infra/"
  },
+ "On-prem": {
+  "b": "t5-onprem",
+  "d": "Perangkat dan jaringan milik PT sendiri yang dijalankan di ruang milik PT. Bila ruangnya sewaan, disebut colo.",
+  "h": "istilah/on-prem/",
+  "n": "5.28 On-prem lawan cloud",
+  "s": "istilah-on-prem",
+  "t": "On-prem (on-premises)",
+  "u": "tahap-5/on-prem-lawan-cloud/"
+ },
  "OpenAPI": {
   "b": "B1.4",
   "d": "Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin.",
@@ -2664,6 +2673,15 @@ window.ISTILAH = {
   "s": "istilah-on-call",
   "t": "On-call",
   "u": "tahap-3/tim-infra/"
+ },
+ "on-prem": {
+  "b": "t5-onprem",
+  "d": "Perangkat dan jaringan milik PT sendiri yang dijalankan di ruang milik PT. Bila ruangnya sewaan, disebut colo.",
+  "h": "istilah/on-prem/",
+  "n": "5.28 On-prem lawan cloud",
+  "s": "istilah-on-prem",
+  "t": "On-prem (on-premises)",
+  "u": "tahap-5/on-prem-lawan-cloud/"
  },
  "optimistic lock": {
   "b": "t2-race-lock",
