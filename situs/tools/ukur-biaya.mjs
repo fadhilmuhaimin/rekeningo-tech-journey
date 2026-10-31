@@ -14,7 +14,7 @@ import { AXE_PATH, TAG_WCAG } from "./lib/axe.mjs";
 const arg = (nama, bawaan) => { const i = process.argv.indexOf(nama); return i > -1 ? process.argv[i + 1] : bawaan; };
 const BASE = arg("--url", "http://127.0.0.1:4321");
 const D = JSON.parse(readFileSync(new URL("../data/widget/t5-onprem-biaya.json", import.meta.url), "utf8"));
-const HAL = ["/uji/biaya/", "/tahap-5/on-prem-lawan-cloud/"].filter((p) => p.startsWith("/uji/") || existsSync(new URL(`../dist${p}index.html`, import.meta.url)));
+const HAL = ["/uji/biaya/", "/tahap-5/on-prem-lawan-cloud/"];
 
 // Hitungan sendiri, dengan bilangan pecahan: k(t) = (1 + g)^(t − 1).
 function ref(ubah) {
@@ -40,6 +40,9 @@ const angkaDari = (s) => Number(s.replace(/\./g, ""));
 let gagal = 0;
 const lapor = (ok, pesan) => { if (!ok) gagal++; console.log(`${ok ? "ok" : "GAGAL"} ${pesan}`); };
 
+// Halaman yang tidak ada di dist tidak dilewati diam-diam: itu kegagalan (sebelumnya difilter keluar dan alat lolos dengan satu halaman).
+for (const p of HAL) lapor(existsSync(new URL(`../dist${p}index.html`, import.meta.url)), `${p} ada di dist`);
+
 const browser = awasi(await chromium.launch(), { alat: "biaya" });
 async function siap(page, path) {
   await page.goto(BASE + path, { waitUntil: "load" });
@@ -64,6 +67,21 @@ for (const path of HAL) {
   lapor(mati.length === D.skenario.length && mati.every(Boolean), `${path} sebelum menebak: ${mati.length} tombol skenario nonaktif`);
   let t = await tabel(page);
   lapor(JSON.stringify(t.komponen.map((r) => r.map(angkaDari))) === JSON.stringify(awal.baris), `${path} skenario awal: tabel komponen sama dengan hitungan alat`);
+  // 1b. kepala widget dan struktur tabel: nama grup, chip sumber, catatan sumber, caption, kepala kolom dan baris dari data JSON
+  const kepala = await page.evaluate(() => {
+    const w = document.querySelector(".bt"), tb = [...w.querySelectorAll("table")];
+    const teks = (e) => (e ? e.textContent.trim() : "(tidak ada)");
+    return {
+      nama: w.getAttribute("aria-label"), peran: w.getAttribute("role"), chip: teks(w.querySelector(".bb-chip")), sumber: teks(w.querySelector(".jt-sumber")),
+      caption: tb.map((x) => teks(x.querySelector("caption"))), kolom: tb.map((x) => [...x.querySelectorAll("thead th")].map(teks)), baris: tb.map((x) => [...x.querySelectorAll("tbody th")].map(teks)),
+    };
+  });
+  const L = D.label, K = L.komponen;
+  lapor(kepala.peran === "group" && kepala.nama === D.judul, `${path} grup widget punya nama dari data: "${kepala.nama}"`);
+  lapor(kepala.chip === L.sumber && kepala.sumber === D.sumber.teks, `${path} chip sumber "${kepala.chip}" dan catatan sumber sama dengan data`);
+  lapor(JSON.stringify(kepala.caption) === JSON.stringify([L.captionKomponen, L.captionKumulatif]), `${path} caption tabel komponen lalu kumulatif`);
+  lapor(JSON.stringify(kepala.kolom) === JSON.stringify([["", L.cloud, L.onprem], [L.tahun, L.cloud, L.onprem]]), `${path} kepala kolom tabel`);
+  lapor(JSON.stringify(kepala.baris) === JSON.stringify([[K.infra, K.orang, K.migrasi, K.risiko, K.total], ["1", "2", "3"]]), `${path} kepala baris: komponen berurutan dan tahun 1 sampai 3`);
   // 2. tebak lewat keyboard: pilihan salah (indeks 0), fokus pindah ke tombol skenario pertama
   const pilihan = page.locator(".bt .bb-predict__opts button");
   await pilihan.nth(0).focus();
@@ -74,6 +92,11 @@ for (const path of HAL) {
   lapor(fokus.pressed[0] === "true" && fokus.pressed.slice(1).every((x) => x === "false"), `${path} aria-pressed tebakan: ${fokus.pressed.join(",")}`);
   const matiTebak = await page.$$eval(".bt .bb-predict__opts button", (b) => b.map((x) => x.disabled));
   lapor(matiTebak.length === D.tebak.pilihan.length && matiTebak.every(Boolean), `${path} sesudah menebak semua pilihan tebakan nonaktif (${matiTebak.join(",")})`);
+  // 2b. skenario lain (bukan pembuka jawaban) tidak membuka jawaban tebakan: jalur varian tidak membuka jawaban jalur utama
+  const lain = D.skenario.findIndex((_, i) => i !== D.tebak.skenario);
+  await page.locator(".bt .bb-row button").nth(lain).click();
+  const statusLain = await page.$$eval(".bt [role=status]", (e) => e.map((x) => x.textContent.trim()));
+  lapor(statusLain[1] === D.label.lanjut, `${path} skenario "${D.skenario[lain].label}" tidak membuka jawaban tebakan: "${statusLain[1].slice(0, 50)}"`);
   // 3. semua skenario: angka tabel, kalimat kesimpulan, aria-pressed
   for (let i = 0; i < D.skenario.length; i++) {
     await page.locator(".bt .bb-row button").nth(i).click();

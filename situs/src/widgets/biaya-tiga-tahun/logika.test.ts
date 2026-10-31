@@ -113,3 +113,10 @@ describe("skema", () => {
 function t(total: number) {
   return { infra: total, orang: 0, migrasi: 0, risiko: 0, total };
 }
+
+describe("urutan komponen di tabel widget", () => {
+  it("infrastruktur, orang operasi, migrasi, risiko, lalu total (tabel halaman dan alat ukur memakai urutan yang sama)", () => {
+    expect(URUTAN).toEqual(["infra", "orang", "migrasi", "risiko", "total"]);
+    expect(Object.keys(d.label.komponen)).toEqual(URUTAN);
+  });
+});
