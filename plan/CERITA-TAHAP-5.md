@@ -1,51 +1,58 @@
 Draft otomatis, belum ditinjau pemilik
 
-# Cerita Rekeningo · Tahap 5: Skala nasional
+# Cerita Rekeningo · Tahap 5: Satu database tidak cukup
 
-Ditulis 2026-10-31 · draf sebelum lab Tahap 5 ada dan sebelum pemilik meninjau Tahap 4 (tugas NASKAH-5, keputusan 1400 sampai 1404). Peninjau konsistensi memakai keputusan 1405 sampai 1409.
+Ditulis 2026-10-31 · draf sebelum lab Tahap 5 ada dan sebelum pemilik meninjau Tahap 4 (tugas NASKAH-5, keputusan 1400 sampai 1404). Peninjau konsistensi (KONSISTENSI-5, PR #472) memakai keputusan 1405 sampai 1409 dan menambal naskah ini di branch yang sama.
 
 ## Kenapa dokumen ini ada
 
-Naskah ini adalah source of truth Tahap 5, disimpan di repo sebagai `plan/CERITA-TAHAP-5.md`. Strukturnya sama dengan Tahap 2, 3, dan 4: **PRD → fitur → pekerjaan teknis → inti teknis → masalah yang muncul pelan-pelan → konsep**. Halaman situs ditulis dari naskah ini. Penomoran melanjutkan Tahap 4: masalah M40 dan seterusnya (Tahap 4 berakhir di M39), ADR 46 dan seterusnya (Tahap 4 berakhir di ADR 45).
+Naskah ini adalah source of truth Tahap 5, disimpan di repo sebagai `plan/CERITA-TAHAP-5.md`. Strukturnya sama dengan Tahap 2, 3, dan 4: **PRD → fitur → pekerjaan teknis → inti teknis → masalah yang muncul pelan-pelan → konsep**. Halaman situs ditulis dari naskah ini. Penomoran melanjutkan Tahap 4: masalah M40 dan seterusnya (Tahap 4 berakhir di M39), ADR 46 dan seterusnya (Tahap 4 berakhir di ADR 45). Nama tahap mengikuti registry dan `plan/STORY.md`, "Satu database tidak cukup". Maksudnya bukan bahwa satu primary terbukti kurang untuk menulis, karena itu belum terukur (bagian 3). Maksudnya satu database yang dipakai untuk menulis uang, melayani laporan, dan menyimpan arsip tidak cukup.
 
 Seperti Tahap 3 dan 4, naskah ini draf otomatis, bukan tulisan pemilik. Bahannya naskah Tahap 1 sampai 4 dan PROPOSAL ("System design final", "Enam tahap dalam satu tabel", "Scaling: urutan yang diajarkan").
 
-Bahan lainnya `plan/RISET-TAHAP-5.md` (ID `R5-nn` menunjuk ke sana; R5-100 sampai R5-103 ditambahkan untuk naskah ini) dan halaman Tahap 4 yang sudah di main. Terakhir `plan/EVALUASI-TAHAP-4.md`, `plan/TINJAUAN-PEMILIK.md` bagian Tahap 4, `plan/SETELAH-TAHAP-4.md`, dan `plan/USULAN-PERBAIKAN.md` (DIRI-4). Tugas `T5-siap` memasukkan peta halaman ke registry. Peninjau konsistensi mencocokkan naskah dengan semua naskah sebelumnya. Pemilik meninjau di akhir.
+Bahan lainnya `plan/RISET-TAHAP-5.md` (ID `R5-nn` menunjuk ke sana; R5-100 sampai R5-103 ditambahkan untuk naskah ini, R5-104 dan R5-105 oleh peninjau konsistensi) dan halaman Tahap 4 yang sudah di main. Terakhir `plan/EVALUASI-TAHAP-4.md`, `plan/TINJAUAN-PEMILIK.md` bagian Tahap 4, `plan/SETELAH-TAHAP-4.md`, dan `plan/USULAN-PERBAIKAN.md` (DIRI-4). Tugas `T5-siap` memasukkan peta halaman ke registry. Peninjau konsistensi mencocokkan naskah dengan semua naskah sebelumnya. Pemilik meninjau di akhir.
 
 Semua pihak ketiga di Tahap 5 adalah tiruan lokal di container lab: gateway pembayaran, layanan verifikasi, penerbit kartu, layanan push, dan POS milik mitra. Merek nyata tidak dipakai. Standar dan dokumentasi publik disebut sebagai sumber, tanpa klaim izin atau kepatuhan regulasi apa pun.
 
-Lab Tahap 5 belum ada dan belum bisa dijalankan. Docker Desktop menunggu dialog izin administrator di layar pemilik sejak 2026-10-31 06.57 WITA (TINJAUAN-PEMILIK Tahap 4, butir 1), jadi rekaman lab Tahap 5 menunggu Docker. Setiap pernyataan lab di bagian 4 ditulis sebagai hal yang bisa gagal. Tak satu pun angka kejadian di naskah ini berasal dari rekaman Tahap 5.
+Lab Tahap 5 belum ada dan belum bisa dijalankan. Docker Desktop menunggu dialog izin administrator di layar pemilik sejak 2026-10-31 06.57 WITA (TINJAUAN-PEMILIK Tahap 4, butir 1), jadi rekaman lab Tahap 5 menunggu Docker. Setiap pernyataan lab di bagian 4 ditulis sebagai hal yang bisa gagal. Tak satu pun angka kejadian di naskah ini berasal dari rekaman lab baru Tahap 5. Dua rekaman lama di `labs/t5-replika` dan `labs/t5-skala` (skema saldo lama) hanya dikutip sebagai pola di M41 dan M43, dengan keterangan bahwa skemanya lama.
 
 Pelajaran EVAL-4 dan DIRI-4 mengubah cara naskah ini ditulis. Delapan aturan berikut dipakai supaya kelas kesalahan Tahap 3 dan 4 tidak terulang.
 
 1. **Satu angka, satu bentuk.** Angka beban dihitung sekali (tabel bagian 3), dengan nilai tepat dan satu pembulatan setengah ke atas. Turunan dihitung dari angka yang tertulis. Besaran yang punya dua versi ditulis berdampingan dengan labelnya.
-2. **Kalimat rekaman menunggu rekaman.** Naskah hanya memakai label Asumsi, Hitungan, Ilustrasi, Tidak dijalankan, [perlu verifikasi], atau rekaman Tahap 1 sampai 4 yang sudah ada di `labs/*/output/`. Hitungan adalah hasil rumus yang tertulis di naskah, dan labelnya ikut masukan yang paling lemah.
+2. **Kalimat rekaman menunggu rekaman.** Naskah hanya memakai label Asumsi, Hitungan, Ilustrasi, Tidak dijalankan, [perlu verifikasi], atau rekaman yang sudah ada di `labs/*/output/` (Tahap 1 sampai 4, dan dua lab lama `t5-replika` dan `t5-skala` dengan skema lama). Hitungan adalah hasil rumus yang tertulis di naskah, dan labelnya ikut masukan yang paling lemah.
 3. **Klaim universal dan negatif menyebut lingkupnya.** "Tidak ada X" hanya untuk lab, tahap, atau folder yang disebut. Kata "setiap", "semua", dan "hanya" dicek terhadap kasus tandingan sebelum ditulis.
 4. **"Kapan salah" tidak bertentangan dengan pembandingnya sendiri.** Setiap ambang di tabel ADR bagian 4 punya satuan dan angka pembanding Tahap 5 yang sama dengan tabel beban.
 5. **Label tidak lebih kuat daripada sumbernya.** Kata pelunak di sumber (might, some, "not guaranteed", satu lawan banyak) ikut ke kalimat naskah. Kasus industri ditulis dengan batas yang ditulis sumbernya sendiri.
-6. **ADR lama dibaca ulang terhadap PRD baru.** Pemindaian kata "Tahap 5" di `situs/src/content/docs/tahap-1/` sampai `tahap-4/` (2026-10-31) menemukannya di halaman ADR 6 (revisi Tahap 2), ADR 12, 26, 38, 44, dan 45. ADR 33, 36, dan 37 tidak menyebut Tahap 5, tetapi syarat salahnya cocok dengan isi PRD v5. Semuanya diperiksa terhadap PRD v5 di bagian 1.
+6. **ADR lama dibaca ulang terhadap PRD baru.** Pemindaian kata "Tahap 5" di `situs/src/content/docs/tahap-1/` sampai `tahap-4/` (diulang peninjau, 2026-10-31) menemukannya di halaman ADR 4 (1.20), ADR 6 (revisi Tahap 2), ADR 12, 26, 38, 44, dan 45, dan di halaman bukan ADR (1.13, skema dan tutup buku Tahap 2, estimasi dan skema Tahap 3). ADR 14, 33, 34, 36, 37, dan 42 tidak menyebut Tahap 5, tetapi syarat salahnya cocok dengan isi PRD v5. Semuanya diperiksa terhadap PRD v5 di bagian 1.
 7. **Satu kata per konsep.** Naskah memakai "replica", "secret", "pembeli", "pengumuman" (satu pesan ke banyak HP), "angsuran", dan "service" untuk unit milik Rekeningo. "Layanan" hanya untuk pihak ketiga tiruan.
 8. **Rujukan bisa diikuti.** "Di atas" hanya menunjuk bagian yang memang lebih dulu di naskah. Bagian rekaman disebut dengan nama file dan huruf bagiannya hanya bila file itu sudah ada.
 
 ### Pilihan draf yang perlu dilihat pemilik
 
-Sembilan pilihan berikut diambil tanpa bertanya, dengan opsi paling aman dan paling mudah dibatalkan. Masing-masing dicatat sebagai usulan perubahan cerita atau butir "Perlu dicek pemilik" di badan PR.
+Enam belas pilihan berikut diambil tanpa bertanya, dengan opsi paling aman dan paling mudah dibatalkan. Masing-masing dicatat sebagai usulan perubahan cerita atau butir "Perlu dicek pemilik" di badan PR.
 
 1. **Transaksi per user aktif per hari: 3, dengan hasil untuk 2 di sebelahnya.** Registry `tahap[4].asumsi.trx` bernilai 2, sedangkan naskah Tahap 2, 3, dan 4 serta `tahap[3]` memakai 3. Halaman 4.28 menulis angka Tahap 5 dengan 3 dan menyebut hasil dengan 2. Naskah ini sama: 3 sebagai dasar, dan hasil dengan 2 di sebelahnya. `T5-siap` diminta menyamakan registry `tahap[4].asumsi.trx` (usulan di badan PR).
-2. **Tim: 28 orang, termasuk platform, SRE, dan security.** PROPOSAL menulis "20–40 (5–7 tim + platform, SRE, security)". Halaman 4.31 menulis "20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security". Dua bacaan itu berbeda. Naskah ini memakai satu bacaan: 28 orang dalam delapan tim. Isinya lima tim produk dan tiga tim fungsi, semuanya dihitung dalam 20 sampai 40 (Asumsi cerita). Registry `tim` bernilai "20+ developer" dan tidak berubah.
+2. **Tim: 28 orang, termasuk platform, SRE, dan security.** PROPOSAL menulis "20–40 (5–7 tim + platform, SRE, security)". Halaman 4.31 menulis "20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security". Dua bacaan itu berbeda. Naskah ini memakai satu bacaan: 28 orang dalam delapan tim. Isinya lima tim produk dan tiga tim fungsi, semuanya dihitung dalam 20 sampai 40 (Asumsi cerita). Registry `tim` bernilai "20+ developer" dan tidak berubah. Tiga tim Tahap 4 (Pembayaran 5, Merchant 4, Platform 4; Raka di Platform) dibagi ulang: satu anggota Pembayaran pindah ke Ledger dan Tabungan, dan Platform melepas akun dan identitas ke Akun, outbox ke Notifikasi, dan keamanan ke Security (Asumsi cerita).
 3. **Enam service, satu cluster PostgreSQL.** PROPOSAL menulis "pecah service dengan DB sendiri". Naskah ini memberi tiap service schema dan role sendiri di satu cluster (primary dan replica), seperti ADR 37, karena lab hanya bisa merekam satu primary. Database terpisah per service ditunda ke ADR 60 dengan pemicu tertulis. Pemilik memutuskan mana yang berlaku.
 4. **BFF tetap sengaja belum.** PROPOSAL menulis BFF di bentuk Tahap 4, dan naskah Tahap 4 menundanya ke ADR 45 (TINJAUAN-PEMILIK Tahap 4, butir 3). Naskah ini mengikuti naskah Tahap 4: pemicunya, satu layar app butuh lebih dari 3 request berurutan, belum terukur. Request paralel bukan pemicunya.
-5. **Satu kill switch untuk semua pod dan semua service yang menyentuh kartu.** TINJAUAN-PEMILIK butir 4b membiarkan terbuka apakah kill switch kartu satu atau dua (monolith dan service pembayaran), dan di luar proses atau tidak. Naskah ini memilih satu sakelar di tabel `sakelar` yang dibaca semua pod, dengan jawaban tolak bila tabelnya tidak terbaca (ADR 55).
+5. **Satu kill switch untuk semua pod dan semua service yang menyentuh kartu.** TINJAUAN-PEMILIK butir 4b membiarkan terbuka apakah kill switch kartu satu atau dua (monolith dan service pembayaran), dan di luar proses atau tidak. Naskah ini memilih satu sakelar (flag kill switch yang disimpan di baris tabel `sakelar`) yang dibaca semua pod, dengan jawaban tolak bila tabelnya tidak terbaca (ADR 55).
 6. **Penagihan atas otorisasi kartu yang ditolak tetap keputusan produk.** Butir 4a TINJAUAN-PEMILIK membiarkannya terbuka. Naskah ini tidak memutuskannya, dan menulis asumsi aman bila halaman perlu satu bentuk: tidak didebit, dicatat sebagai insiden bernomor.
 7. **RPO dan RTO ditulis di PRD v5.** PRD v3 dan v4 tidak menulis batas waktu pulih atau jendela kehilangan data, sehingga pemicu ADR 33 tetap terbuka (butir 4d). PRD v5 menulisnya sebagai Asumsi produk: tidak ada transaksi uang yang sudah dijawab sukses lalu hilang, dan pulih dalam 15 menit.
 8. **api-t5 memakai Go 1.27.3, lab Tahap 4 tidak dinaikkan.** `api-t4` gagal gerbang ADR 44 pada Go 1.27.1 (TINJAUAN-PEMILIK butir 2). Lab Tahap 5 memakai Go 1.27.3 dari RISET (R5-01, Asumsi sampai lab mengecek ulang). Merekam ulang semua lab Tahap 4 adalah tugas terpisah yang bukan lingkup naskah ini.
 9. **Heuristik ±50 developer tidak dipakai sebagai pemicu.** Angka itu tidak punya sumber primer [perlu verifikasi] (butir 9). Pemicu rilis di naskah ini adalah kejadian dan angka di halaman ADR. Contohnya lima tim yang menunggu satu rilis (ADR 45, butir 2) dan pipeline lebih dari 10 menit per PR (ADR 44).
+10. **Sepuluh lab melampaui "direkam sebagian".** PROPOSAL menulis "Tahap 5 direkam sebagian (replica, partisi, satu service terpisah)", dan menyebut lab baru KMS tiruan dengan envelope encryption, mTLS dua service, dan `t5-gabung`. Naskah ini merancang juga Kafka (`t5-fanout`), k3d dengan Argo Rollouts (`t5-rollout`), Coraza (`t5-waf`), dan DBOS (`t5-cicilan`). Tiap lab berdiri sendiri: bila pemilik memilih hanya yang disebut PROPOSAL, halaman terkait memakai label Tidak dijalankan tanpa mengubah masalah atau ADR-nya.
+11. **On-prem lawan cloud tidak direkam.** PROPOSAL menulis lab dua Compose, satu berlabel "on-prem" dengan batas sumber daya tetap dan satu "cloud" dengan autoscale tiruan. Naskah ini menulis ADR 59 berlabel Tidak dijalankan, karena batas sumber daya di laptop tidak merekam biaya atau kapasitas dengan jujur. Pemilik boleh meminta lab itu.
+12. **Database dijalankan sendiri di Kubernetes, bukan terkelola.** ADR 39 (Tahap 4) memilih PostgreSQL terkelola. ADR 48 dan 52 memakai replica sinkron, promosi, dan pooler yang bisa direkam di lab, yaitu bentuk standar yang juga bisa dijalankan sendiri (CloudNativePG atau Patroni, Tidak dijalankan). ADR 59 menjaga jalan keluar ke bentuk itu tanpa menyatakan database terkelola salah. Pemilik memutuskan mana yang berlaku di produksi.
+13. **200.000 merchant.** Halaman 4.31 menulis "ratusan ribu merchant" tanpa angka. Naskah memakai batas bawahnya, 200.000 (R5-36, Asumsi), yaitu 435 kali ±460 merchant Tahap 4 sementara user naik 10 kali. Angka itu menentukan polling laporan (666,7 per detik) dan 3 transaksi per merchant per hari.
+14. **Nama tahap "Satu database tidak cukup".** Registry, `plan/STORY.md`, dan halaman cerita memakai nama itu, sedangkan draf awal naskah menulis "Skala nasional". Naskah memakai nama registry, dan "Skala nasional" tetap lingkupnya.
+15. **Data key per file, bukan per baris atau per tabel.** PROPOSAL menulis "data key per baris atau per tabel" untuk envelope encryption. ADR 57 memilih satu data key per file arsip (12 per tahun), karena data key per posting menghabiskan umur KEK dalam 9,8 tahun dan memanggil KMS tiap baris.
+16. **Halaman 5.29 menggabungkan M51 dan estimasi.** Tahap 4 memisahkannya (4.27 dan 4.28), tetapi batas 32 halaman memaksa satu halaman. `T5-siap` memberi jenis masalah dengan kalkulator di blok Paham. Bila halaman melewati ±15 menit baca (TINJAUAN-PEMILIK Tahap 4, butir 11), pecah jadi dua dan peta jadi 33 halaman atas keputusan pemilik.
 
 ## Latar: dari publik ke seluruh negeri
 
 Uji coba publik lolos pada minggu ke-12 Tahap 4. Rekonsiliasi harian selisih Rp0 atau insiden tertutup dalam satu hari kerja selama 14 hari berturut-turut (target Tahap 4, Asumsi). Puncak beban 138,9 request per detik.
 
-PT Rekeningo (fiktif) kini menargetkan satu negara. Targetnya 1.000.000 user terdaftar (20% aktif tiap hari, registry) dan merchant di seluruh kota, dan kata "ratusan ribu" dari Sinta ditulis 200.000 (Asumsi; R5-36).
+PT Rekeningo (fiktif) kini menargetkan satu negara. Targetnya 1.000.000 user terdaftar (20% aktif tiap hari, registry) dan merchant di seluruh kota, dan kata "ratusan ribu" dari Sinta ditulis 200.000 (Asumsi; R5-36). Itu 435 kali ±460 merchant Tahap 4 (200.000 ÷ 460, Hitungan), sedangkan user naik 10 kali. Sebagian besar merchant kecil: 3 transaksi per merchant per hari (bagian 3).
 
 Frasa "uang elektronik nasional" di PRD v5 tidak membawa klaim izin atau regulasi apa pun. Naskah ini juga tidak.
 
@@ -53,14 +60,14 @@ Tiga hal berubah sekaligus. Pertama, **salinan datang**: laporan, riwayat, pengu
 
 Tahap 5 berangkat dari `api-t4` di akhir Tahap 4, bukan dari sistem yang sudah dibereskan. Yang tercatat dari naskah Tahap 4, halaman Tahap 4 yang sudah di main, dan README lab `api-t4`:
 
-- Satu monolith Go dengan lima modul dan satu service `pembayaran`. Satu PostgreSQL 17.11 di lab, dibagi dalam schema dan role per modul. Proses monolith memakai satu role `t4m_monolit` dan satu pool.
+- Satu monolith Go dengan lima modul dan satu service `pembayaran`. Satu PostgreSQL 17.11 di lab. `api-t4` memakai satu schema, dan pembagian enam schema dengan role per modul dibuktikan lab `t4-modul` (README `api-t4`, butir keterbatasan). Di lab itu proses monolith memakai satu role `t4m_monolit` dan satu pool.
 - Ledger dari Tahap 2 tetap satu-satunya tempat uang bergerak. Service `pembayaran` meminta jurnal lewat API ledger dengan Idempotency-Key (ADR 37). Notifikasi lewat outbox dalam transaction yang sama dengan jurnal (ADR 23) dan klaim per baris (ADR 24). Pengiriman maksimal 5 percobaan lalu dead-letter (ADR 25), dan kelas queue memisahkan uang dari promo (ADR 32).
 - Satu worker dengan 4 pengirim serentak dan 0,3 detik per pengiriman, sehingga kapasitasnya 13,33 per detik (Asumsi Tahap 3). Breaker per vendor hidup di memori proses worker (ADR 36). Kill switch kartu adalah flag di memori satu proses (ADR 42).
 - Kapasitas satu server belum pernah diukur. `make beban` di `api-t4` memutar beban berjadwal di laptop dan menulis sendiri bahwa itu bukan kapasitas produksi (halaman 4.27, 4.28).
 - ADR 45 menunda delapan komponen dengan pemicu tertulis. Empat pemicu berangka belum terlewati di Tahap 4, dan yang terdekat adalah koneksi database: 40 dari 70, atau 57%. Halaman 4.26 menunda sebelas butir lain, termasuk tempat flag kill switch di luar proses, rilis kartu bertahap, atestasi app, dan pemindai state IaC.
 - Tahap 4 berakhir dengan tiga keadaan yang belum selesai. `api-t4` gagal gerbang ADR 44 pada Go 1.27.1, RPO dan RTO belum ada di PRD, dan satu server belum diukur.
 
-Tim tumbuh dari 13 menjadi 28 orang selama 16 minggu (Asumsi cerita), dan tiap minggu memasukkan satu sampai tiga engineer baru. Delapan tim:
+Tim tumbuh dari 13 menjadi 28 orang selama 16 minggu (Asumsi cerita), dan tiap minggu memasukkan satu sampai tiga engineer baru. Tiga tim Tahap 4 dibagi ulang (pilihan draf 2). Delapan tim:
 
 | Tim | Orang | Pemimpin | Memegang |
 | --- | --- | --- | --- |
@@ -68,7 +75,7 @@ Tim tumbuh dari 13 menjadi 28 orang selama 16 minggu (Asumsi cerita), dan tiap m
 | Ledger dan Tabungan | 4 | Hendra | ledger, cicilan, tabungan, batch harian |
 | Merchant | 4 | Wulan | merchant, QR, laporan, API untuk POS |
 | Akun | 4 | Raka | app, akun, identitas |
-| Notifikasi | 4 | Sari (tidak muncul di adegan) | pengiriman push, pengumuman |
+| Notifikasi | 4 | Maya (tidak muncul di adegan) | pengiriman push, pengumuman |
 | Platform | 4 | Bayu | cluster, pooler, pipeline, observability |
 | SRE | 2 | Dewi | SLO, giliran jaga, latihan failover |
 | Security | 2 | Laras | threat model, tinjauan, uji penetrasi lokal |
@@ -97,20 +104,20 @@ Tokoh lama tetap:
 - **Ani** satu dari ±60 warung Lestari, tetap seperti Tahap 4.
 - **Pak Hadi** menambah satu syarat: angka yang ia tanda tangani dibaca dari catatan yang sama dengan yang menggerakkan uang.
 - **Pihak yang mencoba** tetap tidak dikenal, dan kali ini mencoba pintu yang paling jarang dijaga: API untuk mitra, arsip, dan jaringan di dalam cluster.
-- **Dimas** tidak muncul di Tahap 5.
+- **Dimas** dan **Dina** (user lab Tahap 4 yang mengirim foto kartu identitas) tidak muncul di Tahap 5.
 
 ## 1. PRD v5 · Rekeningo untuk satu negara
 
 **Latar masalah.** Tahap 4 membuktikan top-up dari bank, verifikasi identitas, QR merchant luar, kartu virtual, dan back office untuk 100.000 user. Tiga kebutuhan belum terpenuhi. Merchant ingin melihat penjualan sampai detik ini, Rekeningo harus tetap hidup saat satu mesin mati, dan penyedia POS ingin memakai Rekeningo dari kasir mereka. Ketiganya berlaku untuk jumlah user sepuluh kali lipat.
 
-**Tujuan.** (1) Satu juta user terdaftar dan ratusan ribu merchant memakai Rekeningo tanpa perubahan di app. (2) Merchant melihat penjualannya hampir seketika. (3) Pembayaran tidak berhenti saat deploy atau saat satu mesin mati, dan tidak ada uang yang hilang. (4) Penyedia POS pihak ketiga membuat QR dan membaca status lewat API publik. (5) Cicilan dan tabungan berjalan lewat batch harian yang tidak menagih dua kali.
+**Tujuan.** (1) Satu juta user terdaftar dan ratusan ribu merchant memakai Rekeningo tanpa perubahan di app. (2) Merchant melihat penjualan baru dalam 35 detik. (3) Pembayaran tidak berhenti saat deploy atau saat satu mesin mati, dan tidak ada uang yang hilang. (4) Penyedia POS pihak ketiga membuat QR dan membaca status lewat API publik. (5) Cicilan dan tabungan berjalan lewat batch harian yang tidak menagih dua kali.
 
 **User.**
 
 | User | Kebutuhan baru | Yang membuatnya berhenti memakai |
 | --- | --- | --- |
 | User umum (Budi dan Citra di kota masing-masing) | Cicilan ke merchant, tabungan berjangka, pengumuman yang sampai | Pembayaran yang tidak muncul di riwayat, angsuran yang ditagih dua kali |
-| Merchant (Bu Marni dan ±200.000 lainnya, Asumsi) | Laporan penjualan hampir seketika, per cabang | Laporan yang terlambat, pembayaran yang melambat saat ia membuka laporan |
+| Merchant (Bu Marni dan ±200.000 lainnya, Asumsi) | Laporan penjualan yang diperbarui tiap 30 detik | Laporan yang terlambat, pembayaran yang melambat saat ia membuka laporan |
 | Mitra POS (Tomi dan ±50 penyedia, Asumsi) | API untuk membuat QR dan membaca status, webhook ke kasir | Kuota yang tidak jelas, kunci yang bocor, perubahan API tanpa kabar |
 | Warung Lestari (Ani dan ±59 lainnya) | Tetap seperti Tahap 4 | Pembayaran atau notifikasi yang terganggu urusan nasional |
 | Tim risk (Ratih) | Back office tetap cepat saat user berlipat | Data yang tertinggal tanpa tanda |
@@ -122,7 +129,7 @@ Tokoh lama tetap:
 | Prioritas | Fitur | Keterangan |
 | --- | --- | --- |
 | P0 | Skala nasional | 1.000.000 user dan ±200.000 merchant (Asumsi). Deploy tanpa error yang terlihat user |
-| P0 | Laporan merchant real-time | Penjualan hari ini per merchant dan per cabang tampil paling lambat 5 detik sesudah pembayaran tercatat (Asumsi produk). Laporan periode dan ekspor memakai catatan yang sama dengan ledger |
+| P0 | Laporan merchant real-time | Penjualan hari ini per merchant. Data yang dilayani laporan tertinggal paling lama 5 detik dari pembayaran yang tercatat di ledger (Asumsi produk). Layar memperbarui tiap 30 detik, jadi penjualan baru terlihat paling lambat 35 detik sesudah tercatat (Hitungan: 30 + 5). Laporan periode dan ekspor memakai catatan yang sama dengan ledger |
 | P0 | Tidak berhenti, tidak kehilangan uang | Ketersediaan pembayaran 99,9% per 30 hari: error budget 0,001 × 43.200 menit = 43,2 menit. Tidak ada transaksi uang yang sudah dijawab sukses lalu hilang (RPO nol), dan pulih dalam 15 menit (RTO). Angka ini Asumsi produk dan menjawab pemicu ADR 33 yang tertunda sejak Tahap 3 |
 | P0 | Notifikasi massal | Pengumuman ke semua HP terkirim dalam 30 menit (Asumsi produk). Notifikasi uang tetap janji PRD v3: 95% di bawah 30 detik, dan pemberitahuan tidak mendahului uang |
 | P0 | Cicilan dan tabungan berjangka | Cicilan adalah pembayaran bertahap ke merchant tanpa bunga, dan PT tidak meminjamkan uang (Asumsi produk). Tabungan memindahkan jumlah tetap ke kantong tabungan tiap minggu. Batch harian menagih yang jatuh tempo, dan tiap angsuran terdebit tepat sekali |
@@ -137,12 +144,12 @@ Tokoh lama tetap:
 
 - 200.000 user aktif per hari (20% dari 1.000.000, registry).
 - 99,9% pembayaran tersedia dalam 30 hari (43,2 menit error budget), RPO nol untuk transaksi uang yang sudah dijawab sukses, RTO 15 menit.
-- Laporan merchant tertinggal paling lama 5 detik dari pembayaran yang tercatat.
+- Data laporan merchant tertinggal paling lama 5 detik dari pembayaran yang tercatat, dan penjualan baru terlihat di layar paling lambat 35 detik.
 - Pengumuman ke 1.000.000 HP terkirim dalam 30 menit, dan 95% notifikasi uang di bawah 30 detik.
 - 0 angsuran terdebit dua kali, dan 0 angsuran jatuh tempo tanpa catatan.
 - 0 permintaan dari satu mitra yang membuat mitra lain mendapat 429.
 
-**Batasan.** 28 engineer dalam delapan tim selama 16 minggu. Semua pihak ketiga berupa tiruan lokal di lab. Security review Laras lolos sebelum tiap rilis ke seluruh negeri. Kapasitas satu server belum pernah diukur, dan pengukurannya dijadwalkan sebelum fitur pertama yang menambah beban (ADR 45, aturan 5).
+**Batasan.** 28 engineer dalam delapan tim selama 16 minggu. Semua pihak ketiga berupa tiruan lokal di lab. Security review Laras lolos sebelum tiap rilis ke seluruh negeri. Kapasitas satu server belum pernah diukur, dan pengukurannya dijadwalkan sebelum fitur pertama yang menambah beban (ADR 45, aturan 5). Direksi meminta perbandingan biaya tiga tahun antara cloud dan perangkat sendiri sebelum anggaran tahun berikutnya (ADR 59; Asumsi cerita).
 
 Syarat Pak Hadi bertambah: *"Angka yang saya tanda tangani harus dibaca dari catatan yang sama dengan yang menggerakkan uang. Salinan boleh untuk dilihat, bukan untuk memutuskan."*
 
@@ -208,7 +215,7 @@ Tiga hal harus selalu benar:
 
 1. Uang bergerak hanya lewat ledger: jurnal seimbang, posting tidak diubah, dan satu primary menerima semua tulisan. Service lain membaca, atau meminta posting dengan Idempotency-Key (PROPOSAL; syarat Pak Hadi sejak Tahap 2).
 2. Keputusan yang menentukan uang dibaca dari sumber yang sama dengan yang menggerakkan uang. Replica, ringkasan, cache, dan event hanya untuk dilihat, dan jarak ketertinggalannya diketahui dan disebut (syarat Pak Hadi di PRD v5; ADR 45 aturan 2).
-3. Pekerjaan yang lebih panjang dari satu proses, satu hari, atau satu mesin tetap benar bila dihentikan dan diulang di titik mana pun. Contohnya batch, failover, dan deploy (syarat Direksi dan Dewi).
+3. Pekerjaan yang lebih panjang dari satu proses, satu hari, atau satu mesin tetap benar bila dihentikan dan diulang di titik mana pun. Contohnya batch, failover, dan deploy (syarat Dewi dan PRD v5: RPO nol dan RTO 15 menit).
 
 **Versi pertama (minggu 2).** Wulan menulis laporan real-time sebagai satu endpoint. Endpoint itu menjumlah posting hari ini milik merchant dari primary yang sama dengan pembayaran, dan app memanggilnya tiap 30 detik.
 
