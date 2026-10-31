@@ -1,0 +1,283 @@
+---
+title: "5.30 ADR 60: Sengaja belum dilakukan"
+description: "ADR 60. Dua belas butir tidak dipasang di Tahap 5: service mesh penuh, multi-region, database per service, sharding, BFF, login sosial, gRPC, CDC, TigerBeetle dan Temporal, SLSA dan atestasi app, event sourcing penuh, OpenFeature dan flagd. Tiap butir punya pemicu, alat ukur, dan keadaan Tahap 5. Kapasitas tulis satu primary belum diukur."
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import intiDiagram from "../../../../data/diagram/t5-adr60-inti.json";
+import dataTebak from "../../../../data/widget/t5-adr60-tebak.json";
+
+<p class="meta">Baca 21 menit · coba 3 menit · Prasyarat: [[t5-m51]] · Jalur inti</p>
+
+<Blok nama="Kebutuhan" buka>
+
+## Inti
+
+Dua belas butir ditunda: tak satu pun pemicunya terpenuhi, enam belum terukur, dan satu menunggu PRD v6.
+
+<Rantai data={intiDiagram} ringkas />
+
+Tahap 5 memasang read replica, partisi, service di Kubernetes, event streaming, dan PgBouncer (ADR 46 sampai 59). Dua belas hal lain tetap belum dipasang. Tiap butir punya pemicu yang bisa dibaca dari angka, dari PRD, atau dari permintaan pihak luar.
+
+Alasan "belum" di sini adalah angka dan pemicu, bukan bukti kapasitas. [[A0]] menjelaskan label Rekaman lab, Asumsi, Tidak dijalankan, dan [perlu verifikasi]. Halaman ini tidak punya lab sendiri, jadi keadaan Tahap 5 di tabel berasal dari tabel beban naskah Tahap 5 dan dari halaman ADR-nya.
+
+Hitungan adalah hasil rumus yang tertulis di halaman, dan labelnya ikut masukan yang paling lemah. Ilustrasi adalah contoh atau skenario yang bukan hasil sistem. Penalaran adalah kesimpulan dari dokumentasi dan angka di halaman ini tanpa dijalankan, jadi labelnya Tidak dijalankan.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Load test nanti mengukur kapasitas satu primary 300 transaksi uang per detik (angka Ilustrasi). Di mana pemicu sharding terlewati: Tahap 5, PRD v6, atau keduanya?
+2. Tiga service memanggil ledger. Kenapa itu belum memenuhi pemicu service mesh di ADR ini?
+3. Pratinjau PRD v6 meminta multi-region. Kenapa butir itu berstatus menunggu PRD v6, bukan terpenuhi?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+### Apa kedua belasnya
+
+Tiap butir diberi satu kalimat arti, dan sumbernya ada di bawah daftar.
+
+1. **Service mesh penuh.** Service mesh adalah lapisan infrastruktur yang mengurus keamanan, observability, dan lalu lintas antar service lewat proxy di jalur panggilan, tanpa mengubah kode service. Rekeningo memakai mTLS di kode Go, tanpa mesh (ADR 53).
+2. **Multi-region.** Satu sistem dijalankan di dua region atau lebih. Pada bentuk aktif-pasif, satu region melayani traffic dan region lain menunggu sampai failover. Pada bentuk active/active, semua region melayani.
+3. **Database terpisah per service.** Data tiap service disimpan privat dan hanya terbuka lewat API service itu. Rekeningo memakai satu cluster dengan schema dan role per service (ADR 50).
+4. **Sharding.** Satu data store dibagi menjadi horizontal partitions yang disebut shard. Tiap shard punya skema sama dan himpunan data sendiri, dan berjalan di sebuah storage node. Partisi `posting` per bulan (ADR 49) bukan sharding, karena tetap di satu instance.
+5. **BFF terpisah.** BFF (backend for frontend) adalah satu backend per jenis antarmuka, supaya tiap antarmuka mendapat bentuk data yang pas.
+6. **Login sosial.** Masuk dengan akun penyedia lain lewat OpenID Connect. Lima syaratnya sudah ditulis di [[t4-adr-45]] dan tidak berubah.
+7. **gRPC.** gRPC memanggil metode di service lain seperti objek lokal, dengan protocol buffers sebagai skema pesan.
+8. **CDC dengan Debezium.** CDC (change data capture) mengeluarkan perubahan dari log transaksi database. Connector Debezium untuk PostgreSQL menangkap perubahan tingkat baris. Rekeningo memakai relay dari outbox (ADR 51).
+9. **TigerBeetle dan Temporal.** TigerBeetle adalah database untuk transaksi finansial. Temporal menjalankan durable execution: bila proses mati, proses lain melanjutkan alur dari titik berhenti. Ledger tetap di PostgreSQL, dan alur panjang memakai tabel langkah (ADR 54).
+10. **Provenance SLSA, HTTP Message Signatures, dan atestasi app.** Provenance adalah data terverifikasi tentang di mana, kapan, dan bagaimana sebuah artefak dibuat. HTTP Message Signatures menandatangani komponen pesan HTTP. Atestasi app adalah sinyal dari platform bahwa panggilan datang dari app asli ([[t4-tim-infra]]).
+11. **Event sourcing penuh.** Semua tindakan atas satu objek disimpan di append-only store sebagai system of record, dan keadaan dibangun ulang dengan memutar ulang event-nya. Tahap 2 menolak bentuk ini untuk ledger ([[t2-adr-ledger]]).
+12. **OpenFeature dan flagd.** OpenFeature adalah spesifikasi untuk mengevaluasi feature flag. Bagiannya Flag Evaluation API, Provider, Evaluation Context, Hooks, dan Events. flagd adalah engine evaluasi feature flag yang sesuai spesifikasi itu.
+
+Sumber definisi, dibuka 2026-10-31: [Istio](https://istio.io/latest/about/service-mesh/), [AWS: opsi pemulihan bencana](https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html), [microservices.io: database per service](https://microservices.io/patterns/data/database-per-service.html), [Azure: sharding](https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding), [Azure: backends for frontends](https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends), [gRPC](https://grpc.io/docs/what-is-grpc/introduction/), [Debezium 3.7](https://debezium.io/documentation/reference/stable/connectors/postgresql.html), [TigerBeetle](https://docs.tigerbeetle.com/), [Temporal](https://docs.temporal.io/evaluate/understanding-temporal), [SLSA v1.2](https://slsa.dev/spec/v1.2/provenance), [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html), [Azure: event sourcing](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing), [spesifikasi OpenFeature](https://github.com/open-feature/spec/releases), dan [flagd](https://flagd.dev/). Semuanya Tidak dijalankan. Dokumentasi Istio, AWS, gRPC, TigerBeetle, Temporal, dan flagd tidak memuat nomor versi di halamannya, dan halaman microservices.io tidak memuat tanggal terbit.
+
+### Kenapa ADR ini ada
+
+Minggu 16, uji coba nasional lolos, lalu Sinta datang dengan PRD v6 ([[t5-m51]]). Dugaan pertama adalah memasang multi-region dan service mesh sekarang, karena 10 juta user terdengar seperti skala yang menuntutnya. Kapasitas tulis satu primary belum pernah diukur, jadi dugaan itu belum punya angka.
+
+Engineer baru yang mencari mesh, shard, atau gRPC di repo tidak akan menemukannya. Ia perlu tahu bahwa itu pilihan yang tertulis, bukan hal yang terlupa. ADR ini menuliskan dua belas pilihan itu dengan pemicu, alat ukur, dan keadaan Tahap 5. Tak satu pun masuk ruang lingkup PRD v5, dan multi-region ditulis di sana sebagai P2 yang ditunda ke v6 ([[t5-prd]]).
+
+**Status:** diterima di minggu 16 Tahap 5, sebelum PRD v6 dikerjakan. ADR ini menulis ulang daftar tertunda dari [[t4-adr-45]], [[t3-adr-33]], dan [[t2-adr-21]] dengan angka Tahap 5. Ia tidak membatalkan keputusan di ADR 46 sampai 59.
+
+</Blok>
+
+<Blok nama="Opsi" buka>
+
+Dua belas butir bisa dijawab dengan tiga cara.
+
+| | A. Pasang semuanya | B. Tunda tanpa pemicu | C. Tunda dengan pemicu dan alat ukur |
+|---|---|---|---|
+| Cara kerja | Dua belas komponen dipasang selama Tahap 5, sebelum PRD v6 | Daftar tidak ditulis. Tiap komponen ditolak saat ada yang mengusulkannya | Tidak ada komponen baru. Tiap butir punya pemicu, alat ukur, dan keadaan Tahap 5 yang bisa dibaca |
+| Kelebihan | Bila PRD v6 membawa beban atau tim yang lebih besar, komponennya sudah ada | Tidak ada pekerjaan tambahan sekarang | Yang dipasang menjawab masalah yang terlihat. Yang tidak dipasang punya alasan tertulis |
+| Kekurangan | Menjawab pemicu yang belum terpenuhi: nol dari dua belas. Azure menulis kompleksitas sharding sebagai permanen dan event sourcing sebagai berbiaya besar untuk dimasuki dan ditinggalkan | Tak ada yang tahu kapan membukanya lagi, dan alasan penolakan hilang bersama orang yang menolak (penalaran) | Pemicu harus terbaca. Enam butir belum punya angka, jadi pemicunya bisa lewat tanpa ada yang melihat |
+| Biaya operasional | 28 orang dalam delapan tim memelihara enam service ditambah dua belas komponen lain | Nol sekarang, dan perdebatan yang sama berulang tiap PRD | Membaca ulang ADR ini tiap PRD baru, ditambah satu load test kapasitas tulis |
+| Bukti | Tidak dijalankan: dokumentasi Azure | Tidak dijalankan: ADR 45 menulis bahwa penundaan harus terbaca sebagai keputusan, bukan kelupaan | Hitungan atas Asumsi naskah Tahap 5 |
+
+### Masukan hitungan
+
+Masukan Asumsi naskah Tahap 5: 1.000.000 user terdaftar, 20% aktif per hari, dan faktor puncak 10. Tiap user aktif membuat 60 request, 3 transaksi uang, dan 0,25 top-up dari bank per hari. Registry Tahap 5 memakai 2 transaksi, jadi angka dengan 2 ditulis di sebelahnya.
+
+Dari masukan itu, user aktif 1.000.000 × 20% = 200.000 per hari. Angka-angka di tabel berikut dihitung dari sana.
+
+- Transaksi uang puncak: 200.000 × 3 ÷ 86.400 × 10 = 69,4 per detik (dua transaksi: 46,3).
+- Notifikasi uang puncak: (600.000 + 50.000) ÷ 86.400 × 10 = 75,2 per detik. Angka 600.000 adalah transaksi uang per hari, dan 50.000 adalah top-up per hari.
+- Pengumuman ke 1.000.000 HP dalam 30 menit: 1.000.000 ÷ 1.800 = 555,6 per detik.
+- Request puncak: 200.000 × 60 ÷ 86.400 × 10 = 1.388,9 per detik.
+- Koneksi: L = λ × W, yaitu koneksi tertahan (L) sama dengan laju kedatangan (λ, per detik) kali lama satu koneksi ditahan (W, detik). Bacaan: (1.388,9 − 69,4) × 0,02 = 26,4 koneksi. Seluruh request: 1.388,9 × 0,02 = 27,8 koneksi. Terpasang 6 service × 3 instance × pool 10 = 180, dan tersedia 100 − 3 = 97.
+
+Waktu 0,02 detik per query, 10 pool per instance, dan 3 koneksi cadangan adalah Asumsi naskah.
+
+### Pembacaan ulang pemicu ADR 45
+
+[[t4-adr-45]] menunda delapan komponen dengan pemicu tertulis. Butir 2 dan 4 memuat beberapa komponen, jadi tabel memuat sebelas baris.
+
+Tahap 5 membaca tiap pemicu terhadap PRD v5 dan angka di atas. "Terpenuhi" berarti keadaan Tahap 5 sama dengan pemicunya. Itu tidak berarti komponennya terbukti perlu.
+
+| Komponen ADR 45 | Pemicu yang ditulis | Tahap 4 | Tahap 5 (Hitungan atas Asumsi) | Dilanjutkan |
+|---|---|---|---|---|
+| 1. Semua modul jadi service | Dua tim atau lebih tidak bisa merilis tanpa saling menunggu | 3 tim | 5 tim produk dan 3 tim fungsi: terpenuhi | [[t5-service]] |
+| 2. Kubernetes | Lima tim atau lebih perlu merilis tanpa menunggu tim lain | 3 tim | 5 tim produk: terpenuhi | [[t5-service]] |
+| 2. Service mesh | Lebih dari satu jalur antar service butuh TLS timbal balik dan retry seragam | 1 jalur | Ledger dipanggil dari tiga service: terpenuhi untuk TLS timbal balik, dikerjakan di Go tanpa mesh | [[t5-mtls]] |
+| 2. Event streaming | 100 pesan per detik terus-menerus, atau dua consumer atau lebih bergantung pada urutan | 7,5 per detik (7,5%) | 75,2 per detik puncak (75%): belum terpenuhi oleh uang saja. Terpenuhi hanya selama pengumuman: 630,8 per detik selama 30 menit. Consumer yang bergantung pada urutan: tidak terbukti | [[t5-fanout]] |
+| 3. gRPC | Tambahan p95 satu lompatan HTTP melewati 50 ms antar host | Di bawah 50 ms di localhost | Antar host belum diukur: belum terpenuhi | Tetap di sini |
+| 4. Read replica | Laporan merchant real-time diminta, atau L baca 5 koneksi | L baca 2,64 (53%) | Laporan diminta. L baca 26,4 (528%): terpenuhi | [[t5-read-replica]] |
+| 4. PgBouncer | 70 koneksi dari 100 | 40 (57%) | 180 terpasang (257%), rata-rata terpakai 27,8: terpenuhi lewat potensi | [[t5-pooler]] |
+| 5. BFF terpisah | Satu layar butuh lebih dari 3 request berurutan | Belum diukur | Belum diukur: belum terpenuhi | Tetap di sini |
+| 6. Login sosial | PRD meminta masuk dengan akun penyedia lain | Tidak diminta | Tidak diminta | Tetap di sini |
+| 7. SLSA dan HTTP Message Signatures | Pihak luar atau auditor meminta bukti pembuatan image | Tidak diminta | Tidak diminta. Mitra POS memakai HMAC bertimestamp seperti ADR 34 | Tetap di sini |
+| 8. Durable execution | Alur lebih dari satu hari yang harus lanjut dari tengah | Tidak ada | Cicilan berjalan berbulan-bulan: terpenuhi | [[t5-batch]] |
+
+Baris event streaming perlu dibaca pelan. Pemicu "terus-menerus" belum terpenuhi, karena 75,2 per detik adalah 75% dari 100. Naskah menulis bahwa [[t5-fanout]] tetap memasang Kafka, untuk event pembayaran dan pengumuman, dan menulis opsi rentang di PostgreSQL sebagai alternatif.
+
+Baris service mesh memakai dua satuan. ADR 45 menghitung jalur, yaitu satu pemanggil ke satu tujuan. ADR ini menghitung tujuan kritis.
+
+Tiga jalur ke ledger memenuhi pemicu TLS timbal balik, dan [[t5-mtls]] menjawabnya di Go. Yang tersisa sesudah mTLS adalah tujuan lain yang butuh identitas yang sama, jadi satuan tujuan lebih tepat (penalaran).
+
+### Lima dari sebelas butir di tabel 4.26
+
+[[t4-tim-infra]] mencatat penundaannya sendiri di bagian "Sengaja belum dilakukan", sebelas butir. Lima dibawa ke Tahap 5.
+
+| Butir di 4.26 | Di Tahap 5 | Halaman |
+|---|---|---|
+| Tempat flag kill switch kartu di luar proses | Dikerjakan: satu sakelar `kartu_aktif` di tabel `sakelar`, dibaca semua pod | ADR 55, [[t5-rollout]] |
+| Rilis kartu bertahap 1%, 5%, 25%, 100% | Dikerjakan: canary lewat Argo Rollouts | ADR 55, [[t5-rollout]] |
+| Pemindai kunci produksi atas seluruh konfigurasi staging dan state IaC | Dikerjakan: pemindai kunci berjalan atas repo konfigurasi dan state IaC | ADR 58, [[t5-tim-infra]] |
+| Provenance SLSA | Tetap ditunda | Butir 10 di atas |
+| Atestasi app | Tetap ditunda | Butir 10 di atas |
+
+Enam butir lain tidak dibawa ke ADR Tahap 5. Keenamnya keyless signing, workflow per modul dengan branch protection dan CODEOWNERS, isi response lawan kontrak, aturan "jalankan semua", client Dart yang dijalankan, dan menaikkan Go ke 1.27.3.
+
+Naskah merencanakan lab Tahap 5 memakai Go 1.27.3, dan itu Asumsi sampai lab mengecek ulang.
+
+</Blok>
+
+<Blok nama="Yang dipilih dan kenapa">
+
+**Keputusan: opsi C.** Enam aturan:
+
+1. Dua belas butir tidak dipasang di Tahap 5. Tiap butir punya pemicu, alat ukur, dan keadaan Tahap 5 di tabel "Kapan keputusan ini salah".
+2. Pemicu dibaca dari alat, bukan dari tanggal. "Terpenuhi" berarti keadaan sama dengan pemicunya, dan tidak berarti komponennya terbukti perlu.
+3. Satu komponen per masalah, dengan urutan [[t2-adr-21]]: perbaiki query dan index, keluarkan kerja lambat, cache baca, lalu tambah instance. Sharding dan multi-region tidak ada di urutan itu, jadi keduanya butuh ADR baru dengan angka.
+4. Kapasitas tulis satu primary diukur di server sungguhan sebelum PRD v6 dikerjakan. Hasilnya menetapkan pemicu sharding dan TigerBeetle, dan ambang p95.
+5. Pemicu yang bergantung pada PRD dibaca dari PRD yang disetujui. Pratinjau PRD v6 berlabel Ilustrasi dan belum membuka pemicu apa pun.
+6. Semua ambang berlabel Asumsi sampai ada ukuran dasar. Heuristik ±50 developer tidak dipakai, karena tidak punya sumber primer [perlu verifikasi] ([[t4-modul]]).
+
+**Kenapa C, bukan A.** Pemasangan sekaligus membuat 28 orang memelihara komponen yang belum punya kejadian pemicu. Dari dua belas butir, nol pemicu terpenuhi, dan enam bahkan belum punya angka.
+
+**Kenapa C, bukan B.** Tanpa daftar, penundaan terbaca sebagai kelupaan. Pemicu tertulis membuat tiap PRD baru bisa menguji daftar ini dengan angka.
+
+**Apa kata sumber tentang tiga butir yang paling berat.** Ketiganya Tidak dijalankan.
+
+- Sharding: Azure menulis pola ini cocok bila throughput melebihi satu instance dan read replica saja tidak menyelesaikannya karena tulis juga tinggi. Azure juga menulis pola ini tidak cocok bila partisi tabel di database sudah memenuhi kebutuhan. Rekeningo memakai partisi tabel ([[t5-partisi]]), dan beban tulisnya belum terukur.
+- Event sourcing: Azure menulis pola ini tidak cocok bila sistem butuh konsistensi dan pembaruan real-time pada tampilan data. Azure menyarankan memakainya selektif, misalnya di payment ledger. Tahap 2 menolak bentuk penuhnya karena saldo harus terbaru saat Bayar ditekan ([[t2-adr-ledger]]).
+- Multi-region: AWS menulis multi-site active/active sebagai pendekatan pemulihan bencana yang paling kompleks dan berbiaya besar. Strategi lintas region dipertimbangkan bila bencana didefinisikan sebagai hilangnya satu region atau ada kewajiban regulasi.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Pemicunya datang, tetapi tidak ada yang melihat. Enam butir belum punya angka, dan kapasitas satu primary belum pernah diukur. Pencegahannya aturan 4.
+2. Pemicu yang bergantung pada PRD dibaca terlalu longgar. Pratinjau PRD v6 bisa dibaca sebagai permintaan resmi, padahal Ilustrasi. Pencegahannya aturan 5.
+3. Pemicu bertumpu pada angka yang lemah. Ambang 3 request, 50 ms, 30 detik, dan 100 pesan per detik adalah Asumsi. Pencegahannya aturan 6.
+
+</Blok>
+
+<Blok nama="Wujud di kode">
+
+Penundaan ini terlihat dari komponen yang tidak ada dan dari alat ukur yang sudah disiapkan. Alat ukur pemicu gRPC sudah ada di lab Tahap 4. Satu tes memanggil fungsi ledger yang sama langsung dan lewat HTTP, lalu gagal bila tambahan p95 melewati 50 ms.
+
+<Snippet files={["labs/api-t4/internal/handler/latensi_ledger_test.go:23:25", "labs/api-t4/internal/handler/latensi_ledger_test.go:66:68"]} lang="go" title="Kode lab: labs/api-t4/internal/handler/latensi_ledger_test.go (anggaran 50 ms)" />
+
+Tes itu berjalan di localhost satu mesin. Pemicu gRPC meminta jaringan antar host, jadi tes yang sama dijalankan di jaringan itu sebelum pemicunya dibaca.
+
+Ketiadaan dijaga tes. Tes halaman ini memindai `go.mod`, `go.sum`, compose, Makefile, kode Go, SQL, dan YAML di sebelas folder lab Tahap 4, di luar `output/`. Sebelas folder itu adalah `api-t4` dan sepuluh `t4-*`.
+
+Tes itu tidak menemukan nama istio, linkerd, grpc, protobuf, debezium, tigerbeetle, temporal, openfeature, flagd, shard, atau event sourcing. Klaim ini hanya untuk folder dan jenis file itu.
+
+</Blok>
+
+<Blok nama="Coba keduanya">
+
+Pemicu sharding bergantung pada satu angka yang belum ada, yaitu kapasitas tulis satu primary. Tebak dulu apa yang berubah bila angka itu muncul.
+
+<Tebak client:visible data={dataTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: di PRD v6, bukan di Tahap 5. Beban Tahap 5 69,4 ÷ 300 = 23% dari kapasitas, dan beban PRD v6 694,4 ÷ 300 = 231%.</p>
+</noscript>
+
+**Ubah satu hal:** kapasitas K adalah angka dari load test di server sungguhan, dalam transaksi uang per detik. Semua nilai K di tabel ini adalah Ilustrasi. Beban PRD v6 adalah 10 kali beban Tahap 5: 69,4 × 10 = 694 per detik, atau 694,4 dari nilai tepat 69,44 ([[t5-m51]]).
+
+| Kapasitas K | Beban Tahap 5 ÷ K | Beban PRD v6 ÷ K | Pemicu sharding |
+|---|---|---|---|
+| 50 | 139% | 1.389% | Terlewati di Tahap 5 |
+| 100 | 69% | 694% | Terlewati di PRD v6 |
+| 300 | 23% | 231% | Terlewati di PRD v6 |
+| 500 | 14% | 139% | Terlewati di PRD v6 |
+| 1.000 | 7% | 69% | Tidak terlewati di keduanya |
+
+Persen di atas 100% berarti beban melewati K. Pemicu yang terlewati membuka ADR ini lagi, dan tidak otomatis memilih sharding.
+
+</Blok>
+
+<Blok nama="Kapan keputusan ini salah">
+
+Tiap baris menulis kejadian atau angka yang membuka ADR ini lagi. Kolom terakhir memakai empat kata:
+
+- "Belum terpenuhi": angkanya ada dan di bawah pemicu.
+- "Belum terukur": alat ukurnya belum menghasilkan angka.
+- "Tidak diminta": PRD v5 atau pihak luar belum memintanya.
+- "Menunggu PRD v6": pemicunya bergantung pada PRD yang belum disetujui.
+
+Ambang 3 request, 50 ms, 30 detik, 100 pesan per detik, dan lima tim adalah Asumsi naskah. Ambang 5 koneksi dan 70 dari 100 koneksi adalah Asumsi [[t2-adr-21]] dan [[t3-adr-33]]. Butir event sourcing tidak punya pemicu di naskah, jadi pemicunya ditulis halaman ini.
+
+| Komponen | Salah saat | Yang diperiksa | Keadaan Tahap 5 | Dibaca |
+|---|---|---|---|---|
+| 1. Service mesh penuh | Lebih dari satu tujuan kritis butuh identitas yang sama | Daftar tujuan panggilan antar service dan identitas tiap panggilan | Satu tujuan kritis, yaitu ledger, dipanggil tiga service ([[t5-mtls]]) | Belum terpenuhi |
+| 2. Multi-region | Satu region mati lebih lama dari RTO 15 menit, atau PRD v6 memintanya | Lama pulih tiap latihan failover dan insiden, dan isi PRD yang disetujui | Naskah Tahap 5 tidak memuat kejadian region mati. M42 adalah satu mesin yang mati 23 menit (Ilustrasi). Pratinjau PRD v6 memintanya (Ilustrasi) dan belum menjadi PRD yang dikerjakan | Menunggu PRD v6 |
+| 3. Database terpisah per service | Dua service saling memperlambat di cluster yang sama, terbaca dari L per schema | `pg_stat_statements` per role, setelah tiap service punya role sendiri | L per schema belum terbaca. L seluruh request 27,8 koneksi dari 97 tersedia (Hitungan atas Asumsi) | Belum terukur |
+| 4. Sharding | Satu primary tidak menampung tulis 69,4 transaksi uang per detik (dua transaksi: 46,3) | Load test kapasitas tulis satu primary di server sungguhan. `make beban` di lab hanya memberi batas di laptop | Belum terukur. Partisi `posting` ([[t5-partisi]]) tidak menambah kapasitas tulis | Belum terukur |
+| 5. BFF terpisah | Satu layar app butuh lebih dari 3 request berurutan | Trace app per layar | Belum diukur. Request paralel bukan pemicunya | Belum terukur |
+| 6. Login sosial | PRD memintanya | Isi PRD berikutnya | PRD v5 tidak memintanya | Tidak diminta |
+| 7. gRPC | Tambahan p95 satu lompatan HTTP melewati 50 ms antar host | p95 panggilan service ke ledger antar host, dengan TLS | Tahap 4: di bawah 50 ms di localhost. Antar host belum diukur | Belum terukur |
+| 8. CDC dengan Debezium | Relay outbox tertinggal lebih dari 30 detik terus-menerus | Umur event tertua di relay | Pembanding laju 75,2 per detik. Umur event tertua belum punya angka | Belum terukur |
+| 9. TigerBeetle dan Temporal | Ledger di PostgreSQL tidak menampung tulis, atau jenis alur panjang lebih dari tiga | Load test baris 4, dan daftar jenis alur panjang | Tulis belum terukur. Jenis alur panjang ada satu: cicilan dan tabungan memakai satu mesin status ([[t5-batch]]) | Belum terukur |
+| 10. Provenance SLSA, HTTP Message Signatures, atestasi app | Pihak luar atau auditor memintanya | Permintaan tertulis dari pihak itu | Tidak diminta. Mitra POS memakai HMAC bertimestamp seperti di [[t4-webhook]] | Tidak diminta |
+| 11. Event sourcing penuh | PRD atau auditor meminta keadaan entitas selain saldo pada titik waktu mana pun, yang tidak terjawab posting, snapshot saldo, dan `audit_log` | Daftar permintaan di PRD dan pertanyaan auditor | PRD v5 tidak memuatnya | Tidak diminta |
+| 12. OpenFeature dan flagd | Spesifikasi OpenFeature mencapai 1.0 dan flag aktif lebih dari satu | Tag rilis spesifikasi dan daftar flag aktif | Spesifikasi v0.9.0, belum 1.0. Flag aktif ada satu: sakelar `kartu_aktif` ([[t5-rollout]]) | Belum terpenuhi |
+
+**Yang belum diukur.** Enam butir belum terukur, dan di belakangnya ada lima pengukuran yang belum ada. Kapasitas tulis satu primary di server sungguhan dipakai butir 4 dan 9. Jaringan antar host dipakai butir 7 dan L per schema butir 3. Request berurutan per layar app dipakai butir 5, dan umur event tertua di relay butir 8.
+
+Rekaman beban hanya berasal dari laptop lab. Selama kelima angka itu kosong, pemicu keenam butir hanya bisa dinyalakan oleh kejadian, bukan oleh angka.
+
+**Yang akan merevisinya.** [[t5-jembatan]] menampilkan pratinjau PRD v6 dan meminta kamu menebak ADR Tahap 5 mana yang pecah lebih dulu. Tahap 6 membaca daftar ini terhadap PRD v6.
+
+### Cek diri
+
+**1.** Load test nanti mengukur kapasitas satu primary 300 transaksi uang per detik (angka Ilustrasi). Di mana pemicu sharding terlewati: Tahap 5, PRD v6, atau keduanya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Di PRD v6 saja. Beban Tahap 5 69,4 ÷ 300 = 23% dari kapasitas, dan beban PRD v6 694,4 ÷ 300 = 231%. Angka 300 adalah Ilustrasi, jadi pemicu baru terbaca sesudah load test di server sungguhan.
+
+</details>
+
+**2.** Tiga service memanggil ledger. Kenapa itu belum memenuhi pemicu service mesh di ADR ini?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pemicu ADR ini menghitung tujuan kritis, bukan jalur. Tiga jalur menuju satu tujuan, yaitu ledger, jadi tujuan kritisnya satu. Tiga jalur itu memenuhi pemicu TLS timbal balik di ADR 45, dan mTLS di Go menjawabnya (ADR 53).
+
+</details>
+
+**3.** Pratinjau PRD v6 meminta multi-region. Kenapa butir itu berstatus menunggu PRD v6, bukan terpenuhi?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Aturan 5 membaca pemicu yang bergantung pada PRD dari PRD yang disetujui. Pratinjau PRD v6 berlabel Ilustrasi dan belum menjadi PRD yang dikerjakan. Pemicu kedua, satu region mati lebih lama dari RTO 15 menit, juga belum terjadi.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Komponen baru menyebut butir di ADR ini yang pemicunya terpenuhi, atau disertai ADR baru dengan angka.
+- [ ] "Terpenuhi" ditulis sebagai keadaan yang sama dengan pemicunya, bukan sebagai bukti bahwa komponennya perlu.
+- [ ] Pemicu yang bergantung pada PRD dibaca dari PRD yang disetujui, bukan dari pratinjau.
+- [ ] Query satu service tidak menyentuh schema service lain. Konsistensi lintas service memakai Idempotency-Key dan rekonsiliasi (ADR 50).
+
+### Bacaan lanjut
+
+- [Azure: pola Sharding](https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding)
+- [Azure: pola Event Sourcing](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing)
+- [microservices.io: Database per service](https://microservices.io/patterns/data/database-per-service.html)
+- [AWS: opsi pemulihan bencana di cloud](https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html)
+- [Istio: apa itu service mesh](https://istio.io/latest/about/service-mesh/)
+- [gRPC: pengantar](https://grpc.io/docs/what-is-grpc/introduction/)
+- [OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases)
+
+</Blok>

@@ -1,0 +1,44 @@
+{
+  "id": "t5-adr60-tebak",
+  "judul": "Kapan pemicu sharding terlewati?",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Hitungan atas Asumsi naskah Tahap 5; kapasitas 300 transaksi uang per detik adalah angka Ilustrasi, bukan hasil load test"
+  },
+  "adegan": [
+    "Pemicu sharding tertulis: satu primary tidak menampung tulis 69,4 transaksi uang per detik. Kapasitas tulis satu primary belum pernah diukur.",
+    "Misalkan load test di server sungguhan nanti mengukur 300 transaksi uang per detik yang masih lolos target. PRD v6 menaikkan beban 10 kali, jadi 694,4 per detik."
+  ],
+  "pertanyaan": "Dengan kapasitas 300 per detik, kapan pemicu sharding terlewati?",
+  "pilihan": [
+    {
+      "teks": "Sekarang, di Tahap 5",
+      "benar": false,
+      "alasan": "Beban Tahap 5 69,4 ÷ 300 = 23% dari kapasitas. Itu masih di bawah 100%."
+    },
+    {
+      "teks": "Tidak pernah, karena ada read replica",
+      "benar": false,
+      "alasan": "Read replica menolak DML dan DDL, jadi tulis tetap lewat satu primary. Replica menambah kapasitas baca, bukan kapasitas tulis."
+    },
+    {
+      "teks": "Di PRD v6, bukan di Tahap 5",
+      "benar": true,
+      "alasan": "Beban PRD v6 694,4 ÷ 300 = 231% dari kapasitas, sedangkan Tahap 5 hanya 23%. Terlewati di PRD v6."
+    },
+    {
+      "teks": "Di PRD v6, tetapi hanya bila tiap user masih 3 transaksi",
+      "benar": false,
+      "alasan": "Dengan 2 transaksi per user (registry) bebannya 46,3 dan 463 per detik: 46,3 ÷ 300 = 15% dan 463 ÷ 300 = 154%. Kesimpulannya sama."
+    }
+  ],
+  "penutup": "Angka 300 hanya contoh. Pemicu sharding baru bisa dibaca sesudah kapasitas tulis satu primary diukur di server sungguhan, dan angka itu belum ada.",
+  "label": {
+    "sumber": "Ilustrasi · hitungan",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
