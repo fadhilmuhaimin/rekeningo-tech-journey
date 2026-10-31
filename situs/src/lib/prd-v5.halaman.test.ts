@@ -16,7 +16,7 @@ import diagramMentah from "../../data/diagram/t5-prd-sebelum-sesudah.json";
 import dataTebak from "../../data/widget/t4-jembatan-tebak.json";
 import { DataRantai } from "./rantai";
 import { cekTemplat, daftarBlok } from "./blok";
-import { BARIS_MDX, BENTUK_MDX, NILAI_RANTAI } from "./prd-v5.halaman.nilai";
+import { BARIS_MDX, BARIS_RISET, BENTUK_MDX, NILAI_RANTAI } from "./prd-v5.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -114,7 +114,10 @@ const notifPuncak4 = 7.52; // 4.1 dan 4.28: 6,94 + 0,579, dibagi kapasitas 13,33
 const pakaiWorker = (notifPuncak4 / kapasitas) * 100;
 const userTahap4 = a4.user;
 const merchant5 = 200000;
-const merchant4 = 460;
+const j431 = T(4, "jembatan-prd-v5.mdx");
+const m431 = j431.match(/±(\d+) merchant luar, dan ±(\d+) warung \(Asumsi\)/)!;
+const merchantLuar4 = Number(m431[1]);
+const merchant4 = merchantLuar4 + Number(m431[2]); // 400 merchant luar + 60 warung = 460 (4.31; sama dengan tebakan 4.31)
 const pengumumanDetik = (a5.user * tKirim) / cKirim;
 const pengumumanDetik4 = (a4.user * tKirim) / cKirim;
 const rowPengumuman = rowNaskah("| Pengumuman ke 1.000.000 HP |");
@@ -256,7 +259,9 @@ describe("beban: angka turunan dari registry dan naskah", () => {
     di(T(4, "estimasi.mdx"), "4.28", "koneksi tertahan 27,8 lawan 18");
   });
   test("hitungan lain di halaman: merchant 435 kali, error budget 43,2 menit, 30 + 5 = 35 detik, ADR 6 dan ADR 40", () => {
-    harus(`Merchant naik ${bulat(merchant5 / merchant4)} kali dari Tahap 4, sedangkan user naik ${a5.user / userTahap4} kali: ${titik(merchant5)} ÷ ${merchant4} = ${fmt(merchant5 / merchant4, 1)}, dibulatkan ke ${bulat(merchant5 / merchant4)} (Hitungan atas Asumsi).`);
+    harus(`Merchant naik ${bulat(merchant5 / merchant4)} kali dari Tahap 4, sedangkan user naik ${a5.user / userTahap4} kali. Tahap 4 punya ±${merchant4} merchant, yaitu ±${merchantLuar4} merchant luar dan ±${merchant4 - merchantLuar4} warung Lestari ([[t4-jembatan]]). Jadi ${titik(merchant5)} ÷ ${merchant4} = ${fmt(merchant5 / merchant4, 1)}, dibulatkan ke ${bulat(merchant5 / merchant4)} (Hitungan atas Asumsi).`);
+    expect(merchant4).toBe(460);
+    di(T(4, "prd-v4.mdx"), "4.1", "Merchant luar (Bu Marni dan ±400 lainnya, Asumsi)");
     expect(bulat(merchant5 / merchant4)).toBe(435);
     di(JSON.stringify(dataTebak), "tebak 4.31", `±${merchant4} menjadi ratusan ribu`);
     di(latar, "naskah", "435 kali ±460 merchant Tahap 4");
@@ -833,7 +838,7 @@ describe("semua angka di halaman bisa diturunkan", () => {
     titik(pengumumanDetik), fmt(pengumumanDetik / 3600, 1), titik(pengumumanDetik4), titik(a4.user), String(pengirimTarget), String(prosesTarget),
     titik(targetMenit * 60), "555,6", koma(pengirimTarget / cKirim, 2), fmt(lajuTarget * tKirim, 1), "1.800", "30", "42", "167", "41,75",
     String(koneksiTerpasang), String(koneksiTersedia), kon[1]!, kon[2]!, kon[3]!, kon[5]!, kon[6]!, titik(bulat((koneksiTerpasang / koneksiTersedia) * 100)), "180", "97", "27,8", koma(wQuery, 2),
-    "435", "434,8", "460", titik(merchant5), "200.000", "±200.000", // merchant
+    "435", "434,8", String(merchant4), String(merchantLuar4), titik(merchant5), "200.000", "±200.000", // merchant
     "43.200", "43,2", "0,001", "99,9", "24", "5", "35", "14", "12", // error budget dan jadwal
     "1.157", "500", "0,14", "0,0075", "3,3", "15", "50", "21", "8", "40", "23", "25", "28", "13", "16", // ADR
     "6", "4", "0", "11", "33", "34", "36", "37", "38", "42", "44", "45", "46", "49", "54", "59", "26", "41", "9", "7", // nomor ADR, rilis, dan penghitung
@@ -902,6 +907,9 @@ describe("label kejujuran dan arti istilah", () => {
     harus("menjadwalkan Kubernetes, program yang menjalankan banyak container di banyak mesin, di Tahap 5");
     // Glosarium: RPO, RTO, dan error budget punya baris sendiri yang menunjuk 5.1 dan sama dengan arti di halaman.
     const g = (nama: string) => barisAwal(glosarium, `| **${nama}**`);
+    expect(g("RPO")).toBe("| **RPO** (recovery point objective) | Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang. | [[t5-prd]] |");
+    expect(g("RTO")).toBe("| **RTO** (recovery time objective) | Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan. | [[t5-prd]] |");
+    expect(g("Error budget")).toBe("| **Error budget** | Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. | [[t5-prd]] |");
     di(g("RPO"), "glosarium", "Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang.");
     di(g("RTO"), "glosarium", "Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan.");
     di(g("Error budget"), "glosarium", "100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.");
@@ -933,6 +941,7 @@ describe("label kejujuran dan arti istilah", () => {
 
 describe("baris riset R5-110 sampai R5-114: ada, urut, tanpa ganda, dan memuat hitungan dan sumber yang dipakai halaman", () => {
   const baris = riset5.split("\n").filter((b) => /^\| R5-\d+ \|/.test(b));
+  const adrDiKunci = (s: string) => [...s.matchAll(/ADR (\d+)/g)].map((m) => Number(m[1]));
   const idRiset = baris.map((b) => b.split("|")[1]!.trim());
   test("lima baris milik halaman ini berurutan dan tidak ganda; ID R5 lain tidak dikunci pada tetangganya", () => {
     expect(new Set(idRiset).size).toBe(idRiset.length);
@@ -946,25 +955,78 @@ describe("baris riset R5-110 sampai R5-114: ada, urut, tanpa ganda, dan memuat h
     expect(urut).toBe(true);
     for (const b of baris.filter((x) => /^\| R5-11[0-4] /.test(x))) expect(sel(b), b.slice(0, 20)).toHaveLength(5);
   });
-  test("R5-110 memuat tiap hitungan halaman; R5-111 memuat tiap halaman ADR dan hasil pemindaian; R5-114 memuat kunci tebakan", () => {
+  test("R5-110: tiap persamaan dihitung ulang (pembulatan setengah ke atas sesuai desimal yang tertulis), dan angka di luar persamaan dikunci", () => {
     const r110 = baris.find((b) => b.startsWith("| R5-110 |"))!;
-    for (const k of [
-      "200.000 ÷ 460 = 434,78", "12.000.000 ÷ 86.400 = 138,89", "× 10 = 1.388,89", "600.000 ÷ 86.400 × 10 = 69,44", "50.000 ÷ 86.400 × 10 = 5,79",
-      "200.000 × 3 × 2 × 365 = 438 juta", "200.000 × 2 × 2 × 365 = 292 juta", "4 ÷ 0,3 = 13,33", "650.000 ÷ 86.400 × 10 = 75,23", "75,2 ÷ 13,33 = 564%", "52,1 ÷ 13,33 = 391%",
-      "1.000.000 × 0,3 ÷ 4 = 75.000 detik = 20,8 jam", "166,7 (167 pengirim, 42 proses)", "6 × 3 × 10 = 180", "100 − 3 = 97", "180 ÷ 97 = 186%", "1.388,9 × 0,02 = 27,8",
-      "0,001 × 43.200 = 43,2", "30 + 5 = 35", "15 ÷ 460 = 3,3% dan 15 ÷ 200.000 = 0,0075%", "20.000 × 500 ÷ 86.400 × 10 = 1.157", "4 × 6 + 2 × 2 = 28",
-    ]) di(r110, "R5-110", k);
-    expect(fmt(200000 / 460, 2)).toBe("434,78");
-    expect(fmt(((aktif * 3 * 2 * 365) / 1e6), 0)).toBe("438");
+    const angkaId = (s: string) => Number(s.replace(/\./g, "").replace(",", "."));
+    const desimal = (s: string) => (s.includes(",") ? s.split(",")[1]!.length : 0);
+    const PERSAMAAN = /(\d+(?:[.,]\d+)*(?: [×÷+−] \d+(?:[.,]\d+)*)+) = (\d+(?:[.,]\d+)*)( juta|%)?/g;
+    const semua = [...r110.matchAll(PERSAMAAN)];
+    expect(semua).toHaveLength(30);
+    for (const m of semua) {
+      const ekspresi = m[1]!.split(" ").map((x) => (x === "×" ? "*" : x === "÷" ? "/" : x === "−" ? "-" : x === "+" ? "+" : String(angkaId(x)))).join(" ");
+      let nilai = Function(`"use strict"; return (${ekspresi});`)() as number;
+      if (m[3] === "%") nilai *= 100;
+      if (m[3] === " juta") nilai /= 1e6;
+      expect(bulat(nilai, desimal(m[2]!)), m[0]).toBe(angkaId(m[2]!));
+    }
+    // Angka di luar persamaan: tepat himpunan ini (tanggal, hasil yang dibulatkan, dan nomor halaman).
+    const sisa = r110.replace(PERSAMAAN, "").split("|").slice(3, 4).join(" ");
+    const luar = [...sisa.matchAll(/(?<![\w-])\d+(?:[.,]\d+)*(?![\w-])/g)].map((m) => m[0]!);
+    expect(luar.sort()).toEqual(["167", "20,8", "42", "434,8", "435", "5", "52,1", "75,2"].sort()); // "5" dari "naskah Tahap 5"
+    expect(hitung(sisa, "naskah Tahap 5")).toBe(1);
+    expect(luar.filter((x) => x === "2026").length).toBe(0);
+    expect(hitung(r110, "dibaca 2026-10-31")).toBe(1);
+    expect(fmt(merchant5 / merchant4, 1)).toBe("434,8");
+    expect(fmt(notifPuncak, 1)).toBe("75,2");
+    expect(fmt(notifPuncak2, 1)).toBe("52,1");
+    expect(fmt(pengumumanDetik / 3600, 1)).toBe("20,8");
+    expect(pengirimTarget).toBe(167);
+    expect(prosesTarget).toBe(42);
+    di(r110, "R5-110", "(dibulatkan ke 167 pengirim; 167 ÷ 4 = 41,75, dibulatkan ke 42 proses)");
+    di(r110, "R5-110", "(rata-rata 12.000.000 ÷ 86.400 = 138,89)");
+    di(r110, "R5-110", "Tabel Beban, tabel ruang lingkup, bagian Latar masalah, tim, dan bullet ADR di 5.1");
+    expect(dari("t5-prd").nomor).toBe("5.1");
+    expect(sel(r110)[3]).toBe("Tabel Beban, tabel ruang lingkup, bagian Latar masalah, tim, dan bullet ADR di 5.1; masukan terlemah Asumsi, jadi hasilnya Asumsi");
+    expect(sel(r110)[4]).toBe("Tidak berlaku (hitungan atas angka sendiri)");
+    expect(sel(r110)[1]).toBe("Hitungan atas angka yang tertulis di halaman 5.1 (Hitungan, Asumsi)");
+  });
+  test("R5-111: tiap halaman ADR dibaca dari registry (jalur dan nomor ADR), hasil pemindaian dari pemindaian, dan rekaman proses-mati", () => {
     const r111 = baris.find((b) => b.startsWith("| R5-111 |"))!;
-    for (const f of ["tahap-4/sengaja-belum.mdx", "tahap-4/timeout-retry-breaker.mdx", "tahap-4/modular-monolith.mdx", "tahap-4/tim-infra.mdx", "tahap-4/ssrf.mdx", "tahap-4/qr-pembayaran.mdx", "tahap-4/object-storage-presigned.mdx", "tahap-4/kartu-virtual.mdx", "tahap-4/webhook-masuk.mdx", "tahap-2/retry-idempotency.mdx", "tahap-3/sengaja-belum.mdx", "tahap-3/dua-instance.mdx", "tahap-2/adr-ledger.mdx", "tahap-1/sengaja-belum.mdx", "tahap-1/sql-injection.mdx", "tahap-1/sql-atau-nosql.mdx", "labs/t4-modul/output/proses-mati.txt"]) di(r111, "R5-111", f);
-    di(r111, "R5-111", "tujuh ADR: 4, 6, 12, 26, 38, 44, dan 45; ADR 14, 33, 34, 36, 37, dan 42 tidak menulis kata itu");
-    di(r111, "R5-111", "dibaca 2026-10-31".replace("dibaca", "Dibaca"));
+    const jalur = (id: string, n: number | string) => `\`${dari(id).path!.replace(/\.md$/, ".mdx")}\` (${n}`;
+    for (const [id, n] of [["t4-adr-45", "ADR 45"], ["t4-breaker", "ADR 36"], ["t4-modul", "ADR 37"], ["t4-tim-infra", "ADR 44"], ["t4-ssrf", "ADR 41"], ["t4-qr", "ADR 40"], ["t4-storage", "ADR 38"], ["t4-kartu", "ADR 42"], ["t4-webhook", "ADR 34"], ["t2-idempotency", "ADR 14"], ["t3-adr-33", "ADR 33"], ["t3-dua-instance", "ADR 26"], ["t2-adr-ledger", "ADR 6"], ["t1-adr-12", "ADR 12"], ["t1-sql-injection", "ADR 4"], ["B2.2", `halaman ${dari("B2.2").nomor}`]] as const) {
+      di(r111, "R5-111", jalur(id, n));
+      if (typeof n === "string" && n.startsWith("ADR ")) expect(dari(id).adr, id).toContain(Number(n.slice(4)));
+    }
+    di(r111, "R5-111", "`labs/t4-modul/output/proses-mati.txt` bagian C (+23 jam satu jurnal, +25 jam dua; jam ledger diperankan)");
+    di(r111, "R5-111", "menemukan tujuh ADR: 4, 6, 12, 26, 38, 44, dan 45; ADR 14, 33, 34, 36, 37, dan 42 tidak menulis kata itu");
+    expect(hitung(r111, "Dibaca 2026-10-31 di main")).toBe(1);
+    expect(sel(r111)[1]).toBe("Kalimat halaman ADR Tahap 1 sampai 4 yang dikutip halaman 5.1 dibaca ke halaman, bukan ke sumber luar (Asumsi)");
+    expect(sel(r111)[4]).toBe("Tidak berubah");
+    expect(sel(r111)[3]).toBe("Tabel empat ADR, dua pilihan yang tidak cocok, dan dua belas bullet ADR di 5.1; label Asumsi (penalaran), Rekaman lab hanya untuk proses-mati.txt");
     expect(dari("t4-modul").path).toBe("tahap-4/modular-monolith.md");
-    const r114 = baris.find((b) => b.startsWith("| R5-114 |"))!;
-    di(r114, "R5-114", "pilihan benar: ADR 36, 37, 44, dan 45; ADR 41 dan 40 tidak cocok");
-    di(r114, "R5-114", "28 orang dalam delapan tim: lima tim produk dan tiga tim fungsi, di dalam 20 sampai 40");
+  });
+  test("R5-112 sampai R5-114: sumber, kutipan, tanggal akses, dan versi dikunci kolom demi kolom", () => {
+    const r = (id: string) => sel(baris.find((b) => b.startsWith(`| ${id} |`))!);
+    expect(r("R5-112")).toEqual([
+      "R5-112", "Definisi RPO dan RTO",
+      "NIST SP 800-34 Rev. 1, glosarium NIST CSRC (csrc.nist.gov/glossary/term/recovery_point_objective dan .../recovery_time_objective, dibuka 2026-10-31; halaman glosarium tidak menulis tanggal terbit): RPO \"The point in time to which data must be recovered after an outage.\"; RTO \"The overall length of time an information system's components can be in the recovery phase\" sebelum mengganggu misi organisasi",
+      "Kalimat arti RPO dan RTO di blok Latar masalah dan baris glosarium; RPO nol dan RTO 15 menit tetap Asumsi produk, bukan klaim sumber", "Tidak berubah",
+    ]);
+    expect(r("R5-113")).toEqual([
+      "R5-113", "Error budget",
+      "Google SRE Workbook, \"Chapter 2 - Implementing SLOs\" (sre.google/workbook/implementing-slos/, dibuka 2026-10-31): \"the SLO is a target percentage and the error budget is 100% minus the SLO.\" Contoh sumber memakai periode empat minggu; halaman 5.1 memakai 30 hari (43.200 menit) sebagai hitungan sendiri",
+      "Kalimat arti error budget, baris P0 \"Tidak berhenti\", dan baris glosarium; 99,9% dan 30 hari Asumsi produk", "Tidak berubah",
+    ]);
+    expect(r("R5-114")).toEqual([
+      "R5-114", "Jembatan 4.31 dan ukuran tim PRD v5 (Asumsi cerita)",
+      "Kunci widget tebak 4.31 (`situs/data/widget/t4-jembatan-tebak.json`, pilihan benar: ADR 36, 37, 44, dan 45; ADR 41 dan 40 tidak cocok), `tahap-4/jembatan-prd-v5.mdx` (tim 20 sampai 40 orang dalam 5 sampai 7 tim, ditambah platform, SRE, dan security), dan naskah Tahap 5 pilihan draf 2 (28 orang dalam delapan tim: lima tim produk dan tiga tim fungsi, di dalam 20 sampai 40). Dibaca 2026-10-31",
+      "Tabel Yang dibuka lagi dari Tahap 4, tabel tim, dan kalimat ruang lingkup di 5.1", "Tidak berubah",
+    ]);
     expect(dataTebak.pilihan.findIndex((p) => p.benar)).toBe(1);
+    expect(adrDiKunci(dataTebak.pilihan[1]!.teks)).toEqual([36, 37, 44, 45]);
+    expect(dari("t4-jembatan").path).toBe("tahap-4/jembatan-prd-v5.md");
+    expect(30 * 24 * 60).toBe(43200);
+    expect(4 * 7).toBe(28);
   });
 });
 
@@ -974,5 +1036,8 @@ describe("sidik teks halaman dan nilai Rantai", () => {
     expect(baris.filter((b) => b.trim())).toEqual(BARIS_MDX);
     expect(baris.map((b) => (b.trim() ? "#" : "-")).join("")).toBe(BENTUK_MDX);
     expect(mdx.endsWith("\n")).toBe(true);
+  });
+  test("lima baris riset R5-110 sampai R5-114 persis sama dengan sidik", () => {
+    expect(riset5.split("\n").filter((b) => /^\| R5-11[0-4] \|/.test(b))).toEqual(BARIS_RISET);
   });
 });
