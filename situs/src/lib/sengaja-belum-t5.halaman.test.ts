@@ -432,7 +432,7 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     const hitung: Record<string, number> = {};
     for (const t of tautan) hitung[t] = (hitung[t] ?? 0) + 1;
     expect(Object.keys(hitung).sort()).toEqual(["A0", "berikutnya", "t2-adr-21", "t2-adr-ledger", "t3-adr-33", "t4-adr-45", "t4-modul", "t4-tim-infra", "t4-webhook", "t5-batch", "t5-fanout", "t5-jembatan", "t5-m51", "t5-mtls", "t5-partisi", "t5-pooler", "t5-prd", "t5-read-replica", "t5-rollout", "t5-service", "t5-tim-infra"]);
-    expect(hitung).toEqual({ "A0": 1, "berikutnya": 1, "t2-adr-21": 3, "t2-adr-ledger": 2, "t3-adr-33": 2, "t4-adr-45": 3, "t4-modul": 1, "t4-tim-infra": 2, "t4-webhook": 1, "t5-batch": 2, "t5-fanout": 2, "t5-jembatan": 1, "t5-m51": 3, "t5-mtls": 3, "t5-partisi": 2, "t5-pooler": 1, "t5-prd": 1, "t5-read-replica": 1, "t5-rollout": 3, "t5-service": 2, "t5-tim-infra": 1 });
+    expect(hitung).toEqual({ "A0": 1, "berikutnya": 1, "t2-adr-21": 3, "t2-adr-ledger": 2, "t3-adr-33": 2, "t4-adr-45": 4, "t4-modul": 1, "t4-tim-infra": 2, "t4-webhook": 1, "t5-batch": 2, "t5-fanout": 2, "t5-jembatan": 1, "t5-m51": 3, "t5-mtls": 3, "t5-partisi": 2, "t5-pooler": 1, "t5-prd": 1, "t5-read-replica": 1, "t5-rollout": 3, "t5-service": 2, "t5-tim-infra": 1 });
     expect(dari("t5-m51").prasyarat).toEqual(["t5-onprem", "t4-estimasi"]);
     expect(dari("t5-prd").nomor).toBe("5.1");
     expect([dari("t5-read-replica").nomor, dari("t5-partisi").nomor, dari("t5-service").nomor, dari("t5-fanout").nomor, dari("t5-pooler").nomor, dari("t5-mtls").nomor, dari("t5-batch").nomor, dari("t5-rollout").nomor, dari("t5-tim-infra").nomor]).toEqual(["5.5", "5.11", "5.13", "5.15", "5.17", "5.19", "5.21", "5.23", "5.27"]);
@@ -477,7 +477,7 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     const sumber = [...ids5.map(barisRiset), ...ids4.map(barisRiset4)].join("\n");
     const esc = (x: string): string => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     expect([...new Set(tautan)].filter((u) => !new RegExp(`${esc(u)}/?(?![\\w./#-])`).test(sumber)).sort()).toEqual([]);
-    expect(new Set(tautan).size).toBe(14);
+    expect(new Set(tautan).size).toBe(15);
     expect(tautan.length).toBe(21);
     expect(badan.match(/dibuka 2026-10-31/g) ?? []).toHaveLength(1);
     for (const id of ids5) expect(barisRiset(id), id).toContain("2026-10-31");
@@ -514,8 +514,11 @@ describe("ID registry, nomor ADR, tautan, template blok, riset, dan kartu", () =
     // kalimat halaman yang memakai kutipan itu
     expect(badan).toContain("Azure menulis kompleksitas sharding sebagai permanen dan event sourcing sebagai berbiaya besar untuk dimasuki dan ditinggalkan");
     expect(badan).toContain("Azure menulis pola ini cocok bila throughput melebihi satu instance dan read replica saja tidak menyelesaikannya karena tulis juga tinggi.");
-    expect(badan).toContain("Azure juga menulis pola ini tidak cocok bila partisi tabel di database sudah memenuhi kebutuhan.");
-    expect(badan).toContain("Azure menulis pola ini tidak cocok bila sistem butuh konsistensi dan pembaruan real-time pada tampilan data.");
+    expect(badan).toContain("Azure juga menulis pola ini mungkin tidak cocok bila partisi tabel di database sudah memenuhi kebutuhan.");
+    expect(badan).toContain("Azure menulis pola ini mungkin tidak cocok bila sistem butuh konsistensi dan pembaruan real-time pada tampilan data.");
+    // pelunak sumber ikut ke kalimat halaman: Azure menulis "might not be suitable when" untuk kedua daftar (keputusan 1619)
+    expect(barisRiset("R5-255")).toContain("This pattern might not be suitable when");
+    expect(barisRiset("R5-256")).toContain("This pattern might not be suitable when");
     expect(badan).toContain("Azure menyarankan memakainya selektif, misalnya di payment ledger.");
     expect(badan).toContain("AWS menulis multi-site active/active sebagai pendekatan pemulihan bencana yang paling kompleks dan berbiaya besar.");
     expect(badan).toContain("Strategi lintas region dipertimbangkan bila bencana didefinisikan sebagai hilangnya satu region atau ada kewajiban regulasi.");
@@ -712,7 +715,7 @@ describe("penutup celah mutasi: label tautan, kata bilangan atas daftar, dan kal
       "SLSA v1.2 => slsa.dev/spec/v1.2/provenance",
       "RFC 9421 => www.rfc-editor.org/rfc/rfc9421.html",
       "Azure: event sourcing => learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing",
-      "spesifikasi OpenFeature => github.com/open-feature/spec/releases",
+      "spesifikasi OpenFeature => openfeature.dev/specification/",
       "flagd => flagd.dev/",
       "Azure: pola Sharding => learn.microsoft.com/en-us/azure/architecture/patterns/sharding",
       "Azure: pola Event Sourcing => learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing",
@@ -741,7 +744,7 @@ describe("penutup celah mutasi: label tautan, kata bilangan atas daftar, dan kal
     expect(tanya).toBe(3);
     expect(badan).toContain(`Yakin dengan ke${kata[tanya]}nya? Lompat ke [[berikutnya]].`);
     expect(badan).toContain("Cek 3 pertanyaan");
-    const enam = 'Keenamnya keyless signing, workflow per modul dengan branch protection dan CODEOWNERS, isi response lawan kontrak, aturan "jalankan semua", client Dart yang dijalankan, dan menaikkan Go ke 1.27.3.';
+    const enam = 'Keenamnya adalah keyless signing, workflow per modul dengan branch protection dan CODEOWNERS, isi response lawan kontrak, aturan "jalankan semua", client Dart yang dijalankan, dan menaikkan Go ke 1.27.3.';
     expect(badan).toContain(enam);
     expect(badan).toContain("Enam butir lain tidak dibawa ke ADR Tahap 5.");
     expect(badan).toContain("Tiap butir diberi satu kalimat arti, dan sumbernya ada di bawah daftar.");
@@ -749,6 +752,135 @@ describe("penutup celah mutasi: label tautan, kata bilangan atas daftar, dan kal
     expect(tabel("| | A. Pasang semuanya")[0]).toHaveLength(4);
     expect(badan.indexOf("Dua belas butir bisa dijawab dengan tiga cara.")).toBeLessThan(badan.indexOf("| | A. Pasang semuanya"));
     expect(badan).toContain("Lima dibawa ke Tahap 5.");
+  });
+});
+
+// --- keputusan 1619 (tinjauan independen): mutan yang lolos tanpa kunci baris dan tanpa sidik ditutup dengan nilai yang diturunkan dari sumbernya
+describe("penutup celah tinjauan (keputusan 1619): nilai diturunkan dari kode, rekaman, naskah, halaman 4.29, dan baris riset", () => {
+  const kapan = tabel("| Komponen | Salah saat").slice(2);
+  const bacaan = tabel("| Komponen ADR 45 | Pemicu yang ditulis").slice(2);
+  test("label: tak satu pun keadaan memakai Rekaman lab (halaman tanpa lab), diagram dan tebak berlabel Asumsi atau Ilustrasi", () => {
+    const rek = halaman.split("\n").filter((b) => b.includes("Rekaman lab"));
+    expect(rek).toHaveLength(1);
+    expect(rek[0]).toContain("[[A0]] menjelaskan label Rekaman lab");
+    expect(JSON.stringify(rantaiMentah) + JSON.stringify(tebakMentah)).not.toMatch(/Rekaman lab|"jenis":\s*"rekaman"/);
+    expect(rantaiMentah.sumber.jenis).toBe("asumsi");
+    expect(tebakMentah.sumber.jenis).toBe("ilustrasi");
+    expect(halaman).not.toMatch(/Rekaman lab:/);
+  });
+  test("anggaran gRPC: judul Snippet dan sel Tahap 4 mengikuti konstanta Go dan baris batas di latensi.txt (ya atau tidak)", () => {
+    const kode = baca("labs/api-t4/internal/handler/latensi_ledger_test.go");
+    const anggaran = Number(cari(/anggaranTambahanHTTP = (\d+) \* time\.Millisecond/, kode, "anggaran")[1]);
+    expect(halaman).toContain(`title="Kode lab: labs/api-t4/internal/handler/latensi_ledger_test.go (anggaran ${anggaran} ms)"`);
+    const batas = cari(/batas: tambahan p95 lewat HTTP di bawah (\d+)ms: (ya|tidak)/, baca("labs/t4-modul/output/latensi.txt"), "batas latensi");
+    expect(Number(batas[1])).toBe(anggaran);
+    const frasa = batas[2] === "ya" ? `di bawah ${anggaran} ms di localhost` : `melewati ${anggaran} ms di localhost`;
+    expect(kapan[6]![3]!.toLowerCase()).toContain(`tahap 4: ${frasa}`);
+    expect(bacaan[4]![2]!.toLowerCase()).toBe(frasa);
+    expect(kapan[6]![1]).toContain(`melewati ${anggaran} ms antar host`);
+    expect(bacaan[4]![1]).toContain(`melewati ${anggaran} ms antar host`);
+  });
+  test("kata sifat di sub simpul diagram mengikuti hitungan: 0 terpenuhi berarti 'belum sama', sub lain sama dengan definisi kata di halaman", () => {
+    const subs = DataRantai.parse(rantaiMentah).baris.flatMap((b) => b.simpul.map((s) => s.sub));
+    const def = (k: string): string => cari(new RegExp(`- "${k}": (.+)\\.$`, "m"), badan, k)[1]!;
+    const jum = (k: string): number => kapan.filter((r) => r[4] === k).length;
+    expect(jum("Belum terpenuhi") + jum("Belum terukur") + jum("Tidak diminta") + jum("Menunggu PRD v6")).toBe(kapan.length);
+    expect(subs[1]).toBe("keadaan Tahap 5 belum sama dengan pemicu mana pun");
+    expect(subs[2]).toBe(def("Belum terukur"));
+    expect(subs[3]).toBe(def("Belum terpenuhi").replace(/^angkanya ada dan di bawah pemicu$/, "angkanya ada dan di bawah pemicu"));
+    expect(kapan.filter((r) => r[4] === "Tidak diminta").some((r) => r[3]!.startsWith(subs[4]!))).toBe(true);
+    expect(subs[5]).toBe(kapan.find((r) => r[4] === "Menunggu PRD v6")![0]!.replace(/^\d+\. /, "").toLowerCase());
+  });
+  test("angka masukan di kalimat prosa dan sel: pembanding laju CDC, ambang koneksi, dan batas 100 dari tabel diturunkan dari hitungan dan naskah", () => {
+    expect(kapan[7]![3]).toBe(`Pembanding laju ${fmt(notifT, 1)} per detik. Umur event tertua belum punya angka`);
+    expect(badan).toContain(`Ambang ${ambangL} koneksi dan ${pemicuKoneksi} dari ${maxKoneksi} koneksi adalah Asumsi [[t2-adr-21]] dan [[t3-adr-33]].`);
+    expect(kapan[2]![3]).toContain(`L seluruh request ${fmt(lSemua, 1)} koneksi dari ${nTersedia} tersedia (Hitungan atas Asumsi)`);
+  });
+  test("produk event streaming di kalimat halaman sama dengan yang dipilih ADR 51 di naskah", () => {
+    const adr51 = naskah.split("\n").find((b) => b.startsWith("| 51 |")) ?? "";
+    const produkNaskah = cari(/(\w+) 4\.\d+ dengan KRaft/, adr51, "produk ADR 51")[1];
+    const produkHalaman = cari(/\[\[t5-fanout\]\] tetap memasang (\w+)/, badan, "produk di halaman")[1];
+    expect(produkHalaman).toBe(produkNaskah);
+    expect(produkNaskah).toBe("Kafka");
+  });
+  test("negasi berpasangan dengan sumbernya: partisi tidak menambah kapasitas tulis (ADR 49), request paralel bukan pemicu BFF (4.29), opsi C tanpa komponen baru", () => {
+    const adr49 = naskah.split("\n").find((b) => b.startsWith("| 49 |")) ?? "";
+    expect(adr49).toContain("partisi tidak menambah kapasitas tulis");
+    expect(kapan[3]![3]).toContain("([[t5-partisi]]) tidak menambah kapasitas tulis");
+    expect(t4).toContain("Satu layar app butuh lebih dari 3 request yang harus berurutan");
+    expect(kapan[4]![1]).toContain("request berurutan");
+    expect(kapan[4]![3]).toContain("Request paralel bukan pemicunya");
+    const opsi = tabel("| | A. Pasang semuanya").slice(2);
+    expect(opsi[0]![0]).toBe("Cara kerja");
+    expect(opsi[0]![1]).toContain("Dua belas komponen dipasang selama Tahap 5");
+    expect(opsi[0]![3]).toMatch(/^Tidak ada komponen baru\./);
+    expect(naskah).toContain("tunda dengan pemicu dan alat ukur (dipilih, seperti ADR 45)");
+  });
+  test("status ADR: rentang 'ADR 46 sampai 59' dari naskah, dan ±50 developer tidak dipakai karena tanpa sumber primer (4.29)", () => {
+    const m = cari(/Ia tidak membatalkan keputusan di ADR (\d+) sampai (\d+)\./, badan, "status ADR");
+    const nomor = [...naskah.matchAll(/^\| (\d+) \| /gm)].map((x) => Number(x[1])).filter((n) => n >= 46 && n <= 59);
+    expect(Number(m[1])).toBe(Math.min(...nomor));
+    expect(Number(m[2])).toBe(Math.max(...nomor));
+    expect(t4).toContain("±50 developer adalah heuristik praktisi tanpa sumber primer [perlu verifikasi]");
+    expect(badan).toContain("Heuristik ±50 developer tidak dipakai, karena tidak punya sumber primer [perlu verifikasi]");
+  });
+  test("klaim tanpa nomor versi dan tanpa tanggal terbit: tiap produk punya baris riset yang mencatatnya, dan Istio menulis versi di kakinya", () => {
+    const sumber: [string, string, RegExp][] = [
+      ["AWS", barisRiset("R5-258"), /docs\.aws\.amazon\.com[^)]*tanpa nomor versi/],
+      ["gRPC", barisRiset("R5-259"), /grpc\.io[^)]*tanpa nomor versi/],
+      ["TigerBeetle", barisRiset("R5-259"), /docs\.tigerbeetle\.com \(tanpa nomor versi\)/],
+      ["Temporal", barisRiset4("R4-252"), /docs\.temporal\.io[^,;]*\(tanpa nomor versi/],
+      ["flagd", barisRiset("R5-259"), /flagd\.dev \(tanpa nomor versi\)/],
+    ];
+    for (const [nama, baris, re] of sumber) expect(baris, nama).toMatch(re);
+    expect(badan).toContain(`Dokumentasi ${sumber.map((s) => s[0]).slice(0, 4).join(", ")}, dan ${sumber[4]![0]} tidak memuat nomor versi di halamannya.`);
+    expect(barisRiset("R5-257")).toContain("halaman tanpa tanggal terbit");
+    expect(badan).toContain("halaman microservices.io tidak memuat tanggal terbit.");
+    const versiIstio = cari(/Version Istio (\d+\.\d+\.\d+)/, barisRiset("R5-259"), "versi Istio di kaki")[1];
+    expect(badan).toContain(`Halaman Istio menulis Istio ${versiIstio} di kakinya`);
+    expect(badan).not.toMatch(/Dokumentasi Istio/);
+  });
+  test("tak satu pun dari dua belas butir masuk P0 atau P1 PRD v5 di naskah, dan multi-region ada di P2 yang ditunda ke v6", () => {
+    const prd = naskah.split("\n").filter((b) => /^\| P[012] \| /.test(b));
+    expect(prd.length).toBeGreaterThanOrEqual(7);
+    const butir = /service mesh|multi-region|database per service|database terpisah|shard|BFF|login sosial|gRPC|CDC|Debezium|TigerBeetle|Temporal|SLSA|event sourcing|OpenFeature|flagd/i;
+    expect(prd.filter((b) => /^\| P[01] \| /.test(b)).filter((b) => butir.test(b))).toEqual([]);
+    const p2 = prd.filter((b) => b.startsWith("| P2 |"));
+    expect(p2).toHaveLength(1);
+    expect(p2[0]).toMatch(/Ditunda ke v6 \| Multi-region/);
+    expect(badan).toContain("Tak satu pun masuk ruang lingkup PRD v5, dan multi-region ditulis di sana sebagai P2 yang ditunda ke v6 ([[t5-prd]]).");
+  });
+  test("kosakata Dibaca konsisten: sel Tahap 5 di tabel pembacaan ulang tidak memakai 'belum terpenuhi' untuk butir yang belum diukur", () => {
+    for (const r of bacaan) {
+      if (/belum diukur/i.test(r[3]!) || /belum diukur/i.test(r[2]!)) expect(r[3], r[0]).not.toMatch(/belum terpenuhi/i);
+    }
+    expect(bacaan[4]![3]).toBe("Antar host belum diukur");
+    expect(bacaan[7]![3]).toBe("Belum diukur");
+    expect(badan).toContain("Kolom Pemicu memuat pemicu utama dari naskah Tahap 5. [[t4-adr-45]] menulis pemicu tambahan di beberapa baris, dan tabel ini tidak membacanya ulang. Contohnya login sosial: pendaftar berhenti di layar daftar.");
+    expect(t4).toContain("Atau pendaftar berhenti di layar daftar");
+  });
+  test("daftar bagian OpenFeature: tanpa 'antara lain' hanya bila sama dengan daftar bagian di baris riset; 'dugaan pertama' sama dengan yang dikira di M51", () => {
+    const bagian = cari(/daftar bagian: ([^)]+)\)/, barisRiset("R5-259"), "bagian spesifikasi OpenFeature")[1]!.split(", ");
+    const halBagian = cari(/Bagiannya (antara lain )?([^.]+)\./, badan, "bagian di halaman");
+    const daftarHal = halBagian[2]!.replace(/, dan /, ", ").split(", ");
+    expect(daftarHal.every((x) => bagian.includes(x))).toBe(true);
+    if (daftarHal.length < bagian.length) expect(halBagian[1]).toBe("antara lain ");
+    const m51 = naskah.split("\n").find((b) => b.startsWith("| M51 |")) ?? "";
+    const dikira = cari(/Perlu (.+?) dan (.+?) sekarang/, m51, "yang dikira M51");
+    expect(badan).toContain(`Dugaan pertama adalah memasang ${dikira[1]} dan ${dikira[2]} sekarang`);
+    expect(badan).toContain(`karena ${cari(/PRD v6: (\d+) juta user/, m51, "user PRD v6 di M51")[1]} juta user terdengar seperti skala yang menuntutnya`);
+  });
+  test("alasan memilih C: huruf opsi sama dengan kepala tabel, alasan B memakai kata ADR 45 (kelupaan), alasan A memakai jumlah orang dari naskah, aturan 2 memakai kalimat ADR 45", () => {
+    const kepala = tabel("| | A. Pasang semuanya")[0]!;
+    expect(kepala.slice(1).map((k) => k[0])).toEqual(["A", "B", "C"]);
+    expect(kepala[3]).toBe("C. Tunda dengan pemicu dan alat ukur");
+    expect(naskah.split("\n").find((b) => b.startsWith("| 60 |"))).toContain("tunda dengan pemicu dan alat ukur (dipilih");
+    expect([...badan.matchAll(/^\*\*Kenapa C, bukan ([AB])\.\*\*/gm)].map((m) => m[1])).toEqual(["A", "B"]);
+    expect(t4).toContain("keputusan, bukan kelupaan");
+    expect(cari(/\*\*Kenapa C, bukan B\.\*\* (.+)$/m, badan, "alasan B")[1]).toContain("kelupaan");
+    expect(cari(/\*\*Kenapa C, bukan A\.\*\* (.+)$/m, badan, "alasan A")[1]).toContain(`${orangTotal} orang`);
+    expect(t4).toContain("dibaca dari alat, bukan dari tanggal");
+    expect(badan).toContain("Pemicu dibaca dari alat, bukan dari tanggal.");
   });
 });
 

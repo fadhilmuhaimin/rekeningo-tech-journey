@@ -51,9 +51,9 @@ Tiap butir diberi satu kalimat arti, dan sumbernya ada di bawah daftar.
 9. **TigerBeetle dan Temporal.** TigerBeetle adalah database untuk transaksi finansial. Temporal menjalankan durable execution: bila proses mati, proses lain melanjutkan alur dari titik berhenti. Ledger tetap di PostgreSQL, dan alur panjang memakai tabel langkah (ADR 54).
 10. **Provenance SLSA, HTTP Message Signatures, dan atestasi app.** Provenance adalah data terverifikasi tentang di mana, kapan, dan bagaimana sebuah artefak dibuat. HTTP Message Signatures menandatangani komponen pesan HTTP. Atestasi app adalah sinyal dari platform bahwa panggilan datang dari app asli ([[t4-tim-infra]]).
 11. **Event sourcing penuh.** Semua tindakan atas satu objek disimpan di append-only store sebagai system of record, dan keadaan dibangun ulang dengan memutar ulang event-nya. Tahap 2 menolak bentuk ini untuk ledger ([[t2-adr-ledger]]).
-12. **OpenFeature dan flagd.** OpenFeature adalah spesifikasi untuk mengevaluasi feature flag. Bagiannya Flag Evaluation API, Provider, Evaluation Context, Hooks, dan Events. flagd adalah engine evaluasi feature flag yang sesuai spesifikasi itu.
+12. **OpenFeature dan flagd.** OpenFeature adalah spesifikasi untuk mengevaluasi feature flag. Bagiannya antara lain Flag Evaluation API, Provider, Evaluation Context, Hooks, dan Events. flagd adalah engine evaluasi feature flag yang sesuai spesifikasi itu.
 
-Sumber definisi, dibuka 2026-10-31: [Istio](https://istio.io/latest/about/service-mesh/), [AWS: opsi pemulihan bencana](https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html), [microservices.io: database per service](https://microservices.io/patterns/data/database-per-service.html), [Azure: sharding](https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding), [Azure: backends for frontends](https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends), [gRPC](https://grpc.io/docs/what-is-grpc/introduction/), [Debezium 3.7](https://debezium.io/documentation/reference/stable/connectors/postgresql.html), [TigerBeetle](https://docs.tigerbeetle.com/), [Temporal](https://docs.temporal.io/evaluate/understanding-temporal), [SLSA v1.2](https://slsa.dev/spec/v1.2/provenance), [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html), [Azure: event sourcing](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing), [spesifikasi OpenFeature](https://github.com/open-feature/spec/releases), dan [flagd](https://flagd.dev/). Semuanya Tidak dijalankan. Dokumentasi Istio, AWS, gRPC, TigerBeetle, Temporal, dan flagd tidak memuat nomor versi di halamannya, dan halaman microservices.io tidak memuat tanggal terbit.
+Sumber definisi, dibuka 2026-10-31: [Istio](https://istio.io/latest/about/service-mesh/), [AWS: opsi pemulihan bencana](https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html), [microservices.io: database per service](https://microservices.io/patterns/data/database-per-service.html), [Azure: sharding](https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding), [Azure: backends for frontends](https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends), [gRPC](https://grpc.io/docs/what-is-grpc/introduction/), [Debezium 3.7](https://debezium.io/documentation/reference/stable/connectors/postgresql.html), [TigerBeetle](https://docs.tigerbeetle.com/), [Temporal](https://docs.temporal.io/evaluate/understanding-temporal), [SLSA v1.2](https://slsa.dev/spec/v1.2/provenance), [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html), [Azure: event sourcing](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing), [spesifikasi OpenFeature](https://openfeature.dev/specification/), dan [flagd](https://flagd.dev/). Semuanya Tidak dijalankan. Dokumentasi AWS, gRPC, TigerBeetle, Temporal, dan flagd tidak memuat nomor versi di halamannya. Halaman Istio menulis Istio 1.31.3 di kakinya, dan halaman microservices.io tidak memuat tanggal terbit.
 
 ### Kenapa ADR ini ada
 
@@ -97,16 +97,18 @@ Waktu 0,02 detik per query, 10 pool per instance, dan 3 koneksi cadangan adalah 
 
 Tahap 5 membaca tiap pemicu terhadap PRD v5 dan angka di atas. "Terpenuhi" berarti keadaan Tahap 5 sama dengan pemicunya. Itu tidak berarti komponennya terbukti perlu.
 
+Kolom Pemicu memuat pemicu utama dari naskah Tahap 5. [[t4-adr-45]] menulis pemicu tambahan di beberapa baris, dan tabel ini tidak membacanya ulang. Contohnya login sosial: pendaftar berhenti di layar daftar.
+
 | Komponen ADR 45 | Pemicu yang ditulis | Tahap 4 | Tahap 5 (Hitungan atas Asumsi) | Dilanjutkan |
 |---|---|---|---|---|
 | 1. Semua modul jadi service | Dua tim atau lebih tidak bisa merilis tanpa saling menunggu | 3 tim | 5 tim produk dan 3 tim fungsi: terpenuhi | [[t5-service]] |
 | 2. Kubernetes | Lima tim atau lebih perlu merilis tanpa menunggu tim lain | 3 tim | 5 tim produk: terpenuhi | [[t5-service]] |
 | 2. Service mesh | Lebih dari satu jalur antar service butuh TLS timbal balik dan retry seragam | 1 jalur | Ledger dipanggil dari tiga service: terpenuhi untuk TLS timbal balik, dikerjakan di Go tanpa mesh | [[t5-mtls]] |
 | 2. Event streaming | 100 pesan per detik terus-menerus, atau dua consumer atau lebih bergantung pada urutan | 7,5 per detik (7,5%) | 75,2 per detik puncak (75%): belum terpenuhi oleh uang saja. Terpenuhi hanya selama pengumuman: 630,8 per detik selama 30 menit. Consumer yang bergantung pada urutan: tidak terbukti | [[t5-fanout]] |
-| 3. gRPC | Tambahan p95 satu lompatan HTTP melewati 50 ms antar host | Di bawah 50 ms di localhost | Antar host belum diukur: belum terpenuhi | Tetap di sini |
+| 3. gRPC | Tambahan p95 satu lompatan HTTP melewati 50 ms antar host | Di bawah 50 ms di localhost | Antar host belum diukur | Tetap di sini |
 | 4. Read replica | Laporan merchant real-time diminta, atau L baca 5 koneksi | L baca 2,64 (53%) | Laporan diminta. L baca 26,4 (528%): terpenuhi | [[t5-read-replica]] |
 | 4. PgBouncer | 70 koneksi dari 100 | 40 (57%) | 180 terpasang (257%), rata-rata terpakai 27,8: terpenuhi lewat potensi | [[t5-pooler]] |
-| 5. BFF terpisah | Satu layar butuh lebih dari 3 request berurutan | Belum diukur | Belum diukur: belum terpenuhi | Tetap di sini |
+| 5. BFF terpisah | Satu layar butuh lebih dari 3 request berurutan | Belum diukur | Belum diukur | Tetap di sini |
 | 6. Login sosial | PRD meminta masuk dengan akun penyedia lain | Tidak diminta | Tidak diminta | Tetap di sini |
 | 7. SLSA dan HTTP Message Signatures | Pihak luar atau auditor meminta bukti pembuatan image | Tidak diminta | Tidak diminta. Mitra POS memakai HMAC bertimestamp seperti ADR 34 | Tetap di sini |
 | 8. Durable execution | Alur lebih dari satu hari yang harus lanjut dari tengah | Tidak ada | Cicilan berjalan berbulan-bulan: terpenuhi | [[t5-batch]] |
@@ -129,7 +131,7 @@ Tiga jalur ke ledger memenuhi pemicu TLS timbal balik, dan [[t5-mtls]] menjawabn
 | Provenance SLSA | Tetap ditunda | Butir 10 di atas |
 | Atestasi app | Tetap ditunda | Butir 10 di atas |
 
-Enam butir lain tidak dibawa ke ADR Tahap 5. Keenamnya keyless signing, workflow per modul dengan branch protection dan CODEOWNERS, isi response lawan kontrak, aturan "jalankan semua", client Dart yang dijalankan, dan menaikkan Go ke 1.27.3.
+Enam butir lain tidak dibawa ke ADR Tahap 5. Keenamnya adalah keyless signing, workflow per modul dengan branch protection dan CODEOWNERS, isi response lawan kontrak, aturan "jalankan semua", client Dart yang dijalankan, dan menaikkan Go ke 1.27.3.
 
 Naskah merencanakan lab Tahap 5 memakai Go 1.27.3, dan itu Asumsi sampai lab mengecek ulang.
 
@@ -152,8 +154,8 @@ Naskah merencanakan lab Tahap 5 memakai Go 1.27.3, dan itu Asumsi sampai lab men
 
 **Apa kata sumber tentang tiga butir yang paling berat.** Ketiganya Tidak dijalankan.
 
-- Sharding: Azure menulis pola ini cocok bila throughput melebihi satu instance dan read replica saja tidak menyelesaikannya karena tulis juga tinggi. Azure juga menulis pola ini tidak cocok bila partisi tabel di database sudah memenuhi kebutuhan. Rekeningo memakai partisi tabel ([[t5-partisi]]), dan beban tulisnya belum terukur.
-- Event sourcing: Azure menulis pola ini tidak cocok bila sistem butuh konsistensi dan pembaruan real-time pada tampilan data. Azure menyarankan memakainya selektif, misalnya di payment ledger. Tahap 2 menolak bentuk penuhnya karena saldo harus terbaru saat Bayar ditekan ([[t2-adr-ledger]]).
+- Sharding: Azure menulis pola ini cocok bila throughput melebihi satu instance dan read replica saja tidak menyelesaikannya karena tulis juga tinggi. Azure juga menulis pola ini mungkin tidak cocok bila partisi tabel di database sudah memenuhi kebutuhan. Rekeningo memakai partisi tabel ([[t5-partisi]]), dan beban tulisnya belum terukur.
+- Event sourcing: Azure menulis pola ini mungkin tidak cocok bila sistem butuh konsistensi dan pembaruan real-time pada tampilan data. Azure menyarankan memakainya selektif, misalnya di payment ledger. Tahap 2 menolak bentuk penuhnya karena saldo harus terbaru saat Bayar ditekan ([[t2-adr-ledger]]).
 - Multi-region: AWS menulis multi-site active/active sebagai pendekatan pemulihan bencana yang paling kompleks dan berbiaya besar. Strategi lintas region dipertimbangkan bila bencana didefinisikan sebagai hilangnya satu region atau ada kewajiban regulasi.
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
