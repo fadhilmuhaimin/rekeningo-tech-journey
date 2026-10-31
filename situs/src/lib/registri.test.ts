@@ -187,6 +187,189 @@ describe("registry cerita.json", () => {
     expect(t5.arsitektur.baris.flat().length).toBeLessThanOrEqual(6);
   });
 
+  // Penjaga peninjau T5-siap (keputusan 1415). Uji mutasi atas RINGKAS, `tahap[4]`, dan ANTREAN: sebelum tiga tes berikut
+  // hanya 27 dari 59 mutan tertangkap gerbang. Nilai diturunkan dari naskah dan registry, bukan dari berkas yang dijaga.
+  const akar = path.resolve(__dirname, "../../..");
+  const teks = (p: string) => fs.readFileSync(path.join(akar, p), "utf8");
+  const titik = (n: number) => String(n).replace(/\B(?=(\d{3})+$)/g, ".");
+  // Tabel tim naskah ("Totalnya 4 × 6 + 2 × 2 = 28 orang"): jumlah baris dan jumlah orang.
+  const timNaskah = (naskah: string) => {
+    const tim = naskah.split("| Tim | Orang | Pemimpin | Memegang |")[1]!.split("\n\n")[0]!;
+    const orang = [...tim.matchAll(/^\| (?!-)[^|]+ \| (\d+) \|/gm)].map((m) => Number(m[1]));
+    return { tim: orang.length, jumlah: orang.reduce((s, n) => s + n, 0) };
+  };
+
+  it("RINGKAS Tahap 5: peta, pasangan masalah dan ADR ke halaman, peran, dan angka cocok dengan naskah dan registry", () => {
+    const ringkas = teks("plan/RINGKAS.md");
+    const naskah = teks("plan/CERITA-TAHAP-5.md");
+    const bagian = ringkas.split("\n## Tahap 5 · ")[1]!;
+    // Sesudah 5.32 merge pengatur melipat peta jadi satu baris per kelompok; tes ini lalu hanya meminta baris lipatnya.
+    if (!bagian.includes("### Peta halaman Tahap 5")) {
+      expect(bagian).toMatch(/5\.1–5\.32 selesai/);
+      return;
+    }
+    const hal = Registry.parse(baca()).halaman.filter((h) => h.tahap === 5 && h.nomor);
+    // Peta: "nomor judul · jenis · ★ · lab", baris demi baris dari tabel naskah.
+    const peta = naskah.split("## Peta halaman Tahap 5")[1]!.split("\n## ")[0]!;
+    const jenis = (j: string) => j.replace(/\s+/g, "").replace("Timdaninfra", "Tim-infra");
+    const harap = [...peta.matchAll(/^\| (5\.\d+) \| [^|]+ \| (.+?) \| (.+?) \| (★?) *\| (.+?) \| .+ \|$/gm)].map(
+      (m) => `${m[1]} ${m[2]} · ${jenis(m[3]!)} · ${m[4]} · ${m[5]}`,
+    );
+    expect(harap).toHaveLength(32);
+    expect([...bagian.matchAll(/^(5\.\d+ .+)$/gm)].map((m) => m[1])).toEqual(harap);
+    // Peran di kepala peta (rentang "5.24–5.26" dibuka) sama dengan peran registry.
+    const kepala = bagian.match(/^### Peta halaman Tahap 5 \(.*?; peran: (.+)\)$/m)![1]!.split("; ");
+    expect(kepala.map((s) => s.split(" ")[0])).toEqual(["mobile", "devops", "security"]);
+    for (const seg of kepala) {
+      const [nama, ...daftar] = seg.split(" ");
+      const nomor = daftar.join(" ").split(", ").flatMap((x) => {
+        const [a, b] = x.split("–");
+        if (!b) return [a!];
+        const dari = Number(a!.split(".")[1]);
+        return Array.from({ length: Number(b.split(".").pop()) - dari + 1 }, (_, i) => `5.${dari + i}`);
+      });
+      expect(nomor, `peran ${nama}`).toEqual(hal.filter((h) => h.peran?.includes(nama as never)).map((h) => h.nomor));
+    }
+    // Pasangan "M40 5.4" dan "ADR 46 5.5" di ringkasan menunjuk halaman yang memuatnya.
+    const pasangan = (re: RegExp) => [...bagian.matchAll(re)].map((m) => [m[1]!, m[2]!] as const);
+    const masalah = pasangan(/\bM(\d+) (5\.\d+)/g);
+    const adr = pasangan(/\bADR (\d+) (5\.\d+)/g);
+    expect([masalah.length, adr.length]).toEqual([12, 15]);
+    for (const [n, no] of masalah) expect(hal.find((h) => h.judul.startsWith(`M${n}:`))?.nomor, `M${n}`).toBe(no);
+    for (const [n, no] of adr) expect(hal.find((h) => h.adr?.includes(Number(n)))?.nomor, `ADR ${n}`).toBe(no);
+    // Angka berformat Indonesia (1.388,9; 69,4; 564%) tertulis di naskah; tim dan merchant dari tabel dan latar naskah.
+    const angka = [...bagian.matchAll(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+,\d+|\d+%/g)].map((m) => m[0]);
+    expect(angka.length).toBeGreaterThan(10);
+    for (const a of new Set(angka)) expect(naskah, `angka ${a} di RINGKAS`).toContain(a);
+    const { tim, jumlah } = timNaskah(naskah);
+    expect([tim, jumlah]).toEqual([8, 28]);
+    expect(bagian).toContain(`${jumlah} orang dalam delapan tim`);
+  });
+
+  it("Tahap 5: skala, rekap, dan diagram arsitektur memakai angka, nama service, dan nomor ADR dari naskah", () => {
+    const naskah = teks("plan/CERITA-TAHAP-5.md");
+    const d = Registry.parse(baca());
+    const t5 = d.tahap[4]!;
+    const { tim, jumlah } = timNaskah(naskah);
+    const minggu = naskah.match(/dalam delapan tim selama (\d+) minggu/)![1]!;
+    expect(t5.skala!.pembuat).toContain(`${jumlah} orang dalam delapan tim`);
+    expect(t5.rekap).toContain(`${jumlah} engineer dalam delapan tim, ${minggu} minggu`);
+    expect(tim).toBe(8);
+    const merchant = naskah.match(/ditulis (\d{1,3}(?:\.\d{3})+) \(Asumsi/)![1]!;
+    const user = `${titik(Number(t5.asumsi.user))} user terdaftar, ±${merchant} merchant`;
+    expect(t5.skala!.user).toBe(user);
+    expect(t5.rekap).toContain(user);
+    // BRIEF-HALAMAN menulis nilai trx registry yang sama, jadi mengubah registry menuntut mengubah brief.
+    expect(teks("plan/BRIEF-HALAMAN.md")).toContain(`registry \`tahap[4].asumsi.trx\` tetap ${t5.asumsi.trx} (keputusan 1411)`);
+    // Enam kotak: nama service dari ADR 50, kata bilangan di label, dan nomor ADR tiap kotak menunjuk halaman dengan topiknya.
+    const kotak = t5.arsitektur.baris.flat();
+    const service = [...naskah.match(/^\| 50 \| Enam service: (.+?), masing-masing/m)![1]!.matchAll(/`(\w+)`/g)].map((m) => m[1]!);
+    expect(service).toHaveLength(6);
+    const enam = kotak.find((k) => k.label === `${["Nol", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam"][service.length]} service`);
+    for (const s of service) expect(enam?.catatan?.toLowerCase(), `service ${s}`).toContain(s);
+    const ADR_KOTAK: Record<string, Record<number, RegExp>> = {
+      "App Flutter": { 47: /read-your-writes/i },
+      "Pintu di tepi": { 56: /Pintu/ },
+      "Enam service": { 50: /service/ },
+      "Event streaming": { 51: /event streaming/i },
+      "Primary + pooler": { 48: /replica sinkron/i, 49: /Partisi/, 52: /PgBouncer/ },
+      "Read replica": { 46: /Read replica/ },
+    };
+    expect(kotak.map((k) => k.label)).toEqual(Object.keys(ADR_KOTAK));
+    for (const k of kotak) {
+      const wajib = ADR_KOTAK[k.label]!;
+      expect([...(k.catatan ?? "").matchAll(/\(ADR (\d+)\)/g)].map((m) => Number(m[1])), `ADR di kotak ${k.label}`).toEqual(Object.keys(wajib).map(Number));
+      for (const [n, topik] of Object.entries(wajib)) {
+        expect(d.halaman.find((h) => h.tahap === 5 && h.adr?.includes(Number(n)))?.judul, `ADR ${n} untuk kotak ${k.label}`).toMatch(topik);
+      }
+    }
+    // Keterangan diagram menjelaskan warna biru bila ada kotak baru atau berubah.
+    for (const t of d.tahap) {
+      if (t.arsitektur.baris.flat().some((k) => k.baru || k.berubah)) expect(t.arsitektur.caption ?? "", `keterangan Tahap ${t.no}`).toMatch(/biru/i);
+    }
+  });
+
+  it("ANTREAN Tahap 5: alokasi nomor, ketergantungan, dan syarat Docker tiap tugas mengikuti skema keputusan 1412", () => {
+    const antrean = teks("plan/ANTREAN.md");
+    const d = Registry.parse(baca());
+    const hal = d.halaman.filter((h) => h.tahap === 5 && h.nomor);
+    const blok = (id: string) => {
+      const awal = antrean.indexOf(`\n### ${id} · `);
+      expect(awal, `tugas ${id}`).toBeGreaterThan(-1);
+      const akhir = antrean.indexOf("\n### ", awal + 5);
+      return antrean.slice(awal, akhir < 0 ? undefined : akhir);
+    };
+    const dep = (id: string) => blok(id).match(/\n- bergantung: (.*)/)![1]!.split(", ");
+    // Rentang tahap di kepala bagian ANTREAN berurutan tanpa celah: Tahap 4, 5, 6.
+    const rentang = (tahap: number) => {
+      const m = antrean.split(`\n## Tahap ${tahap}\n`)[1]!.split("\n## ")[0]!.match(/Nomor keputusan: (\d+)–(\d+)/)!;
+      return [Number(m[1]), Number(m[2])] as const;
+    };
+    const [lo5, hi5] = rentang(5);
+    expect([rentang(4)[1] + 1, hi5 + 1]).toEqual([lo5, rentang(6)[0]]);
+    // Alokasi: halaman 5.n 1500 + 4(n−1) dan R5-110 + 5(n−1); lab k 1630 + 4k dan R5-270 + 5k; tugas teknis dan penutup tetap.
+    const kep = (a: number, b: number) => `ALOKASI: keputusan ${a}–${b} (`;
+    const semua: [string, string][] = [];
+    for (const h of hal) {
+      const n = Number(h.nomor!.split(".")[1]);
+      semua.push([h.nomor!, `${kep(1500 + 4 * (n - 1), 1503 + 4 * (n - 1))}`], [h.nomor!, `ID riset R5-${110 + 5 * (n - 1)} sampai R5-${114 + 5 * (n - 1)}.`]);
+    }
+    const lab = ["api-t5", "t5-replika", "t5-partisi", "t5-fanout", "t5-service", "t5-cicilan", "t5-rollout", "t5-waf", "t5-kms", "t5-gabung"];
+    lab.forEach((l, k) => semua.push([`lab-${l}`, kep(1630 + 4 * k, 1633 + 4 * k)], [`lab-${l}`, `ID riset bila perlu R5-${270 + 5 * k} sampai R5-${274 + 5 * k}.`]));
+    for (const [id, a, b] of [["ERD5", 1670, 1673], ["W5-lag", 1674, 1677], ["W5-fanout", 1678, 1681], ["W5-zona", 1682, 1685], ["EVAL-5", 1690, 1692], ["DIRI-5", 1693, 1695], ["G3-rantai", 1696, 1698]] as const) {
+      semua.push([id, kep(a, b)]);
+      expect(a >= lo5 && b <= hi5, `${id} di dalam rentang Tahap 5`).toBe(true);
+    }
+    for (const [id, harap] of semua) expect(blok(id), `alokasi ${id}`).toContain(harap);
+    expect(1500 + 4 * 31 + 3 < 1630 && 1630 + 4 * 9 + 3 < 1670).toBe(true);
+    // Judul tugas halaman sama dengan judul registry (dan naskah), dan tiap tugas lab menulis syarat Docker.
+    for (const h of hal) expect(antrean, `judul tugas ${h.nomor}`).toContain(`\n### ${h.nomor} · ${h.judul}\n`);
+    for (const l of lab) expect(blok(`lab-${l}`), `Docker ${l}`).toContain("Butuh Docker hidup (`docker info`); bila mati, parkir sampai pemilik menyetujui");
+    // Ketergantungan: lab dan widget yang dipakai halaman (kolom lab naskah, lewat registry), rantai urutan, dan halaman bebas Docker.
+    const butuhLab = (x: string) => x === "api-t5" || x.startsWith("t5-");
+    for (const h of hal) {
+      const n = Number(h.nomor!.split(".")[1]);
+      const d5 = dep(h.nomor!);
+      for (const l of (h.lab ?? []).filter(butuhLab)) expect(d5, `${h.nomor} butuh lab-${l}`).toContain(`lab-${l}`);
+      expect(d5, `${h.nomor} butuh T5-siap`).toContain("T5-siap");
+      if (n > 1 && n !== 28 && n !== 30) expect(d5, `${h.nomor} menunggu 5.${n - 1}`).toContain(`5.${n - 1}`);
+    }
+    const widget: Record<string, string> = { "5.2": "W5-zona", "5.3": "ERD5", "5.7": "W5-lag", "5.15": "W5-fanout" };
+    for (const [no, w] of Object.entries(widget)) expect(dep(no), `${no} butuh ${w}`).toContain(w);
+    for (const no of ["5.1", "5.28", "5.30"]) {
+      expect(hal.find((h) => h.nomor === no)!.lab ?? [], `lab ${no}`).toEqual([]);
+      expect(dep(no).filter((x) => /^(lab-|W5-|ERD5)/.test(x)), `${no} bebas Docker`).toEqual([]);
+    }
+    expect(dep("5.29")).toEqual(expect.arrayContaining(["5.28", "5.27"]));
+    expect(dep("5.31")).toEqual(expect.arrayContaining(["5.30", "5.29"]));
+    expect(dep("5.32")).toContain("5.31");
+    expect(dep("ERD5")).toEqual(["lab-api-t5"]);
+    expect(dep("EVAL-5")).toContain("5.32");
+    expect(dep("G3-rantai")).toEqual(["5.32"]);
+    for (const l of lab.slice(1)) expect(dep(`lab-${l}`), `lab-${l} butuh lab-api-t5`).toContain("lab-api-t5");
+    expect(dep("lab-t5-kms")).toContain("lab-t5-partisi");
+  });
+
+  // Id halaman Tahap 5 dibekukan: halaman yang ditulis paralel merujuk tetangganya lewat [[ID]] sebelum tetangga itu merge,
+  // dan tidak ada penjaga lain bagi id yang belum dirujuk (mutasi peninjau: mengganti id t5-jembatan lolos semua gerbang).
+  // Halaman masalah mengikuti nomor M di judulnya (id dan awal path), yang sudah dikunci ke naskah oleh tes peta.
+  it("Tahap 5: id halaman dibekukan dan id serta path halaman masalah mengikuti nomor M di judul", () => {
+    const hal = Registry.parse(baca()).halaman.filter((h) => h.tahap === 5 && h.nomor);
+    expect(hal.map((h) => h.id)).toEqual([
+      "t5-prd", "t5-fitur-teknis", "t5-skema", "t5-m40", "t5-read-replica", "t5-m41", "t5-lag", "t5-m42", "t5-rpo-rto", "t5-m43",
+      "t5-partisi", "t5-m44", "t5-service", "t5-m45", "t5-fanout", "t5-m46", "t5-pooler", "t5-m47", "t5-mtls", "t5-m48", "t5-batch",
+      "t5-m49", "t5-rollout", "t5-m50", "t5-waf", "t5-kms", "t5-tim-infra", "t5-onprem", "t5-m51", "t5-adr-60", "t5-rekap", "t5-jembatan",
+    ]);
+    for (const h of hal) {
+      expect(h.path, `path ${h.nomor}`).toMatch(/^tahap-5\/[a-z0-9-]+\.md$/);
+      const m = h.judul.match(/^M(\d+):/);
+      if (m) {
+        expect(h.id).toBe(`t5-m${m[1]}`);
+        expect(h.path.startsWith(`tahap-5/m${m[1]}-`), `path masalah ${m[1]}`).toBe(true);
+      }
+    }
+  });
+
   it("nomor tampilan tidak dipakai dua halaman", () => {
     const nomor = Registry.parse(baca()).halaman.flatMap((h) => (h.nomor ? [h.nomor] : []));
     expect(nomor.filter((n, i) => nomor.indexOf(n) !== i)).toEqual([]);
