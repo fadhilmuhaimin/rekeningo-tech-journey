@@ -244,9 +244,15 @@ describe("beban: angka turunan dari registry dan naskah", () => {
       ["Pemakaian worker", `${titik(bulat((bulat(notifPuncak, 1) / bulat(kapasitas, 2)) * 100))}%`, `${fmt(notifPuncak, 1)} ÷ ${koma(kapasitas, 2)}; Tahap 4 memakai ${titik(bulat(pakaiWorker))}%, dan dengan 2 transaksi ${titik(bulat((bulat(notifPuncak2, 1) / bulat(kapasitas, 2)) * 100))}%`],
       ["Pengumuman ke 1.000.000 HP, 4 pengirim", `${titik(pengumumanDetik)} detik, atau ${fmt(pengumumanDetik / 3600, 1)} jam`, `${titik(a5.user)} × ${koma(tKirim, 1)} ÷ ${cKirim}; Tahap 4: ${titik(a4.user)} HP butuh ${titik(pengumumanDetik4)} detik`],
       [`Pengumuman dalam ${targetMenit} menit`, `${pengirimTarget} pengirim, atau ${prosesTarget} proses`, `${titik(a5.user)} ÷ ${titik(targetMenit * 60)} detik = ${fmt(lajuTarget, 1)} per detik; × ${koma(tKirim, 1)} = ${fmt(lajuTarget * tKirim, 1)}, dibulatkan ke ${pengirimTarget} pengirim; ${pengirimTarget} ÷ ${cKirim} = ${koma(pengirimTarget / cKirim, 2)}, dibulatkan ke ${prosesTarget}`],
-      ["Koneksi database", `${koneksiTerpasang} terpasang, ${koneksiTersedia} tersedia`, `${kon[1]} service × ${kon[2]} instance × pool ${kon[3]}; ${kon[5]} − ${kon[6]} cadangan; ${koneksiTerpasang} ÷ ${koneksiTersedia} = ${titik(bulat((koneksiTerpasang / koneksiTersedia) * 100))}%`],
+      ["Koneksi database", `${koneksiTerpasang} terpasang, ${koneksiTersedia} tersedia`, `${kon[1]} service × ${kon[2]} instance × pool ${kon[3]}; \`max_connections\` ${kon[5]} − ${kon[6]} cadangan superuser, seperti [[t4-estimasi]]; ${koneksiTerpasang} ÷ ${koneksiTersedia} = ${titik(bulat((koneksiTerpasang / koneksiTersedia) * 100))}%`],
     ]);
-    harus(`Rata-rata yang terpakai hanya ${fmt(a5.puncak * (reqRata) * wQuery * 1, 1)} koneksi: ${fmt(reqPuncak, 1).replace(/^(\d)(\d{3})/, "$1.$2")} request per detik × ${koma(wQuery, 2)} detik per query (Asumsi).`);
+    harus(`Terpasang berarti batas pool: tiap pool boleh membuka sampai ${kon[3]} koneksi. Pada puncak, rata-rata hanya ${fmt(a5.puncak * (reqRata) * wQuery * 1, 1)} koneksi dipakai bersamaan: ${fmt(reqPuncak, 1).replace(/^(\d)(\d{3})/, "$1.$2")} request per detik × ${koma(wQuery, 2)} detik lama satu request memegang koneksi (Asumsi, seperti [[t4-estimasi]]).`);
+    // Tinjauan: 27,8 memakai laju puncak. Dengan laju rata-rata 138,9 hasilnya 2,78 (angka Tahap 4), jadi kata "puncak" wajib ada.
+    expect(fmt(reqRata * wQuery, 2)).toBe("2,78");
+    di(T(4, "estimasi.mdx"), "4.28", "3 cadangan superuser (`superuser_reserved_connections`)");
+    di(T(4, "estimasi.mdx"), "4.28", "Angka 100 adalah nilai `max_connections` bawaan yang biasa");
+    di(T(4, "estimasi.mdx"), "4.28", "L adalah rata-rata koneksi yang terpakai bersamaan");
+    di(T(4, "estimasi.mdx"), "4.28", "W 20 ms (Asumsi, belum diukur)");
     // Naskah menulis angka yang sama; kapasitas 13,33 dan pakai worker 564% dan 56%.
     di(rowNaskah("| Notifikasi uang dan worker |"), "naskah 3", `${fmt(notifPuncak, 1)} per detik puncak = ${titik(bulat((bulat(notifPuncak, 1) / bulat(kapasitas, 2)) * 100))}% kapasitas`);
     di(rowNaskah("| Notifikasi uang dan worker |"), "naskah 3", "(Tahap 4: 56% dan 72%)");
@@ -272,7 +278,7 @@ describe("beban: angka turunan dari registry dan naskah", () => {
     harus("Error budget adalah 100% dikurangi target ketersediaan, dikalikan lama periode. Dalam 30 hari ada 30 × 24 × 60 = 43.200 menit, dan 0,001 × 43.200 = 43,2 menit.");
     expect(30 * 24 * 60).toBe(43200);
     harus("error budget 0,001 × 43.200 menit = 43,2 menit");
-    harus("jadi penjualan baru terlihat paling lambat 35 detik sesudah tercatat (Hitungan: 30 + 5)");
+    harus("jadi penjualan baru terlihat paling lambat 35 detik sesudah tercatat (Hitungan atas Asumsi produk: 30 + 5)");
     expect(30 + 5).toBe(35);
     di(bagPRD, "naskah 1", "tertinggal paling lama 5 detik dari pembayaran yang tercatat di ledger (Asumsi produk). Layar memperbarui tiap 30 detik");
     di(bagPRD, "naskah 1", "error budget 0,001 × 43.200 menit = 43,2 menit");
@@ -325,7 +331,9 @@ describe("isi PRD: tujuan, user, lingkup, metrik, batasan, Pak Hadi, tim, tokoh,
     const m = tabel(badan, kepala);
     const n = tabel(bagPRD, kepala);
     expect(m).toHaveLength(10);
-    const harap = n.map((r) => (r[1] === "Kartu virtual untuk semua user terverifikasi" ? [r[0]!, r[1]!, `${r[2]!}, yaitu sakelar yang mematikan satu fitur tanpa deploy`] : r));
+    // Tinjauan: naskah menulis "(Hitungan: 30 + 5)", padahal masukan 5 detik Asumsi produk; label hasil mengikuti masukan terlemah.
+    expect(n.find((r) => r[1] === "Laporan merchant real-time")![2]).toContain("(Hitungan: 30 + 5)");
+    const harap = n.map((r) => (r[1] === "Kartu virtual untuk semua user terverifikasi" ? [r[0]!, r[1]!, `${r[2]!}, yaitu sakelar yang mematikan satu fitur tanpa deploy`] : r[1] === "Laporan merchant real-time" ? [r[0]!, r[1]!, r[2]!.replace("(Hitungan: 30 + 5)", "(Hitungan atas Asumsi produk: 30 + 5)")] : r));
     expect(m).toEqual(harap);
     expect(m.slice(1).map((r) => r[0])).toEqual(["P0", "P0", "P0", "P0", "P0", "P0", "P1", "P1", "P2"]);
     expect(n.find((r) => r[1] === "Kartu virtual untuk semua user terverifikasi")![2]).toBe("Rilis bertahap dari PRD v4, dengan satu kill switch");
@@ -341,7 +349,7 @@ describe("isi PRD: tujuan, user, lingkup, metrik, batasan, Pak Hadi, tim, tokoh,
     di(baris, "baris P0", "(RPO nol)");
     di(baris, "baris P0", "pulih dalam 15 menit (RTO)");
     harus("Asumsi produk adalah Asumsi yang berupa pilihan produk. Angka 5 detik, 30 detik, 99,9%, 30 menit, RPO nol, dan RTO 15 menit di tabel ini tidak berasal dari hitungan atau rekaman.");
-    expect(hitung(badan, "Asumsi produk")).toBe(5);
+    expect(hitung(badan, "Asumsi produk")).toBe(6);
     di(bagPRD, "naskah 1", "Angka ini Asumsi produk dan menjawab pemicu ADR 33 yang tertunda sejak Tahap 3");
     di(bagPRD, "naskah 1", "(Asumsi produk)");
     di(bagPRD, "naskah 1", "RPO nol");
@@ -730,7 +738,7 @@ describe("kalimat bebas, kepala tabel, dan struktur", () => {
     harus("Nama tahap ini, \"Satu database tidak cukup\", tidak berarti satu primary, yaitu database utama yang menerima semua tulisan, terbukti kurang untuk menulis. Kapasitasnya belum terukur. Maksudnya satu database yang dipakai untuk menulis uang, melayani laporan, dan menyimpan arsip tidak cukup.");
     expect(cerita.tahap[4]!.nama).toBe("Satu database tidak cukup");
     di(naskah5, "naskah", "Maksudnya satu database yang dipakai untuk menulis uang, melayani laporan, dan menyimpan arsip tidak cukup.");
-    harus("Uji coba publik lolos di minggu ke-12 Tahap 4 ([[t4-m39]]). Rekonsiliasi, yaitu mencocokkan catatan sendiri dengan catatan pihak lain, selisih Rp0 tiap hari, atau insidennya tertutup dalam satu hari kerja. Itu berlangsung 14 hari berturut-turut (angka target Tahap 4, [Asumsi](/cara-pakai/#label-sumber)).");
+    harus("Uji coba publik lolos di minggu ke-12 Tahap 4 ([[t4-m39]]). Rekonsiliasi, yaitu mencocokkan catatan sendiri dengan catatan pihak lain, menunjukkan selisih Rp0 tiap hari, atau insiden yang muncul sudah tertutup dalam satu hari kerja. Itu berlangsung 14 hari berturut-turut (angka target Tahap 4, [Asumsi](/cara-pakai/#label-sumber)).");
     di(latar, "naskah", "Rekonsiliasi harian selisih Rp0 atau insiden tertutup dalam satu hari kerja selama 14 hari berturut-turut (target Tahap 4, Asumsi)");
     di(T(4, "m39-prd-v5.mdx"), "4.27", "Pak Hadi membuka laporan rekonsiliasi hari ke-14 berturut-turut");
     di(glosarium, "glosarium", "| **Rekonsiliasi** | Mencocokkan catatan sendiri dengan catatan pihak lain");
@@ -902,9 +910,9 @@ describe("label kejujuran dan arti istilah", () => {
     expect(hitung(badan, "Tidak dijalankan")).toBe(3);
     expect(hitung(badan, "(penalaran)")).toBe(2);
     expect(hitung(badan, "penalaran")).toBe(5);
-    expect(hitung(badan, "Hitungan atas Asumsi")).toBe(5);
+    expect(hitung(badan, "Hitungan atas Asumsi")).toBe(6);
     expect(hitung(badan, "(Asumsi cerita)")).toBe(3);
-    expect(hitung(badan, "Asumsi produk")).toBe(5);
+    expect(hitung(badan, "Asumsi produk")).toBe(6);
     expect(hitung(badan, "[perlu verifikasi]")).toBe(0);
     // Tiap baris tabel Beban satu berlabel (asumsi) atau menunjuk PRD v5.
     for (const b of badan.split("\n").filter((x) => /^\| (User terdaftar|User aktif|Request|Puncak|Transaksi uang|Posting|Top-up dari bank)/.test(x))) expect(/\(asumsi\)|PRD v5/.test(b), b).toBe(true);

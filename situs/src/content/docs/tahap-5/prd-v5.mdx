@@ -17,7 +17,7 @@ Sinta menulis PRD kelima ini untuk **PT Rekeningo** (fiktif), yang kini menarget
 
 <Blok nama="Latar masalah" buka>
 
-Uji coba publik lolos di minggu ke-12 Tahap 4 ([[t4-m39]]). Rekonsiliasi, yaitu mencocokkan catatan sendiri dengan catatan pihak lain, selisih Rp0 tiap hari, atau insidennya tertutup dalam satu hari kerja. Itu berlangsung 14 hari berturut-turut (angka target Tahap 4, [Asumsi](/cara-pakai/#label-sumber)).
+Uji coba publik lolos di minggu ke-12 Tahap 4 ([[t4-m39]]). Rekonsiliasi, yaitu mencocokkan catatan sendiri dengan catatan pihak lain, menunjukkan selisih Rp0 tiap hari, atau insiden yang muncul sudah tertutup dalam satu hari kerja. Itu berlangsung 14 hari berturut-turut (angka target Tahap 4, [Asumsi](/cara-pakai/#label-sumber)).
 
 Sinta lalu menulis PRD v5. Targetnya 1.000.000 user terdaftar, 20% aktif tiap hari, dan ±200.000 merchant (Asumsi). Sinta menulis "ratusan ribu merchant", dan halaman ini memakai batas bawahnya, 200.000.
 
@@ -82,7 +82,7 @@ Error budget adalah 100% dikurangi target ketersediaan, dikalikan lama periode. 
 | Prioritas | Fitur | Keterangan |
 |---|---|---|
 | P0 | Skala nasional | 1.000.000 user dan ±200.000 merchant (Asumsi). Deploy tanpa error yang terlihat user |
-| P0 | Laporan merchant real-time | Penjualan hari ini per merchant. Data yang dilayani laporan tertinggal paling lama 5 detik dari pembayaran yang tercatat di ledger (Asumsi produk). Layar memperbarui tiap 30 detik, jadi penjualan baru terlihat paling lambat 35 detik sesudah tercatat (Hitungan: 30 + 5). Laporan periode dan ekspor memakai catatan yang sama dengan ledger |
+| P0 | Laporan merchant real-time | Penjualan hari ini per merchant. Data yang dilayani laporan tertinggal paling lama 5 detik dari pembayaran yang tercatat di ledger (Asumsi produk). Layar memperbarui tiap 30 detik, jadi penjualan baru terlihat paling lambat 35 detik sesudah tercatat (Hitungan atas Asumsi produk: 30 + 5). Laporan periode dan ekspor memakai catatan yang sama dengan ledger |
 | P0 | Tidak berhenti, tidak kehilangan uang | Ketersediaan pembayaran 99,9% per 30 hari: error budget 0,001 × 43.200 menit = 43,2 menit. Tidak ada transaksi uang yang sudah dijawab sukses lalu hilang (RPO nol), dan pulih dalam 15 menit (RTO). Angka ini Asumsi produk dan menjawab pemicu ADR 33 yang tertunda sejak Tahap 3 |
 | P0 | Notifikasi massal | Pengumuman ke semua HP terkirim dalam 30 menit (Asumsi produk). Notifikasi uang tetap janji PRD v3: 95% di bawah 30 detik, dan pemberitahuan tidak mendahului uang |
 | P0 | Cicilan dan tabungan berjangka | Cicilan adalah pembayaran bertahap ke merchant tanpa bunga, dan PT tidak meminjamkan uang (Asumsi produk). Tabungan memindahkan jumlah tetap ke kantong tabungan tiap minggu. Batch harian menagih yang jatuh tempo, dan tiap angsuran terdebit tepat sekali |
@@ -153,9 +153,9 @@ Puncaknya naik 10 kali dari puncak Tahap 4, yaitu 138,9: user naik 10 kali, pers
 | Pemakaian worker | 564% | 75,2 ÷ 13,33; Tahap 4 memakai 56%, dan dengan 2 transaksi 391% |
 | Pengumuman ke 1.000.000 HP, 4 pengirim | 75.000 detik, atau 20,8 jam | 1.000.000 × 0,3 ÷ 4; Tahap 4: 100.000 HP butuh 7.500 detik |
 | Pengumuman dalam 30 menit | 167 pengirim, atau 42 proses | 1.000.000 ÷ 1.800 detik = 555,6 per detik; × 0,3 = 166,7, dibulatkan ke 167 pengirim; 167 ÷ 4 = 41,75, dibulatkan ke 42 |
-| Koneksi database | 180 terpasang, 97 tersedia | 6 service × 3 instance × pool 10; 100 − 3 cadangan; 180 ÷ 97 = 186% |
+| Koneksi database | 180 terpasang, 97 tersedia | 6 service × 3 instance × pool 10; `max_connections` 100 − 3 cadangan superuser, seperti [[t4-estimasi]]; 180 ÷ 97 = 186% |
 
-Rata-rata yang terpakai hanya 27,8 koneksi: 1.388,9 request per detik × 0,02 detik per query (Asumsi).
+Terpasang berarti batas pool: tiap pool boleh membuka sampai 10 koneksi. Pada puncak, rata-rata hanya 27,8 koneksi dipakai bersamaan: 1.388,9 request per detik × 0,02 detik lama satu request memegang koneksi (Asumsi, seperti [[t4-estimasi]]).
 
 </Blok>
 
