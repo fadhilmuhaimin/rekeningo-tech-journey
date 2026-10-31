@@ -4932,8 +4932,9 @@
       "prasyarat": [
         "t5-m51"
       ],
-      "ada": false,
-      "nomor": "5.30"
+      "ada": true,
+      "nomor": "5.30",
+      "menit": 24
     },
     {
       "id": "t5-rekap",

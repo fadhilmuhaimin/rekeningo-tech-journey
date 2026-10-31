@@ -1,0 +1,29 @@
+{
+  "id": "t5-adr60-inti",
+  "judul": "Dua belas butir, pemicunya dibaca ulang",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Hitungan atas Asumsi naskah Tahap 5; tabel Kapan keputusan ini salah di halaman ini"
+  },
+  "baris": [
+    {
+      "label": "Pemicu",
+      "sub": "dibaca ulang terhadap PRD v5",
+      "simpul": [
+        { "teks": "12 butir", "sub": "service mesh sampai OpenFeature" },
+        { "teks": "0 terpenuhi", "sub": "keadaan Tahap 5 belum sama dengan pemicu mana pun", "nada": "warn" },
+        { "teks": "6 belum terukur", "sub": "alat ukurnya belum menghasilkan angka", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Sisanya",
+      "sub": "enam butir lain",
+      "simpul": [
+        { "teks": "2 belum terpenuhi", "sub": "angkanya ada dan di bawah pemicu" },
+        { "teks": "3 tidak diminta", "sub": "PRD v5 tidak memintanya" },
+        { "teks": "1 menunggu PRD v6", "sub": "multi-region", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Enam belum terukur, dua belum terpenuhi, tiga tidak diminta, dan satu menunggu PRD v6: 6 + 2 + 3 + 1 = 12. Kapasitas tulis satu primary belum diukur, dan pemicu sharding serta TigerBeetle menunggunya."
+}
