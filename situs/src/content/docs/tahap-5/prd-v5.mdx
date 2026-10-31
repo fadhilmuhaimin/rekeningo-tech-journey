@@ -1,0 +1,243 @@
+---
+title: "5.1 PRD v5: Rekeningo untuk satu negara"
+description: Dokumen produk kelima Rekeningo. Sinta menulisnya untuk satu negara, Pak Hadi menambah satu syarat, dan 28 engineer dalam delapan tim punya 16 minggu.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import prdDiagram from "../../../../data/diagram/t5-prd-sebelum-sesudah.json";
+
+<p class="meta">Baca 16 menit · Prasyarat: [[t4-jembatan]] · Jalur inti</p>
+
+Sinta menulis PRD kelima ini untuk **PT Rekeningo** (fiktif), yang kini menargetkan satu negara. Ringkasannya sudah tampil di [[t4-jembatan]]. Halaman ini memuat dokumen lengkapnya, dan blok terakhir membuka jawaban atas tebakan di sana.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v5">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>Satu negara: 1.000.000 user terdaftar, ±200.000 merchant</dd></div><div><dt>Waktu</dt><dd>16 minggu, 28 engineer dalam delapan tim</dd></div></dl>
+</div>
+
+<Blok nama="Latar masalah" buka>
+
+Uji coba publik lolos di minggu ke-12 Tahap 4 ([[t4-m39]]). Rekonsiliasi, yaitu mencocokkan catatan sendiri dengan catatan pihak lain, menunjukkan selisih Rp0 tiap hari, atau insiden yang muncul sudah tertutup dalam satu hari kerja. Itu berlangsung 14 hari berturut-turut (angka target Tahap 4, [Asumsi](/cara-pakai/#label-sumber)).
+
+Sinta lalu menulis PRD v5. Targetnya 1.000.000 user terdaftar, 20% aktif tiap hari, dan ±200.000 merchant (Asumsi). Sinta menulis "ratusan ribu merchant", dan halaman ini memakai batas bawahnya, 200.000.
+
+PRD v5 menyebut tujuannya uang elektronik nasional, yaitu Rekeningo yang dipakai di satu negara. Frasa itu tidak membawa klaim izin atau regulasi apa pun.
+
+<Rantai data={prdDiagram} />
+
+Tiga hal berubah sekaligus.
+
+1. **Salinan datang.** Laporan, riwayat, pengumuman, dan cadangan membaca data yang sama dari banyak tempat, sehingga Rekeningo untuk pertama kali punya data yang sengaja tertinggal.
+2. **Pihak luar memanggil masuk.** POS (point of sale, yaitu kasir elektronik di toko) milik mitra membuat QR dan membaca status pembayaran lewat API publik.
+3. **Tim dan rilis berlipat.** 28 orang dalam delapan tim merilis hampir tiap hari ke enam service.
+
+Angka di dokumen ini adalah angka cerita (Ilustrasi: contoh, bukan hasil sistem), kecuali yang ditulis Asumsi, Hitungan, Rekaman lab, atau Tidak dijalankan. Asumsi adalah angka beban atau pilihan yang rumusnya atau alasannya ditulis di halaman.
+
+Hitungan adalah rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya. Rekaman lab berarti keluaran lab di repo, dan Tidak dijalankan berarti dicek ke dokumentasi atau kode tanpa dijalankan. Arti lengkap label sumber ada di [Label sumber](/cara-pakai/#label-sumber).
+
+Merchant naik 435 kali dari Tahap 4, sedangkan user naik 10 kali. Tahap 4 punya ±460 merchant, yaitu ±400 merchant luar dan ±60 warung Lestari ([[t4-jembatan]]). Jadi 200.000 ÷ 460 = 434,8, dibulatkan ke 435 (Hitungan atas Asumsi).
+
+Tahap 5 berangkat dari `api-t4` di akhir Tahap 4, belum dari sistem yang sudah dibereskan. Tiga hal masih terbuka:
+
+- Kapasitas satu server belum pernah diukur. `make beban` di lab `api-t4` memutar beban berjadwal di satu laptop, dan rekamannya menulis bahwa itu bukan kapasitas produksi ([[t4-m39]]).
+- RPO adalah titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RTO adalah lama waktu paling lama sampai sistem pulih. PRD v4 tidak menulis keduanya ([[t4-prd]]).
+- `api-t4` gagal gerbang pemindaian ADR 44 pada Go 1.27.1 ([[t4-tim-infra]]).
+
+Nama tahap ini, "Satu database tidak cukup", tidak berarti satu primary, yaitu database utama yang menerima semua tulisan, terbukti kurang untuk menulis. Kapasitasnya belum terukur. Maksudnya satu database yang dipakai untuk menulis uang, melayani laporan, dan menyimpan arsip tidak cukup.
+
+</Blok>
+
+<Blok nama="Tujuan">
+
+1. Satu juta user terdaftar dan ratusan ribu merchant memakai Rekeningo tanpa perubahan di app.
+2. Merchant melihat penjualan baru dalam 35 detik.
+3. Pembayaran tidak berhenti saat deploy atau saat satu mesin mati, dan tidak ada uang yang hilang.
+4. Penyedia POS pihak ketiga membuat QR dan membaca status lewat API publik.
+5. Cicilan dan tabungan berjalan lewat batch harian, yaitu program terjadwal yang tiap hari memproses banyak angsuran, tanpa menagih dua kali.
+
+</Blok>
+
+<Blok nama="User dan kebutuhan barunya">
+
+**SRE** (site reliability engineer) adalah engineer yang menjaga sistem produksi tetap berjalan. **Mitra POS** adalah penyedia POS pihak ketiga yang memanggil API Rekeningo.
+
+| User | Kebutuhan baru | Yang membuatnya berhenti memakai |
+|---|---|---|
+| User umum (Budi dan Citra di kota masing-masing) | Cicilan ke merchant, tabungan berjangka, pengumuman yang sampai | Pembayaran yang tidak muncul di riwayat, angsuran yang ditagih dua kali |
+| Merchant (Bu Marni dan ±200.000 lainnya, Asumsi) | Laporan penjualan yang diperbarui tiap 30 detik | Laporan yang terlambat, pembayaran yang melambat saat ia membuka laporan |
+| Mitra POS (Tomi dan ±50 penyedia, Asumsi) | API untuk membuat QR dan membaca status, webhook ke kasir | Kuota yang tidak jelas, kunci yang bocor, perubahan API tanpa kabar |
+| Warung Lestari (Ani dan ±59 lainnya) | Tetap seperti Tahap 4 | Pembayaran atau notifikasi yang terganggu urusan nasional |
+| Tim risk (Ratih) | Back office tetap cepat saat user berlipat | Data yang tertinggal tanpa tanda |
+| Keuangan (Pak Hadi) | Laporan resmi dan tutup buku harian dari catatan yang sama dengan ledger | Angka dari salinan yang tertinggal |
+| SRE dan security (Dewi dan Laras) | Batas waktu pulih yang tertulis, bukti rilis aman | Rilis tanpa metrik penjaga, kunci tanpa rotasi |
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+Lingkupnya satu negara: 1.000.000 user terdaftar dan 200.000 aktif per hari, dikerjakan 28 orang selama 16 minggu. PRD lengkap menambah satu isi P0 yang belum ada di ringkasan [[t4-jembatan]], yaitu tidak berhenti dan tidak kehilangan uang. Ia juga mengisi angka tim: 28 orang dalam delapan tim, di dalam rentang 20 sampai 40 orang.
+
+Error budget adalah 100% dikurangi target ketersediaan, dikalikan lama periode. Dalam 30 hari ada 30 × 24 × 60 = 43.200 menit, dan 0,001 × 43.200 = 43,2 menit.
+
+| Prioritas | Fitur | Keterangan |
+|---|---|---|
+| P0 | Skala nasional | 1.000.000 user dan ±200.000 merchant (Asumsi). Deploy tanpa error yang terlihat user |
+| P0 | Laporan merchant real-time | Penjualan hari ini per merchant. Data yang dilayani laporan tertinggal paling lama 5 detik dari pembayaran yang tercatat di ledger (Asumsi produk). Layar memperbarui tiap 30 detik, jadi penjualan baru terlihat paling lambat 35 detik sesudah tercatat (Hitungan atas Asumsi produk: 30 + 5). Laporan periode dan ekspor memakai catatan yang sama dengan ledger |
+| P0 | Tidak berhenti, tidak kehilangan uang | Ketersediaan pembayaran 99,9% per 30 hari: error budget 0,001 × 43.200 menit = 43,2 menit. Tidak ada transaksi uang yang sudah dijawab sukses lalu hilang (RPO nol), dan pulih dalam 15 menit (RTO). Angka ini Asumsi produk dan menjawab pemicu ADR 33 yang tertunda sejak Tahap 3 |
+| P0 | Notifikasi massal | Pengumuman ke semua HP terkirim dalam 30 menit (Asumsi produk). Notifikasi uang tetap janji PRD v3: 95% di bawah 30 detik, dan pemberitahuan tidak mendahului uang |
+| P0 | Cicilan dan tabungan berjangka | Cicilan adalah pembayaran bertahap ke merchant tanpa bunga, dan PT tidak meminjamkan uang (Asumsi produk). Tabungan memindahkan jumlah tetap ke kantong tabungan tiap minggu. Batch harian menagih yang jatuh tempo, dan tiap angsuran terdebit tepat sekali |
+| P0 | API publik untuk POS pihak ketiga | Mitra membuat QR dinamis, membaca status pembayaran, dan menerima webhook. Kunci per mitra, kuota per mitra, dan Idempotency-Key wajib untuk perintah yang menggerakkan uang |
+| P1 | Kartu virtual untuk semua user terverifikasi | Rilis bertahap dari PRD v4, dengan satu kill switch, yaitu sakelar yang mematikan satu fitur tanpa deploy |
+| P1 | Laporan Keuangan dari catatan yang sama dengan ledger | Syarat Pak Hadi di bawah |
+| P2 | Ditunda ke v6 | Multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, 10 juta user |
+
+Asumsi produk adalah Asumsi yang berupa pilihan produk. Angka 5 detik, 30 detik, 99,9%, 30 menit, RPO nol, dan RTO 15 menit di tabel ini tidak berasal dari hitungan atau rekaman.
+
+**Bukan lingkup v5:** pembayaran offline, pencairan merchant otomatis lewat bank (tetap file), tarik tunai, kartu fisik, dan multi-mata uang. Bunga atau pinjaman dari PT juga bukan lingkup, dan tidak ada klaim izin atau kepatuhan regulasi apa pun.
+
+</Blok>
+
+<Blok nama="Metrik dan batasan">
+
+**Metrik keberhasilan (target, Asumsi)**
+
+- 200.000 user aktif per hari (20% dari 1.000.000).
+- 99,9% pembayaran tersedia dalam 30 hari (43,2 menit error budget), RPO nol untuk transaksi uang yang sudah dijawab sukses, RTO 15 menit.
+- Data laporan merchant tertinggal paling lama 5 detik dari pembayaran yang tercatat, dan penjualan baru terlihat di layar paling lambat 35 detik.
+- Pengumuman ke 1.000.000 HP terkirim dalam 30 menit, dan 95% notifikasi uang di bawah 30 detik.
+- 0 angsuran terdebit dua kali, dan 0 angsuran jatuh tempo tanpa catatan.
+- 0 permintaan dari satu mitra yang membuat mitra lain mendapat 429.
+
+**Batasan**
+
+- 28 engineer dalam delapan tim selama 16 minggu (Asumsi cerita).
+- Semua pihak ketiga berupa tiruan lokal di lab.
+- Security review Laras lolos sebelum tiap rilis ke seluruh negeri.
+- Kapasitas satu server belum pernah diukur, dan pengukurannya dijadwalkan sebelum fitur pertama yang menambah beban ([[t4-adr-45]], aturan 5).
+- Direksi meminta perbandingan biaya tiga tahun antara cloud dan perangkat sendiri sebelum anggaran tahun berikutnya (Asumsi cerita).
+
+Aturan Pak Hadi dipertahankan dan diperluas:
+
+| PRD | Aturan Pak Hadi |
+|---|---|
+| v1 | "Tidak ada angka yang berubah tanpa catatan siapa, kapan, kenapa." |
+| v2 | "Setiap rupiah di saldo siapa pun harus bisa ditelusuri ke kejadian yang membuatnya, tanpa tabel koreksi tangan." |
+| v3 | Aturan v2 tetap berlaku, ditambah: "Ani tidak boleh diberi tahu uang masuk sebelum uang itu benar-benar tercatat." |
+| v4 | Aturan v3 tetap berlaku, ditambah: "Setiap rupiah dari luar harus cocok dengan catatan pihak yang mengirimnya. Kalau tidak cocok, namanya insiden, bukan angka yang saya koreksi." |
+| v5 | Aturan v4 tetap berlaku, ditambah: "Angka yang saya tanda tangani harus dibaca dari catatan yang sama dengan yang menggerakkan uang. Salinan boleh untuk dilihat, bukan untuk memutuskan." |
+
+**Beban yang diharapkan (Asumsi)**
+
+Dasar hitungannya 3 transaksi uang per user aktif per hari, seperti Tahap 2 sampai 4. Kolom terakhir memakai 2 transaksi, angka yang dipakai [[D1]] untuk ±44 GB data per tahun dan yang ditulis berdampingan di [[t4-estimasi]].
+
+| Besaran | Nilai | Cara hitung | Dengan 2 transaksi |
+|---|---|---|---|
+| User terdaftar | 1.000.000 | PRD v5 | sama |
+| User aktif harian | 200.000 | 1.000.000 × 20% (asumsi) | sama |
+| Request per hari | 12.000.000 | 200.000 × 60 request (asumsi) | sama |
+| Puncak request per detik | 1.388,9 | 12.000.000 ÷ 86.400 × 10 (asumsi), rata-rata 138,9 | sama |
+| Transaksi uang per hari (bayar, transfer, QR) | 600.000 | 200.000 × 3 transaksi (asumsi) | 400.000 |
+| Transaksi uang per detik di puncak | 69,4 | 600.000 ÷ 86.400 × 10 (asumsi) | 46,3 |
+| Posting per tahun | 438 juta | 200.000 × 3 transaksi × 2 posting × 365 (asumsi) | 292 juta |
+| Top-up dari bank per hari | 50.000 | 200.000 × 0,25 top-up (asumsi) | sama |
+| Top-up dari bank per detik di puncak | 5,79 | 50.000 ÷ 86.400 × 10 (asumsi) | sama |
+
+Puncaknya naik 10 kali dari puncak Tahap 4, yaitu 138,9: user naik 10 kali, persen aktif tetap 20%, dan request per user tetap 60. Rumusnya sama dengan [[t4-estimasi]].
+
+**Yang melewati batas lebih dulu (Hitungan atas Asumsi)**
+
+| Besaran | Nilai | Cara hitung |
+|---|---|---|
+| Kapasitas worker notifikasi | 13,33 per detik | 4 pengirim ÷ 0,3 detik per pengiriman, Asumsi dari [[t3-estimasi]] |
+| Notifikasi uang di puncak | 75,2 per detik | (600.000 + 50.000) ÷ 86.400 × 10; dengan 2 transaksi 52,1 |
+| Pemakaian worker | 564% | 75,2 ÷ 13,33; Tahap 4 memakai 56%, dan dengan 2 transaksi 391% |
+| Pengumuman ke 1.000.000 HP, 4 pengirim | 75.000 detik, atau 20,8 jam | 1.000.000 × 0,3 ÷ 4; Tahap 4: 100.000 HP butuh 7.500 detik |
+| Pengumuman dalam 30 menit | 167 pengirim, atau 42 proses | 1.000.000 ÷ 1.800 detik = 555,6 per detik; × 0,3 = 166,7, dibulatkan ke 167 pengirim; 167 ÷ 4 = 41,75, dibulatkan ke 42 |
+| Koneksi database | 180 terpasang, 97 tersedia | 6 service × 3 instance × pool 10; `max_connections` 100 − 3 cadangan superuser, seperti [[t4-estimasi]]; 180 ÷ 97 = 186% |
+
+Terpasang berarti batas pool: tiap pool boleh membuka sampai 10 koneksi. Pada puncak, rata-rata hanya 27,8 koneksi dipakai bersamaan: 1.388,9 request per detik × 0,02 detik lama satu request memegang koneksi (Asumsi, seperti [[t4-estimasi]]).
+
+</Blok>
+
+<Blok nama="Tim dan risiko">
+
+Tim tumbuh dari 13 menjadi 28 orang selama 16 minggu (Asumsi cerita), dan engineer baru masuk bertahap. Tiga tim Tahap 4 dibagi ulang menjadi delapan tim. Satu anggota Pembayaran pindah ke Ledger dan Tabungan, sedangkan Platform melepas akun dan identitas ke Akun, outbox ke Notifikasi, dan keamanan ke Security. SLO adalah target yang diukur untuk satu ukuran mutu, misalnya ketersediaan, dan failover adalah memindahkan tugas database utama ke salinannya.
+
+| Tim | Memegang |
+|---|---|
+| Pembayaran: 4 orang, dipimpin Nadia | gateway, top-up bank, kartu virtual |
+| Ledger dan Tabungan: 4 orang, dipimpin Hendra | ledger, cicilan, tabungan, batch harian |
+| Merchant: 4 orang, dipimpin Wulan | merchant, QR, laporan, API untuk POS |
+| Akun: 4 orang, dipimpin Raka | app, akun, identitas |
+| Notifikasi: 4 orang, dipimpin Maya | pengiriman push, pengumuman |
+| Platform: 4 orang, dipimpin Bayu | cluster, pooler, pipeline, observability |
+| SRE: 2 orang, dipimpin Dewi | SLO, giliran jaga, latihan failover |
+| Security: 2 orang, dipimpin Laras | threat model, tinjauan, uji penetrasi lokal |
+
+Totalnya 4 × 6 + 2 × 2 = 28 orang. Isinya lima tim produk (Pembayaran, Ledger dan Tabungan, Merchant, Akun, Notifikasi) dan tiga tim fungsi (Platform, SRE, Security).
+
+Tahap 5 punya tiga tokoh baru:
+
+- **Dewi** adalah SRE yang bergabung di minggu 1, delapan tahun berjaga di sistem pembayaran lain dan belum pernah menulis fitur. Ia ingin sistem yang berhenti dengan aman, tetapi menolak rilis tanpa metrik penjaga.
+- **Hendra** adalah engineer data dari tim akuntansi Lestari, dan memimpin tim Ledger dan Tabungan. Ia ingin angka yang cocok sampai rupiah terakhir, tetapi menganggap batch malam selalu bisa diulang dari awal.
+- **Tomi** adalah engineer di penyedia POS (fiktif), mitra pertama API publik. Ia ingin kasir yang tidak pernah menunggu Rekeningo, tetapi mengulang permintaan tanpa batas bila tidak ada jawaban.
+
+Tokoh lama tetap ada, dengan kelemahan yang sama. Raka memimpin Akun, Nadia memimpin Pembayaran, Bayu memimpin Platform, Wulan memimpin Merchant, dan Laras memimpin Security.
+
+Sinta menulis tiga risiko:
+
+1. Rekeningo pertama kali punya data yang sengaja tertinggal.
+2. Enam service dirilis sendiri-sendiri.
+3. Pihak luar memanggil masuk dengan laju yang tidak Rekeningo kendalikan.
+
+</Blok>
+
+<Blok nama="Pertanyaan terbuka">
+
+Tiga pertanyaan ini ada di PRD v5, tapi belum dijawab:
+
+1. Kalau laporan dan pembayaran membaca database yang sama, siapa yang melambat?
+2. Kalau database utama mati, apa yang hilang, dan siapa yang tahu?
+3. Kalau pengumuman, makan siang, dan rilis datang bersamaan, notifikasi uang yang mana yang terlambat?
+
+Tidak ada yang menjawabnya sebelum kode ditulis. Ketiganya jadi masalah terbesar Tahap 5. Jawabannya dimulai di [[t5-m40]] untuk pertanyaan pertama, [[t5-m42]] untuk yang kedua, dan [[t5-m45]] untuk yang ketiga.
+
+</Blok>
+
+<Blok nama="Yang dibuka lagi dari Tahap 4">
+
+Di [[t4-jembatan]] kamu menebak ADR Tahap 4 mana yang pecah lebih dulu. Jawaban yang cocok dengan halaman ADR-nya adalah ADR 36, ADR 37, ADR 44, dan ADR 45.
+
+Pecah berarti halaman ADR itu sendiri menulis keadaan yang sama dengan satu isi PRD v5. Urutan "lebih dulu" adalah penalaran dari kalimat halaman ADR (Asumsi), bukan urutan kejadian yang direkam.
+
+Read replica adalah salinan database yang melayani bacaan. Tabel ini menaruh tiap ADR di samping isi PRD v5 yang memenuhinya, dan keempat kalimatnya sudah tertulis di halaman ADR sebelum PRD v5 ada.
+
+| ADR | Kalimat di halaman Tahap 4 | Isi PRD v5 yang memenuhinya | Dilanjutkan di |
+|---|---|---|---|
+| 45 ([[t4-adr-45]]) | Satu dari tiga pemicu read replica adalah laporan merchant real-time yang diminta PRD v5 | Laporan merchant real-time | [[t5-m40]] dan [[t5-read-replica]] |
+| 36 ([[t4-breaker]]) | Breaker hidup di memori satu proses worker, dan dua worker tidak berbagi hitungan, jadi tiap proses menunggu enam kegagalannya sendiri (dibaca dari kode, tidak direkam) | Notifikasi massal, yang butuh 42 proses worker dalam 30 menit (Hitungan atas Asumsi) | [[t5-m45]] dan [[t5-fanout]] |
+| 37 ([[t4-modul]]) | Keputusan salah bila satu modul punya profil beban atau tim yang membuat deploy bersama tidak lagi masuk akal | 28 orang dalam delapan tim | [[t5-m44]] dan [[t5-service]] |
+| 44 ([[t4-tim-infra]]) | Pipeline dan giliran jaga dibagi per tim, dan batas modul perlu menjadi batas deploy | 28 orang dalam delapan tim | [[t5-m44]] dan [[t5-tim-infra]] |
+
+Dua pilihan lain di tebakan tidak cocok dengan isi PRD v5:
+
+- ADR 41 menulis syarat salah per satu impor: 50 produk menjadi 21 detik dalam satu request ([[t4-ssrf]]).
+- ADR 40 memakai pembanding persen yang mengecil bila merchant bertambah. 15 merchant adalah 3,3% dari ±460, dan 15 ÷ 200.000 = 0,0075% (Hitungan atas Asumsi; [[t4-qr]]).
+
+Dua belas ADR sebelumnya menulis Tahap 5 atau memuat syarat salah yang cocok dengan PRD v5, jadi syaratnya dibaca ulang di sini. ADR 36, 44, dan 45 sudah ada di tabel di atas. Di halaman ADR Tahap 1 sampai 4, tujuh ADR menulis kata Tahap 5: ADR 4, 6, 12, 26, 38, 44, dan 45 (dipindai 2026-10-31). Lima ADR lain tidak menulis kata itu, tetapi syarat salahnya cocok: ADR 14, 33, 34, 36, dan 42.
+
+- ADR 4 ([[t1-sql-injection]]) menunda WAF, yaitu penyaring permintaan HTTP di depan API, ke Tahap 5. Alasannya puncak 0,14 request per detik, satu gedung, dan penguji internal. PRD v5 membalik ketiganya, dan [[t5-waf]] mengerjakannya.
+- ADR 6 ([[t2-adr-ledger]], revisi di Tahap 2) menjadwalkan partisi `posting` per bulan dan snapshot saldo di Tahap 5, saat posting diperkirakan ±440 juta per tahun (Asumsi). Partisi memecah satu tabel jadi satu bagian per bulan, dan snapshot saldo menyimpan saldo tiap buku per periode. Tabel Beban menghitung 438 juta, dan [[t5-partisi]] mengerjakannya.
+- ADR 12 ([[t1-adr-12]]) menjadwalkan Kubernetes, program yang menjalankan banyak container di banyak mesin, di Tahap 5 mulai dari k3s, Kubernetes ringan, di lab. [[t5-service]] mengerjakannya.
+- Halaman [[B2.2]], yang bukan ADR, menjadwalkan read replica untuk laporan di Tahap 5. Ia juga menulis bahwa data besar yang hanya dibaca per kunci, misalnya notifikasi untuk jutaan user, baru mungkin muncul di Tahap 5. PRD v5 memuat laporan merchant real-time, tetapi tidak memuat inbox notifikasi per user, jadi syarat kedua belum terpenuhi dan PostgreSQL tetap source of truth.
+- ADR 14 ([[t2-idempotency]]) membatasi umur Idempotency-Key 24 jam, dan ADR 34 ([[t4-webhook]]) mencatat akibatnya. Bila service pembayaran mati di antara ledger dan transaction pembayaran, kiriman ulang sesudah key habis menjurnal lagi. Rekaman lab t4-modul, `proses-mati.txt` bagian C, mencatat satu jurnal pada +23 jam dan dua pada +25 jam (jam ledger diperankan). Batch cicilan yang tertunda lebih dari 24 jam bisa melewati batas yang sama (penalaran), dan [[t5-batch]] menjawabnya.
+- ADR 26 ([[t3-dua-instance]]) menolak Kubernetes untuk dua instance dan empat engineer, dan menulis bahwa rencana awal menaruhnya di Tahap 5. PRD v5 punya 28 engineer dalam delapan tim.
+- ADR 33 ([[t3-adr-33]]) menunda VPS kedua sampai waktu pulih atau jendela kehilangan data melebihi yang diterima Pak Hadi atau PRD. Backup harian berjendela sampai 24 jam, sedangkan PRD v5 menulis RPO nol dan RTO 15 menit, jadi pemicu itu terpenuhi dan [[t5-rpo-rto]] menjawabnya.
+- ADR 38 ([[t4-storage]]) menghitung unduhan staf 1.157 KB per detik di Tahap 5, yaitu 20.000 × 500 KB ÷ 86.400 × 10 (Hitungan atas Asumsi). Kapasitas jaringan instance tidak diukur lab (Tidak dijalankan), jadi angka itu belum bisa dibandingkan dengan pemicunya.
+- ADR 42 ([[t4-kartu]]) menaruh kill switch di memori satu proses. Keputusannya salah bila Rekeningo berjalan di lebih dari satu instance. PRD v5 meminta pembayaran tidak berhenti saat satu mesin mati, jadi paling sedikit dua instance berjalan bersamaan (penalaran), dan [[t5-m49]] menjawabnya.
+
+[[t4-jembatan]] menulis "pecah lebih dulu" sebagai penalaran. Tahap 5 mengubah dugaan itu menjadi hitungan di tabel Beban. Worker terpakai 564% (Tahap 4: 56%), pengumuman ke 1.000.000 HP butuh 20,8 jam di satu worker, dan koneksi terpasang 180 lawan 97 tersedia. Urutan "lebih dulu" tetap penalaran, dan urutan masalah di Tahap 5 adalah urutan cerita, bukan hasil pengukuran.
+
+Masalah pertama dari semua ini datang di [[t5-m40]].
+
+</Blok>
