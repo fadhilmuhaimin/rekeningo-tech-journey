@@ -380,9 +380,9 @@
               "catatan": "Pengumuman dan event pembayaran lewat relay dari outbox; consumer idempoten (ADR 51)"
             },
             {
-              "label": "Primary + PgBouncer",
+              "label": "Primary + pooler",
               "berubah": true,
-              "catatan": "PostgreSQL dengan replica sinkron untuk ledger (ADR 48), posting dipartisi per bulan (ADR 49), dan PgBouncer mode transaction di depannya (ADR 52)"
+              "catatan": "PostgreSQL dengan replica sinkron untuk ledger (ADR 48), posting dipartisi per bulan (ADR 49), dan PgBouncer mode transaction di depannya (ADR 52); worker, Redis, penyimpanan objek, dan KMS tidak digambar"
             },
             {
               "label": "Read replica",
@@ -391,7 +391,7 @@
             }
           ]
         ],
-        "caption": "Tahap 5: laporan dan bacaan berat pindah ke replica, enam service dirilis terpisah, dan pintu di tepi melayani mitra POS. Biru = baru atau berubah; worker, Redis, penyimpanan objek, dan KMS tidak digambar."
+        "caption": "Tahap 5: laporan pindah ke replica dan enam service dirilis terpisah. Biru = baru atau berubah."
       },
       "asumsi": {
         "user": 1000000,
@@ -4989,13 +4989,13 @@
       ],
       "masalah": "Database utama penuh oleh query baca",
       "ada": true,
-      "pendek": "Scaling (versi lama)",
       "bagian": 4,
       "lama": true,
       "lebur_ke": "t5-read-replica",
       "lab": [
         "t5-replika"
       ],
+      "pendek": "Scaling (versi lama)",
       "menit": 10
     },
     {
@@ -5010,13 +5010,13 @@
       ],
       "masalah": "User tidak melihat transaksinya sendiri sesaat",
       "ada": true,
-      "pendek": "Replica dan consistency (versi lama)",
       "bagian": 4,
       "lama": true,
       "lebur_ke": "t5-lag",
       "lab": [
         "t5-replika"
       ],
+      "pendek": "Replica dan consistency (versi lama)",
       "menit": 10
     },
     {
@@ -5031,13 +5031,13 @@
       ],
       "masalah": "Notifikasi ke ratusan ribu user sekaligus",
       "ada": true,
-      "pendek": "Feed dan notifikasi (versi lama)",
       "bagian": 4,
       "lama": true,
       "lebur_ke": "t5-fanout",
       "lab": [
         "t5-fanout"
       ],
+      "pendek": "Feed dan notifikasi (versi lama)",
       "menit": 7
     },
     {
