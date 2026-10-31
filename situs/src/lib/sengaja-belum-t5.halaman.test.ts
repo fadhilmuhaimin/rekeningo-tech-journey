@@ -31,6 +31,7 @@ const t4Tim = baca("situs/src/content/docs/tahap-4/tim-infra.mdx");
 const t2Ledger = baca("situs/src/content/docs/tahap-2/adr-ledger.mdx");
 const t2Adr21 = baca("situs/src/content/docs/tahap-2/sengaja-belum.mdx");
 const tanpaKunci = process.env.TANPA_KUNCI === "1";
+const tanpaSidik = process.env.TANPA_SIDIK === "1";
 
 interface H { id: string; judul: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; adr?: number[]; peran?: string[]; path?: string; pendek?: string }
 const hal = registry.halaman as unknown as H[];
@@ -690,6 +691,63 @@ describe("definisi label, simbol, dan istilah di pemakaian pertama", () => {
   });
 });
 
+describe("penutup celah mutasi: label tautan, kata bilangan atas daftar, dan kalimat enam butir", () => {
+  const kata = ["nol", "satu", "dua", "tiga", "empat", "lima", "enam"];
+  test("pasangan label dan alamat tautan luar terkunci, dan versi di label sama dengan versi di alamat atau baris riset", () => {
+    const pasangan = [...badan.matchAll(/\[([^\]]+)\]\((https:\/\/[^)]+)\)/g)].map((m) => `${m[1]} => ${m[2]!.replace(/^https:\/\//, "")}`);
+    expect([...new Set(pasangan)]).toEqual([
+      "Istio => istio.io/latest/about/service-mesh/",
+      "AWS: opsi pemulihan bencana => docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html",
+      "microservices.io: database per service => microservices.io/patterns/data/database-per-service.html",
+      "Azure: sharding => learn.microsoft.com/en-us/azure/architecture/patterns/sharding",
+      "Azure: backends for frontends => learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends",
+      "gRPC => grpc.io/docs/what-is-grpc/introduction/",
+      "Debezium 3.7 => debezium.io/documentation/reference/stable/connectors/postgresql.html",
+      "TigerBeetle => docs.tigerbeetle.com/",
+      "Temporal => docs.temporal.io/evaluate/understanding-temporal",
+      "SLSA v1.2 => slsa.dev/spec/v1.2/provenance",
+      "RFC 9421 => www.rfc-editor.org/rfc/rfc9421.html",
+      "Azure: event sourcing => learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing",
+      "spesifikasi OpenFeature => github.com/open-feature/spec/releases",
+      "flagd => flagd.dev/",
+      "Azure: pola Sharding => learn.microsoft.com/en-us/azure/architecture/patterns/sharding",
+      "Azure: pola Event Sourcing => learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing",
+      "microservices.io: Database per service => microservices.io/patterns/data/database-per-service.html",
+      "AWS: opsi pemulihan bencana di cloud => docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html",
+      "Istio: apa itu service mesh => istio.io/latest/about/service-mesh/",
+      "gRPC: pengantar => grpc.io/docs/what-is-grpc/introduction/",
+      "OpenFeature: rilis spesifikasi => github.com/open-feature/spec/releases",
+    ]);
+    expect(barisRiset("R5-259")).toContain("Debezium 3.7");
+    expect(barisRiset4("R4-252")).toContain("slsa.dev/spec/v1.2/provenance");
+    expect(barisRiset4("R4-252")).toContain("RFC 9421");
+    expect(barisRiset4("R4-252")).toContain("rfc-editor.org/rfc/rfc9421.html");
+    expect(barisRiset4("R4-251")).toContain("istio.io/latest/about/service-mesh/");
+    expect(barisRiset4("R4-253")).toContain("backends-for-frontends");
+  });
+  test("kata bilangan atas daftar dihitung dari butirnya: tiga butir sumber, tiga pertanyaan, enam butir yang tidak dibawa", () => {
+    const awal = badan.indexOf("**Apa kata sumber tentang ");
+    const potong = badan.slice(awal).split("\n");
+    const butir = [];
+    for (const l of potong.slice(2)) { if (l.startsWith("- ")) butir.push(l); else if (butir.length) break; }
+    expect(butir).toHaveLength(3);
+    expect(potong[0]).toBe(`**Apa kata sumber tentang ${kata[butir.length]} butir yang paling berat.** Ke${kata[butir.length]}nya Tidak dijalankan.`);
+    expect(butir.map((b) => b.split(":")[0])).toEqual(["- Sharding", "- Event sourcing", "- Multi-region"]);
+    const tanya = [...halaman.matchAll(/^\d\. (?:Load test|Tiga service|Pratinjau PRD v6)/gm)].length;
+    expect(tanya).toBe(3);
+    expect(badan).toContain(`Yakin dengan ke${kata[tanya]}nya? Lompat ke [[berikutnya]].`);
+    expect(badan).toContain("Cek 3 pertanyaan");
+    const enam = 'Keenamnya keyless signing, workflow per modul dengan branch protection dan CODEOWNERS, isi response lawan kontrak, aturan "jalankan semua", client Dart yang dijalankan, dan menaikkan Go ke 1.27.3.';
+    expect(badan).toContain(enam);
+    expect(badan).toContain("Enam butir lain tidak dibawa ke ADR Tahap 5.");
+    expect(badan).toContain("Tiap butir diberi satu kalimat arti, dan sumbernya ada di bawah daftar.");
+    expect(badan).toContain("Dua belas butir bisa dijawab dengan tiga cara.");
+    expect(tabel("| | A. Pasang semuanya")[0]).toHaveLength(4);
+    expect(badan.indexOf("Dua belas butir bisa dijawab dengan tiga cara.")).toBeLessThan(badan.indexOf("| | A. Pasang semuanya"));
+    expect(badan).toContain("Lima dibawa ke Tahap 5.");
+  });
+});
+
 // --- lapis 2: kunci per baris, sidik kata penentu, struktur, angka, dan label
 const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "atau", "dan", "kecuali", "saja", "baru", "masih", "kurang", "cukup", "ya", "nol", "terpenuhi", "terlewati", "menunggu", "diminta", "terukur"];
 const sidik = (teks: string, kata: string[]): Record<string, number> =>
@@ -753,16 +811,16 @@ describe("kunci kalimat: teks halaman, diagram, dan tebak terkunci per baris (la
 });
 
 describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka, tabel, dan berkas", () => {
-  test("jumlah label per jenis: Asumsi tidak naik menjadi Rekaman lab, dan tanggal buka tidak bergeser", () => {
+  (tanpaSidik ? test.skip : test)("jumlah label per jenis: Asumsi tidak naik menjadi Rekaman lab, dan tanggal buka tidak bergeser", () => {
     expect(sidikSekarang.label).toEqual(SIDIK.label);
     expect(sidikSekarang.label.rekamanLab).toBe(1);
   });
-  test("sidik kata penentu halaman, diagram, dan tebak", () => {
+  (tanpaSidik ? test.skip : test)("sidik kata penentu halaman, diagram, dan tebak", () => {
     expect(sidikSekarang.halaman).toEqual(SIDIK.halaman);
     expect(sidikSekarang.rantai).toEqual(SIDIK.rantai);
     expect(sidikSekarang.tebak).toEqual(SIDIK.tebak);
   });
-  test("sidik struktur, angka prosa, tabel per baris, baris riset, dan berkas JSON serta frontmatter", () => {
+  (tanpaSidik ? test.skip : test)("sidik struktur, angka prosa, tabel per baris, baris riset, dan berkas JSON serta frontmatter", () => {
     expect(sidikSekarang.struktur).toBe(SIDIK.struktur);
     expect(sidikSekarang.angka).toBe(SIDIK.angka);
     expect(sidikSekarang.tabel).toEqual(SIDIK.tabel);
