@@ -527,6 +527,14 @@ window.ISTILAH = {
   "t": "Enumerasi",
   "u": "tahap-1/idor-token-app/"
  },
+ "Error budget": {
+  "b": "t5-prd",
+  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.",
+  "n": "5.1 PRD v5",
+  "s": "istilah-error-budget",
+  "t": "Error budget",
+  "u": "tahap-5/prd-v5/"
+ },
  "Event sourcing": {
   "b": "t2-adr-ledger",
   "d": "Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.",
@@ -1421,6 +1429,22 @@ window.ISTILAH = {
   "t": "ROLLBACK",
   "u": "tahap-1/transaction/"
  },
+ "RPO": {
+  "b": "t5-prd",
+  "d": "Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang.",
+  "n": "5.1 PRD v5",
+  "s": "istilah-rpo",
+  "t": "RPO (recovery point objective)",
+  "u": "tahap-5/prd-v5/"
+ },
+ "RTO": {
+  "b": "t5-prd",
+  "d": "Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan.",
+  "n": "5.1 PRD v5",
+  "s": "istilah-rto",
+  "t": "RTO (recovery time objective)",
+  "u": "tahap-5/prd-v5/"
+ },
  "Race condition": {
   "b": "t2-race-lock",
   "d": "Hasil yang bergantung pada urutan dua proses yang berjalan bersamaan.",
@@ -2207,6 +2231,14 @@ window.ISTILAH = {
   "s": "istilah-enumerasi",
   "t": "Enumerasi",
   "u": "tahap-1/idor-token-app/"
+ },
+ "error budget": {
+  "b": "t5-prd",
+  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.",
+  "n": "5.1 PRD v5",
+  "s": "istilah-error-budget",
+  "t": "Error budget",
+  "u": "tahap-5/prd-v5/"
  },
  "event sourcing": {
   "b": "t2-adr-ledger",

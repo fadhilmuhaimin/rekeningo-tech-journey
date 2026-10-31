@@ -1,0 +1,28 @@
+{
+  "id": "t5-prd-sebelum-sesudah",
+  "judul": "Sesudah Tahap 4 dan yang diminta PRD v5",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ringkasan PRD v5" },
+  "baris": [
+    {
+      "label": "Sesudah Tahap 4",
+      "sub": "yang belum ada",
+      "simpul": [
+        { "teks": "Satu database untuk semua", "sub": "uang, laporan, dan arsip" },
+        { "teks": "Belum ada target pulih", "sub": "data hilang dan waktu pulih belum ditulis", "nada": "warn" },
+        { "teks": "Tanpa API untuk kasir mitra", "sub": "POS pihak ketiga bukan lingkup" },
+        { "teks": "13 engineer, tiga tim", "sub": "lima modul dan satu service" }
+      ]
+    },
+    {
+      "label": "Rekeningo v5",
+      "sub": "satu negara, 16 minggu",
+      "simpul": [
+        { "teks": "Laporan real-time", "sub": "tertinggal paling lama 5 detik", "nada": "system" },
+        { "teks": "Pulih dalam 15 menit", "sub": "tanpa uang hilang", "nada": "good" },
+        { "teks": "API untuk POS mitra", "sub": "kuota dan kunci per mitra", "nada": "system" },
+        { "teks": "28 engineer, delapan tim", "sub": "lima tim produk, tiga tim fungsi", "nada": "system" }
+      ]
+    }
+  ],
+  "catatan": "Kotak biru adalah fitur dan kondisi di PRD v5. Kotak hijau adalah target pulih, Asumsi produk."
+}

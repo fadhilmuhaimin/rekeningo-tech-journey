@@ -4190,8 +4190,9 @@
       "prasyarat": [
         "t4-jembatan"
       ],
-      "ada": false,
-      "nomor": "5.1"
+      "ada": true,
+      "nomor": "5.1",
+      "menit": 16
     },
     {
       "id": "t5-fitur-teknis",
