@@ -379,6 +379,7 @@ describe("rekaman skema.txt: foreign key, tabel per schema, hak, versi, dan rent
     expect(badan).toContain("Lab tidak mengukur waktu CI, seperti yang ditulis ADR 44 ([[t4-tim-infra]]).");
     expect(adr44).toContain("Lab tidak mengukur waktu CI.");
     expect(badan).toContain("Rekaman memecah data, bukan proses. `api-t5` adalah satu proses dengan satu role");
+    expect(badan).toContain("Konsistensi lintas service bergeser dari database ke Idempotency-Key dan rekonsiliasi, seperti yang diterima ADR 37.");
   });
   test("pergantian nama kolom di Tahap 4 mematahkan top-up karena satu role, dan varian rekaman 4.12 memisahkan role", () => {
     expect(hal412).toContain("Semua modul memakai satu schema");
@@ -412,7 +413,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-165 sam
     expect(r).toContain("Build concurrency: The maximum number of merge_group webhooks to dispatch (between 1 and 100), throttling the total amount of concurrent CI builds. This affects the velocity of merges that a merge queue can complete.");
     expect(r).toContain("Dokumentasi tidak menulis bahwa runner tambahan tidak mempercepat antrean");
     expect(badan).toContain("merge queue mengelompokkan perubahan satu pull request dengan versi terbaru branch dasar. Kelompok itu juga memuat perubahan pull request di depannya");
-    expect(badan).toContain("Dokumentasi GitHub menulis bahwa build concurrency memengaruhi laju merge");
+    expect(badan).toContain("Dokumentasi GitHub menulis bahwa pengaturan ini memengaruhi laju merge");
     expect(badan).toContain("Runner tambahan membantu sebagian.");
     expect(badan).toContain("Dugaan pertama tidak salah, tetapi tidak menjawab siapa menunggu siapa.");
     expect(badan).not.toMatch(/runner (tidak|takkan) (membantu|mempercepat)/i);
@@ -599,7 +600,8 @@ describe("ID registry, tautan, template blok, widget, kartu, dan istilah", () =>
     for (const k of ["layanan", "replika", "rahasia", "antrean", "antrian", "pelanggan"]) expect(`${badan}\n${JSON.stringify(skenario)}\n${JSON.stringify(rantaiMentah)}`.toLowerCase(), k).not.toContain(k);
     expect(badan.match(/\bservice\b/g)!.length).toBeGreaterThan(10);
     expect(badan.match(/\bBuild concurrency adalah jumlah build CI yang boleh berjalan bersamaan\./g)).toHaveLength(1);
-    expect(badan.indexOf("Build concurrency adalah")).toBeGreaterThan(badan.indexOf("build concurrency memengaruhi laju merge"));
+    expect(badan.indexOf("Build concurrency adalah")).toBeLessThan(badan.indexOf("pengaturan ini memengaruhi laju merge"));
+    expect(badan.indexOf("Build concurrency adalah")).toBeLessThan(badan.indexOf("build concurrency memengaruhi laju merge"));
   });
   test("ID riset, nomor keputusan, dan nomor PR tidak tampil di halaman, rantai, skenario, kartu, dan halaman istilah", () => {
     const tampil = [badan, frontmatter, JSON.stringify(rantaiMentah), JSON.stringify(skenario), JSON.stringify(kartuSemua.filter((x) => x.halaman === "t5-m44")), JSON.stringify({ ...istilah, sumber: istilah.sumber.map((s) => ({ ...s, riset: "" })) })].join("\n");

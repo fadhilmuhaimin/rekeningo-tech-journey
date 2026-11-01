@@ -52,7 +52,7 @@ Lima tim produk bergantung pada satu merge queue dan satu rilis, jadi perubahan 
 
 Kalau kamu pernah merilis satu app dari satu branch utama bersama beberapa tim, kamu mengenal rasanya: perubahanmu siap, tetapi rilis menunggu perubahan orang lain. Runner tambahan membantu sebagian.
 
-Dokumentasi GitHub menulis bahwa build concurrency memengaruhi laju merge ([GitHub Docs: Managing a merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue), dibuka 2026-11-02, Tidak dijalankan). Build concurrency adalah jumlah build CI yang boleh berjalan bersamaan. Dugaan pertama tidak salah, tetapi tidak menjawab siapa menunggu siapa.
+Build concurrency adalah jumlah build CI yang boleh berjalan bersamaan. Dokumentasi GitHub menulis bahwa pengaturan ini memengaruhi laju merge ([GitHub Docs: Managing a merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue), dibuka 2026-11-02, Tidak dijalankan). Dugaan pertama tidak salah, tetapi tidak menjawab siapa menunggu siapa.
 
 **Tiga ADR dibaca ulang.** Tabel ini menaruh syarat tiap ADR di samping keadaan Tahap 4 dan M44. Butir ADR 45 mengikuti [[t4-adr-45]].
 
@@ -97,7 +97,7 @@ Katalog PostgreSQL di rekaman yang sama menunjukkan bahwa dari keenam role, hany
 
 **Yang berpindah ke kode.** ADR 12 menulis bahwa pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction ([[t1-adr-12]]). ADR 45 menulis hal yang sama untuk jurnal dan baris pendampingnya bila modulnya pindah ke database lain. ADR 37 menerima itu untuk satu jalur, dengan Idempotency-Key dan rekonsiliasi, dan tiap jalur tambahan membutuhkan keduanya ([[t4-adr-45]]).
 
-Bila tiap service berjalan sebagai proses sendiri dengan role sendiri, satu COMMIT tidak lagi mencakup tabel dua service (Penalaran dari ADR 12). Konsistensi lintas service bergeser dari database ke Idempotency-Key dan rekonsiliasi.
+Bila tiap service berjalan sebagai proses sendiri dengan role sendiri, satu COMMIT tidak lagi mencakup tabel dua service (Penalaran dari ADR 12). Konsistensi lintas service bergeser dari database ke Idempotency-Key dan rekonsiliasi, seperti yang diterima ADR 37.
 
 **Yang tidak direkam.**
 
