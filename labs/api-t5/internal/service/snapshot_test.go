@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sort"
 	"testing"
 	"time"
 
@@ -417,5 +418,48 @@ func TestBalikJurnalTanpaPostingDijawabDiarsip(t *testing.T) {
 	var pembalik int
 	if err := db.QueryRow(`SELECT count(*) FROM jurnal WHERE membalik_jurnal_id = $1`, id).Scan(&pembalik); err != nil || pembalik != 0 {
 		t.Fatalf("jurnal pembalik tertinggal: %d (%v), ingin 0", pembalik, err)
+	}
+}
+
+// Selisih dilaporkan menurut urutan id buku, supaya keluaran job malam sama dari malam ke malam (CLAUDE.md: urutan dibandingkan).
+// Delapan buku dirusak sekaligus: urutan acak dari agregasi hash hampir pasti tidak naik.
+func TestCekCacheSnapshotMelaporkanSelisihUrutNaik(t *testing.T) {
+	_, db := siapkan(t)
+	r := repo.Baru(db)
+	ctx := context.Background()
+	if _, err := r.BuatSnapshot(ctx, snapWIB(t, "2023-02-01"), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	var ids []int64
+	for i := 0; i < 8; i++ {
+		a, _ := akunBaru(t, db, "karyawan", 10_000)
+		ids = append(ids, snapBuku(t, db, a))
+	}
+	t.Cleanup(func() {
+		for _, id := range ids {
+			db.Exec(`UPDATE buku SET saldo_cache = (SELECT coalesce(sum(jumlah), 0) FROM posting WHERE buku_id = buku.id) WHERE id = $1`, id)
+		}
+	})
+	for _, id := range ids {
+		if _, err := db.Exec(`UPDATE buku SET saldo_cache = saldo_cache + 1 WHERE id = $1`, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	feb := snapWIB(t, "2023-02-01")
+	_, _, beda, err := r.CekCacheSnapshot(ctx, &feb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ditandai := 0
+	for _, id := range ids {
+		if _, ada := snapSelisih(beda, id); ada {
+			ditandai++
+		}
+	}
+	if ditandai != len(ids) {
+		t.Fatalf("%d dari %d buku yang cache-nya dirusak ditandai", ditandai, len(ids))
+	}
+	if !sort.SliceIsSorted(beda, func(i, j int) bool { return beda[i].BukuID < beda[j].BukuID }) {
+		t.Fatal("selisih tidak urut naik menurut id buku")
 	}
 }
