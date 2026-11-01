@@ -10,6 +10,7 @@ import importlib.util
 import io
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -24,13 +25,18 @@ JSON1 = "situs/data/erd/tahap-1.json"
 JSON2 = "situs/data/erd/tahap-2.json"
 JSON3 = "situs/data/erd/tahap-3.json"
 JSON4 = "situs/data/erd/tahap-4.json"
+JSON5 = "situs/data/erd/tahap-5.json"
 JSONM = "situs/data/erd/modul-tahap-4.json"
+JSONS5 = "situs/data/erd/service-tahap-5.json"
 MODUL_SQL = erd.TAHAP[4]["modul"]
+LAYANAN_SQL = erd.TAHAP[5]["modul"]
+REKAMAN = erd.TAHAP[5]["rekaman_lintas"]
 SUMBER = erd.TAHAP[1]["sumber"][0]
 PEMBANDING = erd.TAHAP[1]["pembanding"][0]
 MIGRASI_T2 = [f for f in erd.TAHAP[2]["sumber"] if f.startswith("labs/api-t2/")]
 MIGRASI_T3 = [f for f in erd.TAHAP[3]["sumber"] if f.startswith("labs/api-t3/")]
 MIGRASI_T4 = [f for f in erd.TAHAP[4]["sumber"] if f.startswith("labs/api-t4/")]
+MIGRASI_T5 = [f for f in erd.TAHAP[5]["sumber"] if f.startswith("labs/api-t5/")]
 
 
 def ubah_json(fungsi, rel=JSON1):
@@ -51,6 +57,15 @@ def tambah_baris(rel):
 
 def akun(d):
     return next(t for t in d["tabel"] if t["nama"] == "akun")
+
+
+def ubah_teks(rel, lama_, baru_):
+    def f(root):
+        p = root / rel
+        t = p.read_text(encoding="utf-8")
+        assert t.count(lama_) == 1, lama_
+        p.write_text(t.replace(lama_, baru_), encoding="utf-8")
+    return f
 
 
 KASUS = [  # nama, ubah salinan, exit harapan, teks yang harus ada di keluaran
@@ -130,13 +145,71 @@ KASUS = [  # nama, ubah salinan, exit harapan, teks yang harus ada di keluaran
     ("foreign key lintas yang tidak menyeberang disisipkan di JSON modul",
      ubah_json(lambda d: d["lintas"].append({"tabel": "sesi", "fk": "sesi_akun_id_fkey", "ke_tabel": "akun", "dari_modul": "akun", "ke_modul": "akun"}), JSONM), 1, "tidak menyeberang modul"),
     ("kunci tambahan di JSON modul", ubah_json(lambda d: d.update(catatan="x"), JSONM), 1, "kunci tidak sama"),
+    # Tahap 5 (ERD5, keputusan 1670-1672): migration api-t5 ikut hash; selisih dihitung ulang dari tahap-4.json dan tahap-5.json.
+    ("migration api-t5 berubah tanpa JSON Tahap 5 dibangun ulang", tambah_baris(MIGRASI_T5[-1]), 1, "tahap-5.json: file sumber berubah"),
+    ("migration api-t5 000024 (partisi posting) berubah", tambah_baris(MIGRASI_T5[0]), 1, "tahap-5.json: file sumber berubah"),
+    ("migration api-t4 000023 berubah: Tahap 4 dan 5 sama-sama menangkapnya", tambah_baris(MIGRASI_T4[-1]), 1, "tahap-5.json: file sumber berubah"),
+    ("migration baru di labs/api-t5/migrasi yang belum terdaftar di TAHAP[5]",
+     lambda r: (r / "labs/api-t5/migrasi/000027_baru.up.sql").write_text("ALTER TABLE akun ADD COLUMN x int;\n", encoding="utf-8"),
+     1, "migration lab belum terdaftar di TAHAP[5]: labs/api-t5/migrasi/000027_baru.up.sql"),
+    ("JSON Tahap 5 hilang", lambda r: (r / JSON5).unlink(), 1, "tahap-5.json: belum ada"),
+    ("tabel baru dihapus dari selisih Tahap 5",
+     ubah_json(lambda d: d["selisih"]["tabel_baru"].remove("sakelar"), JSON5), 1, "tahap-5.json: selisih tidak sama"),
+    ("kolom baru dihapus dari selisih Tahap 5",
+     ubah_json(lambda d: d["selisih"]["kolom_baru"].pop(), JSON5), 1, "tahap-5.json: selisih tidak sama"),
+    ("foreign key dihapus dikeluarkan dari selisih Tahap 5",
+     ubah_json(lambda d: d["selisih"]["aturan_berubah"].remove(next(a for a in d["selisih"]["aturan_berubah"] if a["jenis"] == "fk")), JSON5), 1, "tahap-5.json: selisih tidak sama"),
+    ("partisi dikeluarkan dari selisih Tahap 5",
+     ubah_json(lambda d: d["selisih"]["aturan_berubah"].remove(next(a for a in d["selisih"]["aturan_berubah"] if a["jenis"] == "partisi")), JSON5), 1, "tahap-5.json: selisih tidak sama"),
+    ("tabel dihapus diisi tangan di Tahap 5 yang hanya menambah",
+     ubah_json(lambda d: d["selisih"]["tabel_dihapus"].append({"nama": "outbox", "pindah_ke": "pengumuman"}), JSON5), 1, "tahap-5.json: selisih tidak sama"),
+    ("foreign key di dalam satu service dihapus tangan dari tahap-5.json: selisih menangkapnya",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "akun")["fk"].clear(), JSON5), 1, "tahap-5.json: selisih tidak sama"),
+    ("foreign key lintas service dikembalikan tangan ke tahap-5.json",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "buku")["fk"].append(
+         {"nama": "buku_akun_id_fkey", "kolom": ["akun_id"], "ke_tabel": "akun", "ke_kolom": ["id"], "saat_hapus": "NO ACTION"}), JSON5), 1, "tahap-5.json: selisih tidak sama"),
+    ("tahap-4.json diubah tangan dengan format sah: selisih Tahap 5 menangkapnya",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "outbox")["kolom"][1].update(tipe="text"), JSON4), 1, "tahap-5.json: selisih tidak sama"),
+    # Partisi (keputusan 1670): bentuk `partisi` diperiksa periksa(); partisi bukan tabel.
+    ("partisi dengan kunci yang tidak memuat kolom PK",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "posting")["partisi"].update(kunci="RANGE (jumlah)"), JSON5), 1, "tidak memuat kolom PK"),
+    ("partisi yang juga tampil sebagai tabel",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "posting")["partisi"].update(anak=["akun", "posting_sebelum"]), JSON5), 1, "juga tampil sebagai tabel"),
+    ("partisi tanpa nama anak",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "posting")["partisi"].update(anak=[]), JSON5), 1, "harus daftar nama partisi"),
+    ("partisi dengan nama anak tidak terurut",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "posting")["partisi"]["anak"].reverse(), JSON5), 1, "tidak terurut atau ganda"),
+    ("kunci tambahan di partisi",
+     ubah_json(lambda d: next(t for t in d["tabel"] if t["nama"] == "posting")["partisi"].update(batas="x"), JSON5), 1, "partisi: kunci harus"),
+    # Pembagian service Tahap 5 dan foreign key lintas yang dihapus layanan.sql.
+    ("layanan.sql berubah tanpa JSON service dibangun ulang", tambah_baris(LAYANAN_SQL), 1, "service-tahap-5.json: labs/api-t5/layanan.sql berubah"),
+    ("JSON service hilang", lambda r: (r / JSONS5).unlink(), 1, "service-tahap-5.json: belum ada"),
+    ("JSON service diubah tangan tanpa format erd.py",
+     lambda r: (r / JSONS5).write_text(json.dumps(json.loads((r / JSONS5).read_text())), encoding="utf-8"), 1, "service-tahap-5.json: format"),
+    ("satu tabel pindah service di JSON service",
+     ubah_json(lambda d: (d["modul"][0]["tabel"].remove("outbox"), d["modul"][1]["tabel"].append("outbox")), JSONS5), 1, "service-tahap-5.json: isi tidak sama"),
+    ("istilah JSON service diganti jadi modul",
+     ubah_json(lambda d: d.update(istilah="modul"), JSONS5), 1, "service-tahap-5.json: isi tidak sama"),
+    ("istilah JSON service bukan modul atau service",
+     ubah_json(lambda d: d.update(istilah="layanan"), JSONS5), 1, "istilah"),
+    ("foreign key lintas disisipkan di JSON service",
+     ubah_json(lambda d: d["lintas"].append({"tabel": "buku", "fk": "buku_akun_id_fkey", "ke_tabel": "akun", "dari_modul": "ledger", "ke_modul": "akun"}), JSONS5), 1, "service-tahap-5.json: isi tidak sama"),
+    ("rekaman lab: jumlah foreign key lintas di judul diubah",
+     ubah_teks(REKAMAN, "SEBELUM dihapus, dibaca dari katalog PostgreSQL: 18", "SEBELUM dihapus, dibaca dari katalog PostgreSQL: 17"), 1, "tidak sama dengan rekaman lab"),
+    ("rekaman lab: satu baris foreign key lintas dihapus",
+     ubah_teks(REKAMAN, "  merchant.qr -> ledger.jurnal\n", ""), 1, "tidak sama dengan rekaman lab"),
+    ("rekaman lab: satu foreign key lintas ditambah",
+     ubah_teks(REKAMAN, "  notifikasi.perangkat -> akun.akun\n", "  notifikasi.perangkat -> akun.akun\n  notifikasi.perangkat -> ledger.jurnal\n"), 1, "tidak sama dengan rekaman lab"),
+    ("rekaman lab: baris judul daftar foreign key lintas hilang",
+     ubah_teks(REKAMAN, "# foreign key lintas schema service SEBELUM dihapus", "# foreign key lintas schema SEBELUM dihapus"), 1, "butuh tepat satu baris"),
+    ("rekaman lab hilang", lambda r: (r / REKAMAN).unlink(), 1, "tidak bisa diperiksa"),
 ]
 
 gagal = 0
 for nama, ubah, harap, wajib in KASUS:
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        for rel in sorted({f for c in erd.TAHAP.values() for f in erd.semua_file(c)}) + [JSON1, JSON2, JSON3, JSON4, JSONM, MODUL_SQL]:
+        for rel in sorted({f for c in erd.TAHAP.values() for f in erd.semua_file(c)}) + [JSON1, JSON2, JSON3, JSON4, JSON5, JSONM, JSONS5, MODUL_SQL, LAYANAN_SQL, REKAMAN]:
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(AKAR / rel, root / rel)
         ubah(root)
@@ -393,15 +466,6 @@ def naskah_salinan(ubah):
         return kode, [b.strip() for b in teks.splitlines() if "salinan tangan" in b or b.startswith("NASKAH_3B")]
 
 
-def ubah_teks(rel, lama_, baru_):
-    def f(root):
-        p = root / rel
-        t = p.read_text(encoding="utf-8")
-        assert t.count(lama_) == 1, lama_
-        p.write_text(t.replace(lama_, baru_), encoding="utf-8")
-    return f
-
-
 RUN4 = "labs/api-t4/run.py"
 SELISIH += [
     ("naskah(4) pada salinan apa adanya: exit 0, salinan tangan lab sama dengan mermaid dan lab",
@@ -420,6 +484,168 @@ SELISIH += [
     ("naskah(4) tanpa run.py lab: tidak ada pemeriksaan salinan, exit 0",
      lambda: naskah_salinan(lambda r: (r / RUN4).unlink()), (0, [])),
 ]
+# ERD5 (keputusan 1670-1672): partisi, nama aturan yang bergeser, banding mermaid gaya Tahap 5, pembagian service, FK lintas.
+def aturan(nama, kolom, ke="akun", ke_kolom=("id",)):
+    return {"nama": nama, "kolom": list(kolom), "ke_tabel": ke, "ke_kolom": list(ke_kolom), "saat_hapus": "NO ACTION"}
+
+
+def dengan(t, **kv):
+    return {**t, **kv}
+
+
+TP_LAMA = dengan(tabel("posting", "id", "jurnal_id"), pk=["id"], fk=[aturan("posting_jurnal_id_fkey", ["jurnal_id"], "jurnal")],
+                 cek=[{"nama": "posting_jumlah_check", "kolom": ["id"], "ekspresi": "id <> 0"}])
+TP_BARU = dengan(TP_LAMA, pk=["id", "dibuat"], partisi={"kunci": "RANGE (dibuat)", "anak": ["posting_a", "posting_b"]},
+                 fk=[aturan("posting_jurnal_id_fkey1", ["jurnal_id"], "jurnal")],
+                 cek=[{"nama": "posting_jumlah_check1", "kolom": ["id"], "ekspresi": "id <> 0"}])
+SELISIH += [
+    ("tabel dibuat ulang: nama FK dan CHECK bergeser dengan isi sama tidak dihitung, PK dan partisi tetap tercatat",
+     lambda: erd.selisih_aturan("posting", TP_LAMA, TP_BARU), [
+         {"tabel": "posting", "jenis": "pk", "nama": "pk", "ubah": "berubah"},
+         {"tabel": "posting", "jenis": "partisi", "nama": "partisi", "ubah": "baru"}]),
+    ("nama FK bergeser tetapi tabel tujuan berbeda: dihapus dan baru",
+     lambda: erd.selisih_aturan("posting", TP_LAMA, dengan(TP_LAMA, fk=[aturan("posting_jurnal_id_fkey1", ["jurnal_id"], "buku")])), [
+         {"tabel": "posting", "jenis": "fk", "nama": "posting_jurnal_id_fkey", "ubah": "dihapus"},
+         {"tabel": "posting", "jenis": "fk", "nama": "posting_jurnal_id_fkey1", "ubah": "baru"}]),
+    ("nama sama, isi berbeda: berubah (bukan pergeseran nama)",
+     lambda: erd.selisih_aturan("posting", TP_LAMA, dengan(TP_LAMA, cek=[{"nama": "posting_jumlah_check", "kolom": ["id"], "ekspresi": "id > 0"}])),
+     [{"tabel": "posting", "jenis": "cek", "nama": "posting_jumlah_check", "ubah": "berubah"}]),
+    ("dua aturan hilang dan dua baru dengan isi sama: dipasangkan satu-satu, sisanya tercatat",
+     lambda: erd.selisih_aturan("t", dengan(tabel("t", "a", "b"), fk=[aturan("f1", ["a"]), aturan("f2", ["a"]), aturan("f3", ["b"])]),
+                                dengan(tabel("t", "a", "b"), fk=[aturan("g1", ["a"]), aturan("g3", ["b"])])),
+     [{"tabel": "t", "jenis": "fk", "nama": "f2", "ubah": "dihapus"}]),
+    ("partisi hilang dan berubah tercatat",
+     lambda: [erd.selisih_aturan("t", TP_BARU, TP_LAMA)[-1]["ubah"], erd.selisih_aturan("t", TP_BARU, dengan(TP_BARU, partisi={"kunci": "RANGE (id)", "anak": ["x"]}))[-1]["ubah"]],
+     ["dihapus", "berubah"]),
+    ("periksa(): tabel berpartisi dengan kunci PK lolos; tanpa PK ditolak",
+     lambda: [erd.periksa({"format": 1, "tahap": 5, "postgres": 17, "sumber": {"file": ["a"], "pembanding": [], "sha256": "0" * 64},
+                           "tabel": [dengan(TP_BARU, kolom=TP_BARU["kolom"] + [kol("dibuat")]), tabel("jurnal", "id")], "selisih": None}, 5),
+              erd.periksa({"format": 1, "tahap": 5, "postgres": 17, "sumber": {"file": ["a"], "pembanding": [], "sha256": "0" * 64},
+                           "tabel": [dengan(TP_BARU, kolom=TP_BARU["kolom"] + [kol("dibuat")], pk=[]), tabel("jurnal", "id")], "selisih": None}, 5)],
+     [[], ["posting.partisi: kunci partisi 'RANGE (dibuat)' tidak memuat kolom PK (PostgreSQL mensyaratkannya)"]]),
+]
+# banding_mermaid: PK gabungan, blok sebagian untuk tabel lama, dan garis putus-putus (naskah Tahap 5).
+DATA_5 = {"selisih": {"tabel_baru": ["ruang"]}, "tabel": [
+    dict(tabel("akun", "id"), kolom=[kol("id"), kol("nama", "text"), kol("mitra_id", "bigint", False)], pk=["id"]),
+    dict(tabel("ruang", "id"), kolom=[kol("akun_id"), kol("periode", "date"), kol("saldo")], pk=["akun_id", "periode"],
+         fk=[{"nama": "ruang_akun_id_fkey", "kolom": ["akun_id"], "ke_tabel": "akun", "ke_kolom": ["id"], "saat_hapus": "NO ACTION"}]),
+    dict(tabel("lain", "id"), kolom=[kol("id"), kol("akun_id")], pk=["id"],
+         fk=[{"nama": "lain_akun_id_fkey", "kolom": ["akun_id"], "ke_tabel": "akun", "ke_kolom": ["id"], "saat_hapus": "NO ACTION"}]),
+]}
+MERMAID_5 = """```mermaid
+erDiagram
+  AKUN ||--o{ RUANG : punya
+  AKUN |o..o{ ANAK_TANPA_FK : melayani
+  AKUN { bigint mitra_id }
+  RUANG { bigint akun_id PK
+    date periode PK
+    bigint saldo }
+```
+"""
+SELISIH += [
+    ("naskah gaya Tahap 5: PK gabungan, blok sebagian untuk tabel lama, tabel lama tanpa garis: tanpa selisih",
+     lambda: erd.banding_mermaid(MERMAID_5, DATA_5), []),
+    ("blok sebagian: tipe kolom tabel lama salah dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("bigint mitra_id", "text mitra_id"), DATA_5), ["akun: kolom hanya di lab ['id', 'nama', 'mitra_id'], hanya di naskah ['mitra_id']"]),
+    ("blok sebagian: kolom yang tidak ada di lab dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("bigint mitra_id }", "bigint mitra_id\n    bigint gaib }"), DATA_5), ["akun: kolom hanya di lab ['id', 'nama'], hanya di naskah ['gaib']"]),
+    ("tabel baru wajib lengkap: kolom yang hilang di blok dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("    bigint saldo }", "    }"), DATA_5), ["ruang: kolom hanya di lab ['saldo'], hanya di naskah []"]),
+    ("tabel yang tidak baru dan lengkap: urutan kolom berbeda tetap dilaporkan",
+     lambda: len(erd.banding_mermaid(MERMAID_5.replace("AKUN { bigint mitra_id }", "AKUN { text nama\n    bigint id PK\n    bigint mitra_id }"), DATA_5)), 1),
+    ("PK gabungan: tanda PK yang hilang di salah satu kolom dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("date periode PK", "date periode"), DATA_5), ["ruang.periode: tanda di naskah (kosong), di lab PK"]),
+    ("kolom PK gabungan yang juga FK ditandai PK (PK lebih dulu dari FK)",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("bigint akun_id PK", "bigint akun_id FK"), DATA_5), ["ruang.akun_id: tanda di naskah FK, di lab PK"]),
+    ("garis putus-putus yang ternyata punya foreign key di lab dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("ANAK_TANPA_FK", "LAIN"), DATA_5), ["relasi lain -> akun: garis putus-putus di naskah (tanpa foreign key), tetapi lab punya foreign key"]),
+    ("garis putus-putus ke arah sebaliknya juga dibaca (induk dan anak ditukar)",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("AKUN |o..o{ ANAK_TANPA_FK", "LAIN |o..o{ AKUN"), DATA_5), ["relasi akun -> lain: garis putus-putus di naskah (tanpa foreign key), tetapi lab punya foreign key"]),
+    ("foreign key tabel baru yang tidak digambar naskah dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("  AKUN ||--o{ RUANG : punya\n", ""), DATA_5), ["relasi ruang -> akun: 1 foreign key di lab, 0 garis di naskah"]),
+    ("garis solid di naskah tanpa foreign key di lab dilaporkan",
+     lambda: erd.banding_mermaid(MERMAID_5.replace("RUANG : punya", "RUANG : punya\n  AKUN ||--o{ LAIN : punya"), dict(DATA_5, tabel=[dict(t, fk=[]) if t["nama"] == "lain" else t for t in DATA_5["tabel"]])),
+     ["relasi lain -> akun: 0 foreign key di lab, 1 garis di naskah"]),
+]
+# hapus_fk_lintas, periksa_hapus_lintas, lintas_direkam (ERD5): aturan layanan.sql langkah 2 tanpa database.
+PETA_UJI = {"akun": "t5_akun", "buku": "t5_ledger", "jurnal": "t5_ledger", "posting": "t5_ledger"}
+TABEL_UJI = [dengan(tabel("akun", "id"), pk=["id"]), dengan(tabel("buku", "id", "akun_id"), pk=["id"], fk=[aturan("buku_akun_id_fkey", ["akun_id"])]),
+             dengan(tabel("jurnal", "id", "dibuat_oleh"), pk=["id"], fk=[aturan("jurnal_dibuat_oleh_fkey", ["dibuat_oleh"])]),
+             dengan(tabel("posting", "id", "buku_id"), pk=["id"], fk=[aturan("posting_buku_id_fkey", ["buku_id"], "buku")])]
+LAMA_UJI = {"tahap": 4, "tabel": TABEL_UJI}
+AKHIR_UJI, BUANG_UJI = erd.hapus_fk_lintas(TABEL_UJI, PETA_UJI)
+BARU_UJI = {"tahap": 5, "tabel": AKHIR_UJI}
+REKAM_UJI = (2, ["ledger.buku -> akun.akun", "ledger.jurnal -> akun.akun"])
+SELISIH += [
+    ("hapus_fk_lintas membuang yang menyeberang schema dan menyimpan yang di dalam satu schema",
+     lambda: ([(t["nama"], [f["nama"] for f in t["fk"]]) for t in AKHIR_UJI], BUANG_UJI),
+     ([("akun", []), ("buku", []), ("jurnal", []), ("posting", ["posting_buku_id_fkey"])],
+      [("buku", "buku_akun_id_fkey", "akun"), ("jurnal", "jurnal_dibuat_oleh_fkey", "akun")])),
+    ("hapus_fk_lintas tidak mengubah masukan", lambda: [len(t["fk"]) for t in TABEL_UJI], [0, 1, 1, 1]),
+    ("hapus_fk_lintas: tabel tanpa schema ditolak", lambda: erd.hapus_fk_lintas(TABEL_UJI, {"akun": "t5_akun"}), SystemExit),
+    ("periksa_hapus_lintas: hasil sesuai pembagian dan rekaman lab tanpa kesalahan",
+     lambda: erd.periksa_hapus_lintas(LAMA_UJI, BARU_UJI, PETA_UJI, "t5_", REKAM_UJI), []),
+    ("periksa_hapus_lintas: FK lintas yang masih ada di tahap baru dilaporkan",
+     lambda: [("menyeberang schema" in x) for x in erd.periksa_hapus_lintas(LAMA_UJI, LAMA_UJI, PETA_UJI, "t5_", REKAM_UJI)], [True, True, False]),
+    ("periksa_hapus_lintas: FK di dalam satu schema ikut hilang dilaporkan",
+     lambda: len(erd.periksa_hapus_lintas(LAMA_UJI, {"tahap": 5, "tabel": [dengan(t, fk=[]) for t in AKHIR_UJI]}, PETA_UJI, "t5_", REKAM_UJI)), 1),
+    ("periksa_hapus_lintas: rekaman lab kurang satu baris dilaporkan",
+     lambda: len(erd.periksa_hapus_lintas(LAMA_UJI, BARU_UJI, PETA_UJI, "t5_", (2, ["ledger.buku -> akun.akun"]))), 1),
+    ("periksa_hapus_lintas: jumlah di judul rekaman tidak sama dengan barisnya dilaporkan",
+     lambda: len(erd.periksa_hapus_lintas(LAMA_UJI, BARU_UJI, PETA_UJI, "t5_", (3, REKAM_UJI[1]))), 1),
+    ("periksa_hapus_lintas: FK yang namanya bergeser tetapi isinya sama dihitung sama",
+     lambda: erd.periksa_hapus_lintas(LAMA_UJI, {"tahap": 5, "tabel": [dengan(t, fk=[dict(f, nama=f["nama"] + "1") for f in t["fk"]]) for t in AKHIR_UJI]}, PETA_UJI, "t5_", REKAM_UJI), []),
+    ("lintas_direkam membaca 18 baris dari rekaman lab asli",
+     lambda: (erd.lintas_direkam(AKAR, REKAMAN)[0], len(erd.lintas_direkam(AKAR, REKAMAN)[1])), (18, 18)),
+]
+# hitung_modul(5): pembagian service dibaca dari layanan.sql (30 tabel); partisi yang dipindah lewat DO tidak dihitung.
+ASLI_SERVICE = erd.hitung_modul(5)
+SELISIH += [
+    ("layanan.sql asli: enam service 9 + 5 + 6 + 6 + 2 + 2 tabel",
+     lambda: [(m["nama"], len(m["tabel"])) for m in ASLI_SERVICE["modul"]],
+     [("ledger", 9), ("akun", 5), ("pembayaran", 6), ("merchant", 6), ("notifikasi", 2), ("cicilan", 2)]),
+    ("layanan.sql asli: istilah service, nol foreign key menyeberang, lolos periksa_modul",
+     lambda: (ASLI_SERVICE["istilah"], ASLI_SERVICE["lintas"], erd.periksa_modul(ASLI_SERVICE, 5)), ("service", [], [])),
+    ("layanan.sql: ALTER TABLE yang dibangkitkan DO (partisi) tidak dihitung sebagai tabel",
+     lambda: sum(bool(re.match(r"\s+EXECUTE format\('ALTER TABLE \{s\}\.%I SET SCHEMA", b)) for b in (AKAR / LAYANAN_SQL).read_text().splitlines()), 1),
+]
+def naskah5_salinan(ubah):
+    """naskah(5) pada salinan (naskah dan JSON Tahap 5) yang diubah `ubah(root)`: (exit code, daftar selisih yang dicetak)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        for rel in ("plan/CERITA-TAHAP-5.md", JSON5):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(AKAR / rel, root / rel)
+        ubah(root)
+        keluar = io.StringIO()
+        with contextlib.redirect_stdout(keluar):
+            kode = erd.naskah(5, root)
+        return kode, [b.strip() for b in keluar.getvalue().splitlines() if b.startswith("  - ") or "selisih naskah" in b]
+
+
+NASKAH5 = "plan/CERITA-TAHAP-5.md"
+SELISIH += [
+    ("naskah(5) apa adanya: nol selisih mermaid naskah 3b dengan lab, exit 0",
+     lambda: naskah5_salinan(lambda r: None), (0, ["Tahap 5: 0 selisih naskah 3b dengan lab (lab yang benar)"])),
+    ("naskah(5): tipe kolom diubah di naskah",
+     lambda: naskah5_salinan(ubah_teks(NASKAH5, "    int versi_kek\n", "    text versi_kek\n"))[1][1:],
+     ["- arsip_partisi: kolom hanya di lab ['versi_kek'], hanya di naskah ['versi_kek']"]),
+    ("naskah(5): tipe kolom baru tabel lama (akun.mitra_pos_id) diubah di naskah",
+     lambda: len(naskah5_salinan(ubah_teks(NASKAH5, "AKUN { bigint mitra_pos_id }", "AKUN { text mitra_pos_id }"))[1]), 2),
+    ("naskah(5): tanda PK gabungan dihapus dari satu kolom",
+     lambda: naskah5_salinan(ubah_teks(NASKAH5, "    date periode PK\n    bigint saldo\n", "    date periode\n    bigint saldo\n"))[1][1:],
+     ["- snapshot_saldo.periode: tanda di naskah (kosong), di lab PK"]),
+    ("naskah(5): garis putus-putus diganti garis solid",
+     lambda: naskah5_salinan(ubah_teks(NASKAH5, "AKUN |o..o{ JADWAL_CICILAN : menerima", "AKUN |o--o{ JADWAL_CICILAN : menerima"))[1][1:],
+     ["- relasi jadwal_cicilan -> akun: 0 foreign key di lab, 1 garis di naskah"]),
+    ("naskah(5): garis solid dihapus dari naskah",
+     lambda: naskah5_salinan(ubah_teks(NASKAH5, "  JADWAL_CICILAN ||--|{ ANGSURAN : terdiri_dari\n", ""))[1][1:],
+     ["- relasi angsuran -> jadwal_cicilan: 1 foreign key di lab, 0 garis di naskah"]),
+    ("naskah(5): kolom baru dihapus dari blok tabel baru",
+     lambda: naskah5_salinan(ubah_teks(NASKAH5, "    int hari_tagih\n", ""))[1][1:],
+     ["- jadwal_cicilan: kolom hanya di lab ['hari_tagih'], hanya di naskah []"]),
+]
+
 for nama, jalan, harap in SELISIH:
     try:
         hasil = jalan()
