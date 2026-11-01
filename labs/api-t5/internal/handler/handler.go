@@ -367,6 +367,9 @@ func (s Server) petaError(w http.ResponseWriter, err error, dilarang string) {
 		tulisProblem(w, Problem{Type: "/problems/batas-warung", Title: "Saldo warung melewati batas", Status: 422})
 	case errors.Is(err, service.ErrSudahDibalik):
 		tulisProblem(w, Problem{Type: "/problems/sudah-dibalik", Title: "Jurnal ini sudah pernah dibalik", Status: 409})
+	case errors.Is(err, service.ErrPostingDiarsip):
+		tulisProblem(w, Problem{Type: "/problems/posting-diarsipkan", Title: "Posting jurnal ini sudah diarsipkan", Status: 409,
+			Detail: "Jurnal pembalik tidak bisa dibuat dari database utama untuk jurnal yang postingnya sudah dilepas."})
 	case errors.Is(err, service.ErrDibekukan), errors.Is(err, service.ErrButuhVerifikasi), errors.Is(err, service.ErrBatasTingkat):
 		s.petaPembayaran(w, err)
 	case errors.Is(err, service.ErrDilarang):
