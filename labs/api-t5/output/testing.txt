@@ -1,0 +1,615 @@
+# Lab api-t5 · tes Go untuk aturan uang, partisi, outbox, referensi jurnal, tabungan, cicilan, laporan, dan pengumuman
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_tes · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/api-t5 run.
+
+# --- A. go vet, lalu tes aturan uang, partisi, outbox, referensi jurnal, tabungan, cicilan, laporan, dan pengumuman dengan PostgreSQL sungguhan (schema tahap5_tes, skema akhir Tahap 5) ---
+$ go vet ./...
+(tanpa temuan)
+# exit status 0
+$ TEST_DATABASE_URL=<pemilik, schema tahap5_tes> TEST_APP_DATABASE_URL=<role api_t5, schema yang sama> TEST_REDIS_ADDR=<Redis lab> go test -v -count=1 -p 1 ./...
+--- PASS: TestBukaObjekS3MemasangBatasBacaEmpatKaliBatasFile
+--- PASS: TestBukaObjekUrutanPilihanByteaLaluS3LaluDirektori
+--- PASS: TestBreakerLajurMatiBawaanDanHanyaUntukLajurVerifikasi
+--- PASS: TestBukaCacheKatalogTanpaGerbangBawaan
+--- PASS: TestBukaCacheKatalogMenolakFlagSalah
+--- PASS: TestEndpointLepasGerbangHanyaBilaGerbangAda
+PASS
+ok    lab/apit5/cmd/api
+--- PASS: TestParseIzin
+--- PASS: TestPeriksaDaftarKosongMenerimaSemuaDanDaftarIsiMenolakSisanya
+--- PASS: TestSumberHanyaAlamatPeerBukanHeader
+--- PASS: TestVerifikasiMenolak403PadaAlamatTakTerdaftarTanpaMembuatObjek
+--- PASS: TestVerifikasiTanpaDaftarMenerimaSemuaDanRuteLabTetapTerbuka
+--- PASS: TestIzinkanMenggantiDaftarLewatRuteLabDanUlangTidakMenghapusIzin
+--- PASS: TestParseIzinIPv6TunggalHanyaSatuAlamatDanRingkasanDiurutkan
+--- PASS: TestIzinkanKeduaKaliMenggantiDaftarPertamaBukanMenambah
+--- PASS: TestJedaTotal342Menit
+--- PASS: TestJumlahUlangPerKode
+--- PASS: TestJadwalBerhentiMenurutKode
+--- PASS: TestJadwalTandaTanganMemakaiWaktuMayaDanByteAsli
+--- PASS: TestJadwalMemberiTahuJamKePenerimaSebelumTiapKiriman
+--- PASS: TestJadwalDiterimaDiTengahBerhenti
+--- PASS: TestJadwalDariDanSampai
+--- PASS: TestJadwalKodeBerubahMemakaiKodeTerakhir
+--- PASS: TestJadwalTanpaJawabanDihitungKodeLain
+--- PASS: TestRotasiRahasiaLangsungDipakaiJadwal
+--- PASS: TestWebhookBodyCantikDitandatanganApaAdanyaDanDicekDihitung
+PASS
+ok    lab/apit5/cmd/tiruan
+--- PASS: TestMemoriTTL
+--- PASS: TestMemoriHapusAwalan
+--- PASS: TestBacaGalatDatabaseTidakMenyimpanDanTidakMenghapus
+--- PASS: TestBacaPenyimpanRusakJatuhKeDatabase
+--- PASS: TestGerbangMenahanSampaiDilepas
+--- PASS: TestRedisMenggantungBerhentiDiBatasTanpaRetry
+PASS
+ok    lab/apit5/internal/cache
+--- PASS: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
+--- PASS: TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang
+--- PASS: TestHandlerBerkasTerunggahDibatasiPerAlamatTerpisahDariBatasAkun
+--- PASS: TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit
+--- PASS: TestHTTPBOTanpaLoginDanBukanRisk
+--- PASS: TestHTTPBORingkasanAkunTanpaDataSensitif
+--- PASS: TestHTTPBOBerkasHeaderDanAlasan
+--- PASS: TestHTTPBOBukaBlokirButuhHeaderPenyetuju
+--- PASS: TestHTTPBOMerchantKillSwitchDanRantaiAudit
+--- PASS: TestHTTPImporKatalog
+--- PASS: TestIdempotenTanpaHeaderMeneruskan
+--- PASS: TestIdempotenKunciRusakDitolak400
+--- PASS: TestIdempotenUlanganTanpaEfekGanda
+--- PASS: TestIdempotenPanikMelepasKey
+--- PASS: TestIdempotenKeySamaEndpointBeda
+--- PASS: TestIdempotenBersamaanSatuMenang
+--- PASS: TestStokTimpaHanyaDiModeRentan
+--- PASS: TestPenerbitTanpaKunciYangSahDitolak
+--- PASS: TestPenerbitOtorisasiClearingReversal
+--- PASS: TestPenerbitTanpaHoldClearingKedua409
+--- PASS: TestRuteKartuApp
+--- PASS: TestDaftarEndpoint
+--- PASS: TestDaftarBatasPerAlamatDanJenisAdmin
+cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
+--- PASS: TestWebhookEndpointTandaTangan
+--- PASS: TestTopupBankEndpoint
+--- PASS: TestVerifikasiEndpoint
+--- PASS: TestBatasLajuEndpointLama
+--- PASS: TestHandlerQRAlurDinamis
+--- PASS: TestHandlerQRKedaluwarsaDanKesalahan
+--- PASS: TestHandlerQRBayarMemakaiIdempotencyKey
+--- PASS: TestHandlerQRLaporkan
+--- PASS: TestRuteLaporanMerchantHanyaDenganModeRentan
+--- PASS: TestPengumumanEndpoint
+--- PASS: TestCicilanEndpoint
+--- PASS: TestRuteHandlerSamaDenganOpenAPI
+--- PASS: TestBatasLajuPengumumanDanCicilan
+PASS
+ok    lab/apit5/internal/handler
+--- PASS: TestSatuPembuatClientUntukSemuaPanggilanKeluar
+--- PASS: TestBatasWaktuBawaanTigaDetikDiSemuaPembuat
+--- PASS: TestClientTidakMengikutiRedirect
+--- PASS: TestBatasNolMembuatClientTanpaBatasWaktuHanyaUntukRekamanPerbandingan
+--- PASS: TestBaruDenganTransportMemakaiTransportYangDiberikan
+--- PASS: TestTerlambatDanTidakTerhubungMembedakanSebabGalat
+PASS
+ok    lab/apit5/internal/klien
+    lajur_test.go:47: gagal berturut-turut ke-1: status closed, hitungan gagal berturut-turut 1
+    lajur_test.go:47: gagal berturut-turut ke-2: status closed, hitungan gagal berturut-turut 2
+    lajur_test.go:47: gagal berturut-turut ke-3: status closed, hitungan gagal berturut-turut 3
+    lajur_test.go:47: gagal berturut-turut ke-4: status closed, hitungan gagal berturut-turut 4
+    lajur_test.go:47: gagal berturut-turut ke-5: status closed, hitungan gagal berturut-turut 5
+    lajur_test.go:53: gagal berturut-turut ke-6: status open
+    lajur_test.go:59: permintaan saat open: circuit breaker is open; vendor dipanggil: false
+    lajur_test.go:65: sesudah 59,999 detik: status open
+    lajur_test.go:70: sesudah 60,001 detik: status half-open
+    lajur_test.go:83: half-open, permintaan pertama berjalan, permintaan kedua: too many requests
+    lajur_test.go:91: permintaan pertama sukses: status closed
+--- PASS: TestRekamanBreakerBawaan
+    lajur_test.go:111: permintaan percobaan di half-open gagal: status open
+    lajur_test.go:116: 59 detik sesudah membuka lagi: status open
+    lajur_test.go:121: 61 detik sesudah membuka lagi: status half-open
+--- PASS: TestBreakerHalfOpenGagalMembukaLagiSelama60Detik
+--- PASS: TestBreakerSuksesMemutusGagalBerturutTurut
+--- PASS: TestBreakerGagalBerturutTurutTidakDihapusWaktu
+    lajur_test.go:178: IsSuccessful bawaan pustaka, 6 jawaban 4xx berturut-turut: status open
+    lajur_test.go:187: IsSuccessful kustom (4xx sukses), 6 jawaban 4xx berturut-turut: status closed, gagal berturut-turut 0
+    lajur_test.go:198: kustom, 5 gagal vendor, 1 jawaban 4xx, 1 gagal vendor: status closed
+    lajur_test.go:205: kustom, 6 kegagalan vendor berturut-turut: status open
+--- PASS: TestRekamanBreaker4xx
+--- PASS: TestBreakerTimeoutDapatDiatur
+--- PASS: TestBreakerPanggilanDijedaTidakMenambahHitungan
+--- PASS: TestDijedaHanyaUntukPenolakanBreaker
+--- PASS: TestBreakerLogPerubahanStatus
+--- PASS: TestBreakerTanpaCatatMemakaiLog
+    lajur_test.go:309: v2.4.0: 5 gagal, 1 error dikecualikan: gagal berturut-turut 5, dikecualikan 1, status closed
+--- PASS: TestGobreakerV240IsExcluded
+PASS
+ok    lab/apit5/internal/lajur
+--- PASS: TestTandaiURLCocokDenganContohDokumentasiAWS
+--- PASS: TestS3SimpanBacaUkuranHapus
+--- PASS: TestS3KunciTidakSahDitolakSebelumKeJaringan
+--- PASS: TestPresignPUTDipakaiPemegangLainSampaiKedaluwarsa
+--- PASS: TestPresignPUTUkuranDitandatanganMenolakPanjangLain
+--- PASS: TestPresignPUTKunciLainAtauMetodeLainDitolak
+--- PASS: TestPresignUmurDiLuarRentangDitolak
+--- PASS: TestGalatS3TidakMemuatTandaTanganAtauURL
+--- PASS: TestGalatStatusS3TidakMemuatURL
+--- PASS: TestBacaMemakaiBatasUkuran
+--- PASS: TestS3HapusObjekTidakAdaDianggapTerhapusTetapGalatStatusLainTidak
+--- PASS: TestS3PastikanBucketMenerimaDuaStatusSajaDanMenolakLainnya
+--- PASS: TestS3UkuranTanpaContentLengthDitolak
+--- PASS: TestS3UmurURLPanggilanServerSendiriSemenit
+--- PASS: TestBacaBatasUkuranTanpaContentLengthTetapDitegakkan
+--- PASS: TestEndpointTidakSahDitolak
+PASS
+ok    lab/apit5/internal/objek
+--- PASS: TestMuatMembacaDokumenKVv2DenganTokenDanUrutanSekarangLaluLama
+--- PASS: TestDokumenTanpaLamaHanyaSatuRahasiaDanLamaSamaDenganSekarangTidakGanda
+--- PASS: TestPembacaanGagalMemakaiPembacaanTerakhirDanMenghitungKegagalan
+--- PASS: TestPembacaTanpaPembacaanBerhasilTidakPunyaRahasia
+--- PASS: TestSecretManagerMatiBukanPanikDanDihitungGagal
+rahasia: pembacaan gagal, memakai pembacaan terakhir: secret manager menjawab 500
+--- PASS: TestJalanMembacaUlangBerkalaTanpaDeploy
+--- PASS: TestSidikTidakMembukaNilaiDanDihitungDariSHA256
+--- PASS: TestPembacaanYangMenggantungBerakhirDenganGalatDalamBatasWaktu
+--- PASS: TestVersiDokumenMengikutiOpenBaoTermasukTurunSesudahRestartModeDev
+--- PASS: TestDaftarMengembalikanSalinanYangTidakMengubahIsiPembaca
+--- PASS: TestPindaiAwalanKunciProduksiMenangkapBarisYangBenarTanpaMenyalinNilai
+--- PASS: TestPindaiBerkasStagingBersihTidakMenghasilkanTemuan
+--- PASS: TestPindaiSidikMenangkapNilaiTersalinDenganFormatLainTermasukPadding
+--- PASS: TestPindaiAturanDimatikanBilaMasukanKosongDanAwalanMenangAtasSidik
+--- PASS: TestPindaiSatuTemuanPerBarisDanNomorBarisDimulaiDariSatu
+--- PASS: TestPindaiAwalanHanyaBerlakuDiAwalTokenBukanDiTengah
+--- PASS: TestPindaiSidikMenangkapTokenPendekDanBerhubungDanNilaiBerkarakterKhusus
+--- PASS: TestPindaiBarisLebihPanjangDariBatasTidakMenyembunyikanSisaBerkas
+PASS
+ok    lab/apit5/internal/rahasia
+--- PASS: TestNaikAtomikDanBermasaBerlaku
+--- PASS: TestNaikMemperbaikiKeyTanpaMasaBerlaku
+--- PASS: TestJendelaTidakDiperpanjang
+--- PASS: TestAlamatMatiGagalCepat
+PASS
+ok    lab/apit5/internal/redisbatas
+--- PASS: TestHashAuditCocokDenganRumusTertulis
+--- PASS: TestAuditBerantaiUtuhDanBerurutan
+--- PASS: TestAuditPenulisSerentakTidakMemutusRantai
+--- PASS: TestAuditUbahBarisTengahTerdeteksiDiBarisItu
+--- PASS: TestAuditHapusEkorHanyaTerdeteksiDenganJangkar
+--- PASS: TestAuditHapusBarisTengahTerdeteksiDiBarisSesudahnya
+--- PASS: TestAuditRoleAplikasiDitolakUbahHapusKosongkan
+PASS
+ok    lab/apit5/internal/repo
+--- PASS: TestBayarMenolakJumlahDiLuarBatas
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/-70000
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/0
+    --- PASS: TestBayarMenolakJumlahDiLuarBatas/200001
+--- PASS: TestKirimMenolakNominalBukanPositif
+--- PASS: TestBatasHarian
+--- PASS: TestBacaCSV
+--- PASS: TestKursorBolakBalik
+--- PASS: TestDuaInstanceBerbagiSatuHitungan
+--- PASS: TestBatasBersamaMenolakDenganSisaJendela
+--- PASS: TestRedisGagalJatuhKeBucketLokal
+--- PASS: TestRedisMenggantungBerhentiDiBatasWaktu
+--- PASS: TestKunciRedisTidakMemuatEmailAtauAlamat
+--- PASS: TestMintaUnggahanKunciAcakMilikAkunDanUmurLimaMenit
+--- PASS: TestMintaUnggahanUmurDariDepDanUkuranDitandatangani
+--- PASS: TestMintaUnggahanSyaratAkunDanPenyimpanan
+--- PASS: TestMintaUnggahanDibatasiTigaPerJamPerAkun
+--- PASS: TestAjukanTerunggahBerhasilMemakaiChecksumHitunganServer
+--- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/checksum_kartu_salah
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/checksum_swafoto_salah
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_tidak_diunggah
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/swafoto_tidak_diunggah
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_1_MiB_+_1_byte
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/swafoto_1_MiB_+_1_byte
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_bukan_gambar
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/kartu_kosong
+    --- PASS: TestAjukanTerunggahMenolakDanMenghapusFileYangTidakLolos/tepat_1_MiB_lolos
+--- PASS: TestAjukanTerunggahKunciBukanMilikAkunDitolakTanpaMenghapusMilikOrang
+--- PASS: TestAjukanTerunggahKunciBentukSalahDitolakSebagaiValidasiBukanGalatInternal
+--- PASS: TestAjukanTerunggahBentukChecksumDanNomorIdentitas
+--- PASS: TestAjukanTerunggahGalatPenyimpananTidakMenghapusFile
+--- PASS: TestAjukanTerunggahPengajuanKeduaDitolakDanFileBarunyaDibuang
+--- PASS: TestFileDitimpaSesudahDiterimaTerdeteksiSaatUnduh
+--- PASS: TestRetensiMasaSimpanTigaPuluhHariTepatDariSelesai
+--- PASS: TestRetensiBatas29Dan31HariJamDiperankan
+--- PASS: TestRetensiDihentikanGalatSatuFileTidakMenghentikanJobDanDiulangBerikutnya
+--- PASS: TestRetensiFileSudahHilangDiPenyimpananTetapDitandai
+--- PASS: TestRetensiHalamanLebihDariSeratusBaris
+--- PASS: TestRetensiBarisDenganSatuKunciKosongTetapDiprosesTanpaGalat
+--- PASS: TestAjukanTerunggahUkuranDariHeadDitolakSebelumIsiDibaca
+--- PASS: TestAjukanTerunggahObjekMembesarSesudahHeadDitolakSebagaiValidasi
+--- PASS: TestAjukanTerunggahDibatasiTigaPerJamPerAkun
+--- PASS: TestByteaHapusHanyaKunciItuBukanYangBerawalanSama
+--- PASS: TestMintaUnggahanBatasIsiUlangSatuPerDuaPuluhMenit
+--- PASS: TestRetensiTanpaPenyimpananDitolak
+--- PASS: TestBukaBerkasSesudahRetensiMenjawabDihapusDanTetapMencatatAudit
+--- PASS: TestBytea
+--- PASS: TestRetensiTandaiBerkasDihapusMenjagaBatasDanSekaliSaja
+--- PASS: TestImporKatalogUpsertDanPratinjauPerBaris
+--- PASS: TestImporKatalogMemilihPengunduhSesuaiMode
+--- PASS: TestImporKatalogHanyaMerchantTerverifikasiDanAktif
+--- PASS: TestImporKatalogInputSalahDitolakUtuh
+--- PASS: TestImporKatalogMembatasiUnduhanSerentak
+--- PASS: TestImporKatalogProdukSudahCommitSebelumUnduhan
+--- PASS: TestBOHanyaAkunRisk
+--- PASS: TestBOLihatAkunMenulisAuditDanTidakUntukAkunTakAda
+--- PASS: TestBOBekukanLalubukaButuhPenyetujuSah
+--- PASS: TestBOAkunRiskDanAdminTidakBisaDibekukan
+--- PASS: TestBOModeTanpaAuditMenjalankanAksiTanpaCatatan
+--- PASS: TestBOBukaBerkasMenulisAuditSebelumIsiDanMenolakChecksumSalah
+--- PASS: TestBOLihatVerifikasiTanpaKunciObjek
+--- PASS: TestBOMerchantDisetujuiMengangkatTingkatDanSekaliSaja
+--- PASS: TestBOMerchantDitolakTidakMengangkatTingkat
+--- PASS: TestBOMerchantDisetujuiSerentakHanyaSekali
+--- PASS: TestBOKillSwitchKartuMenulisAuditDanMengubahFlag
+--- PASS: TestBOUbahBatasHarianButuhPenyetujuDanNilaiWajar
+--- PASS: TestBOVerifikasiRantaiAuditUtuhSesudahAksi
+--- PASS: TestPeriksaAlasan
+--- PASS: TestKirimBatasHarian
+--- PASS: TestKirimBersamaanTidakNegatif
+--- PASS: TestTopupSatuBarisSalahSemuaDitolak
+--- PASS: TestTopupSeribuAkunSatuTransaction
+--- PASS: TestRiwayatKursorTanpaGandaTanpaTerlewat
+--- PASS: TestBalikSekali
+--- PASS: TestTutupBukuSeimbang
+--- PASS: TestKlaimKunciBaruBerjalanUlangBeda
+--- PASS: TestKunciKedaluwarsaSesudah24Jam
+--- PASS: TestKlaimKunciBersamaanSatuPemenang
+--- PASS: TestLepasKunciMembukaKlaimBaru
+--- PASS: TestTimpaStokTanpaSyaratVersi
+--- PASS: TestDuaInstanceBatasAkunDanKunciDatabase
+--- PASS: TestReversalMengunciBukuPemilikSebelumDanaTertahan
+--- PASS: TestOtorisasiMenahanDana
+--- PASS: TestOtorisasiSerentakVersiBenar
+--- PASS: TestOtorisasiSerentakTanpaHoldDanClearingKeduaDitolak
+--- PASS: TestOtorisasiIDSamaSatuHold
+--- PASS: TestOtorisasiDitolakDiulangDijawabSama
+--- PASS: TestOtorisasiBentukMasukanSalahDitolakSebelumDatabase
+--- PASS: TestOtorisasiDitolak
+--- PASS: TestOtorisasiLockTimeoutMenjawabSibuk
+--- PASS: TestKillSwitchMenolakTanpaBaris
+--- PASS: TestOtorisasiPulihDariKeyLedger
+--- PASS: TestClearingIdempoten
+--- PASS: TestReversalIdempoten
+--- PASS: TestKedaluwarsaHoldDijalankanDuaKali
+--- PASS: TestKunciPenerbit
+--- PASS: TestTerbitkanKartu
+--- PASS: TestUbahStatusKartu
+--- PASS: TestKartuSebagaiRoleAplikasi
+--- PASS: TestKatalogCacheHitLaluHapusSesudahUbah
+--- PASS: TestKatalogCacheTulisDitolakTidakMenghapus
+--- PASS: TestKatalogCachePromoMenghapusSatuKota
+--- PASS: TestPesanTidakMembacaCache
+--- PASS: TestKoreksiRekonTidakDiLedgerMengkreditLaluKabarTerlambatGanda
+--- PASS: TestKoreksiRekonTidakDiLedgerYangDitahan
+--- PASS: TestKoreksiRekonTidakDiLedgerYangSudahDikreditJalurLain
+--- PASS: TestKoreksiRekonJumlahBeda
+--- PASS: TestKoreksiRekonTidakDiGateway
+--- PASS: TestKoreksiRekonGatewayTidakMenjawabTidakMembalik
+--- PASS: TestKoreksiRekonDuaJobBersamaanSatuJurnalPerInsiden
+--- PASS: TestLatarMenangkapPanic
+--- PASS: TestLatarRentanMematikanProses
+--- PASS: TestRingkasanEksporLaporanKosong
+--- PASS: TestRingkasanEksporRentanPanikDiLaporanKosong
+--- PASS: TestLedgerKreditTopupSatuJurnalPerKey
+--- PASS: TestLedgerMenungguLockBukuAkunLaluMemakaiSaldoTerbaru
+--- PASS: TestLedgerKeyHabisTepatPada24Jam
+--- PASS: TestLedgerKreditTopupSerentakSatuJurnal
+--- PASS: TestLedgerKunciHarusSamaDenganOrderDanDipakaiSatuPermintaan
+--- PASS: TestLedgerDitolakDibekukanDanBatasTingkatTidakMenahanKey
+--- PASS: TestLedgerUlanganTidakKenaBatasSaldo
+--- PASS: TestLedgerAkunTidakAda
+--- PASS: TestLedgerJumlahTidakSah
+--- PASS: TestLedgerKeyHidup24JamLaluMenjurnalLagi
+--- PASS: TestLedgerTahanKartuMenahanDanaSekaliPerKey
+--- PASS: TestLedgerTahanKartuSerentakKeySamaSatuHold
+--- PASS: TestLedgerTahanKartuSaldoKurangTidakMenahanKey
+--- PASS: TestLedgerTahanKartuAkunDibekukanDanTidakAda
+--- PASS: TestLedgerTahanKartuKeyBentrokDanValidasi
+--- PASS: TestLedgerTahanKartuLockTimeoutSibuk
+--- PASS: TestLedgerTahanKartuDuaIDSerentakSatuSaldo
+--- PASS: TestLedgerTahanKartuKeyHabisSesudah24Jam
+--- PASS: TestLedgerTahanKartuBukuDanaTertahanTerkunciMenolakSibuk
+--- PASS: TestLedgerTahanKartuLockTimeoutBerlakuPerPenantianBukanPerTransaction
+--- PASS: TestLedgerTahanKartuDuaIDMengantreDiLockSaldoDibacaSesudahLock
+--- PASS: TestSinkronBersamaanSatuPemenang
+--- PASS: TestSinkronKunciSamaBersamaanSekali
+--- PASS: TestSinkronMenolakPembayaran
+--- PASS: TestSinkronBatasUmurQueue
+--- PASS: TestUbahProdukBersamaanSatuPemenang
+--- PASS: TestTandaTanganAtasByteMentah
+--- PASS: TestWebhookSatuKaliLaluUlang
+--- PASS: TestWebhookDuaEventSatuKejadianSatuJurnal
+--- PASS: TestWebhookLapisanPenahanJurnalKedua
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/semua_lapis_menyala
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/hanya_status_dimatikan:_kunci_ledger_menahan_(key_masih_hidup)
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/hanya_kunci_dimatikan:_status_menahan
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/status_dimatikan_dan_key_sudah_habis_(25_jam):_tidak_ada_yang_menahan
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/key_sudah_habis_(25_jam),_status_menyala:_status_menahan
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/status_dan_kunci_dimatikan,_event_berbeda:_tidak_ada_yang_menahan
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/status_dan_kunci_dimatikan,_event_yang_sama:_kunci_utama_event_id_menahan_sendirian
+    --- PASS: TestWebhookLapisanPenahanJurnalKedua/status_dan_kunci_dimatikan,_event_yang_sama,_key_habis:_kunci_utama_event_id_tetap_menahan
+--- PASS: TestWebhookSerentakEventSamaDanEventBeda
+    --- PASS: TestWebhookSerentakEventSamaDanEventBeda/event_yang_sama
+    --- PASS: TestWebhookSerentakEventSamaDanEventBeda/event_berbeda
+--- PASS: TestWebhookStatusHanyaMaju
+--- PASS: TestWebhookJumlahBedaOrderTakDikenalDanPalsu
+--- PASS: TestWebhookBatasSaldoTingkatSesudahLock
+--- PASS: TestWebhookAkunDibekukanDiparkir
+--- PASS: TestWebhookEventDanJurnalSatuTransaction
+--- PASS: TestWebhookModeRentanV1MenjurnalDuaKali
+--- PASS: TestWebhookModeCekTulisLolosBersamaan
+    --- PASS: TestWebhookModeCekTulisLolosBersamaan/mode_webhook-cek-tulis
+    --- PASS: TestWebhookModeCekTulisLolosBersamaan/mode_
+--- PASS: TestBuatTopupBankGatewayTiruan
+--- PASS: TestBuatTopupBankAturan
+--- PASS: TestBuatTopupBankTidakMenahanLockSelamaGatewayMenunggu
+--- PASS: TestCekTopupMenerapkanStatusGateway
+--- PASS: TestRekonHarianTigaJenisSelisih
+--- PASS: TestKirimDibatasiPerAkun
+--- PASS: TestKirimTidakMembedakanNomor
+--- PASS: TestDurasiKunciBertahap
+--- PASS: TestLoginTerkunciSamaDenganPasswordSalah
+--- PASS: TestLoginDibatasiPerAkun
+--- PASS: TestLoginWajibGantiPassword
+--- PASS: TestKunciTidakBisaDilewatiBersamaan
+--- PASS: TestKunciAlamatIPv6PerPrefix
+--- PASS: TestBayarQRDinamisSekaliPakai
+--- PASS: TestBayarQRStatisBerkaliDenganBatas
+--- PASS: TestBayarQRNominalTerikat
+--- PASS: TestBuatQRAturan
+--- PASS: TestBayarQRKedaluwarsa
+--- PASS: TestBayarQRSaldoKurangDanAkunDibekukan
+--- PASS: TestQRMerchantBelumSahTidakBisaMenerimaQR
+--- PASS: TestBayarQRMilikMerchantLain
+--- PASS: TestLaporkanQRMembekukanMerchantDanMenulisAudit
+--- PASS: TestBayarQRDinamisSerentak
+--- PASS: TestBayarQRStatisSerentak
+--- PASS: TestBayarQRMenungguLockQRLaluMelihatStatusBaru
+--- PASS: TestBayarQRKaryawanLestari
+--- PASS: TestTandaiQRTerpakaiHanyaSekali
+--- PASS: TestPostingPartisiMenjagaAturanLedger
+--- PASS: TestPKPartisiHarusMemuatKolomKunci
+--- PASS: TestLaporanHariIniMemangkasPartisi
+--- PASS: TestJurnalReferensiUnikDanBerbentuk
+--- PASS: TestBukuTabunganMilikAkun
+--- PASS: TestOutboxStreamBukanPekerjaanWorkerPush
+--- PASS: TestPengumumanSatuBarisSatuEvent
+--- PASS: TestLaporanHariIni
+--- PASS: TestCicilanDiulangSesudahCrashTidakMenagihDua
+--- PASS: TestCicilanSatuJobRentanMenagihDuaSesudah24Jam
+--- PASS: TestCicilanSaldoKurangDanTabungan
+--- PASS: TestBuatCicilanValidasi
+--- PASS: TestCatatanPanjangDanKarakter
+--- PASS: TestRupiah
+--- PASS: TestBayarMenulisOutboxSatuTransaction
+--- PASS: TestBayarGagalTidakMenulisOutbox
+--- PASS: TestCommitDitolakMembuangJurnalDanOutbox
+--- PASS: TestKirimDanTopupMenulisOutbox
+--- PASS: TestKlaimTigaWorkerTanpaGandaTanpaTerlewat
+--- PASS: TestKlaimHabisDiklaimLagi
+--- PASS: TestKelasMendahuluiNomor
+--- PASS: TestPesanHargaDariDatabase
+--- PASS: TestUbahProdukBersyaratVersi
+--- PASS: TestSinkronSekaliPerKunci
+--- PASS: TestPromoHanyaHrDanPengumuman
+--- PASS: TestSesiWebDanCsrf
+--- PASS: TestKlaimMelewatBarisYangDikunci
+--- PASS: TestOutboxGagalMembatalkanUang
+--- PASS: TestCicilanLangkahDanJadwalDihentikan
+--- PASS: TestJurnalAngsuranJenisDanReferensi
+--- PASS: TestBatasValidasiCicilanDanPengumuman
+--- PASS: TestPengumumanMenghitungAkunBukanPerangkat
+--- PASS: TestLaporanHariIniMemakaiHariWIB
+--- PASS: TestBukuTabunganTidakMasukPencarianBukuUtama
+    --- PASS: TestBukuTabunganTidakMasukPencarianBukuUtama/tabungan_dulu_true
+    --- PASS: TestBukuTabunganTidakMasukPencarianBukuUtama/tabungan_dulu_false
+--- PASS: TestConstraintTabelBaruTahap5
+--- PASS: TestPartisiPostingMenyambungTanpaCelah
+--- PASS: TestBuatPartisiPostingMenolakTengahBulan
+--- PASS: TestBukuTabunganDipakaiUlang
+--- PASS: TestSaldoBukuMilikAkunTidakNegatif
+--- PASS: TestRekonHarianLedgerLebihBesarDariGateway
+--- PASS: TestWebhookDiparkirDicekKeGatewayHanyaBilaMasihMenunggu
+--- PASS: TestOtorisasiIDPenerbitSamaUntukKartuLainDitolak
+--- PASS: TestOtorisasiTepatDiBatasHarianDanSaldoBoleh
+--- PASS: TestBatasHarianKartuMenghitungYangSudahDitagih
+--- PASS: TestPenyetujuHarusSesiApp
+--- PASS: TestAturanUnikDatabaseTahap4
+--- PASS: TestKoreksiRekonTidakMenahanTransactionSelamaGatewayMenunggu
+--- PASS: TestKoreksiRekonJumlahBedaTepatDiBatasTingkat
+--- PASS: TestCekTopupBelumSelesaiBatasTigaPuluhMenitDanTidakPasti
+--- PASS: TestKoreksiRekonTidakDiLedgerTopupTidakPasti
+--- PASS: TestKoreksiRekonSatuGalatTidakMenghentikanYangLain
+--- PASS: TestWebhookEventMenyimpanJenisTopupDanJurnal
+--- PASS: TestAjukanVerifikasiSatuTransactionDanChecksum
+--- PASS: TestAjukanVerifikasiAturan
+--- PASS: TestAjukanVerifikasiMerchantTanpaVendor
+--- PASS: TestAjukanVerifikasiBatasLajuPerAkun
+--- PASS: TestSelesaikanVerifikasiHanyaSekaliDanTingkat
+--- PASS: TestKirimButuhTingkatTerverifikasiDanAkunAktif
+--- PASS: TestDaftarAturan
+--- PASS: TestBatasEndpointPerAkunDanPerAlamat
+PASS
+ok    lab/apit5/internal/service
+--- PASS: TestAmanMenerimaGambarSahDariServerTLS
+--- PASS: TestAmanLoopbackDitolakBawaan
+--- PASS: TestAmanSkemaHTTPDitolakBawaan
+--- PASS: TestAmanAlamatTerlarangDitolak
+--- PASS: TestAmanNamaYangMenunjukKeAlamatDalamDitolak
+--- PASS: TestAmanDNSRebindingDitolakDiControlContext
+--- PASS: TestAmanRedirectTidakDiikuti
+--- PASS: TestAmanBatasUkuran
+--- PASS: TestAmanLambatDiputusDiBatasWaktu
+--- PASS: TestAmanBukanGambarDanPesanTanpaIsi
+--- PASS: TestRentanDenyListStringTidakMenyentuhServer
+    unduh_test.go:290: bentuk yang lolos deny-list dan sampai ke server uji di platform ini: [http://127.1:<port>/dalam http://0.0.0.0:<port>/dalam http://2130706433:<port>/dalam http://0x7f000001:<port>/dalam http://LOCALHOST:<port>/dalam http://127.000.000.001:<port>/dalam]
+--- PASS: TestRentanDenyListDilewatiBentukLainAmanMenolak
+--- PASS: TestRentanPesanGalatMembocorkanIsiLayananDalam
+--- PASS: TestRentanMengikutiRedirectKeAlamatDalam
+--- PASS: TestRentanGambarSahDiterima
+--- PASS: TestAlamatKhususTidakKosongDanValid
+--- PASS: TestAlamatDilarangPerKelas
+--- PASS: TestAmanAliranTanpaAkhirDipotongDiBatasUkuran
+--- PASS: TestAmanContentLengthBesarDitolakSebelumMembaca
+--- PASS: TestAmanJawabanDNSCampuranDitolakUtuh
+PASS
+ok    lab/apit5/internal/unduh
+--- PASS: TestKlasifikasiJawabanVendor
+--- PASS: TestIdempotencyKeyDariReferensiAtauKunciRentan
+--- PASS: TestKoneksiDitolakTidakTersediaDanTimeoutTidakPasti
+PASS
+ok    lab/apit5/internal/verifikasi
+--- PASS: TestLajurTerbukaTidakMengklaimDanPercobaanTidakNaik
+--- PASS: TestLajurPulihHanyaSatuPermintaanPercobaanLaluSemuaSelesai
+--- PASS: TestLajurBanyakPekerjaanBersamaanTidakAdaYangMati
+--- PASS: TestLajurBarisDiklaimSebelumBreakerTerbukaDilepasTanpaMenaikkanPercobaan
+--- PASS: TestLepasOutboxTidakDiBawahNolDanHanyaBarisMenunggu
+--- PASS: TestLajurPermintaanPercobaanSetengahTerbukaMenghabiskanPercobaanPekerjaanTerdepan
+--- PASS: TestLajurTerbukaWorkerSatuLajurTidakMengklaimApaPun
+--- PASS: TestLajurPushTetapJalanSelagiLajurVerifikasiTerbuka
+--- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan
+    --- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan/bawaan=false
+    --- PASS: TestLajur4xxTidakMembukaBreakerKustomTetapiMembukaBreakerBawaan/bawaan=true
+--- PASS: TestKunciIdempotensiPerPercobaan
+    --- PASS: TestKunciIdempotensiPerPercobaan/tanpaKunci=false
+    --- PASS: TestKunciIdempotensiPerPercobaan/tanpaKunci=true
+--- PASS: TestTanpaBreakerSemuaPekerjaanMatiSebelumVendorPulih
+--- PASS: TestRingkasanMenjumlahkanDanMencetakDijeda
+--- PASS: TestRingkasHasilMenghitungSetiapJenis
+--- PASS: TestLajurSetengahTerbukaMembagiKapasitasDenganLajurLain
+--- PASS: TestVerifikasiLulusMenaikkanTingkat
+--- PASS: TestVerifikasiDitolakTidakMenaikkanTingkat
+--- PASS: TestVerifikasiTimeoutTidakPastiLaluPulih
+--- PASS: TestVerifikasiVendorMatiLimaPercobaanLaluGagal
+--- PASS: TestVerifikasiLajurDanKlaimTunggal
+--- PASS: TestVerifikasiYangSudahSelesaiDilewati
+--- PASS: TestVerifikasiTanpaVendorDitundaTanpaMengubahApaPun
+--- PASS: TestBackoffBatas
+--- PASS: TestWorkerRetryLaluDeadLetter
+--- PASS: TestWorkerTokenTidakTerdaftarDilewati
+--- PASS: TestWorkerBarisBeracunMasukDeadLetter
+--- PASS: TestWorkerPushMenggantungBerhentiDiBatasWaktu
+--- PASS: TestWorkerBackoffDihormati
+PASS
+ok    lab/apit5/internal/worker
+# exit status 0
+
+# --- B. Tanpa TEST_DATABASE_URL dan TEST_REDIS_ADDR: tes yang butuh keduanya dilewati, tes tanpa itu tetap jalan ---
+$ go test -count=1 ./...
+ok    lab/apit5/cmd/api
+ok    lab/apit5/cmd/tiruan
+ok    lab/apit5/internal/cache
+ok    lab/apit5/internal/handler
+ok    lab/apit5/internal/klien
+ok    lab/apit5/internal/lajur
+ok    lab/apit5/internal/objek
+ok    lab/apit5/internal/rahasia
+ok    lab/apit5/internal/redisbatas
+ok    lab/apit5/internal/repo
+ok    lab/apit5/internal/service
+ok    lab/apit5/internal/unduh
+ok    lab/apit5/internal/verifikasi
+ok    lab/apit5/internal/worker
+# exit status 0
+
+# --- C. TES_DB_WAJIB=1 dan TES_REDIS_WAJIB=1 tanpa database dan Redis: gagal keras, bukan hijau karena tes dilewati ---
+$ TES_DB_WAJIB=1 TES_REDIS_WAJIB=1 go test -count=1 ./...
+ok    lab/apit5/cmd/api
+ok    lab/apit5/cmd/tiruan
+ok    lab/apit5/internal/cache
+--- FAIL: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
+    handler_berkas_test.go:48: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerBerkasTerunggahAlurDanNomorIdentitasTidakDiulang
+    handler_berkas_test.go:111: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerBerkasTerunggahDibatasiPerAlamatTerpisahDariBatasAkun
+    handler_berkas_test.go:169: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerBerkasBukaSesudahRetensiMenjawab410DanTetapMencatatAudit
+    handler_berkas_test.go:184: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHTTPBOTanpaLoginDanBukanRisk
+    handler_bo_test.go:110: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHTTPBORingkasanAkunTanpaDataSensitif
+    handler_bo_test.go:134: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHTTPBOBerkasHeaderDanAlasan
+    handler_bo_test.go:162: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHTTPBOBukaBlokirButuhHeaderPenyetuju
+    handler_bo_test.go:211: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHTTPBOMerchantKillSwitchDanRantaiAudit
+    handler_bo_test.go:250: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHTTPImporKatalog
+    handler_bo_test.go:294: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestIdempotenUlanganTanpaEfekGanda
+    handler_idempoten_test.go:99: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestIdempotenPanikMelepasKey
+    handler_idempoten_test.go:137: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestIdempotenKeySamaEndpointBeda
+    handler_idempoten_test.go:160: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestIdempotenBersamaanSatuMenang
+    handler_idempoten_test.go:179: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPenerbitTanpaKunciYangSahDitolak
+    handler_kartu_test.go:95: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPenerbitOtorisasiClearingReversal
+    handler_kartu_test.go:114: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPenerbitTanpaHoldClearingKedua409
+    handler_kartu_test.go:164: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestRuteKartuApp
+    handler_kartu_test.go:198: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestDaftarEndpoint
+    handler_pembayaran_test.go:189: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestDaftarBatasPerAlamatDanJenisAdmin
+    handler_pembayaran_test.go:221: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestWebhookEndpointTandaTangan
+    handler_pembayaran_test.go:244: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTopupBankEndpoint
+    handler_pembayaran_test.go:302: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestVerifikasiEndpoint
+    handler_pembayaran_test.go:368: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestBatasLajuEndpointLama
+    handler_pembayaran_test.go:426: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerQRAlurDinamis
+    handler_qr_test.go:178: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerQRKedaluwarsaDanKesalahan
+    handler_qr_test.go:215: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerQRBayarMemakaiIdempotencyKey
+    handler_qr_test.go:257: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestHandlerQRLaporkan
+    handler_qr_test.go:287: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestRuteLaporanMerchantHanyaDenganModeRentan
+    handler_t5_test.go:70: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPengumumanEndpoint
+    handler_t5_test.go:101: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestCicilanEndpoint
+    handler_t5_test.go:128: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestBatasLajuPengumumanDanCicilan
+    tinjau_t5_test.go:12: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+FAIL
+FAIL  lab/apit5/internal/handler
+ok    lab/apit5/internal/klien
+ok    lab/apit5/internal/lajur
+ok    lab/apit5/internal/objek
+ok    lab/apit5/internal/rahasia
+TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
+FAIL  lab/apit5/internal/redisbatas
+--- FAIL: TestAuditBerantaiUtuhDanBerurutan
+    audit_test.go:129: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestAuditPenulisSerentakTidakMemutusRantai
+    audit_test.go:161: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestAuditUbahBarisTengahTerdeteksiDiBarisItu
+    audit_test.go:234: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestAuditHapusEkorHanyaTerdeteksiDenganJangkar
+    audit_test.go:266: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestAuditHapusBarisTengahTerdeteksiDiBarisSesudahnya
+    audit_test.go:292: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestAuditRoleAplikasiDitolakUbahHapusKosongkan
+    audit_test.go:314: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL_APP kosong
+FAIL
+FAIL  lab/apit5/internal/repo
+TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
+FAIL  lab/apit5/internal/service
+ok    lab/apit5/internal/unduh
+ok    lab/apit5/internal/verifikasi
+TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
+FAIL  lab/apit5/internal/worker
+FAIL
+# exit status 1
