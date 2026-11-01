@@ -28,7 +28,9 @@ CREATE SCHEMA t5_cicilan;
 ALTER TABLE {s}.buku SET SCHEMA t5_ledger;
 ALTER TABLE {s}.jurnal SET SCHEMA t5_ledger;
 ALTER TABLE {s}.posting SET SCHEMA t5_ledger;
--- Partisi tidak ikut pindah bersama tabel induknya (PostgreSQL 17 §5.12): dipindah satu per satu.
+-- Partisi tidak ikut pindah bersama tabel induknya: teramati di PostgreSQL 17.11 lab ini (DROP SCHEMA tanpa CASCADE gagal
+-- bila satu partisi tertinggal). Dokumentasi ALTER TABLE hanya menyebut indeks, constraint, dan sequence yang ikut pindah.
+-- Partisi dipindah satu per satu.
 DO $$
 DECLARE r record;
 BEGIN

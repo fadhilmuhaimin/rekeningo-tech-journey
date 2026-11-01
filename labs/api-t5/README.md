@@ -1,8 +1,8 @@
 # Lab api-t5 · api-t4 naik ke enam service dan satu negara
 
-Lab induk Tahap 5 (naskah `plan/CERITA-TAHAP-5.md` bagian 3, 3b, dan 4). Ia berangkat dari `labs/api-t4` dan menambah semua tabel dan kolom naskah bagian 3b lewat migrasi baru. Lab ini memecah 30 tabel ke enam schema service dengan role per service dan memasang PgBouncer di depan primary. Ia merekam laporan merchant, koneksi, dan beban 1.388,9 request per detik. Lab Tahap 5 berikutnya (`t5-replika`, `t5-partisi`, `t5-fanout`, `t5-service`, `t5-cicilan`, `t5-rollout`, `t5-waf`, `t5-kms`, `t5-gabung`) berbagi lab ini lewat `dasar_t5.py` dan mode rentan, bukan salinan.
+Lab induk Tahap 5 (naskah `plan/CERITA-TAHAP-5.md` bagian 3, 3b, dan 4). Ia berangkat dari `labs/api-t4` dan menambah semua tabel dan kolom naskah bagian 3b lewat migrasi baru. Lab ini memecah 30 tabel ke enam schema service dengan role per service. Ia menyediakan PgBouncer di depan primary hanya untuk bagian `pooler`: server `api-t5` dan generator beban tidak berjalan lewat PgBouncer. Ia merekam laporan merchant, koneksi, dan beban 1.388,9 request per detik. Lab Tahap 5 berikutnya (`t5-replika`, `t5-partisi`, `t5-fanout`, `t5-service`, `t5-cicilan`, `t5-rollout`, `t5-waf`, `t5-kms`, `t5-gabung`) berbagi lab ini lewat `dasar_t5.py` dan mode rentan, bukan salinan.
 
-Semua pihak ketiga adalah tiruan lokal di container atau proses: gateway pembayaran, layanan verifikasi, penerbit kartu, layanan push, Redis, dan PgBouncer. Lab ini tidak memanggil target di luar mesinmu.
+Semua pihak ketiga yang dipanggil server dan worker adalah tiruan lokal di container atau proses: gateway pembayaran, layanan verifikasi, penerbit kartu, layanan push, Redis, dan PgBouncer. Dalam rekaman, server, worker, dan generator beban hanya memanggil alamat di mesinmu. Jaringan hanya dipakai saat membangun: toolchain Go (sekali, lewat proxy modul), paket PgBouncer di image (`apt.postgresql.org`), dan Redocly lewat `npx` bila belum ada di cache (`make kontrak`).
 
 ## Versi
 
@@ -71,7 +71,7 @@ Port dasar: API 18310, push tiruan 18311, instance kedua 18312 (dicadangkan), ga
 
 | File | Bagian | Isi |
 | --- | --- | --- |
-| `output/skema.txt` | `skema` | 30 tabel; kolom dibandingkan dengan blok mermaid naskah; partisi, trigger, dan aturan ledger di tabel berpartisi; foreign key lintas schema 18 lalu 0; pembagian tabel per service; hak per role; server `api-t5` sebagai `t5_app` di enam schema |
+| `output/skema.txt` | `skema` | 30 tabel; kolom dibandingkan dengan blok mermaid naskah; partisi, trigger, dan aturan ledger di tabel berpartisi; foreign key lintas schema 18 lalu 0; pembagian tabel per service; hak per role (delapan penolakan contoh, lalu semua tabel dan kolom dihitung dari katalog: `t5_app` punya persis hak `api_t5` sebelum dipecah, dan hanya `t5_ledger` punya hak di schema lain); server `api-t5` sebagai `t5_app` di enam schema |
 | `output/laporan.txt` | `laporan` | rute laporan hanya dengan mode; hanya pemilik; pembayaran dengan dan tanpa polling 666,7 per detik; cache 30 detik: 0 hit dari 18 untuk satu client per merchant, 9 dari 18 untuk dua client |
 | `output/pooler.txt` | `pooler` | 12 client × pool 10 = 120 koneksi: galat 53300 tanpa pooler; tanpa galat lewat PgBouncer, paling banyak 20 koneksi ke PostgreSQL |
 | `output/beban.txt` | `beban` | 20.833 permintaan dalam 15 detik pada 1.388,9 per detik; status, jadwal, dan permintaan yang menunggu di pool 10 |
@@ -85,7 +85,7 @@ Rekaman dari database bersih, diulang tiga kali (tenang, dengan 10 proses sibuk 
 - **M40.** Polling laporan 666,7 per detik dari 9 warung dengan data satu hari menyelesaikan 6.667 dari 6.667 permintaan. Query laporan berjalan di bawah 1 ms di database (batas diperiksa). Selisih p95 pembayaran antara dengan dan tanpa polling bergantung beban mesin dan tidak dijadikan syarat; hitungan naskah (CPU 167%, query 20 ms, 8 vCPU) tetap Hitungan atas Asumsi.
 - **Cache laporan.** Satu client per merchant yang memanggil tiap 30 detik mendapat 0 hit dari 18 panggilan (TTL 30 detik, jarak 30,5 detik). Dua client dalam satu jendela mendapat 9 hit dari 18.
 - **M46.** Tanpa pooler, 120 koneksi diminta dan sisanya ditolak dengan 53300; yang tersedia untuk role biasa 97 (`max_connections` 100 dikurangi 3 cadangan). Lewat PgBouncer 1.26.1 mode transaction, 120 koneksi client dan 2.400 query selesai tanpa galat. Prepared statement protokol extended berjalan karena `max_prepared_statements = 100`; dengan nilai 0 Tidak dijalankan.
-- **Beban.** Pada 1.388,9 per detik semua permintaan selesai (200 atau 201) dan jadwal tidak tertinggal. Pool 10 antre (`WaitCount` lebih dari 0): yang penuh lebih dulu adalah pool satu proses, bukan `max_connections`. p95 antar run berkisar dari beberapa ms sampai ratusan ms, jadi batasnya longgar (5.000 ms). Jumlah koneksi di `pg_stat_activity` sempat melewati pool (13 dari pool 10): koneksi yang baru ditutup client belum hilang di server. Ini bukan kapasitas produksi dan bukan kapasitas satu primary.
+- **Beban.** Pada 1.388,9 per detik semua permintaan selesai (200 atau 201) dan jadwal tidak tertinggal. Pool 10 antre (`WaitCount` lebih dari 0): yang penuh lebih dulu adalah pool satu proses, bukan `max_connections`. p95 antar run berkisar dari beberapa ms sampai sekitar satu detik, jadi batasnya longgar (5.000 ms). Jumlah koneksi di `pg_stat_activity` sempat melewati pool (13 dari pool 10): koneksi yang baru ditutup client belum hilang di server. Ini bukan kapasitas produksi dan bukan kapasitas satu primary.
 
 ## Selisih dengan naskah (lab yang benar)
 
