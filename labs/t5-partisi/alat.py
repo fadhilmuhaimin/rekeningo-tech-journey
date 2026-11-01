@@ -14,7 +14,8 @@ bagian = d.bagian
 SKALA = "tahap5_partisi"
 LEPAS = "tahap5_lepas"
 TES = "tahap5_partisi_tes"
-# 11 bulan lalu + bulan berjalan = 12 bulan, 150.000 posting per bulan: tiap partisi lebih dari 8 MB (min_parallel_table_scan_size).
+# 11 bulan lalu + bulan berjalan = 12 bulan, 150.000 posting per bulan, jadi 1.800.000 posting. Satu bulan dari 12 adalah 8,3%, sama dengan
+# 36,5 juta dari 438 juta di naskah. Ukuran partisi bukan syarat Parallel Append (bagian B2 skala).
 # Bulan berjalan punya 10.200 jurnal dari data awal, jadi jurnal bayarnya 200 lebih sedikit supaya semua bulan sama besar.
 BULAN_SKALA, BAYAR_SKALA, BAYAR_INI_SKALA = 11, 65_000, 64_800
 POSTING_BULAN = 2 * (10_000 + BAYAR_SKALA)
@@ -45,6 +46,45 @@ def relasi_plan(q, schema):
             telusur(a)
     telusur(plan[0]["Plan"])
     return nama
+
+
+def simpul_plan(q, schema):
+    """Semua simpul plan (dict Node Type, Relation Name, Index Name, Parallel Aware, ...) dari EXPLAIN FORMAT JSON."""
+    with konek(schema) as c:
+        plan = c.execute("EXPLAIN (COSTS OFF, FORMAT JSON) " + q).fetchone()[0]
+    hasil = []
+
+    def telusur(n):
+        hasil.append(n)
+        for a in n.get("Plans", []):
+            telusur(a)
+    telusur(plan[0]["Plan"])
+    return hasil
+
+
+def explain_tanpa_kosong(q, schema, kosong):
+    """EXPLAIN (COSTS OFF) dicatat seperti psql, tetapi simpul scan partisi kosong (dan baris Filter-nya) tidak ditampilkan.
+    Untuk tabel kosong biaya Seq Scan dan Parallel Seq Scan sama-sama 0,00, dan planner memilih salah satunya tidak tetap dari
+    satu proses ke proses lain (rekaman pertama berbeda dari kedua pada pemeriksaan peninjau): bentuk simpul itu tidak direkam."""
+    tampil("=> EXPLAIN (COSTS OFF) " + q.strip())
+    with konek(schema) as c:
+        baris = [r[0] for r in c.execute("EXPLAIN (COSTS OFF) " + q).fetchall()]
+    sisa, lewati = [], False
+    for b in baris:
+        if lewati and "Filter:" in b:
+            lewati = False
+            continue
+        lewati = any(f" on {n} " in b + " " for n in kosong)
+        if not lewati:
+            sisa.append(b)
+    for b in d.tabel(["QUERY PLAN"], [(b,) for b in sisa]):
+        tampil(b)
+    return sisa
+
+
+def ribu(n):
+    """Bilangan dengan titik ribuan: 1800000 menjadi 1.800.000."""
+    return f"{n:,}".replace(",", ".")
 
 
 def partisi(schema):

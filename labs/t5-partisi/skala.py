@@ -22,10 +22,6 @@ def rekam_skala():
     harap(total, 12 * POSTING_BULAN, "jumlah posting")
     tidak_seimbang, jurnal_kosong, negatif = x.periksa_invarian_muatan(S)
     catat(f"# Invarian atas data yang dimuat, dihitung langsung dari tabel: jurnal tidak seimbang {tidak_seimbang}, jurnal tanpa posting {jurnal_kosong}, karyawan bersaldo negatif {negatif}.")
-    terkecil = satu("""SELECT min(pg_relation_size(c.oid)) FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
-                       WHERE i.inhparent = 'posting'::regclass AND c.reltuples > 0""", S)
-    harap(terkecil >= 8 * 1024 * 1024, True, "partisi berisi sekurang-kurangnya min_parallel_table_scan_size (8 MB)")
-    catat("# Tiap partisi berisi lebih besar dari 8 MB (min_parallel_table_scan_size), jadi PostgreSQL boleh memindainya paralel.")
 
     bagian("B. Pruning: query satu bulan membaca satu partisi, query tanpa dibuat membaca semuanya")
     dari, ke = batas(4, S), batas(3, S)
@@ -34,13 +30,48 @@ def rekam_skala():
     harap(relasi_plan(q1, S), {"posting_lalu_04"}, "partisi yang dibaca query satu bulan")
     catat(f"# Dibaca: 1 dari {len(nama_partisi)} partisi (posting_lalu_04). Batas partisi menentukan partisi mana yang dibaca; index tidak ikut menentukannya.")
     q2 = "SELECT sum(jumlah) FROM posting WHERE jumlah > 13000"
-    jalan("EXPLAIN (COSTS OFF) " + q2, S)
+    kosong = sorted(set(nama_partisi) - set(jumlah))
+    harap(len(kosong), 2, "dua partisi kosong (bulan depan dan sesudahnya)")
+    explain_tanpa_kosong(q2, S, kosong)
     harap(relasi_plan(q2, S), set(nama_partisi), "partisi yang dibaca query tanpa dibuat")
-    catat(f"# Dibaca: {len(nama_partisi)} dari {len(nama_partisi)} partisi, termasuk dua partisi kosong.")
+    simpul2 = {s["Relation Name"]: s for s in simpul_plan(q2, S) if "Relation Name" in s}
+    harap({n for n in kosong if simpul2[n]["Node Type"] == "Seq Scan"}, set(kosong), "partisi kosong dipindai dengan Seq Scan")
+    harap(sum(1 for n in jumlah if simpul2[n]["Node Type"] == "Seq Scan" and simpul2[n]["Parallel Aware"]), len(jumlah), "partisi berisi dipindai Parallel Seq Scan")
+    catat(f"# Dibaca: {len(nama_partisi)} dari {len(nama_partisi)} partisi: {len(jumlah)} partisi berisi dengan Parallel Seq Scan di bawah Parallel Append, dan dua partisi kosong ({', '.join(kosong)}).")
+    catat("# Simpul dua partisi kosong tidak ditampilkan di atas: untuk tabel kosong biaya Seq Scan dan Parallel Seq Scan sama (0,00), dan planner memilih salah satunya tidak tetap.")
     q3 = "SELECT * FROM posting WHERE id = 424242"
     jalan("EXPLAIN (COSTS OFF) " + q3, S)
     harap(relasi_plan(q3, S), set(nama_partisi), "partisi yang dibaca query berdasarkan id")
-    catat(f"# Mencari satu baris dengan id saja memeriksa index primary key di {len(nama_partisi)} dari {len(nama_partisi)} partisi: id tidak memuat kolom kunci partisi.")
+    simpul3 = [s for s in simpul_plan(q3, S) if "Relation Name" in s]
+    lewat_indeks = sorted(s["Relation Name"] for s in simpul3 if s["Node Type"] == "Index Scan" and s["Index Name"].endswith("_pkey"))
+    lewat_seq = sorted(s["Relation Name"] for s in simpul3 if s["Node Type"] == "Seq Scan")
+    harap((lewat_indeks, lewat_seq), (sorted(jumlah), kosong), "id: index primary key di partisi berisi, Seq Scan di partisi kosong")
+    catat(f"# Mencari satu baris dengan id saja membaca {len(nama_partisi)} dari {len(nama_partisi)} partisi: index primary key di {len(lewat_indeks)} partisi berisi dan Seq Scan di {len(lewat_seq)} partisi kosong.")
+    catat("# id tidak memuat kolom kunci partisi, jadi batas partisi tidak bisa menyisihkan satu pun.")
+
+    bagian("B2. Parallel Append tidak menunggu partisi sebesar 8 MB")
+    catat("# min_parallel_table_scan_size (bawaan 8 MB) menentukan apakah tabel biasa boleh dipindai paralel. Kode planner mengecualikan partisi")
+    catat("# (anak inheritance) dari batas itu (PostgreSQL 17, allpaths.c, compute_parallel_worker). Diukur di sini: 12 partisi bulanan berisi 30.000 baris.")
+    jalan("CREATE TABLE uji_kecil (LIKE posting INCLUDING DEFAULTS) PARTITION BY RANGE (dibuat)", S)
+    catat("# 12 partisi bulanan uji_kecil_NN dibuat dengan batas yang sama dengan posting, masing-masing diisi 30.000 baris.")
+    with konek(S) as c:
+        for i in range(BULAN_SKALA, -1, -1):
+            c.execute(f"CREATE TABLE uji_kecil_{i:02d} PARTITION OF uji_kecil FOR VALUES FROM ('{batas(i, S)}') TO ('{batas(i - 1, S)}')")
+            c.execute(f"""INSERT INTO uji_kecil (id, jurnal_id, buku_id, jumlah, dibuat)
+                          SELECT g, g, 1 + g % 1000, 1000, '{batas(i, S)}'::timestamptz + (g % 86400) * interval '1 second'
+                          FROM generate_series(1, 30000) g""")
+        c.execute("VACUUM (ANALYZE) uji_kecil")
+    terbesar = satu("""SELECT max(pg_relation_size(c.oid)) FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
+                       WHERE i.inhparent = 'uji_kecil'::regclass""", S)
+    harap(terbesar < 8 * 1024 * 1024, True, "partisi uji_kecil di bawah 8 MB")
+    qk = "SELECT sum(jumlah) FROM uji_kecil WHERE jumlah > 13000"
+    harap(satu("SELECT count(*) FROM uji_kecil", S), 12 * 30_000, "baris uji_kecil")
+    simpul_k = simpul_plan(qk, S)
+    harap(any(s["Node Type"] == "Append" and s["Parallel Aware"] for s in simpul_k), True, "Parallel Append atas partisi kecil")
+    harap(sum(1 for s in simpul_k if s["Node Type"] == "Seq Scan" and s["Parallel Aware"]), 12, "Parallel Seq Scan atas 12 partisi kecil")
+    catat("# Partisi terbesar kurang dari 8 MB. Plan untuk query tanpa dibuat: Parallel Append dengan 12 Parallel Seq Scan, satu per partisi.")
+    catat("# Jadi ukuran partisi bukan syarat Parallel Append. Seberapa kecil partisi boleh sebelum planner memilih Append biasa tidak diukur di sini.")
+    jalan("DROP TABLE uji_kecil", S, tulis_hasil=False)
 
     bagian("C. PRIMARY KEY dan UNIQUE harus memuat kolom kunci partisi")
     tolak("CREATE TABLE coba_partisi (id bigint PRIMARY KEY, dibuat timestamptz NOT NULL) PARTITION BY RANGE (dibuat)", "0A000", S,

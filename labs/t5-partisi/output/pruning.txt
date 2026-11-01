@@ -24,7 +24,6 @@
 (12 rows)
 # 14 partisi di katalog: 12 berisi 150.000 posting masing-masing, dan dua (bulan depan dan sesudahnya) kosong.
 # Invarian atas data yang dimuat, dihitung langsung dari tabel: jurnal tidak seimbang 0, jurnal tanpa posting 0, karyawan bersaldo negatif 0.
-# Tiap partisi berisi lebih besar dari 8 MB (min_parallel_table_scan_size), jadi PostgreSQL boleh memindainya paralel.
 
 # --- B. Pruning: query satu bulan membaca satu partisi, query tanpa dibuat membaca semuanya ---
 => EXPLAIN (COSTS OFF) SELECT sum(jumlah) FROM posting WHERE dibuat >= '<waktu>' AND dibuat < '<waktu>'
@@ -46,10 +45,6 @@
          Workers Planned: 2
          ->  Partial Aggregate
                ->  Parallel Append
-                     ->  Seq Scan on posting_bulan_01 posting_13
-                           Filter: (jumlah > 13000)
-                     ->  Seq Scan on posting_bulan_02 posting_14
-                           Filter: (jumlah > 13000)
                      ->  Parallel Seq Scan on posting_lalu_11 posting_1
                            Filter: (jumlah > 13000)
                      ->  Parallel Seq Scan on posting_lalu_10 posting_2
@@ -74,8 +69,9 @@
                            Filter: (jumlah > 13000)
                      ->  Parallel Seq Scan on posting_bulan_00 posting_12
                            Filter: (jumlah > 13000)
-(33 rows)
-# Dibaca: 14 dari 14 partisi, termasuk dua partisi kosong.
+(29 rows)
+# Dibaca: 14 dari 14 partisi: 12 partisi berisi dengan Parallel Seq Scan di bawah Parallel Append, dan dua partisi kosong (posting_bulan_01, posting_bulan_02).
+# Simpul dua partisi kosong tidak ditampilkan di atas: untuk tabel kosong biaya Seq Scan dan Parallel Seq Scan sama (0,00), dan planner memilih salah satunya tidak tetap.
 => EXPLAIN (COSTS OFF) SELECT * FROM posting WHERE id = 424242
  QUERY PLAN
 -----------------------------------------------------------------------------
@@ -109,7 +105,18 @@
    ->  Seq Scan on posting_bulan_02 posting_14
          Filter: (id = 424242)
 (29 rows)
-# Mencari satu baris dengan id saja memeriksa index primary key di 14 dari 14 partisi: id tidak memuat kolom kunci partisi.
+# Mencari satu baris dengan id saja membaca 14 dari 14 partisi: index primary key di 12 partisi berisi dan Seq Scan di 2 partisi kosong.
+# id tidak memuat kolom kunci partisi, jadi batas partisi tidak bisa menyisihkan satu pun.
+
+# --- B2. Parallel Append tidak menunggu partisi sebesar 8 MB ---
+# min_parallel_table_scan_size (bawaan 8 MB) menentukan apakah tabel biasa boleh dipindai paralel. Kode planner mengecualikan partisi
+# (anak inheritance) dari batas itu (PostgreSQL 17, allpaths.c, compute_parallel_worker). Diukur di sini: 12 partisi bulanan berisi 30.000 baris.
+=> CREATE TABLE uji_kecil (LIKE posting INCLUDING DEFAULTS) PARTITION BY RANGE (dibuat)
+CREATE TABLE
+# 12 partisi bulanan uji_kecil_NN dibuat dengan batas yang sama dengan posting, masing-masing diisi 30.000 baris.
+# Partisi terbesar kurang dari 8 MB. Plan untuk query tanpa dibuat: Parallel Append dengan 12 Parallel Seq Scan, satu per partisi.
+# Jadi ukuran partisi bukan syarat Parallel Append. Seberapa kecil partisi boleh sebelum planner memilih Append biasa tidak diukur di sini.
+=> DROP TABLE uji_kecil
 
 # --- C. PRIMARY KEY dan UNIQUE harus memuat kolom kunci partisi ---
 => CREATE TABLE coba_partisi (id bigint PRIMARY KEY, dibuat timestamptz NOT NULL) PARTITION BY RANGE (dibuat)
