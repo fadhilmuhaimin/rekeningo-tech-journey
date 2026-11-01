@@ -60,6 +60,7 @@ kasus("shell dengan port tetap gagal", {"labs/x/run.sh": f'DB="postgres://lab:la
 kasus("Go dengan port database tetap gagal", {"labs/x/main.go": f'var dsn = "host=127.0.0.1 port={DB}"\n'}, 1, ["labs/x/main.go:1"])
 kasus("port Redis tetap gagal", {"labs/x/run.py": "r = redis.Redis(port=56" + "379)\n"}, 1, ["LAB_REDIS_PORT"])
 kasus("port replika tetap gagal", {"labs/x/run.py": 'P = "postgresql://lab@127.0.0.1:54' + '340/lab"\n'}, 1, ["LAB_REPLIKA_PRIMARY_PORT"])
+kasus("port standby sinkron tetap gagal", {"labs/x/run.py": 'P = "postgresql://lab@127.0.0.1:54' + '342/lab"\n'}, 1, ["LAB_REPLIKA_SINKRON_PORT"])
 kasus("angka yang hanya mirip (154333, 543330) tidak dihitung", {"labs/x/run.py": "A = 154" + "333\nB = 54" + "3330\n"}, 0)
 kasus("dua temuan di dua berkas dilaporkan semua",
       {"labs/a/run.py": f"a = {DB}\n", "tools/b.py": f"b = {DB}\n"}, 1, ["labs/a/run.py:1", "tools/b.py:1", "2 temuan"])

@@ -15,7 +15,7 @@ Empat variabel lingkungan memisahkan satu lajur dari lajur lain. Tanpa variabel,
 | `LAB_PORT_OFFSET` | `0` | Ditambahkan ke setiap port server lab |
 | `LAB_REDIS_PORT` | `56379` | Port Redis lab `b9-cache` |
 
-Lab Tahap 5 `t5-replika` punya dua port database sendiri: `LAB_REPLIKA_PRIMARY_PORT` (bawaan `54340`) dan `LAB_REPLIKA_REPLICA_PORT` (bawaan `54341`).
+Lab Tahap 5 `t5-replika` punya tiga port database sendiri, satu per node kluster replikasinya: `LAB_REPLIKA_PRIMARY_PORT` (bawaan `54340`), `LAB_REPLIKA_REPLICA_PORT` (standby asinkron, bawaan `54341`), dan `LAB_REPLIKA_SINKRON_PORT` (standby sinkron, bawaan `54342`).
 
 ### Nilai per lajur
 
@@ -53,7 +53,8 @@ Aturannya:
 - `api-t5` memakai port dasar 18310 sampai 18316 (API, push tiruan, instance kedua, gateway pembayaran, layanan verifikasi, penerbit kartu, PgBouncer); lab Tahap 5 lain yang berbagi server itu lewat `dasar_t5.py` tidak jalan bersamaan dengannya dalam satu lajur. Container PgBouncer `api-t5-pgbouncer-<port>` hanya hidup selama bagian `pooler` (image `api-t5-pgbouncer:1.26.1` dibangun dari `postgres:17` lokal dan paket PGDG).
 - `t4-pipeline` memakai satu port, 18295, untuk registry image lokal di container `t4p-<port>-registry`, dan tidak memakai PostgreSQL; tidak bentrok dengan lab lain, tetapi dua lajur memakai offset berbeda (`LAB_PORT_OFFSET`).
 - `b9-cache` membaca schema `b2q` dari `b2-query`, jadi database lajur yang baru dibuat butuh `make -C labs/b2-query run` dulu.
-- Redis dan port replika tidak ikut offset; mereka punya variabel sendiri (tabel di atas). Lajur selain bawaan yang menjalankan `t5-replika` mengisi `LAB_REPLIKA_PRIMARY_PORT` dan `LAB_REPLIKA_REPLICA_PORT` sendiri, misalnya `54640` dan `54641` untuk offset 300; tanpa itu dua lajur berebut `54340` dan `54341`.
+- Redis dan port replika tidak ikut offset; mereka punya variabel sendiri (tabel di atas). Lajur selain bawaan yang menjalankan `t5-replika` mengisi `LAB_REPLIKA_PRIMARY_PORT`, `LAB_REPLIKA_REPLICA_PORT`, dan `LAB_REPLIKA_SINKRON_PORT` sendiri, misalnya `54640`, `54641`, dan `54642`; tanpa itu dua lajur berebut `54340`, `54341`, dan `54342`.
+- `t5-replika` tidak memakai PostgreSQL bersama di `LAB_DB_PORT`: ia menjalankan kluster compose sendiri (primary, `replika`, `sinkron`; proyek compose bawaan bernama `t5-replika`, jadi lajur lain mengisi `COMPOSE_PROJECT_NAME`) dan memindahkan semua sambungan `dasar_t5.py` ke port primary-nya (`pakai_database`). Ia memakai server dan port `api-t5` (18310 sampai 18316), jadi tidak jalan bersamaan dengan `api-t5` atau lab Tahap 5 lain yang memakai `dasar_t5.py` dalam satu lajur. Container `t5-replika-*` dihapus oleh `run.py` sesudah rekaman.
 - Lab deploy `api-t1` (halaman 1.31) memindahkan port host lewat `compose.lab-port.yaml`, berkas khusus lab yang memakai tag `!override` dari Docker Compose; `compose.yaml` yang dibaca halaman tidak berubah.
 
 ### Cara kerjanya
