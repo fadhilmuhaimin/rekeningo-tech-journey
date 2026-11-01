@@ -386,4 +386,147 @@ describe("ERD Tahap 5 dari lab api-t5 (ERD5)", () => {
       }
     expect(Object.keys(peta.tahap["5"]).sort()).toEqual(d5.tabel.map((a) => a.nama).sort());
   });
+  it("tabel baru dan posting sama dengan CREATE TABLE di migration: kolom, tipe, boleh kosong, bawaan, PK, FK, UNIQUE, CHECK, dan index dibaca dari SQL, bukan dari kunci literal", () => {
+    // Tinjauan ERD5 (keputusan 1673). Tanpa tes ini, tipe, boleh kosong, ekspresi CHECK, dan index tabel baru hanya terkunci oleh tes
+    // `penjaga skema` yang literal: mutan data pada tabel baru lolos bila tes itu dikeluarkan. SQL migration adalah sumber tabel baru.
+    const bersih = (sql: string) => sql.replace(/--.*$/gm, "");
+    const NORMAL_TIPE: Record<string, string> = { int: "integer", timestamptz: "timestamp with time zone" };
+    // Isi sampai kurung penutup yang seimbang, mulai dari "(" di `dari` (isi string 'x' dilewati).
+    const isiKurung = (s: string, dari: number) => {
+      let dalam = 0;
+      let kutip = false;
+      for (let i = dari; i < s.length; i++) {
+        const c = s[i];
+        if (c === "'") kutip = !kutip;
+        else if (!kutip && c === "(") dalam++;
+        else if (!kutip && c === ")" && --dalam === 0) return s.slice(dari + 1, i);
+      }
+      throw new Error("kurung tidak seimbang");
+    };
+    // Butir tingkat atas CREATE TABLE: dipisah koma yang tidak di dalam kurung atau string.
+    const bagiAtas = (s: string) => {
+      const hasil: string[] = [];
+      let dalam = 0;
+      let awal = 0;
+      let kutip = false;
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (c === "'") kutip = !kutip;
+        else if (!kutip && c === "(") dalam++;
+        else if (!kutip && c === ")") dalam--;
+        else if (!kutip && c === "," && dalam === 0) {
+          hasil.push(s.slice(awal, i).trim());
+          awal = i + 1;
+        }
+      }
+      hasil.push(s.slice(awal).trim());
+      return hasil.filter(Boolean);
+    };
+    // Isi CHECK dibandingkan lewat string dan angkanya (PostgreSQL menulis ulang `IN (...)` jadi `= ANY (ARRAY[...])`).
+    const token = (e: string) => [...e.matchAll(/'[^']*'|\b\d+\b/g)].map((m) => m[0]).sort();
+    const urut = <T,>(xs: T[]) => xs.map((x) => JSON.stringify(x)).sort();
+    const turunkan = (sql: string, nama: string) => {
+      const m = new RegExp(`CREATE TABLE ${nama} \\(([\\s\\S]*?)\\n\\)[^;]*;`).exec(bersih(sql));
+      if (!m) throw new Error(`CREATE TABLE ${nama} tidak ditemukan`);
+      const hasil = {
+        kolom: [] as [string, string, boolean, string | null][],
+        pk: [] as string[],
+        fk: [] as [string[], string, string[]][],
+        unik: [] as [string, string[]][],
+        cek: [] as { nama: string; kolom: string[]; token: string[] }[],
+      };
+      const tabelCek: { nama: string; isi: string }[] = [];
+      for (const butir of bagiAtas(m[1])) {
+        const pk = /^PRIMARY KEY \(([^)]+)\)$/.exec(butir);
+        const cn = /^CONSTRAINT (\w+) CHECK \(/.exec(butir);
+        if (pk) hasil.pk = pk[1].split(",").map((c) => c.trim());
+        else if (cn) tabelCek.push({ nama: cn[1], isi: isiKurung(butir, cn[0].length - 1) });
+        else {
+          const [, kn, tipeSql, sisa] = /^(\w+)\s+(\w+)\b([\s\S]*)$/.exec(butir)!;
+          const pkKolom = /\bPRIMARY KEY\b/.test(sisa);
+          if (pkKolom) hasil.pk = [kn];
+          const d = /DEFAULT\s+(nextval\('(\w+)'\)|'[^']*'|\w+\(\)|\d+)/.exec(sisa);
+          const bawaan = /GENERATED ALWAYS AS IDENTITY/.test(sisa)
+            ? "GENERATED ALWAYS AS IDENTITY"
+            : d ? (d[2] ? `nextval('${d[2]}'::regclass)` : d[1].startsWith("'") ? `${d[1]}::text` : d[1]) : null;
+          hasil.kolom.push([kn, NORMAL_TIPE[tipeSql] ?? tipeSql, /\bNOT NULL\b/.test(sisa) || pkKolom, bawaan]);
+          const r = /REFERENCES (\w+) \((\w+)\)/.exec(sisa);
+          if (r) hasil.fk.push([[kn], r[1], [r[2]]]);
+          if (/\bUNIQUE\b/.test(sisa)) hasil.unik.push([`${nama}_${kn}_key`, [kn]]);
+          const c = sisa.indexOf("CHECK (");
+          if (c >= 0) hasil.cek.push({ nama: `${nama}_${kn}_check`, kolom: [kn], token: token(isiKurung(sisa, c + 6)) });
+        }
+      }
+      const semua = hasil.kolom.map((k) => k[0]);
+      for (const c of tabelCek) hasil.cek.push({ nama: c.nama, kolom: semua.filter((k) => new RegExp(`\\b${k}\\b`).test(c.isi)).sort(), token: token(c.isi) });
+      return hasil;
+    };
+    const m24 = bersih(baca("labs/api-t5/migrasi/000024_posting_partisi.up.sql"));
+    const m25 = bersih(baca("labs/api-t5/migrasi/000025_tabel_tahap5.up.sql"));
+    const banding = (sql: string, nama: string, denganNama: boolean) => {
+      const s = turunkan(sql, nama);
+      const t = tabel(nama);
+      expect(t.kolom.map((k) => [k.nama, k.tipe, k.wajib, k.bawaan]), `${nama} kolom`).toEqual(s.kolom);
+      expect(t.pk, `${nama} pk`).toEqual(s.pk);
+      expect(urut(t.fk.map((f) => [f.kolom, f.ke_tabel, f.ke_kolom])), `${nama} fk`).toEqual(urut(s.fk));
+      expect(urut(t.unik.map((u) => [u.nama, u.kolom])), `${nama} unik`).toEqual(urut(s.unik));
+      // posting dibuat ulang: PostgreSQL menamai CHECK-nya posting_jumlah_check1, jadi nama tidak dibandingkan di sana.
+      const cek = t.cek.map((c) => ({ ...(denganNama ? { nama: c.nama } : {}), kolom: [...c.kolom].sort(), token: token(c.ekspresi) }));
+      expect(urut(cek), `${nama} cek`).toEqual(urut(s.cek.map((c) => (denganNama ? c : { kolom: c.kolom, token: c.token }))));
+    };
+    for (const n of BARU) banding(m25, n, true);
+    banding(m24, "posting", false);
+    // Index: tabel baru tidak punya satu pun; posting tiga, dengan nama dan kolom dari CREATE INDEX di migration 000024.
+    expect(m25).not.toMatch(/CREATE (UNIQUE )?INDEX/);
+    for (const n of BARU) expect(tabel(n).index, `${n} index`).toEqual([]);
+    const idx = [...m24.matchAll(/CREATE INDEX (\w+) ON posting \(([^)]+)\);/g)].map((x) => [x[1], `btree (${x[2].trim()})`]);
+    expect(idx).toHaveLength(3);
+    expect(urut(tabel("posting").index.map((i) => [i.nama, i.definisi]))).toEqual(urut(idx));
+    expect(tabel("posting").index.every((i) => !i.unik)).toBe(true);
+  });
+  it("halaman penjelas tiap tabel di peta cocok dengan kolom 'Masalah atau syarat' tabel 'Apa yang berubah dan kenapa' naskah 3b: masalahnya sendiri, bukan masalah tabel lain", () => {
+    // Tinjauan ERD5 (keputusan 1673): sebelum tes ini, menukar halaman `sakelar` dengan `snapshot_saldo` lolos semua tes, karena tes di atas
+    // hanya memeriksa awalan "5." dan tiga halaman posting. Sumbernya naskah: tiap baris tabel menyebut tabelnya di kolom Tahap 5 dan
+    // masalahnya (M43, M48, ...) di kolom terakhir; halaman masalah M<n> terdaftar di registry dengan ID t5-m<n>.
+    const naskah = baca("plan/CERITA-TAHAP-5.md").split("\n");
+    const awal = naskah.findIndex((b) => b.startsWith("| Tahap 4 | Tahap 5 | Alasan | Masalah atau syarat |"));
+    expect(awal).toBeGreaterThan(0);
+    const baris = naskah.slice(awal + 2).filter((b, i, a) => a.slice(0, i + 1).every((c) => c.startsWith("|")));
+    const harap = new Map<string, string[]>();
+    for (const b of baris) {
+      const sel = b.split("|").map((s) => s.trim());
+      const nama = [...sel[2].matchAll(/`(\w+)`/g)].map((m) => m[1]).find((n) => d5.tabel.some((t) => t.nama === n));
+      if (nama) harap.set(nama, [...sel[4].matchAll(/\bM(\d+)\b/g)].map((m) => `t5-m${m[1]}`));
+    }
+    expect([...harap.keys()].sort()).toEqual([...BARU, "akun", "outbox", "jurnal", "buku", "posting"].sort());
+    const peta = PetaHalaman.parse(petaHalaman);
+    for (const t of d5.tabel) {
+      const masalah = peta.tahap["5"][t.nama].filter((id) => /^t5-m\d+$/.test(id));
+      expect(masalah.sort(), t.nama).toEqual((harap.get(t.nama) ?? []).sort());
+    }
+    expect(harap.get("posting")).toEqual(["t5-m43"]);
+    expect(harap.get("sakelar")).toEqual(["t5-m49"]);
+  });
+  it("fkDihapusLintas hanya menghitung foreign key yang dihapus: aturan lain di selisih tidak ikut", () => {
+    const a = structuredClone(lab5);
+    a[4].selisih!.aturan_berubah.push(
+      { tabel: "buku", jenis: "cek", nama: "buku_jenis_check", ubah: "dihapus" }, // bukan foreign key
+      { tabel: "akun", jenis: "fk", nama: "akun_kota_id_fkey", ubah: "baru" }, // foreign key, tetapi baru
+    );
+    expect(fkDihapusLintas(a, 5, modul)).toHaveLength(18);
+  });
+  it("skema Zod: partisi tanpa anak dan kunci partisi yang hanya memuat sebagian nama kolom PK ditolak", () => {
+    const klon = () => structuredClone(t5Lab) as unknown as DataErd;
+    const a = klon();
+    a.tabel.find((t) => t.nama === "posting")!.partisi!.anak = [];
+    expect(DataErd.safeParse(a).success).toBe(false);
+    const b = klon();
+    b.tabel.find((t) => t.nama === "posting")!.partisi!.kunci = "RANGE (idx)"; // "id" hanya potongan dari "idx"
+    expect(DataErd.safeParse(b).success).toBe(false);
+  });
+  it("CSS widget ERD: warna hanya lewat token (tanpa heksadesimal, rgb, atau hsl)", () => {
+    const css = baca("situs/src/erd/erd-tumbuh.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(css.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/g) ?? []).toEqual([]);
+    expect(css.match(/var\(--/g)?.length ?? 0).toBeGreaterThan(40); // pemeriksaan ini membaca CSS yang benar, bukan berkas kosong
+  });
 });
