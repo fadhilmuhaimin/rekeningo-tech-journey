@@ -412,6 +412,16 @@ func TestBalikJurnalTanpaPostingDijawabDiarsip(t *testing.T) {
 	if err := tx.Commit(); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { // jurnal tanpa posting melanggar invarian: jangan tinggalkan di schema tes
+		if hapus, err := db.Begin(); err == nil {
+			defer hapus.Rollback()
+			if _, err := hapus.Exec(`SET LOCAL session_replication_role = replica`); err == nil {
+				if _, err := hapus.Exec(`DELETE FROM jurnal WHERE id = $1`, id); err == nil {
+					hapus.Commit()
+				}
+			}
+		}
+	})
 	if _, err := svc.Balik(ctx, admin, id, "partisi posting bulan itu sudah dilepas dan diarsipkan"); !errors.Is(err, ErrPostingDiarsip) {
 		t.Fatalf("balik jurnal tanpa posting: ingin ErrPostingDiarsip, dapat %v", err)
 	}
