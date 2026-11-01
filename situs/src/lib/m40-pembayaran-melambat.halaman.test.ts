@@ -29,7 +29,10 @@ const baca = (rel: string): string => {
   if (terlacak) expect(terlacak.has(rel), `tes membaca berkas yang tidak terlacak git: ${rel}`).toBe(true);
   return fs.readFileSync(path.join(akar, rel), "utf8");
 };
-const berkasDi = (awalan: string): string[] => (terlacak ? [...terlacak].filter((f) => f.startsWith(awalan)) : []);
+const berkasDi = (awalan: string): string[] =>
+  terlacak
+    ? [...terlacak].filter((f) => f.startsWith(awalan))
+    : (fs.readdirSync(path.join(akar, awalan), { recursive: true }) as string[]).map((f) => `${awalan}${f}`).filter((f) => fs.statSync(path.join(akar, f)).isFile());
 const sidik = (t: string): string => createHash("sha256").update(t).digest("hex").slice(0, 16);
 
 const BERKAS = "situs/src/content/docs/tahap-5/m40-pembayaran-melambat.mdx";
@@ -239,7 +242,9 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(prd).toContain("Masalah pertama dari semua ini datang di [[t5-m40]].");
     expect(prd).toMatch(/^\| 45 \(\[\[t4-adr-45\]\]\) \| Satu dari tiga pemicu read replica adalah laporan merchant real-time yang diminta PRD v5 \| Laporan merchant real-time \| \[\[t5-m40\]\] dan \[\[t5-read-replica\]\] \|$/m);
     expect(hal45).toContain("Read replica: query baca yang sudah memakai index menahan 5 koneksi");
-    expect(estimasi4).toContain("Koneksi tertahan oleh semua request (W 20 ms)");
+    const wEstimasi = estimasi4.match(/Koneksi tertahan oleh semua request \(W \d+ ms\)/g) ?? [];
+    expect(wEstimasi.length).toBeGreaterThan(0);
+    for (const x of wEstimasi) expect(x, "tiap kemunculan W di estimasi Tahap 4").toBe(`Koneksi tertahan oleh semua request (W ${W_MS} ms)`);
   });
   test("halaman tidak membuka isi 5.5: ADR 46 hanya sebagai nama keputusan; tanpa statement_timeout, hot_standby_feedback, LSN, CDC, Debezium, ringkasan harian yang diisi job", () => {
     expect(badan.match(/ADR \d+/g)).toEqual(["ADR 46"]);
@@ -304,6 +309,8 @@ describe("rekaman laporan.txt: angka dan kalimat bagian A, B, dan C", () => {
     expect(POST[0]![0]).toBe(LAP.merchant);
     expect(POST[1]![0]).toBe(LAP.merchant);
     expect(LAP).toMatchObject({ jumlah_transaksi: 2, total: TOTAL, dibaca_dari: "primary", merchant: 505 });
+    expect(bagA).toContain("# server: ./api-t5 -lab (tanpa mode rentan); push tiruan: ./pushpalsu");
+    for (const siapa of ["Warung 506", "Budi"]) expect(bagA, siapa).toMatch(new RegExp(`GET '/merchant/${LAP.merchant}/laporan/hari-ini' -H 'Authorization: Bearer <token sesi ${siapa}>'\\nHTTP/1\\.1 404 Not Found\\nContent-Type: application/problem\\+json\\n\\n\\{"type":"/problems/tidak-ditemukan","title":"Merchant tidak ditemukan","status":404\\}`));
     harus("Tanpa mode itu rutenya dijawab 404:");
     harus(`**Laporan menjumlah posting dari primary, tiap panggilan.** Budi membayar Warung ${LAP.merchant} dua kali, ${rp(POST[0]![1])} dan ${rp(POST[1]![1])}.`);
     harus(`Laporan warung itu lalu menjawab dua transaksi dengan total ${rp(LAP.total)} (Rekaman lab, bagian A).`);
@@ -329,8 +336,11 @@ describe("rekaman laporan.txt: angka dan kalimat bagian A, B, dan C", () => {
     expect(RPS_LAPORAN).toBe(LAP_S);
     expect(BATAS).toBe(BATAS2);
     expect(bagB).toContain("# Selisih p95 pembayaran antara kedua putaran bergantung mesin dan beban lain di laptop: tidak direkam dan tidak dijadikan syarat.");
+    expect(bagB).toContain(`# ${koma(LAP_S, 1)} per detik = ${rib(ONLINE)} merchant online ÷ ${INTERVAL} detik (naskah bagian 3, Asumsi). Di lab polling berasal dari ${WARUNG_LAB} warung,`);
+    expect(bagB).toContain(`# bukan ${rib(ONLINE)} merchant, dan data hari ini kecil: lab memeriksa batas, bukan menirukan produksi.`);
     expect(bagB).toContain("jadwal tidak tertinggal lebih dari 100 ms di kedua putaran (generator tidak jadi penghambat): ya");
     expect(bagB).toContain("# jadi 666,7 per detik, CPU 167%, dan query 20 ms di naskah tetap hitungan atas Asumsi (query 20 ms, 8 vCPU), bukan rekaman.");
+    expect(bagB).toContain("# --- B. Pembayaran dengan dan tanpa polling laporan: p95 pembayaran sebagai batas, bukan nilai tunggal ---");
     const p95 = [...bagB.matchAll(/p95[^\n]*?(\d+) ms/g)].map((m) => Number(m[1]));
     expect(p95).toEqual([BATAS, BATAS2]);
     harus(`**Polling ${koma(RPS_LAPORAN, 1)} per detik selesai tanpa galat, dan perlambatannya tidak terekam.** Lab menjalankan pembayaran ${RPS_BAYAR} per detik selama ${DETIK} detik, dua kali.`);
@@ -368,6 +378,8 @@ describe("rekaman laporan.txt: angka dan kalimat bagian A, B, dan C", () => {
     expect((runPy.match(/time\.sleep\(/g) ?? []).length).toBeGreaterThan(0);
     expect(runPy).toContain('"-laporan-ttl", "30s"');
     expect(bagC).toContain("Jumlah hit dihitung dari pencacah server, bukan dari waktu.");
+    expect(bagC).toContain(`# --- C. Cache laporan ${TTL} detik di Redis: satu client per merchant yang memanggil tiap ${INTERVAL} detik hampir tidak pernah mendapat hit ---`);
+    expect(bagC).toContain(`# Cache baru menolong bila ada panggilan kedua dalam ${TTL} detik untuk merchant yang sama. Polling satu perangkat per merchant tiap\n# ${INTERVAL} detik tidak punya panggilan kedua itu.`);
     harus(`dalam dua putaran berjarak ${C_JARAK[1]} detik.`);
     harus(`Lab menyalakan cache Redis dengan TTL ${TTL} detik dan memanggil laporan ${WARUNG_LAB} warung, satu client per warung,`);
     harus(`Hasilnya ${C_A[2]} hit, ${C_A[3]} miss, dan ${C_A[4]} pembacaan database.`);
@@ -426,7 +438,7 @@ describe("kode lab: query laporan, tiga perintah SQL, dibaca_dari, dan cache", (
     expect(baca("labs/api-t5/internal/repo/tx.go")).toContain("r.db.BeginTx(");
     harus("Fungsi `LaporanHariIni` di lapisan repo menjalankan satu query atas `posting` dan `buku`.");
     harus("lewat pool koneksi yang sama (Tidak dijalankan: dibaca dari kode lab)");
-    expect(readme).toContain("Laporan merchant dari primary** hanya ada dengan `-rentan laporan-primary` (M40)");
+    expect(readme).toContain("Laporan merchant dari primary** hanya ada dengan `-rentan laporan-primary` (M40): tanpa mode itu rutenya tidak terdaftar.");
   });
   test("tiga perintah SQL per permintaan GET dengan token Bearer: SesiAktif (wajibLogin), Akun, dan LaporanHariIni; cache hanya membungkus yang ketiga", () => {
     expect(handlerT5).toContain('mux.HandleFunc("GET /merchant/{id}/laporan/hari-ini", s.wajibLogin(s.laporanHariIni))');
@@ -434,7 +446,7 @@ describe("kode lab: query laporan, tiga perintah SQL, dibaca_dari, dan cache", (
     expect(sesiGo).toContain("x, err := s.repo.SesiAktif(ctx, hashToken(token), s.kini())");
     const sesiFungsi = cocok(repoGo, /func \(r Repo\) SesiAktif\([\s\S]*?\n\}\n/)[0];
     expect(sesiFungsi.match(/QueryRowContext/g)).toHaveLength(1);
-    expect(sesiFungsi).toContain("FROM sesi s JOIN akun a");
+    expect(sesiFungsi).toContain("FROM sesi s JOIN akun a ON a.id = s.akun_id\n\t\tWHERE s.token_hash = $1 AND s.kedaluwarsa > $2 AND NOT a.wajib_ganti_password");
     const akunFungsi = cocok(repoGo, /func \(r Repo\) Akun\([\s\S]*?\n\}\n/)[0];
     expect(akunFungsi.match(/QueryRowContext/g)).toHaveLength(1);
     expect(akunFungsi).toContain("FROM akun a LEFT JOIN buku b");
@@ -537,6 +549,7 @@ describe("hitungan beban produksi: diturunkan dari angka naskah dan angka yang t
     expect([lBaca, lBaca2]).toEqual([26.4, 26.9]);
     expect(Math.round((lBaca / PEMICU) * 100)).toBe(528);
     expect(barisBaca).toContain(`L = ${koma(lBaca, 1)} koneksi, atau ${Math.round((lBaca / PEMICU) * 100)}% dari pemicu read replica ADR 45`);
+    expect(barisBaca).toContain(`| (request − transaksi uang) × W | (${koma(REQ, 1)} − ${koma(TRX3, 1)}) × ${koma(W, 2)} |`);
     harus(`(${rib(REQ)} − ${koma(TRX3, 1)}) × ${koma(W, 2)} = ${koma(lBaca, 1)} koneksi, ${Math.round((lBaca / PEMICU) * 100)}% dari pemicu read replica di [[t4-adr-45]] yang ${PEMICU} koneksi.`.replace(rib(REQ), koma(REQ, 1)));
     harus(`Dengan dua transaksi hasilnya ${koma(lBaca2, 1)} koneksi (Hitungan atas Asumsi).`);
     const impas = VCPU / LAP_S;
@@ -664,6 +677,89 @@ describe("baris riset 5.4: lima baris, urut ID, dan nilai dari rekaman", () => {
     expect(barisPolling).toContain("200.000 × 10% = 20.000 online");
     expect(barisPolling).toContain("(R5-34)");
     expect(riset).toContain("| R5-34 Polling laporan | merchant online ÷ interval | Asumsi: 200.000 merchant (\"ratusan ribu\"), 10% online, polling 30 detik, query 20 ms, 8 vCPU |");
+  });
+});
+
+describe("tinjauan sendiri: kalimat, bullet, judul Snippet, dan frontmatter yang tadinya hanya dijaga kunci baris diturunkan dari sumber", () => {
+  const MINGGU = cocok(barisM40, /^\| M40 \| (\d+) \|/)[1]!;
+  const DETIK_CERITA = Number(cocok(barisM40, /berputar (\d+) detik/)[1]);
+  test("frontmatter: judul dan description diturunkan dari registry, minggu naskah, dan interval PRD", () => {
+    expect(frontmatter).toBe(
+      `title: "5.4 ${dari("t5-m40").judul}"\n` +
+        `description: Minggu ${MINGGU}. Merchant membuka laporan real-time tiap ${INTERVAL} detik, pembayaran di warung ikut menunggu, dan laporan membaca primary yang sama dengan pembayaran. Rekaman membuktikan jalurnya, hitungan memperkirakan bebannya.\n`,
+    );
+    expect(dari("t5-m40").label).toBe(`Masalah 40 · minggu ${MINGGU}`);
+    harus(`Minggu ${MINGGU} Tahap 5. Kamis pukul 11.40 Ani menunggu`);
+    expect(barisM40).toContain("Kamis 11.40 Ani menunggu");
+  });
+  test("judul Snippet lengkap: berkas, bagian rekaman, nomor baris kode, dan keterangan", () => {
+    expect(judulSnippet).toEqual([
+      "Rekaman lab: labs/api-t5/output/laporan.txt, bagian A (tanpa mode rentan rute laporan tidak ada)",
+      `Rekaman lab: labs/api-t5/output/laporan.txt, bagian A (dua pembayaran Budi dan laporan Warung ${LAP.merchant})`,
+      `Kode lab: labs/api-t5/internal/repo/t5.go baris ${rFungsi} sampai ${rAkhir} (query laporan atas posting)`,
+      `Kode lab: labs/api-t5/internal/service/t5.go baris ${sAwal} sampai ${sAkhir} (cache membungkus satu query, dibaca_dari teks tetap)`,
+      "Rekaman lab: labs/api-t5/output/laporan.txt, bagian B (pembayaran dengan dan tanpa polling laporan)",
+      `Rekaman lab: labs/api-t5/output/laporan.txt, bagian C (cache ${TTL} detik dan kontrol dua client)`,
+    ]);
+    expect(L.baris[lA - 1]).toMatch(/^# --- A\. /);
+    expect(L.baris[lB - 1]).toMatch(/^# --- B\. /);
+    expect(L.baris[lC - 1]).toMatch(/^# --- C\. /);
+  });
+  test("bagian A rekaman yang tampil di Snippet: blok 404 tanpa mode, dua pembayaran 201 dengan saldo turun sebesar nominal, dan laporan 200", () => {
+    expect(L.teks(GET404, A404)).toBe(
+      "$ curl -i -X GET '/merchant/505/laporan/hari-ini' -H 'Authorization: Bearer <token sesi Warung 505>'\nHTTP/1.1 404 Not Found\nContent-Type: text/plain; charset=utf-8\nX-Content-Type-Options: nosniff\n\n404 page not found",
+    );
+    const bayar = [...bagA.matchAll(/-d '\{"ke": (\d+), "nominal": (\d+)\}'\nHTTP\/1\.1 201 Created\nContent-Type: application\/json\nLocation: \/transfers\/(\d+)\n\n\{"id":(\d+),"saldo":(\d+)\}/g)];
+    expect(bayar).toHaveLength(2);
+    expect(bayar.map((m) => [Number(m[1]), Number(m[2])])).toEqual(POST);
+    for (const m of bayar) expect(m[3]).toBe(m[4]);
+    expect(Number(bayar[1]![3])).toBe(Number(bayar[0]![3]) + 1);
+    expect(Number(bayar[0]![5]) - POST[1]![1]).toBe(Number(bayar[1]![5]));
+    expect(bagA).toContain(`$ curl -i -X GET '/merchant/${LAP.merchant}/laporan/hari-ini' -H 'Authorization: Bearer <token sesi Warung ${LAP.merchant}>'\nHTTP/1.1 200 OK\nContent-Type: application/json\n\n{"merchant":${LAP.merchant},`);
+    expect(bagB).toContain(`# Yang diperiksa: kedua putaran selesai tanpa galat, p95 di bawah batas, dan jadwal tidak tertinggal. Data lab kecil (satu hari, ${WARUNG_LAB} warung),`);
+  });
+  test("cabang cache di service: dengan cache Baca membungkus muat, tanpa cache muat dipanggil langsung; query laporan lengkap", () => {
+    expect(badanSvc).toMatch(/if s\.kl != nil \{\n\t\tb, err = s\.kl\.Baca\(ctx, fmt\.Sprintf\("laporan:%d:%s", merchant, tanggal\), muat\)\n\t\} else \{\n\t\tb, err = muat\(ctx\)\n\t\}/);
+    expect(badanRepo).toContain("WHERE b.akun_id = $1 AND b.jenis IN ('warung', 'merchant') AND p.jumlah > 0\n\t\t  AND p.dibuat >= $2 AND p.dibuat < $3");
+  });
+  test("kalimat prosa Gejala, Yang Raka kira, dan Yang sebenarnya yang memuat angka, label, atau nama", () => {
+    harus(`Rekaman lab tidak menghasilkan tombol Bayar yang berputar ${DETIK_CERITA} detik, dan alasannya ada di blok Yang sebenarnya.`);
+    harus(`dua pembayaran Ani, dan ${DETIK_CERITA} detik berasal dari naskah, bukan dari rekaman.`);
+    harus("Cache menyimpan jawaban sementara. Panggilan yang menemukan jawaban tersimpan disebut hit dan tidak membaca database. Panggilan yang tidak menemukannya disebut miss dan membaca database.");
+    harus("Usul cache Nadia diuji di blok Coba sendiri, dengan tebakan sendiri.");
+    harus("Laporan menjumlah posting di primary yang sama dengan pembayaran, jadi tiap polling menambah kerja database yang menulis uang.");
+    harus("Laporan menjumlah baris di tabel `posting`. Tabel itu juga menerima baris baru tiap pembayaran, lewat pool koneksi yang sama");
+    harus("Mode itu adalah kode lab yang ditulis untuk M40, bukan salinan kode yang pernah berjalan di cerita.");
+    harus("Masukannya berasal dari tabel beban naskah Tahap 5, dan semuanya Asumsi.");
+    harus(`Seluruh perlambatan di cerita bergantung pada ${W_MS} ms yang tidak diukur.`);
+    harus(`Lama memegang koneksi juga mencakup menunggu disk atau lock, jadi untuk ${W_MS} ms itu ${koma((LAP_S * W * 100) / VCPU, 0)}% adalah batas atas (penalaran).`);
+    harus(`**Cache ${TTL} detik punya dua masalah yang terpisah.** Yang pertama soal hit.`);
+    harus("**Masalah kedua tidak bergantung pada hit.**");
+    harus("Cara lain melayani laporan ditimbang di [[t5-read-replica]].");
+    harus("dan bebannya tetap di mesin yang menulis uang.");
+    harus("Hit juga hanya melewati `LaporanHariIni`.");
+  });
+  test("bullet Yang tidak direkam: tiap bullet diturunkan dari angka rekaman, hitungan, dan naskah", () => {
+    harus(`- Pembayaran yang melambat: selisih p95 dengan dan tanpa laporan tidak direkam. Yang terekam hanya p95 di bawah ${rib(BATAS)} ms di kedua putaran.`);
+    harus(`- ${rib(ONLINE)} merchant online, ${W_MS} ms, dan ${VCPU} vCPU adalah Asumsi. Lab memakai ${WARUNG_LAB} warung, data satu hari, dan satu laptop.`);
+    harus(`- Jarak polling ${TTL} detik atau lebih pendek ke cache tidak direkam.`);
+    harus("- Naskah menulis satu perangkat per merchant, padahal laporan tampil di app Merchant dan di dasbor web. Jumlah layar per merchant adalah Asumsi.");
+    expect(naskah).toContain("Layar laporan di app Merchant dan dasbor web, diperbarui tiap 30 detik");
+    harus(`- Tombol Bayar ${DETIK_CERITA} detik, hari, jam, dan dua pembayaran Ani hanya ada di cerita (Ilustrasi).`);
+    harus("Kapasitas satu primary belum diukur: `make beban` memberi batas di laptop ([[t5-prd]]).");
+    expect(prd).toContain("Kapasitas satu server belum pernah diukur.");
+    expect(badan.match(/^- /gm)!.length).toBe(10); // enam bullet Yang tidak direkam dan empat bullet Konsep yang lahir
+  });
+  test("noscript cache, penutup Konsep yang lahir, dan nomor soal Cek diri", () => {
+    const noscript = cocok(badan, /<noscript>([\s\S]*?)<\/noscript>/)[1]!;
+    expect(noscript).toContain(`Cache ${TTL} detik dengan satu client per warung dan jarak ${C_JARAK[1]} detik menghasilkan ${C_A[2]} hit dari ${2 * WARUNG_LAB}. Dengan dua client per warung dalam satu jendela, hasilnya ${C_K[1]} hit dari ${C_K[5]}.`);
+    harus("- [[t5-skema]]: tabel yang lahir di Tahap 5, termasuk `ringkasan_merchant_harian` untuk laporan periode.");
+    expect(naskah).toContain("`ringkasan_merchant_harian` (`merchant_akun_id`, `tanggal`, `jumlah_transaksi`, `total`, `diperbarui_pada`; PK `(merchant_akun_id, tanggal)`)");
+    harus("Laporan yang dibaca dari primary menambah kerja mesin yang menulis uang. Rekaman membuktikan jalurnya, dan hitungan memperkirakan bebannya.");
+    harus("Jawaban atas pertanyaan Wulan, siapa yang melambat bila laporan dan pembayaran membaca database yang sama, bergantung pada angka yang belum diukur.");
+    expect(prd).toContain("1. Kalau laporan dan pembayaran membaca database yang sama, siapa yang melambat?");
+    const cek = badan.split("### Cek diri")[1]!;
+    expect([...cek.matchAll(/\*\*(\d)\.\*\* /g)].map((m) => m[1])).toEqual(["1", "2", "3"]);
   });
 });
 
