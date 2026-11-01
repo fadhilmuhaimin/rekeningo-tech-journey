@@ -12,6 +12,9 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap5_partisi_tes> TES_DB_WAJIB=1 go test 
 --- PASS: TestBuatSnapshotMenolakBulanBelumSelesaiDanBukanAwalBulan
 --- PASS: TestCekCacheSnapshotSamaDenganCekCachePenuh
 --- PASS: TestCekCacheSnapshotMembacaPostingTepatDiBatas
+--- PASS: TestBuatSnapshotBulanTerlewatMenghitungUlangDariAwal
+--- PASS: TestBuatSnapshotJumlahPostingMenghitungPostingBukanJurnal
+--- PASS: TestCekCacheSnapshotBukuBaruTanpaBarisSnapshot
 --- PASS: TestPostingPartisiMenjagaAturanLedger
 --- PASS: TestPKPartisiHarusMemuatKolomKunci
 PASS

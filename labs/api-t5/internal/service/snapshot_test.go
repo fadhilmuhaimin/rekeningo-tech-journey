@@ -23,6 +23,15 @@ func snapBuku(t *testing.T, db *sql.DB, akun int64) int64 {
 	return id
 }
 
+func snapBukuJenis(t *testing.T, db *sql.DB, akun int64, jenis string) int64 {
+	t.Helper()
+	var id int64
+	if err := db.QueryRow(`SELECT id FROM buku WHERE akun_id = $1 AND jenis = $2`, akun, jenis).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
 // snapJurnal menulis satu jurnal bayar seimbang bertanggal `waktu` (RFC 3339) lewat koneksi tes, lalu menyesuaikan
 // saldo_cache kedua buku seperti CatatJurnal, supaya CekCache biasa tetap cocok.
 func snapJurnal(t *testing.T, db *sql.DB, dari, ke, jumlah int64, waktu string) {
@@ -266,5 +275,115 @@ func TestCekCacheSnapshotMembacaPostingTepatDiBatas(t *testing.T) {
 	}
 	if s, n := snapRow(t, db, ba, "2022-02-01"); s != 0 || n != 0 {
 		t.Fatalf("snapshot Februari memuat posting 1 Maret 00.00 WIB: saldo %d dari %d posting", s, n)
+	}
+}
+
+// Bulan yang terlewat memutus rantai: snapshot Maret tanpa snapshot Februari tidak boleh memakai Januari sebagai pendahulu
+// dan hanya menjumlah Maret. Ia menghitung ulang dari semua posting sampai akhir Maret, lalu April melanjutkan dari Maret.
+func TestBuatSnapshotBulanTerlewatMenghitungUlangDariAwal(t *testing.T) {
+	_, db := siapkan(t)
+	r := repo.Baru(db)
+	ctx := context.Background()
+	a, _ := akunBaru(t, db, "karyawan", 100_000)
+	b, _ := akunBaru(t, db, "karyawan", 100_000)
+	ba, bb := snapBuku(t, db, a), snapBuku(t, db, b)
+	snapJurnal(t, db, ba, bb, 3_000, "2024-01-10T10:00:00+07:00")
+	snapJurnal(t, db, ba, bb, 4_000, "2024-02-10T10:00:00+07:00")
+	snapJurnal(t, db, ba, bb, 5_000, "2024-03-10T10:00:00+07:00")
+	snapJurnal(t, db, ba, bb, 6_000, "2024-04-10T10:00:00+07:00")
+	sekarang := time.Now()
+	if _, err := r.BuatSnapshot(ctx, snapWIB(t, "2024-01-01"), sekarang); err != nil {
+		t.Fatal(err)
+	}
+	// Februari dilewati.
+	if _, err := r.BuatSnapshot(ctx, snapWIB(t, "2024-03-01"), sekarang); err != nil {
+		t.Fatal(err)
+	}
+	if s, n := snapRow(t, db, ba, "2024-03-01"); s != -12_000 || n != 3 {
+		t.Fatalf("snapshot Maret buku A tanpa snapshot Februari: saldo %d dari %d posting, ingin -12000 dari 3 (Januari, Februari, Maret)", s, n)
+	}
+	if _, err := r.BuatSnapshot(ctx, snapWIB(t, "2024-04-01"), sekarang); err != nil {
+		t.Fatal(err)
+	}
+	if s, n := snapRow(t, db, ba, "2024-04-01"); s != -18_000 || n != 4 {
+		t.Fatalf("snapshot April buku A: saldo %d dari %d posting, ingin -18000 dari 4", s, n)
+	}
+}
+
+// jumlah_posting menghitung posting, bukan jurnal: satu jurnal dengan dua posting ke buku yang sama menambah dua.
+func TestBuatSnapshotJumlahPostingMenghitungPostingBukanJurnal(t *testing.T) {
+	_, db := siapkan(t)
+	r := repo.Baru(db)
+	ctx := context.Background()
+	a, _ := akunBaru(t, db, "karyawan", 100_000)
+	w, _ := akunBaru(t, db, "warung", 0)
+	ba, bw := snapBuku(t, db, a), snapBukuJenis(t, db, w, "warung")
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	var j int64
+	if err := tx.QueryRow(`INSERT INTO jurnal (jenis, keterangan, dibuat_oleh, dibuat)
+		VALUES ('bayar', 'tes dua posting ke satu buku', 1, '2025-05-10T10:00:00+07:00'::timestamptz) RETURNING id`).Scan(&j); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(`INSERT INTO posting (jurnal_id, buku_id, jumlah, dibuat) VALUES
+		($1, $2, -3000, '2025-05-10T10:00:00+07:00'::timestamptz), ($1, $3, 1000, '2025-05-10T10:00:00+07:00'::timestamptz),
+		($1, $3, 2000, '2025-05-10T10:00:00+07:00'::timestamptz)`, j, ba, bw); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(`UPDATE buku SET saldo_cache = saldo_cache - 3000 WHERE id = $1`, ba); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(`UPDATE buku SET saldo_cache = saldo_cache + 3000 WHERE id = $1`, bw); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.BuatSnapshot(ctx, snapWIB(t, "2025-05-01"), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if s, n := snapRow(t, db, bw, "2025-05-01"); s != 3_000 || n != 2 {
+		t.Fatalf("snapshot warung: saldo %d dari %d posting, ingin 3000 dari 2 (dua posting dalam satu jurnal)", s, n)
+	}
+}
+
+// Buku yang dibuat sesudah snapshot tidak punya baris snapshot. Saldo awalnya 0, jadi pemeriksaan membandingkan saldo_cache
+// dengan posting sesudah batas saja: buku yang konsisten tidak ditandai, cache yang rusak ditandai dengan selisih yang benar.
+func TestCekCacheSnapshotBukuBaruTanpaBarisSnapshot(t *testing.T) {
+	_, db := siapkan(t)
+	r := repo.Baru(db)
+	ctx := context.Background()
+	if _, err := r.BuatSnapshot(ctx, snapWIB(t, "2023-01-01"), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	a, _ := akunBaru(t, db, "karyawan", 100_000) // sesudah snapshot: tidak ada barisnya
+	ba := snapBuku(t, db, a)
+	var baris int
+	if err := db.QueryRow(`SELECT count(*) FROM snapshot_saldo WHERE buku_id = $1`, ba).Scan(&baris); err != nil || baris != 0 {
+		t.Fatalf("buku baru punya %d baris snapshot (%v), ingin 0", baris, err)
+	}
+	t.Cleanup(func() {
+		db.Exec(`UPDATE buku SET saldo_cache = (SELECT coalesce(sum(jumlah), 0) FROM posting WHERE buku_id = buku.id) WHERE id = $1`, ba)
+	})
+	jan := snapWIB(t, "2023-01-01")
+	_, _, beda, err := r.CekCacheSnapshot(ctx, &jan)
+	if err != nil {
+		t.Fatalf("buku tanpa baris snapshot menghentikan pemeriksaan: %v", err)
+	}
+	if _, ada := snapSelisih(beda, ba); ada {
+		t.Fatal("buku baru yang konsisten ditandai oleh pemeriksaan dari snapshot")
+	}
+	if _, err := db.Exec(`UPDATE buku SET saldo_cache = saldo_cache + 700 WHERE id = $1`, ba); err != nil {
+		t.Fatal(err)
+	}
+	_, _, beda, err = r.CekCacheSnapshot(ctx, &jan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s, ada := snapSelisih(beda, ba); !ada || s != 700 {
+		t.Fatalf("cache buku baru lebih 700: selisih %d (ada %v), ingin 700", s, ada)
 	}
 }
