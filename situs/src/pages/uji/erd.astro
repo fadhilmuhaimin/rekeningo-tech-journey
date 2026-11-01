@@ -10,22 +10,20 @@
 // Dipakai situs/tools/ukur-erd.mjs (statis tanpa JS, scroll, keyboard, reduced motion, axe gelap dan terang, CLS).
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 import ErdTumbuh from "../../erd/ErdTumbuh";
-import { DataErd, ModulErd, PetaHalaman } from "../../erd/skema";
-import { fkDihapusLintas, periksaModul, tautanHalaman } from "../../erd/tumbuh";
+import { DataErd, PetaHalaman } from "../../erd/skema";
+import { modulTahap } from "../../erd/modul";
+import { fkDihapusLintas, tautanHalaman } from "../../erd/tumbuh";
 import t1 from "../../../data/erd/tahap-1.json";
 import t2 from "../../../data/erd/tahap-2.json";
 import t3 from "../../../data/erd/tahap-3.json";
 import t4 from "../../../data/erd/tahap-4.json";
 import t5 from "../../../data/erd/tahap-5.json";
-import m4 from "../../../data/erd/modul-tahap-4.json";
-import s5 from "../../../data/erd/service-tahap-5.json";
 import petaHalaman from "../../../data/erd/halaman.json";
 import { muat, url } from "../../../tools/registri.mjs";
 
 const data = [DataErd.parse(t1), DataErd.parse(t2), DataErd.parse(t3), DataErd.parse(t4), DataErd.parse(t5)];
-const modul = [ModulErd.parse(m4), ModulErd.parse(s5)];
-for (const m of modul) periksaModul(data.find((d) => d.tahap === m.tahap)!, m); // build gagal bila tidak cocok dengan ERD-nya
-fkDihapusLintas(data, 5, modul[1]); // build gagal bila foreign key yang dihapus tidak sama dengan yang menyeberang batas service
+const modul = modulTahap([1, 2, 3, 4, 5], data); // sama dengan ErdHalaman.astro; build gagal bila tidak cocok dengan ERD-nya
+fkDihapusLintas(data, 5, modul.find((m) => m.tahap === 5)!); // build gagal bila foreign key yang dihapus tidak sama dengan yang menyeberang batas service
 const tautan = tautanHalaman(PetaHalaman.parse(petaHalaman), data, muat().halaman, url);
 ---
 
