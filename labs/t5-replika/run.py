@@ -22,9 +22,12 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "api-t5"))
 import dasar_t5 as d  # noqa: E402
 from dasar_t5 import bagian, catat, curl, gagal, harap, j, login  # noqa: E402
-from lab_env import REPLIKA_PRIMARY_PORT, REPLIKA_REPLICA_PORT, REPLIKA_SINKRON_PORT  # noqa: E402
+from lab_env import PROYEK, REPLIKA_PRIMARY_PORT, REPLIKA_REPLICA_PORT, REPLIKA_SINKRON_PORT  # noqa: E402
 
 LAB = "t5-replika"
+# Proyek compose sendiri, bukan COMPOSE_PROJECT_NAME lajur: proyek lajur juga memegang PostgreSQL dan Redis bersama (make lab-up),
+# dan `down --remove-orphans` di proyek yang sama menghapus keduanya (container yang tidak ada di compose lab ini dianggap orphan).
+NAMA_PROYEK = f"{PROYEK}-{LAB}" if PROYEK else LAB
 d.pakai_database(REPLIKA_PRIMARY_PORT)   # semua sambungan dasar_t5 menuju primary lab ini
 d.OUT = HERE / "output"
 SP = ",".join(d.SCHEMA_LAYANAN)           # search_path pemilik schema sesudah dipecah
@@ -54,7 +57,7 @@ def daftar_lsn(kepala, _isi):
 
 
 def kompose(*args):
-    r = subprocess.run(["docker", "compose", *args], cwd=HERE, capture_output=True, text=True)
+    r = subprocess.run(["docker", "compose", "-p", NAMA_PROYEK, *args], cwd=HERE, capture_output=True, text=True)
     if r.returncode != 0:
         gagal(f"docker compose {' '.join(args)}: {r.stderr[-500:]}")
     return r

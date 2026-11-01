@@ -2,6 +2,8 @@
 # Port database dan nama kontainer dari lingkungan (labs/README.md, "Beberapa lajur sekaligus"): lab ini punya tiga port
 # sendiri (LAB_REPLIKA_PRIMARY_PORT, LAB_REPLIKA_REPLICA_PORT, LAB_REPLIKA_SINKRON_PORT) dan memakai kluster compose sendiri.
 include ../lab_env.mk
+# Proyek compose sendiri (sama dengan NAMA_PROYEK di run.py): `down --remove-orphans` di proyek lajur menghapus PostgreSQL dan Redis bersama.
+PROYEK_REPLIKA := $(if $(COMPOSE_PROJECT_NAME),$(COMPOSE_PROJECT_NAME)-t5-replika,t5-replika)
 .PHONY: run cek down
 # Rekam semua bagian berurutan; setiap bagian membuat ulang kluster (primary dan dua standby) dan data awal dari nol.
 # Satu bagian: make run BAGIAN=baca   (replika jeda baca sinkron promosi konflik)
@@ -16,4 +18,4 @@ cek: run
 
 # Hentikan dan hapus kluster lab ini (hanya proyek compose folder ini).
 down:
-	docker compose down -v --remove-orphans
+	docker compose -p $(PROYEK_REPLIKA) down -v --remove-orphans

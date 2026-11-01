@@ -10,9 +10,9 @@ Semua node adalah container lokal tanpa jaringan keluar. Pihak ketiga yang dipan
 
 | Node | Container | Port bawaan | Peran | `application_name` |
 | --- | --- | --- | --- | --- |
-| `primary` | `t5-replika-primary-1` | 54340 (`LAB_REPLIKA_PRIMARY_PORT`) | satu-satunya yang menerima tulisan; berisi schema `api-t5` (30 tabel, enam schema service) | - |
-| `replika` | `t5-replika-replika-1` | 54341 (`LAB_REPLIKA_REPLICA_PORT`) | standby asinkron untuk bacaan tampilan dan laporan, role replikasi `replikator_laporan`, slot `slot_laporan` | `replika_laporan` |
-| `sinkron` | `t5-replika-sinkron-1` | 54342 (`LAB_REPLIKA_SINKRON_PORT`) | standby yang menjadi sinkron lewat `synchronous_standby_names`, role `replikator_sinkron`, slot `slot_sinkron` | `replika_sinkron` |
+| `primary` | `t5-replika-primary-1` (lajur: `<COMPOSE_PROJECT_NAME>-t5-replika-primary-1`) | 54340 (`LAB_REPLIKA_PRIMARY_PORT`) | satu-satunya yang menerima tulisan; berisi schema `api-t5` (30 tabel, enam schema service) | - |
+| `replika` | `t5-replika-replika-1` (lajur: `<COMPOSE_PROJECT_NAME>-t5-replika-replika-1`) | 54341 (`LAB_REPLIKA_REPLICA_PORT`) | standby asinkron untuk bacaan tampilan dan laporan, role replikasi `replikator_laporan`, slot `slot_laporan` | `replika_laporan` |
+| `sinkron` | `t5-replika-sinkron-1` (lajur: `<COMPOSE_PROJECT_NAME>-t5-replika-sinkron-1`) | 54342 (`LAB_REPLIKA_SINKRON_PORT`) | standby yang menjadi sinkron lewat `synchronous_standby_names`, role `replikator_sinkron`, slot `slot_sinkron` | `replika_sinkron` |
 
 Replikasi streaming fisik dengan slot. Standby dibuat dari `pg_basebackup` atas primary yang sudah berisi schema dan data awal, satu per satu (`run.py` menunggu `streaming` di `pg_stat_replication`). Satu role replikasi per standby, supaya satu standby bisa diputus (`ALTER ROLE ... NOLOGIN` lalu `pg_terminate_backend` atas walsender-nya) tanpa menyentuh yang lain. Slot dibuat di `init-primary.sh` supaya primary menyimpan WAL dari awal. `synchronous_standby_names` kosong di awal tiap bagian; bagian `sinkron` dan `promosi` mengisinya dengan `FIRST 1 (replika_sinkron)`.
 
@@ -54,7 +54,9 @@ make -C labs/t5-replika cek                     # rekam ulang, lalu output/ haru
 make -C labs/t5-replika down                    # hapus kluster lab ini (proyek compose folder ini saja)
 ```
 
-Tiap bagian membuat kluster dari nol (container, schema, data awal, standby) dalam sekitar 10 sampai 40 detik. Bagian `konflik` menunggu 20 dan 30 detik sungguhan, karena nilai bawaan 30 detik tidak diubah. Lajur selain bawaan mengisi tiga variabel port replika dan `COMPOSE_PROJECT_NAME` (`labs/README.md`). Lab ini memakai server dan port `api-t5` (18310 dan seterusnya), jadi tidak jalan bersamaan dengan `api-t5` di lajur yang sama.
+Tiap bagian membuat kluster dari nol (container, schema, data awal, standby) dalam sekitar 10 sampai 40 detik. Bagian `konflik` menunggu 20 dan 30 detik sungguhan, karena nilai bawaan 30 detik tidak diubah.
+
+Lajur selain bawaan mengisi tiga variabel port replika dan `COMPOSE_PROJECT_NAME` (`labs/README.md`). Lab ini lalu memakai proyek compose `<COMPOSE_PROJECT_NAME>-t5-replika`, terpisah dari proyek lajur. Proyek lajur memegang PostgreSQL dan Redis bersama, dan `down --remove-orphans` di dalamnya menghapus keduanya. Lab ini memakai server dan port `api-t5` (18310 dan seterusnya), jadi tidak jalan bersamaan dengan `api-t5` di lajur yang sama.
 
 ## Rekaman
 
