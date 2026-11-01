@@ -670,6 +670,25 @@ describe("penutup celah mutasi tanpa kunci: noscript, butir Yang tidak direkam, 
     expect(badan).toContain("Dugaan pertama menyangkut kapasitas dan giliran:");
     expect(badan).toContain("Dugaan pertama mempercepat dan membagi giliran, tetapi perubahan tiap tim tetap lewat satu merge queue. Dugaan kedua memecah queue itu, dan harganya ditulis di ADR lama.");
   });
+  test("kalimat penentu yang memuat nama tim, kata bilangan, atau 'bukan': diturunkan dari naskah atau ditulis persis di sini", () => {
+    expect(badan).toContain("<summary>Tebak dulu: lima tim berbagi satu merge queue, dan runner CI ditambah sampai semua pemeriksaan berjalan serentak. Apa yang masih membuat perbaikan kecil tim Akun menunggu?</summary>");
+    expect(badan).toContain("**Pemicunya jadwal rilis, bukan ukuran.**");
+    expect(sebenarnyaM44).toContain("Pemicunya jadwal rilis, bukan ukuran");
+    expect(badan).toContain("Ukuran tim hanya dipakai untuk satu pemeriksaan: apakah pemisahan meninggalkan service yang dipegang terlalu sedikit orang.");
+    expect(badan).toContain("Widget ini tidak punya layar HP, karena M44 terjadi di antara engineer, bukan di app.");
+    expect(naskah).toContain("Pecah karena jadwal rilis, bukan karena ukuran, dan siapkan konsistensi yang tidak lagi satu transaction");
+    expect(badan).toContain("Pecah karena jadwal rilis, bukan karena ukuran, dan siapkan konsistensi yang tidak lagi satu transaction.");
+    expect(badan).toContain("Bila tiap service memakai role-nya sendiri, tim Akun bisa mengganti nama kolom `nama` tanpa menyentuh SQL service lain (Penalaran dari hak yang direkam).");
+    expect(badan).toContain("Tabel ini menaruh syarat tiap ADR di samping keadaan Tahap 4 dan M44.");
+    expect(badan).toContain("Perubahan tim lain yang ada di depannya. Menurut dokumentasi GitHub, merge queue mengelompokkan perubahan satu pull request dengan versi terbaru branch dasar.");
+    expect(badan).toContain("Runner memendekkan satu pemeriksaan, tetapi tidak mengubah bahwa nasib satu perubahan terikat pada perubahan di depannya.");
+    expect(badan).toContain("Lab `api-t5` memecah 30 tabel ke enam schema, yaitu ruang nama tabel di satu database. Tiap schema punya satu role, yaitu identitas login database dengan hak sendiri.");
+    expect(badan).toContain("Bila tiap service berjalan sebagai proses sendiri dengan role sendiri, satu COMMIT tidak lagi mencakup tabel dua service (Penalaran dari ADR 12).");
+    expect(badan).toContain("Jadwal bergilir memberi tiap tim satu hari, tetapi perbaikan yang siap pada hari tim lain tetap menunggu hari itu berlalu (Penalaran).");
+    expect(badan).toContain("Dugaan pertama tidak salah, tetapi tidak menjawab siapa menunggu siapa.");
+    expect(badan).toContain("Kalau kamu pernah merilis satu app dari satu branch utama bersama beberapa tim, kamu mengenal rasanya: perubahanmu siap, tetapi rilis menunggu perubahan orang lain.");
+    expect(badan).toContain("Tanpa foreign key itu, database tidak lagi menolak baris yang menunjuk ke baris yang tidak ada di schema lain.");
+  });
   test("label: 'Rekaman lab' lima kali (satu definisi, tiga judul Snippet, satu kalimat Coba sendiri) dan tiap kemunculan di tempat yang benar", () => {
     expect((badan.match(/Rekaman lab/g) ?? []).length).toBe(5);
     expect(badan).toContain("Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].");
