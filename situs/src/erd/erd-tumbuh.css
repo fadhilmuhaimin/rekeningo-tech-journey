@@ -196,6 +196,13 @@
 .erd-tumbuh__kepala.is-dua > code {
   flex: 0 0 100%;
 }
+/* Nama tabel yang lebih lebar dari isi node (ringkasan_merchant_harian, ERD5): membungkus sesudah garis bawah, tiap baris
+   tambahan setinggi UKURAN.barisNama (20 px) di tumbuh.ts. */
+.erd-tumbuh .erd-tumbuh__kepala.is-nama-dua code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 20px;
+}
 .erd-tumbuh__kepala.is-dua > .erd-tumbuh__status {
   margin-left: auto;
 }

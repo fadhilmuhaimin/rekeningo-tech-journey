@@ -19,7 +19,7 @@ import type { DataErd, ModulErd } from "./skema";
 import { ringkasCek, ringkasIndex } from "./erd";
 import { muncul } from "../gerak/muncul";
 import {
-  LABEL_STATUS, UKURAN, ambangKolom, barisPindah, berpartisi, bisaBanding, duaBaris, duaKepala, fkDihapusLintas, modulTabel, namaTombol, ringkasan, ringkasModul, tampilSebelum,
+  LABEL_STATUS, UKURAN, ambangKolom, barisNama, barisPindah, berpartisi, bisaBanding, duaBaris, duaKepala, fkDihapusLintas, modulTabel, namaTombol, ringkasan, ringkasModul, tampilSebelum,
   tampilTahapHalaman, tata, teksAturan, teksKolom, teksPartisi, teksPindah, varPesan,
   type TabelTampil, type Tata, type TautanTahap,
 } from "./tumbuh";
@@ -52,8 +52,8 @@ function NodeTabel({ data }: NodeProps<Node<DataNode>>) {
         aria-label={namaTombol(t)}
         onClick={pilih}
       >
-        <span className={`erd-tumbuh__kepala${duaKepala(t, acuan) ? " is-dua" : ""}`}>
-          <code translate="no">{t.nama}</code>
+        <span className={`erd-tumbuh__kepala${duaKepala(t, acuan) ? " is-dua" : ""}${barisNama(t, acuan) > 1 ? " is-nama-dua" : ""}`}>
+          <code translate="no">{jedaNama(t.nama)}</code>
           {berpartisi(t) && <span className="erd-tumbuh__partisi">partisi</span>}
           {t.status && <span className="erd-tumbuh__status">{LABEL_STATUS[t.status]}</span>}
         </span>
@@ -185,6 +185,10 @@ function Detail({ t, panel, tautan, sebelum, no, modul }: { t: TabelTampil; pane
     </>
   );
 }
+
+/** Nama tabel dengan titik putus sesudah garis bawah: nama yang tidak muat membungkus di sana, bukan terpotong elipsis. */
+const jedaNama = (nama: string) =>
+  nama.split(/(?<=_)/).flatMap((bagian, i) => (i ? [<wbr key={i} />, bagian] : [bagian]));
 
 const kapital = (kata: string) => kata.charAt(0).toUpperCase() + kata.slice(1);
 

@@ -117,6 +117,7 @@ export const UKURAN = {
   lebarMin: 200, // node paling sempit di tata satu kolom
   kepala: 44, // nama tabel + status
   kepalaDua: 64, // nama tabel panjang: status pindah ke baris sendiri (ERD4, keputusan 1255)
+  barisNama: 20, // tinggi tiap baris tambahan bila nama tabel membungkus sesudah garis bawah (ringkasan_merchant_harian, ERD5, keputusan 1672)
   baris: 24, // satu kolom (line-height tetap di CSS)
   labelBaris: 20, // tambahan tinggi bila label kunci pindah ke baris sendiri di bawah nama kolom (ERD4, keputusan 1255)
   bawah: 8, // padding bawah node
@@ -193,17 +194,40 @@ export function duaBaris(k: KolomTampil, t: TabelTampil, acuan: number): boolean
 /** Tabel berpartisi tampil satu tabel dengan chip "partisi" di kepalanya; partisinya bukan tabel ERD (ERD5, keputusan 1670). */
 export const berpartisi = (t: TabelTampil) => !t.bayangan && !!t.tabel.partisi;
 
+/**
+ * Banyak baris nama tabel di kepala. Nama yang lebih lebar dari isi node membungkus sesudah garis bawah (`<wbr>` di
+ * ErdTumbuh.tsx); pembungkusan serakah dengan lebar huruf METRIK.hurufKepala. Segmen yang sendiri lebih lebar dari isi node
+ * dipecah di mana saja (overflow-wrap: anywhere), jadi dihitung per lebar. Di Tahap 5 hanya `ringkasan_merchant_harian`.
+ */
+export function barisNama(t: TabelTampil, acuan: number): number {
+  const isiNode = acuan - METRIK.tepi;
+  let baris = 1;
+  let isi = 0;
+  for (const bagian of t.nama.split(/(?<=_)/)) {
+    const lebar = bagian.length * METRIK.hurufKepala;
+    if (lebar > isiNode) {
+      baris += Math.ceil((isi + lebar) / isiNode) - 1;
+      isi = (isi + lebar) % isiNode;
+    } else if (isi > 0 && isi + lebar > isiNode) {
+      baris += 1;
+      isi = lebar;
+    } else isi += lebar;
+  }
+  return baris;
+}
+
 export function duaKepala(t: TabelTampil, acuan: number): boolean {
   const status = t.status ? METRIK.ubah[t.status] + METRIK.jarakKepala : 0;
   const partisi = berpartisi(t) ? METRIK.partisi + METRIK.jarakKepala : 0;
-  return t.nama.length * METRIK.hurufKepala + status + partisi > acuan - METRIK.tepi;
+  return barisNama(t, acuan) > 1 || t.nama.length * METRIK.hurufKepala + status + partisi > acuan - METRIK.tepi;
 }
 
 /** Satu kalimat tentang partisi satu tabel: kunci dan banyak partisinya; nama partisi menyusul di detail. */
 export const teksPartisi = (t: Tabel): string | null =>
   t.partisi ? `dipartisi menurut ${t.partisi.kunci}, ${t.partisi.anak.length} partisi (${t.partisi.anak.join(", ")}); partisi bukan tabel sendiri di diagram ini` : null;
 
-export const tinggiKepala = (t: TabelTampil, acuan: number) => (duaKepala(t, acuan) ? UKURAN.kepalaDua : UKURAN.kepala);
+export const tinggiKepala = (t: TabelTampil, acuan: number) =>
+  duaKepala(t, acuan) ? UKURAN.kepalaDua + (barisNama(t, acuan) - 1) * UKURAN.barisNama : UKURAN.kepala;
 
 export const tinggiBaris = (k: KolomTampil, t: TabelTampil, acuan: number) => UKURAN.baris + (duaBaris(k, t, acuan) ? UKURAN.labelBaris : 0);
 
