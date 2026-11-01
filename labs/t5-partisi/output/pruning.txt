@@ -1,0 +1,144 @@
+# Lab t5-partisi · pruning partisi posting per bulan dan akibat PRIMARY KEY (id, dibuat)
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_partisi · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-partisi run.
+
+# --- A. Data awal: 11 bulan lalu dan bulan berjalan, 150.000 posting per bulan, di partisi bulanan ---
+# Schema bersih api-t5 (30 tabel), data awal (10.000 karyawan, 60 warung), lalu `posting_sebelum` (kosong) diganti 11 partisi
+# bulanan lewat buat_partisi_posting, dan riwayat dimuat dengan session_replication_role = replica (pemuatan massal tanpa trigger).
+# Jumlah dan pasangan buku dihitung dari nomor urut, tanpa angka acak. Invarian diperiksa lewat query sesudah pemuatan.
+=> SELECT tableoid::regclass AS partisi, count(*) AS posting FROM posting GROUP BY 1 ORDER BY 1
+ partisi          | posting
+------------------+---------
+ posting_bulan_00 | 150000
+ posting_lalu_01  | 150000
+ posting_lalu_02  | 150000
+ posting_lalu_03  | 150000
+ posting_lalu_04  | 150000
+ posting_lalu_05  | 150000
+ posting_lalu_06  | 150000
+ posting_lalu_07  | 150000
+ posting_lalu_08  | 150000
+ posting_lalu_09  | 150000
+ posting_lalu_10  | 150000
+ posting_lalu_11  | 150000
+(12 rows)
+# 14 partisi di katalog: 12 berisi 150.000 posting masing-masing, dan dua (bulan depan dan sesudahnya) kosong.
+# Invarian atas data yang dimuat, dihitung langsung dari tabel: jurnal tidak seimbang 0, jurnal tanpa posting 0, karyawan bersaldo negatif 0.
+
+# --- B. Pruning: query satu bulan membaca satu partisi, query tanpa dibuat membaca semuanya ---
+=> EXPLAIN (COSTS OFF) SELECT sum(jumlah) FROM posting WHERE dibuat >= '<waktu>' AND dibuat < '<waktu>'
+ QUERY PLAN
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather
+         Workers Planned: 1
+         ->  Partial Aggregate
+               ->  Parallel Seq Scan on posting_lalu_04 posting
+                     Filter: ((dibuat >= '<waktu>'::timestamp with time zone) AND (dibuat < '<waktu>'::timestamp with time zone))
+(6 rows)
+# Dibaca: 1 dari 14 partisi (posting_lalu_04). Batas partisi menentukan partisi mana yang dibaca; index tidak ikut menentukannya.
+=> EXPLAIN (COSTS OFF) SELECT sum(jumlah) FROM posting WHERE jumlah > 13000
+ QUERY PLAN
+--------------------------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather
+         Workers Planned: 2
+         ->  Partial Aggregate
+               ->  Parallel Append
+                     ->  Parallel Seq Scan on posting_lalu_11 posting_1
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_10 posting_2
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_09 posting_3
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_08 posting_4
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_07 posting_5
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_06 posting_6
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_05 posting_7
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_04 posting_8
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_03 posting_9
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_02 posting_10
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_lalu_01 posting_11
+                           Filter: (jumlah > 13000)
+                     ->  Parallel Seq Scan on posting_bulan_00 posting_12
+                           Filter: (jumlah > 13000)
+(29 rows)
+# Dibaca: 14 dari 14 partisi: 12 partisi berisi dengan Parallel Seq Scan di bawah Parallel Append, dan dua partisi kosong (posting_bulan_01, posting_bulan_02).
+# Simpul dua partisi kosong tidak ditampilkan di atas: untuk tabel kosong biaya Seq Scan dan Parallel Seq Scan sama (0,00), dan planner memilih salah satunya tidak tetap.
+=> EXPLAIN (COSTS OFF) SELECT * FROM posting WHERE id = 424242
+ QUERY PLAN
+-----------------------------------------------------------------------------
+ Append
+   ->  Index Scan using posting_lalu_11_pkey on posting_lalu_11 posting_1
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_10_pkey on posting_lalu_10 posting_2
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_09_pkey on posting_lalu_09 posting_3
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_08_pkey on posting_lalu_08 posting_4
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_07_pkey on posting_lalu_07 posting_5
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_06_pkey on posting_lalu_06 posting_6
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_05_pkey on posting_lalu_05 posting_7
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_04_pkey on posting_lalu_04 posting_8
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_03_pkey on posting_lalu_03 posting_9
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_02_pkey on posting_lalu_02 posting_10
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_lalu_01_pkey on posting_lalu_01 posting_11
+         Index Cond: (id = 424242)
+   ->  Index Scan using posting_bulan_00_pkey on posting_bulan_00 posting_12
+         Index Cond: (id = 424242)
+   ->  Seq Scan on posting_bulan_01 posting_13
+         Filter: (id = 424242)
+   ->  Seq Scan on posting_bulan_02 posting_14
+         Filter: (id = 424242)
+(29 rows)
+# Mencari satu baris dengan id saja membaca 14 dari 14 partisi: index primary key di 12 partisi berisi dan Seq Scan di 2 partisi kosong.
+# id tidak memuat kolom kunci partisi, jadi batas partisi tidak bisa menyisihkan satu pun.
+
+# --- B2. Parallel Append tidak menunggu partisi sebesar 8 MB ---
+# min_parallel_table_scan_size (bawaan 8 MB) menentukan apakah tabel biasa boleh dipindai paralel. Kode planner mengecualikan partisi
+# (anak inheritance) dari batas itu (PostgreSQL 17, allpaths.c, compute_parallel_worker). Diukur di sini: 12 partisi bulanan berisi 30.000 baris.
+=> CREATE TABLE uji_kecil (LIKE posting INCLUDING DEFAULTS) PARTITION BY RANGE (dibuat)
+CREATE TABLE
+# 12 partisi bulanan uji_kecil_NN dibuat dengan batas yang sama dengan posting, masing-masing diisi 30.000 baris.
+# Partisi terbesar kurang dari 8 MB. Plan untuk query tanpa dibuat: Parallel Append dengan 12 Parallel Seq Scan, satu per partisi.
+# Jadi ukuran partisi bukan syarat Parallel Append. Seberapa kecil partisi boleh sebelum planner memilih Append biasa tidak diukur di sini.
+=> DROP TABLE uji_kecil
+
+# --- C. PRIMARY KEY dan UNIQUE harus memuat kolom kunci partisi ---
+=> CREATE TABLE coba_partisi (id bigint PRIMARY KEY, dibuat timestamptz NOT NULL) PARTITION BY RANGE (dibuat)
+ERROR:  unique constraint on partitioned table must include all partitioning columns
+   -- SQLSTATE 0A000
+=> ALTER TABLE posting ADD CONSTRAINT posting_id_unik UNIQUE (id)
+ERROR:  unique constraint on partitioned table must include all partitioning columns
+   -- SQLSTATE 0A000
+=> SELECT pg_get_constraintdef(oid) AS primary_key FROM pg_constraint WHERE conrelid = 'posting'::regclass AND contype = 'p'
+ primary_key
+--------------------------
+ PRIMARY KEY (id, dibuat)
+(1 row)
+# Akibatnya id tidak unik menurut database: dua baris dengan id yang sama dan dibuat berbeda diterima. Keunikan id hanya datang dari sequence.
+=> BEGIN
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('topup', 'uji id ganda', 400)
+INSERT 0 1
+=> INSERT INTO posting (id, jurnal_id, buku_id, jumlah, dibuat) VALUES ((SELECT min(id) FROM posting_lalu_04), currval('jurnal_id_seq'), (SELECT id FROM buku WHERE jenis = 'tunjangan'), -1000, now()), ((SELECT min(id) FROM posting_lalu_04), currval('jurnal_id_seq'), (SELECT min(id) FROM buku WHERE jenis = 'karyawan'), 1000, now() + interval '1 second')
+INSERT 0 2
+=> SELECT count(*) AS baris_dengan_id_itu FROM posting WHERE id = (SELECT min(id) FROM posting_lalu_04)
+ baris_dengan_id_itu
+---------------------
+ 3
+(1 row)
+=> ROLLBACK

@@ -369,6 +369,16 @@ ok    lab/apit5/internal/repo
 --- PASS: TestBayarQRMenungguLockQRLaluMelihatStatusBaru
 --- PASS: TestBayarQRKaryawanLestari
 --- PASS: TestTandaiQRTerpakaiHanyaSekali
+--- PASS: TestBuatSnapshotMenjumlahBulanDanBulanSebelumnya
+--- PASS: TestBuatSnapshotIdempoten
+--- PASS: TestBuatSnapshotMenolakBulanBelumSelesaiDanBukanAwalBulan
+--- PASS: TestCekCacheSnapshotSamaDenganCekCachePenuh
+--- PASS: TestCekCacheSnapshotMembacaPostingTepatDiBatas
+--- PASS: TestBuatSnapshotBulanTerlewatMenghitungUlangDariAwal
+--- PASS: TestBuatSnapshotJumlahPostingMenghitungPostingBukanJurnal
+--- PASS: TestCekCacheSnapshotBukuBaruTanpaBarisSnapshot
+--- PASS: TestBalikJurnalTanpaPostingDijawabDiarsip
+--- PASS: TestCekCacheSnapshotMelaporkanSelisihUrutNaik
 --- PASS: TestPostingPartisiMenjagaAturanLedger
 --- PASS: TestPKPartisiHarusMemuatKolomKunci
 --- PASS: TestLaporanHariIniMemangkasPartisi

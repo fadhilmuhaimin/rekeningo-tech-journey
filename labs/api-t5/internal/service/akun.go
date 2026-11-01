@@ -66,6 +66,9 @@ func (s Service) Balik(ctx context.Context, peminta, jurnal int64, alasan string
 	if sudah {
 		return 0, ErrSudahDibalik
 	}
+	if len(asal) == 0 { // jurnal selalu punya paling sedikit dua posting; nol berarti partisinya sudah dilepas (ADR 49)
+		return 0, ErrPostingDiarsip
+	}
 	var id int64
 	err = s.repo.DalamTx(ctx, func(tx repo.Tx) error {
 		bukuID := make([]int64, len(asal))
