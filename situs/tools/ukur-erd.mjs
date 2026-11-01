@@ -506,9 +506,12 @@ for (const [lebar, tinggi, harus] of [
     const nama = await page.evaluate((FIG) => {
       const c = [...document.querySelectorAll(`${FIG} .erd-tumbuh__node code`)].find((x) => x.textContent === "ringkasan_merchant_harian");
       const k = c?.closest(".erd-tumbuh__kepala");
-      return { ada: !!c, baris: c ? Math.round(c.getBoundingClientRect().height / 20) : 0, luap: c ? c.scrollWidth - c.clientWidth : 999, kelas: k?.className ?? "", tinggi: k?.getBoundingClientRect().height ?? 0, zoom: Number(/scale\(([\d.]+)\)/.exec(c?.closest(".react-flow__viewport")?.style.transform ?? "")?.[1] ?? 1) };
+      const gaya = c ? getComputedStyle(c) : null;
+      return { ada: !!c, wbr: c?.querySelectorAll("wbr").length ?? 0, ws: gaya?.whiteSpace, lh: gaya?.lineHeight, baris: c ? Math.round(c.getBoundingClientRect().height / 20) : 0, luap: c ? c.scrollWidth - c.clientWidth : 999, kelas: k?.className ?? "", tinggi: k?.getBoundingClientRect().height ?? 0, zoom: Number(/scale\(([\d.]+)\)/.exec(c?.closest(".react-flow__viewport")?.style.transform ?? "")?.[1] ?? 1) };
     }, FIG);
-    lapor(nama.ada && nama.baris === 2 && nama.luap <= 1 && nama.kelas.includes("is-nama-dua") && Math.round(nama.tinggi / nama.zoom) === 84, `${tag}: ringkasan_merchant_harian membungkus ${nama.baris} baris, luapan ${nama.luap} px, kepala ${Math.round(nama.tinggi / nama.zoom)} px (harap 84)`);
+    // white-space normal dan line-height 20 px (UKURAN.barisNama) dibaca dari gaya, bukan hanya dari hasil gambar: Chromium juga membungkus di <wbr>
+    // saat nowrap, tetapi mesin lain belum tentu, dan tinggi kepala dihitung dari 20 px per baris.
+    lapor(nama.ada && nama.ws === "normal" && nama.lh === "20px" && nama.wbr === 2 && nama.baris === 2 && nama.luap <= 1 && nama.kelas.includes("is-nama-dua") && Math.round(nama.tinggi / nama.zoom) === 84, `${tag}: ringkasan_merchant_harian membungkus ${nama.baris} baris di ${nama.wbr} titik putus sesudah garis bawah (harap 2), luapan ${nama.luap} px, kepala ${Math.round(nama.tinggi / nama.zoom)} px (harap 84)`);
     // Tabel pembagian service: enam baris, 30 tabel, ringkasan dari data (nol foreign key menyeberang, 18 dihapus dari Tahap 4).
     const svc = await page.evaluate((FIG) => {
       const m = document.querySelector(`${FIG} .erd-tumbuh__modul`);
