@@ -42,7 +42,8 @@ CREATE TABLE jadwal_cicilan (
     jumlah_angsuran     int    NOT NULL CHECK (jumlah_angsuran > 0),
     hari_tagih          int    NOT NULL CHECK (hari_tagih BETWEEN 1 AND 28),
     status              text   NOT NULL DEFAULT 'aktif' CHECK (status IN ('aktif', 'selesai', 'dihentikan')),
-    CONSTRAINT tabungan_tanpa_merchant CHECK (jenis <> 'tabungan' OR merchant_akun_id IS NULL)
+    CONSTRAINT tabungan_tanpa_merchant CHECK (jenis <> 'tabungan' OR merchant_akun_id IS NULL),
+    CONSTRAINT cicilan_dengan_merchant CHECK (jenis <> 'cicilan' OR merchant_akun_id IS NOT NULL)
 );
 
 -- cicilan: kunci bisnis (jadwal_id, ke) yang tidak kedaluwarsa menahan jurnal kedua (M48).
