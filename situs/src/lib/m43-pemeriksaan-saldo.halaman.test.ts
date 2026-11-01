@@ -1110,3 +1110,106 @@ describe("tinjauan 1539, putaran 2: celah yang lolos mutasi tanpa kunci baris di
     expect(badan).toContain("Lab tidak punya app Flutter dan tidak merekam layar.");
   });
 });
+
+// Urutan blok (24 karakter pertama tiap blok yang dipisah baris kosong), dikunci di tes ini, bukan di berkas nilai: mutasi putaran 2
+// membangkitkan ulang berkas nilai, jadi tukar paragraf dan kalimat yang digandakan hanya tertangkap di sini (tinjauan 1539).
+const AWAL_BLOK: string[] = [
+  "import Blok from \"../../",
+  "<p class=\"meta\">Baca 8 m",
+  "<Blok nama=\"Gejala\" buka",
+  "Minggu 5 Tahap 5. Pukul ",
+  "Hendra memeriksa. Pemeri",
+  "Sepanjang siang p95 pemb",
+  "*Angka cerita (Ilustrasi",
+  "</Blok>",
+  "<Blok nama=\"Yang Raka ki",
+  "Raka menduga disk dan CP",
+  "Pemeriksaan harian adala",
+  "Dugaan itu menjelaskan k",
+  "<details class=\"question",
+  "Semua posting sejak awal",
+  "Di skala naskah, 438 jut",
+  "</details>",
+  "</Blok>",
+  "<Blok nama=\"Yang sebenar",
+  "Pemeriksaan harian menju",
+  "<Rantai data={bacaPostin",
+  "*Kondisi rekaman:* Postg",
+  "**Pemeriksaan membaca ti",
+  "<Snippet file=\"labs/api-",
+  "Rekaman dari database be",
+  "<Snippet file=\"labs/t5-p",
+  "Partisi adalah bagian ta",
+  "**Index riwayat tidak me",
+  "EXPLAIN pemeriksaan itu ",
+  "**Ukuran bukan batasnya.",
+  "200.000 user aktif adala",
+  "| Besaran | Rumus | Hasi",
+  "Dengan 2 transaksi per u",
+  "Batas ukuran relasi Post",
+  "Dokumentasi PostgreSQL m",
+  "Memori server tidak ada ",
+  "**Snapshot memotong baca",
+  "<Snippet file=\"labs/api-",
+  "<Snippet file=\"labs/t5-p",
+  "Dari snapshot terakhir, ",
+  "Lab memilih 150.000 post",
+  "| Besaran | Lab (Rekaman",
+  "**Snapshot menggeser pek",
+  "Bila satu bulan terlewat",
+  "Job aman diulang: dijala",
+  "**Hasilnya sama untuk se",
+  "Hasil sama itu punya sya",
+  "Snapshot adalah salinan ",
+  "**Snapshot hanya memerik",
+  "Di `labs/api-t5/internal",
+  "**Posting tidak boleh di",
+  "Dokumentasi PostgreSQL m",
+  "Lab memeriksa batasnya p",
+  "Satu akibat lain terekam",
+  "<Snippet file=\"labs/t5-p",
+  "Pemeriksaan yang membaca",
+  "</Blok>",
+  "<Blok nama=\"Coba sendiri",
+  "Widget ini mengikuti rek",
+  "<WidgetLama nama=\"alur\" ",
+  "Sesudah langkah terakhir",
+  "<noscript>\nTanpa JavaScr",
+  "Sesudah satu bulan dilep",
+  "</Blok>",
+  "<Blok nama=\"Konsep yang ",
+  "- [[t5-partisi]]: partis",
+  "Pekerjaan malam membaca ",
+  "### Cek diri",
+  "**1.** Disk dan CPU dita",
+  "<details class=\"success\"",
+  "Query yang sama menjumla",
+  "</details>",
+  "**2.** Pemeriksaan dari ",
+  "<details class=\"success\"",
+  "Tidak. Lab memilih 150.0",
+  "</details>",
+  "**3.** Satu bulan postin",
+  "<details class=\"success\"",
+  "Pemeriksaan tanpa snapsh",
+  "</details>",
+  "</Blok>",
+  "<SkripLama daftar={[\"hp\"",
+];
+describe("tinjauan 1539, putaran 2: urutan blok, blok ganda, dan kalimat inti yang muncul dua kali", () => {
+  const bloks = badan.split(/\n{2,}/).map((b) => b.trim()).filter((b) => b !== "");
+  test("urutan blok sama dengan semula", () => {
+    expect(bloks.map((b) => b.slice(0, 24))).toEqual(AWAL_BLOK);
+  });
+  test("tidak ada blok prosa, tabel, atau Snippet yang muncul dua kali", () => {
+    const panjang = bloks.filter((b) => b.length > 30 && !b.startsWith("</") && !b.startsWith("<Blok") && !b.startsWith("<details"));
+    expect(new Set(panjang).size).toBe(panjang.length);
+  });
+  test("kalimat 'job membaca persis satu bulan' ada di dua paragraf utuh: prosa Yang sebenarnya dan jawaban Cek diri 2", () => {
+    const p1 = "Lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3% di naskah. Angka 8,3% karena itu bukan temuan lab. Yang direkam adalah bahwa job membaca persis satu bulan. Bulan berjalan di lab sudah berisi 150.000 posting, jadi satu bulan penuh adalah batas atas: di awal bulan job membaca lebih sedikit.";
+    const p2 = "Tidak. Lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3%. Yang direkam adalah bahwa job membaca persis satu bulan. 36,5 juta posting per bulan adalah Hitungan atas Asumsi dan tidak dijalankan.";
+    expect(bloks).toContain(p1);
+    expect(bloks).toContain(p2);
+    expect(badan.split("Yang direkam adalah bahwa job membaca persis satu bulan.").length - 1).toBe(2);
+  });
+});
