@@ -1,0 +1,26 @@
+{
+  "id": "t5-m44-lima-tim-satu-rilis",
+  "judul": "Lima tim, satu merge queue, satu rilis",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ilustrasi (naskah M44) dan Asumsi ambang ADR 37, 44, dan 45" },
+  "baris": [
+    {
+      "label": "Kamis 14.00",
+      "sub": "kejadian di cerita",
+      "simpul": [
+        { "teks": "5 tim, 1 merge queue", "sub": "satu repo, satu rilis" },
+        { "teks": "Pipeline 14 menit", "sub": "ambang ADR 44: 10 menit", "nada": "warn" },
+        { "teks": "Tunggu 6 jam", "sub": "perbaikan Akun sampai Jumat", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Syarat tertulis",
+      "sub": "ADR Tahap 4 dibaca ulang",
+      "simpul": [
+        { "teks": "ADR 37: tim saling tunggu", "sub": "deploy bersama tidak lagi masuk akal", "nada": "warn" },
+        { "teks": "ADR 44: lebih dari 10 menit", "sub": "14 menit, 4 menit di atas ambang", "nada": "warn" },
+        { "teks": "ADR 45: 5 tim produk", "sub": "ambang 2 tim dan 5 tim", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah keadaan yang memenuhi syarat salah atau pemicu yang ditulis ADR. Angka waktu berasal dari cerita, dan ambang berasal dari ADR."
+}

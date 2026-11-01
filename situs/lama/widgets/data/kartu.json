@@ -3536,6 +3536,30 @@
   "jawab": "Alternatif dan konsekuensi negatif. AI cenderung menulis keputusan yang terdengar meyakinkan, tapi melewatkan pilihan yang ditolak atau biaya yang muncul. Periksa juga angka di konteks: harus berasal dari data atau asumsi yang ditulis terbuka, bukan karangan."
  },
  {
+  "id": "t5-m44-1",
+  "halaman": "t5-m44",
+  "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
+  "url": "tahap-5/m44-rilis-menunggu-lima-tim/",
+  "tanya": "Runner CI ditambah sampai semua pemeriksaan berjalan serentak, tetapi perbaikan Akun tetap menunggu. Kenapa?",
+  "jawab": "Merge queue memeriksa tiap perubahan bersama perubahan di depannya, dan satu rilis membawa semuanya (dokumentasi GitHub, Tidak dijalankan). Runner mempercepat satu pemeriksaan, bukan urutannya (Penalaran). Dokumentasi yang sama menulis bahwa build concurrency memengaruhi laju merge, jadi runner membantu tetapi tidak cukup."
+ },
+ {
+  "id": "t5-m44-2",
+  "halaman": "t5-m44",
+  "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
+  "url": "tahap-5/m44-rilis-menunggu-lima-tim/",
+  "tanya": "Lima tim produk memenuhi pemicu ADR 45 butir 2. Apa yang belum terbukti dari itu?",
+  "jawab": "Bahwa Kubernetes perlu. Terpenuhi berarti keadaan M44 sama dengan pemicu yang ditulis, dan lima tim produk tepat di ambang lima (Hitungan atas Asumsi). Pilihannya dan harganya dibahas di 5.13 Dari modul ke service."
+ },
+ {
+  "id": "t5-m44-3",
+  "halaman": "t5-m44",
+  "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
+  "url": "tahap-5/m44-rilis-menunggu-lima-tim/",
+  "tanya": "Lab `api-t5` memecah 30 tabel ke enam schema. Apa yang hilang dari database, dan apa yang tidak direkam lab?",
+  "jawab": "18 foreign key yang menyeberang schema: 18 sebelum pembagian dan 0 sesudahnya (`skema.txt` bagian E). Lab tidak memisahkan proses, jadi putusnya satu transaction lintas service tidak direkam. Pernyataan itu dibaca dari ADR 12 (Tidak dijalankan)."
+ },
+ {
   "id": "t5-onprem-1",
   "halaman": "t5-onprem",
   "judul": "5.28 On-prem lawan cloud + ADR 59",

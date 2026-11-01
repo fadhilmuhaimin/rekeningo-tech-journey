@@ -1,0 +1,106 @@
+{
+  "versi": 2,
+  "judul": "Rilis Kamis: lima tim, satu merge queue",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "catatan": "Jalur utama adalah Ilustrasi: jam, 14 menit, 6 jam, dan lima tim berasal dari cerita, bukan dari rekaman. Ubah satu hal memakai rekaman lab api-t5 (skema.txt bagian E dan F, PostgreSQL 17.11, dari database bersih) hanya untuk batas data. Pipeline per service, rilis sendiri, dan putusnya transaction tidak dijalankan di lab."
+  },
+  "pengantar": "Satu perbaikan kecil tim Akun menunggu di merge queue yang dipakai lima tim. Tebak dulu apa yang terjadi bila runner CI ditambah, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "akun", "label": "Tim Akun" },
+    { "id": "antre", "label": "Merge queue" },
+    { "id": "pipe", "label": "Pipeline" },
+    { "id": "rilis", "label": "Rilis" },
+    { "id": "db", "label": "PostgreSQL (lab api-t5)" }
+  ],
+  "perangkat": [],
+  "layarAwal": {},
+  "predict": {
+    "q": "Tim Akun menambah runner CI sampai semua pemeriksaan berjalan serentak. Lima tim tetap memakai satu merge queue dan satu rilis. Apa yang paling mungkin tetap benar?",
+    "options": [
+      "Perbaikan Akun dirilis sendiri, karena tiap tim kini punya pipeline sendiri",
+      "Queue kosong, karena runner tambahan menghapus waktu tunggu",
+      "Merge queue tidak diperlukan lagi, karena pemeriksaan yang serentak tidak saling menunggu",
+      "Perbaikan Akun tetap menunggu perubahan tim lain, karena rilisnya satu"
+    ],
+    "answer": 3,
+    "varian": false,
+    "explain": "Merge queue memeriksa tiap perubahan bersama perubahan di depannya dan menggabungkannya ke satu branch utama (dokumentasi GitHub), dan satu rilis membawa semuanya. Runner tambahan memendekkan satu pemeriksaan, tetapi tidak membuat tiap tim punya rilis sendiri (Penalaran). Angka waktu di cerita adalah Ilustrasi."
+  },
+  "langkah": [
+    {
+      "dari": "akun",
+      "ke": "antre",
+      "judul": "Tim Akun mengirim perbaikan kecil",
+      "kirim": "Kamis 14.00: lima tim produk punya perubahan untuk rilis hari itu (Ilustrasi)",
+      "jelas": "Perubahan kelima tim menuju satu branch utama, jadi lewat satu merge queue. Perbaikan Akun masuk merge queue yang sama dengan perubahan tim lain."
+    },
+    {
+      "dari": "antre",
+      "ke": "pipe",
+      "judul": "Tiap perubahan diperiksa satu pipeline",
+      "kirim": "pipeline: 14 menit per pemeriksaan (Ilustrasi)\nambang ADR 44: 10 menit (Asumsi naskah)",
+      "jelas": "Merge queue memeriksa perubahan bersama perubahan di depannya (dokumentasi GitHub). 14 menit melewati ambang ADR 44 sebanyak 4 menit (Hitungan)."
+    },
+    {
+      "dari": "antre",
+      "judul": "Tim Pembayaran siap, tetapi menunggu",
+      "kirim": "Pembayaran: siap rilis; menunggu merge queue tim Merchant (Ilustrasi)",
+      "jelas": "Perubahan yang siap tertahan di belakang perubahan yang belum lolos. Runner tambahan memendekkan satu pemeriksaan, tetapi urutan di queue tetap sama (Penalaran)."
+    },
+    {
+      "dari": "antre",
+      "ke": "rilis",
+      "judul": "Merge queue menahan perubahan sampai 6 jam",
+      "kirim": "merge queue: waktu tunggu 6 jam (Ilustrasi)",
+      "jelas": "Rilis hari itu hanya membawa perubahan yang sudah keluar dari merge queue."
+    },
+    {
+      "dari": "rilis",
+      "judul": "Perbaikan Akun menunggu sampai Jumat",
+      "kirim": "perbaikan tim Akun: dirilis Jumat (Ilustrasi)",
+      "jelas": "Perbaikan kecil ikut jadwal tim lain. Syarat salah ADR 37 dan ADR 44 terpenuhi, begitu juga pemicu ADR 45 butir 1 dan 2 (Penalaran atas Asumsi).",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "modul dipecah menjadi service dengan schema dan role sendiri",
+    "mulai": 1,
+    "langkah": [
+      {
+        "dari": "akun",
+        "ke": "pipe",
+        "judul": "Perbaikan Akun masuk pipeline service akun",
+        "kirim": "pipeline service akun: hanya perubahan tim Akun (Ilustrasi: rancangan ADR 50, tidak dijalankan di lab)",
+        "jelas": "Queue dan pipeline service lain tidak ikut. Lama pipeline service akun tidak diukur."
+      },
+      {
+        "dari": "pipe",
+        "ke": "rilis",
+        "judul": "Service akun dirilis sendiri",
+        "kirim": "rilis service akun: tidak menunggu tim Pembayaran dan tim Merchant (Ilustrasi)",
+        "jelas": "Itu keadaan yang diminta pemicu ADR 45 butir 1 dan 2: tim merilis tanpa menunggu tim lain."
+      },
+      {
+        "dari": "db",
+        "judul": "Data dipecah per schema (rekaman)",
+        "kirim": "foreign key lintas schema: 18 sebelum, 0 sesudah\n30 tabel di enam schema: 9, 5, 6, 6, 2, 2",
+        "jelas": "Rekaman lab api-t5, skema.txt bagian E. Sebelas dari delapan belas foreign key menunjuk schema akun. Database tidak lagi menolak baris yang menunjuk ke baris yang tidak ada di schema lain; itu penalaran dari dokumentasi PostgreSQL, tidak dicoba di lab."
+      },
+      {
+        "dari": "db",
+        "judul": "Role service lain dibatasi (rekaman)",
+        "kirim": "t5_ledger: SELECT id, tingkat, status FROM t5_akun.akun -> berhasil\nt5_ledger: SELECT nama FROM t5_akun.akun -> permission denied for table akun (42501)",
+        "jelas": "Rekaman lab api-t5, skema.txt bagian F. Dari keenam role service, hanya ledger yang punya hak atas schema service lain, yaitu schema akun, dan hanya atas tiga kolom."
+      },
+      {
+        "dari": "rilis",
+        "ke": "db",
+        "judul": "Yang ditukar: satu transaction",
+        "kirim": "satu COMMIT tidak lagi mencakup dua service; konsistensi dijaga Idempotency-Key dan rekonsiliasi (ADR 12 dan ADR 37; Tidak dijalankan di lab)",
+        "jelas": "Lab memakai satu proses dengan satu role, jadi putusnya transaction tidak direkam. Pernyataan itu dibaca dari halaman ADR.",
+        "nada": "warn"
+      }
+    ]
+  }
+}
