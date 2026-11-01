@@ -46,6 +46,14 @@ snapshot <tanggal>: 0 buku ditulis
 $ ./api-t5 -buat-snapshot <tanggal 1 bulan berjalan>   # bulan belum selesai
 -buat-snapshot: bulan belum selesai
 # exit status 2
+# Job berjalan sebagai role aplikasi (api_t5), yang punya hak SELECT dan INSERT atas snapshot_saldo. Tanpa hak INSERT job gagal keras:
+=> REVOKE INSERT ON snapshot_saldo FROM api_t5
+REVOKE
+$ ./api-t5 -buat-snapshot <bulan paling lama>   # tanpa hak INSERT
+-buat-snapshot: ERROR: permission denied for table snapshot_saldo (SQLSTATE 42501)
+# exit status 2
+=> GRANT INSERT ON snapshot_saldo TO api_t5
+GRANT
 
 # --- C. Pemeriksaan malam dari snapshot terakhir: posting sesudahnya saja ---
 $ ./api-t5 -cek-cache -dari-snapshot
