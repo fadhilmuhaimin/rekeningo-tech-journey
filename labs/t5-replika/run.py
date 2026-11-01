@@ -313,7 +313,7 @@ def rekam_jeda():
                                     "extract(epoch FROM replay_lag) FROM pg_stat_replication").fetchall())
             time.sleep(0.02)
         c.close()
-    t = threading.Thread(target=pantau)
+    t = threading.Thread(target=pantau, daemon=True)
     t.start()
     try:
         m = muat_beban(100, 10)
@@ -470,13 +470,14 @@ def siapkan_uji():
 
 
 def commit_di_thread(app, mode, v, hasil):
-    """INSERT satu baris (satu COMMIT) di thread sendiri dengan synchronous_commit tertentu. Mengembalikan thread-nya."""
+    """INSERT satu baris (satu COMMIT) di thread sendiri dengan synchronous_commit tertentu. Mengembalikan thread-nya.
+    Thread daemon: COMMIT yang macet di SyncRep tidak boleh menahan proses saat lab gagal (thread biasa membuat proses menggantung)."""
     def kerja():
         with konek("primary", app=app) as c:
             c.execute(f"SET synchronous_commit = {mode}")
             c.execute("INSERT INTO replika_uji.catatan (v) VALUES (%s)", (v,))
             hasil[v] = "selesai"
-    t = threading.Thread(target=kerja)
+    t = threading.Thread(target=kerja, daemon=True)
     t.start()
     return t
 
@@ -662,7 +663,7 @@ def rekam_promosi():
 
     def kerja():
         hasil["curl"] = curl("POST", "/transfers", {"ke": 505, "nominal": 4000}, token=t_budi, maks=3)
-    t = threading.Thread(target=kerja)
+    t = threading.Thread(target=kerja, daemon=True)
     t.start()
     d.tunggu(lambda: menunggu_syncrep("api-t5") == 1, "COMMIT menunggu standby sinkron selagi client menunggu", 30, 0.02)
     harap(t.is_alive(), True, "client masih menunggu")
@@ -709,7 +710,7 @@ def konflik(nama, stmt_timeout, detik_query):
             except psycopg.Error as e:
                 hasil["galat"] = (e.sqlstate, e.diag.message_primary)
             hasil["lama"] = time.perf_counter() - t0
-    t = threading.Thread(target=kerja)
+    t = threading.Thread(target=kerja, daemon=True)
     t.start()
     d.tunggu(lambda: satu("replika", "SELECT count(*) FROM pg_stat_activity WHERE application_name = 'uji-konflik' AND state = 'active'") == 1,
              "query lama berjalan di replika", 30, 0.02)
@@ -768,6 +769,7 @@ def rekam_konflik():
     catat("SQLSTATE 40001")
     harap(tertahan_timeout < h["tertahan"] < 60.0, True, f"replay menyusul lebih lama dari bagian C dan sebelum 60 detik: {h['tertahan']}")
     catat("# Berhenti sesudah paling sedikit 30 detik (max_standby_streaming_delay bawaan 30 detik) dan sebelum 60 detik; replay baru menyusul sesudah query dibatalkan, lebih lama dari di bagian C (nilai tidak direkam).")
+    catat("# Lama itu diukur sejak query mulai. Dokumentasi menghitung 30 detik sejak WAL diterima standby, dan WAL pembersihan baru ada sesudah query mulai.")
     d.tunggu(lambda: satu("replika", stat) == 1, "pencacah konflik snapshot naik", 30, 0.1)
     tanya("replika", stat)
     catat("# Pencacah konflik snapshot di katalog replika naik dari 0 ke 1 hanya pada skenario ini.")

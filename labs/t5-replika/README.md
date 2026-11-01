@@ -4,7 +4,7 @@ Lab Tahap 5 (naskah `plan/CERITA-TAHAP-5.md` bagian 3, 3b, dan tabel "Yang harus
 
 Server, skema, data awal, dan generator beban adalah milik `labs/api-t5` (`dasar_t5.py`), bukan salinan. Yang baru di sini adalah kluster replikasi, `run.py`, dan rute baca sesudah tulis di server `api-t5`.
 
-Semua node adalah container lokal tanpa jaringan keluar. Pihak ketiga yang dipanggil server (gateway, layanan push, dan sejenisnya) tidak ikut berjalan: bagian lab ini hanya memakai pembayaran dan bacaan akun. Jaringan hanya dipakai saat membangun: toolchain Go (sekali, lewat proxy modul).
+Semua node adalah container lokal, dan tidak ada langkah lab yang memanggil alamat di luar mesin ini. Jaringan compose bawaan tidak dibatasi. Pihak ketiga yang dipanggil server (gateway, layanan push, dan sejenisnya) tidak ikut berjalan: bagian lab ini hanya memakai pembayaran dan bacaan akun. Jaringan hanya dipakai saat membangun: toolchain Go (sekali, lewat proxy modul).
 
 ## Topologi
 
@@ -80,7 +80,7 @@ Rekaman dari database bersih, diulang tiga kali (tenang, dengan proses sibuk di 
 - **Standby sinkron mati.** COMMIT menunggu di `SyncRep` dan barisnya belum terlihat oleh sesi lain di primary. Halaman PostgreSQL 17 tentang replikasi sinkron tidak menyebut batas waktu penantian; lab tidak menunggunya. Mengosongkan `synchronous_standby_names` dan memuat ulang melepasnya. Selama kosong, jaminan standby sinkron tidak berlaku.
 - **Promosi asinkron.** Transaksi yang dijawab 201 sesudah koneksi WAL diputus ada di primary lama dan tidak ada di node baru. Jumlahnya adalah yang dijawab sesudah pemutusan (5 di lab), bukan hasil kali jeda dan laju. Hitungan naskah 69 transaksi per jeda 1 detik tetap Hitungan atas Asumsi. Node baru tidak rusak: tidak ada buku yang `saldo_cache`-nya berbeda dari jumlah postingnya, dan jumlah semua posting nol. Primary lama tetap menerima tulisan sesudah node baru dipromosikan; lab ini tidak punya fencing.
 - **Promosi sinkron.** Dengan standby sinkron yang diputus, COMMIT tidak dijawab ke client. Sesudah client pergi, penantian dibatalkan dan PostgreSQL mencatat "canceling wait for synchronous replication due to user request" dengan DETAIL "has already committed locally". Jurnal itu ada di primary lama dan tidak ada di node baru, tetapi client tidak pernah menerima 201 untuknya. Ketiga jurnal yang dijawab 201 sebelum pemutusan ada di node baru.
-- **Konflik dengan replay.** Dengan bawaan (30 detik, tanpa `statement_timeout`), query yang bentrok dengan WAL pembersihan dibatalkan dengan 40001 sesudah paling sedikit 30 detik, dan replay tertahan selama itu. Dengan `statement_timeout` 20 detik query dihentikan lebih dulu dengan 57014 dan replay menyusul sebelum 30 detik. Query 3 detik tidak dibatalkan. Timeout tidak mencegah pembatalan query yang lama; ia menggantinya dengan pembatalan yang lebih awal.
+- **Konflik dengan replay.** Dengan bawaan (30 detik, tanpa `statement_timeout`), query yang bentrok dengan WAL pembersihan dibatalkan dengan 40001. Itu terjadi paling cepat 30 detik sesudah query mulai, dan replay tertahan selama itu. Dokumentasi menghitung 30 detik itu sejak WAL diterima standby, bukan sejak query mulai. Dengan `statement_timeout` 20 detik query dihentikan lebih dulu dengan 57014 dan replay menyusul sebelum 30 detik. Query 3 detik tidak dibatalkan. Timeout tidak mencegah pembatalan query yang lama; ia menggantinya dengan pembatalan yang lebih awal.
 
 ## Selisih dengan naskah (lab yang benar)
 
