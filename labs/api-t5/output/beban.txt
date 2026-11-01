@@ -16,7 +16,7 @@ koneksi database dari api-t5 (pg_stat_activity, disampel tiap 100 ms): paling ba
 pool setelah beban: maks 10, terbuka paling banyak 10
 permintaan yang pernah menunggu koneksi dari pool (database/sql WaitCount; nilai tidak direkam): lebih dari 0: ya
 # Pada 1.388,9 per detik pool 10 antre tetapi tidak gagal: p95 di bawah batas, semua status 200 atau 201, dan jadwal tidak tertinggal.
-# Batas p95 sengaja longgar (5.000 ms): pool 10 hampir penuh, dan di laptop ini p95 antar run berkisar dari beberapa ms sampai ratusan ms.
+# Batas p95 sengaja longgar (5.000 ms): pool 10 hampir penuh, dan di laptop ini p95 antar run berkisar dari beberapa ms sampai sekitar satu detik (teramati 7 sampai 1.022 ms di run pelaksana dan peninjau).
 # Koneksi yang habis lebih dulu adalah pool satu proses (10), bukan max_connections (97 tersedia). Hitungan 180 terpasang lawan 97 tersedia
 # di naskah (6 service × 3 instance × pool 10) tetap Hitungan atas Asumsi; lab ini menjalankan satu proses dan bagian pooler membuktikan 53300.
 # Bukan klaim kapasitas produksi. Kapasitas satu primary untuk 69,4 transaksi uang per detik belum diukur di sini.

@@ -91,6 +91,28 @@ def nama_pendek(s):
     return s.replace("t5_", "")
 
 
+def hak_dari_katalog(role, schemas, usage=False):
+    """Hak sebuah role atas tabel di schema-schema itu, dibaca dari katalog PostgreSQL (bukan dari GRANT di layanan.sql):
+    himpunan 'tabel:HAK' untuk hak tabel dan 'tabel.kolom:HAK' untuk hak kolom (has_column_privilege juga benar bila hak
+    tabelnya ada). Tabel dikenali dari nama saja, tanpa schema, supaya sebelum dan sesudah dipecah bisa dibandingkan.
+    usage=True menambah 'schema:NAMA:USAGE' untuk schema yang boleh dimasuki role itu."""
+    tabel = ("SELECT c.relname || ':' || p.priv FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+             "CROSS JOIN unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) AS p(priv) "
+             "WHERE n.nspname = ANY(%s) AND c.relkind IN ('r', 'p') AND has_table_privilege(%s, c.oid, p.priv)")
+    kolom = ("SELECT c.relname || '.' || a.attname || ':' || p.priv FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+             "JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped "
+             "CROSS JOIN unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) AS p(priv) "
+             "WHERE n.nspname = ANY(%s) AND c.relkind IN ('r', 'p') AND has_column_privilege(%s, c.oid, a.attnum, p.priv)")
+    with d.sambung("public") as c:
+        hasil = {r[0] for r in c.execute(tabel, (list(schemas), role)).fetchall()}
+        hasil |= {r[0] for r in c.execute(kolom, (list(schemas), role)).fetchall()}
+        if usage:
+            hasil |= {f"schema:{r[0]}:USAGE" for r in c.execute(
+                "SELECT nspname FROM pg_namespace WHERE nspname = ANY(%s) AND has_schema_privilege(%s, oid, 'USAGE')",
+                (list(schemas), role)).fetchall()}
+    return hasil
+
+
 # ---------- skema.txt ----------
 
 KOLOM_NASKAH = {   # blok mermaid naskah bagian 3b, tabel baru dan tabel yang berubah
@@ -195,6 +217,7 @@ def rekam_skema():
     catat("# Pembagian mengikuti tabel 'Service (schema)' naskah bagian 3b (rancangan, Asumsi desain). Awalan t5_ karena nama schema")
     catat("# dan role global di database lab bersama. Data awal (kota, akun, produk) dimuat dulu, lalu tabel dipindah.")
     catat("$ psql -f layanan.sql   # langkah 1: schema, role, pemindahan tabel")
+    hak_awal = hak_dari_katalog(d.ROLE, [sch])   # hak role api_t5 sebelum tabel dipecah: patokan untuk t5_app sesudahnya
     fk = d.pecah_layanan(sch)
     catat(f"# foreign key lintas schema service SEBELUM dihapus, dibaca dari katalog PostgreSQL: {len(fk)}")
     for x in fk:
@@ -232,6 +255,24 @@ def rekam_skema():
     harap(kode, None, "t5_app membaca enam schema tanpa awalan")
     catat("t5_app: SELECT count(*) FROM akun a JOIN buku b ... JOIN produk p ... JOIN perangkat g ...   -- berhasil, tanpa awalan schema (search_path role)")
     tolak_sebagai("t5_app", "UPDATE posting SET jumlah = jumlah", "42501")
+    # Contoh di atas hanya delapan penolakan. Pemeriksaan berikut dihitung dari katalog untuk semua tabel dan kolom.
+    hak_app = hak_dari_katalog("t5_app", d.SCHEMA_LAYANAN)
+    harap(hak_app, hak_awal, "t5_app harus punya persis hak yang dimiliki api_t5 sebelum tabel dipecah")
+    catat(f"# Katalog: t5_app (mewarisi enam role) punya persis {len(hak_awal)} hak tabel dan kolom yang dimiliki role api_t5 sebelum tabel dipecah: ya")
+    luar = {}
+    for role in d.SCHEMA_LAYANAN:
+        hak = hak_dari_katalog(role, [s for s in d.SCHEMA_LAYANAN if s != role], usage=True)
+        if hak:
+            luar[role] = hak
+    kontrak = {"t5_ledger": {"akun.id:SELECT", "akun.tingkat:SELECT", "akun.status:SELECT", "schema:t5_akun:USAGE"}}
+    harap(luar, kontrak, "hak role service atas tabel dan schema service lain")
+    catat("# Katalog: hak tiap role service atas tabel dan schema service lain: hanya t5_ledger yang punya, yaitu USAGE schema akun dan SELECT atas")
+    catat("# kolom id, tingkat, dan status tabel akun (kontrak kolom); role lain tidak punya hak apa pun di schema service lain: ya")
+    nama_tabel = [t for daftar in SERVICE_NASKAH.values() for t in daftar.split(", ")]
+    with psycopg.connect(d.db_role("t5_app", nama="api-t5-role"), autocommit=True) as c:
+        ditemukan = c.execute("SELECT count(*) FROM unnest(%s::text[]) AS n WHERE to_regclass(n) IS NOT NULL", (nama_tabel,)).fetchone()[0]
+    harap(ditemukan, 30, "t5_app menemukan semua tabel lewat search_path")
+    catat("# Katalog: t5_app menemukan semua 30 tabel tanpa awalan schema lewat search_path rolenya: ya")
 
     bagian("G. Server api-t5 dalam satu proses sebagai t5_app di enam schema: login, bayar, riwayat, dan saldo cocok dengan posting")
     d.mulai_push()
@@ -507,7 +548,7 @@ def rekam_beban():
     harap(m["selesai"], m["dijadwalkan"], "semua permintaan selesai")
     catat("status: " + ", ".join(f"{k} x{v}" for k, v in sorted(m["status"].items())) + "   # 200 = baca, 201 = bayar")
     harap(set(m["status"]) <= {"200", "201"}, True, "tidak ada error")
-    batas_p95 = 5000   # longgar: pool 10 hampir penuh, jadi p95 antar run di laptop berkisar dari beberapa ms sampai ratusan ms
+    batas_p95 = 5000   # longgar: pool 10 hampir penuh, jadi p95 antar run di laptop berkisar dari beberapa ms sampai sekitar satu detik
     catat(f"p95 di bawah {batas_p95} ms (batas lab, Asumsi; nilai ukur tidak direkam): {'ya' if m['p95_ms'] < batas_p95 else 'TIDAK'}")
     harap(m["p95_ms"] < batas_p95, True, "p95")
     catat(f"jadwal tidak tertinggal lebih dari 100 ms (generator tidak jadi penghambat): {'ya' if m['lag_maks_ms'] < 100 else 'TIDAK'}")
@@ -524,7 +565,7 @@ def rekam_beban():
     harap(pool["menunggu"] > 0, True, "pool 10 pada 1.388,9 per detik antre")
     print("beban (nilai mentah, tidak direkam):", {k: m[k] for k in ("p50_ms", "p95_ms", "p99_ms", "maks_ms", "lag_maks_ms", "koneksi_maks", "aktif_maks")}, "pool:", pool, file=sys.stderr)
     catat("# Pada 1.388,9 per detik pool 10 antre tetapi tidak gagal: p95 di bawah batas, semua status 200 atau 201, dan jadwal tidak tertinggal.")
-    catat("# Batas p95 sengaja longgar (5.000 ms): pool 10 hampir penuh, dan di laptop ini p95 antar run berkisar dari beberapa ms sampai ratusan ms.")
+    catat("# Batas p95 sengaja longgar (5.000 ms): pool 10 hampir penuh, dan di laptop ini p95 antar run berkisar dari beberapa ms sampai sekitar satu detik (teramati 7 sampai 1.022 ms di run pelaksana dan peninjau).")
     catat("# Koneksi yang habis lebih dulu adalah pool satu proses (10), bukan max_connections (97 tersedia). Hitungan 180 terpasang lawan 97 tersedia")
     catat("# di naskah (6 service × 3 instance × pool 10) tetap Hitungan atas Asumsi; lab ini menjalankan satu proses dan bagian pooler membuktikan 53300.")
     catat("# Bukan klaim kapasitas produksi. Kapasitas satu primary untuk 69,4 transaksi uang per detik belum diukur di sini.")

@@ -80,6 +80,7 @@ cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestPengumumanEndpoint
 --- PASS: TestCicilanEndpoint
 --- PASS: TestRuteHandlerSamaDenganOpenAPI
+--- PASS: TestBatasLajuPengumumanDanCicilan
 PASS
 ok    lab/apit5/internal/handler
 --- PASS: TestSatuPembuatClientUntukSemuaPanggilanKeluar
@@ -396,6 +397,19 @@ ok    lab/apit5/internal/repo
 --- PASS: TestSesiWebDanCsrf
 --- PASS: TestKlaimMelewatBarisYangDikunci
 --- PASS: TestOutboxGagalMembatalkanUang
+--- PASS: TestCicilanLangkahDanJadwalDihentikan
+--- PASS: TestJurnalAngsuranJenisDanReferensi
+--- PASS: TestBatasValidasiCicilanDanPengumuman
+--- PASS: TestPengumumanMenghitungAkunBukanPerangkat
+--- PASS: TestLaporanHariIniMemakaiHariWIB
+--- PASS: TestBukuTabunganTidakMasukPencarianBukuUtama
+    --- PASS: TestBukuTabunganTidakMasukPencarianBukuUtama/tabungan_dulu_true
+    --- PASS: TestBukuTabunganTidakMasukPencarianBukuUtama/tabungan_dulu_false
+--- PASS: TestConstraintTabelBaruTahap5
+--- PASS: TestPartisiPostingMenyambungTanpaCelah
+--- PASS: TestBuatPartisiPostingMenolakTengahBulan
+--- PASS: TestBukuTabunganDipakaiUlang
+--- PASS: TestSaldoBukuMilikAkunTidakNegatif
 --- PASS: TestRekonHarianLedgerLebihBesarDariGateway
 --- PASS: TestWebhookDiparkirDicekKeGatewayHanyaBilaMasihMenunggu
 --- PASS: TestOtorisasiIDPenerbitSamaUntukKartuLainDitolak
@@ -567,6 +581,8 @@ ok    lab/apit5/internal/cache
     handler_t5_test.go:101: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestCicilanEndpoint
     handler_t5_test.go:128: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestBatasLajuPengumumanDanCicilan
+    tinjau_t5_test.go:12: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 FAIL
 FAIL  lab/apit5/internal/handler
 ok    lab/apit5/internal/klien

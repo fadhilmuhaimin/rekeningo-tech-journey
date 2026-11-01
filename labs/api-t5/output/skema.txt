@@ -207,6 +207,10 @@ t5_ledger: SELECT nama FROM t5_akun.akun LIMIT 1
 t5_app: SELECT count(*) FROM akun a JOIN buku b ... JOIN produk p ... JOIN perangkat g ...   -- berhasil, tanpa awalan schema (search_path role)
 t5_app: UPDATE posting SET jumlah = jumlah
   ERROR:  permission denied for table posting   -- SQLSTATE 42501
+# Katalog: t5_app (mewarisi enam role) punya persis 639 hak tabel dan kolom yang dimiliki role api_t5 sebelum tabel dipecah: ya
+# Katalog: hak tiap role service atas tabel dan schema service lain: hanya t5_ledger yang punya, yaitu USAGE schema akun dan SELECT atas
+# kolom id, tingkat, dan status tabel akun (kontrak kolom); role lain tidak punya hak apa pun di schema service lain: ya
+# Katalog: t5_app menemukan semua 30 tabel tanpa awalan schema lewat search_path rolenya: ya
 
 # --- G. Server api-t5 dalam satu proses sebagai t5_app di enam schema: login, bayar, riwayat, dan saldo cocok dengan posting ---
 # server: ./api-t5 -lab sebagai role t5_app (search_path = enam schema); push tiruan: ./pushpalsu
