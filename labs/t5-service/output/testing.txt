@@ -1,0 +1,40 @@
+# Lab t5-service · tes Go untuk mTLS, identitas, trace, dan ledger sebagai service
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_tes · server Go di 127.0.0.1:18320
+# Rekaman dari database bersih: make -C labs/t5-service run.
+
+# --- A. go vet, lalu tes mTLS, identitas, dan ledger dengan PostgreSQL sungguhan (schema tahap5_tes) ---
+$ go vet ./cmd/ledger ./cmd/layanan ./cmd/panggil ./cmd/pki ./internal/identitas ./internal/jejak ./internal/pki ./internal/handler
+(tanpa temuan)
+# exit status 0
+$ TEST_DATABASE_URL=<pemilik, schema tahap5_tes> TES_DB_WAJIB=1 go test -v -count=1 -p 1 ./internal/identitas ./internal/jejak ./internal/pki ./cmd/ledger
+--- PASS: TestIdentitasBerizinMembuatJurnalJenisItu
+--- PASS: TestSertifikatSahTanpaIzinJenisDijawab403
+--- PASS: TestSertifikatTidakSahDitolakSaatHandshake
+--- PASS: TestIdentitasHanyaDariSANBukanCNAtauHeader
+--- PASS: TestServerTLSMenuntutSertifikatKlienDanTLS13
+--- PASS: TestIzinNaskahMemuatEnamJenisTanpaTumpangTindih
+--- PASS: TestKelasGalatMembedakanAlertDariKoneksiMati
+--- PASS: TestSANYangBukanTepatSatuIdentitasDitolakHandler
+--- PASS: TestSertifikatTakTerverifikasiTidakDipakaiSebagaiIdentitas
+--- PASS: TestKlienMenolakServerBernamaLain
+PASS
+ok    lab/apit5/internal/identitas
+--- PASS: TestIDUrutTetapPerNamaDanBerbedaAntarNama
+--- PASS: TestTraceparentMerambatDariClientKeServer
+--- PASS: TestPasangMemasangPropagatorTraceContext
+PASS
+ok    lab/apit5/internal/jejak
+--- PASS: TestTerbitkanMenolakEKUKosongDanMemakaiCAPenerbit
+--- PASS: TestTulisMemberiIzinKetatUntukKunciPrivat
+PASS
+ok    lab/apit5/internal/pki
+--- PASS: TestPembayaranMembuatSatuJurnalTopupBankPerKey
+--- PASS: TestPembayaranMenahanDanaKartuDenganJenisKartuTahan
+--- PASS: TestNotifikasiBersertifikatSahTidakMembuatJurnal
+--- PASS: TestTanpaSertifikatDitolakSebelumHandlerDanTidakAdaJurnal
+--- PASS: TestModeRentanMenerimaPemanggilManaPunDenganKeyBaru
+--- PASS: TestJenisDiTabelIzinAdaDiConstraintJurnal
+--- PASS: TestIzinSatuJenisTidakMembukaRuteJenisLain
+PASS
+ok    lab/apit5/cmd/ledger
+# exit status 0
