@@ -19,8 +19,8 @@ import type { DataErd, ModulErd } from "./skema";
 import { ringkasCek, ringkasIndex } from "./erd";
 import { muncul } from "../gerak/muncul";
 import {
-  LABEL_STATUS, UKURAN, ambangKolom, barisPindah, bisaBanding, duaBaris, duaKepala, modulTabel, namaTombol, ringkasan, ringkasModul, tampilSebelum, tampilTahapHalaman, tata, teksAturan,
-  teksKolom, teksPindah, varPesan,
+  LABEL_STATUS, UKURAN, ambangKolom, barisPindah, berpartisi, bisaBanding, duaBaris, duaKepala, fkDihapusLintas, modulTabel, namaTombol, ringkasan, ringkasModul, tampilSebelum,
+  tampilTahapHalaman, tata, teksAturan, teksKolom, teksPartisi, teksPindah, varPesan,
   type TabelTampil, type Tata, type TautanTahap,
 } from "./tumbuh";
 
@@ -54,6 +54,7 @@ function NodeTabel({ data }: NodeProps<Node<DataNode>>) {
       >
         <span className={`erd-tumbuh__kepala${duaKepala(t, acuan) ? " is-dua" : ""}`}>
           <code translate="no">{t.nama}</code>
+          {berpartisi(t) && <span className="erd-tumbuh__partisi">partisi</span>}
           {t.status && <span className="erd-tumbuh__status">{LABEL_STATUS[t.status]}</span>}
         </span>
         {t.bayangan ? (
@@ -101,7 +102,8 @@ function Statis({ panel, tautan, modul }: { panel: Panel; tautan: TautanTahap; m
           <li key={t.nama} className={`is-${t.status ?? "awal"}`}>
             <code translate="no">{t.nama}</code>
             {t.status && ` (${LABEL_STATUS[t.status]})`}
-            {!t.bayangan && modulTabel(modul, t.nama) && `, modul ${modulTabel(modul, t.nama)}`}
+            {!t.bayangan && modul && modulTabel(modul, t.nama) && `, ${modul.istilah} ${modulTabel(modul, t.nama)}`}
+            {berpartisi(t) && `, ${teksPartisi(t.tabel)}`}
             {t.bayangan ? (
               <>: isinya pindah ke {t.pindahKe}.</>
             ) : (
@@ -123,7 +125,7 @@ function Statis({ panel, tautan, modul }: { panel: Panel; tautan: TautanTahap; m
   );
 }
 
-function Detail({ t, panel, tautan, sebelum, no, modul }: { t: TabelTampil; panel: Panel; tautan: TautanTahap; sebelum: number | null; no: number; modul: string | null }) {
+function Detail({ t, panel, tautan, sebelum, no, modul }: { t: TabelTampil; panel: Panel; tautan: TautanTahap; sebelum: number | null; no: number; modul: { istilah: string; nama: string } | null }) {
   // Tabel yang dihapus dijelaskan di halaman tahap tempat ia masih ada.
   const asal = t.status === "dihapus" && t.bayangan && sebelum ? sebelum : panel.tahap;
   const halaman = tautan[asal]?.[t.nama] ?? [];
@@ -135,9 +137,10 @@ function Detail({ t, panel, tautan, sebelum, no, modul }: { t: TabelTampil; pane
       </p>
       {modul && !t.bayangan && (
         <p>
-          Modul: <strong>{modul}</strong>.
+          {kapital(modul.istilah)}: <strong>{modul.nama}</strong>.
         </p>
       )}
+      {berpartisi(t) && <p>Tabel ini {teksPartisi(t.tabel)}.</p>}
       {t.pindahKe && (
         <p>
           Tabel ini dihapus di Tahap {no}. Isinya pindah ke {t.pindahKe}.
@@ -183,6 +186,14 @@ function Detail({ t, panel, tautan, sebelum, no, modul }: { t: TabelTampil; pane
   );
 }
 
+const kapital = (kata: string) => kata.charAt(0).toUpperCase() + kata.slice(1);
+
+/** Modul atau service pemilik satu tabel, dengan istilah tahapnya; null bila tahap tanpa pembagian. */
+function detailModul(m: ModulErd | undefined, tabel: string): { istilah: string; nama: string } | null {
+  const nama = modulTabel(m, tabel);
+  return m && nama ? { istilah: m.istilah, nama } : null;
+}
+
 type Props = {
   id: string;
   judul: string;
@@ -210,6 +221,8 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], mod
   const banding = mauBanding && bisaBanding(data, no);
   const sebelum = data.find((d) => d.tahap === no)?.selisih?.terhadap ?? null;
   const modulNo = modul.find((m) => m.tahap === no);
+  // Tahap yang menghapus foreign key lintas (Tahap 5): berapa yang dihapus, dihitung dari selisih dan ERD tahap sebelumnya.
+  const hapusLintas = modulNo && modulNo.lintas.length === 0 && bisaBanding(data, no) ? fkDihapusLintas(data, no, modulNo) : [];
 
   useEffect(() => {
     const el = panggung.current;
@@ -415,7 +428,7 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], mod
       )}
       <div id={idDetail} ref={detail} className="erd-tumbuh__detail">
         {tabelTerpilih && terpilih ? (
-          <Detail t={tabelTerpilih} panel={terpilih} tautan={tautan} sebelum={sebelum} no={no} modul={modulTabel(modul.find((m) => m.tahap === terpilih.tahap), tabelTerpilih.nama)} />
+          <Detail t={tabelTerpilih} panel={terpilih} tautan={tautan} sebelum={sebelum} no={no} modul={detailModul(modul.find((m) => m.tahap === terpilih.tahap), tabelTerpilih.nama)} />
         ) : (
           // Sebelum hydrate petunjuk sudah menempati ruangnya (tersembunyi), supaya hydrate tidak menggeser isi di bawah
           // diagram di HP, tempat petunjuk dua baris; tanpa JS tidak tampil (erd-tumbuh.css).
@@ -426,13 +439,13 @@ export default function ErdTumbuh({ id, judul, data, tautan, awal, uji = [], mod
         <div className="erd-tumbuh__modul">
           <table>
             <caption>
-              <strong>Pembagian modul Tahap {no}</strong> <span className="bb-chip is-system">Rekaman lab · pembagian modul</span>
+              <strong>Pembagian {modulNo.istilah} Tahap {no}</strong> <span className="bb-chip is-system">Rekaman lab · pembagian {modulNo.istilah}</span>
               <br />
-              {ringkasModul(modulNo)}
+              {ringkasModul(modulNo, hapusLintas.length, sebelum ?? 0)}
             </caption>
             <thead>
               <tr>
-                <th scope="col">Modul</th>
+                <th scope="col">{kapital(modulNo.istilah)}</th>
                 <th scope="col">Jumlah</th>
                 <th scope="col">Tabel</th>
               </tr>

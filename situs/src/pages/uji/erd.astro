@@ -3,25 +3,29 @@
 // sidebar, tidak diindeks. Kedua tahap = ERD sungguhan yang dibangun tools/erd.py dari skema lab: Tahap 1 dari api-t1
 // (situs/data/erd/tahap-1.json), Tahap 2 dari migration api-t2 (situs/data/erd/tahap-2.json, ERD2, keputusan 470–472),
 // Tahap 3 dari migration api-t3 (situs/data/erd/tahap-3.json, ERD3, keputusan 963–964), Tahap 4 dari migration api-t3
-// dan api-t4 (situs/data/erd/tahap-4.json, ERD4, keputusan 1254–1256). Dibuka di Tahap 2 supaya pemeriksaan yang ada
-// tetap berlaku; Tahap 3, Tahap 4, dan "Bandingkan dengan Tahap N-1" dipilih pembaca (ukur-erd.mjs, bagian 6b dan 6d).
+// dan api-t4 (situs/data/erd/tahap-4.json, ERD4, keputusan 1254–1256), Tahap 5 dari migration api-t5 sesudah foreign key lintas
+// service dihapus layanan.sql (situs/data/erd/tahap-5.json dan service-tahap-5.json, ERD5, keputusan 1670–1672). Dibuka di Tahap 2
+// supaya pemeriksaan yang ada tetap berlaku; Tahap 3, 4, 5, dan "Bandingkan dengan Tahap N-1" dipilih pembaca (ukur-erd.mjs, bagian 6b, 6d, 6e).
 // Data uji src/erd/uji/tahap-2.json tinggal dipakai tes logika widget (tumbuh.test.ts).
 // Dipakai situs/tools/ukur-erd.mjs (statis tanpa JS, scroll, keyboard, reduced motion, axe gelap dan terang, CLS).
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 import ErdTumbuh from "../../erd/ErdTumbuh";
 import { DataErd, ModulErd, PetaHalaman } from "../../erd/skema";
-import { periksaModul, tautanHalaman } from "../../erd/tumbuh";
+import { fkDihapusLintas, periksaModul, tautanHalaman } from "../../erd/tumbuh";
 import t1 from "../../../data/erd/tahap-1.json";
 import t2 from "../../../data/erd/tahap-2.json";
 import t3 from "../../../data/erd/tahap-3.json";
 import t4 from "../../../data/erd/tahap-4.json";
+import t5 from "../../../data/erd/tahap-5.json";
 import m4 from "../../../data/erd/modul-tahap-4.json";
+import s5 from "../../../data/erd/service-tahap-5.json";
 import petaHalaman from "../../../data/erd/halaman.json";
 import { muat, url } from "../../../tools/registri.mjs";
 
-const data = [DataErd.parse(t1), DataErd.parse(t2), DataErd.parse(t3), DataErd.parse(t4)];
-const modul = [ModulErd.parse(m4)];
+const data = [DataErd.parse(t1), DataErd.parse(t2), DataErd.parse(t3), DataErd.parse(t4), DataErd.parse(t5)];
+const modul = [ModulErd.parse(m4), ModulErd.parse(s5)];
 for (const m of modul) periksaModul(data.find((d) => d.tahap === m.tahap)!, m); // build gagal bila tidak cocok dengan ERD-nya
+fkDihapusLintas(data, 5, modul[1]); // build gagal bila foreign key yang dihapus tidak sama dengan yang menyeberang batas service
 const tautan = tautanHalaman(PetaHalaman.parse(petaHalaman), data, muat().halaman, url);
 ---
 
@@ -35,8 +39,8 @@ const tautan = tautanHalaman(PetaHalaman.parse(petaHalaman), data, muat().halama
   }}
 >
   <p>
-    Halaman uji widget ERD bertumbuh. Keempat tahap dibangun dari skema lab: Tahap 1 dari api-t1, Tahap 2 dari
-    migration api-t2, Tahap 3 dari migration api-t3, Tahap 4 dari migration api-t4.
+    Halaman uji widget ERD bertumbuh. Kelima tahap dibangun dari skema lab: Tahap 1 dari api-t1, Tahap 2 dari
+    migration api-t2, Tahap 3 dari migration api-t3, Tahap 4 dari migration api-t4, Tahap 5 dari migration api-t5.
   </p>
   <ErdTumbuh client:visible id="erd-uji" judul="Skema data dari tahap ke tahap" data={data} tautan={tautan} modul={modul} awal={2} />
   <p>Teks sesudah diagram, supaya halaman cukup panjang untuk diuji scroll-nya.</p>

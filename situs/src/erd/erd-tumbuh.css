@@ -216,6 +216,16 @@
   font-weight: 600;
   color: var(--k-old-ink);
 }
+/* Tabel berpartisi (posting, ERD5): chip di kepala, satu baris dengan status; lebarnya METRIK.partisi di tumbuh.ts. */
+.erd-tumbuh__partisi {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--k-system-ink);
+}
+.erd-tumbuh__kepala.is-dua > .erd-tumbuh__partisi {
+  margin-right: auto;
+}
 .is-baru > .erd-tumbuh__kepala .erd-tumbuh__status,
 .erd-tumbuh__baris.is-baru .erd-tumbuh__ubah { color: var(--k-good-ink); }
 .is-berubah > .erd-tumbuh__kepala .erd-tumbuh__status,
