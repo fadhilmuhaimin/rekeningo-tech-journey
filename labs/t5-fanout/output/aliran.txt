@@ -1,0 +1,102 @@
+# Lab t5-fanout · satu event, relay ke Kafka, kunci merchant, dan relay yang mati
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_fanout · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-fanout run.
+# Kafka apache/kafka:4.3.2 (KRaft, satu broker, replication factor 1) · franz-go v1.22.2
+$ kafka-topics.sh --version
+4.3.2
+
+# --- A. Satu pengumuman ke semua perangkat: satu baris pengumuman, satu baris outbox, satu rekaman per rentang ---
+=> SELECT count(*) AS perangkat_aktif, count(DISTINCT akun_id) AS akun FROM perangkat WHERE aktif
+ perangkat_aktif | akun
+-----------------+-------
+ 10281           | 10281
+(1 row)
+$ curl -i -X POST '/pengumuman' -H 'Authorization: Bearer <token sesi admin>' -d '{"judul": "Diskon makan siang"}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"id":1,"jumlah_penerima":10281}
+=> SELECT id, judul, status, jumlah_penerima FROM pengumuman
+ id | judul              | status | jumlah_penerima
+----+--------------------+--------+-----------------
+ 1  | Diskon makan siang | dibuat | 10281
+(1 row)
+=> SELECT jenis, tujuan, kelas, status, count(*) AS baris FROM outbox GROUP BY jenis, tujuan, kelas, status ORDER BY jenis
+ jenis      | tujuan | kelas | status   | baris
+------------+--------+-------+----------+-------
+ pengumuman | stream | 2     | menunggu | 1
+(1 row)
+
+$ ./stream -peran relay -partisi 6 -sekali
+relay: diklaim 1
+=> SELECT jenis, tujuan, status, count(*) AS baris FROM outbox GROUP BY jenis, tujuan, status ORDER BY jenis
+ jenis      | tujuan | status   | baris
+------------+--------+----------+-------
+ pengumuman | stream | terkirim | 1
+(1 row)
+$ kafka-get-offsets.sh --topic pengumuman.kirim
+pengumuman.kirim:0:1
+pengumuman.kirim:1:1
+pengumuman.kirim:2:1
+pengumuman.kirim:3:1
+pengumuman.kirim:4:1
+pengumuman.kirim:5:1
+$ kafka-console-consumer.sh --topic pengumuman.kirim --from-beginning (partisi, offset, rentang perangkat di isinya)
+Partition:0 Offset:0 kunci:shard-1 rentang perangkat 1 sampai 1714 (1714 nomor)
+Partition:1 Offset:0 kunci:shard-2 rentang perangkat 1715 sampai 3428 (1714 nomor)
+Partition:2 Offset:0 kunci:shard-3 rentang perangkat 3429 sampai 5142 (1714 nomor)
+Partition:3 Offset:0 kunci:shard-4 rentang perangkat 5143 sampai 6855 (1713 nomor)
+Partition:4 Offset:0 kunci:shard-5 rentang perangkat 6856 sampai 8568 (1713 nomor)
+Partition:5 Offset:0 kunci:shard-6 rentang perangkat 8569 sampai 10281 (1713 nomor)
+# 10.281 perangkat, 1 baris pengumuman, 1 baris outbox, 6 rekaman di Kafka (satu per rentang, satu per partisi)
+
+# --- B. Pembanding: satu baris outbox per penerima (cara lama), ukuran dibaca dari katalog PostgreSQL ---
+=> INSERT INTO outbox (akun_id, kelas, jenis, payload, tujuan)
+              SELECT akun_id, 2, 'promo', jsonb_build_object('judul', 'Diskon makan siang', 'isi', ''), 'push' FROM perangkat WHERE aktif
+INSERT 0 10281
+-- baris outbox per penerima: 10281
+-- tumpukan tabel (pg_relation_size) bertambah 166 byte per baris, tanpa index (dibulatkan ke bawah)
+-- Hitungan: 166 byte x 1.000.000 penerima = 166 MB di tumpukan tabel; naskah memakai 300 byte per baris (Asumsi, dengan index): 300 MB
+
+# --- C. Event pembayaran: satu baris outbox stream per pembayaran, kunci merchant, urutan per merchant ---
+-- 12 pembayaran Rp10.000 dari 6 karyawan ke 3 warung, bergiliran: 418, 502, 503
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi akun 10001>' -d '{"ke": 418, "jumlah": 10000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10201
+
+{"id":10201,"saldo":240000}
+=> SELECT jenis, tujuan, status, count(*) AS baris FROM outbox WHERE jenis = 'bayar' GROUP BY jenis, tujuan, status ORDER BY tujuan
+ jenis | tujuan | status   | baris
+-------+--------+----------+-------
+ bayar | push   | menunggu | 12
+ bayar | stream | menunggu | 12
+(2 rows)
+$ ./stream -peran relay -partisi 6 -sekali
+relay: diklaim 12
+$ kafka-console-consumer.sh --topic pembayaran.tercatat --from-beginning (per merchant)
+merchant | partisi | rekaman | jurnal naik menurut offset
+418 | satu | 4 | ya
+502 | satu | 4 | ya
+503 | satu | 4 | ya
+-- uang tidak dibaca dari topik: jurnal di PostgreSQL tetap satu-satunya sumber; topik hanya untuk dilihat
+
+# --- D. Relay mati sesudah Kafka menjawab dan sebelum baris ditandai: rekaman yang sama ditulis dua kali (at-least-once) ---
+-- 3 pembayaran baru, lalu relay dihentikan mendadak sesudah rekaman pertama dijawab broker
+$ ./stream -peran relay -partisi 6 -sekali -lab-henti-sebelum-tandai
+(proses berhenti, exit status 3)
+=> SELECT status, count(*) AS baris FROM outbox WHERE tujuan = 'stream'
+              AND jurnal_id IN (SELECT jurnal_id FROM outbox WHERE tujuan = 'stream' ORDER BY id DESC LIMIT 3) GROUP BY status
+ status   | baris
+----------+-------
+ menunggu | 3
+(1 row)
+$ ./stream -peran relay -partisi 6 -sekali
+relay: diklaim 3
+=> SELECT status, count(*) AS baris FROM outbox WHERE tujuan = 'stream' GROUP BY status
+ status   | baris
+----------+-------
+ terkirim | 16
+(1 row)
+-- rekaman di topik: 16; event_id berbeda: 15; event_id yang muncul dua kali: 1 (di partisi yang sama)
+-- consumer yang membaca pembayaran.tercatat harus menyaring event_id: producer idempoten tidak menutup kegagalan relay ini

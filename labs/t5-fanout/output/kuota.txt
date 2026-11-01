@@ -1,0 +1,19 @@
+# Lab t5-fanout · kuota penyedia push, 429, dan backoff dengan jitter
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_fanout · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-fanout run.
+
+# --- A. Kuota penyedia push 1.000 per detik (lab, seperlima dari 10.000), 3.000 perangkat, 96 pengirim serentak, dengan backoff dan jitter ---
+-- kuota lab 1.000 per detik, latensi 2 ms; naskah 10.000 per detik (aturan jendela diuji di tes Go dengan 10.000)
+-- 3.000 perangkat aktif; tiga consumer, tiap consumer 32 pengirim; backoff dasar 100 ms, batas 2000 ms, jitter penuh
+-- pesan yang diterima penyedia: 3000
+-- perangkat dengan tepat satu notifikasi berbeda: 3000
+-- panggilan ganda: 0
+-- ada permintaan yang dijawab 429 karena kuota terlampaui: ya
+-- selesai lebih dari 2 detik (3.000 pesan, 1.000 per jendela satu detik): ya
+-- menunggu sesudah percobaan ke-k tidak pernah melebihi min(2000, 100 x 2^(k-1)) ms, di semua consumer dan semua k: ya
+-- ada pesan yang butuh paling sedikit tiga percobaan: ya
+
+# --- B. Mode rentan -tanpa-backoff: skenario yang sama, tetapi pengirim mengulang segera sesudah 429 ---
+-- pesan yang diterima penyedia: 3000
+-- perangkat dengan tepat satu notifikasi berbeda: 3000
+-- jumlah 429 tanpa backoff paling sedikit dua kali jumlah 429 dengan backoff: ya
