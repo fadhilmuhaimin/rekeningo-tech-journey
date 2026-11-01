@@ -26,7 +26,7 @@ func (d *daftar) String() string     { return strings.Join(*d, ",") }
 func (d *daftar) Set(s string) error { *d = append(*d, s); return nil }
 
 func main() {
-	alamat := flag.String("url", "", "alamat lengkap, mis. https://127.0.0.1:18320/ledger/jurnal-topup")
+	alamat := flag.String("url", "", "alamat lengkap: https://<host>:<port>/ledger/jurnal-topup")
 	ca := flag.String("ca", "", "berkas PEM CA untuk memverifikasi server (kosong = tanpa verifikasi server, hanya untuk HTTP biasa)")
 	sert := flag.String("cert", "", "berkas PEM sertifikat klien (kosong = tanpa sertifikat)")
 	kunci := flag.String("key", "", "berkas PEM kunci privat klien")

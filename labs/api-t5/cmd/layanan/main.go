@@ -37,8 +37,8 @@ type permintaan struct {
 
 func main() {
 	peran := flag.String("peran", "", "pembayaran atau notifikasi")
-	alamat := flag.String("addr", "", "alamat server (bawaan 127.0.0.1:18321 untuk pembayaran, 18322 untuk notifikasi, ditambah LAB_PORT_OFFSET)")
-	ledger := flag.String("ledger", "", "alamat dasar ledger, mis. https://127.0.0.1:18320")
+	alamat := flag.String("addr", "", "alamat server (bawaan: host lokal, port dasar 18321 untuk pembayaran dan 18322 untuk notifikasi, ditambah LAB_PORT_OFFSET)")
+	ledger := flag.String("ledger", "", "alamat dasar ledger: https://<host>:<port>")
 	sert := flag.String("tls-cert", "", "berkas PEM sertifikat service ini")
 	kunci := flag.String("tls-key", "", "berkas PEM kunci privat service ini")
 	ca := flag.String("tls-ca", "", "berkas PEM CA yang menerbitkan sertifikat ledger")
