@@ -39,28 +39,39 @@ func bacaKursor(s string) (*repo.Kursor, bool) {
 // Riwayat: hanya pemilik akun. Halaman berikutnya diminta dengan kursor dari halaman sebelumnya;
 // berikutnya kosong berarti tidak ada baris lagi.
 func (s Service) Riwayat(ctx context.Context, peminta, id int64, kursor, batas string) (daftar []repo.Riwayat, berikutnya string, err error) {
+	daftar, berikutnya, _, err = s.RiwayatTampil(ctx, peminta, id, kursor, batas, "")
+	return daftar, berikutnya, err
+}
+
+// RiwayatTampil: seperti Riwayat, tetapi bacaan boleh dari replica (aturan sumberTampil, ADR 47). Mengembalikan juga
+// sumber bacaannya. token kosong berarti app tidak punya token tulis.
+func (s Service) RiwayatTampil(ctx context.Context, peminta, id int64, kursor, batas, token string) (daftar []repo.Riwayat, berikutnya, sumber string, err error) {
 	if peminta != id {
-		return nil, "", ErrTidakDitemukan
+		return nil, "", "", ErrTidakDitemukan
 	}
 	n := BatasRiwayat
 	if batas != "" {
 		if n, err = strconv.Atoi(batas); err != nil || n < 1 || n > 50 {
-			return nil, "", ErrValidasi{"batas", "angka 1 sampai 50"}
+			return nil, "", "", ErrValidasi{"batas", "angka 1 sampai 50"}
 		}
 	}
 	var k *repo.Kursor
 	if kursor != "" {
 		var ok bool
 		if k, ok = bacaKursor(kursor); !ok {
-			return nil, "", ErrValidasi{"kursor", "bukan kursor dari halaman sebelumnya"}
+			return nil, "", "", ErrValidasi{"kursor", "bukan kursor dari halaman sebelumnya"}
 		}
 	}
-	daftar, err = s.repo.Riwayat(ctx, id, k, n)
+	p, sumber, err := s.sumberTampil(ctx, token)
+	if err != nil {
+		return nil, "", "", err
+	}
+	daftar, err = p.Riwayat(ctx, id, k, n)
 	if err != nil || len(daftar) < n {
-		return daftar, "", err
+		return daftar, "", sumber, err
 	}
 	akhir := daftar[len(daftar)-1]
-	return daftar, tulisKursor(repo.Kursor{Dibuat: akhir.Waktu, Posting: akhir.Posting}), nil
+	return daftar, tulisKursor(repo.Kursor{Dibuat: akhir.Waktu, Posting: akhir.Posting}), sumber, nil
 }
 
 // --8<-- [start:laporan]

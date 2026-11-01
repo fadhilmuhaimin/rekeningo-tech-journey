@@ -5,7 +5,7 @@ tetap. Tiap lab membaca port dari lingkungan lewat labs/lab_env.py, labs/lab_env
 `${LAB_DB_PORT:-54333}` di compose (labs/README.md, "Beberapa lajur sekaligus"). Pemeriksa ini menolak dua hal
 di labs/, tools/, .devcontainer/, .github/, dan berkas di akar repo selain Markdown:
 
-  1. Port database, Redis, dan replika lab (54333, 54340, 54341, 56379) di luar pengecualian di bawah.
+  1. Port database, Redis, dan replika lab (54333, 54340, 54341, 54342, 56379) di luar pengecualian di bawah.
   2. Port server lab 18xxx tepat sesudah alamat host (`127.0.0.1:18083`, `"127.0.0.1", 18083`): tulis
      `port_lab(18083)` (Python, shell), `portLab(18083)` (Go), atau tambahkan LAB_PORT_OFFSET (Dart, Node).
 
@@ -28,6 +28,7 @@ PORT_TETAP = {
     "54333": "LAB_DB_PORT",
     "54340": "LAB_REPLIKA_PRIMARY_PORT",
     "54341": "LAB_REPLIKA_REPLICA_PORT",
+    "54342": "LAB_REPLIKA_SINKRON_PORT",
     "56379": "LAB_REDIS_PORT",
 }
 

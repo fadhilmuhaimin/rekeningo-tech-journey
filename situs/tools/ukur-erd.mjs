@@ -20,6 +20,10 @@
 //   berubah), 36 node dan 55 edge, zoom ≥ 0,8; tidak ada nama kolom atau tabel yang terpotong elipsis di Tahap 1 sampai 4
 //   (label kunci yang tidak muat pindah ke baris sendiri); tabel pembagian modul (6 modul, 22 tabel, 21 foreign key lintas)
 //   tanpa luapan di 320 px; detail kartu memuat modul pembayaran dan halaman 4.x; axe gelap dan terang.
+// - Tahap 5 (ERD5, keputusan 1670-1672): dari Bandingkan Tahap 4, memilih Tahap 5 = Tahap 4 di kiri (22 tabel) dan Tahap 5 di
+//   kanan (30 tabel: 8 baru, 16 berubah), 52 node dan 54 edge; mode tunggal = 30 node dan 19 edge (foreign key lintas service
+//   dihapus); posting satu node dengan chip partisi; ringkasan_merchant_harian membungkus di garis bawah, tidak terpotong;
+//   tabel pembagian service (6 service, 30 tabel, 18 foreign key dihapus) tanpa luapan di 320 px; axe gelap dan terang.
 // - 1.12 Data modeling (ERD-1.12, keputusan 697): ErdTumbuh Tahap 1 di blok Paham, versi statis Erd.astro tanpa JS
 //   dan untuk pembaca layar, klik/tap, scroll, CLS saat blok dibuka; React Flow baru dimuat sesudah blok dibuka;
 //   setiap halaman di dist/ yang memakai ErdTumbuh diperiksa bawaannya.
@@ -119,6 +123,8 @@ async function laporBawaan(page, tag) {
 // React Flow memberi node tanpa handler pointer-events none dan tombol mewarisinya (pola keputusan 681, 698).
 // Halaman 4.23 dari registry: sesudah halamannya ada, detail tabel kartu memuat tautannya; sebelum itu "(segera)" (tidak keduanya diterima).
 const kartuAda = JSON.parse(readFileSync(new URL("../data/cerita.json", import.meta.url), "utf8")).halaman.find((h) => h.id === "t4-kartu")?.ada === true;
+// Halaman 5.11 (ADR 46 partisi): sama, tautan hanya bila halamannya ada.
+const partisiAda = JSON.parse(readFileSync(new URL("../data/cerita.json", import.meta.url), "utf8")).halaman.find((h) => h.id === "t5-partisi")?.ada === true;
 
 async function klikTabel(page, awalan, sentuh) {
   const node = page.locator(`${FIG} .erd-tumbuh__node[aria-label^="${awalan}"]`).first();
@@ -462,30 +468,118 @@ for (const [lebar, tinggi, harus] of [
         lapor(v.length === 0, `axe ${tag} Tahap 4 bandingkan ${tema}: ${v.length ? v.join(", ") : "0 pelanggaran"}`);
       }
     }
+
+    // 6e. Tahap 5 (ERD5, keputusan 1670-1672): dari Bandingkan Tahap 4, memilih Tahap 5 mempertahankan mode bandingkan.
+    await page.evaluate((FIG) => [...document.querySelectorAll(`${FIG} .erd-tumbuh__pilih button`)].find((x) => x.textContent.includes("Tahap 5")).click(), FIG);
+    await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node`).length === 52, FIG, { timeout: 15000 });
+    await page.waitForTimeout(500);
+    const t5 = await bentuk(page);
+    const st5 = await page.evaluate((FIG) => {
+      const f = document.querySelector(FIG);
+      const n = (k) => f.querySelectorAll(`.erd-tumbuh__node.is-${k}`).length;
+      return {
+        baru: n("baru"), berubah: n("berubah"), dihapus: n("dihapus"),
+        zoom: [...f.querySelectorAll(".react-flow__viewport")].map((v) => Number(/scale\(([\d.]+)\)/.exec(v.style.transform)?.[1] ?? 1)),
+        judul: [...f.querySelectorAll(".erd-tumbuh__sisi-judul strong")].map((x) => x.textContent),
+        partisi: [...f.querySelectorAll(".erd-tumbuh__partisi")].map((x) => x.closest(".erd-tumbuh__node").getAttribute("aria-label")),
+        chip: [...f.querySelectorAll(".erd-tumbuh__partisi")].map((x) => ({ teks: x.textContent, lebar: x.offsetWidth })),
+      };
+    }, FIG);
+    lapor(
+      t5.node === 52 && t5.edge === 54 && t5.luar === 0 && t5.lebarDok <= 0 && t5.berdampingan === lebar > 500 && st5.baru === 8 && st5.berubah === 16 && st5.dihapus === 0 &&
+        st5.judul.join("|") === "Tahap 4, sebelum|Tahap 5, sesudah" && Math.min(...st5.zoom) >= (lebar < 500 ? 0.99 : 0.8) && t5.namaPotong.length === 0 && t5.pindahPotong === 0 && t5.duaSebaris === 0 && t5.isiBeda.length === 0,
+      `${tag}: Tahap 5 bandingkan → ${t5.berdampingan ? "berdampingan" : "bertumpuk"}, ${t5.node} node, ${t5.edge} edge, ${st5.baru} baru, ${st5.berubah} berubah, ${st5.dihapus} dihapus, zoom ${st5.zoom.map((z) => z.toFixed(2)).join("/")}, ${t5.luar} di luar wadah, luapan ${t5.lebarDok} px, nama terpotong ${t5.namaPotong.length}${t5.namaPotong.length ? ` (${t5.namaPotong.join(", ")})` : ""}, kepala dua baris tidak sebaris ${t5.duaSebaris}, isi node beda tinggi ${t5.isiBeda.length}${t5.isiBeda.length ? ` (${t5.isiBeda.join(", ")})` : ""}`,
+    );
+    // Chip memuat kata "partisi" dan tidak lebih lebar dari METRIK.partisi (48 px, situs/src/erd/tumbuh.ts): tata menghitung kepala satu atau dua baris
+    // dari angka itu. Diukur offsetWidth (tanpa zoom): Satoshi 36 px, Verdana 46 px (tinjauan ERD5, keputusan 1673).
+    lapor(
+      st5.partisi.length === 1 && st5.partisi[0] === "Tabel posting, berubah, 5 kolom, berpartisi" && st5.chip.length === 1 && st5.chip[0].teks === "partisi" && st5.chip[0].lebar <= 48,
+      `${tag}: chip partisi hanya di posting (${st5.partisi.join("; ") || "tidak ada"}), teks "${st5.chip.map((c) => c.teks).join(", ")}", lebar ${st5.chip.map((c) => c.lebar).join(", ")} px (batas 48)`,
+    );
+    await laporBawaan(page, `${tag} Tahap 5 bandingkan`);
+    // Mode tunggal Tahap 5: foreign key lintas service tidak digambar (19 edge, bukan 37).
+    await page.click(`${FIG} .erd-tumbuh__banding`);
+    await page.waitForFunction((FIG) => document.querySelectorAll(`${FIG} .react-flow__node`).length === 30, FIG, { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const t5s = await bentuk(page);
+    const zoom5 = await page.evaluate((FIG) => Number(/scale\(([\d.]+)\)/.exec(document.querySelector(`${FIG} .react-flow__viewport`).style.transform)?.[1] ?? 1), FIG);
+    lapor(
+      t5s.node === 30 && t5s.edge === 19 && t5s.luar === 0 && t5s.lebarDok <= 0 && zoom5 >= 0.99 && t5s.namaPotong.length === 0 && t5s.duaSebaris === 0 && t5s.isiBeda.length === 0,
+      `${tag}: Tahap 5 tunggal → ${t5s.bentuk}, ${t5s.node} node, ${t5s.edge} edge, zoom ${zoom5.toFixed(2)}, ${t5s.luar} di luar wadah, luapan ${t5s.lebarDok} px, nama terpotong ${t5s.namaPotong.length}${t5s.namaPotong.length ? ` (${t5s.namaPotong.join(", ")})` : ""}, kepala dua baris tidak sebaris ${t5s.duaSebaris}, isi node beda tinggi ${t5s.isiBeda.length}${t5s.isiBeda.length ? ` (${t5s.isiBeda.join(", ")})` : ""}`,
+    );
+    await laporBawaan(page, `${tag} Tahap 5`);
+    // Nama yang membungkus: ringkasan_merchant_harian di dua baris, bukan satu baris yang dipotong elipsis.
+    const nama = await page.evaluate((FIG) => {
+      const c = [...document.querySelectorAll(`${FIG} .erd-tumbuh__node code`)].find((x) => x.textContent === "ringkasan_merchant_harian");
+      const k = c?.closest(".erd-tumbuh__kepala");
+      const gaya = c ? getComputedStyle(c) : null;
+      return { ada: !!c, wbr: c?.querySelectorAll("wbr").length ?? 0, ws: gaya?.whiteSpace, lh: gaya?.lineHeight, baris: c ? Math.round(c.getBoundingClientRect().height / 20) : 0, luap: c ? c.scrollWidth - c.clientWidth : 999, kelas: k?.className ?? "", tinggi: k?.getBoundingClientRect().height ?? 0, zoom: Number(/scale\(([\d.]+)\)/.exec(c?.closest(".react-flow__viewport")?.style.transform ?? "")?.[1] ?? 1) };
+    }, FIG);
+    // white-space normal dan line-height 20 px (UKURAN.barisNama) dibaca dari gaya, bukan hanya dari hasil gambar: Chromium juga membungkus di <wbr>
+    // saat nowrap, tetapi mesin lain belum tentu, dan tinggi kepala dihitung dari 20 px per baris.
+    lapor(nama.ada && nama.ws === "normal" && nama.lh === "20px" && nama.wbr === 2 && nama.baris === 2 && nama.luap <= 1 && nama.kelas.includes("is-nama-dua") && Math.round(nama.tinggi / nama.zoom) === 84, `${tag}: ringkasan_merchant_harian membungkus ${nama.baris} baris di ${nama.wbr} titik putus sesudah garis bawah (harap 2), luapan ${nama.luap} px, kepala ${Math.round(nama.tinggi / nama.zoom)} px (harap 84)`);
+    // Tabel pembagian service: enam baris, 30 tabel, ringkasan dari data (nol foreign key menyeberang, 18 dihapus dari Tahap 4).
+    const svc = await page.evaluate((FIG) => {
+      const m = document.querySelector(`${FIG} .erd-tumbuh__modul`);
+      const t = m?.querySelector("table");
+      return {
+        baris: [...(m?.querySelectorAll("tbody tr") ?? [])].map((tr) => `${tr.querySelector("th").textContent}:${tr.querySelector("td").textContent}`),
+        kodeTabel: m?.querySelectorAll("tbody td:last-child code").length ?? 0,
+        kepala: t?.querySelector("thead th")?.textContent ?? "",
+        caption: t?.querySelector("caption")?.textContent ?? "",
+        luap: t ? t.scrollWidth - t.clientWidth : 999,
+      };
+    }, FIG);
+    lapor(
+      svc.baris.length === 6 && svc.kodeTabel === 30 && svc.baris[0] === "ledger:9" && svc.baris[2] === "pembayaran:6" && svc.kepala === "Service" &&
+        svc.caption.includes("Pembagian service Tahap 5") && svc.caption.includes("6 service, 30 tabel; 0 foreign key menyeberang batas service. Dari Tahap 4, 18 foreign key dihapus karena menyeberang batas service.") && svc.luap <= 0,
+      `${tag}: tabel pembagian service ${svc.baris.length} baris, ${svc.kodeTabel} tabel, luapan tabel ${svc.luap} px, "${svc.caption.slice(-100)}"`,
+    );
+    // Klik atau tap di tengah tabel posting: service ledger, catatan partisi, kolom, dan halaman 5.x (segera, atau tertaut sesudah halamannya ada).
+    {
+      const k = await klikTabel(page, "Tabel posting", lebar < 500);
+      lapor(
+        k.kena.startsWith("Tabel posting") && k.ditekan === "true" && k.detail.includes("posting · Tahap 5 · berubah") && k.detail.includes("Service: ledger") && k.detail.includes("dipartisi menurut RANGE (dibuat), 4 partisi") &&
+          k.detail.includes("PK berubah; partisi baru") && k.detail.includes("Dijelaskan di") && k.detail.includes("5.11") && (partisiAda ? k.tautan.some((h) => h.startsWith("/tahap-5/")) : k.detail.includes("(segera)")),
+        `${tag}: ${lebar < 500 ? "tap" : "klik"} di tengah tabel posting kena ${k.kena.startsWith("Tabel") ? "tombol" : k.kena} → aria-pressed ${k.ditekan}, detail ${k.detail.length} karakter, tautan ${k.tautan.join(" ") || "(segera)"}`,
+      );
+    }
+    if (AXE && reducedMotion === "no-preference") {
+      for (const tema of ["dark", "light"]) {
+        await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), tema);
+        await page.addScriptTag({ path: AXE });
+        const v = await page.evaluate(async (tag) => {
+          const x = await window.axe.run(document, { runOnly: { type: "tag", values: tag } });
+          return x.violations.map((p) => `${p.id}(${p.nodes.length}: ${p.nodes[0]?.target?.join(" ")})`);
+        }, TAG_WCAG);
+        lapor(v.length === 0, `axe ${tag} Tahap 5 ${tema}: ${v.length ? v.join(", ") : "0 pelanggaran"}`);
+      }
+    }
     await ctx.close();
   }
 }
 
-// 6c. Layar 320 px (WCAG 1.4.10 reflow): Tahap 2, 3, dan 4 tanpa luapan halaman, teks tidak diperkecil di bawah 0,85 (Tahap 4: zoom 1).
+// 6c. Layar 320 px (WCAG 1.4.10 reflow): Tahap 2, 3, 4, dan 5 tanpa luapan halaman, teks tidak diperkecil di bawah 0,85 (Tahap 4 dan 5: zoom 1).
 {
   const ctx = await browser.newContext({ viewport: { width: 320, height: 568 }, hasTouch: true });
   const page = await ctx.newPage();
   await siap(page);
-  for (const [no, node, edge] of [[2, 11, 11], [3, 14, 20], [4, 22, 35]]) {
+  for (const [no, node, edge] of [[2, 11, 11], [3, 14, 20], [4, 22, 35], [5, 30, 19]]) {
     await page.evaluate(([FIG, no]) => [...document.querySelectorAll(`${FIG} .erd-tumbuh__pilih button`)].find((x) => x.textContent.includes(`Tahap ${no}`)).click(), [FIG, no]);
     await page.waitForFunction(([FIG, n]) => document.querySelectorAll(`${FIG} .react-flow__node`).length === n, [FIG, node], { timeout: 15000 });
     await page.waitForTimeout(300);
     const b = await bentuk(page);
     const zoom = await page.evaluate((FIG) => Number(/scale\(([\d.]+)\)/.exec(document.querySelector(`${FIG} .react-flow__viewport`).style.transform)?.[1] ?? 1), FIG);
     lapor(b.bentuk === "sempit" && b.node === node && b.edge === edge && b.luar === 0 && b.lebarDok <= 0 && zoom >= 0.85 && b.namaPotong.length === 0, `320×568 Tahap ${no}: ${b.bentuk}, ${b.node} node, ${b.edge} edge, zoom ${zoom.toFixed(2)}, ${b.luar} di luar wadah, luapan ${b.lebarDok} px, nama terpotong ${b.namaPotong.length}${b.namaPotong.length ? ` (${b.namaPotong.join(", ")})` : ""}`);
-    if (no === 4) {
+    if (no === 4 || no === 5) {
       const m = await page.evaluate((FIG) => { const t = document.querySelector(`${FIG} .erd-tumbuh__modul table`); return t ? t.scrollWidth - t.clientWidth : 999; }, FIG);
-      lapor(m <= 0 && zoom >= 0.99, `320×568 Tahap 4: zoom ${zoom.toFixed(2)} (teks tidak diperkecil), tabel pembagian modul luapan ${m} px`);
+      lapor(m <= 0 && zoom >= 0.99, `320×568 Tahap ${no}: zoom ${zoom.toFixed(2)} (teks tidak diperkecil), tabel pembagian ${no === 4 ? "modul" : "service"} luapan ${m} px`);
     }
   }
   await laporBawaan(page, "320×568");
-  // Font cadangan lebih lebar dari Satoshi (CI Linux memakai Inter, dan keputusan 1255 menambah tombol keempat): empat tombol
-  // "Tahap N" membungkus ke baris berikutnya, satu baris tiap tombol, dan tidak meluapkan halaman (CI main 28 Okt: 3 px).
+  // Font cadangan lebih lebar dari Satoshi (CI Linux memakai Inter, keputusan 1255 menambah tombol keempat, ERD5 menambah yang
+  // kelima): lima tombol "Tahap N" membungkus ke baris berikutnya, satu baris tiap tombol, dan tidak meluapkan halaman
+  // (CI main 28 Okt: 3 px). Nama tabel Tahap 5 (terpilih di loop di atas) tetap tidak terpotong dengan font itu.
   await page.addStyleTag({ content: "html, body, button, .erd-tumbuh { font-family: Verdana, sans-serif !important }" });
   await page.waitForTimeout(200);
   const pk = await page.evaluate((FIG) => {
@@ -498,7 +592,17 @@ for (const [lebar, tinggi, harus] of [
       tinggi: Math.max(...[...p.querySelectorAll("button")].map((b) => b.getBoundingClientRect().height)),
     };
   }, FIG);
-  lapor(pk.dok <= 0 && pk.keluar === 0 && pk.tombol === 4 && pk.tinggi <= 48, `320×568 font lebar (Verdana): pemilih ${pk.tombol} tombol membungkus, tombol setinggi ${Math.round(pk.tinggi)} px, ${pk.keluar} px di luar figure, luapan halaman ${pk.dok} px`);
+  lapor(pk.dok <= 0 && pk.keluar === 0 && pk.tombol === 5 && pk.tinggi <= 48, `320×568 font lebar (Verdana): pemilih ${pk.tombol} tombol membungkus, tombol setinggi ${Math.round(pk.tinggi)} px, ${pk.keluar} px di luar figure, luapan halaman ${pk.dok} px`);
+  // Nama tabel (code JetBrains Mono di kepala) tidak bergantung pada font proporsional, jadi harus tetap utuh. Nama kolom yang
+  // berbagi baris dengan label UNIQUE (Satoshi atau Inter) bisa terpotong dengan Verdana: qr.jurnal_id dan
+  // otorisasi_kartu.jurnal_tahan_id sudah begitu di Tahap 4 (metrik label METRIK.label diukur dengan Satoshi); dicetak sebagai info.
+  const vb = await bentuk(page);
+  const vk = await page.evaluate((FIG) => {
+    const potong = (sel) => [...document.querySelectorAll(`${FIG} ${sel}`)].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => x.textContent);
+    return { kepala: potong(".erd-tumbuh__kepala code"), baris: potong(".erd-tumbuh__baris > code") };
+  }, FIG);
+  lapor(vk.kepala.length === 0 && vb.duaSebaris === 0 && vb.lebarDok <= 0, `320×568 font lebar (Verdana) Tahap 5: nama tabel terpotong ${vk.kepala.length}${vk.kepala.length ? ` (${vk.kepala.join(", ")})` : ""}, kepala dua baris tidak sebaris ${vb.duaSebaris}, luapan halaman ${vb.lebarDok} px`);
+  console.log(`info 320×568 font lebar (Verdana) Tahap 5: nama kolom terpotong ${vk.baris.length}${vk.baris.length ? ` (${vk.baris.join(", ")}; sudah ada di Tahap 4)` : ""}`);
   await ctx.close();
 }
 

@@ -11,7 +11,9 @@ import t1 from "../../data/erd/tahap-1.json";
 import t2 from "../../data/erd/tahap-2.json";
 import t3 from "../../data/erd/tahap-3.json";
 import t4 from "../../data/erd/tahap-4.json";
+import t5 from "../../data/erd/tahap-5.json";
 import m4 from "../../data/erd/modul-tahap-4.json";
+import s5 from "../../data/erd/service-tahap-5.json";
 import peta from "../../data/erd/halaman.json";
 import { muat, url } from "../../tools/registri.mjs";
 
@@ -46,5 +48,44 @@ describe("ErdTumbuh versi statis dengan pembagian modul (ERD4)", () => {
       expect(h).not.toContain(", modul ");
     }
     expect(render(3, [modul])).not.toContain("Pembagian modul");
+  });
+});
+
+// Tahap 5 (ERD5, tinjauan keputusan 1673): halaman yang dibuka di Tahap 5 menampilkan 30 tabel dengan service-nya, catatan partisi posting, dan
+// tabel pembagian service tanpa JavaScript. /uji/erd/ dibuka di Tahap 2, jadi ukur-erd.mjs tidak melihat versi statis ini.
+describe("ErdTumbuh versi statis dengan pembagian service dan tabel berpartisi (ERD5)", () => {
+  const data5 = [...data, DataErd.parse(t5)];
+  const service = ModulErd.parse(s5);
+  const tautan5 = tautanHalaman(PetaHalaman.parse(peta), data5, muat().halaman, url);
+  const render5 = (awal: number, m: ModulErd[]) => renderToStaticMarkup(createElement(ErdTumbuh, { id: "uji", judul: "Skema", data: data5, tautan: tautan5, awal, modul: m }));
+  const html = render5(5, [modul, service]);
+  it("tiap tabel Tahap 5 menyebut service-nya; hanya posting menyebut partisi, dengan kunci, jumlah, dan empat nama partisi", () => {
+    const s = statis(html);
+    const partisi = "dipartisi menurut RANGE \\(dibuat\\), 4 partisi \\(posting_bulan_00, posting_bulan_01, posting_bulan_02, posting_sebelum\\); partisi bukan tabel sendiri di diagram ini";
+    for (const x of service.modul)
+      for (const t of x.tabel)
+        expect(s, `${t} service ${x.nama}`).toMatch(new RegExp(`<code translate="no">${t}</code> \\((baru|berubah|tetap)\\), service ${x.nama}${t === "posting" ? `, ${partisi}` : ""}<ul>`));
+    expect(s.match(/, service /g)).toHaveLength(30);
+    expect(s.match(/dipartisi menurut/g)).toHaveLength(1);
+  });
+  it("tabel pembagian service: caption dengan 18 foreign key yang dihapus, chip sumber, enam baris, dan 30 nama tabel", () => {
+    expect(html).toContain("<strong>Pembagian service Tahap 5</strong>");
+    expect(html).toContain("Rekaman lab · pembagian service");
+    expect(html).toContain(ringkasModul(service, 18, 4));
+    const tabel = html.slice(html.indexOf("<table>"), html.indexOf("</table>"));
+    expect(tabel.match(/<tr>/g)).toHaveLength(7);
+    expect(tabel).toContain('<th scope="col">Service</th>');
+    expect(tabel.match(/<td>\d+<\/td>/g)?.map((x) => Number(x.replace(/\D/g, "")))).toEqual([9, 5, 6, 6, 2, 2]);
+    expect(tabel.match(/<code translate="no">/g)).toHaveLength(6 + 30);
+  });
+  it("halaman yang sama di Tahap 4 tetap menyebut modul; tanpa prop modul tidak ada pembagian, tetapi posting tetap menyebut partisinya", () => {
+    const h4 = render5(4, [modul, service]);
+    expect(h4).toContain("<strong>Pembagian modul Tahap 4</strong>");
+    expect(h4).not.toContain("Pembagian service");
+    expect(statis(h4)).not.toContain(", service ");
+    const tanpa = render5(5, []);
+    expect(tanpa).not.toContain("Pembagian");
+    expect(statis(tanpa)).not.toContain(", service ");
+    expect(statis(tanpa)).toContain("dipartisi menurut RANGE (dibuat)");
   });
 });

@@ -127,7 +127,8 @@ func main() {
 	switch *rentan {
 	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu",
 		service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold, service.RentanUnduhRentan, service.RentanTanpaAudit,
-		service.RentanVerifikasiTanpaKey, service.RentanBerkasBytea, service.RentanLogBiasa, service.RentanLaporanPrimary, service.RentanCicilanSatuJob:
+		service.RentanVerifikasiTanpaKey, service.RentanBerkasBytea, service.RentanLogBiasa, service.RentanLaporanPrimary, service.RentanCicilanSatuJob,
+		service.RentanRiwayatReplika:
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
@@ -147,6 +148,19 @@ func main() {
 		log.Fatal(err)
 	}
 	r := repo.Baru(db)
+	// Replica untuk bacaan tampilan (lab t5-replika, ADR 47): DSN lewat lingkungan seperti DATABASE_URL, bukan flag.
+	var replika *repo.Repo
+	if rurl := os.Getenv("REPLIKA_DATABASE_URL"); rurl != "" {
+		dbr, err := bukaDB(rurl, *pool, 0, *peran)
+		if err != nil {
+			log.Fatal(err)
+		}
+		rr := repo.Baru(dbr)
+		replika = &rr
+	}
+	if *rentan == service.RentanRiwayatReplika && replika == nil {
+		log.Fatal("mode rentan riwayat-replika butuh REPLIKA_DATABASE_URL")
+	}
 	switch {
 	case *seed:
 		if err := isiAwal(context.Background(), db); err != nil {
@@ -233,6 +247,10 @@ func main() {
 		svc = svc.DenganCache(kc)
 		log.Printf("cache katalog: %s, TTL %s, hapus kunci %s", kc.Nama, kc.TTL, kc.Urut)
 	}
+	if replika != nil && *peran == "api" {
+		svc = svc.DenganReplika(*replika)
+		log.Printf("replica dipasang untuk bacaan tampilan (riwayat dan saldo tampil)")
+	}
 	var kl *cache.Katalog
 	if *laporanCache != "" {
 		var err error
@@ -246,7 +264,8 @@ func main() {
 	case service.RentanPushDalamTx:
 		svc = svc.DenganRentan(*rentan, push.Baru(*pushURL, *pushBatas))
 	case service.RentanEksporPanic, service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold,
-		service.RentanUnduhRentan, service.RentanTanpaAudit, service.RentanLogBiasa, service.RentanLaporanPrimary, service.RentanCicilanSatuJob:
+		service.RentanUnduhRentan, service.RentanTanpaAudit, service.RentanLogBiasa, service.RentanLaporanPrimary, service.RentanCicilanSatuJob,
+		service.RentanRiwayatReplika:
 		svc = svc.DenganMode(*rentan)
 	}
 	// Batas login bersama (ADR 27): hitungan di Redis, jatuh ke bucket lokal bila Redis gagal atau lewat batas waktu.
