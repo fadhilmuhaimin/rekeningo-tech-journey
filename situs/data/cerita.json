@@ -4886,8 +4886,9 @@
         "t4-infra-secret",
         "t5-tim-infra"
       ],
-      "ada": false,
-      "nomor": "5.28"
+      "ada": true,
+      "nomor": "5.28",
+      "menit": 18
     },
     {
       "id": "t5-m51",

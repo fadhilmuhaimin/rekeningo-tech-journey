@@ -1532,3 +1532,9 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .wh :is(.wh-keadaan, .wh-langkah, .tb-pilihan, .qr-pilih) > * + * { margin-top: 0; }
 .sl-markdown-content .wh :is(.tb-pilihan, .qr-pilih) > li > button { margin-bottom: 0; }
 @media (max-width: 30em) { .sl-markdown-content .wh-baris { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0.2rem 0.4rem; } .sl-markdown-content .wh-baris dt { font-size: 0.8em; } }
+/* Widget model biaya tiga tahun (ADR 59): memakai bb-*, jt-tabel, dan bb-predict; hanya aturan di bawah yang baru. Tanpa JavaScript
+   tebakan dan tombol tidak berfungsi: widget disembunyikan, dan halaman memuat tabel semua skenario di <noscript>. */
+.sl-markdown-content .bt-tabel caption { caption-side: top; text-align: left; padding: 0.2rem 0.5rem; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .bt-tabel thead th { font-weight: 600; border-bottom: 1px solid var(--garis-2); }
+.sl-markdown-content .bt-tabel :is(th, td) { overflow-wrap: anywhere; }
+@media (scripting: none) { .sl-markdown-content .bt { display: none; } }

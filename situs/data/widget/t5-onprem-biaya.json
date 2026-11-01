@@ -1,0 +1,91 @@
+{
+  "id": "t5-onprem-biaya",
+  "judul": "Biaya tiga tahun: cloud lawan perangkat sendiri",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Semua masukan Ilustrasi, dalam juta rupiah, bukan harga penyedia mana pun. Hanya 6 orang platform dan SRE yang berasal dari naskah (Asumsi)."
+  },
+  "masukan": {
+    "biayaOrang": 480,
+    "orangDasar": 6,
+    "orangTambahan": 2,
+    "tumbuh": 25,
+    "cloudInfra1": 2400,
+    "cloudRisikoPeluang": 10,
+    "cloudRisikoDampak": 3000,
+    "perangkat1": 3200,
+    "sewa": 500,
+    "migrasi": 1200,
+    "onpremRisikoPeluang": 10,
+    "onpremRisikoDampak": 4000
+  },
+  "skenario": [
+    {
+      "label": "Tanpa orang tambahan",
+      "ubah": {
+        "orangTambahan": 0
+      }
+    },
+    {
+      "label": "Satu orang tambahan",
+      "ubah": {
+        "orangTambahan": 1
+      }
+    },
+    {
+      "label": "Dua orang tambahan"
+    },
+    {
+      "label": "Empat orang tambahan",
+      "ubah": {
+        "orangTambahan": 4
+      }
+    },
+    {
+      "label": "Beban tumbuh 50% per tahun",
+      "ubah": {
+        "tumbuh": 50
+      }
+    }
+  ],
+  "awal": 2,
+  "tebak": {
+    "q": "Skenario dasar menaruh dua orang operasi tambahan di on-prem, dan cloud lebih hemat. Bila on-prem tidak butuh orang tambahan sama sekali, mana yang lebih hemat dalam tiga tahun?",
+    "pilihan": [
+      "Cloud tetap lebih hemat, dengan selisih yang sama",
+      "Cloud tetap lebih hemat, tetapi selisihnya menyusut",
+      "On-prem menjadi lebih hemat",
+      "Keduanya sama"
+    ],
+    "jawaban": 2,
+    "skenario": 0,
+    "alasan": "Tanpa orang tambahan on-prem lebih hemat 1.150 juta rupiah, dan satu orang tambahan (1.440 juta rupiah) sudah membalikkannya."
+  },
+  "label": {
+    "sumber": "Ilustrasi",
+    "tebakDulu": "Tebak dulu:",
+    "lanjut": "Sekarang pilih “Tanpa orang tambahan” di atas tabel.",
+    "benar": "Tepat:",
+    "belum": "Belum tepat:",
+    "ubah": "Skenario",
+    "captionKomponen": "Biaya tiga tahun per komponen (juta rupiah)",
+    "captionKumulatif": "Biaya kumulatif sampai akhir tiap tahun (juta rupiah)",
+    "cloud": "Cloud",
+    "onprem": "On-prem",
+    "komponen": {
+      "infra": "Infrastruktur",
+      "orang": "Orang operasi",
+      "migrasi": "Migrasi",
+      "risiko": "Risiko",
+      "total": "Total"
+    },
+    "tahun": "Tahun",
+    "kumulatif": "Kumulatif",
+    "kesimpulan": {
+      "cloudMurah": "Cloud lebih hemat {selisih} juta rupiah dalam tiga tahun, dan kumulatif on-prem tidak pernah lebih rendah.",
+      "cloudMurahImpas": "Cloud lebih hemat {selisih} juta rupiah dalam tiga tahun, walau kumulatif on-prem lebih rendah sejak tahun {impas}.",
+      "onpremMurah": "On-prem lebih hemat {selisih} juta rupiah dalam tiga tahun, dengan kumulatif lebih rendah sejak tahun {impas}.",
+      "sama": "Biaya tiga tahun sama, {total} juta rupiah."
+    }
+  }
+}
