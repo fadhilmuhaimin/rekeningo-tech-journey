@@ -219,7 +219,7 @@ export function barisNama(t: TabelTampil, acuan: number): number {
 export function duaKepala(t: TabelTampil, acuan: number): boolean {
   const status = t.status ? METRIK.ubah[t.status] + METRIK.jarakKepala : 0;
   const partisi = berpartisi(t) ? METRIK.partisi + METRIK.jarakKepala : 0;
-  return barisNama(t, acuan) > 1 || t.nama.length * METRIK.hurufKepala + status + partisi > acuan - METRIK.tepi;
+  return t.nama.length * METRIK.hurufKepala + status + partisi > acuan - METRIK.tepi; // nama yang membungkus (barisNama > 1) lebih lebar dari isi node, jadi sudah termasuk
 }
 
 /** Satu kalimat tentang partisi satu tabel: kunci dan banyak partisinya; nama partisi menyusul di detail. */

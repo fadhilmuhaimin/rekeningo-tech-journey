@@ -77,6 +77,7 @@ describe("ERD Tahap 5 dari lab api-t5 (ERD5)", () => {
     expect(lab5.slice(0, 4).every((d) => d.tabel.every((t) => !t.partisi))).toBe(true);
     const t = x.find((a) => a.nama === "posting")!;
     expect(x.filter(berpartisi).map((a) => a.nama)).toEqual(["posting"]);
+    expect(berpartisi({ ...t, bayangan: true })).toBe(false); // tabel yang dihapus (bayangan) tidak membawa chip partisi
     expect(t.aturan.map(teksAturan)).toEqual(["PK berubah", "partisi baru"]); // nama FK dan CHECK yang bergeser (…_fkey1) bukan perubahan skema
     expect(p.fk.map((f) => f.nama)).toEqual(["posting_buku_id_fkey1", "posting_jurnal_id_fkey1"]);
     expect(p.cek.map((c) => c.nama)).toEqual(["posting_jumlah_check1"]);
@@ -89,6 +90,32 @@ describe("ERD Tahap 5 dari lab api-t5 (ERD5)", () => {
     const identity = lab5.flatMap((d) => d.tabel.flatMap((t) => t.kolom.filter((k) => k.bawaan?.includes("IDENTITY")).map((k) => `${d.tahap}:${t.nama}.${k.nama}=${k.bawaan}`)));
     expect(identity).toEqual(["jadwal_cicilan", "pengumuman", "mitra_pos"].map((n) => `5:${n}.id=GENERATED ALWAYS AS IDENTITY`));
     expect(tabel("posting").kolom.find((k) => k.nama === "id")!.bawaan).toBe("nextval('posting_id_seq'::regclass)");
+  });
+  it("nilai yang tidak diketik ulang: PK gabungan dan NO ACTION dari migration, versi PostgreSQL dari rekaman lab, tabel tetap sama dengan Tahap 4", () => {
+    const m25 = baca("labs/api-t5/migrasi/000025_tabel_tahap5.up.sql");
+    const m24 = baca("labs/api-t5/migrasi/000024_posting_partisi.up.sql");
+    // PRIMARY KEY gabungan yang ditulis migration, per tabel (urutan kolom ikut teks migration).
+    const dariSql = (sql: string) =>
+      [...sql.matchAll(/CREATE TABLE (\w+) \(([\s\S]*?)\n\)[^;]*;/g)].flatMap((m) => {
+        const pk = m[2].match(/PRIMARY KEY \(([^)]+)\)/);
+        return pk ? [[m[1], pk[1].split(",").map((c) => c.trim())]] : [];
+      });
+    const gabungan = [...dariSql(m24), ...dariSql(m25)];
+    expect(gabungan.map((g) => g[0])).toEqual(["posting", "snapshot_saldo", "ringkasan_merchant_harian", "angsuran"]);
+    for (const [nama, pk] of gabungan) expect(tabel(nama as string).pk, nama as string).toEqual(pk);
+    // Migration Tahap 5 tidak menulis ON DELETE, jadi setiap foreign key NO ACTION; baris lab sama.
+    for (const f of ["000024_posting_partisi", "000025_tabel_tahap5", "000026_nilai_baru_tahap5"]) expect(baca(`labs/api-t5/migrasi/${f}.up.sql`)).not.toMatch(/ON DELETE/i);
+    expect(d5.tabel.flatMap((t) => t.fk.map((f) => f.saat_hapus))).toEqual(Array(19).fill("NO ACTION"));
+    // Versi PostgreSQL di chip widget = versi di judul rekaman lab ("PostgreSQL 17.11 (Debian ...)").
+    expect(baca("labs/api-t5/output/skema.txt")).toContain(`# PostgreSQL ${d5.postgres}.`);
+    expect(lab5.map((d) => d.postgres)).toEqual([17, 17, 17, 17, 17]);
+    // Tabel yang berstatus tetap tidak berubah dari Tahap 4: kolom (urutan juga), aturan, dan index sama persis.
+    for (const t of x.filter((a) => a.status === "tetap")) expect(JSON.stringify(t.tabel), t.nama).toBe(JSON.stringify(lab4.tabel.find((a) => a.nama === t.nama)));
+    // Tabel yang berubah hanya karena foreign key dihapus: semua kecuali foreign key sama dengan Tahap 4.
+    const tanpaFk = (t: Tabel) => JSON.stringify({ ...t, fk: [] });
+    const hanyaFk = BERUBAH.filter((n) => !["akun", "buku", "jurnal", "outbox", "posting"].includes(n));
+    expect(hanyaFk).toHaveLength(11);
+    for (const n of hanyaFk) expect(tanpaFk(tabel(n)), n).toBe(tanpaFk(lab4.tabel.find((a) => a.nama === n)!));
   });
   it("pembagian service: enam service 9 + 5 + 6 + 6 + 2 + 2 tabel, sama dengan tabel 'Service (schema)' naskah 3b dan dengan rekaman lab", () => {
     expect(modul.istilah).toBe("service");
@@ -323,8 +350,10 @@ describe("ERD Tahap 5 dari lab api-t5 (ERD5)", () => {
     expect(r.nama.length).toBe(25);
     expect([barisNama(r, UKURAN.lebarMin), barisNama(r, UKURAN.lebar)]).toEqual([2, 2]);
     expect(duaKepala(r, UKURAN.lebar)).toBe(true);
-    expect([tinggiKepala(r, UKURAN.lebarMin), tinggiKepala(r, UKURAN.lebar)]).toEqual([UKURAN.kepalaDua + UKURAN.barisNama, UKURAN.kepalaDua + UKURAN.barisNama]);
-    expect(tinggiNode(r)).toBe(UKURAN.kepalaDua + UKURAN.barisNama + r.kolom.reduce((n, k) => n + UKURAN.baris + (duaBaris(k, r, UKURAN.lebar) ? UKURAN.labelBaris : 0), 0) + UKURAN.bawah);
+    // 84 px = kepala dua baris (64) + satu baris nama tambahan (20); angka yang sama diperiksa ukur-erd.mjs di Chromium ("harap 84").
+    expect([tinggiKepala(r, UKURAN.lebarMin), tinggiKepala(r, UKURAN.lebar)]).toEqual([84, 84]);
+    expect([UKURAN.kepalaDua, UKURAN.barisNama]).toEqual([64, 20]);
+    expect(tinggiNode(r)).toBe(84 + r.kolom.reduce((n, k) => n + UKURAN.baris + (duaBaris(k, r, UKURAN.lebar) ? UKURAN.labelBaris : 0), 0) + UKURAN.bawah);
     // Nama pendek tetap satu baris; satu nama tanpa garis bawah yang lebih lebar dipecah menurut lebar.
     const panjang = { ...r, nama: "x".repeat(60) };
     expect(barisNama(panjang, UKURAN.lebar)).toBe(Math.ceil((60 * 9.2) / (UKURAN.lebar - 22.2)));
