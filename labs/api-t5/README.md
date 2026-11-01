@@ -2,7 +2,7 @@
 
 Lab induk Tahap 5 (naskah `plan/CERITA-TAHAP-5.md` bagian 3, 3b, dan 4). Ia berangkat dari `labs/api-t4` dan menambah semua tabel dan kolom naskah bagian 3b lewat migrasi baru. Lab ini memecah 30 tabel ke enam schema service dengan role per service. Ia menyediakan PgBouncer di depan primary hanya untuk bagian `pooler`: server `api-t5` dan generator beban tidak berjalan lewat PgBouncer. Ia merekam laporan merchant, koneksi, dan beban 1.388,9 request per detik. Lab Tahap 5 berikutnya (`t5-replika`, `t5-partisi`, `t5-fanout`, `t5-service`, `t5-cicilan`, `t5-rollout`, `t5-waf`, `t5-kms`, `t5-gabung`) berbagi lab ini lewat `dasar_t5.py` dan mode rentan, bukan salinan.
 
-Semua pihak ketiga yang dipanggil server dan worker adalah tiruan lokal di container atau proses: gateway pembayaran, layanan verifikasi, penerbit kartu, layanan push, Redis, dan PgBouncer. Dalam rekaman, server, worker, dan generator beban hanya memanggil alamat di mesinmu. Jaringan hanya dipakai saat membangun: toolchain Go (sekali, lewat proxy modul), paket PgBouncer di image (`apt.postgresql.org`), dan Redocly lewat `npx` bila belum ada di cache (`make kontrak`).
+Pihak ketiga yang dipanggil server dan worker adalah tiruan lokal di container atau proses: gateway pembayaran, layanan verifikasi, penerbit kartu, layanan push, Redis, dan PgBouncer. Dalam rekaman, server, worker, dan generator beban hanya memanggil alamat di mesinmu. Jaringan hanya dipakai saat membangun: toolchain Go (sekali, lewat proxy modul), paket PgBouncer di image (`apt.postgresql.org`), dan Redocly lewat `npx` bila belum ada di cache (`make kontrak`).
 
 ## Versi
 
