@@ -72,8 +72,8 @@ func TestRuteLaporanMerchantHanyaDenganModeRentan(t *testing.T) {
 	id := idAkun(t, db, email)
 	tok := masuk(t, srv, email)
 	path := fmt.Sprintf("/merchant/%d/laporan/hari-ini", id)
-	if code, _, _ := kirimReq(t, srv, "GET", path, tok, nil); code != 404 {
-		t.Fatalf("tanpa mode laporan-primary: %d, ingin 404 (rute tidak ada)", code)
+	if code, _, isi := kirimReq(t, srv, "GET", path, tok, nil); code != 404 || tipe(isi) != "" {
+		t.Fatalf("tanpa mode laporan-primary: %d %q, ingin 404 dari mux (rute tidak terdaftar), bukan problem dari handler", code, isi)
 	}
 	srv2, _ := serverT5(t, service.RentanLaporanPrimary)
 	tok2 := masuk(t, srv2, email)

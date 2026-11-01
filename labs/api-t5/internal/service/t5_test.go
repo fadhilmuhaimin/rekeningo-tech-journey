@@ -82,6 +82,19 @@ func TestPostingPartisiMenjagaAturanLedger(t *testing.T) {
 	if err := tx.Commit(); kodePG(err) != "23514" || namaConstraint(err) != "jurnal_seimbang" {
 		t.Fatalf("jurnal tidak seimbang: %v, ingin 23514 jurnal_seimbang", err)
 	}
+	// Posting tambahan di jurnal yang sudah seimbang (transaction terpisah) membuatnya tidak seimbang: trigger di tabel posting
+	// memeriksanya lagi, jadi bukan hanya trigger saat jurnal dibuat yang bekerja.
+	var jLama int64
+	if err := db.QueryRow(`SELECT jurnal_id FROM posting WHERE buku_id = $1 LIMIT 1`, buku).Scan(&jLama); err != nil {
+		t.Fatal(err)
+	}
+	tx3, _ := db.Begin()
+	if _, err := tx3.Exec(`INSERT INTO posting (jurnal_id, buku_id, jumlah) VALUES ($1, $2, 500)`, jLama, buku); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx3.Commit(); kodePG(err) != "23514" || namaConstraint(err) != "jurnal_seimbang" {
+		t.Fatalf("posting tambahan di jurnal seimbang: %v, ingin 23514 jurnal_seimbang", err)
+	}
 	for _, q := range []string{
 		`UPDATE posting SET jumlah = jumlah + 1 WHERE buku_id = ` + fmt.Sprint(buku),
 		`DELETE FROM posting WHERE buku_id = ` + fmt.Sprint(buku),
@@ -201,12 +214,12 @@ func TestJurnalReferensiUnikDanBerbentuk(t *testing.T) {
 		t.Fatal("saldo berkurang lebih dari sekali")
 	}
 	_, err := db.Exec(`INSERT INTO jurnal (jenis, keterangan, dibuat_oleh, referensi) VALUES ('angsuran', 'bentuk salah', $1, 'angsuran:abc')`, a)
-	if kodePG(err) != "23514" {
-		t.Fatalf("referensi berbentuk salah: %v, ingin 23514", err)
+	if kodePG(err) != "23514" || namaConstraint(err) != "referensi_bentuk" {
+		t.Fatalf("referensi berbentuk salah: %v, ingin 23514 referensi_bentuk (bukan jurnal_seimbang)", err)
 	}
 	_, err = db.Exec(`INSERT INTO jurnal (jenis, keterangan, dibuat_oleh, referensi) VALUES ('angsuran', 'ganda', $1, $2)`, a, ref)
-	if kodePG(err) != "23505" {
-		t.Fatalf("referensi ganda: %v, ingin 23505", err)
+	if kodePG(err) != "23505" || namaConstraint(err) != "jurnal_referensi_key" {
+		t.Fatalf("referensi ganda: %v, ingin 23505 jurnal_referensi_key", err)
 	}
 }
 
@@ -251,6 +264,27 @@ func TestBukuTabunganMilikAkun(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	// Akun jenis warung: 'tabungan' lebih dulu dari 'warung' menurut urutan teks, jadi pencarian buku utama tanpa penyaring jenis
+	// akan membaca buku tabungan lebih dulu (saldonya 0).
+	// Buku tabungan dibuat lebih dulu dari buku utama, supaya urutan baris di tabel pun tidak menolong pencarian tanpa penyaring.
+	var wr int64
+	if err := db.QueryRow(`SELECT greatest(coalesce(max(id), 0), 100000) + 1 FROM akun`).Scan(&wr); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO akun (id, jenis, nama, email, password_hash, tingkat) VALUES ($1, 'warung', 'Warung tabungan', $2, '!', 'terverifikasi')`,
+		wr, fmt.Sprintf("wt%d@lestari.example", wr)); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.DalamTx(ctx, func(tx repo.Tx) error { _, err := tx.BukuTabungan(ctx, wr); return err }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO buku (akun_id, jenis, batas_saldo) VALUES ($1, 'warung', 1500000)`, wr); err != nil {
+		t.Fatal(err)
+	}
+	isiSaldo(t, db, wr, 30_000)
+	if akw, err := svc.LihatAkun(ctx, wr, wr); err != nil || akw.Saldo != 30_000 {
+		t.Fatalf("saldo akun warung %d, %v; ingin 30000 dari buku utama, bukan buku tabungan", akw.Saldo, err)
 	}
 	// Satu akun satu buku tabungan.
 	if _, err := db.Exec(`INSERT INTO buku (akun_id, jenis) VALUES ($1, 'tabungan')`, a); kodePG(err) != "23505" {
