@@ -92,11 +92,12 @@ Rekaman dari database bersih, diulang tiga kali (tenang, dengan proses sibuk di 
 - Naskah ADR 51 menulis "satu baris `pengumuman` dan satu event `pengumuman.kirim`". Di lab: satu baris outbox, tetapi enam rekaman di Kafka (satu per rentang perangkat). Satu rekaman tidak bisa dibagi consumer group.
 - Naskah menulis "42 consumer dengan 4 pengirim" dan paling sedikit 42 partisi. Lab memakai 6 partisi dan 3 consumer; 42 hanya dihitung.
 - Naskah menulis kuota 10.000 per detik. Lab memakai 1.000 per detik di bagian `kuota` dan `antrean`, karena laptop tidak pasti melewati 10.000 permintaan per detik di bawah beban. Aturan jendela dengan 10.000 diuji di `cmd/pushkuota/main_test.go`.
-- Naskah menulis t = 0,3 detik. Lab memakai latensi tiruan 2 sampai 5 ms di bagian lain (supaya 10.281 perangkat selesai dalam detik) dan 300 ms hanya di bagian `pengirim`.
+- Naskah menulis t = 0,3 detik. Lab memakai latensi tiruan 0 sampai 5 ms di bagian lain (supaya ribuan perangkat selesai dalam detik) dan 300 ms hanya di bagian `pengirim`.
 - `pengumuman.jumlah_penerima` menghitung akun, bukan perangkat (kode `api-t5`). Di data awal satu akun punya satu perangkat, jadi angkanya sama (10.281).
 - Perangkat yang mendaftar sesudah relay menulis rentang tidak menerima pengumuman itu. Naskah tidak membahasnya.
 - Event pembayaran hanya ditulis `POST /transfers`. Jalur katalog (`/pesanan`) dan QR belum menulis event.
 - Naskah menyebut consumer atas `pembayaran.tercatat`: notifikasi, ringkasan laporan, dan webhook ke POS. Lab hanya menulis rekaman (relay) dan membacanya dengan `kafka-console-consumer`; ketiga consumer **Tidak dijalankan**.
+- Rekaman yang gagal diproses (pengirim menyerah sesudah `-maks-percobaan`) tidak dicatat offset-nya dan tidak dibaca ulang di dalam proses consumer; baru sesudah consumer dimulai ulang atau partisinya berpindah. Rekaman yang dikerjakan lebih lama dari 30 detik (`RebalanceTimeout`) membuat consumer dikeluarkan dari grup dan rentangnya diulang; rentang lab (1.714 perangkat) selesai dalam beberapa detik.
 - HPA berdasarkan umur notifikasi tertua **Tidak dijalankan** (k3d milik `t5-rollout`). Breaker bersama dan 66 kegagalan hanya Hitungan.
 
 ## Tidak dijalankan atau hanya disebut
