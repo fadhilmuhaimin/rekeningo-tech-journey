@@ -1,0 +1,66 @@
+---
+/**
+ * Widget peta lima zona Tahap 5 (W5-zona, keputusan 1682). Pembaca menebak dulu di zona mana uang bergerak, lalu membuka
+ * zona satu per satu; tabel kejadian lawan tiga hal yang harus selalu benar terisi sesuai zona yang dibuka.
+ *   <PetaZona />      // 5.2
+ * Pembungkus ini memvalidasi data/widget/t5-zona.json dengan Zod saat build (island tidak memuat Zod), menyelesaikan id
+ * halaman registry ke nomor, judul, dan tautan (halaman yang belum ditulis tampil sebagai teks "segera", bukan tautan ke 404),
+ * dan memuat semua isi zona dan tabel di <noscript>. Island dirender saat build (client:visible); tanpa JavaScript island
+ * disembunyikan oleh CSS (`@media (scripting: none)`). Satu widget per blok Coba.
+ */
+import PetaZonaIsland from "../widgets/peta-zona/PetaZona";
+import { DataZona, Halaman } from "../widgets/peta-zona/skema";
+import { jumlahRusakSemua, zonaUang, zonaDari } from "../widgets/peta-zona/logika";
+import { muat, byId, label, url } from "../../tools/registri.mjs";
+import mentah from "../../data/widget/t5-zona.json";
+
+const data = DataZona.parse(mentah);
+const L = data.label;
+const reg = byId(muat());
+const idHalaman = [...new Set([...data.zona.flatMap((z) => z.halaman), ...data.kejadian.map((k) => k.halaman)])];
+const halaman = Halaman.parse(
+  Object.fromEntries(
+    idHalaman.map((id) => {
+      const h = reg[id];
+      if (!h) throw new Error(`PetaZona: halaman ${id} tidak ada di cerita.json`);
+      return [id, { label: label(h, true), href: h.diporting ? url(h) : null }];
+    }),
+  ),
+);
+const tampil = (id: string) => (halaman[id].href ? halaman[id].label : `${halaman[id].label} ${L.segera}`);
+const semuaJawaban = `${data.tebak.q} ${data.tebak.pilihan[data.tebak.jawaban]}. ${data.tebak.alasan}`;
+---
+<PetaZonaIsland client:visible data={data} halaman={halaman} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <p>{semuaJawaban}</p>
+  <table class="tm-tabel">
+    <caption>{data.judul}</caption>
+    <thead><tr><th>{L.zonaJudul}</th><th>{L.komponenJudul}</th><th>{L.timJudul}</th><th>{L.halamanJudul}</th></tr></thead>
+    <tbody>
+      {data.zona.map((z) => (
+        <tr>
+          <th scope="row">{z.label}{zonaUang(data).includes(z.id) ? ` (${L.tandaUang})` : ""}</th>
+          <td>{z.komponen.map((k) => `${k.label}: ${L.jenis[k.jenis]}. ${k.catatan}`).join(" ")}</td>
+          <td>{z.tim.map((t) => data.tim.find((x) => x.id === t)!.nama).join(", ")}</td>
+          <td>{z.halaman.map(tampil).join("; ")}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <p>{L.tigaJudul}</p>
+  <ol>{L.tiga.map((t) => <li>{t}</li>)}</ol>
+  <table class="tm-tabel">
+    <caption>{L.captionTabel} ({jumlahRusakSemua(data)} {L.status.rusak})</caption>
+    <thead><tr><th>{L.kolom.kejadian}</th><th>{L.zonaJudul}</th><th>{L.kolom.hal} 1</th><th>{L.kolom.hal} 2</th><th>{L.kolom.hal} 3</th></tr></thead>
+    <tbody>
+      {data.kejadian.map((k) => (
+        <tr>
+          <th scope="row">{k.label} ({tampil(k.halaman)})</th>
+          <td>{zonaDari(data, k.zona).label}</td>
+          {k.sel.map((c) => <td>{L.status[c.s]}{c.alasan ? `: ${c.alasan}` : ""}</td>)}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</noscript>
