@@ -617,6 +617,120 @@ describe("ID registry, tautan, template blok, widget, kartu, dan istilah", () =>
   });
 });
 
+describe("penutup celah mutasi tanpa kunci: noscript, butir Yang tidak direkam, judul Snippet, tim di gejala, frontmatter, label, dan teks diagram dan skenario", () => {
+  const kodeTolak = cari(/SQLSTATE (\d+)/, skemaBaris[nomorBaris(/^t5_ledger: SELECT nama FROM t5_akun\.akun/)]!, "kode tolak")[1]!;
+  const hurufFk = bagianDi(bFkAwal);
+  const hurufHak = bagianDi(nomorBaris(/^t5_ledger: SELECT nama FROM t5_akun\.akun/));
+  const anggaranMs = Number(cari(/p95 satu lompatan HTTP melewati (\d+) ms/, adr37, "anggaran 50 ms")[1]);
+  const kolomAkun = cari(/SELECT (.+) FROM t5_akun\.akun LIMIT 1/, skemaBaris[nomorBaris(/^t5_ledger: SELECT id, tingkat, status/) - 1]!, "kolom akun")[1]!.split(", ");
+  test("noscript sama dengan kalimat yang dibangun dari nilai turunan: 14, 6, 18, 0, kode 42501, huruf bagian, dan tiga kolom", () => {
+    const ns = cari(/<noscript>\n([\s\S]*?)<\/noscript>/, badan, "noscript")[1]!;
+    expect(ns).toBe(
+      `Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: lima tim memakai satu merge queue, pipeline ${pipeMenit} menit, waktu tunggu ${queueJam} jam, dan perbaikan Akun dirilis Jumat (semuanya Ilustrasi).\n\n` +
+        `Bila modul dipecah, foreign key lintas schema turun dari ${fkTertulis} ke ${fkSesudah} (\`skema.txt\` bagian ${hurufFk}). Role ledger membaca ${kolomAkun.map((k) => `\`${k}\``).join(", ").replace(/, ([^,]+)$/, ", dan $1")} tabel \`akun\`, tetapi \`nama\` ditolak dengan kode ${kodeTolak} (bagian ${hurufHak}).\n`,
+    );
+    expect(kolomAkun).toEqual(["id", "tingkat", "status"]);
+    expect(badan).toContain(`Ledger boleh membaca ${kata(kolomAkun.length)} kolom tabel \`akun\`, dan kolom lain dijawab ditolak:`);
+    expect(skenario.varian.langkah[3]!.jelas).toContain(`dan hanya atas ${kata(kolomAkun.length)} kolom.`);
+  });
+  test("butir 'Yang tidak direkam' dan blok Konsep yang lahir: kalimat dibangun dari angka turunan dan nomor ADR", () => {
+    expect(badan).toContain(`- Hari, jam, ${pipeMenit} menit, ${queueJam} jam, dan lima tim berasal dari cerita (Ilustrasi). Lab tidak mengukur waktu CI, seperti yang ditulis ADR ${cari(/ADR (\d+) menulis keputusannya salah saat satu PR/, badan, "ADR pipeline")[1]} ([[t4-tim-infra]]).`);
+    expect(badan).toContain(`- Tambahan p95 satu lompatan HTTP ke ledger antar host belum diukur. Anggaran ${anggaranMs} ms dibahas di [[t5-service]].`);
+    expect(badan).toContain(`- Tahap 4 menghitung ${fk21} foreign key lintas modul untuk enam modul. Pembagian tabelnya berbeda dengan enam service di sini, jadi angkanya berbeda dengan ${fkTertulis}.`);
+    expect(badan).toContain("- Naskah menulis satu artefak deploy, sedangkan di akhir Tahap 4 modul pembayaran sudah berjalan sebagai service sendiri ([[t4-modul]]). Halaman ini membacanya sebagai satu repo, satu merge queue, dan satu rilis (Asumsi pembacaan).");
+    expect(badan).toContain("- [[t4-modul]] dan [[t4-tim-infra]]: ADR 37 dan ADR 44, yang dibaca ulang di halaman ini.");
+    expect(badan).toContain("- [[t1-adr-12]]: peringatan bahwa dua service tidak lagi satu transaction.");
+    const adrDiBlok = new Set([...badan.slice(badan.indexOf('<Blok nama="Yang sebenarnya">'), badan.indexOf('<Blok nama="Coba sendiri">')).matchAll(/ADR (\d+)/g)].map((m) => m[1]));
+    expect([...adrDiBlok].sort()).toEqual(["12", "37", "44", "45", "50"]);
+    expect(badan).toContain(`Syarat di ${kata(3)} ADR Tahap 4 terpenuhi.`);
+    expect(badan).toContain("Ambang berasal dari ADR Tahap 4 (Asumsi naskah).");
+    expect(badan).toContain("Butir ADR 45 mengikuti [[t4-adr-45]].");
+    expect(badan).toContain("(Penalaran dari ADR 12)");
+    expect(badan).toContain("Konsistensi lintas service bergeser dari database ke Idempotency-Key dan rekonsiliasi, seperti yang diterima ADR 37.");
+  });
+  test("judul tiga Snippet persis: bagian dan jumlah dari rekaman", () => {
+    const judul = [...badan.matchAll(/<Snippet [^>]*title="([^"]+)"/g)].map((m) => m[1]);
+    expect(judul).toEqual([
+      `Rekaman lab: labs/api-t5/output/skema.txt, bagian ${hurufFk} (${fkTertulis} foreign key lintas schema sebelum dihapus)`,
+      `Rekaman lab: labs/api-t5/output/skema.txt, bagian ${bagianDi(bFkNol)} (foreign key lintas schema jadi ${fkSesudah})`,
+      `Rekaman lab: labs/api-t5/output/skema.txt, bagian ${hurufHak} (ledger membaca ${kata(kolomAkun.length)} kolom akun, kolom nama ditolak)`,
+    ]);
+  });
+  test("gejala: tim, hari, dan kalimat sama dengan baris M44 naskah; frontmatter persis; tak ada hari lain", () => {
+    expect(gejalaM44).toContain("Satu perbaikan kecil tim Akun menunggu sampai Jumat");
+    expect(gejalaM44).toContain("Tim Pembayaran sudah siap dan menunggu merge queue tim Merchant");
+    expect(badan).toContain("Perbaikan kecil dari tim Akun menunggu sampai Jumat. Tim Pembayaran sudah siap, tetapi menunggu merge queue tim Merchant.");
+    expect((badan.match(/sampai Jumat/g) ?? []).length).toBe(2);
+    expect((halaman.match(/Jumat/g) ?? []).length).toBe(4);
+    expect(halaman).not.toMatch(/Senin|Selasa|Rabu|Sabtu|Minggu 7/);
+    expect(frontmatter).toBe(
+      `title: "5.12 ${dari("t5-m44").judul}"\ndescription: Minggu ${mingguM44}. Lima tim produk berebut satu rilis Kamis, dan satu perbaikan kecil menunggu sampai Jumat. Tiga syarat di ADR Tahap 4 terpenuhi, dan memecah service punya harga yang direkam sebagian.\n`,
+    );
+    expect(naskah).toContain("Dugaan pertama".length ? "Tambah runner CI dan jadwal rilis bergilir" : "");
+    expect(badan).toContain("Dugaan pertama menyangkut kapasitas dan giliran:");
+    expect(badan).toContain("Dugaan pertama mempercepat dan membagi giliran, tetapi perubahan tiap tim tetap lewat satu merge queue. Dugaan kedua memecah queue itu, dan harganya ditulis di ADR lama.");
+  });
+  test("label: 'Rekaman lab' lima kali (satu definisi, tiga judul Snippet, satu kalimat Coba sendiri) dan tiap kemunculan di tempat yang benar", () => {
+    expect((badan.match(/Rekaman lab/g) ?? []).length).toBe(5);
+    expect(badan).toContain("Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].");
+    expect(badan).toContain("Service Akun dirilis tanpa menunggu tim lain (Ilustrasi). Dua langkah berikutnya menunjukkan batas data yang menyertainya (Rekaman lab), dan langkah terakhir menunjukkan yang ditukar: satu transaction (Tidak dijalankan).");
+    expect((badan.match(/Tidak dijalankan/g) ?? []).length).toBe(9);
+    expect((badan.match(/\(Ilustrasi\)/g) ?? []).length).toBe(5);
+    expect((badan.match(/\(Penalaran/g) ?? []).length).toBe(4);
+  });
+  test("baris riset R5-168 dan R5-169: tanggal baca dan rentang baris skema.txt yang dihitung", () => {
+    expect(barisRiset("R5-168")).toContain("dibaca 2026-11-02");
+    expect(barisRiset("R5-169")).toContain("Dibaca 2026-11-02 di main");
+    expect(barisRiset("R5-168")).toContain(`dihitung dari daftar \`labs/api-t5/output/skema.txt\` baris ${bFkAwal + 1} sampai ${bFkAkhir - 1}`);
+    expect(barisRiset("R5-168")).toContain(`${orangTotal} ÷ ${nService} = 4,667`);
+  });
+  test("diagram Rantai: label dan teks simpul persis, dengan angka dan jam dari naskah", () => {
+    const d = DataRantai.parse(rantaiMentah);
+    expect(d.id).toBe("t5-m44-lima-tim-satu-rilis");
+    expect(d.judul).toBe("Lima tim, satu merge queue, satu rilis");
+    expect(d.baris.map((b) => [b.label, b.sub])).toEqual([[`Kamis ${jamMulai}`, "kejadian di cerita"], ["Syarat tertulis", "ADR Tahap 4 dibaca ulang"]]);
+    expect(d.baris.map((b) => b.simpul.map((s) => [s.teks, s.sub]))).toEqual([
+      [[`${timProduk.length} tim, 1 merge queue`, "satu repo, satu rilis"], [`Pipeline ${pipeMenit} menit`, `ambang ADR 44: ${ambang} menit`], [`Tunggu ${queueJam} jam`, "perbaikan Akun sampai Jumat"]],
+      [["ADR 37: tim saling tunggu", "deploy bersama tidak lagi masuk akal"], [`ADR 44: lebih dari ${ambang} menit`, `${pipeMenit} menit, ${selisihMenit} menit di atas ambang`], [`ADR 45: ${timProduk.length} tim produk`, `ambang 2 tim dan ${ambangTim} tim`]],
+    ]);
+    expect(d.catatan).toBe("Kotak oranye adalah keadaan yang memenuhi syarat salah atau pemicu yang ditulis ADR. Angka waktu berasal dari cerita, dan ambang berasal dari ADR.");
+  });
+  test("skenario alur: komponen, judul, dari dan ke tiap langkah, dan kalimat kirim dengan angka turunan", () => {
+    expect(skenario.judul).toBe("Rilis Kamis: lima tim, satu merge queue");
+    expect(skenario.komponen.map((k) => k.label)).toEqual(["Tim Akun", "Merge queue", "Pipeline", "Rilis", "PostgreSQL (lab api-t5)"]);
+    expect(skenario.pengantar).toBe("Satu perbaikan kecil tim Akun menunggu di merge queue yang dipakai lima tim. Tebak dulu apa yang terjadi bila runner CI ditambah, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.");
+    expect(skenario.langkah.map((l) => [l.dari, l.ke ?? null, l.judul])).toEqual([
+      ["akun", "antre", "Tim Akun mengirim perbaikan kecil"],
+      ["antre", "pipe", "Tiap perubahan diperiksa satu pipeline"],
+      ["antre", null, "Tim Pembayaran siap, tetapi menunggu"],
+      ["antre", "rilis", `Merge queue menahan perubahan sampai ${queueJam} jam`],
+      ["rilis", null, "Perbaikan Akun menunggu sampai Jumat"],
+    ]);
+    expect(skenario.langkah.map((l) => l.kirim)).toEqual([
+      `Kamis ${jamMulai}: lima tim produk punya perubahan untuk rilis hari itu (Ilustrasi)`,
+      `pipeline: ${pipeMenit} menit per pemeriksaan (Ilustrasi)\nambang ADR 44: ${ambang} menit (Asumsi naskah)`,
+      "Pembayaran: siap rilis; menunggu merge queue tim Merchant (Ilustrasi)",
+      `merge queue: waktu tunggu ${queueJam} jam (Ilustrasi)`,
+      "perbaikan tim Akun: dirilis Jumat (Ilustrasi)",
+    ]);
+    expect(skenario.varian.langkah.map((l) => [l.dari, l.ke ?? null, l.judul])).toEqual([
+      ["akun", "pipe", "Perbaikan Akun masuk pipeline service akun"],
+      ["pipe", "rilis", "Service akun dirilis sendiri"],
+      ["db", null, "Data dipecah per schema (rekaman)"],
+      ["db", null, "Role service lain dibatasi (rekaman)"],
+      ["rilis", "db", "Yang ditukar: satu transaction"],
+    ]);
+    expect(skenario.varian.langkah[4]!.kirim).toBe("satu COMMIT tidak lagi mencakup dua service; konsistensi dijaga Idempotency-Key dan rekonsiliasi (ADR 12 dan ADR 37; Tidak dijalankan di lab)");
+    expect(skenario.varian.langkah[1]!.kirim).toBe("rilis service akun: tidak menunggu tim Pembayaran dan tim Merchant (Ilustrasi)");
+    expect(skenario.predict.options).toEqual([
+      "Perbaikan Akun dirilis sendiri, karena tiap tim kini punya pipeline sendiri",
+      "Queue kosong, karena runner tambahan menghapus waktu tunggu",
+      "Merge queue tidak diperlukan lagi, karena pemeriksaan yang serentak tidak saling menunggu",
+      "Perbaikan Akun tetap menunggu perubahan tim lain, karena rilisnya satu",
+    ]);
+  });
+});
+
 // --- lapis 2: kunci per baris, sidik kata penentu, struktur, angka, dan label
 const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "atau", "dan", "kecuali", "saja", "baru", "masih", "kurang", "cukup", "ya", "karena", "jadi", "bila", "saat", "bisa", "boleh", "harus", "mungkin", "terpenuhi", "terbukti", "membantu", "mempercepat", "menunggu", "dibaca", "diukur", "direkam", "dijalankan", "ditolak", "berhasil", "naik", "turun", "di atas", "di bawah", "tepat", "ambang", "syarat", "pemicu"];
 const sidikKata = (teks: string, kata: string[]): Record<string, number> =>
