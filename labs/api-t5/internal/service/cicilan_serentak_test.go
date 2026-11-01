@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"lab/apit5/internal/repo"
 )
 
 // Tes lab t5-cicilan (M48, ADR 54): dua job cicilan yang berjalan serentak pada angsuran yang sama.
@@ -177,6 +179,17 @@ func TestKompensasiAngsuranLewatJurnalPembalik(t *testing.T) {
 	if got := saldoBuku(t, db, akun, "karyawan"); got != 100_000 {
 		t.Fatalf("saldo sesudah percobaan kedua %d, ingin tetap 100000", got)
 	}
+	// Angsuran yang sudah dicatat (selesai) tidak dikompensasi lewat jalur ini, dan tidak ada jurnal pembalik yang tertinggal.
+	akun2, _, selesai := siapkanCicilan(t, svc, db, 100_000)
+	if _, err := svc.JalankanCicilan(ctx, besok(), OpsiCicilan{Jadwal: selesai}); err != nil || statusAngsuran(t, db, selesai, 1) != "dicatat" {
+		t.Fatalf("angsuran yang diselesaikan: status %s, %v", statusAngsuran(t, db, selesai, 1), err)
+	}
+	if _, err := svc.KompensasiAngsuran(ctx, admin, selesai, 1, "angsuran sudah dicatat dan tidak dibatalkan"); err == nil {
+		t.Fatal("angsuran berstatus dicatat tidak boleh dikompensasi")
+	}
+	if got := saldoBuku(t, db, akun2, "karyawan"); got != 90_000 || statusAngsuran(t, db, selesai, 1) != "dicatat" {
+		t.Fatalf("sesudah kompensasi ditolak: saldo %d, status %s; ingin 90000 dan dicatat", got, statusAngsuran(t, db, selesai, 1))
+	}
 	// Job biasa tidak menagih angsuran gagal lagi.
 	h, err := svc.JalankanCicilan(ctx, besok(), OpsiCicilan{Jadwal: jadwal})
 	if err != nil || h.Dibaca != 0 || saldoBuku(t, db, akun, "karyawan") != 100_000 {
@@ -202,12 +215,21 @@ func TestKompensasiAngsuranDitolakBilaSaldoKaryawanNegatif(t *testing.T) {
 		WHERE jadwal_id = $1 AND ke = 1`, jadwal, fmt.Sprintf("tabungan:%d:1", jadwal)); err != nil {
 		t.Fatal(err)
 	}
-	// Tabungan dikuras lewat jurnal lain (diperankan langsung di database): kompensasi tidak lagi bisa dibayar dari buku itu.
-	if _, err := db.Exec(`WITH t AS (SELECT id FROM buku WHERE akun_id = $1 AND jenis = 'tabungan'),
-		k AS (SELECT id FROM buku WHERE akun_id = $1 AND jenis = 'karyawan'),
-		j AS (INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('transfer', 'tabungan dipakai', $1) RETURNING id)
-		INSERT INTO posting (jurnal_id, buku_id, jumlah) SELECT j.id, t.id, -20000 FROM j, t UNION ALL SELECT j.id, k.id, 20000 FROM j, k`, a); err != nil {
-		t.Skipf("tabungan tidak bisa dikuras lewat SQL langsung di skema ini (%v); kasus saldo negatif dicakup tes lain", err)
+	// Tabungan dikuras lewat jurnal lain (lewat repo, jadi saldo_cache ikut): kompensasi tidak lagi bisa dibayar dari buku itu.
+	if err := repo.Baru(db).DalamTx(ctx, func(tx repo.Tx) error {
+		tabungan, err := tx.BukuTabungan(ctx, a)
+		if err != nil {
+			return err
+		}
+		utama, err := tx.KunciBukuAkun(ctx, a)
+		if err != nil {
+			return err
+		}
+		_, err = tx.CatatJurnal(ctx, "transfer", "tabungan dipakai", a, nil,
+			[]repo.Posting{{BukuID: tabungan.ID, Jumlah: -20_000}, {BukuID: utama[a].ID, Jumlah: 20_000}})
+		return err
+	}); err != nil {
+		t.Fatal(err)
 	}
 	admin, _ := akunBaru(t, db, "admin", 0)
 	_, err = svc.KompensasiAngsuran(ctx, admin, jadwal, 1, "langkah akhir gagal permanen, tabungan dikuras")

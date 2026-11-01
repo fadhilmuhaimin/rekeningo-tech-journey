@@ -193,18 +193,18 @@ func (s Service) JalankanCicilan(ctx context.Context, sampai time.Time, o OpsiCi
 		return h, err
 	}
 	h.Dibaca = len(daftar)
-	ditulis := 0
+	ditulis := 0 // lab
 	for _, a := range daftar {
-		berhenti := func() bool { ditulis++; return o.BerhentiSetelahJurnal > 0 && ditulis >= o.BerhentiSetelahJurnal }
-		if s.rentan == RentanCicilanSatuJob {
-			if stop, err := s.tagihRentan(ctx, a, &h, berhenti); err != nil || stop {
-				h.Dihentikan = stop
-				return h, err
-			}
-			continue
-		}
+		berhenti := func() bool { ditulis++; return o.BerhentiSetelahJurnal > 0 && ditulis >= o.BerhentiSetelahJurnal } // lab
+		if s.rentan == RentanCicilanSatuJob {                                                                           // rentan
+			if stop, err := s.tagihRentan(ctx, a, &h, berhenti); err != nil || stop { // rentan
+				h.Dihentikan = stop // rentan
+				return h, err       // rentan
+			} // rentan
+			continue // rentan
+		} // rentan
 		if stop, err := s.tagihBenar(ctx, a, &h, berhenti); err != nil || stop {
-			h.Dihentikan = stop
+			h.Dihentikan = stop // lab
 			return h, err
 		}
 	}
@@ -263,6 +263,7 @@ func referensiAngsuran(a repo.Angsuran) string {
 	return fmt.Sprintf("%s:%d:%d", jenisJurnalAngsuran(a), a.JadwalID, a.Ke)
 }
 
+// --8<-- [start:langkah-tabel]
 func (s Service) tagihBenar(ctx context.Context, a repo.Angsuran, h *HasilCicilan, berhenti func() bool) (bool, error) {
 	if a.Status == "menunggu" {
 		ref := referensiAngsuran(a)
@@ -285,9 +286,9 @@ func (s Service) tagihBenar(ctx context.Context, a repo.Angsuran, h *HasilCicila
 		} else {
 			h.JurnalAda++
 		}
-		if baru && berhenti() {
-			return true, nil
-		}
+		if baru && berhenti() { // lab
+			return true, nil // lab
+		} // lab
 		if _, err := s.repo.TandaiAngsuran(ctx, a.JadwalID, a.Ke, []string{"menunggu"}, "terjurnal", &jurnal); err != nil {
 			return false, err
 		}
@@ -298,6 +299,8 @@ func (s Service) tagihBenar(ctx context.Context, a repo.Angsuran, h *HasilCicila
 	}
 	return false, err
 }
+
+// --8<-- [end:langkah-tabel]
 
 func (s Service) tagihRentan(ctx context.Context, a repo.Angsuran, h *HasilCicilan, berhenti func() bool) (bool, error) {
 	kini := s.kini()

@@ -647,7 +647,7 @@ func jalankanCicilan(r repo.Repo, umurSesi time.Duration, rentan, sampai, sekara
 		// Titik kematian disuntik (lab saja): proses mati tepat sesudah jurnal ditulis dan sebelum angsurannya ditandai,
 		// tanpa defer dan tanpa keluaran, seperti node yang dikosongkan atau OOM kill.
 		_ = syscall.Kill(syscall.Getpid(), syscall.SIGKILL)
-		select {} // tidak tercapai: sinyal 9 tidak bisa ditangkap
+		time.Sleep(time.Hour) // tidak tercapai: sinyal 9 tidak bisa ditangkap (select {} memicu deteksi deadlock Go lebih dulu)
 	}
 	fmt.Printf("cicilan sampai %s: dibaca %d, jurnal baru %d, jurnal sudah ada %d, dicatat %d, dilewati %d, gagal %d\n",
 		sampai, h.Dibaca, h.Dijurnal, h.JurnalAda, h.Dicatat, h.Dilewati, h.Gagal)

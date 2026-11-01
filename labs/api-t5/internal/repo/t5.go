@@ -156,6 +156,7 @@ func (r Repo) AngsuranJatuhTempo(ctx context.Context, sampai time.Time, jadwal i
 	return hasil, rows.Err()
 }
 
+// --8<-- [start:langkah-tandai]
 // TandaiAngsuran memajukan status satu angsuran. `dari` menjaga langkah: baris yang statusnya sudah lain tidak berubah
 // (false), jadi job yang diulang atau dua job serentak tidak mundur atau melompat.
 func (r Repo) TandaiAngsuran(ctx context.Context, jadwal int64, ke int, dari []string, ke2 string, jurnal *int64) (bool, error) {
@@ -168,6 +169,8 @@ func (r Repo) TandaiAngsuran(ctx context.Context, jadwal int64, ke int, dari []s
 	n, err := res.RowsAffected()
 	return n == 1, err
 }
+
+// --8<-- [end:langkah-tandai]
 
 // AngsuranKunci membaca status dan jurnal satu angsuran dan mengunci barisnya sampai transaction selesai.
 func (t Tx) AngsuranKunci(ctx context.Context, jadwal int64, ke int) (status string, jurnal *int64, err error) {
