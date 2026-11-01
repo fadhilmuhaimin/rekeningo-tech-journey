@@ -57,6 +57,8 @@ Tanpa `REPLIKA_DATABASE_URL` jawaban `api-t5` tidak berubah. Dengan replica, jaw
 
 Mode dari `api-t4` tetap ada dan tidak diubah (`push-dalam-tx`, `kursor`, `ekspor-panic`, `tanpa-shutdown`, `stok-timpa`, `urut-waktu`, `webhook-v1`, `webhook-cek-tulis`, `kartu-tanpa-hold`, `unduh-rentan`, `bo-tanpa-audit`, `verifikasi-tanpa-key`, `berkas-bytea`, `bo-log-biasa`). Job cicilan di lab: `./api-t5 -cicilan-sampai 2026-12-31 [-rentan cicilan-satu-job] [-lab-sekarang <RFC 3339>] [-lab-cicilan-henti N]`.
 
+Event pembayaran (lab `t5-fanout`, ADR 51): bendera `-event-pembayaran` membuat `POST /transfers` menulis satu baris outbox bertujuan `stream` (jenis `bayar`, kunci merchant di payload, akun pembayar) di transaction jurnalnya. Tanpa bendera tidak ada yang berubah. Relay, consumer group, dan penyedia push berkuota (`cmd/stream`, `cmd/pushkuota`, `internal/stream`, `internal/notifid`) milik `labs/t5-fanout`; modul Go ini memuat `github.com/twmb/franz-go` v1.22.2 untuk itu.
+
 Job snapshot saldo (lab `t5-partisi`, M43): `./api-t5 -buat-snapshot <YYYY-MM-DD>` menulis saldo akhir satu bulan yang sudah selesai untuk semua buku (`internal/repo/snapshot.go`). `./api-t5 -cek-cache -dari-snapshot [-snapshot-periode <YYYY-MM-DD>]` membaca snapshot terakhir dan posting sesudahnya. `-cek-cache` tanpa tambahan tetap membaca semua posting.
 
 ## Menjalankan

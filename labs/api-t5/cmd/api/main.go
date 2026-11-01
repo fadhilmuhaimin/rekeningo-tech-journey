@@ -101,6 +101,7 @@ func main() {
 	unduhHTTP := flag.Bool("unduh-izinkan-http", false, "lab saja: fetcher gambar versi aman menerima skema http (tiruan lokal tidak punya TLS); produksi hanya https (ADR 41)")
 	ledgerKunci := flag.String("ledger-kunci", "", "API ledger untuk service pembayaran (POST /ledger/jurnal-topup, ADR 37): kunci layanan di header X-Layanan-Kunci; kosong = rute tidak dipasang")
 	// Tahap 5 (lab-api-t5): cache laporan merchant dan job cicilan.
+	eventPembayaran := flag.Bool("event-pembayaran", false, "lab t5-fanout: POST /transfers juga menulis satu baris outbox stream per pembayaran, untuk relay ke pembayaran.tercatat (ADR 51)")
 	laporanCache := flag.String("laporan-cache", "", "cache laporan merchant: kosong (tanpa cache) atau redis (mode laporan-primary, M40)")
 	laporanRedis := flag.String("laporan-redis", "", "alamat Redis untuk -laporan-cache redis (tiruan lokal di container)")
 	laporanTTL := flag.Duration("laporan-ttl", service.TTLLaporan, "TTL entri cache laporan (naskah M40: 30 detik, Asumsi)")
@@ -227,7 +228,7 @@ func main() {
 		return
 	}
 
-	svc := service.Baru(r, *umurSesi).DenganT4(dep).DenganUnduhHTTP(*unduhHTTP)
+	svc := service.Baru(r, *umurSesi).DenganT4(dep).DenganUnduhHTTP(*unduhHTTP).DenganEventPembayaran(*eventPembayaran)
 	var jamMS atomic.Int64 // 0 = waktu sungguhan
 	jam := func() time.Time {
 		if ms := jamMS.Load(); ms != 0 {

@@ -1,0 +1,34 @@
+# Lab t5-fanout · consumer group membagi partisi dan consumer mati di tengah
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_fanout · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-fanout run.
+
+# --- A. Tiga consumer dalam satu grup, enam partisi; consumer pertama mati di tengah rentangnya (id deterministik) ---
+$ kafka-consumer-groups.sh --describe --group pengumuman-pengirim   (sebelum pengumuman)
+anggota yang memegang partisi: 3; partisi per anggota: [2, 2, 2]
+$ curl -i -X POST '/pengumuman' -d '{"judul": "Diskon makan siang"}'   (satu pengumuman, 10.281 perangkat aktif)
+consumer 1: berhenti mendadak sesudah ±500 pengiriman, tanpa mencatat offset (exit status 3)
+anggota sesudah consumer 1 mati: 2; partisi per anggota: [3, 3]
+partisi | offset tercatat | rekaman di partisi | lag
+0 | 1 | 1 | 0
+1 | 1 | 1 | 0
+2 | 1 | 1 | 0
+3 | 1 | 1 | 0
+4 | 1 | 1 | 0
+5 | 1 | 1 | 0
+-- rekaman rentang yang diselesaikan consumer yang hidup: 6 dari 6
+-- pengiriman yang diselesaikan consumer yang hidup: 10281 dari 10281 perangkat
+-- penyedia push: perangkat yang menerima pengumuman: 10281
+-- penyedia push: perangkat dengan tepat satu notifikasi berbeda: 10281
+-- penyedia push: perangkat dengan lebih dari satu notifikasi berbeda: 0
+-- penyedia push: notifikasi_id pengumuman berbeda: 10281
+-- panggilan yang diulang (diterima lebih dari sekali dengan id sama): lebih dari 0 dan paling banyak 504: ya
+-- hasil akhir tepat satu per perangkat, bukan pengiriman tepat satu kali: rentang yang tertinggal dikirim ulang dengan id yang sama
+
+# --- B. Mode rentan -id-acak: skenario yang sama, tetapi id baru di tiap pengiriman ---
+$ kafka-consumer-groups.sh --describe --group pengumuman-pengirim   (sebelum pengumuman)
+anggota yang memegang partisi: 3; partisi per anggota: [2, 2, 2]
+$ curl -i -X POST '/pengumuman' -d '{"judul": "Diskon makan siang"}'   (satu pengumuman, 10.281 perangkat aktif)
+consumer 1: berhenti mendadak sesudah ±500 pengiriman, tanpa mencatat offset (exit status 3)
+-- penyedia push: perangkat yang menerima pengumuman: 10281
+-- penyedia push: perangkat dengan lebih dari satu notifikasi berbeda: lebih dari 0 dan paling banyak 504: ya
+-- penyedia push: perangkat dengan tepat satu notifikasi berbeda: kurang dari 10281: ya
