@@ -475,7 +475,7 @@ describe("blok Pertanyaan sebelum kode: tiga hal, versi pertama, tiga pertanyaan
     expect([posting(3), posting(a5.trx)]).toEqual([438_000_000, 292_000_000]);
     expect(barisAwal(bagianBeban, "| Data posting")).toContain("438 juta");
     expect(blok).toContain("Dasar hitungan beban Tahap 5 adalah 3 transaksi uang per user aktif per hari, seperti Tahap 2 sampai 4. Angka dalam kurung memakai 2 transaksi, angka registry Tahap 5. Semuanya Asumsi, dengan rumus di [[t5-prd]].");
-    expect(blok).toContain("Puncak 1.388,9 request per detik naik 10 kali dari 138,9 di Tahap 4. Menurut hitungan di [[t5-prd]], yang melewati batasnya lebih dulu bukan request.");
+    expect(blok).toContain("Puncak 1.388,9 request per detik naik 10 kali dari 138,9 di Tahap 4. Menurut hitungan beban Tahap 5, yang melewati batasnya lebih dulu bukan request.");
     expect(blok).toContain("Worker notifikasi terpakai 564% (391%). Koneksi database terpasang 180 lawan 97 tersedia. Pemeriksaan saldo malam tanpa snapshot membaca 438 juta posting (292 juta) setelah satu tahun.");
     expect(blok).toContain("Kapasitas satu primary untuk 69,4 transaksi uang per detik (46,3) belum diukur di lab `api-t5`.");
     // Asal tiap angka ada di halaman 5.1 (rumus) dan naskah (kalimat kesimpulan).
@@ -834,7 +834,7 @@ describe("kalimat prosa terkunci per paragraf", () => {
     "Halaman ini juga menanam tiga pertanyaan. Di minggu 2 Wulan bertanya siapa yang melambat bila laporan dan pembayaran membaca database yang sama. Pak Hadi bertanya angka mana yang ia tanda tangani bila ada dua salinan. Dewi bertanya apa yang hilang bila database utama mati pukul 02.10.",
     "Jawabannya ada di [[t5-m40]] sampai [[t5-m43]]. Pertanyaan Wulan dijawab di [[t5-m40]]. Pertanyaan Pak Hadi dijawab di [[t5-m41]] dan [[t5-m43]], dan pertanyaan Dewi di [[t5-m42]].",
     "**Kenapa bukan request.** Dasar hitungan beban Tahap 5 adalah 3 transaksi uang per user aktif per hari, seperti Tahap 2 sampai 4. Angka dalam kurung memakai 2 transaksi, angka registry Tahap 5. Semuanya Asumsi, dengan rumus di [[t5-prd]].",
-    "Puncak 1.388,9 request per detik naik 10 kali dari 138,9 di Tahap 4. Menurut hitungan di [[t5-prd]], yang melewati batasnya lebih dulu bukan request.",
+    "Puncak 1.388,9 request per detik naik 10 kali dari 138,9 di Tahap 4. Menurut hitungan beban Tahap 5, yang melewati batasnya lebih dulu bukan request.",
     "Worker notifikasi terpakai 564% (391%). Koneksi database terpasang 180 lawan 97 tersedia. Pemeriksaan saldo malam tanpa snapshot membaca 438 juta posting (292 juta) setelah satu tahun.",
     "Kapasitas satu primary untuk 69,4 transaksi uang per detik (46,3) belum diukur di lab `api-t5`. Lab itu menjadwalkan 20.833 permintaan dalam 15 detik pada 1.388,9 per detik di satu laptop, dan semuanya selesai (`beban.txt`). Itu batas lab, bukan kapasitas produksi.",
     "Tabel ini menyebut konsep untuk tiap fitur. Tahap 5 membahasnya satu per satu, saat masalahnya muncul.",
