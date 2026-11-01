@@ -1,0 +1,193 @@
+---
+title: "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20"
+description: Minggu 5. Pemeriksaan harian membaca semua posting sejak awal, jadi laporan tutup buku belum ada pukul 08.00 dan p95 pembayaran naik sepanjang siang. Snapshot saldo membuatnya membaca satu bulan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import bacaPosting from "../../../../data/diagram/t5-m43-baca-posting.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t2-ledger]], [[t5-skema]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 5 Tahap 5. Pukul 08.00 Pak Hadi membuka laporan tutup buku harian, dan laporan itu belum ada.
+
+Hendra memeriksa. Pemeriksaan harian yang ia tulis baru selesai pukul 14.20, padahal target Pak Hadi pukul 06.00.
+
+Sepanjang siang p95 pembayaran ikut naik.
+
+*Angka cerita (Ilustrasi):* pukul 08.00, 14.20, dan 06.00 serta kenaikan p95 berasal dari naskah, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka menduga disk dan CPU database kurang. Nadia mengusulkan ledger pindah ke database khusus ledger.
+
+Pemeriksaan harian adalah job malam yang membandingkan `saldo_cache` tiap buku, yaitu tempat uang satu pihak dicatat di ledger, dengan jumlah posting-nya. Posting adalah satu baris catatan uang di ledger. Di Tahap 2 job ini menemukan selisih Rp5.000 antara cache dan posting ([[t2-saldo-bukan-kolom]]).
+
+Dugaan itu menjelaskan kenapa pekerjaannya lambat, tetapi tidak menjawab apa yang dikerjakan pekerjaan itu. Database khusus ledger tetap menjalankan query yang sama atas posting yang sama. Mesin yang lebih besar menunda masalahnya, tetapi tidak membuat pemeriksaan membaca lebih sedikit baris.
+
+<details class="question">
+<summary>Tebak dulu: pemeriksaan itu menjumlah posting tiap buku. Berapa posting yang ia baca tiap malam?</summary>
+
+Semua posting sejak awal. Rekaman lab `snapshot.txt` bagian A: 1.800.000 dari 1.800.000 posting di tabel.
+
+Di skala naskah, 438 juta baris setelah satu tahun (Asumsi). Hitungannya ada di blok berikutnya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Pemeriksaan harian menjumlah semua posting sejak awal, jadi pekerjaannya tumbuh bersama umur data: 438 juta baris setelah satu tahun (Asumsi).
+
+<Rantai data={bacaPosting} ringkas />
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, server Go `api-t5`, schema `tahap5_partisi`. Lab memuat 10.288 buku dan 12 bulan × 150.000 posting, yaitu 1.800.000 posting, jauh di bawah 438 juta di naskah. Waktu bergantung mesin dan tidak direkam, jadi pukul 14.20 dan pukul 06.00 tetap Ilustrasi.
+
+**Pemeriksaan membaca tiap posting satu kali per malam.** Query-nya menjumlah `jumlah` dari semua posting tiap buku, lalu membandingkannya dengan `saldo_cache`:
+
+<Snippet file="labs/api-t5/internal/repo/ledger.go" lines="194:215" lang="go" title="Kode lab: labs/api-t5/internal/repo/ledger.go baris 194 sampai 215 (CekCache)" />
+
+Rekaman dari database bersih memberi jumlah baris yang dibaca:
+
+<Snippet file="labs/t5-partisi/output/snapshot.txt" lines="8:11" title="Rekaman lab: labs/t5-partisi/output/snapshot.txt, bagian A (tanpa snapshot)" />
+
+Partisi adalah bagian tabel `posting` yang dipisah menurut `dibuat`, satu per bulan ([[t5-partisi]]). Baris yang dibaca adalah jumlah `seq_tup_read` dan `idx_tup_fetch` di `pg_stat_user_tables` atas semua partisi `posting`, dihitung sebagai selisih sebelum dan sesudah job. Statistik dibaca sesudah proses job keluar. Dokumentasi menulis kedua kolom itu menghitung baris yang diambil oleh sequential scan dan oleh index scan ([PostgreSQL 17: statistik kumulatif](https://www.postgresql.org/docs/17/monitoring-stats.html), dibuka 2026-11-02, Tidak dijalankan).
+
+**Index riwayat tidak menolong.** Index `posting_riwayat` pada `(buku_id, dibuat, id)` melayani riwayat satu akun, terbaru dulu (Tidak dijalankan: dibaca dari komentar `labs/api-t5/internal/repo/riwayat.go`). Pemeriksaan menjumlah `jumlah` dari semua buku, jadi tiap baris posting tetap masuk hitungan. Index mengubah cara baris ditemukan, bukan berapa baris yang dijumlah.
+
+EXPLAIN pemeriksaan itu tidak direkam.
+
+**Ukuran bukan batasnya.** Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, berlabel sama dengan masukan terlemahnya, di sini Asumsi.
+
+200.000 user aktif adalah 20% dari 1.000.000 user terdaftar ([[t5-prd]]). Tiga transaksi uang per user aktif per hari, dua posting per transaksi, dan 250 byte per posting termasuk index adalah Asumsi naskah. Dasar rumusnya ada di [[t5-skema]].
+
+| Besaran | Rumus | Hasil |
+| --- | --- | --- |
+| Posting per tahun | 200.000 × 3 × 2 × 365 | 438 juta |
+| Ukuran per tahun | 438 juta × 250 byte | 109,5 GB |
+| Posting dalam tiga tahun | 3 × 438 juta | 1.314 juta |
+| Tahun sampai batas relasi | 32.000 GB ÷ 109,5 GB | 292 tahun |
+| Posting per bulan | 438 juta ÷ 12 | 36,5 juta |
+| Satu bulan dari semua posting, setelah satu tahun | 36,5 ÷ 438 | 8,3% |
+| Satu bulan dari semua posting, setelah tiga tahun | 36,5 ÷ 1.314 | 2,8% |
+
+Dengan 2 transaksi per user aktif per hari, tahun pertama menghasilkan 292 juta posting dan 73,0 GB. Satu bulan tetap 8,3% dari semuanya (Hitungan atas Asumsi).
+
+Batas ukuran relasi PostgreSQL adalah 32 TB dengan `BLCKSZ` bawaan 8192 byte ([PostgreSQL 17: batas](https://www.postgresql.org/docs/17/limits.html), dibuka 2026-11-02, Tidak dijalankan). Tabel memakai 1 TB = 1.000 GB, jadi batasnya 32.000 GB. Ukuran saja bukan masalahnya: 292 tahun data.
+
+Dokumentasi PostgreSQL menulis hal yang lebih halus. Manfaat partisi biasanya sepadan hanya bila tabel sangat besar. Aturan praktisnya: ukuran tabel melebihi memori fisik server ([PostgreSQL 17: partisi tabel](https://www.postgresql.org/docs/17/ddl-partitioning.html), dibuka 2026-11-02, Tidak dijalankan).
+
+Memori server tidak ada di Asumsi halaman ini, jadi perbandingan itu tidak dihitung. Yang bisa dihitung adalah pekerjaan yang membaca seluruh tabel tiap malam.
+
+**Snapshot memotong bacaan menjadi satu bulan.** Snapshot saldo adalah saldo akhir tiap bulan per buku, disimpan di tabel `snapshot_saldo` supaya saldo itu tidak dijumlah ulang. Pemeriksaan dari snapshot membandingkan `saldo_cache` dengan saldo snapshot terakhir ditambah posting sesudahnya:
+
+<Snippet file="labs/api-t5/internal/repo/snapshot.go" lines="96:102" lang="go" title="Kode lab: labs/api-t5/internal/repo/snapshot.go baris 96 sampai 102 (query CekCacheSnapshot)" />
+
+<Snippet file="labs/t5-partisi/output/snapshot.txt" lines="59:67" title="Rekaman lab: labs/t5-partisi/output/snapshot.txt, bagian C (dari snapshot terakhir dan dari snapshot tiga bulan lalu)" />
+
+Dari snapshot terakhir, pemeriksaan membaca 150.000 dari 1.800.000 posting, yaitu 8,3%. Dari snapshot tiga bulan lalu ia membaca 450.000 posting, tiga bulan × 150.000.
+
+Lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3% di naskah. Angka 8,3% karena itu bukan temuan lab. Yang direkam adalah bahwa job membaca persis satu bulan. Bulan berjalan di lab sudah berisi 150.000 posting, jadi satu bulan penuh adalah batas atas: di awal bulan job membaca lebih sedikit.
+
+| Besaran | Lab (Rekaman lab) | Naskah (Hitungan atas Asumsi) |
+| --- | --- | --- |
+| Posting per bulan | 150.000 | 36,5 juta |
+| Posting setelah 12 bulan | 1.800.000 | 438 juta |
+| Dibaca tanpa snapshot | 1.800.000 | 438 juta |
+| Dibaca dari snapshot terakhir | 150.000 | 36,5 juta |
+| Bagian yang dibaca | 8,3% | 8,3% |
+
+**Snapshot menggeser pekerjaan, bukan menghilangkannya.** Tiap job snapshot membaca persis satu bulan, 150.000 baris di lab (`snapshot.txt` bagian B). Bulan berjalan tetap dibaca pemeriksaan tiap malam, sedangkan bulan yang sudah ditutup dibaca sekali oleh job snapshot-nya.
+
+Bila satu bulan terlewat, snapshot sesudahnya menghitung ulang dari semua posting sampai akhir bulan itu. Itu dibaca dari kode `labs/api-t5/internal/service/snapshot_test.go` (Tidak dijalankan); tesnya lulus di `testing.txt` bagian A.
+
+Job aman diulang: dijalankan lagi, ia menulis 0 buku. Bulan berjalan ditolak dengan exit status 2. Tabel snapshot yang terisi, 113.168 baris, sama dengan hitungan langsung atas posting: 0 baris berbeda.
+
+**Hasilnya sama untuk selisih yang nyata.** Bila kode menulis `saldo_cache` tanpa posting, kedua pemeriksaan menandai buku yang sama dengan cache, hitungan, dan selisih 5.000 yang sama (`snapshot.txt` bagian D).
+
+Hasil sama itu punya syarat. Posting yang ditulis terlambat dengan `dibuat` di bulan yang sudah di-snapshot tidak ikut dalam snapshot. Di tes Go lab, pemeriksaan penuh diam karena cache dan posting konsisten, sedangkan pemeriksaan dari snapshot menandai buku itu. Itu dibaca dari kode `labs/api-t5/internal/service/snapshot_test.go` (Tidak dijalankan); tesnya lulus di `testing.txt` bagian A.
+
+Snapshot adalah salinan yang punya umur: ia benar untuk bulan yang sudah ditutup, selama tidak ada posting baru dengan `dibuat` di bulan itu.
+
+**Snapshot hanya memeriksa.** Pak Hadi menulis aturannya di PRD v5 ([[t5-prd]]). Angka yang ia tanda tangani dibaca dari catatan yang sama dengan yang menggerakkan uang. `snapshot_saldo` ada di database yang sama dengan `posting`. Job snapshot menulisnya dari posting dan snapshot bulan sebelumnya.
+
+Di `labs/api-t5/internal` dan `labs/api-t5/cmd`, hanya `repo/snapshot.go` dan tesnya yang menyebut tabel itu. Jalur bayar tidak membacanya (Tidak dijalankan: dibaca dari kode).
+
+**Posting tidak boleh dihapus, jadi data lama tidak dibuang dengan DELETE.** Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B). Membuang satu bulan dari database utama berarti melepasnya sebagai tabel sendiri, bukan menghapus baris.
+
+Dokumentasi PostgreSQL menulis bahwa `DROP TABLE` atau `DETACH PARTITION` atas satu partisi jauh lebih cepat daripada operasi massal. Keduanya juga menghindari overhead `VACUUM` dari `DELETE` massal (sumber yang sama, Tidak dijalankan). Rekaman lab tidak memuat `VACUUM`: skrip hanya menjalankan `VACUUM (ANALYZE)` sesudah memuat data. Halaman ini karena itu tidak menyebutnya sebagai penyebab pukul 14.20.
+
+Lab memeriksa batasnya pada tabel uji tanpa trigger ledger. Waktu terkecil `DELETE` atas 200.000 baris dari tiga percobaan lebih dari dua kali waktu terkecil `DETACH` + `DROP`, dan nilai waktunya tidak direkam (`lepas.txt` bagian D).
+
+Satu akibat lain terekam di run lab yang terpisah, dengan 28.000 posting per bulan, setelah satu bulan dilepas:
+
+<Snippet file="labs/t5-partisi/output/lepas.txt" lines="132:141" title="Rekaman lab: labs/t5-partisi/output/lepas.txt, bagian F (sesudah satu bulan dilepas)" />
+
+Pemeriksaan yang membaca seluruh sejarah bukan hanya membaca banyak baris. Ia juga menandai 10.061 dari 10.288 buku begitu data lama keluar dari tabel, padahal bagian itu tidak mengubah `saldo_cache`. Pemeriksaan dari snapshot menandai 0. Data lama tetap ada di arsip (`lepas.txt` bagian E), dan caranya dibahas di [[t5-partisi]].
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `snapshot.txt`: pemeriksaan tanpa snapshot, sebelas job snapshot, lalu pemeriksaan dari snapshot terakhir. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t5-m43.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: satu bulan dilepas dari tabel posting**. Pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, dan pemeriksaan dari snapshot menandai 0 (`lepas.txt` bagian F). Lab tidak punya app Flutter dan tidak merekam layar.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: pemeriksaan tanpa snapshot membaca 1.800.000 dari 1.800.000 posting, dan pemeriksaan dari snapshot terakhir membaca 150.000, yaitu 8,3%. Keduanya menandai 0 buku tidak cocok.
+
+Sesudah satu bulan dilepas dari tabel, pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, dan pemeriksaan dari snapshot menandai 0. Rekaman ada di cuplikan pada blok sebelumnya.
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t5-partisi]]: partisi tabel `posting` per bulan, snapshot saldo, dan arsip bulan lama. Keputusannya ADR 49.
+- [[t5-skema]]: tabel `snapshot_saldo` dan `arsip_partisi`, serta pertumbuhan `posting` ±109,5 GB per tahun.
+- [[t2-saldo-bukan-kolom]]: saldo adalah jumlah posting, dan `saldo_cache` hanya salinan yang diperiksa.
+- [[t5-kms]]: arsip partisi yang dienkripsi sebelum keluar dari database utama. Keputusannya ADR 57.
+
+Pekerjaan malam membaca bagian yang berubah sejak snapshot terakhir, bukan seluruh sejarah posting.
+
+### Cek diri
+
+**1.** Disk dan CPU ditambah, atau ledger dipindah ke database khusus ledger. Kenapa pemeriksaan harian tetap membaca baris yang sama?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Query yang sama menjumlah posting yang sama, dan mesin lain tidak mengurangi jumlah baris. Lab membaca 1.800.000 dari 1.800.000 posting (`snapshot.txt` bagian A). Di skala naskah, 438 juta baris setelah satu tahun (Hitungan atas Asumsi).
+
+</details>
+
+**2.** Pemeriksaan dari snapshot membaca 8,3% posting di lab dan 8,3% di naskah. Apakah lab membuktikan 8,3% di skala naskah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3%. Yang direkam adalah bahwa job membaca persis satu bulan. 36,5 juta posting per bulan adalah Hitungan atas Asumsi dan tidak dijalankan.
+
+</details>
+
+**3.** Satu bulan posting dilepas dari tabel. Apa yang terjadi pada pemeriksaan tanpa snapshot, dan kenapa data lama tidak dibuang dengan `DELETE`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, karena posting lama buku itu tidak ada lagi di tabel. Pemeriksaan dari snapshot menandai 0 (`lepas.txt` bagian F). Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
