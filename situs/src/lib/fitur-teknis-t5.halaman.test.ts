@@ -128,9 +128,7 @@ describe("registry, meta, dan susunan blok", () => {
       expect(deskripsi, `deskripsi tanpa ${nama}`).toContain(nama);
       expect(versi, `naskah: ${kalimat}`).toContain(kalimat);
     }
-    expect(deskripsi).toContain("PRD v5");
-    expect(deskripsi).toContain("pertanyaan pertama Tahap 5");
-    expect(deskripsi).toContain("sebelum kode");
+    expect(deskripsi).toBe("description: Wulan, Raka, Hendra, dan Nadia menurunkan PRD v5 jadi pekerjaan di app, backend, dan database, lalu menulis pertanyaan pertama Tahap 5 sebelum kode.");
     expect(naskah).toContain("lahir pertanyaan pertama Tahap 5, sebelum satu baris kode");
   });
 });
@@ -149,7 +147,7 @@ describe("blok Mulai: Inti hasil-dulu dan diagram Rantai t5-fitur-inti.json", ()
     expect(hitung(badan, "<Rantai "), "jumlah Rantai").toBe(1);
   });
   test("definisi salinan dan primary diberikan di pemakaian pertama, dan pertanyaan pertama Tahap 5 sama dengan naskah", () => {
-    expect(mulai[4]!.startsWith("*Salinan* adalah data yang sama yang disimpan atau dihitung di tempat lain dan bisa tertinggal dari sumbernya, misalnya replica, ringkasan, cache, dan event.")).toBe(true);
+    expect(mulai[4]).toBe("*Salinan* adalah data yang sama yang disimpan atau dihitung di tempat lain dan bisa tertinggal dari sumbernya, misalnya replica, ringkasan, cache, dan event. Kalau app Flutter-mu pernah menampilkan data dari cache lokal sambil menunggu server, kamu sudah mengenal salinan yang tertinggal.");
     expect(mulai[5]).toContain("yaitu database utama yang menerima semua tulisan");
     expect(badan.indexOf("*Salinan*")).toBeLessThan(badan.indexOf("salinan boleh banyak"));
     expect(badan.indexOf("yaitu database utama yang menerima semua tulisan")).toBeLessThan(badan.indexOf("satu primary menerima semua tulisan"));
@@ -173,6 +171,10 @@ describe("blok Mulai: Inti hasil-dulu dan diagram Rantai t5-fitur-inti.json", ()
     expect(b1!.label).toBe("Database");
     expect(b1!.simpul.map((s) => s.teks)).toEqual([`${erd4.tabel.length} tabel`, `+ ${baruLab} tabel`, `${jumlahTabel} tabel`]);
     expect(b1!.simpul.map((s) => s.nada)).toEqual(["old", "system", "good"]);
+    expect(b1!.sub).toBe("jumlah tabel");
+    expect(b1!.simpul.map((s) => s.sub)).toEqual(["akhir Tahap 4", "tabel baru Tahap 5", "skema lab api-t5"]);
+    expect(skema[0]).toContain("Lab api-t5");
+    expect(skema.join("\n")).toContain("= akhir Tahap 4 (22 tabel)");
     // Baris bawah: bagian A laporan.txt.
     const a = laporan.slice(laporan.findIndex((b) => b.startsWith("# --- A.")), laporan.findIndex((b) => b.startsWith("# --- B.")));
     const nominal = a.filter((b) => b.includes("POST '/transfers'")).map((b) => Number(b.match(/"nominal": (\d+)/)![1]));
@@ -215,7 +217,8 @@ describe("blok Coba dulu: widget W5-zona dan label dasar tabel", () => {
   test("zona, aman, dan tebakan: lima zona dari widget, jawaban benar menyebut service ledger dan satu primary", () => {
     const zona = Z.zona.map((z) => z.label);
     expect(zona).toEqual(["client", "edge", "service", "data", "operasi"]);
-    expect(coba).toContain("Peta ini memuat lima zona dari PRD v5: client, edge, service, data, dan operasi.");
+    expect(coba).toContain("Peta ini memuat lima zona dari PRD v5: client, edge, service, data, dan operasi. Tebak dulu di zona mana uang bergerak, lalu buka zona satu per satu. Tabel di bawah peta terisi sesuai zona yang kamu buka.");
+    expect(Z.tebak.q).toBe("Ledger membuat jurnal dan posting. Di zona mana uang bergerak?");
     const benar = Z.tebak.pilihan[Z.tebak.jawaban]!;
     expect(benar).toContain("service ledger");
     expect(benar).toContain("primary");
@@ -307,7 +310,7 @@ describe("blok Dari fitur ke pekerjaan: tabel tujuh baris sama dengan naskah bag
     expect(tabelBaris(bagian2)[0]).toEqual(["Fitur", "Di app", "Di backend", "Di database", "Konsep yang akan dibutuhkan"]);
   });
   test("tim: lima tim produk dan tiga tim fungsi, 28 orang, dari naskah dan widget", () => {
-    expect(blok).toContain("Tim yang mengerjakannya adalah lima tim produk dan tiga tim fungsi, 28 orang, seperti di [[t5-prd]] (Asumsi cerita).");
+    expect(blok).toContain("Ini tabel yang tim tulis sebelum satu baris kode Tahap 5 ada. Tim yang mengerjakannya adalah lima tim produk dan tiga tim fungsi, 28 orang, seperti di [[t5-prd]] (Asumsi cerita).");
     const tim = (zonaMentah as { tim: { id: string; orang: number }[] }).tim;
     expect(tim).toHaveLength(8);
     expect(tim.reduce((n, t) => n + t.orang, 0)).toBe(28);
@@ -334,7 +337,8 @@ describe("blok Dari fitur ke pekerjaan: tabel tujuh baris sama dengan naskah bag
     }
     const c = skema.slice(skema.findIndex((b) => b.startsWith("# --- C.")));
     expect(c.join("\n")).toContain("RANGE (dibuat)");
-    expect(blok).toContain("tabel `posting` dipartisi per bulan di sana.");
+    expect(blok).toContain(`${kalimat} Nama tabel dan kolom di tabel ini ada di skema lab \`api-t5\` (\`skema.txt\`), dan tabel \`posting\` dipartisi per bulan di sana. Enam service dan tiga instance tiap service adalah Asumsi.`);
+    expect(skema[0]).toContain("Lab api-t5 · 30 tabel");
     expect(skema.find((b) => b.startsWith("# --- C."))).toContain("posting dipartisi per bulan menurut dibuat");
   });
   test("Snippet bagian F: rentang baris diturunkan dari rekaman, dan judul menyebut bagian yang kutipannya memuat penanda", () => {
@@ -371,6 +375,7 @@ describe("blok Pertanyaan sebelum kode: tiga hal, versi pertama, tiga pertanyaan
     const naskahDaftar = bagian3.split("\n").filter((b) => /^\d\. /.test(b)).map((b) => b.replace(/ \((?:PROPOSAL|syarat)[^)]*\)\.?$/, "."));
     expect(naskahDaftar).toHaveLength(3);
     expect(daftar).toHaveLength(3);
+    expect(daftar.map((b) => b.slice(0, 3))).toEqual(["1. ", "2. ", "3. "]);
     expect(polos(daftar[0]!)).toContain(naskahDaftar[0]!.replace("1. ", "").replace("Idempotency-Key.", "Idempotency-Key."));
     expect(polos(daftar[1]!)).toContain("Keputusan yang menentukan uang dibaca dari sumber yang sama dengan yang menggerakkan uang. Replica, ringkasan, cache, dan event hanya untuk dilihat, dan jarak ketertinggalannya diketahui dan disebut.");
     expect(polos(daftar[2]!)).toContain("Pekerjaan yang lebih panjang dari satu proses, satu hari, atau satu mesin tetap benar bila dihentikan dan diulang di titik mana pun. Contohnya batch, failover, dan deploy.");
@@ -510,6 +515,7 @@ describe("blok Konsep yang akan dibutuhkan: konsep naskah kolom kelima jadi taut
     expect(tabel.slice(1)).toHaveLength(7);
     expect(tabel.slice(1).map((r) => r[0])).toEqual(naskahTabel.map((r) => r[0]));
     tabel.slice(1).forEach((r, i) => {
+      expect(r[1], `sel konsep baris ${i + 1}`).toBe(harapan[i]!.map((h) => `[[${h[0]}\\|${h[1]}]]`).join(", "));
       const token = [...r[1]!.matchAll(/\[\[([^\]|\\]+)(?:\\?\|([^\]]+))?\]\]/g)].map((m) => [m[1]!, m[2]!]);
       expect(token, `baris ${i + 1}`).toEqual(harapan[i]!.map((h) => [h[0], h[1]]));
       for (const [id, , kunci] of harapan[i]!) {
@@ -613,6 +619,30 @@ describe("tautan, ID internal, kata per konsep, dan klaim universal", () => {
   });
 });
 
+describe("struktur tabel dan paragraf di mdx", () => {
+  test("tiap tabel punya kepala, garis pemisah dengan jumlah kolom sama, dan baris sama lebar; dua tabel", () => {
+    const baris = badan.split("\n");
+    let jumlahTabel = 0;
+    for (let i = 0; i < baris.length; i++) {
+      if (!baris[i]!.startsWith("|") || (i > 0 && baris[i - 1]!.startsWith("|"))) continue;
+      jumlahTabel++;
+      const kolom = sel(baris[i]!).length;
+      expect(baris[i + 1], `garis pemisah tabel di baris ${i + 1}`).toBe(`|${"---|".repeat(kolom)}`);
+      for (let j = i + 2; j < baris.length && baris[j]!.startsWith("|"); j++) expect(sel(baris[j]!).length, `lebar baris ${j + 1}`).toBe(kolom);
+    }
+    expect(jumlahTabel).toBe(2);
+  });
+  test("tiap blok (prosa, daftar, tabel, tag) dipisah baris kosong, dan paragraf prosa satu baris", () => {
+    const kelas = (b: string) => (b.startsWith("|") ? "tabel" : /^(- |\d+\. )/.test(b) ? "daftar" : /^\s*</.test(b) ? "tag" : b.startsWith("import ") ? "import" : "prosa");
+    const baris = badan.split("\n");
+    for (let i = 1; i < baris.length; i++) {
+      if (!baris[i - 1]!.trim() || !baris[i]!.trim()) continue;
+      const ka = kelas(baris[i - 1]!);
+      expect(ka === kelas(baris[i]!) && ka !== "prosa" && ka !== "tag", `baris ${i} dan ${i + 1} harus dipisah baris kosong: ${baris[i]!.slice(0, 40)}`).toBe(true);
+    }
+  });
+});
+
 // ---- baris riset R5-115 sampai R5-119 -----------------------------------------------------------------------------------------------
 describe("baris riset R5-115 sampai R5-119: ada, urut, tanpa ganda, dan memuat kutipan dan hitungan yang dipakai halaman", () => {
   const baris = riset5.split("\n").filter((b) => /^\| R5-11[5-9] \|/.test(b));
@@ -646,10 +676,67 @@ describe("baris riset R5-115 sampai R5-119: ada, urut, tanpa ganda, dan memuat k
     expect(badan).toContain("halaman tanpa nomor versi, dibuka 2026-11-02");
     expect(promosi[1]).toContain("PostgreSQL 17.11");
   });
+  test("kolom konsep, halaman yang memakai, dan berubah sejak: persis sama untuk lima baris (hanya R5-115 dan R5-116 menyebut halaman lain)", () => {
+    expect(baris.map((b) => sel(b)[1])).toEqual([
+      "Replikasi streaming asinkron: transaksi commit bisa belum sampai ke standby saat primary mati (dibaca untuk baris M42 di 5.2; penalaran, Tidak dijalankan)",
+      "Kubernetes: pod tidak terisolasi secara bawaan; NetworkPolicy butuh penegak (dibaca untuk baris M47 di 5.2; penalaran, Tidak dijalankan)",
+      "Hitungan 5.2 atas angka yang tertulis di halaman (Hitungan, Asumsi)",
+      "Kalimat naskah, halaman 5.1, dan halaman ADR 45 yang dikutip 5.2 dibaca ke teksnya (Asumsi)",
+      "Rekaman lab yang dikutip 5.2 dibaca ke berkasnya, tanpa menjalankan ulang (Rekaman lab)",
+    ]);
+    expect(baris.map((b) => sel(b)[3])).toEqual([
+      "Kalimat baris primary mati (M42) di blok Coba dulu 5.2; akibatnya yang direkam adalah `labs/t5-replika/output/promosi.txt` bagian A (memutus koneksi WAL, bukan mematikan primary; tanpa fencing)",
+      "Kalimat baris pod notifikasi (M47) di blok Coba dulu 5.2",
+      "Paragraf Kenapa bukan request dan kalimat hitungan sel Rusak di blok Pertanyaan sebelum kode 5.2",
+      "Tiga hal, kalimat versi pertama, pemetaan tiga pertanyaan ke halaman masalah, dan atribusi syarat (Pak Hadi, Dewi) di blok Pertanyaan sebelum kode 5.2",
+      "Rantai Inti, Snippet bagian F, dan kalimat M42 di 5.2",
+    ]);
+    expect(baris.map((b) => sel(b)[4])).toEqual([
+      "Baru (R5-100 membahas replica sinkron, R5-02 membahas jeda replikasi)",
+      "Baru (R5-20 membahas mTLS, bukan isolasi bawaan)",
+      "Tidak berlaku (hitungan atas angka sendiri)",
+      "Tidak berlaku",
+      "Tidak berlaku",
+    ]);
+    for (const x of ["R5-100", "R5-02", "R5-20"]) expect(riset5, x).toContain(`| ${x} |`);
+    expect(riset5.split("\n").find((b) => b.startsWith("| R5-20 |"))).toContain("mTLS");
+  });
+  test("R5-115 dan R5-116: bab, bagian, versi, dan tanggal dikunci kolom sumber; R5-117 sampai R5-119: tanggal baca", () => {
+    const [, , pg] = kolom(0);
+    expect(pg.startsWith("PostgreSQL 17, bab 26 Log-Shipping Standby Servers (postgresql.org/docs/17/warm-standby.html, dibuka 2026-11-02, teks mentah dari `curl`; lab memakai 17.11): bagian 26.2.5 \"")).toBe(true);
+    expect(pg).toContain("Bagian 26.2.8: \"PostgreSQL streaming replication is asynchronous by default.");
+    expect(pg).toContain("Halaman 5.2 hanya memakai bahwa transaksi commit bisa belum sampai ke standby saat primary crash; ia tidak menulis lamanya jeda");
+    expect(promosi[1]).toContain("PostgreSQL 17.11");
+    const [, , k8] = kolom(1);
+    expect(k8.startsWith("Kubernetes, Network Policies (kubernetes.io/docs/concepts/services-networking/network-policies/, dibuka 2026-11-02, teks mentah dari `curl`; halaman tanpa nomor versi, pemilih versi menampilkan v1.37): \"")).toBe(true);
+    expect(k8).toContain("bagian itu penalaran penulis (ledger yang tidak memeriksa identitas)");
+    expect(kolom(2)[2]).toContain("Dihitung dengan skrip sendiri dari angka naskah Tahap 5, registry, dan tabel peta zona, dibaca 2026-11-02:");
+    expect(kolom(3)[2]).toContain("Dibaca 2026-11-02 di main:");
+    expect(kolom(3)[2]).toContain("`tahap-4/sengaja-belum.mdx` (ADR 45, aturan 2: uang tidak dibaca dari salinan di luar primary, read replica hanya untuk laporan)");
+    expect(kolom(3)[2]).toContain("bagian 2 (tabel tujuh baris), bagian 3 (tiga hal, versi pertama minggu 2, tabel delapan kejadian, tiga pertanyaan yang ditanam), dan daftar fitur pemicu masalah di bagian 4 (M41 dan M43 memuat syarat Pak Hadi)");
+    expect(kolom(3)[2]).toContain("`tahap-5/prd-v5.mdx` (aturan Pak Hadi v2 dan v5, RPO nol dan RTO 15 menit, dasar 3 transaksi dan hasil dengan 2)");
+  });
   test("R5-117: tiap persamaan dihitung ulang dan ada di baris; masukan terlemah Asumsi", () => {
     const [, , h] = kolom(2);
     const a5 = cerita.tahap[4]!.asumsi;
     const aktif = (a5.user * a5.aktif) / 100;
+    const n2 = (x: number): string => `${titik(Math.trunc(bulat(x, 2)))},${String(Math.round((bulat(x, 2) % 1) * 100)).padStart(2, "0")}`;
+    const puncak = ((aktif * a5.req) / 86400) * a5.puncak;
+    const per = (n: number): number => ((aktif * n) / 86400) * a5.puncak;
+    const notif = (n: number): number => ((aktif * n + aktif * 0.25) / 86400) * a5.puncak;
+    const persamaan = [
+      `${titik(aktif)} × ${a5.req} ÷ 86.400 × ${a5.puncak} = ${n2(puncak)} dan ÷ ${a5.puncak} = ${n2(puncak / a5.puncak)} (Tahap 4)`,
+      `${titik(aktif * 3)} ÷ 86.400 × ${a5.puncak} = ${n2(per(3))} dan ${titik(aktif * 2)} ÷ 86.400 × ${a5.puncak} = ${n2(per(2))}`,
+      `(${titik(aktif * 3)} + ${titik(aktif * 0.25)}) ÷ 86.400 × ${a5.puncak} = ${n2(notif(3))} dan ÷ 13,33 = ${bulat((notif(3) / (4 / 0.3)) * 100)}%`,
+      `(${titik(aktif * 2)} + ${titik(aktif * 0.25)}) ÷ 86.400 × ${a5.puncak} = ${n2(notif(2))} dan ÷ 13,33 = ${bulat((notif(2) / (4 / 0.3)) * 100)}%`,
+      "8 kejadian × 3 hal = 24 sel, sel Rusak 9 = 3 (hal 1) + 2 (hal 2) + 4 (hal 3)",
+    ];
+    for (const x of persamaan) expect(h, x).toContain(x);
+    expect(n2(puncak)).toBe("1.388,89");
+    expect(n2(per(3))).toBe("69,44");
+    expect(n2(per(2))).toBe("46,30");
+    expect(n2(notif(3))).toBe("75,23");
+    expect(n2(notif(2))).toBe("52,08");
     const hasil: [string, number, number][] = [
       ["22 + 8 = 30", 22 + 8, 30], ["4 × 6 + 2 × 2 = 28", 4 * 6 + 2 * 2, 28], ["200.000 × 3 × 2 × 365 = 438 juta", aktif * 3 * 2 * 365, 438e6], ["200.000 × 2 × 2 × 365 = 292 juta", aktif * 2 * 2 * 365, 292e6],
       ["6 × 3 × 10 = 180", 6 * 3 * 10, 180], ["100 − 3 = 97", 100 - 3, 97], ["⌊1.388,9 × 15⌋ = 20.833", Math.floor(1388.9 * 15), 20833],
@@ -658,14 +745,8 @@ describe("baris riset R5-115 sampai R5-119: ada, urut, tanpa ganda, dan memuat k
       expect(nilai, teks).toBe(harus);
       expect(h, teks).toContain(teks);
     }
-    expect(h).toContain("1.388,89");
-    expect(h).toContain("69,44");
-    expect(h).toContain("46,30");
-    expect(h).toContain("= 564%");
-    expect(h).toContain("= 391%");
-    expect(h).toContain("sel Rusak 9 = 3 (hal 1) + 2 (hal 2) + 4 (hal 3)");
-    expect(h).toContain("8 kejadian × 3 hal = 24 sel");
-    expect(h).toContain("jadi hasilnya Asumsi");
+    expect(h.endsWith("Masukan terlemahnya Asumsi, jadi hasilnya Asumsi")).toBe(true);
+    expect(h.split("; ")).toHaveLength(10);
   });
   test("R5-118 dan R5-119: sumber naskah, halaman, dan rekaman yang dibaca disebut dengan berkas dan bagian; rekaman yang disebut ada", () => {
     const [, , n] = kolom(3);
