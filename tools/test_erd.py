@@ -595,6 +595,15 @@ SELISIH += [
      lambda: len(erd.periksa_hapus_lintas(LAMA_UJI, BARU_UJI, PETA_UJI, "t5_", (3, REKAM_UJI[1]))), 1),
     ("periksa_hapus_lintas: FK yang namanya bergeser tetapi isinya sama dihitung sama",
      lambda: erd.periksa_hapus_lintas(LAMA_UJI, {"tahap": 5, "tabel": [dengan(t, fk=[dict(f, nama=f["nama"] + "1") for f in t["fk"]]) for t in AKHIR_UJI]}, PETA_UJI, "t5_", REKAM_UJI), []),
+    ("periksa_hapus_lintas: FK ke kolom lain di tabel tujuan yang sama adalah FK lain (ke_kolom ikut identitas), jadi yang lama tetap hilang",
+     lambda: len(erd.periksa_hapus_lintas(LAMA_UJI, {"tahap": 5, "tabel": [
+         dengan(t, fk=[aturan("buku_akun_id_fkey", ["akun_id"], "akun", ("nomor",))]) if t["nama"] == "buku" else t for t in AKHIR_UJI]},
+         PETA_UJI, "t5_", REKAM_UJI)), 1),
+    ("periksa(): kunci partisi yang hanya memuat potongan nama kolom PK (idx untuk id) ditolak",
+     lambda: erd.periksa({"format": 1, "tahap": 5, "postgres": 17, "sumber": {"file": ["a"], "pembanding": [], "sha256": "0" * 64},
+                          "tabel": [dengan(TP_BARU, kolom=TP_BARU["kolom"] + [kol("dibuat")], partisi={"kunci": "RANGE (idx)", "anak": ["posting_a"]}), tabel("jurnal", "id")],
+                          "selisih": None}, 5),
+     ["posting.partisi: kunci partisi 'RANGE (idx)' tidak memuat kolom PK (PostgreSQL mensyaratkannya)"]),
     ("lintas_direkam membaca 18 baris dari rekaman lab asli",
      lambda: (erd.lintas_direkam(AKAR, REKAMAN)[0], len(erd.lintas_direkam(AKAR, REKAMAN)[1])), (18, 18)),
 ]
