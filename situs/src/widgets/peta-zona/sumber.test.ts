@@ -244,7 +244,7 @@ describe("sumber: kalimat komponen dan zona dikunci ke sumbernya", () => {
     ["Merchant", "Produk, promo, QR, ringkasan harian, dan mitra POS; laporan dibaca dari replica.", [["naskah", "Laporan dibaca dari replica, ringkasan harian per merchant"]]],
     ["Notifikasi", "Perangkat dan pengumuman; mengirim push dari outbox yang ditulis bersama jurnal.", [["naskah", "Notifikasi lewat outbox dalam transaction yang sama dengan jurnal"]]],
     ["Cicilan", "Jadwal dan angsuran; batch harian meminta jurnal ke ledger.", [["naskah", "Service cicilan dan batch harian tahan crash"], ["naskah", "Service lain membaca, atau meminta posting dengan Idempotency-Key"]]],
-    ["Primary + pooler", "Satu primary menerima semua tulisan; posting dipartisi per bulan; PgBouncer di depannya.", [["naskah", "satu primary menerima semua tulisan"], ["skema", "posting dipartisi per bulan"], ["diagram", "PgBouncer mode transaction di depannya"]]],
+    ["Primary + pooler", "Satu primary menerima semua tulisan ke PostgreSQL; posting dipartisi per bulan; PgBouncer di depannya.", [["naskah", "satu primary menerima semua tulisan"], ["skema", "posting dipartisi per bulan"], ["diagram", "PgBouncer mode transaction di depannya"]]],
     ["Standby sinkron", "Commit pembayaran menunggu satu standby sinkron, supaya jawaban sukses tidak hilang saat primary mati.", [["naskah", "jadi commit menunggu satu standby menerima dan menulis rekaman commit ke penyimpanan tahan lama"], ["naskah", "transaksi yang sudah dijawab sukses ikut hilang"]]],
     ["Replica laporan", "Asinkron, untuk laporan merchant dan bacaan berat; target tertinggal paling lama 5 detik (PRD v5, Asumsi produk).", [["naskah", "Replica laporan (ADR 46) terpisah dan asinkron"], ["diagram", "Replica asinkron untuk laporan merchant dan bacaan berat"]]],
     ["Ringkasan harian merchant", "Ringkasan per merchant per hari untuk laporan; bukan sumber saldo.", [["naskah", "Replica, ringkasan, cache, dan event hanya untuk dilihat"], ["naskah", "`ringkasan_merchant_harian`"]]],
@@ -299,5 +299,9 @@ describe("sumber: kalimat komponen dan zona dikunci ke sumbernya", () => {
     expect(judul(m![1]!)).toContain("dipecah ke enam schema service");
     expect(judul(m![2]!)).toContain("Hak per role");
     expect(t).toContain("lab api-t5");
+    // keputusan 1685: di lab satu proses (t5_app) memegang keenam role, jadi service sebagai proses terpisah bukan rekaman
+    expect(SKEMA).toContain("satu proses (t5_app) mewarisi keenam role");
+    expect(t).toContain("Di lab satu proses memegang keenam role, jadi enam proses terpisah dengan tiga instance tiap service tetap Asumsi.");
+    expect(t).not.toMatch(/Enam service, schema/);
   });
 });

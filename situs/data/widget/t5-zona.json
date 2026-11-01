@@ -3,7 +3,7 @@
   "judul": "Peta lima zona Tahap 5",
   "sumber": {
     "jenis": "asumsi",
-    "teks": "Zona, pembagian tim, dan delapan kejadian adalah rancangan penulis (Asumsi). Enam service, schema, jumlah tabel, dan hak role dibaca dari rekaman lab api-t5 (skema.txt, bagian E dan F). Halaman masalah di tiap kejadian memuat rekamannya sendiri, bila ada."
+    "teks": "Zona, pembagian tim, dan delapan kejadian adalah rancangan penulis (Asumsi). Pembagian enam service ke schema, jumlah tabel, dan hak role dibaca dari rekaman lab api-t5 (skema.txt, bagian E dan F). Di lab satu proses memegang keenam role, jadi enam proses terpisah dengan tiga instance tiap service tetap Asumsi. Halaman masalah di tiap kejadian memuat rekamannya sendiri, bila ada."
   },
   "tebak": {
     "q": "Ledger membuat jurnal dan posting. Di zona mana uang bergerak?",
@@ -59,7 +59,7 @@
       "label": "data",
       "ringkas": "Tempat data disimpan dan disalin: satu primary, replica, ringkasan, cache, dan event.",
       "komponen": [
-        { "label": "Primary + pooler", "jenis": "uang", "catatan": "Satu primary menerima semua tulisan; posting dipartisi per bulan; PgBouncer di depannya." },
+        { "label": "Primary + pooler", "jenis": "uang", "catatan": "Satu primary menerima semua tulisan ke PostgreSQL; posting dipartisi per bulan; PgBouncer di depannya." },
         { "label": "Standby sinkron", "jenis": "salinan", "catatan": "Commit pembayaran menunggu satu standby sinkron, supaya jawaban sukses tidak hilang saat primary mati." },
         { "label": "Replica laporan", "jenis": "salinan", "catatan": "Asinkron, untuk laporan merchant dan bacaan berat; target tertinggal paling lama 5 detik (PRD v5, Asumsi produk)." },
         { "label": "Ringkasan harian merchant", "jenis": "salinan", "catatan": "Ringkasan per merchant per hari untuk laporan; bukan sumber saldo." },
