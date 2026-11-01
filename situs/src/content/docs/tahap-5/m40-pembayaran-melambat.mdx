@@ -72,7 +72,7 @@ Kedua putaran selesai tanpa galat: 1.000 dari 1.000 pembayaran 201, dan 6.667 da
 
 Jadi rekaman tidak menunjukkan pembayaran yang melambat. Batas 2.000 ms hanya memeriksa bahwa kedua putaran tidak macet.
 
-Dua perbedaan antara lab dan produksi bisa menjelaskan kenapa perlambatan tidak terlihat (penalaran). Pertama, laporan menjumlah data satu hari dari 9 warung. Query laporan berjalan di bawah 1 ms. Hanya batasnya yang direkam (Rekaman lab, bagian A). `EXPLAIN ANALYZE` menjalankan statement dan menambahkan statistik waktu nyata ([PostgreSQL 17.11, EXPLAIN](https://www.postgresql.org/docs/17/sql-explain.html), dibuka 2026-11-02, Tidak dijalankan).
+Dua perbedaan antara lab dan produksi bisa menjelaskan kenapa perlambatan tidak terlihat (penalaran, yaitu kesimpulan dari kode dan angka di halaman, bukan hasil ukuran). Pertama, laporan menjumlah data satu hari dari 9 warung. Query laporan berjalan di bawah 1 ms. Hanya batasnya yang direkam (Rekaman lab, bagian A). `EXPLAIN ANALYZE` menjalankan statement dan menambahkan statistik waktu nyata ([PostgreSQL 17.11, EXPLAIN](https://www.postgresql.org/docs/17/sql-explain.html), dibuka 2026-11-02, Tidak dijalankan).
 
 Kedua, polling lab berasal dari 9 warung, yaitu 666,7 ÷ 9 = 74,1 per warung per detik (Hitungan). Di produksi, 20.000 merchant masing-masing bertanya sekali tiap 30 detik.
 
@@ -106,7 +106,7 @@ Hasilnya 0 hit, 18 miss, dan 18 pembacaan database. Kontrol dengan dua client pe
 
 Jarak 30,5 detik lebih panjang dari TTL 30 detik, jadi 0 hit memang diharapkan. Jarak 30 detik atau lebih pendek tidak direkam. Bila jarak satu perangkat 29 detik, panggilan kedua mendapat hit. Panggilan ketiga tidak, karena hit tidak memperpanjang umur isi: ia datang 29 + 29 = 58 detik sesudah isi dibuat, jauh di atas 30 (Hitungan).
 
-Kode lab membaca kunci dengan `GET`, dan menyimpannya dengan `SET` berumur TTL hanya saat miss. Dokumentasi Redis menulis bahwa timeout hanya dihapus perintah yang menghapus atau menimpa isi kunci. Halaman sumbernya, [Redis, EXPIRE](https://redis.io/docs/latest/commands/expire/), berversi latest tanpa nomor dan dibuka 2026-11-02 (Tidak dijalankan). `GET` membaca tanpa menimpa isinya, jadi hit tidak memperpanjang umur isi. Hasil terbaik satu hit dari dua panggilan (penalaran, tidak direkam).
+Kode lab membaca kunci dengan `GET`, dan menyimpannya dengan `SET` berumur TTL hanya saat miss. Dokumentasi Redis menulis bahwa timeout hanya dihapus perintah yang menghapus atau menimpa isi kunci. Halaman sumbernya, [Redis, EXPIRE](https://redis.io/docs/latest/commands/expire/), berversi latest tanpa nomor dan dibuka 2026-11-02 (Tidak dijalankan). `GET` membaca tanpa menimpa isinya, jadi hit tidak memperpanjang umur isi. Untuk jarak di antara 15 dan 30 detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran, tidak direkam).
 
 Hit juga hanya melewati `LaporanHariIni`. Pemeriksaan sesi dan `Akun` tetap membaca database di tiap panggilan (Tidak dijalankan: dibaca dari kode). Pencacah "baca database" tidak menghitung dua perintah itu.
 
@@ -173,7 +173,7 @@ Tidak. Batas 2.000 ms hanya memeriksa bahwa kedua putaran tidak macet, dan selis
 <details class="success">
 <summary>Jawaban</summary>
 
-Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam, dan hasil terbaiknya satu hit dari dua panggilan (Hitungan). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5.
+Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam; di antara 15 dan 30 detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5.
 
 </details>
 

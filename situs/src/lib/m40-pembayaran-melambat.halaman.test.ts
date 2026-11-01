@@ -572,7 +572,8 @@ describe("hitungan beban produksi: diturunkan dari angka naskah dan angka yang t
     harus(`Dengan cache, penjualan baru bisa terlihat ${TTL} + ${INTERVAL} = ${TTL + INTERVAL} detik sesudah tercatat (Hitungan atas Asumsi produk).`);
     expect(TTL + INTERVAL).toBeGreaterThan(Number(PRD_LAYAR[2]));
     expect(INTERVAL + PRD_TERTINGGAL).toBe(Number(PRD_LAYAR[2]));
-    harus("Hasil terbaik satu hit dari dua panggilan (penalaran, tidak direkam).");
+    harus(`Untuk jarak di antara ${TTL / 2} dan ${TTL} detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran, tidak direkam).`);
+    expect(badan).not.toContain("Hasil terbaik");
   });
 });
 
@@ -774,7 +775,83 @@ describe("tinjauan sendiri: kalimat, bullet, judul Snippet, dan frontmatter yang
   });
 });
 
-const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "Raka", "Budi", "Ani", "Wulan", "Nadia", "pertama", "kedua", "bukan", "tanpa", "kecuali", "semua", "juga", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "penalaran", "primary", "replica", "cache", "hit", "miss", "TTL", "p95", "CPU", "vCPU", "query", "pembayaran", "laporan", "polling", "database", "lebih", "paling", "bisa", "direkam", "tidak direkam", "dibaca dari kode", "200", "201", "404", "ms", "detik", "merchant", "warung", "perangkat", "lab", "produksi", "naskah", "cerita", "batas atas", "perintah SQL", "GET", "SET", "Bearer", "di atas", "di bawah", "sebanding", "memperpanjang", "kedaluwarsa", "setua", "sesudah tercatat", "Hasil terbaik", "satu hit dari dua panggilan"];
+describe("tinjauan peninjau 5.4: hit rate dihitung, tiga perintah SQL hanya membaca, batas lab dari run.py, teks skenario dan id diagram diturunkan, tanpa kalimat ganda", () => {
+  // Isi dibuat saat miss dan berumur TTL; hit tidak memperpanjangnya (cache.go Baca). Satu client memanggil tiap `d` detik.
+  const hitRate = (d: number, n = 2000): number => {
+    let isi: number | null = null;
+    let hit = 0;
+    for (let k = 0; k < n; k++) {
+      const waktu = k * d;
+      if (isi !== null && waktu - isi < TTL - 1e-9) hit++;
+      else isi = waktu;
+    }
+    return hit / n;
+  };
+  test("hit rate satu client per merchant: tepat satu dari dua di antara TTL/2 dan TTL, lebih banyak di bawah TTL/2, nol pada jarak rekaman", () => {
+    expect(hitRate(JARAK)).toBe(0);
+    expect(hitRate(TTL)).toBe(0);
+    expect(hitRate(29)).toBeCloseTo(0.5, 2);
+    expect(hitRate(TTL / 2 + 1)).toBeCloseTo(0.5, 2);
+    expect(hitRate(TTL / 2 - 1)).toBeGreaterThan(0.6);
+    expect(hitRate(5)).toBeGreaterThan(0.8);
+    expect(Number.isInteger(TTL / 2)).toBe(true);
+    // Lingkup di halaman, kartu, dan baris riset sama dengan batas yang dihitung; kata "terbaik" tanpa lingkup tidak boleh kembali.
+    const lingkup = `di antara ${TTL / 2} dan ${TTL} detik`;
+    expect(badan.split(lingkup).length - 1).toBe(2);
+    const cek = badan.split("### Cek diri")[1]!;
+    expect(cek).toContain(`${lingkup}, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran).`);
+    expect(barisRiset("R5-127")).toContain(`jadi untuk jarak ${lingkup} paling banyak satu hit dari dua panggilan berurutan satu perangkat (penalaran;`);
+    expect(riset.match(/jarak 14 detik atau lebih pendek lebih dari satu dari dua/g)).toHaveLength(1);
+    expect(`${badan}\n${barisRiset("R5-127")}`).not.toMatch(/hasil terbaik|paling baik satu hit/i);
+  });
+  test("label turunan Hitungan dan penalaran diberi satu kalimat arti di pemakaian pertamanya di badan halaman", () => {
+    const hitungan = "adalah Hitungan, yaitu angka yang dihitung dari angka lain di halaman.";
+    expect(badan.split(hitungan).length - 1).toBe(1);
+    expect(badan.indexOf("Hitungan"), "pemakaian pertama Hitungan ada di kalimat definisinya").toBe(badan.indexOf(hitungan) + "adalah ".length);
+    const penalaran = "(penalaran, yaitu kesimpulan dari kode dan angka di halaman, bukan hasil ukuran)";
+    expect(badan.split(penalaran).length - 1).toBe(1);
+    expect(badan.indexOf("penalaran"), "pemakaian pertama penalaran ada di kalimat definisinya").toBe(badan.indexOf(penalaran) + 1);
+  });
+  test("tiga perintah SQL: SesiAktif, Akun, dan LaporanHariIni hanya membaca; wajibLogin dan Periksa memanggil satu pemeriksaan sesi", () => {
+    const sesi = cocok(repoGo, /func \(r Repo\) SesiAktif\([\s\S]*?\n\}\n/)[0];
+    const akun = cocok(repoGo, /func \(r Repo\) Akun\([\s\S]*?\n\}\n/)[0];
+    for (const [nama, f] of [["SesiAktif", sesi], ["Akun", akun], ["LaporanHariIni", badanRepo]] as const) {
+      expect(f, `${nama} tidak boleh mengubah data`).not.toMatch(/\b(INSERT|UPDATE|DELETE|TRUNCATE)\b|ExecContext|\.Exec\(|BeginTx|FOR UPDATE/i);
+      expect(f.match(/QueryRowContext/g), `${nama}: satu perintah`).toHaveLength(1);
+    }
+    const wajib = cocok(handlerGo, /func \(s Server\) wajibLogin\([\s\S]*?\n\}\n/)[0];
+    expect(wajib.match(/s\.svc\.\w+\(/g)).toEqual(["s.svc.Periksa("]);
+    const periksa = cocok(sesiGo, /func \(s Service\) Periksa\([\s\S]*?\n\}\n/)[0];
+    expect(periksa.match(/s\.repo\.\w+\(/g)).toEqual(["s.repo.SesiAktif("]);
+    harus("laporan hanya membaca dan tidak mengubah apa pun");
+  });
+  test("run.py menjalankan rekaman dengan batas p95, laju, dan jeda yang sama dengan angka rekaman dan halaman", () => {
+    expect(runPy).toContain(`    batas = ${BATAS}\n`);
+    expect(BATAS2).toBe(BATAS);
+    expect(runPy).toContain(`DETIK, BAYAR_RPS, LAPORAN_RPS = ${DETIK}, ${RPS_BAYAR.toFixed(1)}, ${RPS_LAPORAN.toFixed(1)}`);
+    expect(runPy).toContain(`time.sleep(${JARAK.toFixed(1)})`);
+    expect(runPy).toContain(`"-laporan-ttl", "${TTL}s"]`);
+  });
+  test("skenario dan diagram: selisih jarak dan TTL, label komponen Redis, huruf bagian varian, id diagram sama dengan berkas yang diimpor", () => {
+    expect(skenario.langkah[4]!.jelas).toContain(`sekitar ${koma(JARAK - TTL, 1)} detik sesudah isi cache kedaluwarsa`);
+    expect(skenario.komponen.find((k) => k.id === "rds")!.label).toBe(`Redis: cache laporan ${TTL} detik`);
+    const hurufC = cocok(L.baris[lC - 1]!, /^# --- ([A-Z])\. /)[1]!;
+    expect(hurufC).toBe("C");
+    expect(skenario.sumber.catatan).toContain(`Ubah satu hal: bagian ${hurufC} (kontrol dengan dua client per warung)`);
+    const impor = cocok(badan, /import laporanPrimary from "[^"]*\/([\w-]+)\.json";/)[1]!;
+    expect(diagramMentah.id).toBe(impor);
+    expect(impor).toBe("t5-m40-laporan-primary");
+    expect(skenario.predict.q).toContain(`berjarak ${C_JARAK[1]} detik`);
+  });
+  test("tidak ada kalimat prosa yang muncul dua kali di badan halaman", () => {
+    const prosa = badan.split("\n").map((b) => b.trim()).filter((b) => b && !b.startsWith("|") && !b.startsWith("<") && !b.startsWith("import "));
+    const kalimat = prosa.flatMap((b) => b.split(/(?<=[.!?])\s+(?=[A-Z*`(])/)).map((s) => s.trim()).filter((s) => s.length > 25);
+    expect(kalimat.length).toBeGreaterThan(60);
+    expect(kalimat.filter((s, i) => kalimat.indexOf(s) !== i)).toEqual([]);
+  });
+});
+
+const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "Raka", "Budi", "Ani", "Wulan", "Nadia", "pertama", "kedua", "bukan", "tanpa", "kecuali", "semua", "juga", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "penalaran", "primary", "replica", "cache", "hit", "miss", "TTL", "p95", "CPU", "vCPU", "query", "pembayaran", "laporan", "polling", "database", "lebih", "paling", "bisa", "direkam", "tidak direkam", "dibaca dari kode", "200", "201", "404", "ms", "detik", "merchant", "warung", "perangkat", "lab", "produksi", "naskah", "cerita", "batas atas", "perintah SQL", "GET", "SET", "Bearer", "di atas", "di bawah", "sebanding", "memperpanjang", "kedaluwarsa", "setua", "sesudah tercatat", "paling banyak", "di antara", "berurutan", "yaitu", "bukan hasil ukuran"];
 const profil = (teks: string): string =>
   PENENTU.map((k) => {
     const n = (teks.match(new RegExp(`(?<![\\p{L}-])${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}-])`, "gu")) ?? []).length;

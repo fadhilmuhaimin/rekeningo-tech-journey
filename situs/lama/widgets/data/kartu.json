@@ -3557,7 +3557,7 @@
   "judul": "5.4 M40: Pembayaran melambat saat merchant membuka laporan",
   "url": "tahap-5/m40-pembayaran-melambat/",
   "tanya": "Rekaman cache menghasilkan 0 hit dari 18. Apa yang tidak dijawab rekaman itu, dan alasan lain apa yang membuat cache 30 detik bermasalah?",
-  "jawab": "Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam, dan hasil terbaiknya satu hit dari dua panggilan (Hitungan). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5."
+  "jawab": "Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam; di antara 15 dan 30 detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5."
  },
  {
   "id": "t5-onprem-1",
