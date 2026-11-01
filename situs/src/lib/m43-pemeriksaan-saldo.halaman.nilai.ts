@@ -17,7 +17,7 @@ export const KALIMAT_TERKUNCI: string[] = [
   "import WidgetLama from \"../../../components/WidgetLama.astro\";",
   "import SkripLama from \"../../../components/SkripLama.astro\";",
   "import bacaPosting from \"../../../../data/diagram/t5-m43-baca-posting.json\";",
-  "<p class=\"meta\">Baca 8 menit · coba 3 menit · Prasyarat: [[t5-skema]], [[t2-ledger]] · Jalur inti</p>",
+  "<p class=\"meta\">Baca 8 menit · coba 3 menit · Prasyarat: [[t2-ledger]], [[t5-skema]] · Jalur inti</p>",
   "<Blok nama=\"Gejala\" buka>",
   "Minggu 5 Tahap 5. Pukul 08.00 Pak Hadi membuka laporan tutup buku harian, dan laporan itu belum ada.",
   "Hendra memeriksa. Pemeriksaan harian yang ia tulis baru selesai pukul 14.20, padahal target Pak Hadi pukul 06.00.",

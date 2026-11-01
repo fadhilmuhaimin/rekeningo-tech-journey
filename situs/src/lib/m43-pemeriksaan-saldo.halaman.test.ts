@@ -151,14 +151,14 @@ const TOTAL_LAB = POSTING_PER_BULAN_LAB * BARIS_PRUNING_A.length;
 const BUKU_LAB = Number(cocok(sA.teks, /cek cache: (\d+) buku diperiksa, 0 tidak cocok/)[1]);
 
 describe("registry, meta, susunan blok, dan tautan", () => {
-  test("5.10 ada, masalah, jalur inti, prasyarat 5.3 dan 2.7, lab t5-partisi, peran backend; judul sama dengan peta naskah; menit = baca + coba", () => {
-    expect(dari("t5-m43")).toMatchObject({ ada: true, nomor: "5.10", jenis: "masalah", inti: true, prasyarat: ["t5-skema", "t2-ledger"], lab: ["t5-partisi"], tahap: 5, peran: ["backend"] });
+  test("5.10 ada, masalah, jalur inti, prasyarat 2.7 lalu 5.3 (urutan ini menjaga baris meta tidak membungkus berbeda saat font tukar), lab t5-partisi, peran backend; judul sama dengan peta naskah; menit = baca + coba", () => {
+    expect(dari("t5-m43")).toMatchObject({ ada: true, nomor: "5.10", jenis: "masalah", inti: true, prasyarat: ["t2-ledger", "t5-skema"], lab: ["t5-partisi"], tahap: 5, peran: ["backend"] });
     expect(dari("t5-skema").nomor).toBe("5.3");
     expect(dari("t2-ledger").nomor).toBe("2.7");
     expect(frontmatter).toContain('title: "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20"');
     expect(dari("t5-m43").judul).toBe("M43: Pemeriksaan saldo harian selesai pukul 14.20");
     expect(naskah).toContain("| 5.10 | 4 | M43: Pemeriksaan saldo harian selesai pukul 14.20 | Masalah | ★ | t5-partisi | alur |");
-    const m = cocok(badan, /<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t5-skema\]\], \[\[t2-ledger\]\] · Jalur inti<\/p>/);
+    const m = cocok(badan, /<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t2-ledger\]\], \[\[t5-skema\]\] · Jalur inti<\/p>/);
     expect(dari("t5-m43").menit).toBe(Number(m[1]) + Number(m[2]));
   });
   test("menit baca masuk akal terhadap jumlah kata (sekitar 200 kata per menit)", () => {

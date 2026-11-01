@@ -4408,8 +4408,8 @@
       "label": "Masalah 43 · minggu 5",
       "masalah": "Pemeriksaan harian yang membaca semua posting tidak selesai sebelum pagi, dan posting lama tidak boleh dihapus",
       "prasyarat": [
-        "t5-skema",
-        "t2-ledger"
+        "t2-ledger",
+        "t5-skema"
       ],
       "lab": [
         "t5-partisi"
