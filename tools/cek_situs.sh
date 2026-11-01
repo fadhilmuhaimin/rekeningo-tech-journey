@@ -43,7 +43,7 @@ KELOMPOK_UKUR=(
   "galur@lanskap-hp tangkap kontras"
   "cls gerak"
   "alur erd"
-  "diagram luapan pool outbox cache webhook breaker biaya zona"
+  "diagram luapan pool outbox cache webhook breaker biaya zona lag"
 )
 ukuran_bagian() {
   case "$1" in
@@ -209,6 +209,9 @@ jalan_ukur() {
     zona)
       echo "== widget peta lima zona Tahap 5: tebak dulu, tabel dari hitungan sendiri, ARIA, jawaban dibuka dari zona uang, target, 320 px Verdana, axe, tanpa JavaScript (W5-zona)"
       (cd situs && node tools/ukur-zona.mjs --url "$URL" | grep -v "^ok ") ;;
+    lag)
+      echo "== widget jeda replica Tahap 5: tebak dulu, 15 kombinasi jeda dan aturan dari hitungan sendiri, ARIA, keyboard, target, 320 px Verdana, axe, reduced motion, tanpa JavaScript, CLS font telat (W5-lag)"
+      (cd situs && node tools/ukur-lag.mjs --url "$URL" | grep -v "^ok ") ;;
     race)
       echo "== widget race ledger: tebak dulu, keyboard, ARIA, reduced motion, angka dari rekaman, axe akhir, CLS (W2-race)"
       (cd situs && node tools/ukur-race.mjs --url "$URL" | grep -v "^ok ") ;;
