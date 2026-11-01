@@ -4262,8 +4262,9 @@
       "lab": [
         "api-t5"
       ],
-      "ada": false,
-      "nomor": "5.4"
+      "ada": true,
+      "nomor": "5.4",
+      "menit": 12
     },
     {
       "id": "t5-read-replica",

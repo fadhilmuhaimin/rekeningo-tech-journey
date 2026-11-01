@@ -3536,6 +3536,30 @@
   "jawab": "Alternatif dan konsekuensi negatif. AI cenderung menulis keputusan yang terdengar meyakinkan, tapi melewatkan pilihan yang ditolak atau biaya yang muncul. Periksa juga angka di konteks: harus berasal dari data atau asumsi yang ditulis terbuka, bukan karangan."
  },
  {
+  "id": "t5-m40-1",
+  "halaman": "t5-m40",
+  "judul": "5.4 M40: Pembayaran melambat saat merchant membuka laporan",
+  "url": "tahap-5/m40-pembayaran-melambat/",
+  "tanya": "Pembayaran ikut melambat padahal laporan hanya membaca. Apa yang keduanya pakai bersama di lab, dan dari mana kamu tahu?",
+  "jawab": "Primary. Fungsi `LaporanHariIni` menjumlah baris `posting` lewat pool koneksi yang sama dengan pembayaran, dan di lab hanya ada satu PostgreSQL (Tidak dijalankan: dibaca dari kode). Rekaman bagian A menunjukkan rute laporan hanya ada bersama mode `laporan-primary`."
+ },
+ {
+  "id": "t5-m40-2",
+  "halaman": "t5-m40",
+  "judul": "5.4 M40: Pembayaran melambat saat merchant membuka laporan",
+  "url": "tahap-5/m40-pembayaran-melambat/",
+  "tanya": "Di rekaman bagian B, p95 pembayaran di bawah 2.000 ms dengan dan tanpa laporan. Apakah itu membuktikan laporan tidak memperlambat pembayaran?",
+  "jawab": "Tidak. Batas 2.000 ms hanya memeriksa bahwa kedua putaran tidak macet, dan selisih p95 tidak direkam. Yang terekam: 1.000 dari 1.000 pembayaran 201 dan 6.667 dari 6.667 laporan 200. Angka 666,7 per detik dan 167% CPU tetap Hitungan atas Asumsi."
+ },
+ {
+  "id": "t5-m40-3",
+  "halaman": "t5-m40",
+  "judul": "5.4 M40: Pembayaran melambat saat merchant membuka laporan",
+  "url": "tahap-5/m40-pembayaran-melambat/",
+  "tanya": "Rekaman cache menghasilkan 0 hit dari 18. Apa yang tidak dijawab rekaman itu, dan alasan lain apa yang membuat cache 30 detik bermasalah?",
+  "jawab": "Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam; di antara 15 dan 30 detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5."
+ },
+ {
   "id": "t5-m44-1",
   "halaman": "t5-m44",
   "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
