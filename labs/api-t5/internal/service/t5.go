@@ -166,6 +166,8 @@ type HasilCicilan struct {
 	Dicatat   int // angsuran selesai
 	Dilewati  int // dilewati karena Idempotency-Key masih hidup (hanya mode rentan)
 	Gagal     int // saldo kurang
+	// Dihentikan: job berhenti karena OpsiCicilan.BerhentiSetelahJurnal (lab saja), sebelum angsurannya ditandai.
+	Dihentikan bool
 }
 
 // OpsiCicilan: BerhentiSetelahJurnal > 0 menghentikan job (seperti proses mati, lab saja) sesudah sekian jurnal ditulis
@@ -196,11 +198,13 @@ func (s Service) JalankanCicilan(ctx context.Context, sampai time.Time, o OpsiCi
 		berhenti := func() bool { ditulis++; return o.BerhentiSetelahJurnal > 0 && ditulis >= o.BerhentiSetelahJurnal }
 		if s.rentan == RentanCicilanSatuJob {
 			if stop, err := s.tagihRentan(ctx, a, &h, berhenti); err != nil || stop {
+				h.Dihentikan = stop
 				return h, err
 			}
 			continue
 		}
 		if stop, err := s.tagihBenar(ctx, a, &h, berhenti); err != nil || stop {
+			h.Dihentikan = stop
 			return h, err
 		}
 	}
@@ -219,11 +223,6 @@ func jenisJurnalAngsuran(a repo.Angsuran) string {
 // jurnalAngsuran menulis jurnal satu angsuran: buku akun berkurang, buku merchant (cicilan) atau buku tabungan akun
 // itu sendiri (tabungan) bertambah. referensi nil = tanpa referensi (mode rentan).
 func (s Service) jurnalAngsuran(ctx context.Context, tx repo.Tx, a repo.Angsuran, referensi *string) (jurnal int64, baru bool, err error) {
-	if referensi != nil {
-		if id, ada, err := tx.JurnalReferensi(ctx, *referensi); err != nil || ada {
-			return id, false, err
-		}
-	}
 	akun := []int64{a.AkunID}
 	if a.MerchantAkunID != nil {
 		akun = append(akun, *a.MerchantAkunID)
@@ -231,6 +230,13 @@ func (s Service) jurnalAngsuran(ctx context.Context, tx repo.Tx, a repo.Angsuran
 	buku, err := tx.KunciBukuAkun(ctx, akun...)
 	if err != nil {
 		return 0, false, err
+	}
+	// Referensi dibaca sesudah buku dikunci: dua job serentak yang sama-sama belum melihat jurnal berebut buku, dan yang
+	// kalah harus melihat jurnal pemenang di sini, bukan membaca saldo yang sudah berkurang lalu menyebutnya kurang.
+	if referensi != nil {
+		if id, ada, err := tx.JurnalReferensi(ctx, *referensi); err != nil || ada {
+			return id, false, err
+		}
 	}
 	dari := buku[a.AkunID]
 	var ke repo.Buku
@@ -333,6 +339,65 @@ func (s Service) tagihRentan(ctx context.Context, a repo.Angsuran, h *HasilCicil
 	}
 	return false, err
 }
+
+// --8<-- [start:kompensasi]
+// KompensasiAngsuran membatalkan satu angsuran yang sudah terjurnal dan tidak bisa diselesaikan (langkah akhirnya gagal
+// permanen): jurnal pembalik atas jurnal angsuran dan status `gagal`, dalam satu transaction (ADR 54, saga). Jurnal asal
+// tidak diubah. Hanya admin, alasan minimal 20 karakter; angsuran `menunggu` atau `dicatat` tidak dikompensasi.
+func (s Service) KompensasiAngsuran(ctx context.Context, peminta, jadwal int64, ke int, alasan string) (int64, error) {
+	admin, err := s.repo.Akun(ctx, peminta)
+	if err != nil {
+		return 0, err
+	}
+	if admin.Jenis != "admin" {
+		return 0, ErrDilarang
+	}
+	alasan = strings.TrimSpace(alasan)
+	if len(alasan) < 20 {
+		return 0, ErrValidasi{"alasan", "wajib, minimal 20 karakter: kenapa angsuran ini dikompensasi"}
+	}
+	var balik int64
+	err = s.repo.DalamTx(ctx, func(tx repo.Tx) error {
+		status, jurnal, err := tx.AngsuranKunci(ctx, jadwal, ke)
+		if errors.Is(err, repo.ErrTidakAda) {
+			return ErrTidakDitemukan
+		}
+		if err != nil {
+			return err
+		}
+		if status != "terjurnal" || jurnal == nil {
+			return ErrValidasi{"angsuran", "hanya angsuran berstatus terjurnal yang dikompensasi"}
+		}
+		_, asal, _, err := s.repo.JurnalAsal(ctx, *jurnal)
+		if err != nil {
+			return err
+		}
+		bukuID := make([]int64, len(asal))
+		cermin := make([]repo.Posting, len(asal))
+		for i, p := range asal {
+			bukuID[i], cermin[i] = p.BukuID, repo.Posting{BukuID: p.BukuID, Jumlah: -p.Jumlah}
+		}
+		buku, err := tx.KunciBukuID(ctx, bukuID...)
+		if err != nil {
+			return err
+		}
+		for _, p := range cermin {
+			if b := buku[p.BukuID]; b.Jenis == "karyawan" && b.Saldo+p.Jumlah < 0 {
+				return ErrSaldoKurang
+			}
+		}
+		if balik, err = tx.CatatJurnal(ctx, "pembalik", alasan, peminta, jurnal, cermin); err != nil {
+			return err
+		}
+		return tx.AngsuranGagalSesudahBalik(ctx, jadwal, ke)
+	})
+	if isUnik(err) {
+		return 0, ErrSudahDibalik
+	}
+	return balik, err
+}
+
+// --8<-- [end:kompensasi]
 
 // DenganEventPembayaran menyalakan event pembayaran untuk relay (flag -event-pembayaran, lab t5-fanout): Bayar menulis
 // satu baris outbox stream di transaction jurnalnya. Hanya Bayar (POST /transfers); jalur katalog dan QR belum menulisnya.
