@@ -442,8 +442,11 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-165 sam
     expect(new Set(ids).size).toBe(ids.length);
     const pos = ["R5-165", "R5-166", "R5-167", "R5-168", "R5-169"].map((i) => ids.indexOf(i));
     expect(pos).toEqual([pos[0]!, pos[0]! + 1, pos[0]! + 2, pos[0]! + 3, pos[0]! + 4]);
-    expect(ids[pos[0]! - 1]).toBe("R5-114");
-    expect(ids[pos[4]! + 1]).toBe("R5-245");
+    // tetangga baris riset milik halaman lain berubah saat PR halaman lain menyisip: pakai urutan naik, bukan nama tetangga (keputusan 1547)
+    const nomorId = ids.map((x) => Number(x.slice(3)));
+    expect(nomorId).toEqual([...nomorId].sort((a, b) => a - b));
+    expect(nomorId[pos[0]! - 1]!).toBeLessThan(165);
+    expect(nomorId[pos[4]! + 1]!).toBeGreaterThan(169);
     for (const i of ["R5-165", "R5-166", "R5-167", "R5-168", "R5-169"]) expect(pecahBaris(barisRiset(i)).length).toBe(5);
     const h = barisRiset("R5-168");
     expect(h).toContain(`${pipeMenit} − ${ambang} = ${selisihMenit}`);
