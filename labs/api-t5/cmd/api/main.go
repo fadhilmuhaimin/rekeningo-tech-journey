@@ -1,4 +1,4 @@
-// Lab API Tahap 4 · Rekeningo (fiktif), mengikuti plan/CERITA-TAHAP-4.md (lab-api-t5).
+// Lab API Tahap 5 · Rekeningo (fiktif), mengikuti plan/CERITA-TAHAP-5.md; berangkat dari api-t4.
 // api-t3 yang naik ke publik (top-up dari bank, verifikasi identitas, QR, kartu, back office). Di bawahnya api-t3: api-t2 yang naik ke enam kota: monolith yang sama, tiga lapisan (internal/handler, internal/service,
 // internal/repo), satu PostgreSQL. Yang baru: pemberitahuan lewat outbox (ADR 23) dan worker di proses sendiri,
 // katalog dan stok per kota, promo dari HR, sinkron offline, dasbor web. Satu binary, dua peran: `-peran api`

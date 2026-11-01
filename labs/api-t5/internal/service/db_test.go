@@ -18,7 +18,7 @@ import (
 )
 
 // --8<-- [start:siapkan]
-// Database dan schema yang dibuat labs/api-t5/run.py dari file migration yang sama (skema akhir Tahap 3).
+// Database dan schema yang dibuat labs/api-t5/run.py dari file migration yang sama (skema akhir Tahap 5).
 const databaseTes = "lab"
 
 // appTes: application_name koneksi milik proses tes ini (satu per proses). Tes yang membaca pg_stat_activity
