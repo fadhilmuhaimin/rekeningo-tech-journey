@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
-  title: Rekeningo API v4 (fiktif)
-  version: 4.0.0
-  description: Kontrak server labs/api-t4 (Tahap 4, dibuka ke publik). Semua endpoint Tahap 3 tetap; akun menambah tingkat dan status serta jenis pemakai, merchant, dan risk (nilai enum baru). Yang baru adalah pendaftaran, top-up dari bank lewat gateway dan webhook-nya, verifikasi identitas, merchant luar dan QR, kartu virtual dan panggilan dari penerbit, back office tim risk, audit log berantai, dan impor katalog merchant. Gateway, layanan verifikasi, dan penerbit adalah tiruan lokal. Lab, bukan layanan sungguhan.
+  title: Rekeningo API v5 (fiktif)
+  version: 5.0.0
+  description: Kontrak server labs/api-t5 (Tahap 5, satu negara). Semua endpoint Tahap 4 tetap dengan kontrak yang sama. Yang baru adalah laporan merchant hari ini, pengumuman, dan jadwal cicilan atau tabungan. API untuk mitra POS belum ada di lab ini (tabel mitra_pos ada; endpoint dan kontraknya milik lab t5-waf). Gateway, layanan verifikasi, dan penerbit adalah tiruan lokal. Lab, bukan layanan sungguhan.
   license: { name: MIT, identifier: MIT }
 servers:
   - url: http://127.0.0.1:{port}
     variables:
-      port: { default: '18280', description: 'Port dasar lab api-t4; ditambah LAB_PORT_OFFSET di lajur kerja lain' }
+      port: { default: '18310', description: 'Port dasar lab api-t5; ditambah LAB_PORT_OFFSET di lajur kerja lain' }
 security:
   - bearer: []
 paths:
@@ -1335,6 +1335,133 @@ paths:
         '403': { description: 'Bukan merchant, belum terverifikasi, atau dibekukan', content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } } }
         '422': { $ref: '#/components/responses/Problem' }
         '429': { $ref: '#/components/responses/TerlaluSering' }
+  /merchant/{id}/laporan/hari-ini:
+    get:
+      operationId: laporanHariIni
+      summary: Laporan uang masuk ke merchant hari ini (WIB), dibaca dari primary; hanya pemilik. Di lab ini rute hanya ada dengan -rentan laporan-primary (M40)
+      security:
+        - bearer: []
+        - sesiWeb: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Jumlah dan total uang masuk hari ini
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [merchant, tanggal, jumlah_transaksi, total, dibaca_dari]
+                properties:
+                  merchant: { type: integer, format: int64 }
+                  tanggal: { type: string, format: date }
+                  jumlah_transaksi: { type: integer, format: int64, minimum: 0 }
+                  total: { type: integer, format: int64, minimum: 0, description: 'Rupiah' }
+                  dibaca_dari: { type: string, enum: [primary], description: 'Sumber bacaan; versi lab ini hanya primary' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+  /pengumuman:
+    post:
+      operationId: buatPengumuman
+      summary: Membuat satu pengumuman ke semua perangkat. Satu baris pengumuman dan satu baris outbox bertujuan stream, bukan satu baris per penerima; hanya admin atau hr. Dibatasi 5 pengumuman per akun per jam (Asumsi lab)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [judul]
+              properties:
+                judul: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        '201':
+          description: Pengumuman dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, jumlah_penerima]
+                properties:
+                  id: { type: integer, format: int64 }
+                  jumlah_penerima: { type: integer, minimum: 0, description: 'Akun dengan sedikitnya satu perangkat saat dibuat' }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+  /cicilan:
+    post:
+      operationId: buatCicilan
+      summary: Membuat jadwal cicilan ke satu merchant, atau jadwal tabungan ke buku tabungan sendiri; semua angsurannya dibuat berstatus menunggu. Karyawan atau pemakai yang tidak dibekukan. Dibatasi 10 jadwal per akun per jam (Asumsi lab)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jenis, jumlah_per_angsuran, jumlah_angsuran, hari_tagih, mulai]
+              properties:
+                jenis: { type: string, enum: [cicilan, tabungan] }
+                merchant_akun_id: { type: integer, format: int64, description: 'Wajib untuk cicilan, dilarang untuk tabungan' }
+                jumlah_per_angsuran: { type: integer, format: int64, minimum: 1, maximum: 10000000, description: 'Rupiah' }
+                jumlah_angsuran: { type: integer, minimum: 1, maximum: 36 }
+                hari_tagih: { type: integer, minimum: 1, maximum: 28 }
+                mulai: { type: string, format: date, description: 'Jatuh tempo angsuran ke-1; berikutnya tanggal yang sama tiap bulan' }
+      responses:
+        '201':
+          description: Jadwal dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: { type: integer, format: int64 }
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+        '429': { $ref: '#/components/responses/Problem' }
+  /cicilan/{id}:
+    get:
+      operationId: lihatCicilan
+      summary: Jadwal dan angsurannya; hanya pemilik jadwal
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Jadwal dengan angsuran urut menurut nomor
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [jadwal, angsuran]
+                properties:
+                  jadwal:
+                    type: object
+                    required: [id, akun_id, jenis, merchant_akun_id, jumlah_per_angsuran, jumlah_angsuran, hari_tagih, status]
+                    properties:
+                      id: { type: integer, format: int64 }
+                      akun_id: { type: integer, format: int64 }
+                      jenis: { type: string, enum: [cicilan, tabungan] }
+                      merchant_akun_id: { type: [integer, 'null'], format: int64 }
+                      jumlah_per_angsuran: { type: integer, format: int64 }
+                      jumlah_angsuran: { type: integer }
+                      hari_tagih: { type: integer }
+                      status: { type: string, enum: [aktif, selesai, dihentikan] }
+                  angsuran:
+                    type: array
+                    items:
+                      type: object
+                      required: [jadwal_id, ke, jatuh_tempo, status, jurnal_id]
+                      properties:
+                        jadwal_id: { type: integer, format: int64 }
+                        ke: { type: integer, minimum: 1 }
+                        jatuh_tempo: { type: string, format: date-time }
+                        status: { type: string, enum: [menunggu, terjurnal, dicatat, gagal] }
+                        jurnal_id: { type: [integer, 'null'], format: int64 }
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
 components:
   securitySchemes:
     bearer: { type: http, scheme: bearer }

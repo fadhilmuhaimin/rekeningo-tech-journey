@@ -1,0 +1,23 @@
+# Lab api-t5 · beban berjadwal 1.388,9 request per detik, koneksi lawan pool
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema t5_ledger, t5_akun, t5_pembayaran, t5_merchant, t5_notifikasi, t5_cicilan · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/api-t5 run.
+# server: ./api-t5 -lab sebagai t5_app (pool 10); push tiruan: ./pushpalsu
+# Beban berjadwal kedatangan tetap (open loop: permintaan berangkat menurut jadwal, tidak menunggu jawaban sebelumnya).
+# 1.388,9 = 200.000 aktif × 60 request ÷ 86.400 × 10 (naskah bagian 3, Asumsi). Dijalankan di laptop lab: bukan kapasitas produksi.
+
+# --- A. 15 detik pada 1388.9 permintaan per detik: campuran baca saldo, riwayat, katalog, dan pembayaran ---
+$ ./beban -rps 1388.9 -detik 15 -pengguna 200   # keluaran mesin diperiksa terhadap batas; nilai mentah bergantung mesin dan tidak direkam
+permintaan dijadwalkan: 20833 (= ⌊1388.9 × 15⌋)
+permintaan selesai: 20833 dari 20833
+status: 200 x18718, 201 x2115   # 200 = baca, 201 = bayar
+p95 di bawah 5000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya
+jadwal tidak tertinggal lebih dari 100 ms (generator tidak jadi penghambat): ya
+koneksi database dari api-t5 (pg_stat_activity, disampel tiap 100 ms): paling banyak <= 15 (pool 10 ditambah koneksi yang baru dibuka atau baru ditutup client dan belum hilang di server; nilai ukur tidak direkam)
+pool setelah beban: maks 10, terbuka paling banyak 10
+permintaan yang pernah menunggu koneksi dari pool (database/sql WaitCount; nilai tidak direkam): lebih dari 0: ya
+# Pada 1.388,9 per detik pool 10 antre tetapi tidak gagal: p95 di bawah batas, semua status 200 atau 201, dan jadwal tidak tertinggal.
+# Batas p95 sengaja longgar (5.000 ms): pool 10 hampir penuh, dan di laptop ini p95 antar run berkisar dari beberapa ms sampai ratusan ms.
+# Koneksi yang habis lebih dulu adalah pool satu proses (10), bukan max_connections (97 tersedia). Hitungan 180 terpasang lawan 97 tersedia
+# di naskah (6 service × 3 instance × pool 10) tetap Hitungan atas Asumsi; lab ini menjalankan satu proses dan bagian pooler membuktikan 53300.
+# Bukan klaim kapasitas produksi. Kapasitas satu primary untuk 69,4 transaksi uang per detik belum diukur di sini.
+# Pengukuran kapasitas worker (13,3 per detik) ada di labs/api-t4/output/beban.txt bagian B; tidak diulang di lab ini.

@@ -1,0 +1,25 @@
+# Lab api-t5 · koneksi melewati max_connections tanpa pooler, dan PgBouncer di depan primary
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema t5_ledger, t5_akun, t5_pembayaran, t5_merchant, t5_notifikasi, t5_cicilan · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/api-t5 run.
+
+# --- A. Tanpa pooler: 12 client × pool 10 = 120 koneksi diminta, melewati max_connections ---
+=> SHOW max_connections        -- 100
+=> SHOW superuser_reserved_connections   -- 3; tersedia untuk role biasa: 100 - 3 = 97
+$ ./pooler -dsn <langsung ke PostgreSQL, role t5_app> -klien 12 -pool 10   # nilai mentah bergantung koneksi lain; diperiksa terhadap batas
+koneksi diminta: 120
+koneksi berhasil lebih sedikit dari diminta: ya
+kode galat: 53300   # 53300 = too_many_connections
+koneksi role t5_app di PostgreSQL paling banyak <= 97 (disampel tiap 100 ms): ya
+client yang mendapat seluruh 10 koneksinya: kurang dari 12: ya
+
+# --- B. PgBouncer 1.26.1, mode transaction, default_pool_size 20: client yang sama, tanpa galat 53300 ---
+$ docker run -d -p 127.0.0.1:<port>:6432 api-t5-pgbouncer:1.26.1   # pool_mode = transaction, default_pool_size = 20, max_client_conn = 1000, max_prepared_statements = 100
+$ pgbouncer --version   -- PgBouncer 1.26.1
+$ ./pooler -dsn <lewat PgBouncer, role t5_app> -klien 12 -pool 10
+koneksi diminta: 120, berhasil: 120, galat: tidak ada
+query selesai: 2400 (= 12 client × 10 koneksi × 20 putaran)
+client yang mendapat seluruh 10 koneksinya: 12 dari 12
+koneksi role t5_app di PostgreSQL paling banyak <= 20 (default_pool_size; disampel tiap 100 ms): ya
+120 koneksi client dilayani oleh paling banyak 20 koneksi ke PostgreSQL, jauh di bawah 97.
+# Prepared statement protokol extended (bawaan pgx) di mode transaction berjalan karena max_prepared_statements = 100 (PgBouncer 1.21 ke atas).
+# Dengan nilai 0 perilakunya tidak dijalankan di lab ini: Tidak dijalankan.

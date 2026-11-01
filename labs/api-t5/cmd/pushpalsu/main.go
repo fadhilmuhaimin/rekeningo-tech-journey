@@ -52,7 +52,7 @@ func (l *layanan) pilihMode() (string, int) {
 }
 
 func main() {
-	alamat := flag.String("addr", "127.0.0.1:"+portLab(18281), "alamat server")
+	alamat := flag.String("addr", "127.0.0.1:"+portLab(18311), "alamat server")
 	flag.Parse()
 	l := &layanan{mode: "jawab"}
 	mux := http.NewServeMux()

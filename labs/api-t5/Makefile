@@ -1,14 +1,14 @@
-# Lab api-t5 (Tahap 4): api-t3 naik ke publik. Port dan nama kontainer dari lingkungan (labs/README.md).
+# Lab api-t5 (Tahap 5): api-t4 naik ke enam service dan satu negara. Port dan nama kontainer dari lingkungan (labs/README.md).
 include ../lab_env.mk
 .PHONY: run cek kontrak test beban
 # Rekam semua bagian berurutan; setiap bagian membuat ulang schema dan data awal dari nol.
-# Satu bagian: make run BAGIAN=topup   (skema topup verifikasi batas rentan beban testing)
+# Satu bagian: make run BAGIAN=laporan   (skema laporan pooler beban testing)
 run:
 	$(MAKE) -C ../b3-race up
-	docker compose -f ../b9-cache/docker-compose.yml up -d --wait   # Redis lab: tes internal/redisbatas (BAGIAN=testing)
+	docker compose -f ../b9-cache/docker-compose.yml up -d --wait   # Redis lab: cache laporan (BAGIAN=laporan) dan tes internal/redisbatas (BAGIAN=testing)
 	../.venv/bin/python run.py $(BAGIAN)
 
-# Beban berjadwal 138,9 request per detik di laptop lab (bukan kapasitas produksi) dan kapasitas worker.
+# Beban berjadwal 1.388,9 request per detik di laptop lab (bukan kapasitas produksi).
 beban:
 	$(MAKE) run BAGIAN=beban
 
@@ -17,7 +17,7 @@ cek: run
 	git diff --exit-code -- output/ migrasi/
 	test -z "$$(git status --porcelain -- output/ migrasi/)"
 
-# Kontrak OpenAPI: lint dan perubahan yang merusak client dibanding api-t3 (butuh jaringan untuk npx dan Docker).
+# Kontrak OpenAPI: lint dan perubahan yang merusak client dibanding api-t4 (butuh jaringan untuk npx dan Docker).
 kontrak:
 	bash kontrak.sh
 

@@ -26,8 +26,8 @@ import (
 
 func main() {
 	peran := flag.String("peran", "", "gateway atau verifikasi")
-	alamat := flag.String("addr", "", "alamat server (bawaan: gateway 127.0.0.1:"+portLab(18283)+", verifikasi 127.0.0.1:"+portLab(18284)+")")
-	webhook := flag.String("webhook-url", "http://127.0.0.1:"+portLab(18280)+"/webhooks/pembayaran", "gateway: alamat webhook Rekeningo")
+	alamat := flag.String("addr", "", "alamat server (bawaan: gateway 127.0.0.1:"+portLab(18313)+", verifikasi 127.0.0.1:"+portLab(18314)+")")
+	webhook := flag.String("webhook-url", "http://127.0.0.1:"+portLab(18310)+"/webhooks/pembayaran", "gateway: alamat webhook Rekeningo")
 	rahasia := flag.String("rahasia", "rahasia-gateway-lab-1", "gateway: rahasia penanda tangan webhook (data lab, bukan secret)")
 	izinkan := flag.String("izinkan-alamat", "", "verifikasi: alamat IP atau CIDR sumber yang boleh memanggil POST /verifikasi, dipisah koma (alamat lain dijawab 403; M34, ADR 39); kosong = semua diterima")
 	flag.Parse()
@@ -35,12 +35,12 @@ func main() {
 	switch *peran {
 	case "gateway":
 		if *alamat == "" {
-			*alamat = "127.0.0.1:" + portLab(18283)
+			*alamat = "127.0.0.1:" + portLab(18313)
 		}
 		h = (&gateway{order: map[string]*order{}, kunci: map[string]string{}, dicek: map[string]int{}, webhook: *webhook, rahasia: *rahasia}).rute()
 	case "verifikasi":
 		if *alamat == "" {
-			*alamat = "127.0.0.1:" + portLab(18284)
+			*alamat = "127.0.0.1:" + portLab(18314)
 		}
 		izin, err := parseIzin(*izinkan)
 		if err != nil {

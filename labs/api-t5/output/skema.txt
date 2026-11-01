@@ -1,0 +1,231 @@
+# Lab api-t5 · 30 tabel, partisi posting, enam schema service, role per service, dan foreign key lintas schema
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema t5_ledger, t5_akun, t5_pembayaran, t5_merchant, t5_notifikasi, t5_cicilan (satu schema tahap5 sebelum dipecah) · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/api-t5 run.
+
+# --- A. Skema akhir Tahap 4, lalu migrasi api-t5 000024 sampai 000026 (satu transaction, schema kosong) ---
+# api-t1/schema.sql + b4-migration/baru/000005 + api-t2/migrasi/000009..000014 + api-t3/migrasi/000015..000019 +
+# api-t4/migrasi/000020..000023 = akhir Tahap 4 (22 tabel); yang ditulis lab ini:
+$ psql -1 -f migrasi/000024_posting_partisi.up.sql
+$ psql -1 -f migrasi/000025_tabel_tahap5.up.sql
+$ psql -1 -f migrasi/000026_nilai_baru_tahap5.up.sql
+=> SELECT count(*) AS tabel FROM pg_class c WHERE c.relnamespace = current_schema()::regnamespace AND c.relkind IN ('r', 'p') AND NOT c.relispartition
+ tabel
+-------
+ 30
+(1 row)
+=> SELECT c.relname AS tabel, c.relkind AS jenis FROM pg_class c WHERE c.relnamespace = current_schema()::regnamespace AND c.relkind IN ('r', 'p') AND NOT c.relispartition ORDER BY c.relname
+ tabel                     | jenis
+---------------------------+-------
+ akun                      | r
+ angsuran                  | r
+ arsip_partisi             | r
+ audit_log                 | r
+ baris_pencairan           | r
+ batch_pencairan           | r
+ buku                      | r
+ insiden_rekon             | r
+ jadwal_cicilan            | r
+ jurnal                    | r
+ kartu                     | r
+ kota                      | r
+ kunci_idempotensi         | r
+ mitra_pos                 | r
+ operasi_sinkron           | r
+ otorisasi_kartu           | r
+ outbox                    | r
+ pengumuman                | r
+ perangkat                 | r
+ posting                   | p
+ produk                    | r
+ promo                     | r
+ qr                        | r
+ ringkasan_merchant_harian | r
+ sakelar                   | r
+ sesi                      | r
+ snapshot_saldo            | r
+ topup_bank                | r
+ verifikasi                | r
+ webhook_event             | r
+(30 rows)
+# jenis p = tabel berpartisi, r = tabel biasa. 22 tabel Tahap 4 + 8 baru (snapshot_saldo, arsip_partisi,
+# ringkasan_merchant_harian, jadwal_cicilan, angsuran, pengumuman, mitra_pos, sakelar); partisi posting bukan tabel inti.
+
+# --- B. Kolom tabel baru dan tabel yang berubah dibandingkan dengan blok mermaid naskah (plan/CERITA-TAHAP-5.md bagian 3b); skema lab yang benar ---
+# tabel | kolom di lab | sama dengan naskah
+snapshot_saldo | buku_id, periode, saldo, jumlah_posting, dibuat | ya
+arsip_partisi | periode, kunci_objek, checksum, kunci_data_terbungkus, versi_kek, dibuat | ya
+ringkasan_merchant_harian | merchant_akun_id, tanggal, jumlah_transaksi, total, diperbarui_pada | ya
+jadwal_cicilan | id, akun_id, jenis, merchant_akun_id, jumlah_per_angsuran, jumlah_angsuran, hari_tagih, status | ya
+angsuran | jadwal_id, ke, jatuh_tempo, status, jurnal_id | ya
+pengumuman | id, judul, status, jumlah_penerima, dibuat_oleh, mulai, selesai | ya
+mitra_pos | id, nama, kunci_hash, status, kuota_per_detik, dibuat | ya
+sakelar | nama, nilai, diubah_oleh, diubah | ya
+posting | id, jurnal_id, buku_id, jumlah, dibuat | ya
+akun | kolom baru mitra_pos_id | ya
+jurnal | kolom baru referensi | ya
+# Selisih dengan naskah, skema lab yang benar: (1) outbox menerima jenis baru 'pengumuman' dan tujuan 'stream' (naskah hanya
+# menulis tujuan stream); (2) jurnal.referensi punya CHECK bentuk (angsuran|tabungan):<jadwal>:<ke>; (3) status jadwal_cicilan
+# (aktif, selesai, dihentikan) dan batas angka kolom adalah rancangan lab (Asumsi desain); (4) PK posting (id, dibuat) tidak menjaga
+# keunikan id lintas partisi: keunikannya datang dari sequence.
+=> SELECT pg_get_constraintdef(oid) AS aturan_jenis_jurnal FROM pg_constraint WHERE conname = 'jurnal_jenis_check' AND connamespace = current_schema()::regnamespace
+ aturan_jenis_jurnal
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ CHECK ((jenis = ANY (ARRAY['pembuka'::text, 'selisih'::text, 'topup'::text, 'bayar'::text, 'transfer'::text, 'pencairan'::text, 'pembalik'::text, 'topup_bank'::text, 'kartu_tahan'::text, 'kartu_tangkap'::text, 'angsuran'::text, 'tabungan'::text])))
+(1 row)
+=> SELECT pg_get_constraintdef(oid) AS aturan_buku_milik_akun FROM pg_constraint WHERE conname = 'buku_pemilik' AND connamespace = current_schema()::regnamespace
+ aturan_buku_milik_akun
+------------------------------------------------------------------------------------------------------------------------------------------------
+ CHECK (((akun_id IS NOT NULL) = (jenis = ANY (ARRAY['karyawan'::text, 'warung'::text, 'pemakai'::text, 'merchant'::text, 'tabungan'::text]))))
+(1 row)
+=> SELECT pg_get_constraintdef(oid) AS aturan_tujuan_outbox FROM pg_constraint WHERE conname = 'outbox_tujuan_check' AND connamespace = current_schema()::regnamespace
+ aturan_tujuan_outbox
+----------------------------------------------------------------------------------
+ CHECK ((tujuan = ANY (ARRAY['push'::text, 'verifikasi'::text, 'stream'::text])))
+(1 row)
+
+# --- C. posting dipartisi per bulan menurut dibuat: PK (id, dibuat), tanpa partisi DEFAULT, trigger ledger di tabel dan partisinya ---
+=> SELECT pg_get_partkeydef('posting'::regclass) AS kunci_partisi, (SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'posting'::regclass AND contype = 'p') AS pk
+ kunci_partisi  | pk
+----------------+--------------------------
+ RANGE (dibuat) | PRIMARY KEY (id, dibuat)
+(1 row)
+=> SELECT c.relname AS partisi, pg_get_expr(c.relpartbound, c.oid) AS batas FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid WHERE i.inhparent = 'posting'::regclass ORDER BY c.relname
+ partisi          | batas
+------------------+--------------------------------------------------------------------------
+ posting_bulan_00 | FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ posting_bulan_01 | FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ posting_bulan_02 | FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ posting_sebelum  | FOR VALUES FROM (MINVALUE) TO ('<waktu>')
+(4 rows)
+# Nama partisi relatif terhadap bulan migration dijalankan (posting_bulan_00 = bulan berjalan, zona Asia/Jakarta), supaya rekaman
+# sama di bulan mana pun; batasnya disamarkan. posting_sebelum menampung semua baris sebelum bulan berjalan (partisi berbatas, bukan DEFAULT).
+=> SELECT tgrelid::regclass AS tabel, tgname AS trigger FROM pg_trigger WHERE NOT tgisinternal AND tgrelid IN ('posting'::regclass, 'posting_bulan_00'::regclass) ORDER BY tgrelid::regclass::text, tgname
+ tabel            | trigger
+------------------+------------------------------
+ posting          | jurnal_seimbang
+ posting          | posting_tidak_dikosongkan
+ posting          | posting_tidak_diubah
+ posting          | saldo_karyawan_tidak_negatif
+ posting_bulan_00 | jurnal_seimbang
+ posting_bulan_00 | posting_tidak_dikosongkan
+ posting_bulan_00 | posting_tidak_diubah
+ posting_bulan_00 | saldo_karyawan_tidak_negatif
+(8 rows)
+
+# --- D. Aturan ledger tetap dijaga database di tabel posting yang dipartisi (dijalankan sebagai pemilik schema) ---
+=> INSERT INTO jurnal ...; INSERT INTO posting (satu baris, jumlah 1000); COMMIT
+ERROR:  jurnal <id> tidak seimbang: 1 posting, jumlah 1000
+   -- SQLSTATE 23514 · constraint jurnal_seimbang
+=> UPDATE posting SET jumlah = jumlah + 1
+ERROR:  UPDATE pada posting_bulan_00 ditolak: baris posting_bulan_00 tidak pernah diubah atau dihapus
+   -- SQLSTATE 23001 · constraint posting_bulan_00_tidak_diubah
+=> DELETE FROM posting
+ERROR:  DELETE pada posting_bulan_00 ditolak: baris posting_bulan_00 tidak pernah diubah atau dihapus
+   -- SQLSTATE 23001 · constraint posting_bulan_00_tidak_diubah
+=> TRUNCATE posting
+ERROR:  TRUNCATE pada posting ditolak: baris posting tidak pernah diubah atau dihapus
+   -- SQLSTATE 23001 · constraint posting_tidak_diubah
+=> TRUNCATE posting_bulan_00
+ERROR:  TRUNCATE pada posting_bulan_00 ditolak: baris posting_bulan_00 tidak pernah diubah atau dihapus
+   -- SQLSTATE 23001 · constraint posting_bulan_00_tidak_diubah
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah, dibuat) SELECT min(id), min(id), 5, now() + interval '5 years' FROM buku
+ERROR:  no partition of relation "posting" found for row
+   -- SQLSTATE 23514
+=> CREATE TEMP TABLE coba_partisi (id bigint PRIMARY KEY, dibuat timestamptz NOT NULL) PARTITION BY RANGE (dibuat)
+ERROR:  unique constraint on partitioned table must include all partitioning columns
+   -- SQLSTATE 0A000
+# UPDATE dan DELETE lewat tabel induk ditolak oleh trigger yang ikut terpasang di partisi yang menyimpan barisnya (nama constraint memuat
+# nama partisi). Baris di luar semua partisi ditolak (tidak ada partisi DEFAULT), dan PRIMARY KEY tanpa kolom kunci partisi ditolak.
+
+# --- E. 30 tabel dipecah ke enam schema service, satu role per service; foreign key lintas schema dihapus (layanan.sql) ---
+# Pembagian mengikuti tabel 'Service (schema)' naskah bagian 3b (rancangan, Asumsi desain). Awalan t5_ karena nama schema
+# dan role global di database lab bersama. Data awal (kota, akun, produk) dimuat dulu, lalu tabel dipindah.
+$ psql -f layanan.sql   # langkah 1: schema, role, pemindahan tabel
+# foreign key lintas schema service SEBELUM dihapus, dibaca dari katalog PostgreSQL: 18
+  ledger.buku -> akun.akun
+  ledger.jurnal -> akun.akun
+  ledger.kunci_idempotensi -> akun.akun
+  ledger.outbox -> akun.akun
+  merchant.operasi_sinkron -> notifikasi.perangkat
+  merchant.produk -> akun.akun
+  merchant.promo -> akun.akun
+  merchant.promo -> akun.kota
+  merchant.qr -> akun.akun
+  merchant.qr -> ledger.jurnal
+  notifikasi.perangkat -> akun.akun
+  pembayaran.insiden_rekon -> ledger.jurnal
+  pembayaran.kartu -> akun.akun
+  pembayaran.otorisasi_kartu -> ledger.jurnal
+  pembayaran.otorisasi_kartu -> ledger.jurnal
+  pembayaran.topup_bank -> akun.akun
+  pembayaran.topup_bank -> ledger.jurnal
+  pembayaran.webhook_event -> ledger.jurnal
+# Tahap 4 menghitung 21 foreign key lintas modul untuk enam modul t4-modul; pembagian tabel dan modul berbeda, jadi angkanya berbeda.
+$ psql -f layanan.sql   # langkah 2: DROP CONSTRAINT untuk setiap foreign key lintas schema
+=> SELECT count(*) AS fk_lintas_schema FROM pg_constraint c JOIN pg_class a ON a.oid = c.conrelid JOIN pg_class b ON b.oid = c.confrelid WHERE c.contype = 'f' AND c.conparentid = 0 AND a.relnamespace <> b.relnamespace AND a.relnamespace::regnamespace::text = ANY (string_to_array('t5_ledger,t5_akun,t5_pembayaran,t5_merchant,t5_notifikasi,t5_cicilan', ',')) AND b.relnamespace::regnamespace::text = ANY (string_to_array('t5_ledger,t5_akun,t5_pembayaran,t5_merchant,t5_notifikasi,t5_cicilan', ','))
+ fk_lintas_schema
+------------------
+ 0
+(1 row)
+=> SELECT count(*) AS fk_di_dalam_schema FROM pg_constraint c JOIN pg_class a ON a.oid = c.conrelid JOIN pg_class b ON b.oid = c.confrelid WHERE c.contype = 'f' AND c.conparentid = 0 AND a.relnamespace = b.relnamespace AND a.relnamespace::regnamespace::text = ANY (string_to_array('t5_ledger,t5_akun,t5_pembayaran,t5_merchant,t5_notifikasi,t5_cicilan', ','))
+ fk_di_dalam_schema
+--------------------
+ 19
+(1 row)
+=> SELECT n.nspname AS schema, count(*) AS tabel, string_agg(c.relname, ', ' ORDER BY c.relname) AS daftar FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = ANY (string_to_array('t5_ledger,t5_akun,t5_pembayaran,t5_merchant,t5_notifikasi,t5_cicilan', ',')) AND c.relkind IN ('r', 'p') AND NOT c.relispartition GROUP BY n.nspname ORDER BY n.nspname
+ schema        | tabel | daftar
+---------------+-------+-------------------------------------------------------------------------------------------------------------------
+ t5_akun       | 5     | akun, audit_log, kota, sesi, verifikasi
+ t5_cicilan    | 2     | angsuran, jadwal_cicilan
+ t5_ledger     | 9     | arsip_partisi, baris_pencairan, batch_pencairan, buku, jurnal, kunci_idempotensi, outbox, posting, snapshot_saldo
+ t5_merchant   | 6     | mitra_pos, operasi_sinkron, produk, promo, qr, ringkasan_merchant_harian
+ t5_notifikasi | 2     | pengumuman, perangkat
+ t5_pembayaran | 6     | insiden_rekon, kartu, otorisasi_kartu, sakelar, topup_bank, webhook_event
+(6 rows)
+# Pembagian sama dengan tabel naskah: ledger 9, akun 5, pembayaran 6, merchant 6, notifikasi 2, cicilan 2 = 30.
+
+# --- F. Hak per role: tiap service hanya menyentuh schema-nya; satu proses (t5_app) mewarisi keenam role ---
+t5_cicilan: SELECT 1 FROM t5_ledger.jurnal LIMIT 1
+  ERROR:  permission denied for schema t5_ledger   -- SQLSTATE 42501
+t5_notifikasi: INSERT INTO t5_ledger.posting (jurnal_id, buku_id, jumlah) VALUES (1, 1, 1)
+  ERROR:  permission denied for schema t5_ledger   -- SQLSTATE 42501
+t5_akun: SELECT 1 FROM t5_ledger.buku LIMIT 1
+  ERROR:  permission denied for schema t5_ledger   -- SQLSTATE 42501
+t5_merchant: SELECT count(*) FROM t5_pembayaran.kartu
+  ERROR:  permission denied for schema t5_pembayaran   -- SQLSTATE 42501
+t5_ledger: UPDATE t5_ledger.posting SET jumlah = jumlah
+  ERROR:  permission denied for table posting   -- SQLSTATE 42501
+t5_ledger: DELETE FROM t5_ledger.jurnal
+  ERROR:  permission denied for table jurnal   -- SQLSTATE 42501
+t5_cicilan: CREATE TABLE t5_ledger.tabel_gelap (a int)
+  ERROR:  permission denied for schema t5_ledger   -- SQLSTATE 42501
+t5_akun: UPDATE t5_akun.audit_log SET aksi = 'x'
+  ERROR:  permission denied for table audit_log   -- SQLSTATE 42501
+t5_ledger: SELECT id, tingkat, status FROM t5_akun.akun LIMIT 1   -- berhasil: kontrak kolom lintas service (tanpa kolom nama)
+t5_ledger: SELECT nama FROM t5_akun.akun LIMIT 1
+  ERROR:  permission denied for table akun   -- SQLSTATE 42501
+t5_app: SELECT count(*) FROM akun a JOIN buku b ... JOIN produk p ... JOIN perangkat g ...   -- berhasil, tanpa awalan schema (search_path role)
+t5_app: UPDATE posting SET jumlah = jumlah
+  ERROR:  permission denied for table posting   -- SQLSTATE 42501
+
+# --- G. Server api-t5 dalam satu proses sebagai t5_app di enam schema: login, bayar, riwayat, dan saldo cocok dengan posting ---
+# server: ./api-t5 -lab sebagai role t5_app (search_path = enam schema); push tiruan: ./pushpalsu
+$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":419,"jenis":"karyawan","nama":"Budi","saldo":250000,"nomor_karyawan":"K00419","kota_id":1,"tingkat":"terverifikasi","status":"aktif"}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 505, "nominal": 1000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10202
+
+{"id":10202,"saldo":249000}
+$ curl -i -X GET '/akun/419/riwayat?batas=2' -H 'Authorization: Bearer <token sesi Budi>'
+200 OK, 2 baris; baris pertama: bayar keluar Rp1.000 ke Warung 505   # kursor halaman berikutnya berisi waktu, tidak direkam
+=> SELECT b.akun_id AS akun, b.saldo_cache, coalesce(sum(p.jumlah), 0) AS jumlah_posting FROM buku b LEFT JOIN posting p ON p.buku_id = b.id WHERE b.akun_id IN (419, 505) GROUP BY b.akun_id, b.saldo_cache ORDER BY 1
+ akun | saldo_cache | jumlah_posting
+------+-------------+----------------
+ 419  | 249000      | 249000
+ 505  | 1000        | 1000
+(2 rows)

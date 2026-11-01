@@ -94,8 +94,8 @@ func jawab(w http.ResponseWriter, status int, isi any) {
 }
 
 func main() {
-	alamat := flag.String("addr", "127.0.0.1:"+portLab(18285), "alamat server")
-	api := flag.String("api", "http://127.0.0.1:"+portLab(18280), "alamat Rekeningo (api-t5)")
+	alamat := flag.String("addr", "127.0.0.1:"+portLab(18315), "alamat server")
+	api := flag.String("api", "http://127.0.0.1:"+portLab(18310), "alamat Rekeningo (api-t5)")
 	kunci := flag.String("kunci", "kunci-penerbit-lab", "nilai header X-Penerbit-Kunci (data lab, bukan secret)")
 	apiOtorisasi := flag.String("api-otorisasi", "", "alamat khusus untuk otorisasi (kosong = -api); clearing dan reversal tetap ke -api")
 	tenggat := flag.Duration("tenggat", 2*time.Second, "tenggat jawaban otorisasi dari Rekeningo")

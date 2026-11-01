@@ -1,0 +1,69 @@
+# Lab api-t5 · laporan merchant dari primary, polling serentak, dan cache laporan 30 detik
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema t5_ledger, t5_akun, t5_pembayaran, t5_merchant, t5_notifikasi, t5_cicilan · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/api-t5 run.
+
+# --- A. Laporan merchant dibaca dari primary (versi pertama, mode rentan laporan-primary): rute hanya ada bersama mode itu ---
+# server: ./api-t5 -lab (tanpa mode rentan); push tiruan: ./pushpalsu
+$ curl -i -X GET '/merchant/505/laporan/hari-ini' -H 'Authorization: Bearer <token sesi Warung 505>'
+HTTP/1.1 404 Not Found
+Content-Type: text/plain; charset=utf-8
+X-Content-Type-Options: nosniff
+
+404 page not found
+# server: ./api-t5 -lab -rentan laporan-primary
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 505, "nominal": 35000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10201
+
+{"id":10201,"saldo":215000}
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 505, "nominal": 12000}'
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /transfers/10202
+
+{"id":10202,"saldo":203000}
+$ curl -i -X GET '/merchant/505/laporan/hari-ini' -H 'Authorization: Bearer <token sesi Warung 505>'
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"merchant":505,"tanggal":"<tanggal>","jumlah_transaksi":2,"total":47000,"dibaca_dari":"primary"}
+$ curl -i -X GET '/merchant/505/laporan/hari-ini' -H 'Authorization: Bearer <token sesi Warung 506>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"Merchant tidak ditemukan","status":404}
+$ curl -i -X GET '/merchant/505/laporan/hari-ini' -H 'Authorization: Bearer <token sesi Budi>'
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"type":"/problems/tidak-ditemukan","title":"Merchant tidak ditemukan","status":404}
+# Query laporan menjumlah posting masuk ke buku merchant hari ini langsung dari tabel posting di primary, tiap panggilan.
+waktu eksekusi query laporan satu warung di database di bawah 1 ms (EXPLAIN ANALYZE; batas lab, nilai ukur tidak direkam): ya
+# Batas `dibuat` memangkas partisi: hanya partisi bulan berjalan yang dibaca (tes TestLaporanHariIniMemangkasPartisi).
+
+# --- B. Pembayaran dengan dan tanpa polling laporan: p95 pembayaran sebagai batas, bukan nilai tunggal ---
+# 666,7 per detik = 20.000 merchant online ÷ 30 detik (naskah bagian 3, Asumsi). Di lab polling berasal dari 9 warung,
+# bukan 20.000 merchant, dan data hari ini kecil: lab memeriksa batas, bukan menirukan produksi.
+$ ./beban -rps 100.0 -detik 10 -pengguna 200 -hanya-bayar   # tanpa laporan
+pembayaran selesai: 1000 dari 1000, semua 201
+$ ./beban -rps 100.0 -detik 10 -pengguna 200 -hanya-bayar -laporan-rps 666.7   # dengan laporan
+pembayaran selesai: 1000 dari 1000, semua 201; laporan selesai: 6667 dari 6667, semua 200
+p95 pembayaran tanpa laporan di bawah 500 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya
+p95 pembayaran dengan laporan di bawah 500 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya
+jadwal tidak tertinggal lebih dari 100 ms di kedua putaran (generator tidak jadi penghambat): ya
+selisih p95 pembayaran tidak terlihat di laptop ini (dengan laporan paling banyak 3 kali tanpa laporan ditambah 20 ms; nilai ukur tidak direkam): ya
+# Hasilnya: di data lab (satu hari, 9 warung, query laporan di bawah 1 ms di database) polling 666,7 per detik tidak menaikkan p95 pembayaran
+# di laptop ini. Itu bukan bukti M40 tidak terjadi: 666,7 per detik, CPU 167%, dan query 20 ms di naskah adalah hitungan atas Asumsi
+# (query 20 ms, 8 vCPU), bukan rekaman. Yang direkam: laporan dari primary berjalan, dan beban serupa tidak terlihat di skala lab.
+
+# --- C. Cache laporan 30 detik di Redis: satu client per merchant yang memanggil tiap 30 detik hampir tidak pernah mendapat hit ---
+# server: ./api-t5 -lab -rentan laporan-primary -laporan-cache redis -laporan-ttl 30s
+$ GET /merchant/<id>/laporan/hari-ini untuk 9 warung, satu client per warung, dua putaran berjarak 30,5 detik (TTL 30 detik)
+GET /lab/cache-laporan -> mode redis, ttl 30 detik, hit 0, miss 18, baca database 18
+hit rate: 0 dari 18 = 0%
+# Kontrol: dua client untuk setiap warung, dua panggilan berurutan dalam satu jendela TTL.
+GET /lab/cache-laporan -> hit 9, miss 9, baca database 9
+hit rate kontrol: 9 dari 18 = 50%
+# Cache baru menolong bila ada panggilan kedua dalam 30 detik untuk merchant yang sama. Polling satu perangkat per merchant tiap
+# 30 detik tidak punya panggilan kedua itu. Jumlah hit dihitung dari pencacah server, bukan dari waktu.

@@ -42,7 +42,7 @@ import (
 const rentanTanpaShutdown = "tanpa-shutdown"
 
 func main() {
-	alamat := flag.String("addr", "127.0.0.1:"+portLab(18280), "alamat server")
+	alamat := flag.String("addr", "127.0.0.1:"+portLab(18310), "alamat server")
 	umurSesi := flag.Duration("umur-sesi", 8*time.Hour, "masa berlaku sesi (asumsi: satu hari kerja)")
 	seed := flag.Bool("seed", false, "isi data awal Tahap 3 (enam kota, 10.000 karyawan, 60 warung; data lab) sebagai pemilik schema, lalu keluar")
 	cekCache := flag.Bool("cek-cache", false, "bandingkan saldo_cache setiap buku dengan jumlah posting (job malam), lalu keluar")
@@ -51,7 +51,7 @@ func main() {
 	sekali := flag.Bool("sekali", false, "worker: kirim semua yang siap, lalu keluar")
 	satuPutaran := flag.Bool("satu-putaran", false, "lab saja, dengan -sekali: hanya satu putaran (paling banyak -serentak baris), supaya jumlah percobaan per panggilan tetap")
 	pool := flag.Int("pool", 10, "batas koneksi database per proses (database/sql tanpa batas bila tidak diatur; ADR 22)")
-	pushURL := flag.String("push-url", "http://127.0.0.1:"+portLab(18281), "alamat layanan push (tiruan lokal)")
+	pushURL := flag.String("push-url", "http://127.0.0.1:"+portLab(18311), "alamat layanan push (tiruan lokal)")
 	pushBatas := flag.Duration("push-timeout", push.BatasBawaan, "batas waktu satu panggilan push (ADR 22); 0 = tanpa batas")
 	idleTx := flag.Duration("idle-tx", 5*time.Second, "idle_in_transaction_session_timeout (ADR 22); 0 = mati")
 	rentan := flag.String("rentan", "", "mode rentan: push-dalam-tx (M18), kursor (M19), ekspor-panic dan tanpa-shutdown (M21), stok-timpa (M24), urut-waktu (M27)")
@@ -73,11 +73,11 @@ func main() {
 	katalogRedisBatas := flag.Duration("katalog-redis-timeout", 50*time.Millisecond, "batas waktu Redis untuk cache katalog: dial, tulis, baca, dan antre di pool, masing-masing; go-redis tanpa retry")
 	labGerbang := flag.String("lab-gerbang", "", "lab saja: gerbang yang menahan goroutine sampai POST /lab/gerbang/lepas, dipisah koma: commit, isi")
 	// Tahap 4 (lab-api-t5): pihak ketiga tiruan, setelan lab, dan job sekali jalan.
-	gatewayURL := flag.String("gateway-url", "http://127.0.0.1:"+portLab(18283), "alamat gateway pembayaran (tiruan lokal)")
+	gatewayURL := flag.String("gateway-url", "http://127.0.0.1:"+portLab(18313), "alamat gateway pembayaran (tiruan lokal)")
 	gatewayBatas := flag.Duration("gateway-timeout", klien.BatasBawaan, "batas waktu satu panggilan ke gateway (ADR 22, ADR 36)")
-	verifikasiURL := flag.String("verifikasi-url", "http://127.0.0.1:"+portLab(18284), "alamat layanan verifikasi identitas (tiruan lokal)")
+	verifikasiURL := flag.String("verifikasi-url", "http://127.0.0.1:"+portLab(18314), "alamat layanan verifikasi identitas (tiruan lokal)")
 	verifikasiBatas := flag.Duration("verifikasi-timeout", klien.BatasBawaan, "batas waktu satu panggilan ke layanan verifikasi (ADR 36)")
-	penerbitURL := flag.String("penerbit-url", "http://127.0.0.1:"+portLab(18285), "alamat penerbit kartu (tiruan lokal)")
+	penerbitURL := flag.String("penerbit-url", "http://127.0.0.1:"+portLab(18315), "alamat penerbit kartu (tiruan lokal)")
 	penerbitKunci := flag.String("penerbit-kunci", "", "rahasia bersama penerbit di header X-Penerbit-Kunci; kosong = /penerbit/* ditolak")
 	kartuLockTimeout := flag.Duration("kartu-lock-timeout", 0, "lock_timeout otorisasi kartu di ledger (ADR 42); 0 = 1 detik")
 	objekDir := flag.String("objek-dir", "", "direktori penyimpanan objek tiruan untuk file identitas; kosong = folder sementara api-t5-objek")

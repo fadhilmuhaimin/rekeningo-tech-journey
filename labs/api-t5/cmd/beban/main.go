@@ -1,4 +1,4 @@
-// Generator beban berjadwal untuk lab api-t5 (`make beban`, M39, naskah bagian 3). Kedatangan tetap (open loop):
+// Generator beban berjadwal untuk lab api-t5 (`make beban`, M40 dan M46, naskah bagian 3). Kedatangan tetap (open loop):
 // permintaan ke-i berangkat pada waktu mulai + i ÷ rps, tidak menunggu jawaban permintaan sebelumnya. Itu yang
 // membuat antrean terlihat: client yang menunggu jawaban (closed loop) memperlambat dirinya sendiri dan menyembunyikan
 // pool yang penuh. Di sisi database generator menyampel pg_stat_activity tiap 100 ms untuk koneksi milik api-t5.
@@ -34,13 +34,15 @@ import (
 )
 
 func main() {
-	url := flag.String("url", "http://127.0.0.1:"+portLab(18280), "alamat api-t5")
+	url := flag.String("url", "http://127.0.0.1:"+portLab(18310), "alamat api-t5")
 	dsn := flag.String("db", "", "DSN pemilik schema (membuat sesi dan menyampel pg_stat_activity)")
 	aplikasi := flag.String("aplikasi", "api-t5", "application_name koneksi api-t5 yang disampel")
 	rps := flag.Float64("rps", 138.9, "permintaan per detik (kedatangan tetap)")
 	detik := flag.Int("detik", 20, "lama beban, detik")
 	pengguna := flag.Int("pengguna", 200, "jumlah karyawan yang dipakai (karyawan10001..)")
 	flag.String("password", "", "tidak dipakai (sesi dibuat langsung); ada supaya perintah sama dengan run.py lama")
+	laporanRPS := flag.Float64("laporan-rps", 0, "tambahan: laporan merchant GET /merchant/{id}/laporan/hari-ini pada kedatangan tetap sebesar ini (M40); 0 = tanpa")
+	hanyaBayar := flag.Bool("hanya-bayar", false, "campuran dasar hanya POST /transfers (mengukur p95 pembayaran terpisah dari baca)")
 	flag.Parse()
 	if *dsn == "" {
 		log.Fatal("-db wajib")
@@ -66,8 +68,35 @@ func main() {
 		}
 	}
 	warung := []int{505, 506, 507, 508, 509, 510, 511, 512, 513}
+	tokenW := make([]string, len(warung)) // sesi milik tiap warung, untuk laporan (hanya pemilik yang boleh membaca)
+	for i := range tokenW {
+		b := make([]byte, 24)
+		rand.Read(b)
+		tokenW[i] = "beban-w-" + hex.EncodeToString(b)
+		h := sha256.Sum256([]byte(tokenW[i]))
+		if _, err := db.Exec(`INSERT INTO sesi (token_hash, akun_id, kedaluwarsa) VALUES ($1, $2, now() + interval '1 hour')`,
+			hex.EncodeToString(h[:]), int64(warung[i])); err != nil {
+			log.Fatalf("sesi warung %d: %v", warung[i], err)
+		}
+	}
 
 	klien := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{MaxIdleConnsPerHost: 512, MaxIdleConns: 512}}
+	// Pemanasan: buka koneksi keep-alive sebelum jadwal mulai, bertahap. Tanpa ini ratusan koneksi baru datang sekaligus di
+	// awal beban dan antrean listen (macOS: kern.ipc.somaxconn 128) menjawab "connection reset by peer", yang bukan
+	// perilaku server yang diukur. Tiap koneksi dipakai satu GET /healthz lalu dilepas ke pool keep-alive.
+	var pemanasan sync.WaitGroup
+	for i := 0; i < 300; i++ {
+		pemanasan.Add(1)
+		go func() {
+			defer pemanasan.Done()
+			if resp, err := klien.Get(*url + "/healthz"); err == nil {
+				io.Copy(io.Discard, resp.Body)
+				resp.Body.Close()
+			}
+		}()
+		time.Sleep(2 * time.Millisecond)
+	}
+	pemanasan.Wait()
 	rng := mrand.New(mrand.NewPCG(1, 2)) // benih tetap: campuran permintaan sama di setiap run
 	total := int(*rps * float64(*detik))
 
@@ -104,9 +133,48 @@ func main() {
 	var mu sync.Mutex
 	status := map[string]int{}
 	lat := make([]float64, 0, total)
+	var latBayar, latLaporan []float64
+	statusBayar, statusLaporan := map[string]int{}, map[string]int{}
+	galatPesan := map[string]int{}
 	var lagMaks atomic.Int64
 	var wg sync.WaitGroup
 	mulai := time.Now().Add(300 * time.Millisecond)
+	// Aliran laporan merchant (M40): kedatangan tetap sendiri, di atas campuran dasar, dengan jadwal yang sama mulai.
+	if *laporanRPS > 0 {
+		totalL := int(*laporanRPS * float64(*detik))
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var wl sync.WaitGroup
+			for i := 0; i < totalL; i++ {
+				time.Sleep(time.Until(mulai.Add(time.Duration(float64(i) / *laporanRPS * float64(time.Second)))))
+				w := i % len(warung)
+				wl.Add(1)
+				go func() {
+					defer wl.Done()
+					req, _ := http.NewRequest("GET", fmt.Sprintf("%s/merchant/%d/laporan/hari-ini", *url, warung[w]), nil)
+					req.Header.Set("Authorization", "Bearer "+tokenW[w])
+					t0 := time.Now()
+					resp, err := klien.Do(req)
+					ms := float64(time.Since(t0).Microseconds()) / 1000
+					kode := "galat"
+					if err == nil {
+						io.Copy(io.Discard, resp.Body)
+						resp.Body.Close()
+						kode = fmt.Sprint(resp.StatusCode)
+					}
+					mu.Lock()
+					if err != nil {
+						galatPesan[err.Error()]++
+					}
+					statusLaporan[kode]++
+					latLaporan = append(latLaporan, ms)
+					mu.Unlock()
+				}()
+			}
+			wl.Wait()
+		}()
+	}
 	for i := 0; i < total; i++ {
 		jadwal := mulai.Add(time.Duration(float64(i) / *rps * float64(time.Second)))
 		time.Sleep(time.Until(jadwal))
@@ -115,6 +183,9 @@ func main() {
 		}
 		u := rng.IntN(*pengguna)
 		jenis := rng.IntN(100)
+		if *hanyaBayar {
+			jenis = 99
+		}
 		ke := warung[rng.IntN(len(warung))]
 		wg.Add(1)
 		go func() {
@@ -143,8 +214,15 @@ func main() {
 				kode = fmt.Sprint(resp.StatusCode)
 			}
 			mu.Lock()
+			if err != nil {
+				galatPesan[err.Error()]++
+			}
 			status[kode]++
 			lat = append(lat, ms)
+			if jenis >= 90 {
+				latBayar = append(latBayar, ms)
+				statusBayar[kode]++
+			}
 			mu.Unlock()
 		}()
 	}
@@ -153,16 +231,21 @@ func main() {
 	sg.Wait()
 
 	sort.Float64s(lat)
-	pct := func(p float64) float64 {
-		if len(lat) == 0 {
+	sort.Float64s(latBayar)
+	sort.Float64s(latLaporan)
+	pctDari := func(d []float64, p float64) float64 {
+		if len(d) == 0 {
 			return 0
 		}
-		return lat[min(len(lat)-1, int(p*float64(len(lat))))]
+		return d[min(len(d)-1, int(p*float64(len(d))))]
 	}
+	pct := func(p float64) float64 { return pctDari(lat, p) }
 	json.NewEncoder(os.Stdout).Encode(map[string]any{
 		"dijadwalkan": total, "selesai": len(lat), "status": status,
 		"p50_ms": pct(0.50), "p95_ms": pct(0.95), "p99_ms": pct(0.99), "maks_ms": lat[len(lat)-1],
 		"lag_maks_ms": lagMaks.Load(), "koneksi_maks": koneksiMaks.Load(), "aktif_maks": aktifMaks.Load(),
+		"bayar_selesai": len(latBayar), "bayar_status": statusBayar, "bayar_p95_ms": pctDari(latBayar, 0.95),
+		"galat_pesan": galatPesan, "laporan_selesai": len(latLaporan), "laporan_status": statusLaporan, "laporan_p95_ms": pctDari(latLaporan, 0.95),
 	})
 	_ = context.Background
 }
