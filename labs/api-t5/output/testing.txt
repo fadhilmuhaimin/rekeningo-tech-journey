@@ -374,6 +374,10 @@ ok    lab/apit5/internal/repo
 --- PASS: TestBuatSnapshotMenolakBulanBelumSelesaiDanBukanAwalBulan
 --- PASS: TestCekCacheSnapshotSamaDenganCekCachePenuh
 --- PASS: TestCekCacheSnapshotMembacaPostingTepatDiBatas
+--- PASS: TestBuatSnapshotBulanTerlewatMenghitungUlangDariAwal
+--- PASS: TestBuatSnapshotJumlahPostingMenghitungPostingBukanJurnal
+--- PASS: TestCekCacheSnapshotBukuBaruTanpaBarisSnapshot
+--- PASS: TestBalikJurnalTanpaPostingDijawabDiarsip
 --- PASS: TestPostingPartisiMenjagaAturanLedger
 --- PASS: TestPKPartisiHarusMemuatKolomKunci
 --- PASS: TestLaporanHariIniMemangkasPartisi

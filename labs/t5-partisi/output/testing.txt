@@ -6,7 +6,7 @@
 $ go vet ./...
 (tanpa temuan)
 # exit status 0
-$ TEST_DATABASE_URL=<pemilik, schema tahap5_partisi_tes> TES_DB_WAJIB=1 go test -v -count=1 -p 1 -run 'Snapshot|PostingPartisi|PKPartisi' ./internal/service
+$ TEST_DATABASE_URL=<pemilik, schema tahap5_partisi_tes> TES_DB_WAJIB=1 go test -v -count=1 -p 1 -run 'Snapshot|PostingPartisi|PKPartisi|BalikJurnalTanpaPosting' ./internal/service
 --- PASS: TestBuatSnapshotMenjumlahBulanDanBulanSebelumnya
 --- PASS: TestBuatSnapshotIdempoten
 --- PASS: TestBuatSnapshotMenolakBulanBelumSelesaiDanBukanAwalBulan
@@ -15,6 +15,7 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap5_partisi_tes> TES_DB_WAJIB=1 go test 
 --- PASS: TestBuatSnapshotBulanTerlewatMenghitungUlangDariAwal
 --- PASS: TestBuatSnapshotJumlahPostingMenghitungPostingBukanJurnal
 --- PASS: TestCekCacheSnapshotBukuBaruTanpaBarisSnapshot
+--- PASS: TestBalikJurnalTanpaPostingDijawabDiarsip
 --- PASS: TestPostingPartisiMenjagaAturanLedger
 --- PASS: TestPKPartisiHarusMemuatKolomKunci
 PASS

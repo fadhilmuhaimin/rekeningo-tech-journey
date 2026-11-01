@@ -146,9 +146,7 @@ HTTP 201
 {"id":<id>,"membalik":<id>}
 # jurnal bulan yang sudah dilepas:
 $ curl -i -X POST '/jurnal/<jurnal>/pembalik' -H 'Authorization: Bearer <token sesi Admin>' -d '{"alasan": "Koreksi atas pembayaran ganda"}'
-HTTP 500
-{"type":"/problems/internal","title":"Terjadi kesalahan di server","status":500}
-# Log server untuk permintaan kedua:
-error internal: ERROR: jurnal <n> tidak seimbang: 0 posting, jumlah 0 (SQLSTATE 23514)
-# Jurnal yang postingnya sudah dilepas tidak bisa dibalik dari database utama: jurnal pembalik tanpa posting ditolak saat COMMIT
-# oleh aturan jurnal seimbang, dan tidak ada jurnal pembalik yang tertinggal (0 baris).
+HTTP 409
+{"type":"/problems/posting-diarsipkan","title":"Posting jurnal ini sudah diarsipkan","status":409,"detail":"Jurnal pembalik tidak bisa dibuat dari database utama untuk jurnal yang postingnya sudah dilepas."}
+# Jurnal yang postingnya sudah dilepas tidak bisa dibalik dari database utama: Balik melihat nol posting dan menjawab 409 sebelum
+# transaction dibuka, tanpa galat database di log server, dan tidak ada jurnal pembalik yang tertinggal (0 baris).

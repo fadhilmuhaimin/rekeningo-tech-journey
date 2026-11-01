@@ -144,13 +144,11 @@ def rekam_lepas():
         if jid == j_biasa:
             harap((status, pembalik), (201, 1), "pembalik atas jurnal bulan yang terpasang")
         else:
-            harap((status != 201, pembalik), (True, 0), "pembalik atas jurnal yang postingnya sudah dilepas ditolak, tanpa jurnal tertinggal")
-    galat = [l for l in d.log_server() if "tidak seimbang" in l]
-    harap(len(galat) >= 1 and "0 posting, jumlah 0" in galat[-1], True, f"log server untuk pembalik yang ditolak: {galat}")
-    catat("# Log server untuk permintaan kedua:")
-    catat(re.sub(r"\bjurnal \d+", "jurnal <n>", galat[-1]))
-    catat("# Jurnal yang postingnya sudah dilepas tidak bisa dibalik dari database utama: jurnal pembalik tanpa posting ditolak saat COMMIT")
-    catat("# oleh aturan jurnal seimbang, dan tidak ada jurnal pembalik yang tertinggal (0 baris).")
+            harap((status, pembalik), (409, 0), "pembalik atas jurnal yang postingnya sudah dilepas dijawab 409, tanpa jurnal tertinggal")
+            harap("posting-diarsipkan" in isi, True, f"badan jawaban 409: {isi}")
+    harap([l for l in d.log_server() if "tidak seimbang" in l], [], "tidak ada galat database di log server untuk pembalik yang ditolak")
+    catat("# Jurnal yang postingnya sudah dilepas tidak bisa dibalik dari database utama: Balik melihat nol posting dan menjawab 409 sebelum")
+    catat("# transaction dibuka, tanpa galat database di log server, dan tidak ada jurnal pembalik yang tertinggal (0 baris).")
     d.stop(d.PORT)
     terlihat_sesudah_g = satu("SELECT count(*) FROM posting", S)   # jurnal pembalik kontrol menambah dua posting di bulan berjalan
     x.tulis("lepas.txt", "DETACH, membuang satu bulan, arsip, dan akibatnya pada pemeriksaan dan jurnal pembalik", S)

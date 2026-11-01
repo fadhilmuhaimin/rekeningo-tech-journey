@@ -36,9 +36,9 @@ def rekam_testing():
     catat(f"# exit status {rc}")
     harap(rc, 0, "go vet")
     env = dict(d.ENV, TEST_DATABASE_URL=d.db_pemilik(TES, "t5-partisi-tes"), LAB_TES_SCHEMA=TES, TES_DB_WAJIB="1")
-    rc, teks = go_test("test", "-v", "-count=1", "-p", "1", "-run", "Snapshot|PostingPartisi|PKPartisi", "./internal/service", env=env)
+    rc, teks = go_test("test", "-v", "-count=1", "-p", "1", "-run", "Snapshot|PostingPartisi|PKPartisi|BalikJurnalTanpaPosting", "./internal/service", env=env)
     teks = "\n".join(l for l in teks.splitlines() if not l.startswith(("=== RUN", "=== PAUSE", "=== CONT")))
-    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {TES}> TES_DB_WAJIB=1 go test -v -count=1 -p 1 -run 'Snapshot|PostingPartisi|PKPartisi' ./internal/service")
+    catat(f"$ TEST_DATABASE_URL=<pemilik, schema {TES}> TES_DB_WAJIB=1 go test -v -count=1 -p 1 -run 'Snapshot|PostingPartisi|PKPartisi|BalikJurnalTanpaPosting' ./internal/service")
     catat(teks)
     catat(f"# exit status {rc}")
     if rc != 0:

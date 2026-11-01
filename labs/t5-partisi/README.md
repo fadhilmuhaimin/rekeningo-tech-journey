@@ -22,11 +22,12 @@ Dokumentasi dibaca pada versi lab: PostgreSQL 17.11, halaman ALTER TABLE (`postg
 | --- | --- |
 | `labs/api-t5/internal/repo/snapshot.go` | `BuatSnapshot` (saldo akhir satu bulan per buku) dan `CekCacheSnapshot` (saldo_cache lawan snapshot + posting sesudahnya) |
 | `labs/api-t5/cmd/api/main.go` | job `-buat-snapshot <YYYY-MM-DD>`, dan `-cek-cache -dari-snapshot [-snapshot-periode <YYYY-MM-DD>]`; `-cek-cache` tanpa tambahan tetap versi pertama yang membaca semua posting |
-| `labs/api-t5/internal/service/snapshot_test.go` | lima tes Go untuk dua fungsi itu |
+| `labs/api-t5/internal/service/snapshot_test.go` | delapan tes Go untuk dua fungsi itu (lima dari pelaksana, tiga dari tinjauan) dan satu tes `Balik` atas jurnal tanpa posting terlihat |
+| `labs/api-t5/internal/service/akun.go`, `bayar.go`, `internal/handler/handler.go` | `Balik` menjawab `ErrPostingDiarsip` (HTTP 409) bila jurnal tidak punya posting terlihat, sebelum transaction dibuka (tinjauan, bagian `lepas`) |
 | `labs/t5-partisi/dasar.py` | `posting_sebelum` (kosong) diganti partisi bulanan, riwayat posting dihitung dari rumus, pengukur baris yang dibaca |
 | `labs/t5-partisi/run.py`, `skala.py`, `lepas.py`, `alat.py` | tiga bagian rekaman: `skala` (`skala.py`), `lepas` (`lepas.py`), dan `testing` (`run.py`); `alat.py` memuat alat bersama |
 
-Migrasi api-t5 tidak diubah. Rekaman api-t5 yang berubah hanya `testing.txt`, karena lima tes baru ikut terdaftar di sana.
+Migrasi api-t5 tidak diubah. Rekaman api-t5 yang berubah hanya `testing.txt`, karena tes baru ikut terdaftar di sana.
 
 ## Keputusan desain
 
@@ -53,33 +54,34 @@ PostgreSQL lewat `labs/b3-race` (`make -C labs/b3-race up`, dijalankan target `r
 
 | File | Bagian | Isi |
 | --- | --- | --- |
-| `output/pruning.txt` | `skala` | 12 bulan × 150.000 posting di 14 partisi; EXPLAIN untuk satu bulan, tanpa `dibuat`, dan berdasarkan `id`; PK tanpa `dibuat` ditolak; id ganda diterima |
+| `output/pruning.txt` | `skala` | 12 bulan × 150.000 posting di 14 partisi; EXPLAIN untuk satu bulan, tanpa `dibuat` (simpul dua partisi kosong tidak ditampilkan), dan berdasarkan `id`; Parallel Append dengan partisi di bawah 8 MB (B2); PK tanpa `dibuat` ditolak; id ganda diterima |
 | `output/snapshot.txt` | `skala` | pemeriksaan malam tanpa dan dengan snapshot, baris yang dibaca per job, snapshot dicocokkan dengan hitungan langsung, selisih cache yang sama di kedua pemeriksaan |
 | `output/lepas.txt` | `lepas` | DELETE ditolak ledger, DETACH dan DROP hanya dijaga hak, DETACH CONCURRENTLY dan batasnya, DETACH + DROP lawan DELETE, arsip dan pemulihan, pemeriksaan sesudah partisi dilepas, jurnal pembalik atas jurnal yang dilepas |
 | `output/pasang.txt` | `lepas` | ATTACH dengan dan tanpa CHECK, aturan ledger di partisi hasil ATTACH (termasuk penjaga TRUNCATE), partisi bulan depan belum ada |
-| `output/testing.txt` | `testing` | `go vet` dan tujuh tes Go (lima snapshot, dua partisi) dengan PostgreSQL |
+| `output/testing.txt` | `testing` | `go vet` dan sebelas tes Go (delapan snapshot, satu `Balik` atas jurnal tanpa posting, dua partisi dari #479) dengan PostgreSQL |
 
 Rekaman dari database bersih. Angka yang bergantung mesin (waktu) tidak direkam: bagian D `lepas` hanya memeriksa batas (DELETE lebih dari dua kali waktu DETACH + DROP). Jumlah baris yang dibaca datang dari `pg_stat_user_tables` (selisih `seq_tup_read` + `idx_tup_fetch` atas partisi posting, dibaca sesudah proses job keluar) dan dibandingkan dengan `count(*)` atas tabel, bukan dari kode lab.
 
 ## Yang terbaca dari rekaman
 
-- **Pruning.** Query satu bulan membaca 1 dari 14 partisi. Query tanpa `dibuat` membaca 14 dari 14, termasuk dua partisi kosong (di partisi sebesar ini PostgreSQL memilih Parallel Append). Mencari satu baris dengan `id` saja memeriksa index primary key di semua partisi.
+- **Pruning.** Query satu bulan membaca 1 dari 14 partisi. Query tanpa `dibuat` membaca 14 dari 14, termasuk dua partisi kosong (PostgreSQL memilih Parallel Append). Mencari satu baris dengan `id` saja membaca 14 dari 14: index primary key di 12 partisi berisi dan Seq Scan di dua partisi kosong. Partisi yang jauh di bawah 8 MB juga dipindai lewat Parallel Append (bagian B2).
 - **PK `(id, dibuat)`.** `UNIQUE (id)` ditolak (0A000). Satu `id` yang sama muncul tiga kali dalam satu transaction yang dibatalkan: keunikan `id` hanya datang dari sequence.
 - **Pemeriksaan malam.** Tanpa snapshot: 1.800.000 baris dari 1.800.000. Dari snapshot terakhir: 150.000, yaitu 8,3% (satu bulan dari 12). Dengan snapshot tiga bulan lalu: 450.000. Tiap job snapshot membaca persis satu bulan (150.000). Kedua pemeriksaan menandai buku yang sama dengan selisih yang sama.
 - **Retensi memaksa snapshot.** Sesudah satu partisi dilepas, pemeriksaan tanpa snapshot menandai semua buku yang saldonya ada di partisi itu (10.061 dari 10.288). Pemeriksaan dari snapshot tetap 0 selisih.
-- **DETACH.** `CONCURRENTLY` ditolak di dalam blok transaction (25001) dan bila ada partisi DEFAULT (55000). Tabel yang dilepas mendapat CHECK yang setara batas partisi, dan kehilangan tiga trigger ledger baris demi baris. Role aplikasi tidak bisa DETACH atau DROP (42501).
-- **ATTACH.** Tabel pulih tanpa CHECK dipindai (`verifying table`). Dengan CHECK berbatas literal yang sama dengan `FOR VALUES`, batas partisi tidak dipindai. Foreign key tetap divalidasi untuk tabel pulih. Tabel asal yang dilepas DETACH CONCURRENTLY dipasang kembali tanpa keduanya.
+- **DETACH.** `CONCURRENTLY` ditolak di dalam blok transaction (25001) dan bila ada partisi DEFAULT (55000). Tabel yang dilepas mendapat CHECK yang setara batas partisi, dan kehilangan tiga trigger ledger baris demi baris. Role aplikasi tidak bisa DETACH atau DROP (42501), dan sesudah DETACH juga tidak bisa UPDATE atau DELETE atas tabel yang dilepas (42501, karena hak).
+- **ATTACH.** Tabel pulih tanpa CHECK dipindai (`verifying table`). Dengan CHECK berbatas literal yang sama dengan `FOR VALUES`, batas partisi tidak dipindai. Foreign key tetap divalidasi untuk tabel pulih. Tabel tanpa CHECK bawaan `jumlah <> 0` ditolak (42804). Tiga CHECK lain (batas dari ekspresi, `NOT VALID`, batas atas lebih longgar) tetap dipindai. Tabel asal yang dilepas DETACH CONCURRENTLY dipasang kembali tanpa pemindaian dan tanpa validasi foreign key.
 - **Penjaga TRUNCATE.** Trigger TRUNCATE dipasang per partisi oleh `buat_partisi_posting` dan tidak ikut ke partisi hasil ATTACH dari tabel baru: pemilik schema bisa mengosongkannya sampai penjaganya dipasang.
-- **Jurnal pembalik.** Jurnal yang postingnya sudah dilepas dijawab 500 oleh API. Penyebabnya, menurut log server, jurnal pembalik tanpa posting ditolak saat COMMIT oleh aturan jurnal seimbang (23514). Tidak ada jurnal pembalik yang tertinggal.
+- **Jurnal pembalik.** Jurnal yang postingnya sudah dilepas dijawab 409 oleh API (`ErrPostingDiarsip`), tanpa galat database di log server, dan tidak ada jurnal pembalik yang tertinggal. Versi pertama lab merekam 500: jurnal pembalik tanpa posting ditolak saat COMMIT oleh aturan jurnal seimbang (23514). Tinjauan menambah pemeriksaan di `Balik`.
 - **Bulan depan.** INSERT dengan `dibuat` di bulan tanpa partisi ditolak (23514, `no partition of relation "posting" found for row`). Jam diperankan dengan `dibuat` eksplisit.
 
 ## Selisih dengan naskah (lab yang benar)
 
-- Naskah menulis query tanpa `dibuat` memindai semua partisi (Parallel Append). Lab merekam Parallel Append dengan 150.000 posting per bulan, supaya tiap partisi lebih besar dari `min_parallel_table_scan_size` (8 MB). Dengan 120.000 posting per bulan, partisi berukuran 8.192.000 byte dan pemeriksaan ukuran di lab gagal; rencana yang dipilih pada ukuran itu tidak diperiksa.
+- Naskah menulis query tanpa `dibuat` memindai semua partisi (Parallel Append). Lab merekam itu dengan 150.000 posting per bulan. Angka itu dipilih supaya satu bulan dari 12 sama dengan 8,3% di naskah, bukan karena ambang paralel: `min_parallel_table_scan_size` (8 MB) tidak berlaku bagi partisi (kode planner PostgreSQL 17, `compute_parallel_worker`), dan bagian B2 `skala` merekam Parallel Append atas 12 partisi 30.000 baris yang jauh di bawah 8 MB. Versi pertama lab menulis sebaliknya; tinjauan mengujinya (120.000 posting per bulan, 8.192.000 byte, juga Parallel Append).
 - Naskah menulis `DETACH CONCURRENTLY` menambahkan CHECK itu sendiri dan arsip yang dipulihkan ke tabel baru tidak memilikinya. Keduanya terekam. Lab menambah dua hal. Foreign key ke `jurnal` dan `buku` tetap divalidasi saat ATTACH tabel pulih. Tabel pulih juga harus membawa CHECK bawaan `jumlah <> 0`, tanpa itu ATTACH ditolak (42804).
-- Naskah menulis jurnal pembalik atas jurnal yang diarsipkan "tidak bisa dibuat dari database utama". Lab merekam bentuknya: API menjawab 500, bukan 4xx, dan database menolak.
+- Naskah menulis jurnal pembalik atas jurnal yang diarsipkan "tidak bisa dibuat dari database utama". Lab merekam bentuknya: API menjawab 409 (`posting-diarsipkan`). Sebelum tinjauan jawabannya 500 dan database yang menolak saat COMMIT.
 - Naskah belum menyebut dua akibat. Tabel yang dilepas tidak lagi dijaga trigger append-only, hanya hak akses yang menjaganya. Penjaga TRUNCATE tidak ikut ke tabel hasil pemulihan.
 - Posting per bulan di lab (150.000) lebih kecil dari 36,5 juta di naskah. Angka bulan dan baris di naskah tetap Hitungan atas Asumsi.
+- Bentuk simpul scan untuk partisi kosong (`Seq Scan` atau `Parallel Seq Scan`, dua-duanya berbiaya 0,00) tidak tetap dari satu rekaman ke rekaman lain, jadi `pruning.txt` tidak menampilkannya dan menulis alasannya.
 
 ## Tidak dijalankan atau belum ada
 
@@ -89,4 +91,4 @@ Lab ini tidak mengklaim kapasitas tulis satu primary: partisi tidak menambahnya.
 
 ## Uji mutasi
 
-Tabel hasil ada di badan PR. Tiap mutan mengubah satu hal di `snapshot.go` atau `main.go`. Tes Go atau bagian `skala` harus gagal karena sebab yang diuji. File dikembalikan sesudahnya.
+Tabel hasil ada di badan PR, dua putaran: pelaksana (16 mutan atas `snapshot.go` dan `main.go`) dan peninjau (mutan baru atas kode Go, lab Python, dan migrasi 000024). Tes Go atau bagian `skala` atau `lepas` harus gagal karena sebab yang diuji. File dikembalikan sesudahnya.
