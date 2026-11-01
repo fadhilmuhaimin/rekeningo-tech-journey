@@ -277,7 +277,7 @@ describe("sumber: kalimat komponen dan zona dikunci ke sumbernya", () => {
     expect(d.zona.map((z) => [z.id, z.label, z.ringkas])).toEqual([
       ["client", "client", "Tempat orang melihat dan meminta: app, dasbor, dan kasir mitra."],
       ["edge", "edge", "Pintu semua permintaan dari luar cluster."],
-      ["service", "service", "Enam service dengan tiga instance tiap service; tiap service punya schema dan role sendiri."],
+      ["service", "service", "Enam service dengan tiga instance tiap service (Asumsi); tiap service punya schema dan role sendiri, tetapi di lab satu proses memegang keenam role."],
       ["data", "data", "Tempat data disimpan dan disalin: satu primary, replica, ringkasan, cache, dan event."],
       ["operasi", "operasi", "Yang menjalankan dan mengawasi: cluster, rilis, SLO, dan latihan."],
     ]);
@@ -299,9 +299,11 @@ describe("sumber: kalimat komponen dan zona dikunci ke sumbernya", () => {
     expect(judul(m![1]!)).toContain("dipecah ke enam schema service");
     expect(judul(m![2]!)).toContain("Hak per role");
     expect(t).toContain("lab api-t5");
-    // keputusan 1685: di lab satu proses (t5_app) memegang keenam role, jadi service sebagai proses terpisah bukan rekaman
-    expect(SKEMA).toContain("satu proses (t5_app) mewarisi keenam role");
-    expect(t).toContain("Di lab satu proses memegang keenam role, jadi enam proses terpisah dengan tiga instance tiap service tetap Asumsi.");
+    // keputusan 1685: catatan sumber tidak menulis "enam service dibaca dari rekaman"; yang direkam hanya schema, tabel, dan hak role.
+    // Di lab satu proses (t5_app) memegang keenam role, dan kalimat itu ada di ringkasan zona service tempat tiga instance disebut.
+    expect(t).toContain("Schema, jumlah tabel, dan hak role tiap service dibaca dari rekaman lab api-t5");
     expect(t).not.toMatch(/Enam service, schema/);
+    expect(SKEMA).toContain("satu proses (t5_app) mewarisi keenam role");
+    expect(d.zona.find((z) => z.id === "service")!.ringkas).toContain("tetapi di lab satu proses memegang keenam role");
   });
 });

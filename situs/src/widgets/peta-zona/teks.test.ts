@@ -32,7 +32,7 @@ describe("teks widget: kata bilangan dihitung dari data", () => {
   });
   it("catatan sumber menyebut jumlah kejadian dan jumlah service dalam kata yang sama dengan data", () => {
     expect(d.sumber.teks).toContain(`${BILANGAN[d.kejadian.length]} kejadian`);
-    expect(d.sumber.teks).toContain(`${BILANGAN[d.service.length]} service`);
+    expect(d.zona.find((z) => z.id === "service")!.ringkas).toMatch(new RegExp(`^${kapital(BILANGAN[d.service.length]!)} service dengan tiga instance`));
   });
 });
 

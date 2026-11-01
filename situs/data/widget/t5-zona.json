@@ -3,7 +3,7 @@
   "judul": "Peta lima zona Tahap 5",
   "sumber": {
     "jenis": "asumsi",
-    "teks": "Zona, pembagian tim, dan delapan kejadian adalah rancangan penulis (Asumsi). Pembagian enam service ke schema, jumlah tabel, dan hak role dibaca dari rekaman lab api-t5 (skema.txt, bagian E dan F). Di lab satu proses memegang keenam role, jadi enam proses terpisah dengan tiga instance tiap service tetap Asumsi. Halaman masalah di tiap kejadian memuat rekamannya sendiri, bila ada."
+    "teks": "Zona, pembagian tim, dan delapan kejadian adalah rancangan penulis (Asumsi). Schema, jumlah tabel, dan hak role tiap service dibaca dari rekaman lab api-t5 (skema.txt, bagian E dan F). Halaman masalah di tiap kejadian memuat rekamannya sendiri, bila ada."
   },
   "tebak": {
     "q": "Ledger membuat jurnal dan posting. Di zona mana uang bergerak?",
@@ -42,7 +42,7 @@
     {
       "id": "service",
       "label": "service",
-      "ringkas": "Enam service dengan tiga instance tiap service; tiap service punya schema dan role sendiri.",
+      "ringkas": "Enam service dengan tiga instance tiap service (Asumsi); tiap service punya schema dan role sendiri, tetapi di lab satu proses memegang keenam role.",
       "komponen": [
         { "label": "Ledger", "jenis": "uang", "service": "ledger", "catatan": "Menulis jurnal dan posting; jurnal seimbang dan posting tidak diubah. Di rekaman lab, role notifikasi yang mencoba INSERT ke posting ditolak (42501)." },
         { "label": "Akun", "jenis": "lain", "service": "akun", "catatan": "Akun, sesi, dan verifikasi. Ledger hanya boleh membaca kolom id, tingkat, dan status akun." },
