@@ -756,6 +756,20 @@ describe("baris riset R5-115 sampai R5-119: ada, urut, tanpa ganda, dan memuat k
       expect(r, b).toContain(b);
       expect(fs.existsSync(path.join(akar, b)), b).toBe(true);
     }
+    // Angka di baris R5-119 diturunkan dari rekaman yang disebut, bukan ditulis ulang.
+    const jumlahTabel = Number(skema[skema.findIndex((x) => x.trim() === "tabel") + 2]!.trim());
+    const erd4 = (JSON.parse(baca("situs/data/erd/tahap-4.json")) as { tabel: unknown[] }).tabel.length;
+    expect(r).toContain(`(${jumlahTabel} tabel; ${erd4} tabel Tahap 4 ditambah delapan: snapshot_saldo, arsip_partisi, ringkasan_merchant_harian, jadwal_cicilan, angsuran, pengumuman, mitra_pos, sakelar)`);
+    const sqlstate = skema.find((x) => x.startsWith("t5_notifikasi: INSERT INTO t5_ledger.posting"));
+    expect(sqlstate).toBeDefined();
+    const kode = skema[skema.indexOf(sqlstate!) + 1]!.match(/SQLSTATE (\d+)/)![1]!;
+    expect(r).toContain(`notifikasi ditolak INSERT ke posting dengan ${kode}; t5_app mewarisi keenam role dan UPDATE posting ditolak`);
+    const aLap = laporan.slice(laporan.findIndex((x) => x.startsWith("# --- A.")), laporan.findIndex((x) => x.startsWith("# --- B.")));
+    const nom = aLap.filter((x) => x.includes("POST '/transfers'")).map((x) => Number(x.match(/"nominal": (\d+)/)![1]));
+    const jawab = JSON.parse(aLap.find((x) => x.startsWith('{"merchant":'))!) as { merchant: number; jumlah_transaksi: number; total: number };
+    const status201 = aLap.filter((x) => x === "HTTP/1.1 201 Created").length;
+    expect(r).toContain(`dua pembayaran Budi Rp${titik(nom[0]!)} dan Rp${titik(nom[1]!)} dijawab ${201}, laporan Warung ${jawab.merchant} jumlah_transaksi ${jawab.jumlah_transaksi} dan total ${jawab.total}`);
+    expect([nom.length, status201]).toEqual([2, 2]);
     expect(r).toContain("20.833 dijadwalkan dan selesai, status 200 ×18.718 dan 201 ×2.115");
     expect(beban.join("\n")).toContain("status: 200 x18718, 201 x2115");
     expect(r).toContain("lima jurnal 201 ada di primary lama");
