@@ -1,0 +1,138 @@
+# Lab t5-replika · promosi replika: replika asinkron kehilangan transaksi, standby sinkron tidak
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema t5_ledger, t5_akun, t5_pembayaran, t5_merchant, t5_notifikasi, t5_cicilan · primary, replika asinkron, dan standby sinkron di container lokal · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-replika run.
+
+# --- A. Replika asinkron dipromosikan sesudah koneksi WAL-nya diputus: transaksi yang sudah dijawab 201 hilang ---
+# Tiga pembayaran dijawab 201 dan kedua standby menyusul. Lalu koneksi WAL ke replika_laporan diputus di sisi primary.
+primary=> ALTER ROLE replikator_laporan NOLOGIN
+ALTER ROLE
+primary=> SELECT pg_terminate_backend(pid) FROM pg_stat_replication WHERE application_name = 'replika_laporan'
+ pg_terminate_backend
+----------------------
+ t
+(1 row)
+replika=> SELECT count(*) AS penerima_wal FROM pg_stat_wal_receiver
+ penerima_wal
+--------------
+ 0
+(1 row)
+# Primary terus menerima pembayaran: lima pembayaran lagi, semuanya dijawab 201 ke client.
+$ POST /transfers lima kali ke Warung 505 (Rp10.000 sampai Rp50.000), semua 201
+primary=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10204, 10205, 10206, 10207, 10208)
+ jurnal_ada
+------------
+ 5
+(1 row)
+replika=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10204, 10205, 10206, 10207, 10208)
+ jurnal_ada
+------------
+ 0
+(1 row)
+# Replika dipromosikan: pg_promote() menunggu sampai promosi selesai.
+replika=> SELECT pg_promote(wait => true)
+ pg_promote
+------------
+ t
+(1 row)
+replika=> SELECT pg_is_in_recovery() AS standby
+ standby
+---------
+ f
+(1 row)
+replika=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10204, 10205, 10206, 10207, 10208)
+ jurnal_ada
+------------
+ 0
+(1 row)
+# Lima jurnal yang dijawab 201 ada di primary lama dan tidak ada di node baru: lima pembayaran hilang dari sudut pandang node baru.
+primary=> SELECT (SELECT count(*) FROM t5_ledger.buku b WHERE b.saldo_cache <> coalesce((SELECT sum(p.jumlah) FROM t5_ledger.posting p WHERE p.buku_id = b.id), 0)) AS buku_selisih, (SELECT coalesce(sum(jumlah), 0) FROM t5_ledger.posting) AS jumlah_semua_posting
+ buku_selisih | jumlah_semua_posting
+--------------+----------------------
+ 0            | 0
+(1 row)
+replika=> SELECT (SELECT count(*) FROM t5_ledger.buku b WHERE b.saldo_cache <> coalesce((SELECT sum(p.jumlah) FROM t5_ledger.posting p WHERE p.buku_id = b.id), 0)) AS buku_selisih, (SELECT coalesce(sum(jumlah), 0) FROM t5_ledger.posting) AS jumlah_semua_posting
+ buku_selisih | jumlah_semua_posting
+--------------+----------------------
+ 0            | 0
+(1 row)
+# Node baru tidak rusak, hanya lebih tua: tidak ada buku yang saldo_cache-nya berbeda dari jumlah postingnya, dan jumlah semua posting nol.
+primary=> SELECT saldo_cache AS saldo_warung_505 FROM t5_ledger.buku WHERE akun_id = 505
+ saldo_warung_505
+------------------
+ 156000
+(1 row)
+replika=> SELECT saldo_cache AS saldo_warung_505 FROM t5_ledger.buku WHERE akun_id = 505
+ saldo_warung_505
+------------------
+ 6000
+(1 row)
+# Selisih saldo Warung 505 antara primary lama dan node baru: Rp150.000, sama dengan jumlah lima pembayaran yang hilang.
+primary=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'
+ jurnal_bayar
+--------------
+ 9
+(1 row)
+replika=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'
+ jurnal_bayar
+--------------
+ 3
+(1 row)
+# Tidak ada yang menghentikan primary lama: satu pembayaran lagi dijawab 201, dan kedua node kini punya riwayat berbeda.
+# Fencing (menghentikan primary lama sebelum node baru menerima tulisan) tidak ada di lab ini: tidak ada yang menghentikan primary lama.
+
+# --- B. Standby sinkron: COMMIT yang tidak dijawab standby tidak dijawab 201 ke client ---
+primary=> ALTER SYSTEM SET synchronous_standby_names = 'FIRST 1 (replika_sinkron)'
+ALTER SYSTEM
+primary=> SELECT pg_reload_conf()
+ pg_reload_conf
+----------------
+ t
+(1 row)
+# Tiga pembayaran dijawab 201 sementara replika_sinkron sinkron. Lalu koneksi WAL ke replika_sinkron diputus di sisi primary.
+primary=> ALTER ROLE replikator_sinkron NOLOGIN
+ALTER ROLE
+primary=> SELECT pg_terminate_backend(pid) FROM pg_stat_replication WHERE application_name = 'replika_sinkron'
+ pg_terminate_backend
+----------------------
+ t
+(1 row)
+$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 505, "nominal": 4000}'
+(tidak ada jawaban)
+# Selagi client menunggu, COMMIT berhenti di SyncRep. Client tidak menerima jawaban sampai batas 3 detik (curl --max-time 3): tidak ada 201.
+$ docker compose logs primary   # baris yang memuat pembatalan penantian
+WARNING:  canceling wait for synchronous replication due to user request
+DETAIL:  The transaction has already committed locally, but might not have been replicated to the standby.
+# Penantian dibatalkan sesudah client pergi, dan transaksinya ter-commit di primary lama saja: tidak ada standby yang mengonfirmasinya.
+# Promosi standby sinkron.
+sinkron=> SELECT pg_promote(wait => true)
+ pg_promote
+------------
+ t
+(1 row)
+sinkron=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10201, 10202, 10203)
+ jurnal_ada
+------------
+ 3
+(1 row)
+# Ketiga jurnal yang dijawab 201 sebelum pemutusan ada di node baru: tidak satu pun dari ketiganya hilang.
+primary=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'
+ jurnal_bayar
+--------------
+ 4
+(1 row)
+sinkron=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'
+ jurnal_bayar
+--------------
+ 3
+(1 row)
+# Primary lama memuat satu jurnal lagi (commit lokal sesudah penantian dibatalkan) yang tidak ada di node baru; client tidak pernah menerima 201 untuknya.
+primary=> SELECT (SELECT count(*) FROM t5_ledger.buku b WHERE b.saldo_cache <> coalesce((SELECT sum(p.jumlah) FROM t5_ledger.posting p WHERE p.buku_id = b.id), 0)) AS buku_selisih, (SELECT coalesce(sum(jumlah), 0) FROM t5_ledger.posting) AS jumlah_semua_posting
+ buku_selisih | jumlah_semua_posting
+--------------+----------------------
+ 0            | 0
+(1 row)
+sinkron=> SELECT (SELECT count(*) FROM t5_ledger.buku b WHERE b.saldo_cache <> coalesce((SELECT sum(p.jumlah) FROM t5_ledger.posting p WHERE p.buku_id = b.id), 0)) AS buku_selisih, (SELECT coalesce(sum(jumlah), 0) FROM t5_ledger.posting) AS jumlah_semua_posting
+ buku_selisih | jumlah_semua_posting
+--------------+----------------------
+ 0            | 0
+(1 row)

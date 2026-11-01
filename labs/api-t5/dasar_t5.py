@@ -38,6 +38,15 @@ PEMILIK = f"host=127.0.0.1 port={DB_PORT} user=lab password=lab dbname=lab appli
 APP_NAMA = "api-t5"
 
 
+def pakai_database(port):
+    """Lab turunan yang menjalankan PostgreSQL sendiri (t5-replika: primary replikasi di port lab itu) memindahkan semua
+    sambungan dasar ini ke port tersebut, sebelum schema dibuat. Bagian lain tidak berubah: nama pengguna dan basis data
+    sama dengan database bersama (lab/lab, lab)."""
+    global DB_PORT, PEMILIK
+    DB_PORT = port
+    PEMILIK = f"host=127.0.0.1 port={port} user=lab password=lab dbname=lab application_name=api-t5-pemilik"
+
+
 LAYANAN = {"aktif": False}   # True sesudah pecah_layanan(): server dan worker memakai role t5_app di enam schema service
 SCHEMA_LAYANAN = ["t5_ledger", "t5_akun", "t5_pembayaran", "t5_merchant", "t5_notifikasi", "t5_cicilan"]
 ROLE_LAYANAN = [s for s in SCHEMA_LAYANAN]   # satu role per service, nama sama dengan schema-nya

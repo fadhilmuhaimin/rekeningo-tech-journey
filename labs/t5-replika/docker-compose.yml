@@ -1,10 +1,14 @@
-# Lab Tahap 5: satu primary, satu read replica (streaming replication PostgreSQL 17).
-# Replica sengaja ditunda 2 detik (recovery_min_apply_delay) supaya replication lag terlihat jelas.
+# Lab Tahap 5 (t5-replika): satu primary, satu standby asinkron untuk laporan, dan satu standby sinkron untuk ledger.
+# PostgreSQL 17.11 (postgres:17). Replikasi streaming fisik dengan slot; semua container lokal, tanpa jaringan keluar.
+# Standby dibuat dari pg_basebackup SESUDAH primary berisi schema api-t5, jadi `docker compose up -d primary` dulu,
+# lalu run.py mengisi schema, lalu `docker compose up -d replika sinkron`.
 # Jalankan: make -C labs/t5-replika run
 services:
   primary:
     image: postgres:17
-    command: ["postgres", "-c", "wal_level=replica", "-c", "max_wal_senders=5"]
+    # log_line_prefix menandai application_name dan pid; log_statement tidak dinyalakan (tidak ada yang dibaca dari log).
+    command: ["postgres", "-c", "wal_level=replica", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10",
+              "-c", "log_line_prefix=%a|%p|"]
     environment:
       POSTGRES_USER: lab
       POSTGRES_PASSWORD: lab   # kredensial lab lokal, bukan rahasia
@@ -12,27 +16,41 @@ services:
     volumes:
       - ./init-primary.sh:/docker-entrypoint-initdb.d/init-primary.sh:ro
     ports:
-      - "127.0.0.1:${LAB_REPLIKA_PRIMARY_PORT:-54340}:5432"
+      - "127.0.0.1:${LAB_REPLIKA_PRIMARY_PORT:-54340}:5432"   # lajur lain: LAB_REPLIKA_PRIMARY_PORT (labs/README.md)
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lab -d lab"]
       interval: 1s
       timeout: 2s
       retries: 30
-  replica:
+  replika:
     image: postgres:17
     depends_on:
       primary:
         condition: service_healthy
     user: postgres
     environment:
-      PGPASSWORD: lab
-    command:
-      - bash
-      - -c
-      - |
-        rm -rf /var/lib/postgresql/data/*
-        until pg_basebackup -h primary -U replikator -D /var/lib/postgresql/data -R -X stream; do sleep 1; done
-        chmod 700 /var/lib/postgresql/data
-        exec postgres -c hot_standby=on -c recovery_min_apply_delay=2s
+      PGPASSWORD: lab   # kredensial lab lokal, bukan rahasia
+      STANDBY_NAMA: replika_laporan
+      STANDBY_SLOT: slot_laporan
+      STANDBY_ROLE: replikator_laporan
+    volumes:
+      - ./standby.sh:/standby.sh:ro
+    command: ["bash", "/standby.sh"]
     ports:
-      - "127.0.0.1:${LAB_REPLIKA_REPLICA_PORT:-54341}:5432"
+      - "127.0.0.1:${LAB_REPLIKA_REPLICA_PORT:-54341}:5432"   # lajur lain: LAB_REPLIKA_REPLICA_PORT (labs/README.md)
+  sinkron:
+    image: postgres:17
+    depends_on:
+      primary:
+        condition: service_healthy
+    user: postgres
+    environment:
+      PGPASSWORD: lab   # kredensial lab lokal, bukan rahasia
+      STANDBY_NAMA: replika_sinkron
+      STANDBY_SLOT: slot_sinkron
+      STANDBY_ROLE: replikator_sinkron
+    volumes:
+      - ./standby.sh:/standby.sh:ro
+    command: ["bash", "/standby.sh"]
+    ports:
+      - "127.0.0.1:${LAB_REPLIKA_SINKRON_PORT:-54342}:5432"   # lajur lain: LAB_REPLIKA_SINKRON_PORT (labs/README.md)

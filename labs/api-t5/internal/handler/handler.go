@@ -394,15 +394,16 @@ func (s Server) lihatAkun(w http.ResponseWriter, r *http.Request) {
 		tidakDitemukan(w, "Akun")
 		return
 	}
-	a, err := s.svc.LihatAkun(r.Context(), peminta(r), id)
+	a, sumber, err := s.svc.LihatAkunTampil(r.Context(), peminta(r), id, r.Header.Get(KepalaLSNTulis))
 	if errors.Is(err, service.ErrTidakDitemukan) {
 		tidakDitemukan(w, "Akun")
 		return
 	}
 	if err != nil {
-		s.errorInternal(w, err)
+		s.petaError(w, err, "")
 		return
 	}
+	tandaiSumber(w, sumber)
 	tulisJSON(w, 200, a)
 }
 
@@ -496,6 +497,7 @@ func (s Server) bayar(w http.ResponseWriter, r *http.Request) {
 		s.petaError(w, err, "Hanya karyawan yang bisa membayar")
 		return
 	}
+	s.tandaiTulis(w, r)
 	w.Header().Set("Location", fmt.Sprintf("/transfers/%d", id))
 	tulisJSON(w, 201, map[string]int64{"id": id, "saldo": saldo})
 }
@@ -526,6 +528,7 @@ func (s Server) kirim(w http.ResponseWriter, r *http.Request) {
 		s.petaError(w, err, "Hanya karyawan yang bisa mengirim ke rekan")
 		return
 	}
+	s.tandaiTulis(w, r)
 	w.Header().Set("Location", fmt.Sprintf("/transfers/%d", h.ID))
 	tulisJSON(w, 201, h)
 }
@@ -537,7 +540,7 @@ func (s Server) kirim(w http.ResponseWriter, r *http.Request) {
 func (s Server) riwayat(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	q := r.URL.Query()
-	daftar, berikutnya, err := s.svc.Riwayat(r.Context(), peminta(r), id, q.Get("kursor"), q.Get("batas"))
+	daftar, berikutnya, sumber, err := s.svc.RiwayatTampil(r.Context(), peminta(r), id, q.Get("kursor"), q.Get("batas"), r.Header.Get(KepalaLSNTulis))
 	if errors.Is(err, service.ErrTidakDitemukan) {
 		tidakDitemukan(w, "Akun")
 		return
@@ -546,6 +549,7 @@ func (s Server) riwayat(w http.ResponseWriter, r *http.Request) {
 		s.petaError(w, err, "")
 		return
 	}
+	tandaiSumber(w, sumber)
 	var k *string
 	if berikutnya != "" {
 		k = &berikutnya
