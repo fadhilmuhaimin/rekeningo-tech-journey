@@ -20,7 +20,7 @@ import { ringkasCek, ringkasIndex } from "./erd";
 import { muncul } from "../gerak/muncul";
 import {
   LABEL_STATUS, UKURAN, ambangKolom, barisNama, barisPindah, berpartisi, bisaBanding, duaBaris, duaKepala, fkDihapusLintas, modulTabel, namaTombol, ringkasan, ringkasModul, tampilSebelum,
-  tampilTahapHalaman, tata, teksAturan, teksKolom, teksPartisi, teksPindah, varPesan,
+  tampilTahapHalaman, tata, teksAturan, teksKolom, teksPartisi, teksPindah, tinggiKepala, varPesan,
   type TabelTampil, type Tata, type TautanTahap,
 } from "./tumbuh";
 
@@ -52,7 +52,10 @@ function NodeTabel({ data }: NodeProps<Node<DataNode>>) {
         aria-label={namaTombol(t)}
         onClick={pilih}
       >
-        <span className={`erd-tumbuh__kepala${duaKepala(t, acuan) ? " is-dua" : ""}${barisNama(t, acuan) > 1 ? " is-nama-dua" : ""}`}>
+        <span
+          className={`erd-tumbuh__kepala${duaKepala(t, acuan) ? " is-dua" : ""}${barisNama(t, acuan) > 1 ? " is-nama-dua" : ""}`}
+          style={barisNama(t, acuan) > 1 ? { height: tinggiKepala(t, acuan) } : undefined}
+        >
           <code translate="no">{jedaNama(t.nama)}</code>
           {berpartisi(t) && <span className="erd-tumbuh__partisi">partisi</span>}
           {t.status && <span className="erd-tumbuh__status">{LABEL_STATUS[t.status]}</span>}
