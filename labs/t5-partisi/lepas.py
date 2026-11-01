@@ -53,6 +53,9 @@ def rekam_lepas():
     catat("# yang tadinya ikut dari tabel induk. Hanya penjaga TRUNCATE, yang dipasang di partisinya sendiri, yang tertinggal.")
     dalam_transaksi([f"UPDATE {ARSIP_NAMA} SET jumlah = jumlah WHERE id = (SELECT min(id) FROM {ARSIP_NAMA})"], S)
     catat("# UPDATE atas tabel yang sudah dilepas berhasil untuk pemiliknya: sesudah DETACH, aturan append-only bergantung pada hak akses tabel itu.")
+    tolak(f"UPDATE {ARSIP_NAMA} SET jumlah = jumlah", "42501", S, role="api_t5", pesan=f"permission denied for table {ARSIP_NAMA}")
+    tolak(f"DELETE FROM {ARSIP_NAMA}", "42501", S, role="api_t5", pesan=f"permission denied for table {ARSIP_NAMA}")
+    catat("# Role aplikasi (api_t5) ditolak karena hak (42501), bukan karena trigger: ia tidak punya hak UPDATE atau DELETE atas tabel itu.")
 
     bagian("D. Membuang satu bulan: DETACH dan DROP lawan DELETE, dengan jumlah baris sama (tabel uji tanpa trigger ledger)")
     catat("# DELETE atas posting ditolak ledger (bagian B), jadi pembandingnya adalah dua tabel uji dengan kolom dan index yang sama dengan posting,")
@@ -104,7 +107,7 @@ def rekam_lepas():
     harap(satu(f"SELECT count(*) FROM (SELECT * FROM posting_pulih EXCEPT ALL SELECT * FROM {ARSIP_NAMA}) x", S), 0, "baris tambahan di tabel pulih")
     sha_pulih = ekspor(S, "SELECT * FROM posting_pulih ORDER BY id, dibuat", ARSIP / "pulih.csv")
     harap(sha_pulih, sha, "checksum ekspor tabel pulih")
-    catat(f"# File arsip: {baris_arsip:,} baris; tabel pulih memuat baris yang sama (EXCEPT ALL kedua arah: 0 baris), dan ekspor ulang tabel pulih punya SHA-256 yang sama dengan file.".replace(",", "."))
+    catat(f"# File arsip: {ribu(baris_arsip)} baris; tabel pulih memuat baris yang sama (EXCEPT ALL kedua arah: 0 baris), dan ekspor ulang tabel pulih punya SHA-256 yang sama dengan file.")
     catat("# File ada di $TMP/t5-partisi-arsip-<port>/posting_lalu_05.csv; isinya tidak direkam.")
 
     bagian("F. Pemeriksaan malam sesudah satu bulan dilepas: tanpa snapshot menuduh, dengan snapshot cocok")
@@ -156,6 +159,11 @@ def rekam_lepas():
     bagian("A. ATTACH PARTITION memindai tabel kecuali ada CHECK valid yang setara batas partisi")
     catat("# Tabel pulih dibuat dari arsip dengan kolom, CHECK bawaan (jumlah <> 0), dan index yang sama dengan posting, tetapi tanpa CHECK batas partisi.")
     dari, ke = batas(5, S), batas(4, S)
+    catat("# Percobaan 0: tabel tanpa CHECK bawaan posting (jumlah <> 0) ditolak.")
+    jalan("CREATE TABLE posting_pulih0 (LIKE posting INCLUDING DEFAULTS INCLUDING INDEXES)", S, tulis_hasil=False)
+    tolak(f"ALTER TABLE posting ATTACH PARTITION posting_pulih0 FOR VALUES FROM ('{dari}') TO ('{ke}')", "42804", S,
+          pesan="child table is missing constraint")
+    jalan("DROP TABLE posting_pulih0", S, tulis_hasil=False)
     catat("# Percobaan 1: tabel pulih tanpa CHECK batas partisi.")
     pesan = jalan_pesan(f"ALTER TABLE posting ATTACH PARTITION posting_pulih FOR VALUES FROM ('{dari}') TO ('{ke}')", S)
     harap(pesan[0], 'verifying table "posting_pulih"', "ATTACH tanpa CHECK memindai tabel")
@@ -199,6 +207,20 @@ def rekam_lepas():
     catat("# Batas partisi tidak dipindai lagi (partition constraint ... is implied by existing constraints). Foreign key tetap divalidasi karena tabel pulih tidak memilikinya.")
     jalan("ALTER TABLE posting DETACH PARTITION posting_pulih2", S, tulis_hasil=False)
     jalan("DROP TABLE posting_pulih2", S, tulis_hasil=False)
+    catat("# Percobaan 2b: tiga CHECK lain tetap membuat ATTACH memindai. Tabelnya sengaja kosong: pemindaian ditentukan dari constraint, bukan dari isi tabel.")
+    varian = [("posting_pulih3", f"CHECK (dibuat >= '{dari}'::timestamptz + interval '0 day' AND dibuat < '{ke}'::timestamptz + interval '0 day')",
+               "batas berupa ekspresi (literal ditambah interval)"),
+              ("posting_pulih4", f"CHECK (dibuat >= '{dari}' AND dibuat < '{ke}') NOT VALID", "batas literal yang sama, tetapi constraint NOT VALID"),
+              ("posting_pulih5", f"CHECK (dibuat >= '{dari}' AND dibuat < '{ke}'::timestamptz + interval '1 day')", "batas atas lebih longgar dari batas partisi")]
+    for nama, cek, ket in varian:
+        catat(f"# {ket}:")
+        jalan(f"CREATE TABLE {nama} (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)", S, tulis_hasil=False)
+        jalan(f"ALTER TABLE {nama} ADD CONSTRAINT {nama}_batas {cek}", S)
+        pesan = jalan_pesan(f"ALTER TABLE posting ATTACH PARTITION {nama} FOR VALUES FROM ('{dari}') TO ('{ke}')", S)
+        harap(f'verifying table "{nama}"' in pesan, True, f"ATTACH dengan CHECK ({ket}) memindai tabel")
+        jalan(f"ALTER TABLE posting DETACH PARTITION {nama}", S, tulis_hasil=False)
+        jalan(f"DROP TABLE {nama}", S, tulis_hasil=False)
+    catat("# Dari bentuk yang dicoba, hanya CHECK literal yang sama dengan batas partisi (percobaan 2) membebaskan ATTACH dari pemindaian.")
     catat("# Percobaan 3: tabel asal yang dilepas DETACH CONCURRENTLY, yang membawa CHECK dan foreign key-nya sendiri, dipasang kembali.")
     pesan = jalan_pesan(f"ALTER TABLE posting ATTACH PARTITION {ARSIP_NAMA} FOR VALUES FROM ('{dari}') TO ('{ke}')", S)
     harap(pesan, [f'partition constraint for table "{ARSIP_NAMA}" is implied by existing constraints'], "ATTACH tabel asal")

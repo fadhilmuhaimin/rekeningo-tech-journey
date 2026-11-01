@@ -84,6 +84,13 @@ ALTER TABLE
 UPDATE 1
 => ROLLBACK
 # UPDATE atas tabel yang sudah dilepas berhasil untuk pemiliknya: sesudah DETACH, aturan append-only bergantung pada hak akses tabel itu.
+(api_t5) => UPDATE posting_lalu_05 SET jumlah = jumlah
+ERROR:  permission denied for table posting_lalu_05
+   -- SQLSTATE 42501
+(api_t5) => DELETE FROM posting_lalu_05
+ERROR:  permission denied for table posting_lalu_05
+   -- SQLSTATE 42501
+# Role aplikasi (api_t5) ditolak karena hak (42501), bukan karena trigger: ia tidak punya hak UPDATE atau DELETE atas tabel itu.
 
 # --- D. Membuang satu bulan: DETACH dan DROP lawan DELETE, dengan jumlah baris sama (tabel uji tanpa trigger ledger) ---
 # DELETE atas posting ditolak ledger (bagian B), jadi pembandingnya adalah dua tabel uji dengan kolom dan index yang sama dengan posting,
@@ -117,7 +124,7 @@ DROP TABLE   -- 200000 baris di partisi yang dibuang
 # File arsip belum dienkripsi: enkripsi dan baris arsip_partisi adalah pekerjaan lab t5-kms, yang membaca file ini.
 => CREATE TABLE posting_pulih (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
 CREATE TABLE
-# File arsip: 28.000 baris; tabel pulih memuat baris yang sama (EXCEPT ALL kedua arah: 0 baris). dan ekspor ulang tabel pulih punya SHA-256 yang sama dengan file.
+# File arsip: 28.000 baris; tabel pulih memuat baris yang sama (EXCEPT ALL kedua arah: 0 baris), dan ekspor ulang tabel pulih punya SHA-256 yang sama dengan file.
 # File ada di $TMP/t5-partisi-arsip-<port>/posting_lalu_05.csv; isinya tidak direkam.
 
 # --- F. Pemeriksaan malam sesudah satu bulan dilepas: tanpa snapshot menuduh, dengan snapshot cocok ---

@@ -4,6 +4,12 @@
 
 # --- A. ATTACH PARTITION memindai tabel kecuali ada CHECK valid yang setara batas partisi ---
 # Tabel pulih dibuat dari arsip dengan kolom, CHECK bawaan (jumlah <> 0), dan index yang sama dengan posting, tetapi tanpa CHECK batas partisi.
+# Percobaan 0: tabel tanpa CHECK bawaan posting (jumlah <> 0) ditolak.
+=> CREATE TABLE posting_pulih0 (LIKE posting INCLUDING DEFAULTS INCLUDING INDEXES)
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih0 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ERROR:  child table is missing constraint "posting_jumlah_check1"
+   -- SQLSTATE 42804
+=> DROP TABLE posting_pulih0
 # Percobaan 1: tabel pulih tanpa CHECK batas partisi.
 => ALTER TABLE posting ATTACH PARTITION posting_pulih FOR VALUES FROM ('<waktu>') TO ('<waktu>')
 ALTER TABLE
@@ -76,6 +82,41 @@ DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
 # Batas partisi tidak dipindai lagi (partition constraint ... is implied by existing constraints). Foreign key tetap divalidasi karena tabel pulih tidak memilikinya.
 => ALTER TABLE posting DETACH PARTITION posting_pulih2
 => DROP TABLE posting_pulih2
+# Percobaan 2b: tiga CHECK lain tetap membuat ATTACH memindai. Tabelnya sengaja kosong: pemindaian ditentukan dari constraint, bukan dari isi tabel.
+# batas berupa ekspresi (literal ditambah interval):
+=> CREATE TABLE posting_pulih3 (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+=> ALTER TABLE posting_pulih3 ADD CONSTRAINT posting_pulih3_batas CHECK (dibuat >= '<waktu>'::timestamptz + interval '0 day' AND dibuat < '<waktu>'::timestamptz + interval '0 day')
+ALTER TABLE
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih3 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  verifying table "posting_pulih3"
+DEBUG:  validating foreign key constraint "posting_buku_id_fkey1"
+DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
+=> ALTER TABLE posting DETACH PARTITION posting_pulih3
+=> DROP TABLE posting_pulih3
+# batas literal yang sama, tetapi constraint NOT VALID:
+=> CREATE TABLE posting_pulih4 (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+=> ALTER TABLE posting_pulih4 ADD CONSTRAINT posting_pulih4_batas CHECK (dibuat >= '<waktu>' AND dibuat < '<waktu>') NOT VALID
+ALTER TABLE
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih4 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  verifying table "posting_pulih4"
+DEBUG:  validating foreign key constraint "posting_buku_id_fkey1"
+DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
+=> ALTER TABLE posting DETACH PARTITION posting_pulih4
+=> DROP TABLE posting_pulih4
+# batas atas lebih longgar dari batas partisi:
+=> CREATE TABLE posting_pulih5 (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+=> ALTER TABLE posting_pulih5 ADD CONSTRAINT posting_pulih5_batas CHECK (dibuat >= '<waktu>' AND dibuat < '<waktu>'::timestamptz + interval '1 day')
+ALTER TABLE
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih5 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  verifying table "posting_pulih5"
+DEBUG:  validating foreign key constraint "posting_buku_id_fkey1"
+DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
+=> ALTER TABLE posting DETACH PARTITION posting_pulih5
+=> DROP TABLE posting_pulih5
+# Dari bentuk yang dicoba, hanya CHECK literal yang sama dengan batas partisi (percobaan 2) membebaskan ATTACH dari pemindaian.
 # Percobaan 3: tabel asal yang dilepas DETACH CONCURRENTLY, yang membawa CHECK dan foreign key-nya sendiri, dipasang kembali.
 => ALTER TABLE posting ATTACH PARTITION posting_lalu_05 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
 ALTER TABLE
