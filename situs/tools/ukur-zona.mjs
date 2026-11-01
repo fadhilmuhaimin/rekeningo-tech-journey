@@ -54,6 +54,7 @@ async function siap(page, path) {
   await page.waitForFunction(() => document.querySelector(".pz .bb-predict__opts button") && !document.querySelector("astro-island[ssr] .pz"), null, { timeout: 15000 });
   await page.waitForTimeout(300);
 }
+const satuPressed = async (page, id) => { const pr = await page.$$eval(".pz .bb-row button", (b) => b.map((x) => x.getAttribute("aria-pressed"))); return pr.filter((x) => x === "true").length === 1 && pr[ZONA.indexOf(id)] === "true"; };
 const tabel = (page) => page.evaluate(() => {
   const t = document.querySelector(".pz table");
   return [...t.querySelectorAll("tbody")].map((b) => {
@@ -97,7 +98,7 @@ for (const path of HAL) {
       nama: w.getAttribute("aria-label"), peran: w.getAttribute("role"), chip: teks(w.querySelector(".bb-widget__head .bb-chip")), sumber: teks(w.querySelector(".jt-sumber")),
       caption: teks(tb.querySelector("caption")), kolom: [...tb.querySelectorAll("thead th")].map(teks), pilihan: [...w.querySelectorAll(".bb-predict__opts button")].map(teks),
       zona: [...w.querySelectorAll(".bb-row button")].map(teks), grup: w.querySelector(".bb-row").getAttribute("aria-label"), tiga: [...w.querySelectorAll(".pz-tiga li")].map(teks),
-      jumlahTbody: tb.querySelectorAll("tbody").length, jumlahTabel: w.querySelectorAll("table").length,
+      jumlahTbody: tb.querySelectorAll("tbody").length, jumlahTabel: w.querySelectorAll("table").length, tigaTag: w.querySelector(".pz-tiga")?.tagName,
     };
   });
   lapor(kepala.peran === "group" && kepala.nama === D.judul, `${path} grup widget punya nama dari data: "${kepala.nama}"`);
@@ -105,6 +106,11 @@ for (const path of HAL) {
   lapor(kepala.caption === L.captionTabel && samaJson(kepala.kolom, [1, 2, 3].map((i) => `${L.kolom.hal} ${i}`)), `${path} caption dan kepala kolom tabel`);
   lapor(samaJson(kepala.pilihan, D.tebak.pilihan) && samaJson(kepala.zona, D.zona.map((z) => z.label)) && kepala.grup === L.ubah, `${path} pilihan tebakan, tombol zona, dan nama grup sama dengan data`);
   lapor(samaJson(kepala.tiga, L.tiga) && kepala.jumlahTabel === 1 && kepala.jumlahTbody === TOTAL, `${path} tiga hal dan ${TOTAL} kelompok baris tabel`);
+  // judul kolom tabel menyebut Hal 1 sampai 3, jadi tiga hal harus daftar bernomor (ol), bukan daftar berpoin
+  lapor(kepala.tigaTag === "OL", `${path} tiga hal berupa daftar bernomor: ${kepala.tigaTag}`);
+  // sel yang belum dibuka: tanda tanya disembunyikan dari pembaca layar, dan teks sr-only menyebut belum dibuka
+  const belumSel = await page.evaluate(() => [...document.querySelectorAll(".pz table td")].map((td) => ({ sembunyi: td.querySelector("[aria-hidden=true]")?.textContent ?? null, sr: td.querySelector(".sr-only")?.textContent ?? null })));
+  lapor(belumSel.length === TOTAL * 3 && belumSel.every((x) => x.sembunyi === "?" && x.sr === L.status.belum), `${path} sebelum menebak: ${belumSel.length} sel belum dibuka, tanda tanya aria-hidden dan teks sr-only "${L.status.belum}"`);
 
   // 2. tebak lewat keyboard: pilihan salah (indeks 0), fokus pindah ke tombol zona pertama
   const salah = D.tebak.pilihan.findIndex((_, i) => i !== D.tebak.jawaban);
@@ -146,19 +152,23 @@ for (const path of HAL) {
     lapor(st[1].teks === acuanJawab, `${path} zona ${z} dibuka: jawaban ${terakhir ? "terbuka (tebakan salah)" : "belum terbuka"}: "${st[1].teks.slice(0, 50)}..."`);
     lapor(st[0].teks === ringkasAcuan(z, pernah), `${path} zona ${z}: status "${st[0].teks.slice(0, 70)}..."`);
     lapor(samaJson(await tabel(page), tabelAcuan(pernah)), `${path} zona ${z}: tabel sama dengan hitungan alat (${D.kejadian.filter((k) => pernah.has(k.zona)).length} dari ${TOTAL} baris terisi)`);
+    lapor(await satuPressed(page, z), `${path} zona ${z}: aria-pressed tepat satu zona, yang baru dibuka (zona sebelumnya dilepas)`);
   }
   // 5. sesudah jawaban terbuka: chip jenis tampil di panel zona uang, tanda uang di tombolnya, dan hanya di sana
   const tanda = await page.$$eval(".pz .bb-row button", (b) => b.map((x) => !!x.querySelector(".pz-tanda")));
   lapor(samaJson(tanda, ZONA.map((z) => ZONA_UANG.includes(z))), `${path} tanda uang bergerak hanya di zona ${sebut(ZONA_UANG)}: ${tanda.join(",")}`);
   const jenisPerZona = {};
+  const salahPressed = [];
   for (const z of ZONA) {
     await buka(page, z); pernah.add(z);
+    if (!(await satuPressed(page, z))) salahPressed.push(z);
     p = await panel(page);
     jenisPerZona[z] = p.chipJenis;
     const acuan = D.zona[ZONA.indexOf(z)].komponen.map((k) => L.jenis[k.jenis]);
     lapor(samaJson(p.chipJenis, acuan) && D.zona[ZONA.indexOf(z)].komponen.every((k) => p.teks.includes(k.catatan)), `${path} zona ${z} sesudah jawaban terbuka: ${p.chipJenis.length} chip jenis dan catatan komponen sama dengan data`);
     // klaim ledger tetap satu-satunya tempat uang bergerak: tepat dua chip uang di seluruh peta
   }
+  lapor(salahPressed.length === 0, `${path} aria-pressed tepat satu zona sesudah tiap pembukaan, kelima zona${salahPressed.length ? ` (salah: ${salahPressed.join(", ")})` : ""}`);
   const chipUang = Object.values(jenisPerZona).flat().filter((x) => x === L.jenis.uang).length;
   lapor(chipUang === 2 && Object.entries(jenisPerZona).filter(([, c]) => c.includes(L.jenis.uang)).map(([z]) => z).join() === ZONA_UANG.join(), `${path} tepat ${chipUang} komponen tempat uang bergerak, di zona ${ZONA_UANG.join(" dan ")}`);
   // service: schema, jumlah tabel, dan tim dari data
@@ -185,13 +195,13 @@ for (const path of HAL) {
       const daftar = j?.nextElementSibling;
       if (!daftar) return { ada: false };
       if (daftar.tagName !== "UL") return { ada: true, kosong: daftar.textContent.trim() };
-      return { ada: true, items: [...daftar.querySelectorAll(":scope > li")].map((li) => ({ label: li.querySelector("strong").textContent.trim(), rujukan: li.querySelector("a, .rujukan-menyusul").textContent.trim(), chip: li.querySelector(".bb-chip").textContent.trim(), rusak: [...li.querySelectorAll(".pz-baris")].map((x) => x.textContent.trim()) })) };
+      return { ada: true, items: [...daftar.querySelectorAll(":scope > li")].map((li) => ({ label: li.querySelector("strong").textContent.trim(), rujukan: li.querySelector("a, .rujukan-menyusul").textContent.trim(), href: li.querySelector("a")?.getAttribute("href") ?? null, chip: li.querySelector(".bb-chip").textContent.trim(), rusak: [...li.querySelectorAll(".pz-baris")].map((x) => x.textContent.trim()) })) };
     }, L.kejadianJudul);
     const acuan = D.kejadian.filter((e) => e.zona === z.id);
     if (acuan.length === 0) {
       lapor(k.ada && k.kosong === isi(L.tanpaKejadian, { total: TOTAL }), `${path} zona ${z.id}: tanpa kejadian, kalimat "${(k.kosong ?? "").slice(0, 50)}..."`);
     } else {
-      const harap = acuan.map((e) => { const h = REG[e.halaman]; return { label: e.label, rujukan: h.diporting ? labelHalaman(h, true) : `${labelHalaman(h, true)} ${L.segera}`, chip: L.sumberJenis[e.sumber], rusak: e.sel.flatMap((c, i) => (c.alasan ? [`${L.kolom.hal} ${i + 1}, ${L.status.rusak}: ${c.alasan}`] : [])) }; });
+      const harap = acuan.map((e) => { const h = REG[e.halaman]; return { label: e.label, rujukan: h.diporting ? labelHalaman(h, true) : `${labelHalaman(h, true)} ${L.segera}`, href: h.diporting ? urlHalaman(h) : null, chip: L.sumberJenis[e.sumber], rusak: e.sel.flatMap((c, i) => (c.alasan ? [`${L.kolom.hal} ${i + 1}, ${L.status.rusak}: ${c.alasan}`] : [])) }; });
       lapor(k.ada && samaJson(k.items, harap), `${path} zona ${z.id}: ${harap.length} kejadian di panel (label, rujukan, chip, alasan Rusak) sama dengan data`);
     }
   }
@@ -214,7 +224,8 @@ for (const path of HAL) {
   // 8. target >= 24 px
   const kecil = await page.$$eval(".pz button", (b) => b.map((x) => x.getBoundingClientRect()).filter((r) => r.width < 24 || r.height < 24).length);
   lapor(kecil === 0, `${path} target >= 24 px: ${kecil} tombol terlalu kecil`);
-  // 9. axe gelap dan terang (semua zona dibuka, jawaban terbuka)
+  // 9. axe gelap dan terang (semua zona dibuka, jawaban terbuka; zona uang terpilih supaya tanda uang di tombol terpilih ikut diukur)
+  await buka(page, ZONA_UANG[0]);
   for (const tema of ["dark", "light"]) {
     await page.evaluate((x) => { document.documentElement.dataset.theme = x; }, tema);
     await page.waitForTimeout(100);
@@ -273,11 +284,13 @@ for (const path of HAL) {
       const isiLebar = td.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       if (ukur(td, td.textContent) > isiLebar + 0.5) sempit.push(td.textContent.trim());
     }
+    const tidakSama = [...document.querySelectorAll(".pz table tbody")].filter((b) => { const w = [...b.querySelectorAll("td")].map((td) => td.getBoundingClientRect().width); return Math.max(...w) - Math.min(...w) > 1; }).length;
     const meluap = [...document.querySelectorAll(".pz table :is(td, th)")].filter((c) => c.scrollWidth > c.clientWidth + 1).map((c) => c.textContent.trim());
-    return { halaman: document.documentElement.scrollWidth, kanan: Math.round(w.right), kiri: Math.round(w.left), tabel: [...document.querySelectorAll(".pz table")].map((t) => t.scrollWidth - t.parentElement.clientWidth), sempit, meluap };
+    return { halaman: document.documentElement.scrollWidth, kanan: Math.round(w.right), kiri: Math.round(w.left), tabel: [...document.querySelectorAll(".pz table")].map((t) => t.scrollWidth - t.parentElement.clientWidth), sempit, meluap, tidakSama };
   });
   lapor(u.halaman <= 320 && u.kanan <= 320 && u.kiri >= 0 && u.tabel.every((x) => x <= 1), `${path} 320 px Verdana: halaman ${u.halaman}, widget ${u.kiri}..${u.kanan}, kelebihan tabel ${u.tabel.join(",")}`);
   lapor(u.meluap.length === 0, `${path} 320 px Verdana: ${u.meluap.length} sel yang isinya meluap keluar selnya${u.meluap.length ? ` (${[...new Set(u.meluap)].join(", ")})` : ""}`);
+  lapor(u.tidakSama === 0, `${path} 320 px Verdana: ${u.tidakSama} kelompok baris dengan tiga sel tak sama lebar`);
   lapor(u.sempit.length === 0, `${path} 320 px Verdana: ${u.sempit.length} sel dengan kata terpotong${u.sempit.length ? ` (${[...new Set(u.sempit)].join(", ")})` : ""}`);
   await kecilHalaman.close();
 
@@ -292,9 +305,12 @@ for (const path of HAL) {
     return { display: e ? getComputedStyle(e).display : "tidak ada", ada: !!ns, tabel: ns ? ns.querySelectorAll("table").length : (document.querySelectorAll("table.tm-tabel").length), isi: document.body.innerText, html: document.body.innerHTML.length };
   });
   lapor(tampil.display === "none", `${path} tanpa JavaScript: widget display ${tampil.display}`);
-  const semuaTeks = [L.tanpaJs, D.tebak.alasan, ...D.zona.flatMap((z) => z.komponen.map((k) => k.catatan)), ...D.kejadian.map((k) => k.label), ...D.kejadian.flatMap((k) => k.sel.filter((c) => c.alasan).map((c) => c.alasan))];
+  const semuaTeks = [L.tanpaJs, D.tebak.alasan, ...L.tiga, ...D.zona.flatMap((z) => z.komponen.map((k) => k.catatan)), ...D.kejadian.map((k) => k.label), ...D.kejadian.flatMap((k) => k.sel.filter((c) => c.alasan).map((c) => c.alasan))];
   const hilang = semuaTeks.filter((t) => !tampil.isi.replace(/\s+/g, " ").includes(t));
   lapor(hilang.length === 0 && tampil.tabel >= 2, `${path} tanpa JavaScript: ${tampil.tabel} tabel di <noscript>, ${hilang.length} dari ${semuaTeks.length} teks data hilang${hilang.length ? ` (${hilang[0].slice(0, 40)}...)` : ""}`);
+  const tandaNs = (tampil.isi.match(new RegExp(`\\(${L.tandaUang}\\)`, "g")) ?? []).length;
+  const rusakSemua = D.kejadian.reduce((t, k) => t + k.sel.filter((c) => c.s === "rusak").length, 0);
+  lapor(tandaNs === ZONA_UANG.length && tampil.isi.replace(/\s+/g, " ").includes(`(${rusakSemua} ${L.status.rusak})`), `${path} tanpa JavaScript: ${tandaNs} tanda "${L.tandaUang}" di zona uang dan jumlah ${rusakSemua} ${L.status.rusak} di caption tabel`);
   await ctx.close();
 }
 await browser.close();
