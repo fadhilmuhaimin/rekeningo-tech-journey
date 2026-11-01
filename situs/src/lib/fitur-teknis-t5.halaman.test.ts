@@ -806,6 +806,58 @@ describe.runIf(fs.existsSync(distHtml))("hasil build di dist: tautan rujukan wid
   });
 });
 
+// ---- kalimat prosa terkunci per paragraf (dibangkitkan dari mdx oleh skrip sementara; tiap paragraf dikunci utuh, jadi kalimat yang digandakan, ditukar,
+// atau ditambah di luar daftar ini gagal walau sidik teks diabaikan) --------------------------------------------------------
+describe("kalimat prosa terkunci per paragraf", () => {
+  const terkunci: string[] = [
+    "## Inti",
+    "PRD v5 menambah delapan tabel. Pekerjaan pertama Tahap 5 adalah satu keputusan: data mana yang boleh jadi salinan, dan di mana uang bergerak.",
+    "*Salinan* adalah data yang sama yang disimpan atau dihitung di tempat lain dan bisa tertinggal dari sumbernya, misalnya replica, ringkasan, cache, dan event. Kalau app Flutter-mu pernah menampilkan data dari cache lokal sambil menunggu server, kamu sudah mengenal salinan yang tertinggal.",
+    "Baris bawah Rantai adalah versi pertama laporan Wulan. Budi membayar Rp35.000 dan Rp12.000 ke Warung 505, keduanya dijawab 201, dan laporan warung itu menjawab dua transaksi dengan total Rp47.000 (`laporan.txt`). Laporan itu menjumlah posting dari primary, yaitu database utama yang menerima semua tulisan, dan pembayaran memakai database yang sama ([[t5-m40]]). Dari baris laporan itu lahir pertanyaan pertama Tahap 5: salinan boleh banyak, tetapi tempat uang bergerak hanya satu.",
+    "Peta ini memuat lima zona dari PRD v5: client, edge, service, data, dan operasi. Tebak dulu di zona mana uang bergerak, lalu buka zona satu per satu. Tabel di bawah peta terisi sesuai zona yang kamu buka.",
+    "Zona, tim, dan delapan kejadian di peta adalah Asumsi ([Label sumber](/cara-pakai/#label-sumber)): rancangan penulis. Rekaman tiap kejadian ada di halaman masalahnya, bila ada. Nama schema, jumlah tabel, dan hak role dibaca dari rekaman lab `api-t5`, dan di lab satu proses memegang keenam role.",
+    "Kolom Hal 1, Hal 2, dan Hal 3 di tabel adalah tiga hal di blok Pertanyaan sebelum kode, bukan nomor halaman. Terjaga berarti hal itu tetap benar saat kejadian terjadi, Rusak berarti hal itu dilanggar, dan Tidak berlaku berarti kejadian itu tidak menyentuhnya.",
+    "Dua baris tabel perlu catatan tentang dasarnya, karena keduanya penalaran dari dokumentasi, bukan kejadian yang direkam. Baris primary mati (M42) bersandar pada dokumentasi: [PostgreSQL 17, bagian 26.2.8](https://www.postgresql.org/docs/17/warm-standby.html), dibuka 2026-11-02, Tidak dijalankan. Dokumentasi itu menulis bahwa replikasi streaming asinkron secara bawaan, dan bila primary mati, transaksi yang sudah commit bisa belum sampai ke standby.",
+    "Lab `t5-replika` merekam akibatnya. Lima jurnal yang dijawab 201 ada di primary lama dan tidak ada di replica yang dipromosikan. Lab memutus koneksi WAL dan tidak mematikan primary.",
+    "Baris pod notifikasi (M47) bersandar pada dokumentasi: [Kubernetes, Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/), halaman tanpa nomor versi, dibuka 2026-11-02, Tidak dijalankan. Dokumentasi itu menulis bahwa pod tidak terisolasi untuk koneksi masuk secara bawaan, dan semua koneksi masuk diizinkan. Bila ledger tidak memeriksa identitas pemanggil dan tidak ada NetworkPolicy yang ditegakkan, pod mana pun yang bisa menjangkaunya bisa meminta jurnal. Rekaman `api-t5` merekam hak role di database, bukan identitas antar service di jaringan.",
+    "Ini tabel yang tim tulis sebelum satu baris kode Tahap 5 ada. Tim yang mengerjakannya adalah lima tim produk dan tiga tim fungsi, 28 orang, seperti di [[t5-prd]] (Asumsi cerita).",
+    "Delapan tabel baru adalah `snapshot_saldo`, `arsip_partisi`, `ringkasan_merchant_harian`, `jadwal_cicilan`, `angsuran`, `pengumuman`, `mitra_pos`, dan `sakelar`. Nama tabel dan kolom di tabel ini ada di skema lab `api-t5` (`skema.txt`), dan tabel `posting` dipartisi per bulan di sana. Enam service dan tiga instance tiap service adalah Asumsi. Di lab satu proses memegang keenam role, jadi \"enam service\" dibaca dari schema, tabel, dan hak role:",
+    "Role notifikasi yang mencoba INSERT ke `posting` ditolak dengan kode 42501. Server lab berjalan sebagai role `t5_app`, yang mewarisi keenam role, dan UPDATE ke `posting` tetap ditolak untuknya.",
+    "Di luar nama tabel, isi tabel adalah rencana kerja tim, bukan hasil ukur. Kubernetes, event streaming, mTLS, WAF, dan penyedia push Tidak dijalankan di halaman ini. Tiap halaman konsepnya memuat rekaman bila labnya ada.",
+    "Tiga hal harus selalu benar di Tahap 5, dan tiap hal punya pemiliknya:",
+    "1. Uang bergerak hanya lewat [[t2-ledger|ledger]]: jurnal seimbang, posting tidak diubah, dan satu primary menerima semua tulisan. Service lain membaca, atau meminta posting dengan [[t2-idempotency|Idempotency-Key]]. Ini syarat Pak Hadi sejak PRD v2.",
+    "2. Keputusan yang menentukan uang dibaca dari sumber yang sama dengan yang menggerakkan uang. Replica, ringkasan, cache, dan event hanya untuk dilihat, dan jarak ketertinggalannya diketahui dan disebut. Ini syarat Pak Hadi di PRD v5 ([[t5-prd]]) dan aturan 2 di [[t4-adr-45|ADR 45]].",
+    "3. Pekerjaan yang lebih panjang dari satu proses, satu hari, atau satu mesin tetap benar bila dihentikan dan diulang di titik mana pun. Contohnya batch, failover, dan deploy. Ini syarat Dewi dan PRD v5: RPO nol dan RTO 15 menit.",
+    "**Versi pertama (minggu 2).** Wulan menulis laporan real-time sebagai satu endpoint. Endpoint itu menjumlah posting hari ini milik merchant dari primary yang sama dengan pembayaran, dan app memanggilnya tiap 30 detik. Raka memakai endpoint riwayat yang sama untuk layar \"Berhasil\".",
+    "Hendra menulis cicilan sebagai job malam yang menagih semua jadwal jatuh tempo, lalu menandai angsuran lunas. Nadia mengusulkan event streaming untuk semuanya. Di staging dengan 200 merchant tiap bagian tampak cukup (adegan dan angka cerita: Ilustrasi).",
+    "Cara pertama itu memperlakukan semua salinan seperti sumber. Peta zona di blok Coba dulu mencatat delapan kejadian yang menunjukkan akibatnya. Dari 24 sel tabelnya, 9 Rusak: tiga di hal 1, dua di hal 2, dan empat di hal 3. Itu Hitungan, yaitu dihitung dari sel yang tertulis, dan tabelnya berlabel Asumsi.",
+    "Halaman ini juga menanam tiga pertanyaan. Di minggu 2 Wulan bertanya siapa yang melambat bila laporan dan pembayaran membaca database yang sama. Pak Hadi bertanya angka mana yang ia tanda tangani bila ada dua salinan. Dewi bertanya apa yang hilang bila database utama mati pukul 02.10.",
+    "Jawabannya ada di [[t5-m40]] sampai [[t5-m43]]. Pertanyaan Wulan dijawab di [[t5-m40]]. Pertanyaan Pak Hadi dijawab di [[t5-m41]] dan [[t5-m43]], dan pertanyaan Dewi di [[t5-m42]].",
+    "**Kenapa bukan request.** Dasar hitungan beban Tahap 5 adalah 3 transaksi uang per user aktif per hari, seperti Tahap 2 sampai 4. Angka dalam kurung memakai 2 transaksi, angka registry Tahap 5. Semuanya Asumsi, dengan rumus di [[t5-prd]].",
+    "Puncak 1.388,9 request per detik naik 10 kali dari 138,9 di Tahap 4. Menurut hitungan di [[t5-prd]], yang melewati batasnya lebih dulu bukan request.",
+    "Worker notifikasi terpakai 564% (391%). Koneksi database terpasang 180 lawan 97 tersedia. Pemeriksaan saldo malam tanpa snapshot membaca 438 juta posting (292 juta) setelah satu tahun.",
+    "Kapasitas satu primary untuk 69,4 transaksi uang per detik (46,3) belum diukur di lab `api-t5`. Lab itu menjadwalkan 20.833 permintaan dalam 15 detik pada 1.388,9 per detik di satu laptop, dan semuanya selesai (`beban.txt`). Itu batas lab, bukan kapasitas produksi.",
+    "Tabel ini menyebut konsep untuk tiap fitur. Tahap 5 membahasnya satu per satu, saat masalahnya muncul.",
+    "Pola yang sama muncul lagi di arsip yang dipindah ke penyimpanan objek ([[t5-kms]]), di cicilan yang diulang ([[t5-m48]]), dan di sakelar kartu ([[t5-m49]]). Setiap salinan diberi nama, diberi umur, dan dilarang memutuskan.",
+    "Halaman berikutnya, [[t5-skema]], membahas tabel yang lahir di Tahap 5 dan pembagiannya ke enam schema.",
+  ];
+  test("tiap paragraf prosa ada di halaman tepat satu kali, dan semua baris prosa halaman ada di daftar", () => {
+    const prosa = badan.split("\n").filter((b) => b.trim() !== "" && !/^\s*(\||<|import )/.test(b));
+    expect(terkunci).toHaveLength(prosa.length);
+    expect(new Set(terkunci).size, "paragraf ganda di daftar").toBe(terkunci.length);
+    expect(prosa).toEqual(terkunci);
+    for (const k of terkunci) expect(hitung(badan, k), k.slice(0, 50)).toBe(1);
+  });
+  test("tiap kalimat di prosa unik di dalam halaman, dan tidak ada kalimat di luar daftar paragraf", () => {
+    const kalimat = terkunci.flatMap((b) => b.replace(/^\d+\. /, "").split(/(?<=[.:])\s+(?=[A-Z*\[])/));
+    expect(new Set(kalimat).size, "kalimat ganda").toBe(kalimat.length);
+    let sisa = badan.replace(/aman="[^"]*"/g, "");
+    for (const k of [...terkunci].sort((x, y) => y.length - x.length)) sisa = sisa.split(k).join("\u0000");
+    const tinggal = sisa.split("\n").filter((b) => b.trim() !== "" && !/^\s*(\||<|import )/.test(b.replace(/\u0000/g, ""))).join("");
+    expect(tinggal.replace(/\u0000/g, "").trim(), "baris prosa di luar daftar").toBe("");
+  });
+});
+
 // ---- sidik teks halaman dan nilai Rantai -----------------------------------------------------------------------------------------
 describe("sidik teks halaman dan nilai Rantai", () => {
   test("tiap baris isi mdx dan bentuk baris kosongnya sama dengan sidik; mdx tidak punya ekor kosong", () => {
