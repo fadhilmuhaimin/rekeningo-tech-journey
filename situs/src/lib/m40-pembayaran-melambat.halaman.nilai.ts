@@ -5,7 +5,7 @@ export const SIDIK = {
   frontmatter: "69b8c63646a98982",
   riset: ["ebb8a2f6933ebdb2","2ed920408c7a3f17","34c1fd514ebf4991","36b1699d6181a540","feeab9ab6a4d9282"],
   diagram: "28d5a3bb538e22f0",
-  skenario: "d5a668e138de6f94",
+  skenario: "222f7cd1c1803423",
   snippet: ["b1ba3f24d8e872cc","968a0f4d5d20b087","43ab032c7548abcd","0793890ce9dd7dde","32952b26f1ea72cf","ec6ecdd11b95126d"],
 };
 
@@ -255,7 +255,7 @@ export const SKENARIO_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".langkah[2].kirim",
-  "$ ./beban -rps 100.0 -detik 10 -pengguna 200 -hanya-bayar   # tanpa laporan\npembayaran selesai: 1000 dari 1000, semua 201"
+  "# ./beban: pembayaran 100 per detik selama 10 detik dari 200 user, tanpa laporan\npembayaran selesai: 1000 dari 1000, semua 201"
  ],
  [
   ".langkah[2].jelas",
@@ -275,7 +275,7 @@ export const SKENARIO_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".langkah[3].kirim",
-  "$ ./beban -rps 100.0 -detik 10 -pengguna 200 -hanya-bayar -laporan-rps 666.7   # dengan laporan\npembayaran selesai: 1000 dari 1000, semua 201; laporan selesai: 6667 dari 6667, semua 200\np95 pembayaran tanpa laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya\np95 pembayaran dengan laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya"
+  "# ./beban: pembayaran yang sama, ditambah laporan 666,7 per detik dari 9 warung\npembayaran selesai: 1000 dari 1000, semua 201; laporan selesai: 6667 dari 6667, semua 200\np95 pembayaran tanpa laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya\np95 pembayaran dengan laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya"
  ],
  [
   ".langkah[3].jelas",

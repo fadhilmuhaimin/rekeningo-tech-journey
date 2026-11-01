@@ -586,7 +586,17 @@ describe("diagram Rantai ringkas dan skenario alur: nilai diturunkan dari rekama
     expect(core.validate(core.normalize(skenario), { exists: (p) => terlacak?.has(p) ?? true })).toEqual([]);
     expect(skenario.sumber).toMatchObject({ jenis: "rekaman", file: "labs/api-t5/output/laporan.txt", fileVarian: "labs/api-t5/output/laporan.txt" });
     const baris = new Set(L.baris);
-    for (const s of [...skenario.langkah, ...skenario.varian.langkah]) for (const b of s.kirim.split("\n")) expect(baris.has(b), `bukan baris rekaman: ${b}`).toBe(true);
+    const ringkasan = [
+      `# ./beban: pembayaran ${RPS_BAYAR} per detik selama ${DETIK} detik dari ${PENGGUNA} user, tanpa laporan`,
+      `# ./beban: pembayaran yang sama, ditambah laporan ${koma(RPS_LAPORAN, 1)} per detik dari ${WARUNG_LAB} warung`,
+    ];
+    const dipakai: string[] = [];
+    for (const s of [...skenario.langkah, ...skenario.varian.langkah]) for (const b of s.kirim.split("\n")) {
+      if (baris.has(b)) continue;
+      dipakai.push(b); // baris yang bukan baris rekaman harus ringkasan berpagar yang diturunkan dari rekaman
+    }
+    expect(dipakai).toEqual(ringkasan);
+    expect(bagB).toMatch(/-pengguna (\d+) -hanya-bayar/);
     expect(skenario.langkah).toHaveLength(5);
     expect(skenario.varian.mulai).toBe(skenario.langkah.length - 1);
     expect(skenario.varian.langkah).toHaveLength(1);

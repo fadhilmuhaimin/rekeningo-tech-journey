@@ -57,14 +57,14 @@
       "dari": "kln",
       "ke": "srv",
       "judul": "Pembayaran 100 per detik selama 10 detik, tanpa laporan",
-      "kirim": "$ ./beban -rps 100.0 -detik 10 -pengguna 200 -hanya-bayar   # tanpa laporan\npembayaran selesai: 1000 dari 1000, semua 201",
+      "kirim": "# ./beban: pembayaran 100 per detik selama 10 detik dari 200 user, tanpa laporan\npembayaran selesai: 1000 dari 1000, semua 201",
       "jelas": "Seribu pembayaran selesai dan semuanya 201 (100 × 10, Hitungan)."
     },
     {
       "dari": "kln",
       "ke": "srv",
       "judul": "Pembayaran yang sama, ditambah laporan 666,7 per detik dari 9 warung",
-      "kirim": "$ ./beban -rps 100.0 -detik 10 -pengguna 200 -hanya-bayar -laporan-rps 666.7   # dengan laporan\npembayaran selesai: 1000 dari 1000, semua 201; laporan selesai: 6667 dari 6667, semua 200\np95 pembayaran tanpa laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya\np95 pembayaran dengan laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya",
+      "kirim": "# ./beban: pembayaran yang sama, ditambah laporan 666,7 per detik dari 9 warung\npembayaran selesai: 1000 dari 1000, semua 201; laporan selesai: 6667 dari 6667, semua 200\np95 pembayaran tanpa laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya\np95 pembayaran dengan laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya",
       "jelas": "Kedua putaran selesai tanpa galat dan p95 pembayaran ada di bawah batas 2.000 ms. Selisih p95 tidak direkam dan tidak menjadi syarat, jadi rekaman tidak menunjukkan pembayaran yang melambat. Tombol Bayar yang berputar 6 detik di cerita tetap Ilustrasi."
     },
     {
