@@ -34,6 +34,39 @@ func TestJendelaTanpaBatas(t *testing.T) {
 	}
 }
 
+// Jendela baru dibuka tepat satu detik sesudah permintaan pertama jendela lama (batas atas termasuk), dan memberi kuota
+// penuh: kuota 3 diterima lagi tiga kali di jendela kedua dan ketiga, lalu ditolak.
+func TestJendelaBaruTepatSatuDetikDanKuotaPenuh(t *testing.T) {
+	j := Jendela{Kuota: 3, Panjang: time.Second}
+	t0 := time.Unix(50, 0)
+	for i := 0; i < 3; i++ {
+		if !j.Coba(t0) {
+			t.Fatalf("jendela pertama menolak pesan ke-%d", i+1)
+		}
+	}
+	if j.Coba(t0.Add(time.Second - time.Nanosecond)) {
+		t.Fatal("pesan satu nanodetik sebelum jendela habis diterima")
+	}
+	t1 := t0.Add(time.Second) // tepat satu detik: jendela baru
+	for i := 0; i < 3; i++ {
+		if !j.Coba(t1) {
+			t.Fatalf("jendela kedua menolak pesan ke-%d: kuota harus penuh", i+1)
+		}
+	}
+	if j.Coba(t1.Add(time.Millisecond)) {
+		t.Fatal("pesan keempat di jendela kedua diterima")
+	}
+	t2 := t1.Add(time.Second)
+	for i := 0; i < 3; i++ {
+		if !j.Coba(t2) {
+			t.Fatalf("jendela ketiga menolak pesan ke-%d", i+1)
+		}
+	}
+	if j.Coba(t2) {
+		t.Fatal("pesan keempat di jendela ketiga diterima")
+	}
+}
+
 // Jawaban 429 tidak menghabiskan kuota: penolakan tidak dihitung, jadi jendela yang penuh tetap berisi kuota pesan.
 func TestJendelaPenolakanTidakMenghabiskanKuota(t *testing.T) {
 	j := Jendela{Kuota: 3, Panjang: time.Second}

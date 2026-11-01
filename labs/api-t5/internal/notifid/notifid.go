@@ -16,9 +16,14 @@ var namespace = [16]byte{0x7c, 0x1e, 0x5a, 0x33, 0x90, 0x42, 0x4b, 0x6d, 0x8e, 0
 // --8<-- [start:id-pengumuman]
 // Pengumuman: id notifikasi satu pengumuman untuk satu perangkat. Deterministik: bergantung hanya pada dua nomor itu.
 func Pengumuman(pengumumanID, perangkatID int64) string {
+	return uuid5(namespace, fmt.Sprintf("pengumuman:%d:perangkat:%d", pengumumanID, perangkatID))
+}
+
+// uuid5: SHA-1 atas namespace lalu nama, 16 byte pertama, bit versi dan varian ditimpa (RFC 9562 bagian 5.5).
+func uuid5(ns [16]byte, nama string) string {
 	h := sha1.New()
-	h.Write(namespace[:])
-	fmt.Fprintf(h, "pengumuman:%d:perangkat:%d", pengumumanID, perangkatID)
+	h.Write(ns[:])
+	h.Write([]byte(nama))
 	b := h.Sum(nil)[:16]
 	b[6] = b[6]&0x0f | 0x50 // versi 5
 	b[8] = b[8]&0x3f | 0x80 // varian RFC 9562

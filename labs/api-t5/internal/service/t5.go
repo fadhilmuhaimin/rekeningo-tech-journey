@@ -335,5 +335,5 @@ func (s Service) tagihRentan(ctx context.Context, a repo.Angsuran, h *HasilCicil
 }
 
 // DenganEventPembayaran menyalakan event pembayaran untuk relay (flag -event-pembayaran, lab t5-fanout): Bayar menulis
-// satu baris outbox stream di transaction jurnalnya. Hanya Bayar (POST /bayar); jalur katalog dan QR belum menulisnya.
+// satu baris outbox stream di transaction jurnalnya. Hanya Bayar (POST /transfers); jalur katalog dan QR belum menulisnya.
 func (s Service) DenganEventPembayaran(aktif bool) Service { s.eventPembayaran = aktif; return s }

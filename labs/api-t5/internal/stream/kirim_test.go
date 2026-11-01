@@ -107,6 +107,20 @@ func TestTidakTerdaftarBerhentiTanpaUlang(t *testing.T) {
 	}
 }
 
+// 400 diperlakukan seperti 404: token tidak dipakai lagi, satu permintaan, tanpa menunggu. Batasnya: penyedia sungguhan
+// juga menjawab 400 untuk isi pesan yang salah, jadi di luar lab satu galat isi bisa menonaktifkan semua perangkat.
+func TestPermintaanSalahBerhentiTanpaUlang(t *testing.T) {
+	s, hitung := penyediaTes(t, http.StatusBadRequest, 100)
+	p, tunggu := pengirimTes(s.URL, 1.0)
+	hasil, err := p.Kirim(context.Background(), "tiruan-1", "id-1", "j", "")
+	if err != nil || hasil != TidakTerdaftar {
+		t.Fatalf("hasil %v, galat %v", hasil, err)
+	}
+	if hitung.Load() != 1 || len(*tunggu) != 0 {
+		t.Fatalf("400 harus satu permintaan tanpa menunggu: %d permintaan, tunggu %v", hitung.Load(), *tunggu)
+	}
+}
+
 func TestMenyerahSesudahMaksPercobaan(t *testing.T) {
 	s, hitung := penyediaTes(t, http.StatusServiceUnavailable, 1000)
 	p, _ := pengirimTes(s.URL, 0)

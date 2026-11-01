@@ -12,14 +12,16 @@ import (
 // Event pembayaran (lab t5-fanout, ADR 23 dan 51): satu baris outbox stream di transaction jurnal bayar.
 
 type barisStream struct {
-	akun, merchant, nominal int64
-	jenis, status           string
+	akun, merchant, nominal, jurnal, pembayar int64
+	kelas                                     int
+	jenis, status                             string
 }
 
 func bacaStream(t *testing.T, db *sql.DB, jurnal int64) []barisStream {
 	t.Helper()
 	rows, err := db.Query(`
-		SELECT akun_id, (payload->>'merchant')::bigint, (payload->>'nominal')::bigint, jenis, status
+		SELECT akun_id, (payload->>'merchant')::bigint, (payload->>'nominal')::bigint, (payload->>'jurnal')::bigint,
+		       (payload->>'pembayar')::bigint, kelas, jenis, status
 		FROM outbox WHERE jurnal_id = $1 AND tujuan = 'stream' ORDER BY id`, jurnal)
 	if err != nil {
 		t.Fatal(err)
@@ -28,7 +30,7 @@ func bacaStream(t *testing.T, db *sql.DB, jurnal int64) []barisStream {
 	var out []barisStream
 	for rows.Next() {
 		var b barisStream
-		if err := rows.Scan(&b.akun, &b.merchant, &b.nominal, &b.jenis, &b.status); err != nil {
+		if err := rows.Scan(&b.akun, &b.merchant, &b.nominal, &b.jurnal, &b.pembayar, &b.kelas, &b.jenis, &b.status); err != nil {
 			t.Fatal(err)
 		}
 		out = append(out, b)
@@ -45,8 +47,9 @@ func hitungOutbox(t *testing.T, db *sql.DB, kondisi string, arg ...any) int {
 	return n
 }
 
-// Bayar dengan event menulis tepat satu baris stream (kunci merchant di payload, akun_id pembayar) di samping baris push
-// untuk warung. Tanpa event, Bayar tidak menulis baris stream: perilaku api-t5 tidak berubah.
+// Bayar dengan event menulis tepat satu baris stream (kunci merchant di payload, akun_id pembayar, kelas uang 0 supaya
+// relay mengirimnya sebelum pengumuman kelas 2) di samping baris push untuk warung. Tanpa event, Bayar tidak menulis
+// baris stream: perilaku api-t5 tidak berubah.
 func TestBayarMenulisSatuEventStreamDanBarisPushTetap(t *testing.T) {
 	svc, db := siapkan(t)
 	karyawan, _ := akunBaru(t, db, "karyawan", 100000)
@@ -57,7 +60,7 @@ func TestBayarMenulisSatuEventStreamDanBarisPushTetap(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := bacaStream(t, db, id)
-	if len(got) != 1 || got[0] != (barisStream{akun: karyawan, merchant: warung, nominal: 25000, jenis: "bayar", status: "menunggu"}) {
+	if len(got) != 1 || got[0] != (barisStream{akun: karyawan, merchant: warung, nominal: 25000, jurnal: id, pembayar: karyawan, kelas: repo.KelasUang, jenis: "bayar", status: "menunggu"}) {
 		t.Fatalf("baris stream: %+v", got)
 	}
 	if n := hitungOutbox(t, db, `jurnal_id = $1 AND tujuan = 'push' AND akun_id = $2`, id, warung); n != 1 {

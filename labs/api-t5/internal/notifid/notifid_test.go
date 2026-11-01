@@ -34,6 +34,34 @@ func TestPengumumanBedaMenurutPengumumanDanPerangkat(t *testing.T) {
 	}
 }
 
+// Vektor uji RFC 9562 Lampiran A.4: namespace DNS 6ba7b810-9dad-11d1-80b4-00c04fd430c8, nama "www.example.com".
+// Menjaga bahwa uuid5 memang SHA-1 atas namespace lalu nama (versi 5), bukan hash lain dengan bit versi 5.
+func TestUUID5VektorRFC9562(t *testing.T) {
+	dns := [16]byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
+	if got, want := uuid5(dns, "www.example.com"), "2ed6657d-e927-568b-95e1-2665a8aea6a2"; got != want {
+		t.Fatalf("uuid5 = %s, harus %s (RFC 9562 Lampiran A.4)", got, want)
+	}
+}
+
+// Vektor id pengumuman dihitung dengan uuid.uuid5 dari pustaka standar Python 3.14 (namespace lab ini, nama
+// "pengumuman:<pengumuman>:perangkat:<perangkat>"), bukan dari kode Go. Mengunci format nama: id yang berubah akan
+// membuat pengiriman ulang sesudah deploy terlihat sebagai notifikasi baru.
+func TestPengumumanVektorPustakaPython(t *testing.T) {
+	for _, c := range []struct {
+		pengumuman, perangkat int64
+		want                  string
+	}{
+		{7, 42, "8c5e04e4-eff0-563b-95a3-a23903dd10be"},
+		{1, 1, "727807c9-d50c-5695-9bb7-5da7fd1906e8"},
+		{1, 10281, "d2297eaa-0b37-58b1-8593-83232626a84b"},
+		{42, 7, "065e60c0-325b-5609-8673-6c4e1aa79635"},
+	} {
+		if got := Pengumuman(c.pengumuman, c.perangkat); got != c.want {
+			t.Fatalf("Pengumuman(%d, %d) = %s, harus %s", c.pengumuman, c.perangkat, got, c.want)
+		}
+	}
+}
+
 func TestKelas(t *testing.T) {
 	if k := Kelas(Pengumuman(1, 1)); k != "pengumuman" {
 		t.Fatalf("id pengumuman terbaca %q", k)
