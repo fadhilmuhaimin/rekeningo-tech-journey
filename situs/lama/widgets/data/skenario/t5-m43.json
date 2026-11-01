@@ -81,7 +81,7 @@
         "ke": "db",
         "judul": "Satu partisi bulan dilepas dari tabel posting",
         "kirim": "# Tanpa partisi DEFAULT dan di luar blok transaction, perintah yang sama berhasil:\n=> ALTER TABLE posting DETACH PARTITION posting_lalu_05 CONCURRENTLY\nALTER TABLE\n# Posting yang terlihat lewat tabel induk: 140.000 dari 168.000; sisanya ada di tabel posting_lalu_05 yang berdiri sendiri.",
-        "jelas": "Lab terpisah memuat 28.000 posting per bulan. Perintah DETACH melepas satu bulan, sehingga tabel posting hanya memperlihatkan 140.000 dari 168.000 posting."
+        "jelas": "Run lab yang terpisah memuat 28.000 posting per bulan. Perintah DETACH melepas satu bulan, sehingga tabel posting hanya memperlihatkan 140.000 dari 168.000 posting."
       },
       {
         "dari": "job",

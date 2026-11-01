@@ -506,7 +506,7 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
   test("R5-156 (batas relasi 17): 32 TB dengan BLCKSZ 8192; halaman tidak menulis 'tabel berpartisi' sebagai bagian batas; 1 TB = 1.000 GB ditulis", () => {
     const r156 = barisRiset("R5-156");
     expect(r156).toContain('baris "relation size" bernilai 32 TB "with the default BLCKSZ of 8192 bytes"');
-    expect(r156).toContain("tidak memuat catatan tentang tabel berpartisi");
+    expect(r156).toContain("tidak memuat catatan tentang ukuran tabel berpartisi; kata partisi muncul di sana hanya pada baris partition keys (32) dan pada catatan batas nilai out-of-line (partisi sebagai jalan keluar)");
     expect(badan).toContain("Batas ukuran relasi PostgreSQL adalah 32 TB dengan `BLCKSZ` bawaan 8192 byte");
     expect(badan).toContain("Tabel memakai 1 TB = 1.000 GB, jadi batasnya 32.000 GB.");
   });
@@ -516,7 +516,7 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
     expect(r157).toContain('idx_tup_fetch "Number of live rows fetched by index scans"');
     expect(readme).toContain("selisih `seq_tup_read` + `idx_tup_fetch` atas partisi posting, dibaca sesudah proses job keluar");
     expect(snap).toContain("selisih seq_tup_read + idx_tup_fetch");
-    expect(badan).toContain("Baris yang dibaca adalah selisih `seq_tup_read` dan `idx_tup_fetch` di `pg_stat_user_tables` atas semua partisi `posting`, dibaca sesudah proses job keluar.");
+    expect(badan).toContain("Baris yang dibaca adalah jumlah `seq_tup_read` dan `idx_tup_fetch` di `pg_stat_user_tables` atas semua partisi `posting`, dihitung sebagai selisih sebelum dan sesudah job. Statistik dibaca sesudah proses job keluar.");
   });
   test("R5-159: tiap hasil hitungan di baris riset sama dengan hitungan ulang; angka lain di baris riset hanya turunan", () => {
     const r159 = barisRiset("R5-159");
@@ -700,7 +700,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, dan se
   test("istilah diberi arti di pemakaian pertama di luar adegan: pemeriksaan harian, posting, partisi, snapshot saldo, Hitungan; urutannya benar", () => {
     const pos = (k: string) => badan.indexOf(k);
     const urut = [
-      "Pemeriksaan harian adalah job malam yang membandingkan `saldo_cache` tiap buku dengan jumlah posting-nya.",
+      "Pemeriksaan harian adalah job malam yang membandingkan `saldo_cache` tiap buku, yaitu tempat uang satu pihak dicatat di ledger, dengan jumlah posting-nya.",
       "Posting adalah satu baris catatan uang di ledger.",
       "Partisi adalah bagian tabel `posting` yang dipisah menurut `dibuat`, satu per bulan",
       "Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini",
@@ -722,6 +722,11 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, dan se
 // Kalimat yang lolos mutasi 'sisip tidak' tanpa kunci baris (putaran 2 uji mutasi): dikunci literal di sini, bukan di berkas nilai,
 // supaya membangkitkan ulang berkas nilai dari halaman termutasi tidak melonggarkannya.
 const KUNCI_LITERAL: string[] = [
+  "Bulan berjalan di lab sudah berisi 150.000 posting, jadi satu bulan penuh adalah batas atas: di awal bulan job membaca lebih sedikit.",
+  "Snapshot adalah salinan yang punya umur: ia benar untuk bulan yang sudah ditutup, selama tidak ada posting baru dengan `dibuat` di bulan itu.",
+  "Job snapshot menulisnya dari posting dan snapshot bulan sebelumnya.",
+  "Pemeriksaan yang membaca seluruh sejarah bukan hanya membaca banyak baris.",
+  "Partisi adalah bagian tabel `posting` yang dipisah menurut `dibuat`, satu per bulan ([[t5-partisi]]). Baris yang dibaca adalah jumlah",
   "Hendra memeriksa. Pemeriksaan harian yang ia tulis baru selesai pukul 14.20, padahal target Pak Hadi pukul 06.00.",
   "Dugaan itu menjelaskan kenapa pekerjaannya lambat, tetapi tidak menjawab apa yang dikerjakan pekerjaan itu. Database khusus ledger tetap menjalankan query yang sama atas posting yang sama. Mesin yang lebih besar menunda masalahnya, tetapi tidak membuat pemeriksaan membaca lebih sedikit baris.",
   "Semua posting sejak awal. Rekaman lab `snapshot.txt` bagian A: 1.800.000 dari 1.800.000 posting di tabel.",
@@ -735,13 +740,12 @@ const KUNCI_LITERAL: string[] = [
   "**Snapshot menggeser pekerjaan, bukan menghilangkannya.** Tiap job snapshot membaca persis satu bulan, 150.000 baris di lab (`snapshot.txt` bagian B). Bulan berjalan tetap dibaca pemeriksaan tiap malam, sedangkan bulan yang sudah ditutup dibaca sekali oleh job snapshot-nya.",
   "**Hasilnya sama untuk selisih yang nyata.** Bila kode menulis `saldo_cache` tanpa posting, kedua pemeriksaan menandai buku yang sama dengan cache, hitungan, dan selisih 5.000 yang sama (`snapshot.txt` bagian D).",
   "Hasil sama itu punya syarat. Posting yang ditulis terlambat dengan `dibuat` di bulan yang sudah di-snapshot tidak ikut dalam snapshot. Di tes Go lab, pemeriksaan penuh diam karena cache dan posting konsisten, sedangkan pemeriksaan dari snapshot menandai buku itu. Itu dibaca dari kode `labs/api-t5/internal/service/snapshot_test.go` (Tidak dijalankan); tesnya lulus di `testing.txt` bagian A.",
-  "Snapshot adalah salinan yang punya umur: ia benar untuk bulan yang sudah ditutup.",
-  "**Snapshot hanya memeriksa.** Pak Hadi menulis aturannya di PRD v5 ([[t5-prd]]). Angka yang ia tanda tangani dibaca dari catatan yang sama dengan yang menggerakkan uang. `snapshot_saldo` ada di database yang sama dengan `posting` dan hanya ditulis dari posting.",
+  "**Snapshot hanya memeriksa.** Pak Hadi menulis aturannya di PRD v5 ([[t5-prd]]). Angka yang ia tanda tangani dibaca dari catatan yang sama dengan yang menggerakkan uang. `snapshot_saldo` ada di database yang sama dengan `posting`. Job snapshot menulisnya dari posting dan snapshot bulan sebelumnya.",
   "**Posting tidak boleh dihapus, jadi data lama tidak dibuang dengan DELETE.** Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B). Membuang satu bulan dari database utama berarti melepasnya sebagai tabel sendiri, bukan menghapus baris.",
   "Dokumentasi PostgreSQL menulis bahwa `DROP TABLE` atau `DETACH PARTITION` atas satu partisi jauh lebih cepat daripada operasi massal. Keduanya juga menghindari overhead `VACUUM` dari `DELETE` massal (sumber yang sama, Tidak dijalankan). Rekaman lab tidak memuat `VACUUM`: skrip hanya menjalankan `VACUUM (ANALYZE)` sesudah memuat data. Halaman ini karena itu tidak menyebutnya sebagai penyebab pukul 14.20.",
   "Lab memeriksa batasnya pada tabel uji tanpa trigger ledger. Waktu terkecil `DELETE` atas 200.000 baris dari tiga percobaan lebih dari dua kali waktu terkecil `DETACH` + `DROP`, dan nilai waktunya tidak direkam (`lepas.txt` bagian D).",
-  "Satu akibat lain terekam di lab terpisah dengan 28.000 posting per bulan, setelah satu bulan dilepas:",
-  "Pemeriksaan yang membaca seluruh sejarah bukan hanya lambat. Ia juga menandai 10.061 dari 10.288 buku begitu data lama keluar dari tabel, padahal bagian itu tidak mengubah `saldo_cache`. Pemeriksaan dari snapshot menandai 0. Data lama tetap ada di arsip (`lepas.txt` bagian E), dan caranya dibahas di [[t5-partisi]].",
+  "Satu akibat lain terekam di run lab yang terpisah, dengan 28.000 posting per bulan, setelah satu bulan dilepas:",
+  "Pemeriksaan yang membaca seluruh sejarah bukan hanya membaca banyak baris. Ia juga menandai 10.061 dari 10.288 buku begitu data lama keluar dari tabel, padahal bagian itu tidak mengubah `saldo_cache`. Pemeriksaan dari snapshot menandai 0. Data lama tetap ada di arsip (`lepas.txt` bagian E), dan caranya dibahas di [[t5-partisi]].",
   "Widget ini mengikuti rekaman `snapshot.txt`: pemeriksaan tanpa snapshot, sebelas job snapshot, lalu pemeriksaan dari snapshot terakhir. Tebak dulu, lalu tekan Berikutnya atau panah kanan.",
   "Sesudah satu bulan dilepas dari tabel, pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, dan pemeriksaan dari snapshot menandai 0. Rekaman ada di cuplikan pada blok sebelumnya.",
   "Pekerjaan malam membaca bagian yang berubah sejak snapshot terakhir, bukan seluruh sejarah posting.",
@@ -819,7 +823,7 @@ describe("tanpa kunci baris: jam, angka, bagian rekaman, tautan, dan label di pr
     expect(badan).toContain(`Tiga transaksi uang per user aktif per hari, dua posting per transaksi, dan ${BYTE} byte per posting`);
     expect(badan).toContain(`Ukuran saja bukan masalahnya: ${fmt(bulat(BATAS_GB / GB_TAHUN))} tahun data.`);
     expect(badan).toContain(`dengan SQLSTATE ${SQLSTATE} (\`lepas.txt\` bagian ${hurufBagian(lepas, "DELETE pada posting_lalu_05 ditolak")}).`);
-    expect(badan).toContain(`lab terpisah dengan ${POSTING_LEPAS} posting per bulan, setelah satu bulan dilepas:`);
+    expect(badan).toContain(`run lab yang terpisah, dengan ${POSTING_LEPAS} posting per bulan, setelah satu bulan dilepas:`);
     expect(badan).toContain(`menandai ${TANDAI} dari ${BUKU_LEPAS} buku begitu data lama keluar dari tabel`);
     expect(badan).toContain(`Pemeriksaan dari snapshot menandai ${BARU_NOL}. Data lama tetap ada di arsip`);
     expect(badan).toContain(`Pemeriksaan tanpa snapshot menandai ${TANDAI} dari ${BUKU_LEPAS} buku, dan pemeriksaan dari snapshot menandai ${BARU_NOL} (\`lepas.txt\` bagian ${hurufBagian(lepas, "cek cache: 10288 buku diperiksa, 10061")}).`);
@@ -920,7 +924,7 @@ describe("tanpa kunci baris: teks diagram, skenario, dan baris riset diturunkan 
       ["Satu selisih nyata terlihat oleh kedua pemeriksaan", "Cache buku 8 dinaikkan 5.000 tanpa posting. Pemeriksaan penuh dan pemeriksaan dari snapshot menandai buku yang sama dengan cache, hitungan, dan selisih yang sama."],
     ]);
     expect(skenario.varian.langkah.map((l) => [l.judul, l.jelas])).toEqual([
-      ["Satu partisi bulan dilepas dari tabel posting", `Lab terpisah memuat ${POSTING_LEPAS_N} posting per bulan. Perintah DETACH melepas satu bulan, sehingga tabel posting hanya memperlihatkan 140.000 dari 168.000 posting.`],
+      ["Satu partisi bulan dilepas dari tabel posting", `Run lab yang terpisah memuat ${POSTING_LEPAS_N} posting per bulan. Perintah DETACH melepas satu bulan, sehingga tabel posting hanya memperlihatkan 140.000 dari 168.000 posting.`],
       ["Tanpa snapshot, hampir semua buku ditandai tidak cocok", `Pemeriksaan tanpa snapshot menandai 10.061 dari ${BUKU_LEPAS_N} buku, karena posting lama buku itu tidak ada lagi di tabel. Cache buku itu sendiri benar.`],
       ["Dari snapshot, 0 buku ditandai", `Pemeriksaan dari snapshot memakai saldo akhir bulan yang sudah tersimpan, jadi 0 dari ${BUKU_LEPAS_N} buku ditandai.`],
     ]);
@@ -958,5 +962,64 @@ describe("tanpa kunci baris: teks diagram, skenario, dan baris riset diturunkan 
     expect(r159.split("|").slice(-2)[0]!.trim()).toBe("Tidak berubah");
     expect(barisRiset("R5-156")).toContain("Tidak berubah sejak R5-04 (yang membaca PostgreSQL 18), dicek 2026-11-02");
     expect(barisRiset("R5-158")).toContain("Naskah M43 menulis \"VACUUM yang makin panjang\"");
+  });
+});
+
+// Tinjauan independen 5.10 (keputusan 1539): lima kalimat yang sebelumnya melampaui sumbernya, dijaga dari sumbernya.
+describe("tinjauan 1539: kalimat yang dikoreksi diturunkan dari kode dan rekaman lab", () => {
+  const dasarPy = baca("labs/t5-partisi/dasar.py");
+  const ledgerPage = baca("situs/src/content/docs/tahap-2/ledger.mdx");
+  const kodeLab = (terlacak ? [...terlacak] : execSync("git ls-files", { cwd: akar }).toString().split("\n"))
+    .filter((f) => f.startsWith("labs/api-t5/") && /\.(go|sql|py)$/.test(f) && !f.endsWith("_test.go"));
+  test("baris dibaca = JUMLAH seq_tup_read + idx_tup_fetch, dihitung sebagai selisih sebelum dan sesudah (bukan selisih kedua kolom)", () => {
+    expect(dasarPy).toContain("return {r[0]: r[1] + r[2] for r in c.execute(");
+    expect(dasarPy).toContain("return sum(sesudah.get(k, 0) - sebelum.get(k, 0) for k in sesudah)");
+    expect(badan).toContain("Baris yang dibaca adalah jumlah `seq_tup_read` dan `idx_tup_fetch`");
+    expect(badan).not.toMatch(/selisih `seq_tup_read` dan `idx_tup_fetch`/);
+  });
+  test("partisi didefinisikan sebelum pemakaian pertamanya di prosa (kode dan tautan tidak dihitung)", () => {
+    const bersih = badan.replace(/`[^`]*`/g, "").replace(/<Snippet[^>]*\/>/g, "").replace(/\[\[[^\]]+\]\]/g, "");
+    const pertama = bersih.search(/\bpartisi\b/i);
+    expect(pertama).toBeGreaterThan(0);
+    expect(bersih.slice(pertama).startsWith("Partisi adalah bagian tabel")).toBe(true);
+  });
+  test("buku diberi arti di pemakaian pertama dan artinya sama dengan halaman ledger prasyarat", () => {
+    expect(ledgerPage).toContain("berisi tempat uang dicatat");
+    const pertama = badan.search(/tiap buku/);
+    expect(badan.slice(pertama).startsWith("tiap buku, yaitu tempat uang satu pihak dicatat di ledger, dengan jumlah posting-nya.")).toBe(true);
+    expect(badan.slice(0, pertama)).not.toMatch(/tiap buku|semua buku|\d buku/);
+  });
+  test("bulan berjalan di lab penuh 150.000 posting, jadi 8,3% adalah batas atas", () => {
+    const m = cocok(pruning, /posting_bulan_00 \| (\d+)/)[1]!;
+    expect(Number(m)).toBe(POSTING_PER_BULAN_LAB);
+    expect(badan).toContain(`Bulan berjalan di lab sudah berisi ${fmt(Number(m))} posting, jadi satu bulan penuh adalah batas atas: di awal bulan job membaca lebih sedikit.`);
+    expect(snapshotGo).toContain("p.dibuat >= $2::timestamptz");
+  });
+  test("snapshot ditulis dari posting dan snapshot bulan sebelumnya; satu-satunya INSERT di kode lab; tidak ada UPDATE atau DELETE", () => {
+    expect(snapshotGo).toContain("SELECT buku_id, saldo, jumlah_posting FROM snapshot_saldo WHERE periode = ($1::date - interval '1 month')::date");
+    expect(snapshotGo).toContain("SELECT buku_id, sum(jumlah) AS saldo, count(*) AS n FROM posting");
+    const isi = kodeLab.map((f) => baca(f)).join("\n");
+    expect((isi.match(/INSERT INTO snapshot_saldo/g) ?? []).length).toBe(1);
+    expect(isi).not.toMatch(/UPDATE\s+(\S+\.)?snapshot_saldo|DELETE\s+FROM\s+(\S+\.)?snapshot_saldo|TRUNCATE\s+(\S+\.)?snapshot_saldo/i);
+    expect(badan).toContain("Job snapshot menulisnya dari posting dan snapshot bulan sebelumnya.");
+    expect(badan).not.toContain("hanya ditulis dari posting");
+  });
+  test("snapshot benar untuk bulan tertutup hanya selama tidak ada posting terlambat: README dan tes Go menyatakannya", () => {
+    expect(readme).toContain("Posting yang ditulis terlambat dengan `dibuat` di bulan yang sudah di-snapshot tidak ikut terhitung dan terlihat sebagai selisih.");
+    expect(snapshotTes).toContain("posting terlambat: selisih buku B dari snapshot");
+    expect(badan).toContain("ia benar untuk bulan yang sudah ditutup, selama tidak ada posting baru dengan `dibuat` di bulan itu.");
+    expect(badan).not.toMatch(/ia benar untuk bulan yang sudah ditutup\.(?!\s*$)/m);
+  });
+  test("'lambat' tidak ditulis sebagai hasil rekaman: waktu pemeriksaan tidak direkam, dan 10.061 buku ditandai bukan soal waktu", () => {
+    expect(lepas).not.toMatch(/lambat/);
+    expect(snap).not.toMatch(/lambat/);
+    expect(badan).not.toContain("bukan hanya lambat");
+    expect(badan).toContain("Waktu bergantung mesin dan tidak direkam");
+  });
+  test("run lepas.txt adalah bagian lab yang sama (t5-partisi), bukan lab lain", () => {
+    expect(readme).toContain("| `output/lepas.txt` | `lepas` |");
+    expect(skenario.langkah.length + skenario.varian.langkah.length).toBe(8);
+    expect(badan).not.toMatch(/lab terpisah/i);
+    expect(skenarioMentah).not.toMatch(/Lab terpisah/);
   });
 });

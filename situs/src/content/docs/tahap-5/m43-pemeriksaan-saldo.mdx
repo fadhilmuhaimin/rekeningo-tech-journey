@@ -27,7 +27,7 @@ Sepanjang siang p95 pembayaran ikut naik.
 
 Raka menduga disk dan CPU database kurang. Nadia mengusulkan ledger pindah ke database khusus ledger.
 
-Pemeriksaan harian adalah job malam yang membandingkan `saldo_cache` tiap buku dengan jumlah posting-nya. Posting adalah satu baris catatan uang di ledger. Di Tahap 2 job ini menemukan selisih Rp5.000 antara cache dan posting ([[t2-saldo-bukan-kolom]]).
+Pemeriksaan harian adalah job malam yang membandingkan `saldo_cache` tiap buku, yaitu tempat uang satu pihak dicatat di ledger, dengan jumlah posting-nya. Posting adalah satu baris catatan uang di ledger. Di Tahap 2 job ini menemukan selisih Rp5.000 antara cache dan posting ([[t2-saldo-bukan-kolom]]).
 
 Dugaan itu menjelaskan kenapa pekerjaannya lambat, tetapi tidak menjawab apa yang dikerjakan pekerjaan itu. Database khusus ledger tetap menjalankan query yang sama atas posting yang sama. Mesin yang lebih besar menunda masalahnya, tetapi tidak membuat pemeriksaan membaca lebih sedikit baris.
 
@@ -58,7 +58,7 @@ Rekaman dari database bersih memberi jumlah baris yang dibaca:
 
 <Snippet file="labs/t5-partisi/output/snapshot.txt" lines="8:11" title="Rekaman lab: labs/t5-partisi/output/snapshot.txt, bagian A (tanpa snapshot)" />
 
-Baris yang dibaca adalah selisih `seq_tup_read` dan `idx_tup_fetch` di `pg_stat_user_tables` atas semua partisi `posting`, dibaca sesudah proses job keluar. Dokumentasi menulis kedua kolom itu menghitung baris yang diambil oleh sequential scan dan oleh index scan ([PostgreSQL 17: statistik kumulatif](https://www.postgresql.org/docs/17/monitoring-stats.html), dibuka 2026-11-02, Tidak dijalankan). Partisi adalah bagian tabel `posting` yang dipisah menurut `dibuat`, satu per bulan ([[t5-partisi]]).
+Partisi adalah bagian tabel `posting` yang dipisah menurut `dibuat`, satu per bulan ([[t5-partisi]]). Baris yang dibaca adalah jumlah `seq_tup_read` dan `idx_tup_fetch` di `pg_stat_user_tables` atas semua partisi `posting`, dihitung sebagai selisih sebelum dan sesudah job. Statistik dibaca sesudah proses job keluar. Dokumentasi menulis kedua kolom itu menghitung baris yang diambil oleh sequential scan dan oleh index scan ([PostgreSQL 17: statistik kumulatif](https://www.postgresql.org/docs/17/monitoring-stats.html), dibuka 2026-11-02, Tidak dijalankan).
 
 **Index riwayat tidak menolong.** Index `posting_riwayat` pada `(buku_id, dibuat, id)` melayani riwayat satu akun, terbaru dulu (Tidak dijalankan: dibaca dari komentar `labs/api-t5/internal/repo/riwayat.go`). Pemeriksaan menjumlah `jumlah` dari semua buku, jadi tiap baris posting tetap masuk hitungan. Index mengubah cara baris ditemukan, bukan berapa baris yang dijumlah.
 
@@ -94,7 +94,7 @@ Memori server tidak ada di Asumsi halaman ini, jadi perbandingan itu tidak dihit
 
 Dari snapshot terakhir, pemeriksaan membaca 150.000 dari 1.800.000 posting, yaitu 8,3%. Dari snapshot tiga bulan lalu ia membaca 450.000 posting, tiga bulan × 150.000.
 
-Lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3% di naskah. Angka 8,3% karena itu bukan temuan lab. Yang direkam adalah bahwa job membaca persis satu bulan.
+Lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3% di naskah. Angka 8,3% karena itu bukan temuan lab. Yang direkam adalah bahwa job membaca persis satu bulan. Bulan berjalan di lab sudah berisi 150.000 posting, jadi satu bulan penuh adalah batas atas: di awal bulan job membaca lebih sedikit.
 
 | Besaran | Lab (Rekaman lab) | Naskah (Hitungan atas Asumsi) |
 | --- | --- | --- |
@@ -114,9 +114,9 @@ Job aman diulang: dijalankan lagi, ia menulis 0 buku. Bulan berjalan ditolak den
 
 Hasil sama itu punya syarat. Posting yang ditulis terlambat dengan `dibuat` di bulan yang sudah di-snapshot tidak ikut dalam snapshot. Di tes Go lab, pemeriksaan penuh diam karena cache dan posting konsisten, sedangkan pemeriksaan dari snapshot menandai buku itu. Itu dibaca dari kode `labs/api-t5/internal/service/snapshot_test.go` (Tidak dijalankan); tesnya lulus di `testing.txt` bagian A.
 
-Snapshot adalah salinan yang punya umur: ia benar untuk bulan yang sudah ditutup.
+Snapshot adalah salinan yang punya umur: ia benar untuk bulan yang sudah ditutup, selama tidak ada posting baru dengan `dibuat` di bulan itu.
 
-**Snapshot hanya memeriksa.** Pak Hadi menulis aturannya di PRD v5 ([[t5-prd]]). Angka yang ia tanda tangani dibaca dari catatan yang sama dengan yang menggerakkan uang. `snapshot_saldo` ada di database yang sama dengan `posting` dan hanya ditulis dari posting.
+**Snapshot hanya memeriksa.** Pak Hadi menulis aturannya di PRD v5 ([[t5-prd]]). Angka yang ia tanda tangani dibaca dari catatan yang sama dengan yang menggerakkan uang. `snapshot_saldo` ada di database yang sama dengan `posting`. Job snapshot menulisnya dari posting dan snapshot bulan sebelumnya.
 
 Di `labs/api-t5/internal` dan `labs/api-t5/cmd`, hanya `repo/snapshot.go` dan tesnya yang menyebut tabel itu. Jalur bayar tidak membacanya (Tidak dijalankan: dibaca dari kode).
 
@@ -126,11 +126,11 @@ Dokumentasi PostgreSQL menulis bahwa `DROP TABLE` atau `DETACH PARTITION` atas s
 
 Lab memeriksa batasnya pada tabel uji tanpa trigger ledger. Waktu terkecil `DELETE` atas 200.000 baris dari tiga percobaan lebih dari dua kali waktu terkecil `DETACH` + `DROP`, dan nilai waktunya tidak direkam (`lepas.txt` bagian D).
 
-Satu akibat lain terekam di lab terpisah dengan 28.000 posting per bulan, setelah satu bulan dilepas:
+Satu akibat lain terekam di run lab yang terpisah, dengan 28.000 posting per bulan, setelah satu bulan dilepas:
 
 <Snippet file="labs/t5-partisi/output/lepas.txt" lines="132:141" title="Rekaman lab: labs/t5-partisi/output/lepas.txt, bagian F (sesudah satu bulan dilepas)" />
 
-Pemeriksaan yang membaca seluruh sejarah bukan hanya lambat. Ia juga menandai 10.061 dari 10.288 buku begitu data lama keluar dari tabel, padahal bagian itu tidak mengubah `saldo_cache`. Pemeriksaan dari snapshot menandai 0. Data lama tetap ada di arsip (`lepas.txt` bagian E), dan caranya dibahas di [[t5-partisi]].
+Pemeriksaan yang membaca seluruh sejarah bukan hanya membaca banyak baris. Ia juga menandai 10.061 dari 10.288 buku begitu data lama keluar dari tabel, padahal bagian itu tidak mengubah `saldo_cache`. Pemeriksaan dari snapshot menandai 0. Data lama tetap ada di arsip (`lepas.txt` bagian E), dan caranya dibahas di [[t5-partisi]].
 
 </Blok>
 
