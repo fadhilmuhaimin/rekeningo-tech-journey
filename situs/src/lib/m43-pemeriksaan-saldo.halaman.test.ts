@@ -722,6 +722,12 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, dan se
 // Kalimat yang lolos mutasi 'sisip tidak' tanpa kunci baris (putaran 2 uji mutasi): dikunci literal di sini, bukan di berkas nilai,
 // supaya membangkitkan ulang berkas nilai dari halaman termutasi tidak melonggarkannya.
 const KUNCI_LITERAL: string[] = [
+  "Yang bisa dihitung adalah pekerjaan yang membaca seluruh tabel tiap malam.",
+  "Yang direkam adalah bahwa job membaca persis satu bulan.",
+  "Lab tidak punya app Flutter dan tidak merekam layar.",
+  "| Besaran | Rumus | Hasil |",
+  "| Besaran | Lab (Rekaman lab) | Naskah (Hitungan atas Asumsi) |",
+  '<SkripLama daftar={["hp","alur-core","alur"]} />',
   "Bulan berjalan di lab sudah berisi 150.000 posting, jadi satu bulan penuh adalah batas atas: di awal bulan job membaca lebih sedikit.",
   "Snapshot adalah salinan yang punya umur: ia benar untuk bulan yang sudah ditutup, selama tidak ada posting baru dengan `dibuat` di bulan itu.",
   "Job snapshot menulisnya dari posting dan snapshot bulan sebelumnya.",
@@ -1021,5 +1027,86 @@ describe("tinjauan 1539: kalimat yang dikoreksi diturunkan dari kode dan rekaman
     expect(skenario.langkah.length + skenario.varian.langkah.length).toBe(8);
     expect(badan).not.toMatch(/lab terpisah/i);
     expect(skenarioMentah).not.toMatch(/Lab terpisah/);
+  });
+});
+
+// Celah yang lolos mutasi putaran 2 (tanpa kunci baris) pada tinjauan 5.10 (keputusan 1539).
+describe("tinjauan 1539, putaran 2: celah yang lolos mutasi tanpa kunci baris ditutup dari sumbernya", () => {
+  const potong = (isi: string, awal: (b: string) => boolean, sebelum: (b: string) => boolean): string => {
+    const bs = isi.split("\n");
+    const a = bs.findIndex(awal);
+    expect(a, "awal potongan rekaman").toBeGreaterThanOrEqual(0);
+    const z = bs.findIndex((b, i) => i > a && sebelum(b));
+    expect(z, "akhir potongan rekaman").toBeGreaterThan(a);
+    return bs.slice(a, z).join("\n").trimEnd();
+  };
+  test("minggu di registry, badan, dan frontmatter sama dengan kolom Minggu M43 di naskah", () => {
+    const minggu = cocok(naskah, /^\| M43 \| (\d+) \|/m)[1]!;
+    expect((dari("t5-m43") as unknown as { label: string }).label).toBe(`Masalah 43 · minggu ${minggu}`);
+    expect(badan).toContain(`Minggu ${minggu} Tahap 5. Pukul 08.00`);
+    expect(frontmatter).toContain(`description: Minggu ${minggu}.`);
+  });
+  test("run lepas: tiap partisi berisi sama banyak posting, 140.000 dari 168.000 turun dari jumlahnya, arsip berisi satu partisi", () => {
+    const tiap = Number(cocok(lepas, /dengan ([\d.]+) posting per bulan/)[1]!.replace(/\./g, ""));
+    const isi = [...bagianRekaman(lepas, "A").teks.matchAll(/^ posting_(?:bulan|lalu)_\d+\s*\| (\d+)$/gm)].map((m) => Number(m[1]));
+    expect(isi.length).toBe(6);
+    expect(new Set(isi)).toEqual(new Set([tiap]));
+    const jumlah = isi.reduce((a, b) => a + b, 0);
+    expect(lepas).toContain(`${fmt(jumlah - tiap)} dari ${fmt(jumlah)}`);
+    expect(lE.teks).toContain(`File arsip: ${fmt(tiap)} baris`);
+    expect(skenario.varian.langkah[0]!.kirim).toContain(`${fmt(jumlah - tiap)} dari ${fmt(jumlah)}`);
+  });
+  test("Snippet: lang go hanya untuk berkas .go, rekaman teks tanpa lang", () => {
+    const semua = [...badan.matchAll(/<Snippet [^>]*\/>/g)].map((m) => m[0]);
+    expect(semua.length).toBe(5);
+    for (const sn of semua) {
+      const f = sn.match(/file="([^"]+)"/)![1]!;
+      expect(sn.match(/lang="([^"]+)"/)?.[1], f).toBe(f.endsWith(".go") ? "go" : undefined);
+    }
+  });
+  test("pemuat widget alur memuat semua skrip yang dimuat halaman Tahap 4 lain yang memakai WidgetLama alur", () => {
+    const daftar = (t: string): string[] => JSON.parse(cocok(t, /<SkripLama daftar=\{(\[[^\]]*\])\} \/>/)[1]!);
+    const tetangga = [...(terlacak ?? [])].filter((f) => f.startsWith("situs/src/content/docs/tahap-4/") && f.endsWith(".mdx"))
+      .map((f) => baca(f)).filter((t) => t.includes('<WidgetLama nama="alur"') && /<SkripLama daftar=\{\[[^\]]*\]\} \/>/.test(t));
+    expect(tetangga.length).toBeGreaterThan(3);
+    const irisan = tetangga.map(daftar).reduce((a, b) => a.filter((x) => b.includes(x)));
+    expect(irisan).toEqual(expect.arrayContaining(["hp", "alur-core", "alur"]));
+    for (const x of irisan) expect(daftar(badan)).toContain(x);
+    expect(badan).toContain('<WidgetLama nama="alur" src="data/skenario/t5-m43.json" />');
+  });
+  test("skenario: tiap kirim sama dengan potongan rekaman yang ditunjuk strukturnya (bukan hanya barisnya ada)", () => {
+    const blank = (b: string) => b === "";
+    const kirim = [...skenario.langkah.map((l) => l.kirim), ...skenario.varian.langkah.map((l) => l.kirim)];
+    const bs = snap.split("\n");
+    const a2 = bs.findIndex((b) => b.startsWith("$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-11"));
+    const harap = [
+      potong(snap, (b) => b === "$ ./api-t5 -cek-cache", blank),
+      bs.slice(a2, a2 + 2).join("\n") + "\n" + potong(snap, (b) => b.startsWith("# Tiap job membaca persis"), (b) => b.startsWith("=> SELECT count(*) AS baris")),
+      potong(snap, (b) => b.startsWith("=> SELECT count(*) AS baris"), (b) => b.startsWith("$ ./api-t5 -buat-snapshot <bulan paling lama>")),
+      potong(snap, (b) => b === "$ ./api-t5 -cek-cache -dari-snapshot", (b) => b.startsWith("# Snapshot yang lebih tua")),
+      potong(snap, (b) => b.startsWith("(api_t5) => UPDATE buku SET saldo_cache = saldo_cache + 5000"), (b) => b.startsWith("(api_t5) => UPDATE buku SET saldo_cache = saldo_cache - 5000")),
+      potong(lepas, (b) => b.startsWith("# Tanpa partisi DEFAULT dan di luar blok transaction"), (b) => b.startsWith("=> SELECT conname")),
+      potong(lepas, (b) => b === "$ ./api-t5 -cek-cache", (b) => b === "$ ./api-t5 -cek-cache -dari-snapshot"),
+      potong(lepas, (b) => b === "$ ./api-t5 -cek-cache -dari-snapshot", blank),
+    ];
+    expect(kirim.length).toBe(harap.length);
+    kirim.forEach((k, i) => expect(k, `kirim ${i}`).toBe(harap[i]));
+  });
+  test("baris riset: nomor halaman di kolom Konsep dan Yang dipakai halaman sama dengan registry; frasa kutipan yang dipakai halaman ada", () => {
+    const nomor = dari("t5-m43").nomor!;
+    const awal = new RegExp(`^${nomor.replace(".", "\\.")}[: ]`);
+    for (const id of ["R5-155", "R5-156", "R5-157", "R5-158", "R5-159"]) {
+      const k = barisRiset(id).split("|").map((x) => x.trim());
+      expect(k[2], id).toContain(id === "R5-159" ? `halaman ${nomor} (` : `(${nomor}`);
+      expect(k[4], id).toMatch(awal);
+    }
+    expect(barisRiset("R5-156")).toContain("1 TB = 1.000 GB");
+    expect(barisRiset("R5-157")).toContain('"just before going idle"');
+  });
+  test("klaim negatif 'Lab tidak punya app Flutter' berlingkup labs/t5-partisi dan labs/api-t5: tak ada berkas Dart atau pubspec", () => {
+    const berkas = [...(terlacak ?? [])].filter((f) => f.startsWith("labs/t5-partisi/") || f.startsWith("labs/api-t5/"));
+    expect(berkas.length).toBeGreaterThan(20);
+    expect(berkas.filter((f) => /\.dart$|(^|\/)pubspec\.ya?ml$/.test(f))).toEqual([]);
+    expect(badan).toContain("Lab tidak punya app Flutter dan tidak merekam layar.");
   });
 });
