@@ -76,12 +76,12 @@ Rekaman dari database bersih. Angka yang bergantung mesin (waktu) tidak direkam:
 
 ## Selisih dengan naskah (lab yang benar)
 
-- Naskah menulis query tanpa `dibuat` memindai semua partisi (Parallel Append). Lab merekam itu dengan 150.000 posting per bulan. Angka itu dipilih supaya satu bulan dari 12 sama dengan 8,3% di naskah, bukan karena ambang paralel: `min_parallel_table_scan_size` (8 MB) tidak berlaku bagi partisi (kode planner PostgreSQL 17, `compute_parallel_worker`), dan bagian B2 `skala` merekam Parallel Append atas 12 partisi 30.000 baris yang jauh di bawah 8 MB. Versi pertama lab menulis sebaliknya; tinjauan mengujinya (120.000 posting per bulan, 8.192.000 byte, juga Parallel Append).
+- Naskah menulis query tanpa `dibuat` memindai semua partisi (Parallel Append). Lab merekam itu dengan 150.000 posting per bulan. Angka itu dipilih supaya satu bulan dari 12 sama dengan 8,3% di naskah. Ia bukan akibat ambang paralel. `min_parallel_table_scan_size` (8 MB) tidak berlaku bagi partisi (kode planner PostgreSQL 17, `compute_parallel_worker`). Bagian B2 `skala` merekam Parallel Append atas 12 partisi 30.000 baris, jauh di bawah 8 MB. Versi pertama lab menulis sebaliknya. Tinjauan mengujinya dengan 120.000 posting per bulan (8.192.000 byte), dan hasilnya juga Parallel Append.
 - Naskah menulis `DETACH CONCURRENTLY` menambahkan CHECK itu sendiri dan arsip yang dipulihkan ke tabel baru tidak memilikinya. Keduanya terekam. Lab menambah dua hal. Foreign key ke `jurnal` dan `buku` tetap divalidasi saat ATTACH tabel pulih. Tabel pulih juga harus membawa CHECK bawaan `jumlah <> 0`, tanpa itu ATTACH ditolak (42804).
 - Naskah menulis jurnal pembalik atas jurnal yang diarsipkan "tidak bisa dibuat dari database utama". Lab merekam bentuknya: API menjawab 409 (`posting-diarsipkan`). Sebelum tinjauan jawabannya 500 dan database yang menolak saat COMMIT.
 - Naskah belum menyebut dua akibat. Tabel yang dilepas tidak lagi dijaga trigger append-only, hanya hak akses yang menjaganya. Penjaga TRUNCATE tidak ikut ke tabel hasil pemulihan.
 - Posting per bulan di lab (150.000) lebih kecil dari 36,5 juta di naskah. Angka bulan dan baris di naskah tetap Hitungan atas Asumsi.
-- Bentuk simpul scan untuk partisi kosong (`Seq Scan` atau `Parallel Seq Scan`, dua-duanya berbiaya 0,00) tidak tetap dari satu rekaman ke rekaman lain, jadi `pruning.txt` tidak menampilkannya dan menulis alasannya.
+- Planner memilih `Seq Scan` atau `Parallel Seq Scan` untuk partisi kosong secara tidak tetap, karena biaya keduanya 0,00. Karena itu `pruning.txt` tidak menampilkan simpulnya dan menulis alasannya.
 
 ## Tidak dijalankan atau belum ada
 
@@ -91,4 +91,4 @@ Lab ini tidak mengklaim kapasitas tulis satu primary: partisi tidak menambahnya.
 
 ## Uji mutasi
 
-Tabel hasil ada di badan PR, dua putaran: pelaksana (16 mutan atas `snapshot.go` dan `main.go`) dan peninjau (mutan baru atas kode Go, lab Python, dan migrasi 000024). Tes Go atau bagian `skala` atau `lepas` harus gagal karena sebab yang diuji. File dikembalikan sesudahnya.
+Tabel hasil ada di badan PR, dalam dua putaran. Pelaksana memutasi `snapshot.go` dan `main.go` (16 mutan); peninjau memutasi kode Go, lab Python, dan migrasi 000024 (29 mutan baru). Tes Go atau bagian `skala` atau `lepas` harus gagal karena sebab yang diuji. File dikembalikan sesudahnya.
