@@ -120,7 +120,8 @@ func (k *Konsumen) proses(ctx context.Context, r *kgo.Record) error {
 func (k *Konsumen) kirimBatch(ctx context.Context, p Pengumuman, batch []tujuan) error {
 	ch := make(chan tujuan)
 	var wg sync.WaitGroup
-	var galat atomic.Value
+	var muGalat sync.Mutex
+	var galat error // galat pertama; atomic.Value menolak dua jenis galat berbeda (panic), jadi pakai mutex
 	for i := 0; i < k.Serentak; i++ {
 		wg.Add(1)
 		go func() {
@@ -134,7 +135,11 @@ func (k *Konsumen) kirimBatch(ctx context.Context, p Pengumuman, batch []tujuan)
 				switch {
 				case err != nil:
 					k.menyerah.Add(1)
-					galat.Store(err)
+					muGalat.Lock()
+					if galat == nil {
+						galat = err
+					}
+					muGalat.Unlock()
 				case hasil == TidakTerdaftar:
 					k.dilewati.Add(1)
 					if _, e := k.DB.ExecContext(ctx, `UPDATE perangkat SET aktif = false WHERE id = $1`, t.id); e != nil {
@@ -160,10 +165,9 @@ func (k *Konsumen) kirimBatch(ctx context.Context, p Pengumuman, batch []tujuan)
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if e, ok := galat.Load().(error); ok {
-		return e
-	}
-	return nil
+	muGalat.Lock()
+	defer muGalat.Unlock()
+	return galat
 }
 
 // RingkasanKonsumen: hitungan satu consumer, dicetak saat berhenti.
