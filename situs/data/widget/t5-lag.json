@@ -1,0 +1,171 @@
+{
+  "id": "t5-lag",
+  "judul": "Replica tertinggal: apa yang dibaca layar Budi",
+  "sumber": {
+    "teks": "Jeda yang kamu geser adalah Simulasi. Di lab t5-replika jeda alami selalu di bawah 1 detik pada 100 pembayaran per detik, jadi jeda yang lebih panjang diperankan dengan menahan replay. Satu bacaan 1 detik sesudah jawaban 201 adalah Asumsi desain. Bagian Rekaman lab mengutip keluaran lab."
+  },
+  "skenario": { "saldoAwal": 250000, "bayar": 35000, "barisAwal": 1, "bacaDetik": 1 },
+  "awal": { "jeda": "naskah", "aturan": "replica" },
+  "jeda": [
+    { "id": "nol", "detik": 0, "label": "0 detik", "kalimat": "jeda 0 detik" },
+    { "id": "alami", "detik": 0.5, "label": "0,5 detik", "kalimat": "jeda 0,5 detik" },
+    { "id": "naskah", "detik": 2, "label": "2 detik", "kalimat": "jeda 2 detik" },
+    { "id": "batas", "detik": 5, "label": "5 detik", "kalimat": "jeda 5 detik" },
+    { "id": "ditahan", "detik": null, "label": "ditahan", "kalimat": "replay ditahan" }
+  ],
+  "aturan": [
+    { "id": "replica", "label": "Replica biasa", "kode": false, "ringkas": "App membaca replica dan tidak membawa token. Pembaca ini tidak tahu apa yang baru saja ia tulis." },
+    { "id": "token", "label": "Token LSN", "kode": false, "ringkas": "Jawaban bayar membawa posisi WAL primary di kepala X-Lsn-Tulis. App mengirimnya kembali, dan server membaca replica hanya bila replica sudah memutar WAL sampai posisi itu, selain itu primary." },
+    { "id": "remote_apply", "label": "remote_apply", "kode": true, "ringkas": "COMMIT menunggu replica sinkron memutar WAL, jadi pembayaran itu sudah terlihat di sana. Replica asinkron lain tidak ikut ditunggu." }
+  ],
+  "tebak": {
+    "q": "Budi membayar Rp35.000, jadi saldonya di primary menjadi Rp215.000. Anggap replica tertinggal 2 detik (Simulasi) dan app membaca saldo 1 detik sesudah jawaban 201 tanpa token. Saldo apa yang muncul di layar?",
+    "pilihan": [
+      "Rp215.000, karena jawaban bayar sudah memuat saldo itu",
+      "Layar kosong sampai replica menyusul",
+      "Galat, karena app menolak membaca replica yang tertinggal",
+      "Rp250.000, karena replica belum memutar pembayaran itu"
+    ],
+    "jawaban": 3,
+    "alasan": "Replica baru memutar pembayaran itu 2 detik sesudah COMMIT, sedangkan app membaca 1 detik sesudah jawaban 201. Replica masih memegang saldo Rp250.000 dan riwayat satu baris, walau primary sudah Rp215.000."
+  },
+  "acuan": [
+    {
+      "jeda": "alami",
+      "jenis": "rekaman",
+      "berkas": "jeda.txt",
+      "bagian": "A",
+      "teks": "Pada 100 pembayaran per detik selama 10 detik, jeda replay tertinggi di kedua standby ada di bawah 1 detik. Itu batas yang diperiksa lab; nilainya tidak direkam, dan 0,5 detik di widget ini hanya contoh di bawah batas itu.",
+      "bukti": ["replay_lag tertinggi di kedua standby di bawah 1 detik (batas lab; nilai tidak direkam): ya"]
+    },
+    {
+      "jeda": "alami",
+      "aturan": "remote_apply",
+      "jenis": "rekaman",
+      "berkas": "sinkron.txt",
+      "bagian": "B",
+      "teks": "Tanpa replay yang ditahan, selisih COMMIT tercepat antara remote_apply dan on di bawah 1 ms di laptop lab (nilainya tidak direkam). Harga remote_apply yang tabel ini tunjukkan baru muncul bila replay tertinggal.",
+      "bukti": ["selisih COMMIT tercepat antara remote_apply dan on di bawah 1 ms: ya"]
+    },
+    {
+      "jeda": "nol",
+      "aturan": "remote_apply",
+      "jenis": "rekaman",
+      "berkas": "sinkron.txt",
+      "bagian": "B",
+      "teks": "Tanpa replay yang ditahan, selisih COMMIT tercepat antara remote_apply dan on di bawah 1 ms di laptop lab (nilainya tidak direkam). Harga remote_apply yang tabel ini tunjukkan baru muncul bila replay tertinggal.",
+      "bukti": ["selisih COMMIT tercepat antara remote_apply dan on di bawah 1 ms: ya"]
+    },
+    {
+      "jeda": "naskah",
+      "jenis": "ilustrasi",
+      "berkas": "jeda.txt",
+      "bagian": "A",
+      "teks": "Jeda sekitar 2 detik berasal dari cerita Budi. Di laptop lab jeda alami tidak mencapainya, jadi jeda ini Ilustrasi dan bukan hasil ukur.",
+      "bukti": ["Jeda ±2 detik di cerita M41 tidak terjadi dengan sendirinya di laptop lab"]
+    },
+    {
+      "jeda": "ditahan",
+      "aturan": "replica",
+      "jenis": "rekaman",
+      "berkas": "baca.txt",
+      "bagian": "A",
+      "teks": "Replay ditahan, lalu Budi membayar Rp35.000. Jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000 dan riwayat masih satu baris, dibaca dari replica.",
+      "bukti": [
+        "Jawaban bayar 201 memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000 dan riwayat masih satu baris.",
+        "X-Dibaca-Dari: replika"
+      ]
+    },
+    {
+      "jeda": "ditahan",
+      "aturan": "token",
+      "jenis": "rekaman",
+      "berkas": "baca.txt",
+      "bagian": "B",
+      "teks": "Replay ditahan, lalu bayar Rp12.000 dijawab 201 dengan X-Lsn-Tulis. Tanpa token saldo tampil masih Rp215.000 dari replica. Dengan token server membaca primary dan menjawab Rp203.000. Sesudah replay dilanjutkan, token yang sama dilayani replica.",
+      "bukti": [
+        "Dengan token: replika belum memutar WAL sampai posisi itu, jadi server membaca primary.",
+        "X-Dibaca-Dari: primary",
+        "Replika sudah memutar WAL sampai posisi tulis. Dengan token yang sama server kini membaca dari replika."
+      ]
+    },
+    {
+      "jeda": "ditahan",
+      "aturan": "remote_apply",
+      "jenis": "rekaman",
+      "berkas": "sinkron.txt",
+      "bagian": "B",
+      "teks": "Selagi replay di replica sinkron ditahan, COMMIT dengan synchronous_commit = on selesai, tetapi COMMIT remote_apply menunggu di SyncRep sampai replay dilanjutkan.",
+      "bukti": [
+        "COMMIT dengan synchronous_commit = on selesai selagi replay ditahan: ya",
+        "COMMIT remote_apply menunggu di SyncRep dan barisnya belum terlihat oleh sesi lain di primary.",
+        "COMMIT remote_apply selesai sesudah replay dilanjutkan dan barisnya terlihat: ya"
+      ]
+    }
+  ],
+  "uang": {
+    "teks": "Bayar dan kirim membaca saldo di primary, di dalam transaction, bukan lewat aturan baca. Di rekaman, kiriman Rp240.000 ke rekan ditolak karena saldo di primary Rp215.000, walau saldo tampil Rp250.000.",
+    "berkas": "baca.txt",
+    "bagian": "A",
+    "bukti": [
+      "kiriman Rp240.000 ke rekan ditolak karena saldo di primary Rp215.000",
+      "/problems/saldo-kurang"
+    ]
+  },
+  "batas": [
+    { "dasar": "rancangan", "teks": "Widget memodelkan satu bacaan, 1 detik sesudah jawaban 201. Jendela token 30 detik dan aturan jeda lebih dari 30 detik di rancangan tidak dimodelkan." },
+    { "dasar": "kode", "teks": "Token adalah posisi WAL primary mentah dari pg_current_wal_lsn(). Selisih dua token memperlihatkan berapa banyak seluruh database menulis di antaranya, jadi laju tulis ikut terbaca. Produksi dapat menandatangani atau membulatkannya." },
+    { "dasar": "dokumentasi", "teks": "Dokumentasi menyebut pg_current_wal_lsn() sebagai posisi tulis WAL dan synchronous_commit = off sebagai mode tanpa menunggu. Jadi token dari commit semacam itu bisa lebih kecil dari posisi commit itu; ini penalaran, bukan rekaman. Kode api-t5 tidak mengatur synchronous_commit." },
+    { "dasar": "kode", "teks": "Token hanya ada di jawaban pertama bayar dan kirim. Jawaban yang diputar ulang dari Idempotency-Key membawa status, Content-Type, Location, dan isi saja, jadi app yang mengulang tanpa token membaca replica." },
+    { "dasar": "kode", "teks": "Bila posisi WAL tidak terbaca, server tidak memberi token dan app membaca replica. Uang tetap aman karena keputusan uang di primary, tetapi layar bisa menampilkan saldo lama selama itu." },
+    { "dasar": "kode", "teks": "Token sah yang sangat besar membuat server membaca primary, jadi satu user dapat memindahkan bacaan tampil miliknya ke sana. Akun lain tetap tertutup karena pemilik diperiksa lebih dulu." }
+  ],
+  "label": {
+    "sumber": "Simulasi",
+    "tebakDulu": "Tebak dulu.",
+    "benar": "Tebakanmu tepat.",
+    "belum": "Tebakanmu belum tepat.",
+    "ubahJudul": "Ubah satu hal: jeda replica atau aturan baca",
+    "jeda": {
+      "label": "Jeda replica",
+      "nilai": "jeda replica {jeda}",
+      "petunjuk": "Dari 0 detik sampai replay ditahan, seperti jeda buatan di rekaman."
+    },
+    "aturanJudul": "Aturan baca",
+    "ringkas": {
+      "lama": "{aturan}, {jeda}: layar Budi menampilkan {saldo} dari {sumber}, padahal saldo di primary {primary}.",
+      "sama": "{aturan}, {jeda}: layar Budi menampilkan {saldo} dari {sumber}, sama dengan primary.",
+      "keprimary": "{aturan}, {jeda}: replica belum sampai posisi tulis, jadi layar Budi menampilkan {saldo} dari primary.",
+      "tunda": "{aturan}, {jeda}: layar Budi menampilkan {saldo} dari {sumber}, tetapi bayar menunggu {tunda}.",
+      "macet": "{aturan}, {jeda}: bayar belum selesai, jadi layar Budi belum menerima jawaban."
+    },
+    "tabel": {
+      "caption": "Tiga aturan baca pada jeda ini",
+      "kolom": { "dibaca": "Dibaca dari", "layar": "Layar Budi", "akibat": "Akibat" },
+      "dipilih": "dipilih"
+    },
+    "sumberNama": { "primary": "primary", "replica": "replica", "replica_sinkron": "replica sinkron" },
+    "layar": { "saldo": "{saldo}, riwayat {baris} baris", "menunggu": "belum ada jawaban bayar" },
+    "akibat": {
+      "lama": "saldo lama, riwayat belum memuat pembayaran",
+      "sama": "tidak ada",
+      "keprimary": "bacaan ini dilayani primary",
+      "tunda": "bayar menunggu {tunda}",
+      "macet": "bayar tidak selesai selama replay ditahan"
+    },
+    "acuanJudul": "Rekaman lab untuk pilihan ini",
+    "acuanJenis": { "rekaman": "Rekaman lab", "ilustrasi": "Ilustrasi" },
+    "acuanBerkas": "{berkas}, bagian {bagian}",
+    "tanpaAcuan": "Pilihan ini Simulasi: tidak ada rekaman lab untuk jeda dan aturan ini.",
+    "uangJudul": "Keputusan uang tidak memakai aturan ini",
+    "batasJudul": "Yang tidak dimodelkan dan batas rancangan token",
+    "dasar": {
+      "kode": "Dibaca dari kode, tidak direkam",
+      "dokumentasi": "Dokumentasi PostgreSQL 17, Tidak dijalankan",
+      "rancangan": "Asumsi desain"
+    },
+    "tanpaJs": "Tanpa JavaScript, widget ini tampil sebagai tabel: layar Budi untuk tiap jeda replica dan tiap aturan baca.",
+    "noscriptCaption": "Layar Budi menurut jeda replica dan aturan baca",
+    "noscriptJeda": "Jeda replica"
+  }
+}
