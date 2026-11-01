@@ -114,7 +114,7 @@ sinkron=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10201
 ------------
  3
 (1 row)
-# Ketiga jurnal yang dijawab 201 ada di node baru: tidak ada pembayaran yang dijawab 201 lalu hilang.
+# Ketiga jurnal yang dijawab 201 sebelum pemutusan ada di node baru: tidak satu pun dari ketiganya hilang.
 primary=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'
  jurnal_bayar
 --------------

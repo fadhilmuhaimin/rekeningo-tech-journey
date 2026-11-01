@@ -57,7 +57,7 @@ primary=> SELECT count(*) AS baris_macet_terlihat FROM replika_uji.catatan WHERE
 ----------------------
  0
 (1 row)
-# COMMIT menunggu di SyncRep dan barisnya belum terlihat oleh sesi lain di primary. Dokumentasi tidak menyebut batas waktu; lab tidak menunggunya.
+# COMMIT menunggu di SyncRep dan barisnya belum terlihat oleh sesi lain di primary. Halaman PostgreSQL 17 tentang replikasi sinkron tidak menyebut batas waktu penantian; lab tidak menunggunya.
 # Dokumentasi menyuruh menurunkan jumlah standby sinkron di synchronous_standby_names lalu memuat ulang konfigurasi.
 primary=> ALTER SYSTEM SET synchronous_standby_names = ''
 ALTER SYSTEM

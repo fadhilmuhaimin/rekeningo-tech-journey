@@ -51,12 +51,13 @@ replika=> SELECT saldo_cache FROM t5_ledger.buku WHERE akun_id = 419
 -------------
  250000
 (1 row)
-# Uang tidak ikut keliru: saldo tampil Rp250.000, tetapi bayar Rp240.000 ditolak karena saldo di primary Rp215.000.
-$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke": 505, "nominal": 240000}'
+# Uang tidak ikut keliru: saldo tampil Rp250.000, tetapi kiriman Rp240.000 ke rekan ditolak karena saldo di primary Rp215.000.
+# Memakai kiriman, bukan pembayaran: satu pembayaran dibatasi Rp200.000 dan Rp240.000 ditolak oleh batas itu tanpa membaca saldo.
+$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{"ke_nomor_karyawan": "K00504", "nominal": 240000}'
 HTTP/1.1 422 Unprocessable Entity
 Content-Type: application/problem+json
 
-{"type":"/problems/validasi","title":"Input tidak memenuhi aturan","status":422,"errors":[{"field":"jumlah","pesan":"harus lebih dari 0 dan paling banyak 200000"}]}
+{"type":"/problems/saldo-kurang","title":"Saldo tidak cukup","status":422}
 $ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'
 HTTP/1.1 200 OK
 Content-Type: application/json
