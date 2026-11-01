@@ -4214,8 +4214,9 @@
       "lab": [
         "api-t5"
       ],
-      "ada": false,
-      "nomor": "5.2"
+      "ada": true,
+      "nomor": "5.2",
+      "menit": 7
     },
     {
       "id": "t5-skema",
