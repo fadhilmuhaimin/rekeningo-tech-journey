@@ -9,6 +9,28 @@ import (
 	"lab/apit5/internal/service"
 )
 
+// KepalaLSNTulis: token baca-sesudah-tulis. Jawaban bayar dan kirim memuatnya (posisi WAL primary sesudah COMMIT),
+// dan app mengirimnya kembali di GET /akun/{id} dan GET /akun/{id}/riwayat (ADR 47). Kepala ini dan X-Dibaca-Dari
+// hanya ada bila server dijalankan dengan replica (lab t5-replika); tanpa replica jawabannya tidak berubah.
+const (
+	KepalaLSNTulis   = "X-Lsn-Tulis"
+	KepalaDibacaDari = "X-Dibaca-Dari"
+)
+
+// tandaiTulis dipanggil sesudah tulisan app berhasil di-COMMIT.
+func (s Server) tandaiTulis(w http.ResponseWriter, r *http.Request) {
+	if tok := s.svc.TokenTulis(r.Context()); tok != "" {
+		w.Header().Set(KepalaLSNTulis, tok)
+	}
+}
+
+// tandaiSumber memberi tahu dari mana bacaan tampilan datang; kosong (tanpa replica) tidak menulis apa pun.
+func tandaiSumber(w http.ResponseWriter, sumber string) {
+	if sumber != "" {
+		w.Header().Set(KepalaDibacaDari, sumber)
+	}
+}
+
 // Endpoint Tahap 5 (lab-api-t5): laporan merchant dari primary (hanya mode laporan-primary, M40), pengumuman (M45), dan
 // cicilan (M48). API untuk mitra POS (M50) belum ada di lab ini: tabel `mitra_pos` ada, kontraknya ada di openapi.yaml,
 // dan implementasinya milik lab t5-waf.

@@ -369,6 +369,18 @@ ok    lab/apit5/internal/repo
 --- PASS: TestBayarQRMenungguLockQRLaluMelihatStatusBaru
 --- PASS: TestBayarQRKaryawanLestari
 --- PASS: TestTandaiQRTerpakaiHanyaSekali
+--- PASS: TestSumberTampil
+    --- PASS: TestSumberTampil/tanpa_replica
+    --- PASS: TestSumberTampil/tanpa_token
+    --- PASS: TestSumberTampil/token_sudah_sampai
+    --- PASS: TestSumberTampil/token_belum_sampai
+    --- PASS: TestSumberTampil/replica_tidak_menjawab
+    --- PASS: TestSumberTampil/replica_menjawab_sampai_tetapi_galat:_primary
+    --- PASS: TestSumberTampil/mode_rentan_mengabaikan_token_yang_belum_sampai
+--- PASS: TestSumberTampilMenolakTokenBukanLSN
+--- PASS: TestTampilHanyaPemilik
+--- PASS: TestTokenTulisTanpaReplica
+--- PASS: TestSampaiLSNDiPrimary
 --- PASS: TestPostingPartisiMenjagaAturanLedger
 --- PASS: TestPKPartisiHarusMemuatKolomKunci
 --- PASS: TestLaporanHariIniMemangkasPartisi
