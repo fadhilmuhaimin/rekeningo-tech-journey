@@ -1,0 +1,77 @@
+# Lab t5-replika · replica sinkron: on lawan remote_apply, dan standby sinkron yang dimatikan
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema t5_ledger, t5_akun, t5_pembayaran, t5_merchant, t5_notifikasi, t5_cicilan · primary, replika asinkron, dan standby sinkron di container lokal · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-replika run.
+primary=> CREATE SCHEMA replika_uji
+CREATE SCHEMA
+primary=> CREATE TABLE replika_uji.catatan (id bigserial PRIMARY KEY, v text NOT NULL)
+CREATE TABLE
+
+# --- A. Standby sinkron: synchronous_standby_names = 'FIRST 1 (replika_sinkron)' ---
+# Satu kandidat sinkron. ANY 1 dari dua kandidat Tidak dijalankan di lab ini; Patroni dan CloudNativePG juga Tidak dijalankan.
+primary=> ALTER SYSTEM SET synchronous_standby_names = 'FIRST 1 (replika_sinkron)'
+ALTER SYSTEM
+primary=> SELECT pg_reload_conf()
+ pg_reload_conf
+----------------
+ t
+(1 row)
+primary=> SELECT application_name, state, sync_state FROM pg_stat_replication ORDER BY application_name
+ application_name | state     | sync_state
+------------------+-----------+------------
+ replika_laporan  | streaming | async
+ replika_sinkron  | streaming | sync
+(2 rows)
+# replika_sinkron sinkron; replika_laporan tetap asinkron dan tidak ditunggu COMMIT.
+
+# --- B. synchronous_commit = on lawan remote_apply: yang ditunggu COMMIT ---
+# on: standby sudah menulis rekaman commit ke penyimpanan tahan lama. remote_apply: standby sudah memutar ulang rekaman itu.
+# Replay di replika_sinkron ditahan dengan sengaja (jeda buatan) supaya kedua jenis tunggu bisa dibedakan satu per satu.
+sinkron=> SELECT pg_wal_replay_pause()   # jeda buatan
+COMMIT dengan synchronous_commit = on selesai selagi replay ditahan: ya
+posisi WAL yang diterima standby lebih maju dari posisi yang diputar ulang (dibandingkan di standby): ya
+primary=> SELECT application_name, wait_event_type, wait_event FROM pg_stat_activity WHERE wait_event = 'SyncRep'
+ application_name | wait_event_type | wait_event
+------------------+-----------------+------------
+ uji-remote-apply | IPC             | SyncRep
+(1 row)
+# COMMIT remote_apply menunggu di SyncRep dan barisnya belum terlihat oleh sesi lain di primary.
+COMMIT remote_apply selesai sesudah replay dilanjutkan dan barisnya terlihat: ya
+# Jeda commit alami, replay tanpa hambatan: median 200 COMMIT satu baris per mode (nilai tidak direkam, hanya urutannya).
+median COMMIT dengan standby sinkron (on) lebih besar dari local: ya (menunggu satu standby menambah jeda commit)
+selisih median antara remote_apply dan on di bawah 1 ms: ya (nilai tidak direkam; replay yang tidak ditahan menambah kurang dari itu)
+
+# --- C. Standby sinkron dimatikan: COMMIT macet, lalu synchronous_standby_names dikosongkan ---
+$ docker compose stop sinkron   # container standby sinkron mati
+primary=> SELECT application_name, sync_state FROM pg_stat_replication ORDER BY application_name
+ application_name | sync_state
+------------------+------------
+ replika_laporan  | async
+(1 row)
+primary=> SELECT application_name, wait_event_type, wait_event FROM pg_stat_activity WHERE wait_event = 'SyncRep'
+ application_name | wait_event_type | wait_event
+------------------+-----------------+------------
+ uji-macet        | IPC             | SyncRep
+(1 row)
+primary=> SELECT count(*) AS baris_macet_terlihat FROM replika_uji.catatan WHERE v = 'macet'
+ baris_macet_terlihat
+----------------------
+ 0
+(1 row)
+# COMMIT menunggu di SyncRep dan barisnya belum terlihat oleh sesi lain di primary. Dokumentasi tidak menyebut batas waktu; lab tidak menunggunya.
+# Dokumentasi menyuruh menurunkan jumlah standby sinkron di synchronous_standby_names lalu memuat ulang konfigurasi.
+primary=> ALTER SYSTEM SET synchronous_standby_names = ''
+ALTER SYSTEM
+primary=> SELECT pg_reload_conf()
+ pg_reload_conf
+----------------
+ t
+(1 row)
+primary=> SELECT count(*) AS baris_macet_terlihat FROM replika_uji.catatan WHERE v = 'macet'
+ baris_macet_terlihat
+----------------------
+ 1
+(1 row)
+# Sesudah synchronous_standby_names dikosongkan COMMIT yang macet selesai dan barisnya terlihat. Harganya: sampai standby kembali,
+# COMMIT tidak lagi menunggu siapa pun, jadi jaminan RPO nol hilang selama itu.
+$ docker compose start sinkron   # container standby sinkron dimulai lagi
+# Standby sinkron kembali streaming dan menyusul: jumlah baris uji sama di tiga node.
