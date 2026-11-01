@@ -3541,7 +3541,7 @@
   "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
   "url": "tahap-5/m44-rilis-menunggu-lima-tim/",
   "tanya": "Runner CI ditambah sampai semua pemeriksaan berjalan serentak, tetapi perbaikan Akun tetap menunggu. Kenapa?",
-  "jawab": "Merge queue memeriksa tiap perubahan bersama perubahan di depannya, dan satu rilis membawa semuanya (dokumentasi GitHub, Tidak dijalankan). Runner mempercepat satu pemeriksaan, bukan urutannya (Penalaran). Dokumentasi yang sama menulis bahwa build concurrency memengaruhi laju merge, jadi runner membantu tetapi tidak cukup."
+  "jawab": "Merge queue memeriksa tiap perubahan bersama perubahan di depannya (dokumentasi GitHub, Tidak dijalankan). Runner mempercepat satu pemeriksaan, bukan keterikatan pada perubahan di depannya (Penalaran). Dokumentasi yang sama menulis bahwa build concurrency memengaruhi laju merge, jadi runner membantu, dan dokumentasi tidak membahas seberapa jauh. Satu rilis membawa semua perubahan yang sudah keluar dari queue (Asumsi pembacaan)."
  },
  {
   "id": "t5-m44-2",

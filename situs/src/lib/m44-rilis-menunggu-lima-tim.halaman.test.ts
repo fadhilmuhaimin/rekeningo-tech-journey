@@ -74,7 +74,7 @@ interface Skenario {
   langkah: Langkah[];
   varian: { label: string; mulai: number; langkah: Langkah[] };
 }
-interface H { id: string; judul: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; path?: string }
+interface H { id: string; judul: string; label?: string; masalah?: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; path?: string }
 const hal = registry.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
@@ -384,7 +384,10 @@ describe("rekaman skema.txt: foreign key, tabel per schema, hak, versi, dan rent
   test("pergantian nama kolom di Tahap 4 mematahkan top-up karena satu role, dan varian rekaman 4.12 memisahkan role", () => {
     expect(hal412).toContain("Semua modul memakai satu schema");
     expect(hal412).toContain("Mereka juga memakai satu role");
-    expect(badan).toContain("Di Tahap 4 pergantian nama kolom mematahkan top-up karena semua modul memakai satu role ([[t4-m32]]).");
+    // 4.12: sebabnya kode pembayaran membaca kolom nama milik modul akun; satu role bersama hanya membolehkannya (rekaman bagian B memisahkan role dan menolak bacaan itu)
+    expect(hal412).toContain("Kode yang membaca kolom milik modul lain");
+    expect(hal412).toContain("Modul pembayaran, milik tim Pembayaran, membaca `akun.nama` dengan SQL langsung");
+    expect(badan).toContain("Di Tahap 4 pergantian nama kolom mematahkan top-up karena kode pembayaran membaca kolom `nama` milik modul akun, dan satu role bersama membolehkannya ([[t4-m32]]).");
     expect(dari("t4-m32").nomor).toBe("4.12");
   });
 });
@@ -417,6 +420,8 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-165 sam
     expect(badan).toContain("Runner tambahan membantu sebagian.");
     expect(badan).toContain("Dugaan pertama tidak salah, tetapi tidak menjawab siapa menunggu siapa.");
     expect(badan).not.toMatch(/runner (tidak|takkan) (membantu|mempercepat)/i);
+    expect(badan).not.toContain("tidak cukup");
+    expect(badan).toContain("jadi runner membantu, dan dokumentasi tidak membahas seberapa jauh.");
     expect(skenario.langkah[2]!.jelas).toContain("Runner tambahan memendekkan satu pemeriksaan, tetapi urutan di queue tetap sama (Penalaran).");
   });
   test("baris R5-166 dan R5-167: kutipan, tanggal terbit Fowler, versi PostgreSQL, dan satu arti foreign key", () => {
@@ -464,6 +469,8 @@ describe("ID registry, tautan, template blok, widget, kartu, dan istilah", () =>
     expect(h.lab).toEqual(["api-t5"]);
     expect(h.peran).toEqual(["devops", "backend"]);
     expect(h.path).toBe("tahap-5/m44-rilis-menunggu-lima-tim.md");
+    // label di breadcrumb dan sidebar: nomor masalah dan minggu dari baris M44 naskah
+    expect(h.label).toBe(`Masalah ${kolomM44[0]!.slice(1)} · minggu ${mingguM44}`);
     const meta = cari(/<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: (.+) · Jalur inti<\/p>/, halaman, "meta");
     expect(Number(meta[1]) + Number(meta[2])).toBe(h.menit);
     expect(meta[3]).toBe("[[t4-modul]], [[t4-tim-infra]]");
@@ -589,7 +596,7 @@ describe("ID registry, tautan, template blok, widget, kartu, dan istilah", () =>
   });
   test("definisi di pemakaian pertama: merge queue dan pipeline di Gejala, Penalaran dan Hitungan sebelum dipakai, satu kata per konsep", () => {
     const gejala = badan.slice(0, badan.indexOf('<Blok nama="Yang Raka kira"'));
-    expect(gejala).toContain("Pipeline adalah rangkaian pemeriksaan otomatis atas satu perubahan, misalnya build dan tes.");
+    expect(gejala).toContain("*Dua istilah di cerita:* pipeline adalah rangkaian pemeriksaan otomatis atas satu perubahan, misalnya build dan tes.");
     expect(gejala).toContain("Merge queue di GitHub menggabungkan pull request ke branch utama sesudah pemeriksaannya lolos");
     expect(badan.indexOf("Itu Penalaran, yaitu kesimpulan dari dokumentasi dan angka di halaman ini tanpa dijalankan.") + "Itu ".length).toBe(badan.indexOf("Penalaran"));
     const iDef = badan.indexOf("Hitungan adalah angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah.");
@@ -799,6 +806,90 @@ const sekarang = {
   halaman: halaman.split("\n").filter((b) => b.trim() !== ""),
   json: { rantai: tekstual(rantaiMentah), skenario: tekstual(skenario), kartu: tekstual(kartuT5m44), istilah: tekstual(istilah) },
 };
+
+// --- penutup celah dari peninjau (keputusan 1547): mutan yang lolos TANPA kunci baris dan sidik di putaran peninjau
+describe("penutup celah mutasi tanpa kunci dari peninjau: adegan Gejala, atribusi, lingkup tim, huruf bagian, halaman istilah, dan label registry", () => {
+  test("adegan Gejala tanpa kalimat definisi: tiga paragraf adegan, dua catatan berawalan bintang yang memuat angka cerita dan definisi istilah", () => {
+    const gejala = badan.slice(badan.indexOf('<Blok nama="Gejala"'), badan.indexOf('<Blok nama="Yang Raka kira"'));
+    const isi = gejala.slice(gejala.indexOf(">") + 1, gejala.lastIndexOf("</Blok>")).trim();
+    const paragraf = isi.split("\n\n").map((x) => x.trim()).filter((x) => x !== "");
+    const adegan = paragraf.filter((x) => !x.startsWith("*"));
+    expect(adegan).toHaveLength(3);
+    const DEFINISI = /\b(adalah|yaitu|disebut|artinya|berarti|maksudnya|merupakan)\b/;
+    for (const x of adegan) for (const k of x.split(/(?<=[.!?])\s+/)) expect(k, `definisi di adegan: ${k}`).not.toMatch(DEFINISI);
+    expect(paragraf.filter((x) => x.startsWith("*")).map((x) => x.match(/^\*[^*]+\*/)![0])).toEqual(["*Angka cerita (Ilustrasi):*", "*Dua istilah di cerita:*"]);
+  });
+  test("kutipan Fowler: penulis, judul artikel, alamat, tanggal terbit, dan kata kutipan sama dengan baris R5-166, dan hanya satu kalimat yang menyebut pedoman itu", () => {
+    const sumber = pecahBaris(barisRiset("R5-166"))[2]!;
+    const m = cari(/^([\w ]+), "([^"]+)" \(([^,)]+), (\d+ \w+ \d{4})/, sumber, "sumber R5-166");
+    const marga = m[1]!.split(" ").pop()!;
+    expect(badan.match(new RegExp(`${marga} menulis bahwa pedoman XP sepuluh menit`, "g"))).toHaveLength(1);
+    expect(badan).toContain(`([${m[2]}](https://${m[3]}), ${m[4]}, dibuka 2026-11-02, Tidak dijalankan)`);
+    expect(sumber).toContain("perfectly within reason");
+    expect(badan).toContain('"perfectly within reason" bagi sebagian besar proyek');
+    expect(sumber).toContain("For most projects, however");
+  });
+  test("lingkup tim fungsi: Platform, SRE, dan Security di tabel tim naskah tidak memegang satu pun service produk, dan kalimat halaman menyebut yang mereka pegang", () => {
+    const memegang = (nama: string): string => cari(new RegExp(`^\\| ${nama} \\| \\d+ \\| [^|]+ \\| ([^|]+) \\|`, "m"), tabelTim, `memegang ${nama}`)[1]!;
+    for (const t of ["Platform", "SRE", "Security"]) for (const sv of daftarService) expect(memegang(t), `${t} memegang ${sv}`).not.toMatch(new RegExp(`\\b${sv}\\b`, "i"));
+    expect(memegang("Platform")).toContain("cluster");
+    expect(memegang("Platform")).toContain("pipeline");
+    expect(memegang("SRE")).toContain("SLO");
+    expect(memegang("Security")).toContain("tinjauan");
+    expect(badan.match(/bukan service produk/g)).toHaveLength(1);
+    expect(badan).toContain("Ketiganya memegang cluster, pipeline, SLO, dan tinjauan keamanan, bukan service produk");
+  });
+  test("huruf bagian rekaman: kalimat Coba sendiri dan catatan skenario memakai huruf dari Snippet, dihitung dari penanda bagian di skema.txt", () => {
+    const huruf = [...new Set([...badan.matchAll(/<Snippet file="labs\/api-t5\/output\/skema\.txt" lines="(\d+):\d+"/g)].map((x) => bagianDi(Number(x[1]))))].sort();
+    expect(huruf).toEqual(["E", "F"]);
+    expect(badan).toContain(`rekaman \`skema.txt\` bagian ${huruf.join(" dan ")} untuk batas data.`);
+    expect(skenario.sumber.catatan).toContain(`skema.txt bagian ${huruf.join(" dan ")}, PostgreSQL`);
+    expect(skenario.varian.langkah[2]!.jelas).toContain(`skema.txt bagian ${huruf[0]}.`);
+    expect(skenario.varian.langkah[3]!.jelas).toContain(`skema.txt bagian ${huruf[1]}.`);
+  });
+  test("label registry: nomor masalah dan minggu dari baris M44 naskah (dipakai breadcrumb dan sidebar)", () => {
+    expect(dari("t5-m44").label).toBe(`Masalah ${kolomM44[0]!.slice(1)} · minggu ${mingguM44}`);
+    expect(mingguM44).toBe(6);
+  });
+  test("halaman istilah Merge queue: catatan sumber, batas build concurrency, jebakan, dan istilah terkait diturunkan dari baris riset dan glosarium", () => {
+    const j = JSON.parse(baca("situs/data/halaman-istilah/merge-queue.json")) as { sumber: { catatan: string }[]; mekanisme: string[]; jebakan: string[]; terkait: string[] };
+    const r = barisRiset("R5-165");
+    expect(r).toContain("halaman tanpa tanggal terbit dan nomor versi");
+    expect(j.sumber[0]!.catatan).toContain("Halaman tanpa tanggal terbit dan nomor versi.");
+    const batas = cari(/\(between (\d+) and (\d+)\)/, r, "batas build concurrency");
+    expect(j.mekanisme.join(" ")).toContain(`antara ${batas[1]} dan ${batas[2]}, membatasi jumlah build CI`);
+    expect(r).toContain("grouped into a merge_group");
+    expect(j.jebakan).toHaveLength(2);
+    expect(j.jebakan[0]).toContain("Mengira queue memeriksa tiap pull request sendirian. Dokumentasi menulis perubahan itu dikelompokkan dengan perubahan di depannya.");
+    expect(r).toContain("You must use the merge_group event to trigger your GitHub Actions workflow when a pull request is added to a merge queue.");
+    expect(r).toContain('bagian "Triggering merge group checks with GitHub Actions"');
+    expect(j.jebakan[1]).toContain("Dokumentasi menulis workflow harus memakainya bila queue diwajibkan.");
+    expect(j.mekanisme[2]).toContain("Workflow CI harus memakai event merge_group");
+    const prasyarat = dari("t5-m44").prasyarat!;
+    for (const t of j.terkait) expect(prasyarat, `istilah terkait ${t}`).toContain((glosarium as { t: string; b: string }[]).find((g) => g.t === t)!.b);
+  });
+  test("baris R5-167: bagian dokumentasi PostgreSQL dan alamat sama dengan tautan di halaman", () => {
+    const r = barisRiset("R5-167");
+    const alamat = cari(/\((postgresql\.org\/docs\/\d+\/[\w-]+\.html), dibuka 2026-11-02/, r, "alamat R5-167")[1]!;
+    expect(r).toContain("bagian 5.5.5 Foreign Keys");
+    expect(badan).toContain(`](https://www.${alamat})`);
+  });
+  test("pembuka tebal di blok Yang sebenarnya: daftar dan urutan (batas penjaga: kalimat bebas tanpa sumber turunan)", () => {
+    expect([...badan.matchAll(/^\*\*([^*\d][^*]*)\*\*/gm)].map((x) => x[1])).toEqual([
+      "Tiga ADR dibaca ulang.", "Pemicunya jadwal rilis, bukan ukuran.", "Yang dikorbankan saat data dipecah.", "Yang berpindah ke kode.", "Yang tidak direkam.",
+    ]);
+  });
+  test("arah 'di belakang' dan 'di depan': skenario dan kalimat halaman memakai arah yang sama untuk perubahan yang menunggu", () => {
+    expect(skenario.langkah[2]!.jelas).toContain("tertahan di belakang perubahan yang belum lolos.");
+    expect(badan).toContain("terikat pada perubahan di depannya");
+    expect(badan).toContain("memuat perubahan pull request di depannya");
+  });
+  test("atribusi jawaban Cek diri 1: tanda sumber GitHub hanya untuk kalimat dokumentasi; kalimat rilis berlabel Asumsi pembacaan yang sudah didefinisikan lebih dulu", () => {
+    expect(badan).toContain("Merge queue memeriksa tiap perubahan bersama perubahan di depannya (dokumentasi GitHub, Tidak dijalankan).");
+    expect(badan).toContain("Satu rilis membawa semua perubahan yang sudah keluar dari queue (Asumsi pembacaan).");
+    expect(badan.indexOf("(Asumsi pembacaan)")).toBeLessThan(badan.indexOf("Satu rilis membawa semua perubahan"));
+  });
+});
 
 if (process.env.PERBARUI_KUNCI === "1") {
   const isi = `// Dihasilkan dari file saat ini oleh PERBARUI_KUNCI=1 (lihat m44-rilis-menunggu-lima-tim.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\n` +

@@ -21,7 +21,7 @@ Perbaikan kecil dari tim Akun menunggu sampai Jumat. Tim Pembayaran sudah siap, 
 
 *Angka cerita (Ilustrasi):* hari, jam, 14 menit, dan 6 jam berasal dari naskah, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
 
-Pipeline adalah rangkaian pemeriksaan otomatis atas satu perubahan, misalnya build dan tes. Merge queue di GitHub menggabungkan pull request ke branch utama sesudah pemeriksaannya lolos ([GitHub Docs: Managing a merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue), dibuka 2026-11-02, Tidak dijalankan).
+*Dua istilah di cerita:* pipeline adalah rangkaian pemeriksaan otomatis atas satu perubahan, misalnya build dan tes. Merge queue di GitHub menggabungkan pull request ke branch utama sesudah pemeriksaannya lolos ([GitHub Docs: Managing a merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue), dibuka 2026-11-02, Tidak dijalankan).
 
 </Blok>
 
@@ -95,7 +95,7 @@ Batas hak ikut berubah. Ledger boleh membaca tiga kolom tabel `akun`, dan kolom 
 
 <Snippet file="labs/api-t5/output/skema.txt" lines="204:206" title="Rekaman lab: labs/api-t5/output/skema.txt, bagian F (ledger membaca tiga kolom akun, kolom nama ditolak)" />
 
-Katalog PostgreSQL di rekaman yang sama menunjukkan bahwa dari keenam role, hanya ledger yang punya hak atas schema service lain. Bila tiap service memakai role-nya sendiri, tim Akun bisa mengganti nama kolom `nama` tanpa menyentuh SQL service lain (Penalaran dari hak yang direkam). Lab tidak menjalankannya, karena satu proses `t5_app` mewarisi keenam role. Di Tahap 4 pergantian nama kolom mematahkan top-up karena semua modul memakai satu role ([[t4-m32]]).
+Katalog PostgreSQL di rekaman yang sama menunjukkan bahwa dari keenam role, hanya ledger yang punya hak atas schema service lain. Bila tiap service memakai role-nya sendiri, tim Akun bisa mengganti nama kolom `nama` tanpa menyentuh SQL service lain (Penalaran dari hak yang direkam). Lab tidak menjalankannya, karena satu proses `t5_app` mewarisi keenam role. Di Tahap 4 pergantian nama kolom mematahkan top-up karena kode pembayaran membaca kolom `nama` milik modul akun, dan satu role bersama membolehkannya ([[t4-m32]]).
 
 **Yang berpindah ke kode.** ADR 12 menulis bahwa pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction ([[t1-adr-12]]). ADR 45 menulis hal yang sama untuk jurnal dan baris pendampingnya bila modulnya pindah ke database lain. ADR 37 menerima itu untuk satu jalur, dengan Idempotency-Key dan rekonsiliasi, dan tiap jalur tambahan membutuhkan keduanya ([[t4-adr-45]]).
 
@@ -145,7 +145,7 @@ Pecah karena jadwal rilis, bukan karena ukuran, dan siapkan konsistensi yang tid
 <details class="success">
 <summary>Jawaban</summary>
 
-Merge queue memeriksa tiap perubahan bersama perubahan di depannya, dan satu rilis membawa semuanya (dokumentasi GitHub, Tidak dijalankan). Runner mempercepat satu pemeriksaan, bukan urutannya (Penalaran). Dokumentasi yang sama menulis bahwa build concurrency memengaruhi laju merge, jadi runner membantu tetapi tidak cukup.
+Merge queue memeriksa tiap perubahan bersama perubahan di depannya (dokumentasi GitHub, Tidak dijalankan). Runner mempercepat satu pemeriksaan, bukan keterikatan pada perubahan di depannya (Penalaran). Dokumentasi yang sama menulis bahwa build concurrency memengaruhi laju merge, jadi runner membantu, dan dokumentasi tidak membahas seberapa jauh. Satu rilis membawa semua perubahan yang sudah keluar dari queue (Asumsi pembacaan).
 
 </details>
 
