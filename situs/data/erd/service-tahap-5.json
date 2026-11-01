@@ -1,0 +1,78 @@
+{
+  "format": 1,
+  "tahap": 5,
+  "istilah": "service",
+  "sumber": {
+    "file": "labs/api-t5/layanan.sql",
+    "sha256": "d58e7418ac34c5a3ab77a2a673f22f3610fcb88711348079b02ace53d63ce3e4"
+  },
+  "modul": [
+    {
+      "nama": "ledger",
+      "schema": "t5_ledger",
+      "tabel": [
+        "buku",
+        "jurnal",
+        "posting",
+        "kunci_idempotensi",
+        "batch_pencairan",
+        "baris_pencairan",
+        "snapshot_saldo",
+        "arsip_partisi",
+        "outbox"
+      ]
+    },
+    {
+      "nama": "akun",
+      "schema": "t5_akun",
+      "tabel": [
+        "akun",
+        "sesi",
+        "kota",
+        "verifikasi",
+        "audit_log"
+      ]
+    },
+    {
+      "nama": "pembayaran",
+      "schema": "t5_pembayaran",
+      "tabel": [
+        "topup_bank",
+        "webhook_event",
+        "insiden_rekon",
+        "kartu",
+        "otorisasi_kartu",
+        "sakelar"
+      ]
+    },
+    {
+      "nama": "merchant",
+      "schema": "t5_merchant",
+      "tabel": [
+        "produk",
+        "promo",
+        "operasi_sinkron",
+        "qr",
+        "ringkasan_merchant_harian",
+        "mitra_pos"
+      ]
+    },
+    {
+      "nama": "notifikasi",
+      "schema": "t5_notifikasi",
+      "tabel": [
+        "perangkat",
+        "pengumuman"
+      ]
+    },
+    {
+      "nama": "cicilan",
+      "schema": "t5_cicilan",
+      "tabel": [
+        "jadwal_cicilan",
+        "angsuran"
+      ]
+    }
+  ],
+  "lintas": []
+}

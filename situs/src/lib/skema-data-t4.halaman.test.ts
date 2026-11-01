@@ -1129,8 +1129,12 @@ describe("blok Kunci dan struktur halaman", () => {
   });
   test("ErdHalaman memasang pembagian modul dan memeriksanya; kontrol pemilih tersembunyi sebelum hydrate dan tanpa JavaScript", () => {
     const astro = baca("situs/src/components/ErdHalaman.astro");
-    expect(astro).toContain("data/erd/modul-tahap-*.json");
-    expect(astro).toContain("periksaModul(");
+    // Pembagian dibaca src/erd/modul.ts (modul Tahap 4 dan service Tahap 5, ERD5 keputusan 1673), bukan glob sendiri di ErdHalaman.
+    expect(astro).toContain('import { modulTahap } from "../erd/modul";');
+    expect(astro).toContain("modulTahap(tahap, data)");
+    const modulTs = baca("situs/src/erd/modul.ts");
+    expect(modulTs).toContain("data/erd/{modul,service}-tahap-*.json");
+    expect(modulTs).toContain("periksaModul(");
     expect((astro.match(/modul=\{modul\}/g) ?? []).length).toBe(2);
     const tsx = baca("situs/src/erd/ErdTumbuh.tsx");
     expect(tsx).toContain("className={`erd-tumbuh__kontrol${lebar === null ? \" is-belum\" : \"\"}`}");

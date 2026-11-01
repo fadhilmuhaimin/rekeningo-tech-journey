@@ -1,6 +1,7 @@
 {
   "format": 1,
   "tahap": 4,
+  "istilah": "modul",
   "sumber": {
     "file": "labs/t4-modul/modul.sql",
     "sha256": "d1a2e792d864df54d96d54c31840494f68c755d9e25ff042cb800fe5cb042867"
