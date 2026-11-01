@@ -3536,6 +3536,46 @@
   "jawab": "Alternatif dan konsekuensi negatif. AI cenderung menulis keputusan yang terdengar meyakinkan, tapi melewatkan pilihan yang ditolak atau biaya yang muncul. Periksa juga angka di konteks: harus berasal dari data atau asumsi yang ditulis terbuka, bukan karangan."
  },
  {
+  "id": "t5-skema-1",
+  "halaman": "t5-skema",
+  "judul": "5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya",
+  "url": "tahap-5/skema-data/",
+  "tanya": "Tabel Tahap 4 mana yang berubah di Tahap 5, dan karena apa?",
+  "jawab": "Enam belas tabel. Lima berubah karena kolom, nilai, atau aturan: `akun`, `buku`, `jurnal`, `outbox`, dan `posting`. Sebelas lain berubah hanya karena kehilangan foreign key yang menyeberang service. Enam tabel tidak berubah."
+ },
+ {
+  "id": "t5-skema-2",
+  "halaman": "t5-skema",
+  "judul": "5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya",
+  "url": "tahap-5/skema-data/",
+  "tanya": "Kenapa PRIMARY KEY `posting` memuat `dibuat`, dan apa akibatnya pada `id`?",
+  "jawab": "PostgreSQL menolak PRIMARY KEY yang tidak memuat kolom kunci partisi (SQLSTATE 0A000). Karena itu `posting` memakai `(id, dibuat)`, dan database tidak lagi menjaga `id` unik lintas partisi. Di lab keunikan itu datang dari sequence."
+ },
+ {
+  "id": "t5-skema-3",
+  "halaman": "t5-skema",
+  "judul": "5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya",
+  "url": "tahap-5/skema-data/",
+  "tanya": "Berapa foreign key yang dihapus saat tabel dibagi ke enam service, berapa yang tersisa, dan kenapa angkanya bukan 21?",
+  "jawab": "18 dihapus: 11 menuju service akun, 6 menuju ledger, dan 1 menuju notifikasi. Yang tersisa 19, yaitu 35 − 18 + 2. Angka 21 adalah hitungan Tahap 4 untuk enam modul yang membagi tabel dengan cara lain."
+ },
+ {
+  "id": "t5-skema-4",
+  "halaman": "t5-skema",
+  "judul": "5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya",
+  "url": "tahap-5/skema-data/",
+  "tanya": "Dari rumus apa ±109,5 GB posting per tahun, dan kenapa ±43,8 GB dan ±65,7 GB berbeda?",
+  "jawab": "1.000.000 × 20% × 3 = 600.000 transaksi per hari. Lalu 600.000 × 2 × 365 = 438.000.000 posting, dan 438.000.000 × 250 byte = 109,5 GB. Angka 43,8 GB dan 65,7 GB menghitung satu baris 300 byte per transaksi, dengan 2 dan 3 transaksi per user. Semuanya Asumsi."
+ },
+ {
+  "id": "t5-skema-5",
+  "halaman": "t5-skema",
+  "judul": "5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya",
+  "url": "tahap-5/skema-data/",
+  "tanya": "Berapa ukuran `outbox` per tahun tanpa pembersihan dan dengan retensi 7 hari?",
+  "jawab": "650.000 × 365 × 300 byte = ±71,2 GB tanpa pembersihan. Dengan retensi 7 hari, 650.000 × 7 × 300 byte = ±1,365 GB. Semua angka ini Asumsi."
+ },
+ {
   "id": "t5-m40-1",
   "halaman": "t5-m40",
   "judul": "5.4 M40: Pembayaran melambat saat merchant membuka laporan",
