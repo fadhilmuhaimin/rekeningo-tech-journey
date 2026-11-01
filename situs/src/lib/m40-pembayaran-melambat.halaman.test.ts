@@ -747,6 +747,17 @@ describe("tinjauan sendiri: kalimat, bullet, judul Snippet, dan frontmatter yang
     expect(naskah).toContain("Layar laporan di app Merchant dan dasbor web, diperbarui tiap 30 detik");
     harus(`- Tombol Bayar ${DETIK_CERITA} detik, hari, jam, dan dua pembayaran Ani hanya ada di cerita (Ilustrasi).`);
     harus("Kapasitas satu primary belum diukur: `make beban` memberi batas di laptop ([[t5-prd]]).");
+    // Mode dibaca dari kode: nama yang ditulis halaman sama dengan konstanta service dan flag di README.
+    const mode = cocok(svcT5, /RentanLaporanPrimary = "([\w-]+)"/)[1]!;
+    expect(mode).toBe("laporan-primary");
+    harus(`Laporan hanya ada bila server dijalankan dengan mode \`-rentan ${mode}\`.`);
+    expect(readme).toContain(`\`${mode}\``);
+    // Struktur: heading Cek diri tepat tingkat 3 dan satu-satunya heading; noscript menunjuk blok yang memang lebih dulu.
+    expect(badan.match(/^#+ .*$/gm)).toEqual(["### Cek diri"]);
+    const blokSebenarnya = badan.split('<Blok nama="Yang sebenarnya">')[1]!.split("</Blok>")[0]!;
+    expect(blokSebenarnya.match(/<Snippet /g)).toHaveLength(6);
+    expect(badan.indexOf('<Blok nama="Yang sebenarnya">')).toBeLessThan(badan.indexOf('<Blok nama="Coba sendiri">'));
+    harus("Rekamannya ada di cuplikan pada blok sebelumnya.");
     expect(prd).toContain("Kapasitas satu server belum pernah diukur.");
     expect(badan.match(/^- /gm)!.length).toBe(10); // enam bullet Yang tidak direkam dan empat bullet Konsep yang lahir
   });
