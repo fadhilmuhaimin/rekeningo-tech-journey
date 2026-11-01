@@ -54,6 +54,8 @@ Tidak dibawa dari `api-t4`: paket `internal/modul`, `cmd/pembayaran`, `cmd/qrlab
 
 Mode dari `api-t4` tetap ada dan tidak diubah (`push-dalam-tx`, `kursor`, `ekspor-panic`, `tanpa-shutdown`, `stok-timpa`, `urut-waktu`, `webhook-v1`, `webhook-cek-tulis`, `kartu-tanpa-hold`, `unduh-rentan`, `bo-tanpa-audit`, `verifikasi-tanpa-key`, `berkas-bytea`, `bo-log-biasa`). Job cicilan di lab: `./api-t5 -cicilan-sampai 2026-12-31 [-rentan cicilan-satu-job] [-lab-sekarang <RFC 3339>] [-lab-cicilan-henti N]`.
 
+Job snapshot saldo (lab `t5-partisi`, M43): `./api-t5 -buat-snapshot <YYYY-MM-DD>` menulis saldo akhir satu bulan yang sudah selesai untuk semua buku (`internal/repo/snapshot.go`). `./api-t5 -cek-cache -dari-snapshot [-snapshot-periode <YYYY-MM-DD>]` membaca snapshot terakhir dan posting sesudahnya. `-cek-cache` tanpa tambahan tetap membaca semua posting.
+
 ## Menjalankan
 
 ```
