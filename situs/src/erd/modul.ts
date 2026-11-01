@@ -14,10 +14,11 @@ export const BERKAS_PEMBAGIAN = Object.keys(berkas)
 /**
  * Pembagian modul atau service untuk tahap-tahap yang ditampilkan, menurut urutan `tahap`. Tahap tanpa pembagian dilewati. Build gagal bila
  * satu tahap punya kedua berkas, bila isi berkas bukan tahapnya, atau bila pembagiannya tidak cocok dengan ERD tahap itu (periksaModul).
+ * `sumber` hanya untuk tes: isi glob yang dipalsukan.
  */
-export function modulTahap(tahap: number[], data: DataErd[]): ModulErd[] {
+export function modulTahap(tahap: number[], data: DataErd[], sumber: Record<string, unknown> = berkas): ModulErd[] {
   return tahap.flatMap((n) => {
-    const isi = [berkas[`../../data/erd/modul-tahap-${n}.json`], berkas[`../../data/erd/service-tahap-${n}.json`]].filter((x) => x !== undefined);
+    const isi = [sumber[`../../data/erd/modul-tahap-${n}.json`], sumber[`../../data/erd/service-tahap-${n}.json`]].filter((x) => x !== undefined);
     if (isi.length > 1) throw new Error(`Tahap ${n}: modul-tahap-${n}.json dan service-tahap-${n}.json ada bersamaan`);
     if (isi.length === 0) return [];
     const m = ModulErd.parse(isi[0]);

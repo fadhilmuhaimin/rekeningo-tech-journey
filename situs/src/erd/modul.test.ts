@@ -9,6 +9,7 @@ import t2 from "../../data/erd/tahap-2.json";
 import t3 from "../../data/erd/tahap-3.json";
 import t4 from "../../data/erd/tahap-4.json";
 import t5 from "../../data/erd/tahap-5.json";
+import s5 from "../../data/erd/service-tahap-5.json";
 import { DataErd } from "./skema";
 import { BERKAS_PEMBAGIAN, modulTahap } from "./modul";
 
@@ -32,5 +33,11 @@ describe("modulTahap: pembagian modul dan service untuk halaman konten", () => {
     const tanpaSakelar = data.map((d) => (d.tahap === 5 ? { ...d, tabel: d.tabel.filter((t) => t.nama !== "sakelar") } : d));
     expect(() => modulTahap([5], tanpaSakelar)).toThrow(/tabel di pembagian service tidak sama/);
     expect(() => modulTahap([5], data.filter((d) => d.tahap !== 5))).toThrow(/ERD Tahap 5 tidak ada di data halaman/);
+  });
+  it("tahap dengan modul dan service sekaligus, atau berkas yang isinya tahap lain, ditolak (glob dipalsukan lewat parameter sumber)", () => {
+    const dir = "../../data/erd/";
+    expect(() => modulTahap([5], data, { [`${dir}modul-tahap-5.json`]: s5, [`${dir}service-tahap-5.json`]: s5 })).toThrow(/modul-tahap-5.json dan service-tahap-5.json ada bersamaan/);
+    expect(() => modulTahap([4], data, { [`${dir}service-tahap-4.json`]: s5 })).toThrow(/Tahap 4: pembagian service berisi Tahap 5/);
+    expect(modulTahap([5], data, { [`${dir}service-tahap-5.json`]: s5 }).map((m) => m.istilah)).toEqual(["service"]);
   });
 });
