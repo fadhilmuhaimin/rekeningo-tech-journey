@@ -112,7 +112,8 @@ CREATE TABLE
 DELETE 200000
 => ALTER TABLE uji_part DETACH PARTITION uji_part_a CONCURRENTLY; DROP TABLE uji_part_a
 DROP TABLE   -- 200000 baris di partisi yang dibuang
-# DELETE dan DETACH + DROP membuang 200.000 baris yang sama. Batas yang diperiksa: DELETE memerlukan lebih dari dua kali waktu DETACH + DROP. Nilai waktunya tidak direkam.
+# DELETE dan DETACH + DROP membuang 200.000 baris yang sama. Batas yang diperiksa: waktu terkecil DELETE dari tiga percobaan lebih dari dua kali waktu terkecil DETACH + DROP.
+# Nilai waktunya tidak direkam.
 => SELECT (SELECT count(*) FROM uji_biasa) AS uji_biasa, (SELECT count(*) FROM uji_part) AS uji_part
  uji_biasa | uji_part
 -----------+----------

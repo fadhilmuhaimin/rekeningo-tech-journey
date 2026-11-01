@@ -86,8 +86,13 @@ def rekam_lepas():
     tampil(f"DELETE {baris_delete}")
     tampil("=> ALTER TABLE uji_part DETACH PARTITION uji_part_a CONCURRENTLY; DROP TABLE uji_part_a")
     tampil("DROP TABLE   -- 200000 baris di partisi yang dibuang")
-    harap(t_delete > 2 * t_detach, True, f"DELETE ({t_delete:.3f} s) harus lebih dari dua kali DETACH + DROP ({t_detach:.3f} s)")
-    catat("# DELETE dan DETACH + DROP membuang 200.000 baris yang sama. Batas yang diperiksa: DELETE memerlukan lebih dari dua kali waktu DETACH + DROP. Nilai waktunya tidak direkam.")
+    # Dua percobaan lagi tanpa dicatat, lalu waktu terkecil tiap sisi yang dibandingkan: gangguan (penjadwalan CPU, autovacuum) hanya menambah waktu,
+    # dan satu percobaan di mesin ramai pernah mengukur DETACH + DROP 0,095 s lawan DELETE 0,111 s (pemeriksaan peninjau).
+    percobaan = [(t_delete, t_detach)] + [ukur_buang(S, awal_a, awal_b, awal_c, f"_{k}") for k in (2, 3)]
+    harap(min(p[0] for p in percobaan) > 2 * min(p[1] for p in percobaan), True,
+          f"DELETE ({min(p[0] for p in percobaan):.3f} s) harus lebih dari dua kali DETACH + DROP ({min(p[1] for p in percobaan):.3f} s), waktu terkecil dari tiga percobaan")
+    catat("# DELETE dan DETACH + DROP membuang 200.000 baris yang sama. Batas yang diperiksa: waktu terkecil DELETE dari tiga percobaan lebih dari dua kali waktu terkecil DETACH + DROP.")
+    catat("# Nilai waktunya tidak direkam.")
     jalan("SELECT (SELECT count(*) FROM uji_biasa) AS uji_biasa, (SELECT count(*) FROM uji_part) AS uji_part", S)
     jalan("DROP TABLE uji_biasa, uji_part", S, tulis_hasil=False)
 
@@ -240,6 +245,33 @@ def rekam_lepas():
     dalam_transaksi([f"SELECT buat_partisi_posting('posting_bulan_03', '{tgl(-3, S)}'::date)",
                      f"INSERT INTO posting (jurnal_id, buku_id, jumlah, dibuat) VALUES ((SELECT min(id) FROM jurnal), (SELECT min(id) FROM buku), 1000, {bulan_x})"], S)
     x.tulis("pasang.txt", "ATTACH, aturan ledger sesudah dipasang, dan partisi bulan depan", S)
+
+
+def ukur_buang(schema, awal_a, awal_b, awal_c, akhiran):
+    """Satu percobaan tanpa dicatat: DELETE satu bulan dari tabel biasa lawan DETACH + DROP satu partisi, 200.000 baris masing-masing.
+    Mengembalikan (waktu DELETE, waktu DETACH + DROP) dalam detik."""
+    biasa, induk, bulan_a, bulan_b = f"uji_biasa{akhiran}", f"uji_part{akhiran}", f"uji_part_a{akhiran}", f"uji_part_b{akhiran}"
+    with konek(schema) as c:
+        c.execute(f"CREATE TABLE {biasa} (LIKE posting INCLUDING DEFAULTS INCLUDING INDEXES)")
+        c.execute(f"CREATE TABLE {induk} (LIKE posting INCLUDING DEFAULTS INCLUDING INDEXES) PARTITION BY RANGE (dibuat)")
+        c.execute(f"CREATE TABLE {bulan_a} PARTITION OF {induk} FOR VALUES FROM ('{awal_a}') TO ('{awal_b}')")
+        c.execute(f"CREATE TABLE {bulan_b} PARTITION OF {induk} FOR VALUES FROM ('{awal_b}') TO ('{awal_c}')")
+        for tabel in (biasa, induk):
+            for mulai in (awal_a, awal_b):
+                c.execute(f"""INSERT INTO {tabel} (jurnal_id, buku_id, jumlah, dibuat)
+                              SELECT g, 1 + g % 1000, 1000, '{mulai}'::timestamptz + (g % 86400) * interval '1 second' FROM generate_series(1, 200000) g""")
+        c.execute(f"VACUUM (ANALYZE) {biasa}")
+        c.execute(f"VACUUM (ANALYZE) {induk}")
+        t0 = time.perf_counter()
+        baris = c.execute(f"DELETE FROM {biasa} WHERE dibuat >= '{awal_a}' AND dibuat < '{awal_b}'").rowcount
+        t_delete = time.perf_counter() - t0
+        t0 = time.perf_counter()
+        c.execute(f"ALTER TABLE {induk} DETACH PARTITION {bulan_a} CONCURRENTLY")
+        c.execute(f"DROP TABLE {bulan_a}")
+        t_detach = time.perf_counter() - t0
+        harap(baris, 200_000, "baris yang dihapus DELETE (percobaan tambahan)")
+        c.execute(f"DROP TABLE {biasa}, {induk}")
+    return t_delete, t_detach
 
 
 def ekspor(schema, q, berkas):
