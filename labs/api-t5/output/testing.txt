@@ -76,6 +76,9 @@ cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestHandlerQRKedaluwarsaDanKesalahan
 --- PASS: TestHandlerQRBayarMemakaiIdempotencyKey
 --- PASS: TestHandlerQRLaporkan
+--- PASS: TestBayarDanKirimMemberiTokenTulisDenganReplica
+--- PASS: TestReplikaYangSudahSampaiDipakaiLagiDanHanyaPemilik
+--- PASS: TestTanpaReplicaTidakAdaKepalaBaru
 --- PASS: TestRuteLaporanMerchantHanyaDenganModeRentan
 --- PASS: TestPengumumanEndpoint
 --- PASS: TestCicilanEndpoint
@@ -587,6 +590,12 @@ ok    lab/apit5/internal/cache
     handler_qr_test.go:257: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRLaporkan
     handler_qr_test.go:287: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestBayarDanKirimMemberiTokenTulisDenganReplica
+    handler_replika_test.go:119: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestReplikaYangSudahSampaiDipakaiLagiDanHanyaPemilik
+    handler_replika_test.go:156: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTanpaReplicaTidakAdaKepalaBaru
+    handler_replika_test.go:178: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestRuteLaporanMerchantHanyaDenganModeRentan
     handler_t5_test.go:70: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestPengumumanEndpoint

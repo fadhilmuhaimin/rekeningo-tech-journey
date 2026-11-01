@@ -88,7 +88,7 @@ func TestSumberTampil(t *testing.T) {
 
 func TestSumberTampilMenolakTokenBukanLSN(t *testing.T) {
 	ctx := context.Background()
-	for _, token := range []string{"abc", "0/", "/3032C60", "0/ZZ", "0/3032C60 ", "0/3032C60'; DROP TABLE akun; --", "0/3032C600000000", "1/2/3", " "} {
+	for _, token := range []string{"abc", "0/", "/3032C60", "0/ZZ", "0/3032C60 ", "0/3032C60'; DROP TABLE akun; --", "0/3032C600000000", "123456789/0", "0/123456789", "1/2/3", " "} {
 		rep := &replikaTiruan{sampai: true}
 		s := Baru(repo.Repo{}, time.Hour).DenganReplika(rep)
 		_, _, err := s.sumberTampil(ctx, token)
@@ -100,7 +100,7 @@ func TestSumberTampilMenolakTokenBukanLSN(t *testing.T) {
 			t.Errorf("token %q: replica ditanya sebelum token diperiksa", token)
 		}
 	}
-	for _, token := range []string{"0/0", "0/3032C60", "A/B", "FFFFFFFF/FFFFFFFF", "0/3032c60"} {
+	for _, token := range []string{"0/0", "0/3032C60", "A/B", "FFFFFFFF/FFFFFFFF", "0/3032c60", "00000000/00000000"} {
 		if !polaLSN.MatchString(token) {
 			t.Errorf("token %q adalah posisi WAL sah", token)
 		}
