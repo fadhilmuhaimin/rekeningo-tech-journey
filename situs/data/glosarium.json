@@ -999,6 +999,15 @@
   "h": null
  },
  {
+  "t": "Merge queue",
+  "d": "Queue di GitHub yang menggabungkan pull request ke branch yang ramai sesudah pemeriksaannya lolos, dengan memeriksa tiap perubahan bersama perubahan di depannya.",
+  "b": "t5-m44",
+  "n": "5.12 M44",
+  "u": "/tahap-5/m44-rilis-menunggu-lima-tim/",
+  "s": "istilah-merge-queue",
+  "h": "/istilah/merge-queue/"
+ },
+ {
   "t": "Metode idempoten",
   "d": "Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.",
   "b": "t2-kursor",

@@ -206,6 +206,8 @@
 *[Model Context Protocol]: Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server.
 *[Merchant]: Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.
 *[merchant]: Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.
+*[Merge queue]: Queue di GitHub yang menggabungkan pull request ke branch yang ramai sesudah pemeriksaannya lolos, dengan memeriksa tiap perubahan bersama perubahan di depannya.
+*[merge queue]: Queue di GitHub yang menggabungkan pull request ke branch yang ramai sesudah pemeriksaannya lolos, dengan memeriksa tiap perubahan bersama perubahan di depannya.
 *[Metode idempoten]: Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.
 *[metode idempoten]: Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.
 *[Metric]: Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error.

@@ -1000,6 +1000,15 @@ window.ISTILAH = {
   "t": "Merchant",
   "u": "tahap-3/jembatan-prd-v4/"
  },
+ "Merge queue": {
+  "b": "t5-m44",
+  "d": "Queue di GitHub yang menggabungkan pull request ke branch yang ramai sesudah pemeriksaannya lolos, dengan memeriksa tiap perubahan bersama perubahan di depannya.",
+  "h": "istilah/merge-queue/",
+  "n": "5.12 M44",
+  "s": "istilah-merge-queue",
+  "t": "Merge queue",
+  "u": "tahap-5/m44-rilis-menunggu-lima-tim/"
+ },
  "Metode idempoten": {
   "b": "t2-kursor",
   "d": "Metode HTTP yang efeknya di server sama untuk satu request atau banyak request identik: PUT, DELETE, dan semua metode safe seperti GET.",
@@ -2573,6 +2582,15 @@ window.ISTILAH = {
   "s": "istilah-merchant",
   "t": "Merchant",
   "u": "tahap-3/jembatan-prd-v4/"
+ },
+ "merge queue": {
+  "b": "t5-m44",
+  "d": "Queue di GitHub yang menggabungkan pull request ke branch yang ramai sesudah pemeriksaannya lolos, dengan memeriksa tiap perubahan bersama perubahan di depannya.",
+  "h": "istilah/merge-queue/",
+  "n": "5.12 M44",
+  "s": "istilah-merge-queue",
+  "t": "Merge queue",
+  "u": "tahap-5/m44-rilis-menunggu-lima-tim/"
  },
  "metode idempoten": {
   "b": "t2-kursor",
