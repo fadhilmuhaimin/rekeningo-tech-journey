@@ -317,14 +317,17 @@ func TestOutboxStreamBukanPekerjaanWorkerPush(t *testing.T) {
 		}
 		return false
 	}
-	semua, err := r.KlaimOutboxTujuan(ctx, 1000, time.Minute, true, nil)
+	// Batas klaim besar: tes lain di schema yang sama meninggalkan ribuan baris push kelas 1 yang menunggu (top-up massal),
+	// dan klaim dengan batas 1000 mengambil baris itu lebih dulu daripada baris push kelas 2 milik tes ini.
+	const semuaBaris = 1_000_000
+	semua, err := r.KlaimOutboxTujuan(ctx, semuaBaris, time.Minute, true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if punya(semua, stream) || !punya(semua, push) {
 		t.Fatalf("worker tanpa daftar lajur: stream diklaim %v, push diklaim %v; ingin stream tidak, push ya", punya(semua, stream), punya(semua, push))
 	}
-	relay, err := r.KlaimOutboxTujuan(ctx, 1000, time.Minute, true, []string{repo.TujuanStream})
+	relay, err := r.KlaimOutboxTujuan(ctx, semuaBaris, time.Minute, true, []string{repo.TujuanStream})
 	if err != nil {
 		t.Fatal(err)
 	}
