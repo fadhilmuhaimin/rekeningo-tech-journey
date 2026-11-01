@@ -311,7 +311,7 @@ def rekam_aliran():
     catat(f"-- baris outbox per penerima: {baris}")
     catat(f"-- tumpukan tabel (pg_relation_size) bertambah {per_baris} byte per baris, tanpa index (dibulatkan ke bawah)")
     juta = per_baris * 1_000_000
-    catat(f"-- Hitungan: {per_baris} byte x 1.000.000 penerima = {juta // 1_000_000} MB di tumpukan tabel; naskah memakai 300 byte per baris (Asumsi, dengan index): 300 MB")
+    catat(f"-- Hitungan: {per_baris} byte x 1.000.000 penerima = {juta // 1_000_000} MB di tumpukan tabel; naskah memakai 300 byte per baris (Asumsi): 300 MB")
     harap(per_baris > 0, True, "ukuran per baris terbaca")
     sql("DELETE FROM outbox WHERE jenis = 'promo'", tampil=False)
 
@@ -469,7 +469,7 @@ def skenario_kuota(tanpa_backoff):
 
 
 def rekam_kuota():
-    bagian("A. Kuota penyedia push 1.000 per detik (lab, seperlima dari 10.000), 3.000 perangkat, 96 pengirim serentak, dengan backoff dan jitter")
+    bagian("A. Kuota penyedia push 1.000 per detik (lab, sepersepuluh dari 10.000), 3.000 perangkat, 96 pengirim serentak, dengan backoff dan jitter")
     a = skenario_kuota(False)
     p = a["push"]["pengumuman"]
     catat("-- kuota lab 1.000 per detik, latensi 2 ms; naskah 10.000 per detik (aturan jendela diuji di tes Go dengan 10.000)")

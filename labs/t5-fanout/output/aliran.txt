@@ -56,7 +56,7 @@ Partition:5 Offset:0 kunci:shard-6 rentang perangkat 8569 sampai 10281 (1713 nom
 INSERT 0 10281
 -- baris outbox per penerima: 10281
 -- tumpukan tabel (pg_relation_size) bertambah 166 byte per baris, tanpa index (dibulatkan ke bawah)
--- Hitungan: 166 byte x 1.000.000 penerima = 166 MB di tumpukan tabel; naskah memakai 300 byte per baris (Asumsi, dengan index): 300 MB
+-- Hitungan: 166 byte x 1.000.000 penerima = 166 MB di tumpukan tabel; naskah memakai 300 byte per baris (Asumsi): 300 MB
 
 # --- C. Event pembayaran: satu baris outbox stream per pembayaran, kunci merchant, urutan per merchant ---
 -- 12 pembayaran Rp10.000 dari 6 karyawan ke 3 warung, bergiliran: 418, 502, 503

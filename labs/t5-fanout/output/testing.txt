@@ -11,19 +11,26 @@ $ go test -v -count=1 ./internal/stream ./internal/notifid ./cmd/pushkuota
 --- PASS: TestJitterPenuh
 --- PASS: TestTanpaBackoffTidakMenunggu
 --- PASS: TestTidakTerdaftarBerhentiTanpaUlang
+--- PASS: TestPermintaanSalahBerhentiTanpaUlang
 --- PASS: TestMenyerahSesudahMaksPercobaan
 --- PASS: TestLajuJarakSlotTanpaSemburan
 --- PASS: TestLajuNolTanpaBatas
+--- PASS: TestRekamanBayarBerkunciMerchantDenganEventID
+--- PASS: TestRekamanTanpaMerchantAtauJenisAsingDitolak
+--- PASS: TestPartisionerPengumumanManualPembayaranHashKunci
 PASS
 ok    lab/apit5/internal/stream
 --- PASS: TestPengumumanDeterministik
 --- PASS: TestPengumumanBedaMenurutPengumumanDanPerangkat
+--- PASS: TestUUID5VektorRFC9562
+--- PASS: TestPengumumanVektorPustakaPython
 --- PASS: TestKelas
 --- PASS: TestAcakBerbedaTiapPanggilan
 PASS
 ok    lab/apit5/internal/notifid
 --- PASS: TestJendelaKuotaSepuluhRibuPerDetik
 --- PASS: TestJendelaTanpaBatas
+--- PASS: TestJendelaBaruTepatSatuDetikDanKuotaPenuh
 --- PASS: TestJendelaPenolakanTidakMenghabiskanKuota
 PASS
 ok    lab/apit5/cmd/pushkuota

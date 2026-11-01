@@ -17,6 +17,7 @@ PASS
 ok    lab/apit5/cmd/api
 --- PASS: TestJendelaKuotaSepuluhRibuPerDetik
 --- PASS: TestJendelaTanpaBatas
+--- PASS: TestJendelaBaruTepatSatuDetikDanKuotaPenuh
 --- PASS: TestJendelaPenolakanTidakMenghabiskanKuota
 PASS
 ok    lab/apit5/cmd/pushkuota
@@ -133,6 +134,8 @@ PASS
 ok    lab/apit5/internal/lajur
 --- PASS: TestPengumumanDeterministik
 --- PASS: TestPengumumanBedaMenurutPengumumanDanPerangkat
+--- PASS: TestUUID5VektorRFC9562
+--- PASS: TestPengumumanVektorPustakaPython
 --- PASS: TestKelas
 --- PASS: TestAcakBerbedaTiapPanggilan
 PASS
@@ -475,9 +478,13 @@ ok    lab/apit5/internal/service
 --- PASS: TestJitterPenuh
 --- PASS: TestTanpaBackoffTidakMenunggu
 --- PASS: TestTidakTerdaftarBerhentiTanpaUlang
+--- PASS: TestPermintaanSalahBerhentiTanpaUlang
 --- PASS: TestMenyerahSesudahMaksPercobaan
 --- PASS: TestLajuJarakSlotTanpaSemburan
 --- PASS: TestLajuNolTanpaBatas
+--- PASS: TestRekamanBayarBerkunciMerchantDenganEventID
+--- PASS: TestRekamanTanpaMerchantAtauJenisAsingDitolak
+--- PASS: TestPartisionerPengumumanManualPembayaranHashKunci
 PASS
 ok    lab/apit5/internal/stream
 --- PASS: TestAmanMenerimaGambarSahDariServerTLS
