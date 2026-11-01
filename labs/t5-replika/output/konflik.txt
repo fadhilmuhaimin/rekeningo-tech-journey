@@ -69,6 +69,7 @@ VACUUM
 ERROR:  canceling statement due to conflict with recovery
 SQLSTATE 40001
 # Berhenti sesudah paling sedikit 30 detik (max_standby_streaming_delay bawaan 30 detik) dan sebelum 60 detik; replay baru menyusul sesudah query dibatalkan, lebih lama dari di bagian C (nilai tidak direkam).
+# Lama itu diukur sejak query mulai. Dokumentasi menghitung 30 detik sejak WAL diterima standby, dan WAL pembersihan baru ada sesudah query mulai.
 replika=> SELECT confl_snapshot FROM pg_stat_database_conflicts WHERE datname = 'lab'
  confl_snapshot
 ----------------
