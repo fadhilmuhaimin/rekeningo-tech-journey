@@ -1,0 +1,147 @@
+# Lab t5-partisi · DETACH, membuang satu bulan, arsip, dan akibatnya pada pemeriksaan dan jurnal pembalik
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_lepas · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-partisi run.
+
+# --- A. Keadaan awal: lima bulan lalu dan bulan berjalan di partisi bulanan, snapshot sampai bulan lalu ---
+# Riwayat dimuat seperti di bagian skala dengan 28.000 posting per bulan. Snapshot ditulis dulu: partisi hanya boleh dilepas
+# bila saldo yang dikandungnya sudah ada di snapshot.
+=> SELECT tableoid::regclass AS partisi, count(*) AS posting FROM posting GROUP BY 1 ORDER BY 1
+ partisi          | posting
+------------------+---------
+ posting_bulan_00 | 28000
+ posting_lalu_01  | 28000
+ posting_lalu_02  | 28000
+ posting_lalu_03  | 28000
+ posting_lalu_04  | 28000
+ posting_lalu_05  | 28000
+(6 rows)
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-5 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-4 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-3 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-2 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-1 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+# Tiap job membaca persis posting bulannya (selisih seq_tup_read + idx_tup_fetch atas partisi posting, dibandingkan dengan jumlah posting bulan itu di tabel):
+# 28.000, 28.000, 28.000, 28.000, 28.000 baris, dari bulan paling lama sampai bulan lalu.
+# Snapshot dibandingkan dengan hitungan langsung atas tabel posting: 0 baris berbeda.
+
+# --- B. Ledger menolak DELETE, tetapi DETACH dan DROP hanya dijaga hak pemilik tabel ---
+=> DELETE FROM posting_lalu_05 WHERE jumlah > 0
+ERROR:  DELETE pada posting_lalu_05 ditolak: baris posting_lalu_05 tidak pernah diubah atau dihapus
+   -- SQLSTATE 23001 · constraint posting_lalu_05_tidak_diubah
+(api_t5) => ALTER TABLE posting DETACH PARTITION posting_lalu_05 CONCURRENTLY
+ERROR:  must be owner of table posting
+   -- SQLSTATE 42501
+(api_t5) => DROP TABLE posting_lalu_05
+ERROR:  must be owner of table posting_lalu_05
+   -- SQLSTATE 42501
+# Trigger append-only tidak menyala untuk DROP atau DETACH: yang menahannya di sini hak. Role aplikasi bukan pemilik, jadi ditolak.
+
+# --- C. DETACH PARTITION ... CONCURRENTLY: tidak di dalam blok transaction, dan tidak bila ada partisi DEFAULT ---
+# Di dalam blok transaction (klien membuka BEGIN sebelum perintah ini):
+=> ALTER TABLE posting DETACH PARTITION posting_lalu_05 CONCURRENTLY
+ERROR:  ALTER TABLE ... DETACH CONCURRENTLY cannot run inside a transaction block
+   -- SQLSTATE 25001
+=> CREATE TABLE posting_default PARTITION OF posting DEFAULT
+CREATE TABLE
+=> ALTER TABLE posting DETACH PARTITION posting_lalu_05 CONCURRENTLY
+ERROR:  cannot detach partitions concurrently when a default partition exists
+   -- SQLSTATE 55000
+=> DROP TABLE posting_default
+DROP TABLE
+# Tanpa partisi DEFAULT dan di luar blok transaction, perintah yang sama berhasil:
+=> ALTER TABLE posting DETACH PARTITION posting_lalu_05 CONCURRENTLY
+ALTER TABLE
+# Posting yang terlihat lewat tabel induk: 140.000 dari 168.000; sisanya ada di tabel posting_lalu_05 yang berdiri sendiri.
+=> SELECT conname, pg_get_constraintdef(oid) AS definisi FROM pg_constraint WHERE conrelid = 'posting_lalu_05'::regclass AND contype = 'c' ORDER BY conname
+ conname                      | definisi
+------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ posting_jumlah_check1        | CHECK ((jumlah <> 0))
+ posting_lalu_05_dibuat_check | CHECK (((dibuat IS NOT NULL) AND (dibuat >= '<waktu>'::timestamp with time zone) AND (dibuat < '<waktu>'::timestamp with time zone)))
+(2 rows)
+# DETACH CONCURRENTLY menambah CHECK yang setara batas partisi pada tabel yang dilepas (posting_lalu_05_dibuat_check).
+=> SELECT tgname AS trigger FROM pg_trigger WHERE tgrelid = 'posting_lalu_05'::regclass AND NOT tgisinternal ORDER BY 1
+ trigger
+---------------------------
+ posting_tidak_dikosongkan
+(1 row)
+=> SELECT tgname AS trigger FROM pg_trigger WHERE tgrelid = 'posting_lalu_04'::regclass AND NOT tgisinternal ORDER BY 1
+ trigger
+------------------------------
+ jurnal_seimbang
+ posting_tidak_dikosongkan
+ posting_tidak_diubah
+ saldo_karyawan_tidak_negatif
+(4 rows)
+# Tabel yang dilepas kehilangan tiga trigger ledger baris demi baris (jurnal_seimbang, posting_tidak_diubah, saldo_karyawan_tidak_negatif)
+# yang tadinya ikut dari tabel induk. Hanya penjaga TRUNCATE, yang dipasang di partisinya sendiri, yang tertinggal.
+=> BEGIN
+=> UPDATE posting_lalu_05 SET jumlah = jumlah WHERE id = (SELECT min(id) FROM posting_lalu_05)
+UPDATE 1
+=> ROLLBACK
+# UPDATE atas tabel yang sudah dilepas berhasil untuk pemiliknya: sesudah DETACH, aturan append-only bergantung pada hak akses tabel itu.
+
+# --- D. Membuang satu bulan: DETACH dan DROP lawan DELETE, dengan jumlah baris sama (tabel uji tanpa trigger ledger) ---
+# DELETE atas posting ditolak ledger (bagian B), jadi pembandingnya adalah dua tabel uji dengan kolom dan index yang sama dengan posting,
+# masing-masing 200.000 baris di bulan yang dibuang dan 200.000 baris di bulan lain. Waktunya hanya diperiksa terhadap batas.
+=> CREATE TABLE uji_biasa (LIKE posting INCLUDING DEFAULTS INCLUDING INDEXES)
+CREATE TABLE
+=> CREATE TABLE uji_part (LIKE posting INCLUDING DEFAULTS INCLUDING INDEXES) PARTITION BY RANGE (dibuat)
+CREATE TABLE
+=> CREATE TABLE uji_part_a PARTITION OF uji_part FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+CREATE TABLE
+=> CREATE TABLE uji_part_b PARTITION OF uji_part FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+CREATE TABLE
+=> SELECT (SELECT count(*) FROM uji_biasa) AS uji_biasa, (SELECT count(*) FROM uji_part) AS uji_part, (SELECT count(*) FROM uji_part_a) AS bulan_dibuang
+ uji_biasa | uji_part | bulan_dibuang
+-----------+----------+---------------
+ 400000    | 400000   | 200000
+(1 row)
+=> DELETE FROM uji_biasa WHERE <bulan yang dibuang>
+DELETE 200000
+=> ALTER TABLE uji_part DETACH PARTITION uji_part_a CONCURRENTLY; DROP TABLE uji_part_a
+DROP TABLE   -- 200000 baris di partisi yang dibuang
+# DELETE dan DETACH + DROP membuang 200.000 baris yang sama. Batas yang diperiksa: DELETE memerlukan lebih dari dua kali waktu DETACH + DROP. Nilai waktunya tidak direkam.
+=> SELECT (SELECT count(*) FROM uji_biasa) AS uji_biasa, (SELECT count(*) FROM uji_part) AS uji_part
+ uji_biasa | uji_part
+-----------+----------
+ 200000    | 200000
+(1 row)
+=> DROP TABLE uji_biasa, uji_part
+
+# --- E. Arsip: tabel yang dilepas diekspor ke file, dipulihkan ke tabel baru, dan dibandingkan ---
+# File arsip belum dienkripsi: enkripsi dan baris arsip_partisi adalah pekerjaan lab t5-kms, yang membaca file ini.
+=> CREATE TABLE posting_pulih (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+CREATE TABLE
+# File arsip: 28.000 baris; tabel pulih memuat baris yang sama (EXCEPT ALL kedua arah: 0 baris). dan ekspor ulang tabel pulih punya SHA-256 yang sama dengan file.
+# File ada di $TMP/t5-partisi-arsip-<port>/posting_lalu_05.csv; isinya tidak direkam.
+
+# --- F. Pemeriksaan malam sesudah satu bulan dilepas: tanpa snapshot menuduh, dengan snapshot cocok ---
+$ ./api-t5 -cek-cache
+buku 1 (tunjangan ): saldo_cache -7500000000, jumlah posting -6500000000, selisih -1000000000
+buku 8 (karyawan Dimas): saldo_cache 684000, jumlah posting 595000, selisih 89000
+...
+cek cache: 10288 buku diperiksa, 10061 tidak cocok
+# exit status 1
+# 10.061 buku ditandai: persis buku yang jumlah posting-nya di partisi yang dilepas bukan 0 (dihitung dari tabel posting_lalu_05).
+$ ./api-t5 -cek-cache -dari-snapshot
+cek cache dari snapshot <tanggal>: 10288 buku diperiksa, 0 tidak cocok
+# exit status 0
+
+# --- G. Jurnal pembalik atas jurnal yang postingnya sudah dilepas ---
+# jurnal bulan yang masih terpasang:
+$ curl -i -X POST '/jurnal/<jurnal>/pembalik' -H 'Authorization: Bearer <token sesi Admin>' -d '{"alasan": "Koreksi atas pembayaran ganda"}'
+HTTP 201
+{"id":<id>,"membalik":<id>}
+# jurnal bulan yang sudah dilepas:
+$ curl -i -X POST '/jurnal/<jurnal>/pembalik' -H 'Authorization: Bearer <token sesi Admin>' -d '{"alasan": "Koreksi atas pembayaran ganda"}'
+HTTP 500
+{"type":"/problems/internal","title":"Terjadi kesalahan di server","status":500}
+# Log server untuk permintaan kedua:
+error internal: ERROR: jurnal <n> tidak seimbang: 0 posting, jumlah 0 (SQLSTATE 23514)
+# Jurnal yang postingnya sudah dilepas tidak bisa dibalik dari database utama: jurnal pembalik tanpa posting ditolak saat COMMIT
+# oleh aturan jurnal seimbang, dan tidak ada jurnal pembalik yang tertinggal (0 baris).
