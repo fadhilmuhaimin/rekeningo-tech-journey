@@ -168,7 +168,9 @@ def hasil_job(args, apa):
     return baca_hasil(out), out
 
 
-def tunggu_mati(rc, apa):
+def tunggu_mati(rc, apa, keluaran=""):
+    if rc != -signal.SIGKILL and keluaran:
+        print(keluaran[-1500:], file=sys.stderr)
     harap(rc, -signal.SIGKILL, f"{apa}: proses dimatikan sinyal 9")
 
 
@@ -421,9 +423,9 @@ def dsn(role, schema=None, nama="t5-cicilan-dbos"):
     return f"postgres://{role}:{role}@127.0.0.1:{d.DB_PORT}/lab{q}"
 
 
-def dbos_jalan(varian, hari, mati=None):
+def dbos_jalan(varian, hari, jadwal, mati=None):
     args = [str(BIN_DBOS), "-db-app", dsn("api_t5", SCHEMA), "-db-sistem", dsn("lab", None), "-dbos-schema", SKEMA_DBOS,
-            "-sampai", hari.isoformat(), "-varian", varian, *(["-mati", mati] if mati else [])]
+            "-sampai", hari.isoformat(), "-jadwal", str(jadwal), "-varian", varian, *(["-mati", mati] if mati else [])]
     r = subprocess.run(args, env=d.ENV, capture_output=True, text=True)
     return r.returncode, (r.stdout + r.stderr).strip()
 
@@ -461,30 +463,31 @@ def rekam_langkah():
     akun = iter(karyawan(10))
     hasil = []
 
-    def skenario(label, cara, varian=None, titik=None, teks_titik="sesudah jurnal, sebelum penanda"):
+    def skenario(label, cara, varian=None, titik=None, teks_titik="sesudah jurnal, sebelum penanda", jurnal_harus=1):
         a = next(akun)
         jadwal = buat_jadwal(a, ANI, 100_000, 3, mulai)
         if cara == "tabel":
             rc, out = job(["-cicilan-sampai", hari.isoformat(), "-lab-cicilan-henti", "1"])
         else:
-            rc, out = dbos_jalan(varian, hari, mati=titik)
-        tunggu_mati(rc, f"{label}: proses pertama")
+            rc, out = dbos_jalan(varian, hari, jadwal, mati=titik)
+        tunggu_mati(rc, f"{label}: proses pertama", out)
         antara = (status_angsuran(jadwal, 1), jurnal_angsuran(jadwal, 1))
         if cara == "tabel":
             h, _ = hasil_job(["-cicilan-sampai", hari.isoformat()], label)
             ulang = f"dibaca {h['dibaca']}, dicatat {h['dicatat']}"
         else:
-            rc, out = dbos_jalan(varian, hari)
+            rc, out = dbos_jalan(varian, hari, jadwal)
             harap(rc, 0, f"{label}: proses kedua keluar 0")
             m = HASIL_DBOS.search(out)
             harap(m is not None, True, f"{label}: keluaran DBOS tidak dikenal: {out[-300:]!r}")
             ulang = f"dibaca {m.group(2)}, dicatat {m.group(3)}"
         hasil.append((label, teks_titik, antara[1], ulang, jurnal_angsuran(jadwal, 1), 250_000 - saldo(a), status_angsuran(jadwal, 1)))
+        harap((hasil[-1][4], hasil[-1][6]), (jurnal_harus, "dicatat"), f"{label}, mati {teks_titik}: jurnal akhir dan status")
         return hasil[-1]
 
     skenario("tabel langkah", "tabel")
     dalam, sesudah = "dalam langkah jurnal, sesudah commit ledger", "sesudah langkah jurnal tercatat, sebelum penanda"
-    skenario("DBOS RunAsStep, tanpa referensi", "dbos", "step", "dalam-langkah", dalam)
+    skenario("DBOS RunAsStep, tanpa referensi", "dbos", "step", "dalam-langkah", dalam, jurnal_harus=2)
     skenario("DBOS RunAsStep, tanpa referensi", "dbos", "step", "antar-langkah", sesudah)
     skenario("DBOS RunAsStep, referensi unik", "dbos", "step-referensi", "dalam-langkah", dalam)
     skenario("DBOS RunAsStep, referensi unik", "dbos", "step-referensi", "antar-langkah", sesudah)

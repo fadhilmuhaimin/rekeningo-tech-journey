@@ -168,12 +168,13 @@ func jalankan(ctx dbos.Context, daftar []Angsuran) (dicatat, gagal int, err erro
 
 // --8<-- [end:dbos-batch]
 
-func jatuhTempo(ctx context.Context, sampai string) ([]Angsuran, error) {
+func jatuhTempo(ctx context.Context, sampai string, jadwal int64) ([]Angsuran, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT a.jadwal_id, a.ke, j.akun_id, j.merchant_akun_id, j.jumlah_per_angsuran
 		FROM angsuran a JOIN jadwal_cicilan j ON j.id = a.jadwal_id
 		WHERE a.status IN ('menunggu', 'terjurnal') AND a.jatuh_tempo <= $1::date AND j.status = 'aktif' AND j.jenis = 'cicilan'
-		ORDER BY a.jadwal_id, a.ke`, sampai)
+		  AND ($2::bigint = 0 OR a.jadwal_id = $2)
+		ORDER BY a.jadwal_id, a.ke`, sampai, jadwal)
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +195,7 @@ func main() {
 	dbSistem := flag.String("db-sistem", "", "URL database sistem DBOS (role api_t5, tanpa search_path)")
 	skema := flag.String("dbos-schema", "", "schema tabel sistem DBOS dan transaction_completion (dibuat pemilik sebelum proses ini jalan)")
 	sampai := flag.String("sampai", "", "tagih angsuran jatuh tempo sampai tanggal YYYY-MM-DD")
+	jadwal := flag.Int64("jadwal", 0, "hanya angsuran jadwal ini (0 = semua jadwal); lab memakainya supaya satu skenario tidak mengerjakan sisa skenario lain")
 	flag.StringVar(&s.varian, "varian", "step", "step | step-referensi | transaksi")
 	flag.StringVar(&s.mati, "mati", "", "lab saja: dalam-langkah | antar-langkah (SIGKILL ke proses ini sendiri)")
 	flag.Parse()
@@ -223,7 +225,7 @@ func main() {
 	if err := dbos.Launch(dctx); err != nil { // Launch melanjutkan workflow PENDING milik executor ini
 		log.Fatal(err)
 	}
-	daftar, err := jatuhTempo(bg, *sampai)
+	daftar, err := jatuhTempo(bg, *sampai, *jadwal)
 	if err != nil {
 		log.Fatal(err)
 	}
