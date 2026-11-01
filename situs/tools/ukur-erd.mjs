@@ -482,6 +482,7 @@ for (const [lebar, tinggi, harus] of [
         zoom: [...f.querySelectorAll(".react-flow__viewport")].map((v) => Number(/scale\(([\d.]+)\)/.exec(v.style.transform)?.[1] ?? 1)),
         judul: [...f.querySelectorAll(".erd-tumbuh__sisi-judul strong")].map((x) => x.textContent),
         partisi: [...f.querySelectorAll(".erd-tumbuh__partisi")].map((x) => x.closest(".erd-tumbuh__node").getAttribute("aria-label")),
+        chip: [...f.querySelectorAll(".erd-tumbuh__partisi")].map((x) => ({ teks: x.textContent, lebar: x.offsetWidth })),
       };
     }, FIG);
     lapor(
@@ -489,7 +490,12 @@ for (const [lebar, tinggi, harus] of [
         st5.judul.join("|") === "Tahap 4, sebelum|Tahap 5, sesudah" && Math.min(...st5.zoom) >= (lebar < 500 ? 0.99 : 0.8) && t5.namaPotong.length === 0 && t5.pindahPotong === 0 && t5.duaSebaris === 0 && t5.isiBeda.length === 0,
       `${tag}: Tahap 5 bandingkan → ${t5.berdampingan ? "berdampingan" : "bertumpuk"}, ${t5.node} node, ${t5.edge} edge, ${st5.baru} baru, ${st5.berubah} berubah, ${st5.dihapus} dihapus, zoom ${st5.zoom.map((z) => z.toFixed(2)).join("/")}, ${t5.luar} di luar wadah, luapan ${t5.lebarDok} px, nama terpotong ${t5.namaPotong.length}${t5.namaPotong.length ? ` (${t5.namaPotong.join(", ")})` : ""}, kepala dua baris tidak sebaris ${t5.duaSebaris}, isi node beda tinggi ${t5.isiBeda.length}${t5.isiBeda.length ? ` (${t5.isiBeda.join(", ")})` : ""}`,
     );
-    lapor(st5.partisi.length === 1 && st5.partisi[0] === "Tabel posting, berubah, 5 kolom, berpartisi", `${tag}: chip partisi hanya di posting (${st5.partisi.join("; ") || "tidak ada"})`);
+    // Chip memuat kata "partisi" dan tidak lebih lebar dari METRIK.partisi (48 px, situs/src/erd/tumbuh.ts): tata menghitung kepala satu atau dua baris
+    // dari angka itu. Diukur offsetWidth (tanpa zoom): Satoshi 36 px, Verdana 46 px (tinjauan ERD5, keputusan 1673).
+    lapor(
+      st5.partisi.length === 1 && st5.partisi[0] === "Tabel posting, berubah, 5 kolom, berpartisi" && st5.chip.length === 1 && st5.chip[0].teks === "partisi" && st5.chip[0].lebar <= 48,
+      `${tag}: chip partisi hanya di posting (${st5.partisi.join("; ") || "tidak ada"}), teks "${st5.chip.map((c) => c.teks).join(", ")}", lebar ${st5.chip.map((c) => c.lebar).join(", ")} px (batas 48)`,
+    );
     await laporBawaan(page, `${tag} Tahap 5 bandingkan`);
     // Mode tunggal Tahap 5: foreign key lintas service tidak digambar (19 edge, bukan 37).
     await page.click(`${FIG} .erd-tumbuh__banding`);
