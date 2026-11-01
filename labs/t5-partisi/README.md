@@ -22,7 +22,7 @@ Dokumentasi dibaca pada versi lab: PostgreSQL 17.11, halaman ALTER TABLE (`postg
 | --- | --- |
 | `labs/api-t5/internal/repo/snapshot.go` | `BuatSnapshot` (saldo akhir satu bulan per buku) dan `CekCacheSnapshot` (saldo_cache lawan snapshot + posting sesudahnya) |
 | `labs/api-t5/cmd/api/main.go` | job `-buat-snapshot <YYYY-MM-DD>`, dan `-cek-cache -dari-snapshot [-snapshot-periode <YYYY-MM-DD>]`; `-cek-cache` tanpa tambahan tetap versi pertama yang membaca semua posting |
-| `labs/api-t5/internal/service/snapshot_test.go` | delapan tes Go untuk dua fungsi itu (lima dari pelaksana, tiga dari tinjauan) dan satu tes `Balik` atas jurnal tanpa posting terlihat |
+| `labs/api-t5/internal/service/snapshot_test.go` | sembilan tes Go untuk dua fungsi itu (lima dari pelaksana, empat dari tinjauan) dan satu tes `Balik` atas jurnal tanpa posting terlihat |
 | `labs/api-t5/internal/service/akun.go`, `bayar.go`, `internal/handler/handler.go` | `Balik` menjawab `ErrPostingDiarsip` (HTTP 409) bila jurnal tidak punya posting terlihat, sebelum transaction dibuka (tinjauan, bagian `lepas`) |
 | `labs/t5-partisi/dasar.py` | `posting_sebelum` (kosong) diganti partisi bulanan, riwayat posting dihitung dari rumus, pengukur baris yang dibaca |
 | `labs/t5-partisi/run.py`, `skala.py`, `lepas.py`, `alat.py` | tiga bagian rekaman: `skala` (`skala.py`), `lepas` (`lepas.py`), dan `testing` (`run.py`); `alat.py` memuat alat bersama |
@@ -58,7 +58,7 @@ PostgreSQL lewat `labs/b3-race` (`make -C labs/b3-race up`, dijalankan target `r
 | `output/snapshot.txt` | `skala` | pemeriksaan malam tanpa dan dengan snapshot, baris yang dibaca per job, snapshot dicocokkan dengan hitungan langsung, selisih cache yang sama di kedua pemeriksaan |
 | `output/lepas.txt` | `lepas` | DELETE ditolak ledger, DETACH dan DROP hanya dijaga hak, DETACH CONCURRENTLY dan batasnya, DETACH + DROP lawan DELETE, arsip dan pemulihan, pemeriksaan sesudah partisi dilepas, jurnal pembalik atas jurnal yang dilepas |
 | `output/pasang.txt` | `lepas` | ATTACH dengan dan tanpa CHECK, aturan ledger di partisi hasil ATTACH (termasuk penjaga TRUNCATE), partisi bulan depan belum ada |
-| `output/testing.txt` | `testing` | `go vet` dan sebelas tes Go (delapan snapshot, satu `Balik` atas jurnal tanpa posting, dua partisi dari #479) dengan PostgreSQL |
+| `output/testing.txt` | `testing` | `go vet` dan dua belas tes Go (sembilan snapshot, satu `Balik` atas jurnal tanpa posting, dua partisi dari #479) dengan PostgreSQL |
 
 Rekaman dari database bersih. Angka yang bergantung mesin (waktu) tidak direkam: bagian D `lepas` hanya memeriksa batas (DELETE lebih dari dua kali waktu DETACH + DROP). Jumlah baris yang dibaca datang dari `pg_stat_user_tables` (selisih `seq_tup_read` + `idx_tup_fetch` atas partisi posting, dibaca sesudah proses job keluar) dan dibandingkan dengan `count(*)` atas tabel, bukan dari kode lab.
 
