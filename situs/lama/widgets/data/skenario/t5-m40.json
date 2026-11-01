@@ -1,0 +1,93 @@
+{
+  "versi": 2,
+  "judul": "Laporan merchant dari primary: polling 666,7 per detik dan cache 30 detik",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t5/output/laporan.txt",
+    "fileVarian": "labs/api-t5/output/laporan.txt",
+    "catatan": "Lab api-t5, PostgreSQL 17.11, dari database bersih (make -C labs/api-t5 run BAGIAN=laporan). Jalur utama: laporan.txt bagian A (laporan dari primary), B (pembayaran dengan dan tanpa polling), dan C (cache 30 detik, satu client per warung). Ubah satu hal: bagian C (kontrol dengan dua client per warung). Polling berasal dari 9 warung dengan data satu hari, bukan dari 20.000 merchant. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log."
+  },
+  "pengantar": "Laporan Warung 505 dibaca dari primary, lalu lab memutar polling dan cache 30 detik. Tebak dulu berapa dari 18 panggilan yang mendapat hit di cache, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "kln",
+      "label": "Client: curl dan generator beban"
+    },
+    {
+      "id": "srv",
+      "label": "Server api-t5 (mode laporan-primary)"
+    },
+    {
+      "id": "dbm",
+      "label": "PostgreSQL: tabel posting dan buku"
+    },
+    {
+      "id": "rds",
+      "label": "Redis: cache laporan 30 detik"
+    }
+  ],
+  "predict": {
+    "q": "Cache laporan di Redis berumur 30 detik. Sembilan warung masing-masing punya satu client yang memanggil laporan dua kali, berjarak 30,5 detik. Berapa dari 18 panggilan yang menemukan isinya di cache (hit)?",
+    "options": [
+      "9 dari 18: panggilan kedua tiap warung memakai isi dari panggilan pertama",
+      "Berubah di tiap run, jadi tidak bisa dihitung: hit cache bergantung pada waktu",
+      "0 dari 18: panggilan kedua datang sesudah isi cache kedaluwarsa",
+      "18 dari 18: Redis menyimpan isi sampai datanya berubah"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Jaraknya 30,5 detik, lebih panjang dari umur isi cache 30 detik, jadi kedua putaran miss: hit 0, miss 18, baca database 18. Jumlah hit dibaca dari pencacah server, bukan dari waktu. Rekaman laporan.txt bagian C."
+  },
+  "langkah": [
+    {
+      "dari": "kln",
+      "ke": "srv",
+      "judul": "Budi membayar Warung 505 dua kali, lalu warung membuka laporan",
+      "kirim": "$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{\"ke\": 505, \"nominal\": 35000}'\nHTTP/1.1 201 Created\n$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{\"ke\": 505, \"nominal\": 12000}'\nHTTP/1.1 201 Created\n$ curl -i -X GET '/merchant/505/laporan/hari-ini' -H 'Authorization: Bearer <token sesi Warung 505>'\nHTTP/1.1 200 OK\n{\"merchant\":505,\"tanggal\":\"<tanggal>\",\"jumlah_transaksi\":2,\"total\":47000,\"dibaca_dari\":\"primary\"}",
+      "jelas": "Laporan menjawab dua transaksi dengan total Rp47.000, hasil dua pembayaran Budi (Rp35.000 + Rp12.000, Hitungan). Field dibaca_dari adalah teks tetap di kode, bukan hasil ukuran."
+    },
+    {
+      "dari": "srv",
+      "ke": "dbm",
+      "judul": "Server menjumlah posting hari ini langsung dari tabel posting, tiap panggilan",
+      "kirim": "# Query laporan menjumlah posting masuk ke buku merchant hari ini langsung dari tabel posting di primary, tiap panggilan.\nwaktu eksekusi query laporan satu warung di database di bawah 1 ms (EXPLAIN ANALYZE; batas lab, nilai ukur tidak direkam): ya",
+      "jelas": "Data lab kecil: satu hari dan 9 warung. Angka 20 ms di hitungan beban adalah Asumsi, bukan hasil rekaman."
+    },
+    {
+      "dari": "kln",
+      "ke": "srv",
+      "judul": "Pembayaran 100 per detik selama 10 detik, tanpa laporan",
+      "kirim": "# ./beban: pembayaran 100 per detik selama 10 detik dari 200 user, tanpa laporan\npembayaran selesai: 1000 dari 1000, semua 201",
+      "jelas": "Seribu pembayaran selesai dan semuanya 201 (100 × 10, Hitungan)."
+    },
+    {
+      "dari": "kln",
+      "ke": "srv",
+      "judul": "Pembayaran yang sama, ditambah laporan 666,7 per detik dari 9 warung",
+      "kirim": "# ./beban: pembayaran yang sama, ditambah laporan 666,7 per detik dari 9 warung\npembayaran selesai: 1000 dari 1000, semua 201; laporan selesai: 6667 dari 6667, semua 200\np95 pembayaran tanpa laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya\np95 pembayaran dengan laporan di bawah 2000 ms (batas lab, Asumsi; nilai ukur tidak direkam): ya",
+      "jelas": "Kedua putaran selesai tanpa galat dan p95 pembayaran ada di bawah batas 2.000 ms. Selisih p95 tidak direkam dan tidak menjadi syarat, jadi rekaman tidak menunjukkan pembayaran yang melambat. Tombol Bayar yang berputar 6 detik di cerita tetap Ilustrasi."
+    },
+    {
+      "dari": "srv",
+      "ke": "rds",
+      "judul": "Cache laporan 30 detik: satu client per warung, dua putaran berjarak 30,5 detik",
+      "kirim": "# server: ./api-t5 -lab -rentan laporan-primary -laporan-cache redis -laporan-ttl 30s\n$ GET /merchant/<id>/laporan/hari-ini untuk 9 warung, satu client per warung, dua putaran berjarak 30,5 detik (TTL 30 detik)\nGET /lab/cache-laporan -> mode redis, ttl 30 detik, hit 0, miss 18, baca database 18\nhit rate: 0 dari 18 = 0%",
+      "jelas": "Panggilan kedua datang sekitar 0,5 detik sesudah isi cache kedaluwarsa, jadi tidak ada hit dan database dibaca 18 kali. Jarak yang lebih pendek dari 30 detik tidak direkam.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "dua client untuk tiap warung dalam satu jendela TTL",
+    "mulai": 4,
+    "langkah": [
+      {
+        "dari": "srv",
+        "ke": "rds",
+        "judul": "Kontrol: dua client untuk tiap warung, dua panggilan berurutan dalam satu jendela TTL",
+        "kirim": "# Kontrol: dua client untuk setiap warung, dua panggilan berurutan dalam satu jendela TTL.\nGET /lab/cache-laporan -> hit 9, miss 9, baca database 9\nhit rate kontrol: 9 dari 18 = 50%",
+        "jelas": "Panggilan pertama tiap warung miss dan yang kedua hit, jadi 9 hit dari 18. Cache menolong bila ada panggilan kedua dalam 30 detik untuk merchant yang sama. Berapa layar yang membuka laporan satu merchant di produksi adalah Asumsi.",
+        "nada": "good"
+      }
+    ]
+  }
+}
