@@ -1,0 +1,104 @@
+{
+  "versi": 2,
+  "judul": "Pemeriksaan harian membaca semua posting; dari snapshot ia membaca satu bulan",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t5-partisi/output/snapshot.txt",
+    "fileVarian": "labs/t5-partisi/output/lepas.txt",
+    "catatan": "Server Go api-t5 dan PostgreSQL 17.11 dari database bersih (make -C labs/t5-partisi run). Jalur utama: snapshot.txt bagian A, B, C, dan D, dengan 10.288 buku dan 12 bulan × 150.000 posting. Ubah satu hal: lepas.txt bagian C dan F, run terpisah dengan 28.000 posting per bulan. Lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3% di naskah, jadi 8,3% bukan temuan. Jumlah baris dibaca dari pg_stat_user_tables, bukan dari waktu; waktu tidak direkam. Lab tidak punya app Flutter dan tidak merekam layar."
+  },
+  "pengantar": "Lab memuat 12 bulan posting. Tebak dulu, lalu ikuti pemeriksaan tanpa snapshot, snapshot akhir bulan, dan pemeriksaan dari snapshot. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "job",
+      "label": "Job pemeriksaan (api-t5)"
+    },
+    {
+      "id": "db",
+      "label": "Tabel posting"
+    },
+    {
+      "id": "snap",
+      "label": "Tabel snapshot_saldo"
+    }
+  ],
+  "predict": {
+    "q": "Lab menyimpan 1.800.000 posting dalam 12 partisi bulanan. Snapshot saldo sudah ada sampai bulan lalu. Berapa posting yang dibaca pemeriksaan harian yang memakai snapshot terakhir?",
+    "options": [
+      "Semua 1.800.000, karena tiap buku tetap dijumlah dari posting pertamanya",
+      "Sekitar 900.000, karena snapshot hanya membuang separuh posting tertua",
+      "Satu bulan, 150.000, karena hanya posting sesudah snapshot yang terbaca",
+      "Hampir nol, karena snapshot sudah memuat saldo semua buku sampai hari ini"
+    ],
+    "answer": 2,
+    "varian": false,
+    "explain": "Rekaman snapshot.txt bagian C: 150.000 dari 1.800.000 posting, yaitu 8,3%, satu bulan dari 12. Pemeriksaan membaca snapshot terakhir dan posting sesudahnya, jadi yang dibaca adalah posting bulan berjalan."
+  },
+  "langkah": [
+    {
+      "dari": "job",
+      "ke": "db",
+      "judul": "Tanpa snapshot, pemeriksaan membaca semua posting",
+      "kirim": "$ ./api-t5 -cek-cache\ncek cache: 10288 buku diperiksa, 0 tidak cocok\n# exit status 0\n# Baris posting dibaca: 1.800.000 dari 1.800.000 posting di tabel.",
+      "jelas": "Job menjumlah posting tiap buku dan membandingkannya dengan saldo_cache. Ia membaca 1.800.000 dari 1.800.000 posting, dan semua buku cocok.",
+      "nada": "warn"
+    },
+    {
+      "dari": "job",
+      "ke": "snap",
+      "judul": "Tiap job snapshot menulis saldo akhir satu bulan",
+      "kirim": "$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-11 sebelum bulan berjalan>\nsnapshot <tanggal>: 10288 buku ditulis\n# Tiap job membaca persis posting bulannya (selisih seq_tup_read + idx_tup_fetch atas partisi posting, dibandingkan dengan jumlah posting bulan itu di tabel):\n# 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000 baris, dari bulan paling lama sampai bulan lalu.",
+      "jelas": "Sebelas job snapshot berjalan dari bulan paling lama sampai bulan lalu. Tiap job membaca persis posting bulannya, 150.000 baris."
+    },
+    {
+      "dari": "snap",
+      "judul": "Snapshot sama dengan hitungan langsung atas posting",
+      "kirim": "=> SELECT count(*) AS baris, count(DISTINCT periode) AS periode, (SELECT count(*) FROM buku) AS buku FROM snapshot_saldo\n baris  | periode | buku\n--------+---------+-------\n 113168 | 11      | 10288\n(1 row)\n# Tiap snapshot dibandingkan dengan hitungan langsung atas tabel posting (saldo dan jumlah posting sampai akhir bulannya): 0 baris berbeda dari 113.168.",
+      "jelas": "Tabel snapshot_saldo berisi 113.168 baris untuk 11 bulan dan 10.288 buku. Tiap snapshot dibandingkan dengan hitungan langsung atas posting, dan 0 baris berbeda."
+    },
+    {
+      "dari": "job",
+      "ke": "snap",
+      "judul": "Dari snapshot terakhir, pemeriksaan membaca satu bulan",
+      "kirim": "$ ./api-t5 -cek-cache -dari-snapshot\ncek cache dari snapshot <tanggal>: 10288 buku diperiksa, 0 tidak cocok\n# exit status 0\n# Baris posting dibaca: 150.000 dari 1.800.000, yaitu 8,3% (satu bulan dari 12).",
+      "jelas": "Pemeriksaan membaca 150.000 dari 1.800.000 posting, yaitu 8,3%, dan semua buku tetap cocok. Pekerjaannya hanya posting bulan berjalan.",
+      "nada": "good"
+    },
+    {
+      "dari": "job",
+      "judul": "Satu selisih nyata terlihat oleh kedua pemeriksaan",
+      "kirim": "(api_t5) => UPDATE buku SET saldo_cache = saldo_cache + 5000 WHERE id = (SELECT min(id) FROM buku WHERE jenis = 'karyawan')\nUPDATE 1\n$ ./api-t5 -cek-cache\nbuku 8 (karyawan Dimas): saldo_cache 431000, jumlah posting 426000, selisih 5000\ncek cache: 10288 buku diperiksa, 1 tidak cocok\n# exit status 1\n$ ./api-t5 -cek-cache -dari-snapshot\nbuku 8 (karyawan Dimas): saldo_cache 431000, snapshot + posting sesudahnya 426000, selisih 5000\ncek cache dari snapshot <tanggal>: 10288 buku diperiksa, 1 tidak cocok\n# exit status 1\n# Kedua pemeriksaan menandai satu buku yang sama dengan saldo_cache, hitungan, dan selisih yang sama (5000).",
+      "jelas": "Cache buku 8 dinaikkan 5.000 tanpa posting. Pemeriksaan penuh dan pemeriksaan dari snapshot menandai buku yang sama dengan cache, hitungan, dan selisih yang sama.",
+      "nada": "good"
+    }
+  ],
+  "varian": {
+    "label": "satu bulan dilepas dari tabel posting",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "job",
+        "ke": "db",
+        "judul": "Satu partisi bulan dilepas dari tabel posting",
+        "kirim": "# Tanpa partisi DEFAULT dan di luar blok transaction, perintah yang sama berhasil:\n=> ALTER TABLE posting DETACH PARTITION posting_lalu_05 CONCURRENTLY\nALTER TABLE\n# Posting yang terlihat lewat tabel induk: 140.000 dari 168.000; sisanya ada di tabel posting_lalu_05 yang berdiri sendiri.",
+        "jelas": "Lab terpisah memuat 28.000 posting per bulan. Perintah DETACH melepas satu bulan, sehingga tabel posting hanya memperlihatkan 140.000 dari 168.000 posting."
+      },
+      {
+        "dari": "job",
+        "ke": "db",
+        "judul": "Tanpa snapshot, hampir semua buku ditandai tidak cocok",
+        "kirim": "$ ./api-t5 -cek-cache\nbuku 1 (tunjangan ): saldo_cache -7500000000, jumlah posting -6500000000, selisih -1000000000\nbuku 8 (karyawan Dimas): saldo_cache 684000, jumlah posting 595000, selisih 89000\n...\ncek cache: 10288 buku diperiksa, 10061 tidak cocok\n# exit status 1\n# 10.061 buku ditandai: persis buku yang jumlah posting-nya di partisi yang dilepas bukan 0 (dihitung dari tabel posting_lalu_05).",
+        "jelas": "Pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, karena posting lama buku itu tidak ada lagi di tabel. Cache buku itu sendiri benar.",
+        "nada": "warn"
+      },
+      {
+        "dari": "job",
+        "ke": "snap",
+        "judul": "Dari snapshot, 0 buku ditandai",
+        "kirim": "$ ./api-t5 -cek-cache -dari-snapshot\ncek cache dari snapshot <tanggal>: 10288 buku diperiksa, 0 tidak cocok\n# exit status 0",
+        "jelas": "Pemeriksaan dari snapshot memakai saldo akhir bulan yang sudah tersimpan, jadi 0 dari 10.288 buku ditandai.",
+        "nada": "good"
+      }
+    ]
+  }
+}

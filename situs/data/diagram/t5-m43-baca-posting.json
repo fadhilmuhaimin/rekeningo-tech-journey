@@ -1,0 +1,24 @@
+{
+  "id": "t5-m43-baca-posting",
+  "judul": "Pemeriksaan harian membaca semua posting; dari snapshot ia membaca satu bulan",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t5-partisi · snapshot.txt bagian A dan C" },
+  "baris": [
+    {
+      "label": "Tanpa snapshot",
+      "sub": "semua posting",
+      "simpul": [
+        { "teks": "1.800.000 dari 1.800.000 posting dibaca", "sub": "12 bulan × 150.000", "nada": "warn" },
+        { "teks": "0 buku tidak cocok", "sub": "10.288 buku diperiksa", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Dari snapshot terakhir",
+      "sub": "posting sesudahnya",
+      "simpul": [
+        { "teks": "150.000 dari 1.800.000 posting dibaca", "sub": "8,3%: satu bulan dari 12", "nada": "good" },
+        { "teks": "0 buku tidak cocok", "sub": "hasil sama", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Angka dari rekaman lab skala kecil: 10.288 buku dan 150.000 posting per bulan. Pada skala naskah posting setahun 438 juta (Asumsi). Waktu pemeriksaan tidak direkam."
+}
