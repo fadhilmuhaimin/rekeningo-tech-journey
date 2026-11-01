@@ -76,6 +76,9 @@ cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestHandlerQRKedaluwarsaDanKesalahan
 --- PASS: TestHandlerQRBayarMemakaiIdempotencyKey
 --- PASS: TestHandlerQRLaporkan
+--- PASS: TestBayarDanKirimMemberiTokenTulisDenganReplica
+--- PASS: TestReplikaYangSudahSampaiDipakaiLagiDanHanyaPemilik
+--- PASS: TestTanpaReplicaTidakAdaKepalaBaru
 --- PASS: TestRuteLaporanMerchantHanyaDenganModeRentan
 --- PASS: TestPengumumanEndpoint
 --- PASS: TestCicilanEndpoint
@@ -369,6 +372,18 @@ ok    lab/apit5/internal/repo
 --- PASS: TestBayarQRMenungguLockQRLaluMelihatStatusBaru
 --- PASS: TestBayarQRKaryawanLestari
 --- PASS: TestTandaiQRTerpakaiHanyaSekali
+--- PASS: TestSumberTampil
+    --- PASS: TestSumberTampil/tanpa_replica
+    --- PASS: TestSumberTampil/tanpa_token
+    --- PASS: TestSumberTampil/token_sudah_sampai
+    --- PASS: TestSumberTampil/token_belum_sampai
+    --- PASS: TestSumberTampil/replica_tidak_menjawab
+    --- PASS: TestSumberTampil/replica_menjawab_sampai_tetapi_galat:_primary
+    --- PASS: TestSumberTampil/mode_rentan_mengabaikan_token_yang_belum_sampai
+--- PASS: TestSumberTampilMenolakTokenBukanLSN
+--- PASS: TestTampilHanyaPemilik
+--- PASS: TestTokenTulisTanpaReplica
+--- PASS: TestSampaiLSNDiPrimary
 --- PASS: TestBuatSnapshotMenjumlahBulanDanBulanSebelumnya
 --- PASS: TestBuatSnapshotIdempoten
 --- PASS: TestBuatSnapshotMenolakBulanBelumSelesaiDanBukanAwalBulan
@@ -585,6 +600,12 @@ ok    lab/apit5/internal/cache
     handler_qr_test.go:257: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRLaporkan
     handler_qr_test.go:287: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestBayarDanKirimMemberiTokenTulisDenganReplica
+    handler_replika_test.go:119: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestReplikaYangSudahSampaiDipakaiLagiDanHanyaPemilik
+    handler_replika_test.go:156: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTanpaReplicaTidakAdaKepalaBaru
+    handler_replika_test.go:178: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestRuteLaporanMerchantHanyaDenganModeRentan
     handler_t5_test.go:70: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestPengumumanEndpoint

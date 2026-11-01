@@ -117,6 +117,7 @@ export const UKURAN = {
   lebarMin: 200, // node paling sempit di tata satu kolom
   kepala: 44, // nama tabel + status
   kepalaDua: 64, // nama tabel panjang: status pindah ke baris sendiri (ERD4, keputusan 1255)
+  barisNama: 20, // tinggi tiap baris tambahan bila nama tabel membungkus sesudah garis bawah (ringkasan_merchant_harian, ERD5, keputusan 1672)
   baris: 24, // satu kolom (line-height tetap di CSS)
   labelBaris: 20, // tambahan tinggi bila label kunci pindah ke baris sendiri di bawah nama kolom (ERD4, keputusan 1255)
   bawah: 8, // padding bawah node
@@ -172,6 +173,7 @@ export const METRIK = {
   ubah: { baru: 28, berubah: 50, dihapus: 47, tetap: 31 } as Record<string, number>,
   jarakLabel: 4, // gap antarlabel (0,25 rem)
   jarakBaris: 6.4, // gap nama ke label (0,4 rem)
+  partisi: 48, // chip "partisi" di kepala tabel berpartisi (12,8 px tebal, 7 huruf; ERD5, keputusan 1670)
   jarakKepala: 8, // gap nama tabel ke status (0,5 rem)
   tepi: 22.2, // border 2 × 1,5 px + padding kiri dan kanan 2 × 9,6 px
 } as const;
@@ -189,12 +191,43 @@ export function duaBaris(k: KolomTampil, t: TabelTampil, acuan: number): boolean
   return label > 0 && k.kolom.nama.length * METRIK.hurufKolom + METRIK.jarakBaris + label > acuan - METRIK.tepi;
 }
 
-export function duaKepala(t: TabelTampil, acuan: number): boolean {
-  const status = t.status ? METRIK.ubah[t.status] + METRIK.jarakKepala : 0;
-  return t.nama.length * METRIK.hurufKepala + status > acuan - METRIK.tepi;
+/** Tabel berpartisi tampil satu tabel dengan chip "partisi" di kepalanya; partisinya bukan tabel ERD (ERD5, keputusan 1670). */
+export const berpartisi = (t: TabelTampil) => !t.bayangan && !!t.tabel.partisi;
+
+/**
+ * Banyak baris nama tabel di kepala. Nama yang lebih lebar dari isi node membungkus sesudah garis bawah (`<wbr>` di
+ * ErdTumbuh.tsx); pembungkusan serakah dengan lebar huruf METRIK.hurufKepala. Segmen yang sendiri lebih lebar dari isi node
+ * dipecah di mana saja (overflow-wrap: anywhere), jadi dihitung per lebar. Di Tahap 5 hanya `ringkasan_merchant_harian`.
+ */
+export function barisNama(t: TabelTampil, acuan: number): number {
+  const isiNode = acuan - METRIK.tepi;
+  let baris = 1;
+  let isi = 0;
+  for (const bagian of t.nama.split(/(?<=_)/)) {
+    const lebar = bagian.length * METRIK.hurufKepala;
+    if (lebar > isiNode) {
+      baris += Math.ceil((isi + lebar) / isiNode) - 1;
+      isi = (isi + lebar) % isiNode;
+    } else if (isi > 0 && isi + lebar > isiNode) {
+      baris += 1;
+      isi = lebar;
+    } else isi += lebar;
+  }
+  return baris;
 }
 
-export const tinggiKepala = (t: TabelTampil, acuan: number) => (duaKepala(t, acuan) ? UKURAN.kepalaDua : UKURAN.kepala);
+export function duaKepala(t: TabelTampil, acuan: number): boolean {
+  const status = t.status ? METRIK.ubah[t.status] + METRIK.jarakKepala : 0;
+  const partisi = berpartisi(t) ? METRIK.partisi + METRIK.jarakKepala : 0;
+  return t.nama.length * METRIK.hurufKepala + status + partisi > acuan - METRIK.tepi; // nama yang membungkus (barisNama > 1) lebih lebar dari isi node, jadi sudah termasuk
+}
+
+/** Satu kalimat tentang partisi satu tabel: kunci dan banyak partisinya; nama partisi menyusul di detail. */
+export const teksPartisi = (t: Tabel): string | null =>
+  t.partisi ? `dipartisi menurut ${t.partisi.kunci}, ${t.partisi.anak.length} partisi (${t.partisi.anak.join(", ")}); partisi bukan tabel sendiri di diagram ini` : null;
+
+export const tinggiKepala = (t: TabelTampil, acuan: number) =>
+  duaKepala(t, acuan) ? UKURAN.kepalaDua + (barisNama(t, acuan) - 1) * UKURAN.barisNama : UKURAN.kepala;
 
 export const tinggiBaris = (k: KolomTampil, t: TabelTampil, acuan: number) => UKURAN.baris + (duaBaris(k, t, acuan) ? UKURAN.labelBaris : 0);
 
@@ -446,9 +479,9 @@ export function varPesan(tabel: TabelTampil[]): Record<`--${string}`, string> {
 
 // ── Teks ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-const JENIS_ATURAN: Record<Aturan["jenis"], string> = { pk: "PK", fk: "FK", unik: "UNIQUE", cek: "CHECK", index: "INDEX" };
+const JENIS_ATURAN: Record<Aturan["jenis"], string> = { pk: "PK", partisi: "partisi", fk: "FK", unik: "UNIQUE", cek: "CHECK", index: "INDEX" };
 const UBAH_ATURAN: Record<Aturan["ubah"], string> = { baru: "baru", dihapus: "dihapus", berubah: "berubah" };
-export const teksAturan = (a: Aturan) => `${JENIS_ATURAN[a.jenis]}${a.jenis === "pk" ? "" : ` ${a.nama}`} ${UBAH_ATURAN[a.ubah]}`;
+export const teksAturan = (a: Aturan) => `${JENIS_ATURAN[a.jenis]}${a.jenis === "pk" || a.jenis === "partisi" ? "" : ` ${a.nama}`} ${UBAH_ATURAN[a.ubah]}`;
 
 /** Satu kolom sebagai teks: nama, tipe, kunci, boleh kosong, perubahan. Dipakai versi statis dan panel detail. */
 export function teksKolom(k: KolomTampil): string {
@@ -462,7 +495,7 @@ export function teksKolom(k: KolomTampil): string {
 /** Nama yang dibacakan untuk tombol node: nama tabel, status, banyak kolom. Isi lengkap ada di versi statis dan detail. */
 export function namaTombol(t: TabelTampil): string {
   const status = t.status ? `, ${LABEL_STATUS[t.status]}` : "";
-  return t.bayangan ? `Tabel ${t.nama}${status}, isinya pindah ke ${t.pindahKe}` : `Tabel ${t.nama}${status}, ${t.kolom.length} kolom`;
+  return t.bayangan ? `Tabel ${t.nama}${status}, isinya pindah ke ${t.pindahKe}` : `Tabel ${t.nama}${status}, ${t.kolom.length} kolom${berpartisi(t) ? ", berpartisi" : ""}`;
 }
 
 /** Ringkasan satu tampilan untuk pembaca layar: banyak tabel per status. */
@@ -519,14 +552,14 @@ export function tandaiHalamanIni(tautan: TautanTahap, path: string): TautanTahap
   );
 }
 
-// ── Pembagian modul (ERD4, keputusan 1254) ─────────────────────────────────────────────────────────────────────
+// ── Pembagian modul (ERD4, keputusan 1254) dan service (ERD5, keputusan 1670) ─────────────────────────────────
 
-/** Modul pemilik satu tabel, atau null bila tahap ini tidak punya pembagian modul. */
+/** Modul (Tahap 4) atau service (Tahap 5) pemilik satu tabel, atau null bila tahap ini tidak punya pembagian. */
 export const modulTabel = (m: ModulErd | undefined, tabel: string): string | null => m?.modul.find((x) => x.tabel.includes(tabel))?.nama ?? null;
 
 /**
- * Foreign key yang menyeberang batas modul, dihitung dari ERD tahap itu dan pembagian modulnya (padanan hitung_modul()
- * di tools/erd.py). Urutan: tabel menurut katalog, lalu foreign key menurut nama.
+ * Foreign key yang menyeberang batas modul atau service, dihitung dari ERD tahap itu dan pembagiannya (padanan
+ * hitung_modul() di tools/erd.py). Urutan: tabel menurut katalog, lalu foreign key menurut nama.
  */
 export function lintasModul(d: DataErd, m: ModulErd): ModulErd["lintas"] {
   return d.tabel.flatMap((t) =>
@@ -538,22 +571,55 @@ export function lintasModul(d: DataErd, m: ModulErd): ModulErd["lintas"] {
   );
 }
 
-/** Build gagal bila pembagian modul tidak cocok dengan ERD-nya: semua tabel tepat sekali, foreign key lintas sama. */
+/** Build gagal bila pembagian tidak cocok dengan ERD-nya: semua tabel tepat sekali, foreign key lintas sama. */
 export function periksaModul(d: DataErd, m: ModulErd): void {
-  if (m.tahap !== d.tahap) throw new Error(`modul Tahap ${m.tahap} dipasang di ERD Tahap ${d.tahap}`);
+  if (m.tahap !== d.tahap) throw new Error(`${m.istilah} Tahap ${m.tahap} dipasang di ERD Tahap ${d.tahap}`);
   const ada = m.modul.flatMap((x) => x.tabel);
   const tabel = d.tabel.map((t) => t.nama);
   if (ada.length !== new Set(ada).size || [...ada].sort().join() !== [...tabel].sort().join())
-    throw new Error(`modul Tahap ${d.tahap}: tabel di pembagian modul tidak sama dengan tabel ERD (${ada.length} lawan ${tabel.length})`);
+    throw new Error(`${m.istilah} Tahap ${d.tahap}: tabel di pembagian ${m.istilah} tidak sama dengan tabel ERD (${ada.length} lawan ${tabel.length})`);
   if (JSON.stringify(lintasModul(d, m)) !== JSON.stringify(m.lintas))
-    throw new Error(`modul Tahap ${d.tahap}: foreign key lintas modul tidak sama dengan hitungan dari ERD`);
+    throw new Error(`${m.istilah} Tahap ${d.tahap}: foreign key lintas ${m.istilah} tidak sama dengan hitungan dari ERD`);
 }
 
-/** Satu kalimat untuk tabel pembagian modul: banyak tabel, banyak modul, dan ke mana foreign key menyeberang. */
-export function ringkasModul(m: ModulErd): string {
+export type FkDihapus = { tabel: string; fk: string; ke_tabel: string; dari_modul: string; ke_modul: string };
+
+/**
+ * Foreign key tahap sebelumnya yang dihapus karena menyeberang batas pembagian tahap ini (Tahap 5: 18 dari 37, layanan.sql
+ * langkah 2). Dibaca dari `selisih` (fk dihapus), nama foreign key dicari di ERD tahap sebelumnya; build gagal bila ada yang
+ * dihapus tanpa menyeberang, atau menyeberang tetapi masih ada. Padanan periksa_hapus_lintas() di tools/erd.py.
+ */
+export function fkDihapusLintas(semua: DataErd[], no: number, m: ModulErd): FkDihapus[] {
+  const d = semua.find((x) => x.tahap === no);
+  const s = d?.selisih;
+  if (!d || !s) throw new Error(`ERD Tahap ${no} tidak punya selisih`);
+  const lalu = semua.find((x) => x.tahap === s.terhadap);
+  if (!lalu) throw new Error(`ERD Tahap ${s.terhadap} tidak ada di data widget`);
+  const rujuk = (t: string, nama: string) => lalu.tabel.find((x) => x.nama === t)?.fk.find((f) => f.nama === nama);
+  const hasil: FkDihapus[] = [];
+  for (const a of s.aturan_berubah) {
+    if (a.jenis !== "fk" || a.ubah !== "dihapus") continue;
+    const f = rujuk(a.tabel, a.nama);
+    if (!f) throw new Error(`ERD Tahap ${no}: foreign key ${a.tabel}.${a.nama} dihapus tetapi tidak ada di Tahap ${s.terhadap}`);
+    const dari = modulTabel(m, a.tabel);
+    const ke = modulTabel(m, f.ke_tabel);
+    if (dari === null || ke === null || dari === ke) throw new Error(`ERD Tahap ${no}: foreign key ${a.tabel}.${a.nama} dihapus tetapi tidak menyeberang batas ${m.istilah}`);
+    hasil.push({ tabel: a.tabel, fk: a.nama, ke_tabel: f.ke_tabel, dari_modul: dari, ke_modul: ke });
+  }
+  // Yang menyeberang di tahap sebelumnya, pada tabel yang masih ada, harus ada di daftar dihapus (terhitung menurut isi, bukan nama).
+  const ada = new Set(d.tabel.map((t) => t.nama));
+  const perlu = lalu.tabel.filter((t) => ada.has(t.nama)).flatMap((t) => t.fk.filter((f) => modulTabel(m, t.nama) !== modulTabel(m, f.ke_tabel)));
+  if (perlu.length !== hasil.length)
+    throw new Error(`ERD Tahap ${no}: ${perlu.length} foreign key Tahap ${s.terhadap} menyeberang batas ${m.istilah}, ${hasil.length} yang dihapus`);
+  return hasil;
+}
+
+/** Satu kalimat untuk tabel pembagian: banyak tabel dan schema, foreign key yang menyeberang, dan (Tahap 5) yang dihapus. */
+export function ringkasModul(m: ModulErd, dihapus = 0, terhadap = 0): string {
   const tabel = m.modul.reduce((n, x) => n + x.tabel.length, 0);
   const ke = new Map<string, number>();
   for (const x of m.lintas) ke.set(x.ke_modul, (ke.get(x.ke_modul) ?? 0) + 1);
-  const rinci = [...ke].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([nama, n]) => `${n} ke modul ${nama}`);
-  return `${m.modul.length} modul, ${tabel} tabel; ${m.lintas.length} foreign key menyeberang batas modul${rinci.length ? ` (${rinci.join(", ")})` : ""}.`;
+  const rinci = [...ke].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([nama, n]) => `${n} ke ${m.istilah} ${nama}`);
+  const hapus = dihapus > 0 ? ` Dari Tahap ${terhadap}, ${dihapus} foreign key dihapus karena menyeberang batas ${m.istilah}.` : "";
+  return `${m.modul.length} ${m.istilah}, ${tabel} tabel; ${m.lintas.length} foreign key menyeberang batas ${m.istilah}${rinci.length ? ` (${rinci.join(", ")})` : ""}.${hapus}`;
 }

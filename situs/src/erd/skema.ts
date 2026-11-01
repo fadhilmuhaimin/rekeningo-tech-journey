@@ -26,6 +26,13 @@ export const Unik = z.object({ nama: Nama, kolom: DaftarKolom }).strict();
 export const Cek = z.object({ nama: Nama, kolom: DaftarKolom, ekspresi: z.string().min(1) }).strict();
 export const Index = z.object({ nama: Nama, unik: z.boolean(), definisi: z.string().min(1) }).strict();
 
+// Tabel berpartisi (posting di Tahap 5, ERD5 keputusan 1670): satu tabel di ERD, partisinya hanya dicatat. Batas partisi
+// bergantung bulan menjalankan, jadi tidak ada di JSON.
+export const Partisi = z
+  .object({ kunci: z.string().min(1), anak: z.array(Nama).min(1) })
+  .strict()
+  .refine((p) => p.anak.every((a, i) => i === 0 || p.anak[i - 1] < a), { message: "anak partisi tidak terurut atau ganda" });
+
 export const Tabel = z
   .object({
     nama: Nama,
@@ -35,11 +42,15 @@ export const Tabel = z
     unik: z.array(Unik).refine(terurut, "unik tidak terurut menurut nama"),
     cek: z.array(Cek).refine(terurut, "cek tidak terurut menurut nama"),
     index: z.array(Index).refine(terurut, "index tidak terurut menurut nama"),
+    partisi: Partisi.optional(),
   })
   .strict()
   .superRefine((t, ctx) => {
     const ada = new Set(t.kolom.map((k) => k.nama));
     if (ada.size !== t.kolom.length) ctx.addIssue({ code: "custom", message: `${t.nama}: kolom ganda` });
+    // PostgreSQL: PRIMARY KEY dan UNIQUE tabel berpartisi harus memuat kolom kunci partisi.
+    if (t.partisi && !t.pk.some((k) => new RegExp(`\\b${k}\\b`).test(t.partisi!.kunci)))
+      ctx.addIssue({ code: "custom", message: `${t.nama}: kunci partisi ${t.partisi.kunci} tidak memuat kolom PK` });
     const cek = (kolom: string[], asal: string) => {
       for (const k of kolom) if (!ada.has(k)) ctx.addIssue({ code: "custom", message: `${t.nama}.${asal}: kolom ${k} tidak ada` });
     };
@@ -59,7 +70,7 @@ export const Selisih = z
     // PK, FK, UNIQUE, CHECK, index yang baru, dihapus, atau berubah di tabel yang ada di kedua tahap (keputusan 460).
     aturan_berubah: z.array(
       z
-        .object({ tabel: Nama, jenis: z.enum(["pk", "fk", "unik", "cek", "index"]), nama: Nama, ubah: z.enum(["baru", "dihapus", "berubah"]) })
+        .object({ tabel: Nama, jenis: z.enum(["pk", "partisi", "fk", "unik", "cek", "index"]), nama: Nama, ubah: z.enum(["baru", "dihapus", "berubah"]) })
         .strict(),
     ),
   })
@@ -80,6 +91,9 @@ export const DataErd = z
   .superRefine((d, ctx) => {
     const tabel = new Map(d.tabel.map((t) => [t.nama, t]));
     if (tabel.size !== d.tabel.length) ctx.addIssue({ code: "custom", message: "tabel ganda" });
+    for (const t of d.tabel)
+      for (const a of t.partisi?.anak ?? [])
+        if (tabel.has(a)) ctx.addIssue({ code: "custom", message: `${t.nama}: partisi ${a} juga tampil sebagai tabel` });
     for (const t of d.tabel)
       for (const f of t.fk) {
         const ke = tabel.get(f.ke_tabel);
@@ -105,10 +119,13 @@ export const PetaHalaman = z
 
 // Pembagian modul satu tahap (situs/data/erd/modul-tahap-<n>.json, ERD4): tools/erd.py membacanya dari modul.sql lab
 // t4-modul dan menghitung foreign key yang menyeberang schema dari tahap-<n>.json. Informasi, bukan bagian ERD.
+// Tahap 5 (ERD5): `istilah` "service", file service-tahap-5.json dari labs/api-t5/layanan.sql; foreign key yang menyeberang
+// sudah dihapus dari ERD, jadi `lintas` kosong.
 export const ModulErd = z
   .object({
     format: z.literal(1),
     tahap: z.number().int().min(1),
+    istilah: z.enum(["modul", "service"]),
     sumber: z.object({ file: z.string().min(1), sha256: z.string().regex(/^[0-9a-f]{64}$/) }).strict(),
     modul: z.array(z.object({ nama: Nama, schema: Nama, tabel: z.array(Nama).min(1) }).strict()).min(1),
     lintas: z.array(

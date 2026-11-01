@@ -51,6 +51,9 @@ Tidak dibawa dari `api-t4`: paket `internal/modul`, `cmd/pembayaran`, `cmd/qrlab
 | --- | --- | --- |
 | `laporan-primary` | M40 | `GET /merchant/{id}/laporan/hari-ini` menjumlah posting hari ini langsung dari `posting` di primary; dengan `-laporan-cache redis` jawaban di-cache selama `-laporan-ttl` (bawaan 30 detik) |
 | `cicilan-satu-job` | M48 | job `-cicilan-sampai <tanggal>` menagih angsuran jatuh tempo dengan Idempotency-Key 24 jam sebagai satu-satunya penjaga |
+| `riwayat-replika` | M41 | saldo tampil (`GET /akun/{id}`) dan riwayat dibaca dari replica tanpa memeriksa token `X-Lsn-Tulis`; butuh `REPLIKA_DATABASE_URL` dan hanya dipakai lab `t5-replika` |
+
+Tanpa `REPLIKA_DATABASE_URL` jawaban `api-t5` tidak berubah. Dengan replica, jawaban bayar dan kirim memuat `X-Lsn-Tulis`. Saldo tampil dan riwayat memakai replica hanya bila replica sudah memutar WAL sampai token itu (ADR 47; rekaman di `labs/t5-replika/output/baca.txt`).
 
 Mode dari `api-t4` tetap ada dan tidak diubah (`push-dalam-tx`, `kursor`, `ekspor-panic`, `tanpa-shutdown`, `stok-timpa`, `urut-waktu`, `webhook-v1`, `webhook-cek-tulis`, `kartu-tanpa-hold`, `unduh-rentan`, `bo-tanpa-audit`, `verifikasi-tanpa-key`, `berkas-bytea`, `bo-log-biasa`). Job cicilan di lab: `./api-t5 -cicilan-sampai 2026-12-31 [-rentan cicilan-satu-job] [-lab-sekarang <RFC 3339>] [-lab-cicilan-henti N]`.
 

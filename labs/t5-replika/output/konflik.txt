@@ -1,0 +1,80 @@
+# Lab t5-replika · statement_timeout di replika dan konflik dengan pemutaran ulang WAL
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema t5_ledger, t5_akun, t5_pembayaran, t5_merchant, t5_notifikasi, t5_cicilan · primary, replika asinkron, dan standby sinkron di container lokal · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-replika run.
+primary=> CREATE SCHEMA replika_uji
+CREATE SCHEMA
+primary=> CREATE TABLE replika_uji.k (id int)
+CREATE TABLE
+
+# --- A. Pengaturan replika: konflik antara query dan WAL pembersihan ---
+# Tabel replika_uji.k adalah tabel uji sementara di lab ini, bukan tabel ledger. Konflik dibuat dengan menghapus 1.000 baris lalu VACUUM
+# di primary sementara satu query di replika masih memakai baris-baris itu.
+replika=> SHOW max_standby_streaming_delay
+ max_standby_streaming_delay
+-----------------------------
+ 30s
+(1 row)
+replika=> SHOW hot_standby_feedback
+ hot_standby_feedback
+----------------------
+ off
+(1 row)
+replika=> SHOW statement_timeout
+ statement_timeout
+-------------------
+ 0
+(1 row)
+# Pengaturan bawaan: standby menunggu sampai 30 detik sebelum membatalkan query yang bentrok dengan WAL; tanpa statement_timeout.
+
+# --- B. Query pendek (3 detik) selama konflik: standby menunggu, query selesai ---
+primary=> INSERT INTO replika_uji.k SELECT generate_series(1, 1000)
+INSERT 0 1000
+primary=> DELETE FROM replika_uji.k
+DELETE 1000
+primary=> VACUUM replika_uji.k
+VACUUM
+# query 3 detik: WAL pembersihan baris sudah diterima replika, tetapi belum diputar ulang selama query berjalan: ya
+# Query selesai tanpa galat dan melihat 1.000 baris (snapshot-nya lama); replay menunggu query itu, lalu menyusul dalam waktu kurang dari 30 detik.
+replika=> SELECT confl_snapshot FROM pg_stat_database_conflicts WHERE datname = 'lab'
+ confl_snapshot
+----------------
+ 0
+(1 row)
+
+# --- C. statement_timeout = 20 detik, query 45 detik: berhenti oleh timeout, bukan oleh konflik ---
+primary=> INSERT INTO replika_uji.k SELECT generate_series(1, 1000)
+INSERT 0 1000
+primary=> DELETE FROM replika_uji.k
+DELETE 1000
+primary=> VACUUM replika_uji.k
+VACUUM
+# statement_timeout 20 detik: WAL pembersihan baris sudah diterima replika, tetapi belum diputar ulang selama query berjalan: ya
+ERROR:  canceling statement due to statement timeout
+SQLSTATE 57014
+# Berhenti sesudah paling sedikit 20 detik dan sebelum 30 detik; replay baru menyusul sesudah query berhenti, dan itu kurang dari 30 detik sesudah VACUUM (nilai tidak direkam).
+replika=> SELECT confl_snapshot FROM pg_stat_database_conflicts WHERE datname = 'lab'
+ confl_snapshot
+----------------
+ 0
+(1 row)
+
+# --- D. Tanpa statement_timeout, query 45 detik: konflik membatalkannya sesudah max_standby_streaming_delay ---
+primary=> INSERT INTO replika_uji.k SELECT generate_series(1, 1000)
+INSERT 0 1000
+primary=> DELETE FROM replika_uji.k
+DELETE 1000
+primary=> VACUUM replika_uji.k
+VACUUM
+# tanpa statement_timeout: WAL pembersihan baris sudah diterima replika, tetapi belum diputar ulang selama query berjalan: ya
+ERROR:  canceling statement due to conflict with recovery
+SQLSTATE 40001
+# Berhenti sesudah paling sedikit 30 detik (max_standby_streaming_delay bawaan 30 detik) dan sebelum 60 detik; replay baru menyusul sesudah query dibatalkan, lebih lama dari di bagian C (nilai tidak direkam).
+# Lama itu diukur sejak query mulai. Dokumentasi menghitung 30 detik sejak WAL diterima standby, dan WAL pembersihan baru ada sesudah query mulai.
+replika=> SELECT confl_snapshot FROM pg_stat_database_conflicts WHERE datname = 'lab'
+ confl_snapshot
+----------------
+ 1
+(1 row)
+# Pencacah konflik snapshot di katalog replika naik dari 0 ke 1 hanya pada skenario ini.
+# Dua cara berhenti, dua kode: 57014 dari timeout milik sesi pada 20 detik, 40001 dari konflik pada 30 detik. Timeout 20 detik tidak
+# mencegah query lama dihentikan; ia menghentikannya lebih dulu, dan replay tertahan lebih singkat (kurang dari 30 detik, lebih singkat dari di bagian D). Query 3 detik di bagian B tidak dihentikan siapa pun.

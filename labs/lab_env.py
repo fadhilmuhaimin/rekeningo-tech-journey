@@ -6,7 +6,8 @@ atau di luar 1-65535 menghentikan lab dengan GAGAL, bukan diam-diam memakai nila
   LAB_DB_PORT                 port PostgreSQL bersama di host (bawaan 54333; labs/b3-race/docker-compose.yml)
   LAB_REDIS_PORT              port Redis (bawaan 56379; labs/b9-cache/docker-compose.yml)
   LAB_REPLIKA_PRIMARY_PORT    primary lab t5-replika (bawaan 54340)
-  LAB_REPLIKA_REPLICA_PORT    replica lab t5-replika (bawaan 54341)
+  LAB_REPLIKA_REPLICA_PORT    standby asinkron lab t5-replika (bawaan 54341)
+  LAB_REPLIKA_SINKRON_PORT    standby sinkron lab t5-replika (bawaan 54342)
   LAB_PORT_OFFSET             ditambahkan ke setiap port server lab (bawaan 0), lewat port_lab(dasar)
   COMPOSE_PROJECT_NAME        nama proyek compose, dibaca docker compose sendiri
 
@@ -40,6 +41,7 @@ DB_PORT = _port_sah("LAB_DB_PORT", _bulat("LAB_DB_PORT", 54333))
 REDIS_PORT = _port_sah("LAB_REDIS_PORT", _bulat("LAB_REDIS_PORT", 56379))
 REPLIKA_PRIMARY_PORT = _port_sah("LAB_REPLIKA_PRIMARY_PORT", _bulat("LAB_REPLIKA_PRIMARY_PORT", 54340))
 REPLIKA_REPLICA_PORT = _port_sah("LAB_REPLIKA_REPLICA_PORT", _bulat("LAB_REPLIKA_REPLICA_PORT", 54341))
+REPLIKA_SINKRON_PORT = _port_sah("LAB_REPLIKA_SINKRON_PORT", _bulat("LAB_REPLIKA_SINKRON_PORT", 54342))
 OFFSET = _bulat("LAB_PORT_OFFSET", 0)
 PROYEK = os.environ.get("COMPOSE_PROJECT_NAME", "").strip()
 

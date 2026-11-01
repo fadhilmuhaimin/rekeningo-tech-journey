@@ -42,6 +42,8 @@ type Service struct {
 	kc *cache.Katalog
 	// Cache laporan merchant (Tahap 5, M40). Nil berarti laporan selalu dari database.
 	kl *cache.Katalog
+	// Replica untuk bacaan tampilan (lab t5-replika). Nil berarti semua bacaan dari primary: perilaku api-t5 tidak berubah.
+	replika PembacaReplika
 	// Tahap 4: pihak ketiga tiruan dan setelan lab (t4_dep.go), batas laju endpoint baru (batas_endpoint.go).
 	t4    Dep
 	batas *batasEndpoint

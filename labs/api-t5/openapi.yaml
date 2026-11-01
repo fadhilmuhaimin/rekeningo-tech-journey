@@ -134,6 +134,8 @@ paths:
             Location:
               description: Alamat pembayaran yang baru dibuat, misalnya /transfers/1
               schema: { type: string }
+            X-Lsn-Tulis:
+              $ref: '#/components/headers/LsnTulis'
           content:
             application/json:
               schema:
@@ -175,6 +177,8 @@ paths:
             Location:
               description: Alamat jurnal yang baru dibuat, misalnya /transfers/2001
               schema: { type: string }
+            X-Lsn-Tulis:
+              $ref: '#/components/headers/LsnTulis'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/HasilKiriman' }
@@ -244,14 +248,19 @@ paths:
       summary: Akun milik sendiri, dengan saldo
       parameters:
         - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/LsnTulis'
       responses:
         '200':
           description: Akun
+          headers:
+            X-Dibaca-Dari:
+              $ref: '#/components/headers/DibacaDari'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Akun' }
         '401': { $ref: '#/components/responses/Problem' }
         '404': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
   /akun/{id}/riwayat:
     get:
       operationId: riwayat
@@ -265,9 +274,13 @@ paths:
         - name: batas
           in: query
           schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+        - $ref: '#/components/parameters/LsnTulis'
       responses:
         '200':
           description: Riwayat
+          headers:
+            X-Dibaca-Dari:
+              $ref: '#/components/headers/DibacaDari'
           content:
             application/json:
               schema:
@@ -1475,12 +1488,33 @@ components:
       in: header
       name: X-Penerbit-Kunci
       description: Kunci bersama penerbit kartu tiruan (data lab, bukan secret); server tanpa kunci menolak semua panggilan
+  headers:
+    LsnTulis:
+      description: >-
+        Hanya bila server dijalankan dengan replica: posisi WAL primary sesudah COMMIT. App mengirimnya kembali di
+        X-Lsn-Tulis pada GET /akun/{id} dan GET /akun/{id}/riwayat supaya bacaan tampilan tidak lebih lama dari tulisannya.
+      schema: { type: string }
+    DibacaDari:
+      description: 'Hanya bila server dijalankan dengan replica. Tempat bacaan tampilan ini diambil: primary atau replika.'
+      schema: { type: string, enum: [primary, replika] }
+
   parameters:
     Id:
       name: id
       in: path
       required: true
       schema: { type: integer, format: int64 }
+    LsnTulis:
+      name: X-Lsn-Tulis
+      in: header
+      required: false
+      description: >-
+        Token baca-sesudah-tulis dari jawaban bayar atau kirim terakhir app (posisi WAL primary sesudah COMMIT, mis.
+        0/3032C60). Hanya dihormati bila server dijalankan dengan replica: replica dipakai bila sudah memutar ulang
+        sampai posisi itu, selain itu primary. Tanpa header, bacaan tampilan dari replica. Bentuk salah dijawab 422.
+      schema:
+        type: string
+        pattern: '^[0-9A-Fa-f]{1,8}/[0-9A-Fa-f]{1,8}$'
     IdempotencyKey:
       name: Idempotency-Key
       in: header

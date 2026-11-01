@@ -196,6 +196,13 @@
 .erd-tumbuh__kepala.is-dua > code {
   flex: 0 0 100%;
 }
+/* Nama tabel yang lebih lebar dari isi node (ringkasan_merchant_harian, ERD5): membungkus sesudah garis bawah, tiap baris
+   tambahan setinggi UKURAN.barisNama (20 px) di tumbuh.ts. */
+.erd-tumbuh .erd-tumbuh__kepala.is-nama-dua code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 20px;
+}
 .erd-tumbuh__kepala.is-dua > .erd-tumbuh__status {
   margin-left: auto;
 }
@@ -215,6 +222,16 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--k-old-ink);
+}
+/* Tabel berpartisi (posting, ERD5): chip di kepala, satu baris dengan status; lebarnya METRIK.partisi di tumbuh.ts. */
+.erd-tumbuh__partisi {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--k-system-ink);
+}
+.erd-tumbuh__kepala.is-dua > .erd-tumbuh__partisi {
+  margin-right: auto;
 }
 .is-baru > .erd-tumbuh__kepala .erd-tumbuh__status,
 .erd-tumbuh__baris.is-baru .erd-tumbuh__ubah { color: var(--k-good-ink); }
