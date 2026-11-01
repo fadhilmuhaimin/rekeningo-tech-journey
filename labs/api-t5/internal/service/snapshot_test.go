@@ -387,3 +387,35 @@ func TestCekCacheSnapshotBukuBaruTanpaBarisSnapshot(t *testing.T) {
 		t.Fatalf("cache buku baru lebih 700: selisih %d (ada %v), ingin 700", s, ada)
 	}
 }
+
+// Jurnal yang postingnya sudah dilepas bersama partisinya tidak bisa dibalik: Balik menjawab ErrPostingDiarsip sebelum
+// transaction dibuka, dan tidak ada jurnal pembalik yang tertinggal. Keadaannya dibuat dengan jurnal tanpa posting
+// (session_replication_role = replica mematikan aturan jurnal seimbang untuk pemilik schema; hanya untuk membuat keadaan itu).
+func TestBalikJurnalTanpaPostingDijawabDiarsip(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	admin, _ := akunBaru(t, db, "admin", 0)
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`SET LOCAL session_replication_role = replica`); err != nil {
+		t.Fatal(err)
+	}
+	var id int64
+	if err := tx.QueryRow(`INSERT INTO jurnal (jenis, keterangan, dibuat_oleh, dibuat)
+		VALUES ('bayar', 'tes jurnal yang postingnya sudah dilepas', 1, '2016-06-10T10:00:00+07:00'::timestamptz) RETURNING id`).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Balik(ctx, admin, id, "partisi posting bulan itu sudah dilepas dan diarsipkan"); !errors.Is(err, ErrPostingDiarsip) {
+		t.Fatalf("balik jurnal tanpa posting: ingin ErrPostingDiarsip, dapat %v", err)
+	}
+	var pembalik int
+	if err := db.QueryRow(`SELECT count(*) FROM jurnal WHERE membalik_jurnal_id = $1`, id).Scan(&pembalik); err != nil || pembalik != 0 {
+		t.Fatalf("jurnal pembalik tertinggal: %d (%v), ingin 0", pembalik, err)
+	}
+}

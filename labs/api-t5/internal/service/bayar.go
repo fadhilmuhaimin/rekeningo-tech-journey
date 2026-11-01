@@ -14,6 +14,8 @@ var (
 	ErrBatasHarian  = errors.New("batas transfer harian terlewati")
 	ErrBatasWarung  = errors.New("saldo warung melewati batas")
 	ErrSudahDibalik = errors.New("jurnal sudah pernah dibalik")
+	// ErrPostingDiarsip: jurnal ada, tetapi tidak satu pun postingnya terlihat lewat tabel posting (partisinya sudah dilepas).
+	ErrPostingDiarsip = errors.New("posting jurnal sudah diarsipkan")
 )
 
 // ErrValidasi: satu field input tidak memenuhi aturan Rekeningo.
