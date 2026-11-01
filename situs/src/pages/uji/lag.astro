@@ -1,0 +1,21 @@
+---
+// Halaman uji widget jeda replica Tahap 5 (W5-lag). Bukan halaman cerita: tidak di registry, tidak di sidebar, tidak diindeks.
+// Dipakai situs/tools/ukur-lag.mjs (tebak dulu, tabel dari hitungan sendiri, ARIA, 320 px, axe, tanpa JavaScript, CLS font telat).
+// Halaman 5.7 memasang komponen yang sama.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import JedaReplica from "../../components/JedaReplica.astro";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Uji jeda replica",
+    description: "Halaman uji widget jeda replica Tahap 5.",
+    pagefind: false,
+    tableOfContents: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>Halaman uji widget jeda replica. Jeda adalah Simulasi; kutipan rekaman dari lab t5-replika.</p>
+  <JedaReplica />
+  <p>Teks sesudah widget, supaya halaman cukup panjang untuk diuji geser isi saat hydrate.</p>
+</StarlightPage>
