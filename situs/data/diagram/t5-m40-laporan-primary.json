@@ -1,0 +1,48 @@
+{
+  "id": "t5-m40-laporan-primary",
+  "judul": "Laporan di primary: yang direkam dan yang dihitung",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Baris atas: rekaman lab api-t5, laporan.txt bagian A dan B. Baris bawah: Hitungan atas Asumsi"
+  },
+  "baris": [
+    {
+      "label": "Direkam",
+      "sub": "laporan.txt bagian A dan B",
+      "simpul": [
+        {
+          "teks": "Laporan dibaca dari primary",
+          "sub": "tiap panggilan menjumlah posting"
+        },
+        {
+          "teks": "6.667 laporan selesai",
+          "sub": "666,7 per detik selama 10 detik, semua 200"
+        },
+        {
+          "teks": "1.000 pembayaran tetap 201",
+          "sub": "selisih p95 tidak direkam"
+        }
+      ]
+    },
+    {
+      "label": "Dihitung",
+      "sub": "Asumsi: 20.000 merchant online, 20 ms, 8 vCPU",
+      "simpul": [
+        {
+          "teks": "666,7 laporan per detik",
+          "sub": "20.000 ÷ 30"
+        },
+        {
+          "teks": "13,3 laporan berjalan",
+          "sub": "666,7 × 0,02"
+        },
+        {
+          "teks": "167% CPU bila 20 ms",
+          "sub": "666,7 × 0,02 ÷ 8, Hitungan atas Asumsi",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Rekaman membuktikan jalurnya, bukan perlambatannya. Kotak oranye adalah hitungan yang bergantung pada 20 ms, yang tidak diukur."
+}

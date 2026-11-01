@@ -1,0 +1,182 @@
+---
+title: "5.4 M40: Pembayaran melambat saat merchant membuka laporan"
+description: Minggu 2. Merchant membuka laporan real-time tiap 30 detik, pembayaran di warung ikut menunggu, dan laporan membaca primary yang sama dengan pembayaran. Rekaman membuktikan jalurnya, hitungan memperkirakan bebannya.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import laporanPrimary from "../../../../data/diagram/t5-m40-laporan-primary.json";
+
+<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t5-skema]], [[t3-pool]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 2 Tahap 5. Kamis pukul 11.40 Ani menunggu dua pembayaran yang belum muncul di layar kasirnya. Di app Budi, tombol Bayar berputar 6 detik.
+
+Pada jam yang sama merchant di banyak kota membuka laporan penjualan yang baru dirilis Wulan. Laporan itu menunjukkan penjualan hari ini dan diperbarui tiap 30 detik ([[t5-prd]]).
+
+*Angka cerita (Ilustrasi):* hari, jam, dua pembayaran Ani, dan 6 detik berasal dari naskah, bukan dari rekaman. Rekaman lab tidak menghasilkan tombol Bayar yang berputar 6 detik, dan alasannya ada di blok Yang sebenarnya. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Dugaan pertama tim: server kurang kuat. Pembayaran melambat tepat saat laporan dibuka, jadi mesin database terlihat kewalahan.
+
+Nadia mengusulkan jalan yang tidak butuh mesin baru: cache laporan 30 detik di Redis, seperti cache katalog di [[t3-cache]]. Cache menyimpan jawaban sementara. Panggilan yang menemukan jawaban tersimpan disebut hit dan tidak membaca database. Panggilan yang tidak menemukannya disebut miss dan membaca database.
+
+Jawaban tersimpan itu berumur 30 detik (TTL, masa berlaku entri cache). App tiap merchant memakai polling: ia menanyakan laporan ke server tiap 30 detik.
+
+<details class="question">
+<summary>Tebak dulu: laporan hanya membaca dan tidak mengubah apa pun, tetapi pembayaran ikut melambat. Apa yang laporan dan pembayaran pakai bersama?</summary>
+
+Primary, yaitu database yang menerima semua tulisan. Laporan menjumlah baris di tabel `posting`. Tabel itu juga menerima baris baru tiap pembayaran, lewat pool koneksi yang sama (Tidak dijalankan: dibaca dari kode lab). Di lab hanya ada satu PostgreSQL, jadi kata primary berlaku menurut susunan lab.
+
+</details>
+
+Usul cache Nadia diuji di blok Coba sendiri, dengan tebakan sendiri.
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Laporan menjumlah posting di primary yang sama dengan pembayaran, jadi tiap polling menambah kerja database yang menulis uang.
+
+<Rantai data={laporanPrimary} ringkas />
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, dengan server `api-t5` satu proses dan satu PostgreSQL. Laporan hanya ada bila server dijalankan dengan mode `-rentan laporan-primary`. Mode itu adalah kode lab yang ditulis untuk M40, bukan salinan kode yang pernah berjalan di cerita. Tanpa mode itu rutenya dijawab 404:
+
+<Snippet file="labs/api-t5/output/laporan.txt" lines="7:12" title="Rekaman lab: labs/api-t5/output/laporan.txt, bagian A (tanpa mode rentan rute laporan tidak ada)" />
+
+**Laporan menjumlah posting dari primary, tiap panggilan.** Budi membayar Warung 505 dua kali, Rp35.000 dan Rp12.000. Laporan warung itu lalu menjawab dua transaksi dengan total Rp47.000 (Rekaman lab, bagian A). Penjumlahan 35.000 + 12.000 = 47.000 adalah Hitungan, yaitu angka yang dihitung dari angka lain di halaman.
+
+<Snippet file="labs/api-t5/output/laporan.txt" lines="14:30" title="Rekaman lab: labs/api-t5/output/laporan.txt, bagian A (dua pembayaran Budi dan laporan Warung 505)" />
+
+Fungsi `LaporanHariIni` di lapisan repo menjalankan satu query atas `posting` dan `buku`. Di dalam fungsi itu tidak ada ringkasan, replica, atau cache (Tidak dijalankan: dibaca dari kode):
+
+<Snippet file="labs/api-t5/internal/repo/t5.go" lines="27:35" lang="go" title="Kode lab: labs/api-t5/internal/repo/t5.go baris 27 sampai 35 (query laporan atas posting)" />
+
+**Tiga perintah SQL per permintaan.** Satu permintaan laporan yang sah, yaitu GET dengan token Bearer, menjalankan tiga perintah SQL di lab. `SesiAktif` memeriksa sesi, `Akun` membaca akun merchant, dan `LaporanHariIni` menjumlah posting. Ketiganya dibaca dari `handler.go`, `repo.go`, dan `service/t5.go`, sedangkan rekaman tidak menghitung perintah SQL (Tidak dijalankan). Cache, bila dipasang, hanya membungkus yang ketiga:
+
+<Snippet file="labs/api-t5/internal/service/t5.go" lines="69:88" lang="go" title="Kode lab: labs/api-t5/internal/service/t5.go baris 69 sampai 88 (cache membungkus satu query, dibaca_dari teks tetap)" />
+
+Field `dibaca_dari` ditulis kode sebagai teks `primary`, juga untuk jawaban dari cache. Field itu menyatakan maksud kode, bukan hasil ukuran (Tidak dijalankan: dibaca dari kode).
+
+**Polling 666,7 per detik selesai tanpa galat, dan perlambatannya tidak terekam.** Lab menjalankan pembayaran 100 per detik selama 10 detik, dua kali. Putaran pertama tanpa laporan, putaran kedua dengan laporan 666,7 per detik dari 9 warung. Pembayarannya `POST /transfers` Rp1.000 dari 200 user tiruan (Tidak dijalankan: dibaca dari `cmd/beban`).
+
+<Snippet file="labs/api-t5/output/laporan.txt" lines="48:57" title="Rekaman lab: labs/api-t5/output/laporan.txt, bagian B (pembayaran dengan dan tanpa polling laporan)" />
+
+Kedua putaran selesai tanpa galat: 1.000 dari 1.000 pembayaran 201, dan 6.667 dari 6.667 laporan 200. Nilai p95 pembayaran ada di bawah batas lab 2.000 ms di kedua putaran (Asumsi). Selisih p95 di antara kedua putaran tidak direkam dan tidak menjadi syarat, karena bergantung pada mesin dan beban lain di laptop.
+
+Jadi rekaman tidak menunjukkan pembayaran yang melambat. Batas 2.000 ms hanya memeriksa bahwa kedua putaran tidak macet.
+
+Dua perbedaan antara lab dan produksi bisa menjelaskan kenapa perlambatan tidak terlihat (penalaran). Pertama, laporan menjumlah data satu hari dari 9 warung. Query laporan berjalan di bawah 1 ms. Hanya batasnya yang direkam (Rekaman lab, bagian A). `EXPLAIN ANALYZE` menjalankan statement dan menambahkan statistik waktu nyata ([PostgreSQL 17.11, EXPLAIN](https://www.postgresql.org/docs/17/sql-explain.html), dibuka 2026-11-02, Tidak dijalankan).
+
+Kedua, polling lab berasal dari 9 warung, yaitu 666,7 ÷ 9 = 74,1 per warung per detik (Hitungan). Di produksi, 20.000 merchant masing-masing bertanya sekali tiap 30 detik.
+
+**Di produksi, bebannya Hitungan atas Asumsi.** Masukannya berasal dari tabel beban naskah Tahap 5, dan semuanya Asumsi. Isinya 200.000 merchant ([[t5-prd]]), 10% online, polling tiap 30 detik, dan 8 vCPU. vCPU adalah satu inti CPU virtual. Satu permintaan memegang koneksi 20 ms, angka yang sama dengan [[t4-estimasi]].
+
+Transaksi uang puncak 69,4 per detik memakai tiga transaksi per user aktif per hari. Dengan dua transaksi angkanya 46,3.
+
+| Besaran | Hitungan | Hasil |
+|---|---|---|
+| Merchant online | 200.000 × 10% | 20.000 |
+| Laporan per detik | 20.000 ÷ 30 | 666,7 |
+| Dibanding transaksi uang puncak | 666,7 ÷ 69,4 | 9,6 kali |
+| Laporan berjalan serentak | 666,7 × 0,02 | 13,3 |
+| Kebutuhan CPU | 666,7 × 0,02 ÷ 8 | 167% |
+| Kebutuhan CPU bila 1 ms | 666,7 × 0,001 ÷ 8 | 8,3% |
+| Kebutuhan CPU di 16 vCPU | 666,7 × 0,02 ÷ 16 | 83% |
+
+Dengan dua transaksi per user aktif, perbandingan itu menjadi 666,7 ÷ 46,3 = 14,4 kali. Bacaan selain uang juga menahan koneksi: (1.388,9 − 69,4) × 0,02 = 26,4 koneksi, 528% dari pemicu read replica di [[t4-adr-45]] yang 5 koneksi. Dengan dua transaksi hasilnya 26,9 koneksi (Hitungan atas Asumsi).
+
+Laporan sendirian memakai seluruh 8 vCPU bila satu permintaan memakai 8 ÷ 666,7 = 0,0120 detik CPU, yaitu 12 ms. Di atas 12 ms, laporan meminta lebih dari yang dimiliki mesin, dan pembayaran berebut CPU dengan laporan (penalaran; rekaman tidak mengukurnya).
+
+Angka 167% memakai 20 ms sebagai waktu CPU. Lama memegang koneksi juga mencakup menunggu disk atau lock, jadi untuk 20 ms itu 167% adalah batas atas (penalaran). Rekaman membatasi satu query laporan di bawah 1 ms pada data kecil. Seluruh perlambatan di cerita bergantung pada 20 ms yang tidak diukur.
+
+Menambah CPU memindahkan batas itu: 16 vCPU memberi 83%. Tetapi 666,7 naik sebanding dengan merchant online (online ÷ 30), dan bebannya tetap di mesin yang menulis uang. Cara lain melayani laporan ditimbang di [[t5-read-replica]].
+
+**Cache 30 detik punya dua masalah yang terpisah.** Yang pertama soal hit. Lab menyalakan cache Redis dengan TTL 30 detik dan memanggil laporan 9 warung, satu client per warung, dalam dua putaran berjarak 30,5 detik.
+
+<Snippet file="labs/api-t5/output/laporan.txt" lines="60:66" title="Rekaman lab: labs/api-t5/output/laporan.txt, bagian C (cache 30 detik dan kontrol dua client)" />
+
+Hasilnya 0 hit, 18 miss, dan 18 pembacaan database. Kontrol dengan dua client per warung dalam satu jendela TTL menghasilkan 9 hit dari 18, jadi cache bekerja. Yang kurang adalah panggilan kedua dalam jendela itu. Jumlah hit dibaca dari pencacah server, bukan dari waktu.
+
+Jarak 30,5 detik lebih panjang dari TTL 30 detik, jadi 0 hit memang diharapkan. Jarak 30 detik atau lebih pendek tidak direkam. Bila jarak satu perangkat 29 detik, panggilan kedua mendapat hit. Panggilan ketiga tidak, karena hit tidak memperpanjang umur isi: ia datang 29 + 29 = 58 detik sesudah isi dibuat, jauh di atas 30 (Hitungan).
+
+Kode lab membaca kunci dengan `GET`, dan menyimpannya dengan `SET` berumur TTL hanya saat miss. Dokumentasi Redis menulis bahwa timeout hanya dihapus perintah yang menghapus atau menimpa isi kunci. Halaman sumbernya, [Redis, EXPIRE](https://redis.io/docs/latest/commands/expire/), berversi latest tanpa nomor dan dibuka 2026-11-02 (Tidak dijalankan). `GET` membaca tanpa menimpa isinya, jadi hit tidak memperpanjang umur isi. Hasil terbaik satu hit dari dua panggilan (penalaran, tidak direkam).
+
+Hit juga hanya melewati `LaporanHariIni`. Pemeriksaan sesi dan `Akun` tetap membaca database di tiap panggilan (Tidak dijalankan: dibaca dari kode). Pencacah "baca database" tidak menghitung dua perintah itu.
+
+**Masalah kedua tidak bergantung pada hit.** Cache 30 detik membuat laporan bisa setua 30 detik, karena hit mengembalikan isi yang disimpan saat miss (Tidak dijalankan: dibaca dari kode). PRD v5 menulis data laporan tertinggal paling lama 5 detik dan penjualan baru terlihat paling lambat 35 detik, yaitu 30 + 5 ([[t5-prd]]; Asumsi produk). Dengan cache, penjualan baru bisa terlihat 30 + 30 = 60 detik sesudah tercatat (Hitungan atas Asumsi produk).
+
+**Yang tidak direkam.**
+
+- Pembayaran yang melambat: selisih p95 dengan dan tanpa laporan tidak direkam. Yang terekam hanya p95 di bawah 2.000 ms di kedua putaran.
+- 20.000 merchant online, 20 ms, dan 8 vCPU adalah Asumsi. Lab memakai 9 warung, data satu hari, dan satu laptop.
+- Jarak polling 30 detik atau lebih pendek ke cache tidak direkam.
+- Naskah menulis satu perangkat per merchant, padahal laporan tampil di app Merchant dan di dasbor web. Jumlah layar per merchant adalah Asumsi.
+- Tombol Bayar 6 detik, hari, jam, dan dua pembayaran Ani hanya ada di cerita (Ilustrasi).
+- Replica tidak dipakai di lab `api-t5`, dan tidak ada kode di folder itu yang mengisi tabel `ringkasan_merchant_harian`. Kapasitas satu primary belum diukur: `make beban` memberi batas di laptop ([[t5-prd]]).
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `laporan.txt` bagian A sampai C, dengan satu varian dari bagian C. Tebak dulu berapa dari 18 panggilan yang menemukan isinya di cache, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t5-m40.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: dua client untuk tiap warung dalam satu jendela TTL**. Hasilnya 9 hit dari 18. Cache menolong bila ada panggilan kedua dalam 30 detik untuk merchant yang sama, dan polling satu perangkat per merchant tidak punya panggilan itu.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Hasilnya: laporan Warung 505 dijawab dari primary dengan dua transaksi dan total Rp47.000. Polling 666,7 per detik dari 9 warung selesai tanpa galat, dan selisih p95 pembayaran tidak direkam.
+
+Cache 30 detik dengan satu client per warung dan jarak 30,5 detik menghasilkan 0 hit dari 18. Dengan dua client per warung dalam satu jendela, hasilnya 9 hit dari 18. Rekamannya ada di cuplikan pada blok sebelumnya.
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t5-read-replica]]: salinan database yang melayani bacaan, dan model baca untuk laporan. Keputusannya ADR 46.
+- [[t3-cache]]: cache-aside, hit, miss, dan TTL, termasuk batas cache untuk angka yang menggerakkan uang.
+- [[t3-pool]]: laju kali lama, yang dipakai untuk menghitung permintaan berjalan serentak.
+- [[t5-skema]]: tabel yang lahir di Tahap 5, termasuk `ringkasan_merchant_harian` untuk laporan periode.
+
+Laporan yang dibaca dari primary menambah kerja mesin yang menulis uang. Rekaman membuktikan jalurnya, dan hitungan memperkirakan bebannya. Jawaban atas pertanyaan Wulan, siapa yang melambat bila laporan dan pembayaran membaca database yang sama, bergantung pada angka yang belum diukur.
+
+### Cek diri
+
+**1.** Pembayaran ikut melambat padahal laporan hanya membaca. Apa yang keduanya pakai bersama di lab, dan dari mana kamu tahu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Primary. Fungsi `LaporanHariIni` menjumlah baris `posting` lewat pool koneksi yang sama dengan pembayaran, dan di lab hanya ada satu PostgreSQL (Tidak dijalankan: dibaca dari kode). Rekaman bagian A menunjukkan rute laporan hanya ada bersama mode `laporan-primary`.
+
+</details>
+
+**2.** Di rekaman bagian B, p95 pembayaran di bawah 2.000 ms dengan dan tanpa laporan. Apakah itu membuktikan laporan tidak memperlambat pembayaran?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak. Batas 2.000 ms hanya memeriksa bahwa kedua putaran tidak macet, dan selisih p95 tidak direkam. Yang terekam: 1.000 dari 1.000 pembayaran 201 dan 6.667 dari 6.667 laporan 200. Angka 666,7 per detik dan 167% CPU tetap Hitungan atas Asumsi.
+
+</details>
+
+**3.** Rekaman cache menghasilkan 0 hit dari 18. Apa yang tidak dijawab rekaman itu, dan alasan lain apa yang membuat cache 30 detik bermasalah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam, dan hasil terbaiknya satu hit dari dua panggilan (Hitungan). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5.
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
