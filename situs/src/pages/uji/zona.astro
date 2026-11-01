@@ -1,0 +1,21 @@
+---
+// Halaman uji widget peta lima zona Tahap 5 (W5-zona). Bukan halaman cerita: tidak di registry, tidak di sidebar, tidak diindeks.
+// Dipakai situs/tools/ukur-zona.mjs (tebak dulu, tabel dari hitungan sendiri, ARIA, 320 px, axe, tanpa JavaScript).
+// Halaman 5.2 memasang komponen yang sama.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import PetaZona from "../../components/PetaZona.astro";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Uji peta lima zona",
+    description: "Halaman uji widget peta lima zona Tahap 5.",
+    pagefind: false,
+    tableOfContents: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>Halaman uji widget peta lima zona. Zona, tim, dan kejadian Asumsi; service dan schema dari rekaman lab api-t5.</p>
+  <PetaZona />
+  <p>Teks sesudah widget, supaya halaman cukup panjang untuk diuji geser isi saat hydrate.</p>
+</StarlightPage>

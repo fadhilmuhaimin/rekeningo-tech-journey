@@ -1,0 +1,172 @@
+{
+  "id": "t5-zona",
+  "judul": "Peta lima zona Tahap 5",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Zona, pembagian tim, dan delapan kejadian adalah rancangan penulis (Asumsi). Schema, jumlah tabel, dan hak role tiap service dibaca dari rekaman lab api-t5 (skema.txt, bagian E dan F). Halaman masalah di tiap kejadian memuat rekamannya sendiri, bila ada."
+  },
+  "tebak": {
+    "q": "Ledger membuat jurnal dan posting. Di zona mana uang bergerak?",
+    "pilihan": [
+      "Di setiap zona yang menyimpan data uang, termasuk semua salinannya",
+      "Di dua zona: service ledger menulis, satu primary di zona data menyimpan",
+      "Hanya di zona service; zona data cuma tempat menyimpan",
+      "Di client dan edge, tempat nominal pertama masuk"
+    ],
+    "jawaban": 1,
+    "alasan": "Posting dibuat service ledger dan disimpan di satu primary, jadi uang bergerak di dua zona. Replica, ringkasan, cache, dan event hanya untuk dilihat, dan jarak ketertinggalannya disebut."
+  },
+  "zona": [
+    {
+      "id": "client",
+      "label": "client",
+      "ringkas": "Tempat orang melihat dan meminta: app, dasbor, dan kasir mitra.",
+      "komponen": [
+        { "label": "App Flutter", "jenis": "lain", "catatan": "Mengirim token dari jawaban tulis saat membaca riwayat, supaya tidak membaca salinan yang tertinggal." },
+        { "label": "Dasbor web merchant", "jenis": "lain", "catatan": "Memuat laporan tiap 30 detik." },
+        { "label": "POS mitra", "jenis": "lain", "catatan": "Milik pihak luar; membuat QR dan membaca status pembayaran lewat API publik." }
+      ],
+      "tim": ["akun", "merchant"],
+      "halaman": ["t5-lag", "t5-m45"]
+    },
+    {
+      "id": "edge",
+      "label": "edge",
+      "ringkas": "Pintu semua permintaan dari luar cluster.",
+      "komponen": [
+        { "label": "Pintu di tepi", "jenis": "lain", "catatan": "Gateway API dengan WAF, kuota, dan tanda tangan per mitra POS." }
+      ],
+      "tim": ["platform", "merchant", "security"],
+      "halaman": ["t5-m50", "t5-waf"]
+    },
+    {
+      "id": "service",
+      "label": "service",
+      "ringkas": "Enam service dengan tiga instance tiap service (Asumsi); tiap service punya schema dan role sendiri, tetapi di lab satu proses memegang keenam role.",
+      "komponen": [
+        { "label": "Ledger", "jenis": "uang", "service": "ledger", "catatan": "Menulis jurnal dan posting; jurnal seimbang dan posting tidak diubah. Di rekaman lab, role notifikasi yang mencoba INSERT ke posting ditolak (42501)." },
+        { "label": "Akun", "jenis": "lain", "service": "akun", "catatan": "Akun, sesi, dan verifikasi. Ledger hanya boleh membaca kolom id, tingkat, dan status akun." },
+        { "label": "Pembayaran", "jenis": "lain", "service": "pembayaran", "catatan": "Top-up bank, kartu, dan sakelar; meminta jurnal ke ledger dengan Idempotency-Key." },
+        { "label": "Merchant", "jenis": "lain", "service": "merchant", "catatan": "Produk, promo, QR, ringkasan harian, dan mitra POS; laporan dibaca dari replica." },
+        { "label": "Notifikasi", "jenis": "lain", "service": "notifikasi", "catatan": "Perangkat dan pengumuman; mengirim push dari outbox yang ditulis bersama jurnal." },
+        { "label": "Cicilan", "jenis": "lain", "service": "cicilan", "catatan": "Jadwal dan angsuran; batch harian meminta jurnal ke ledger." }
+      ],
+      "tim": ["pembayaran", "ledger-tabungan", "merchant", "akun", "notifikasi"],
+      "halaman": ["t5-service", "t5-mtls", "t5-batch"]
+    },
+    {
+      "id": "data",
+      "label": "data",
+      "ringkas": "Tempat data disimpan dan disalin: satu primary, replica, ringkasan, cache, dan event.",
+      "komponen": [
+        { "label": "Primary + pooler", "jenis": "uang", "catatan": "Satu primary menerima semua tulisan ke PostgreSQL; posting dipartisi per bulan; PgBouncer di depannya." },
+        { "label": "Standby sinkron", "jenis": "salinan", "catatan": "Commit pembayaran menunggu satu standby sinkron, supaya jawaban sukses tidak hilang saat primary mati." },
+        { "label": "Replica laporan", "jenis": "salinan", "catatan": "Asinkron, untuk laporan merchant dan bacaan berat; target tertinggal paling lama 5 detik (PRD v5, Asumsi produk)." },
+        { "label": "Ringkasan harian merchant", "jenis": "salinan", "catatan": "Ringkasan per merchant per hari untuk laporan; bukan sumber saldo." },
+        { "label": "Cache Redis", "jenis": "salinan", "catatan": "Sudah ada sejak Tahap 3; hanya untuk dilihat." },
+        { "label": "Event streaming", "jenis": "salinan", "catatan": "Pengumuman dan event pembayaran lewat relay dari outbox; penerima idempoten." }
+      ],
+      "tim": ["ledger-tabungan", "platform", "sre"],
+      "halaman": ["t5-read-replica", "t5-rpo-rto", "t5-partisi", "t5-pooler"]
+    },
+    {
+      "id": "operasi",
+      "label": "operasi",
+      "ringkas": "Yang menjalankan dan mengawasi: cluster, rilis, SLO, dan latihan.",
+      "komponen": [
+        { "label": "Kubernetes dan GitOps", "jenis": "lain", "catatan": "Cluster dan pipeline rilis yang dipegang tim Platform." },
+        { "label": "Sakelar dan kill switch", "jenis": "lain", "catatan": "Mematikan fitur tanpa rilis; nilainya harus sama di semua pod." },
+        { "label": "OpenTelemetry dan SLO", "jenis": "lain", "catatan": "Metrik, trace, dan target ketersediaan (SLO) yang dipakai tim SRE." },
+        { "label": "Latihan failover", "jenis": "lain", "catatan": "SRE melatih failover tiap bulan dan mencatat waktunya terhadap target pulih 15 menit (Asumsi produk)." }
+      ],
+      "tim": ["platform", "sre", "security"],
+      "halaman": ["t5-rollout", "t5-tim-infra", "t5-kms"]
+    }
+  ],
+  "service": [
+    { "id": "ledger", "schema": "t5_ledger", "tim": "ledger-tabungan", "tabel": ["arsip_partisi", "baris_pencairan", "batch_pencairan", "buku", "jurnal", "kunci_idempotensi", "outbox", "posting", "snapshot_saldo"] },
+    { "id": "akun", "schema": "t5_akun", "tim": "akun", "tabel": ["akun", "audit_log", "kota", "sesi", "verifikasi"] },
+    { "id": "pembayaran", "schema": "t5_pembayaran", "tim": "pembayaran", "tabel": ["insiden_rekon", "kartu", "otorisasi_kartu", "sakelar", "topup_bank", "webhook_event"] },
+    { "id": "merchant", "schema": "t5_merchant", "tim": "merchant", "tabel": ["mitra_pos", "operasi_sinkron", "produk", "promo", "qr", "ringkasan_merchant_harian"] },
+    { "id": "notifikasi", "schema": "t5_notifikasi", "tim": "notifikasi", "tabel": ["pengumuman", "perangkat"] },
+    { "id": "cicilan", "schema": "t5_cicilan", "tim": "ledger-tabungan", "tabel": ["angsuran", "jadwal_cicilan"] }
+  ],
+  "tim": [
+    { "id": "pembayaran", "nama": "Pembayaran", "orang": 4, "pemimpin": "Nadia", "memegang": "gateway, top-up bank, kartu virtual" },
+    { "id": "ledger-tabungan", "nama": "Ledger dan Tabungan", "orang": 4, "pemimpin": "Hendra", "memegang": "ledger, cicilan, tabungan, batch harian" },
+    { "id": "merchant", "nama": "Merchant", "orang": 4, "pemimpin": "Wulan", "memegang": "merchant, QR, laporan, API untuk POS" },
+    { "id": "akun", "nama": "Akun", "orang": 4, "pemimpin": "Raka", "memegang": "app, akun, identitas" },
+    { "id": "notifikasi", "nama": "Notifikasi", "orang": 4, "pemimpin": "Maya", "memegang": "pengiriman push, pengumuman" },
+    { "id": "platform", "nama": "Platform", "orang": 4, "pemimpin": "Bayu", "memegang": "cluster, pooler, pipeline, observability" },
+    { "id": "sre", "nama": "SRE", "orang": 2, "pemimpin": "Dewi", "memegang": "SLO, giliran jaga, latihan failover" },
+    { "id": "security", "nama": "Security", "orang": 2, "pemimpin": "Laras", "memegang": "threat model, tinjauan, uji penetrasi lokal" }
+  ],
+  "kejadian": [
+    {
+      "id": "laporan", "label": "20.000 merchant membuka laporan tiap 30 detik di primary", "masalah": "M40", "halaman": "t5-m40", "zona": "data", "sumber": "asumsi",
+      "sel": [{ "s": "terjaga" }, { "s": "terjaga" }, { "s": "rusak", "alasan": "query laporan ikut memperlambat pembayaran" }]
+    },
+    {
+      "id": "riwayat", "label": "Riwayat dibaca dari replica sesudah bayar", "masalah": "M41", "halaman": "t5-m41", "zona": "data", "sumber": "asumsi",
+      "sel": [{ "s": "terjaga" }, { "s": "rusak", "alasan": "pembeli melihat catatan yang tertinggal" }, { "s": "tidak" }]
+    },
+    {
+      "id": "primary-mati", "label": "Primary mati saat replica asinkron", "masalah": "M42", "halaman": "t5-m42", "zona": "data", "sumber": "asumsi",
+      "sel": [{ "s": "rusak", "alasan": "transaksi yang sudah dijawab sukses ikut hilang" }, { "s": "tidak" }, { "s": "tidak" }]
+    },
+    {
+      "id": "cek-saldo", "label": "Pemeriksaan saldo malam membaca semua posting", "masalah": "M43", "halaman": "t5-m43", "zona": "data", "sumber": "asumsi",
+      "sel": [{ "s": "terjaga" }, { "s": "terjaga" }, { "s": "rusak", "alasan": "tidak selesai sebelum pagi" }]
+    },
+    {
+      "id": "makan-siang", "label": "Notifikasi uang saat makan siang memakai 4 pengirim", "masalah": "M45", "halaman": "t5-m45", "zona": "service", "sumber": "asumsi",
+      "sel": [{ "s": "terjaga" }, { "s": "tidak" }, { "s": "rusak", "alasan": "96,3 notifikasi per detik lawan 13,33, dan queue uang baru kosong 9,3 jam sesudah makan siang bila kedatangan berhenti" }]
+    },
+    {
+      "id": "pod-notifikasi", "label": "Pod notifikasi memanggil ledger tanpa identitas", "masalah": "M47", "halaman": "t5-m47", "zona": "service", "sumber": "tidak-dijalankan",
+      "sel": [{ "s": "rusak", "alasan": "siapa pun di jaringan dalam bisa membuat jurnal baru" }, { "s": "tidak" }, { "s": "tidak" }]
+    },
+    {
+      "id": "batch-cicilan", "label": "Batch cicilan diulang sesudah 24 jam", "masalah": "M48", "halaman": "t5-m48", "zona": "service", "sumber": "asumsi",
+      "sel": [{ "s": "rusak", "alasan": "angsuran terdebit dua kali" }, { "s": "tidak" }, { "s": "rusak", "alasan": "key idempotensi sudah habis" }]
+    },
+    {
+      "id": "kill-switch", "label": "Kill switch hanya di memori satu pod", "masalah": "M49", "halaman": "t5-m49", "zona": "operasi", "sumber": "asumsi",
+      "sel": [{ "s": "tidak" }, { "s": "rusak", "alasan": "pod lain memakai nilai lama" }, { "s": "tidak" }]
+    }
+  ],
+  "label": {
+    "sumber": "Asumsi",
+    "tebakDulu": "Tebak dulu.",
+    "mulai": "Tebak dulu; sesudahnya buka zona, dan tabel terisi sesuai zona yang kamu buka.",
+    "lanjut": "Buka zona {zona} untuk melihat jawabannya.",
+    "benar": "Tebakanmu benar:",
+    "belum": "Belum tepat:",
+    "ubah": "Buka satu zona",
+    "zonaJudul": "Zona",
+    "panelKosong": "Pilih zona untuk membaca isinya.",
+    "komponenJudul": "Isi zona",
+    "timJudul": "Tim",
+    "halamanJudul": "Dibahas di",
+    "kejadianJudul": "Kejadian yang berawal di zona ini",
+    "tanpaKejadian": "Tidak ada dari {total} kejadian di tabel yang berawal di zona ini.",
+    "tandaUang": "uang bergerak",
+    "tigaJudul": "Tiga hal yang harus selalu benar",
+    "tiga": [
+      "Uang bergerak hanya lewat ledger.",
+      "Keputusan yang menentukan uang dibaca dari sumber yang sama dengan yang menggerakkan uang.",
+      "Pekerjaan yang lebih panjang dari satu proses, satu hari, atau satu mesin tetap benar bila dihentikan dan diulang."
+    ],
+    "captionTabel": "Delapan kejadian lawan tiga hal yang harus selalu benar",
+    "kolom": { "kejadian": "Kejadian", "hal": "Hal" },
+    "status": { "terjaga": "Terjaga", "rusak": "Rusak", "tidak": "Tidak berlaku", "belum": "belum dibuka" },
+    "jenis": { "uang": "Tempat uang bergerak", "salinan": "Salinan", "lain": "Tidak menulis posting" },
+    "sumberJenis": { "asumsi": "Asumsi", "tidak-dijalankan": "Tidak dijalankan" },
+    "segera": "(segera)",
+    "serviceMeta": "Schema {schema}, {tabel} tabel, tim {tim}",
+    "timMeta": "{orang} orang, dipimpin {pemimpin}",
+    "ringkas": "Zona {zona}: {n} dari {total} kejadian berawal di sini; tabel terisi {terisi} dari {total}, dengan {rusak} sel Rusak.",
+    "ringkasKosong": "Zona {zona}: tidak ada dari {total} kejadian yang berawal di sini; tabel terisi {terisi} dari {total}, dengan {rusak} sel Rusak.",
+    "tanpaJs": "Tanpa JavaScript peta tidak bisa dibuka. Ini isi semua zona dan tabelnya."
+  }
+}

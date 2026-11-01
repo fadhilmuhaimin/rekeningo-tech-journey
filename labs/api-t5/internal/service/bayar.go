@@ -73,7 +73,13 @@ func (s Service) Bayar(ctx context.Context, peminta, ke, jumlah int64, catatan s
 			return err
 		}
 		saldo = dari.Saldo - jumlah
-		return s.beritahu(ctx, tx, id, ke, "bayar", perangkat, pesanUang(pembayar.Nama, jumlah, id, catatan))
+		if err := s.beritahu(ctx, tx, id, ke, "bayar", perangkat, pesanUang(pembayar.Nama, jumlah, id, catatan)); err != nil {
+			return err
+		}
+		if s.eventPembayaran {
+			return tx.TulisEventPembayaran(ctx, id, peminta, ke, jumlah)
+		}
+		return nil
 	})
 	return id, saldo, err
 }

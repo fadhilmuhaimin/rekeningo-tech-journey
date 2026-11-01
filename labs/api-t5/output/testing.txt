@@ -15,6 +15,12 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap5_tes> TEST_APP_DATABASE_URL=<role api
 --- PASS: TestEndpointLepasGerbangHanyaBilaGerbangAda
 PASS
 ok    lab/apit5/cmd/api
+--- PASS: TestJendelaKuotaSepuluhRibuPerDetik
+--- PASS: TestJendelaTanpaBatas
+--- PASS: TestJendelaBaruTepatSatuDetikDanKuotaPenuh
+--- PASS: TestJendelaPenolakanTidakMenghabiskanKuota
+PASS
+ok    lab/apit5/cmd/pushkuota
 --- PASS: TestParseIzin
 --- PASS: TestPeriksaDaftarKosongMenerimaSemuaDanDaftarIsiMenolakSisanya
 --- PASS: TestSumberHanyaAlamatPeerBukanHeader
@@ -126,6 +132,14 @@ ok    lab/apit5/internal/klien
 --- PASS: TestGobreakerV240IsExcluded
 PASS
 ok    lab/apit5/internal/lajur
+--- PASS: TestPengumumanDeterministik
+--- PASS: TestPengumumanBedaMenurutPengumumanDanPerangkat
+--- PASS: TestUUID5VektorRFC9562
+--- PASS: TestPengumumanVektorPustakaPython
+--- PASS: TestKelas
+--- PASS: TestAcakBerbedaTiapPanggilan
+PASS
+ok    lab/apit5/internal/notifid
 --- PASS: TestTandaiURLCocokDenganContohDokumentasiAWS
 --- PASS: TestS3SimpanBacaUkuranHapus
 --- PASS: TestS3KunciTidakSahDitolakSebelumKeJaringan
@@ -256,6 +270,8 @@ ok    lab/apit5/internal/repo
 --- PASS: TestRiwayatKursorTanpaGandaTanpaTerlewat
 --- PASS: TestBalikSekali
 --- PASS: TestTutupBukuSeimbang
+--- PASS: TestBayarMenulisSatuEventStreamDanBarisPushTetap
+--- PASS: TestEventPembayaranBatalBersamaJurnal
 --- PASS: TestKlaimKunciBaruBerjalanUlangBeda
 --- PASS: TestKunciKedaluwarsaSesudah24Jam
 --- PASS: TestKlaimKunciBersamaanSatuPemenang
@@ -458,6 +474,19 @@ ok    lab/apit5/internal/repo
 --- PASS: TestBatasEndpointPerAkunDanPerAlamat
 PASS
 ok    lab/apit5/internal/service
+--- PASS: TestBackoffEksponensialSampaiBatas
+--- PASS: TestJitterPenuh
+--- PASS: TestTanpaBackoffTidakMenunggu
+--- PASS: TestTidakTerdaftarBerhentiTanpaUlang
+--- PASS: TestPermintaanSalahBerhentiTanpaUlang
+--- PASS: TestMenyerahSesudahMaksPercobaan
+--- PASS: TestLajuJarakSlotTanpaSemburan
+--- PASS: TestLajuNolTanpaBatas
+--- PASS: TestRekamanBayarBerkunciMerchantDenganEventID
+--- PASS: TestRekamanTanpaMerchantAtauJenisAsingDitolak
+--- PASS: TestPartisionerPengumumanManualPembayaranHashKunci
+PASS
+ok    lab/apit5/internal/stream
 --- PASS: TestAmanMenerimaGambarSahDariServerTLS
 --- PASS: TestAmanLoopbackDitolakBawaan
 --- PASS: TestAmanSkemaHTTPDitolakBawaan
@@ -524,16 +553,19 @@ ok    lab/apit5/internal/worker
 # --- B. Tanpa TEST_DATABASE_URL dan TEST_REDIS_ADDR: tes yang butuh keduanya dilewati, tes tanpa itu tetap jalan ---
 $ go test -count=1 ./...
 ok    lab/apit5/cmd/api
+ok    lab/apit5/cmd/pushkuota
 ok    lab/apit5/cmd/tiruan
 ok    lab/apit5/internal/cache
 ok    lab/apit5/internal/handler
 ok    lab/apit5/internal/klien
 ok    lab/apit5/internal/lajur
+ok    lab/apit5/internal/notifid
 ok    lab/apit5/internal/objek
 ok    lab/apit5/internal/rahasia
 ok    lab/apit5/internal/redisbatas
 ok    lab/apit5/internal/repo
 ok    lab/apit5/internal/service
+ok    lab/apit5/internal/stream
 ok    lab/apit5/internal/unduh
 ok    lab/apit5/internal/verifikasi
 ok    lab/apit5/internal/worker
@@ -542,6 +574,7 @@ ok    lab/apit5/internal/worker
 # --- C. TES_DB_WAJIB=1 dan TES_REDIS_WAJIB=1 tanpa database dan Redis: gagal keras, bukan hijau karena tes dilewati ---
 $ TES_DB_WAJIB=1 TES_REDIS_WAJIB=1 go test -count=1 ./...
 ok    lab/apit5/cmd/api
+ok    lab/apit5/cmd/pushkuota
 ok    lab/apit5/cmd/tiruan
 ok    lab/apit5/internal/cache
 --- FAIL: TestHandlerBerkasUnggahanLoginUkuranDanTanpaCache
@@ -618,6 +651,7 @@ FAIL
 FAIL  lab/apit5/internal/handler
 ok    lab/apit5/internal/klien
 ok    lab/apit5/internal/lajur
+ok    lab/apit5/internal/notifid
 ok    lab/apit5/internal/objek
 ok    lab/apit5/internal/rahasia
 TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
@@ -638,6 +672,7 @@ FAIL
 FAIL  lab/apit5/internal/repo
 TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
 FAIL  lab/apit5/internal/service
+ok    lab/apit5/internal/stream
 ok    lab/apit5/internal/unduh
 ok    lab/apit5/internal/verifikasi
 TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong: tes yang butuh PostgreSQL tidak boleh dilewati
