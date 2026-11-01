@@ -1,0 +1,143 @@
+# Lab t5-partisi · ATTACH, aturan ledger sesudah dipasang, dan partisi bulan depan
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_lepas · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-partisi run.
+
+# --- A. ATTACH PARTITION memindai tabel kecuali ada CHECK valid yang setara batas partisi ---
+# Tabel pulih dibuat dari arsip dengan kolom, CHECK bawaan (jumlah <> 0), dan index yang sama dengan posting, tetapi tanpa CHECK batas partisi.
+# Percobaan 0: tabel tanpa CHECK bawaan posting (jumlah <> 0) ditolak.
+=> CREATE TABLE posting_pulih0 (LIKE posting INCLUDING DEFAULTS INCLUDING INDEXES)
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih0 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ERROR:  child table is missing constraint "posting_jumlah_check1"
+   -- SQLSTATE 42804
+=> DROP TABLE posting_pulih0
+# Percobaan 1: tabel pulih tanpa CHECK batas partisi.
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  verifying table "posting_pulih"
+DEBUG:  validating foreign key constraint "posting_buku_id_fkey1"
+DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
+# PostgreSQL memindai tabel ('verifying table') dan memvalidasi foreign key ke jurnal dan buku ('validating foreign key constraint').
+
+# --- B. Aturan ledger sesudah ATTACH: trigger baris ikut terpasang, penjaga TRUNCATE tidak ---
+=> SELECT tgname AS trigger FROM pg_trigger WHERE tgrelid = 'posting_pulih'::regclass AND NOT tgisinternal ORDER BY 1
+ trigger
+------------------------------
+ jurnal_seimbang
+ posting_tidak_diubah
+ saldo_karyawan_tidak_negatif
+(3 rows)
+# Tiga trigger baris dikloning dari tabel induk saat ATTACH. Penjaga TRUNCATE (posting_tidak_dikosongkan) dipasang per partisi oleh buat_partisi_posting
+# dan tidak ikut: tabel pulih tidak memilikinya.
+# TRUNCATE partisi itu berhasil untuk pemiliknya (dibatalkan dengan ROLLBACK):
+=> BEGIN
+=> TRUNCATE posting_pulih
+TRUNCATE TABLE
+=> SELECT count(*) AS posting_pulih FROM posting_pulih
+ posting_pulih
+---------------
+ 0
+(1 row)
+=> ROLLBACK
+=> CREATE TRIGGER posting_tidak_dikosongkan BEFORE TRUNCATE ON posting_pulih FOR EACH STATEMENT EXECUTE FUNCTION tolak_ubah()
+CREATE TRIGGER
+=> TRUNCATE posting_pulih
+ERROR:  TRUNCATE pada posting_pulih ditolak: baris posting_pulih tidak pernah diubah atau dihapus
+   -- SQLSTATE 23001 · constraint posting_pulih_tidak_diubah
+# Sesudah penjaga dipasang, TRUNCATE ditolak. Tiga invarian ledger atas partisi hasil ATTACH, sebagai pemilik schema:
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('topup', 'tidak seimbang', 400);
+   INSERT INTO posting (jurnal_id, buku_id, jumlah, dibuat) VALUES (currval('jurnal_id_seq'), (SELECT min(id) FROM buku WHERE jenis = 'karyawan'), 1000, '<waktu>'::timestamptz + interval '1 day')
+ERROR:  jurnal <n> tidak seimbang: 1 posting, jumlah 1000
+   -- SQLSTATE 23514 · constraint jurnal_seimbang
+=> UPDATE posting_pulih SET jumlah = jumlah + 1
+ERROR:  UPDATE pada posting_pulih ditolak: baris posting_pulih tidak pernah diubah atau dihapus
+   -- SQLSTATE 23001 · constraint posting_pulih_tidak_diubah
+=> INSERT INTO jurnal (jenis, keterangan, dibuat_oleh) VALUES ('bayar', 'saldo minus', 400);
+   INSERT INTO posting (jurnal_id, buku_id, jumlah, dibuat) VALUES (currval('jurnal_id_seq'), (SELECT min(id) FROM buku WHERE jenis = 'karyawan'), -900000000, '<waktu>'::timestamptz + interval '1 day'), (currval('jurnal_id_seq'), (SELECT min(id) FROM buku WHERE jenis = 'warung'), 900000000, '<waktu>'::timestamptz + interval '1 day')
+ERROR:  saldo buku 8 (milik akun) jadi -899305000 sesudah jurnal <n>
+   -- SQLSTATE 23514 · constraint saldo_karyawan_tidak_negatif
+# Mutan: trigger posting_tidak_diubah dimatikan di partisi itu, dan UPDATE yang tadi ditolak berhasil (dibatalkan dengan ROLLBACK). Aturannya hidup dari trigger itu.
+=> BEGIN
+=> ALTER TABLE posting_pulih DISABLE TRIGGER posting_tidak_diubah
+ALTER TABLE
+=> UPDATE posting_pulih SET jumlah = jumlah
+UPDATE 28000
+=> ROLLBACK
+=> UPDATE posting_pulih SET jumlah = jumlah + 1
+ERROR:  UPDATE pada posting_pulih ditolak: baris posting_pulih tidak pernah diubah atau dihapus
+   -- SQLSTATE 23001 · constraint posting_pulih_tidak_diubah
+
+# --- C. Dengan CHECK yang setara batas partisi, tabel tidak dipindai ---
+=> ALTER TABLE posting DETACH PARTITION posting_pulih
+ALTER TABLE
+=> DROP TABLE posting_pulih
+# Percobaan 2: tabel pulih kedua dipulihkan dari file yang sama, lalu diberi CHECK dengan batas literal yang sama dengan FOR VALUES.
+=> CREATE TABLE posting_pulih2 (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+=> ALTER TABLE posting_pulih2 ADD CONSTRAINT posting_pulih2_batas CHECK (dibuat >= '<waktu>' AND dibuat < '<waktu>')
+ALTER TABLE
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih2 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  partition constraint for table "posting_pulih2" is implied by existing constraints
+DEBUG:  validating foreign key constraint "posting_buku_id_fkey1"
+DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
+# Batas partisi tidak dipindai lagi (partition constraint ... is implied by existing constraints). Foreign key tetap divalidasi karena tabel pulih tidak memilikinya.
+=> ALTER TABLE posting DETACH PARTITION posting_pulih2
+=> DROP TABLE posting_pulih2
+# Percobaan 2b: tiga CHECK lain tetap membuat ATTACH memindai. Tabelnya sengaja kosong: pemindaian ditentukan dari constraint, bukan dari isi tabel.
+# batas berupa ekspresi (literal ditambah interval):
+=> CREATE TABLE posting_pulih3 (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+=> ALTER TABLE posting_pulih3 ADD CONSTRAINT posting_pulih3_batas CHECK (dibuat >= '<waktu>'::timestamptz + interval '0 day' AND dibuat < '<waktu>'::timestamptz + interval '0 day')
+ALTER TABLE
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih3 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  verifying table "posting_pulih3"
+DEBUG:  validating foreign key constraint "posting_buku_id_fkey1"
+DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
+=> ALTER TABLE posting DETACH PARTITION posting_pulih3
+=> DROP TABLE posting_pulih3
+# batas literal yang sama, tetapi constraint NOT VALID:
+=> CREATE TABLE posting_pulih4 (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+=> ALTER TABLE posting_pulih4 ADD CONSTRAINT posting_pulih4_batas CHECK (dibuat >= '<waktu>' AND dibuat < '<waktu>') NOT VALID
+ALTER TABLE
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih4 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  verifying table "posting_pulih4"
+DEBUG:  validating foreign key constraint "posting_buku_id_fkey1"
+DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
+=> ALTER TABLE posting DETACH PARTITION posting_pulih4
+=> DROP TABLE posting_pulih4
+# batas atas lebih longgar dari batas partisi:
+=> CREATE TABLE posting_pulih5 (LIKE posting INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)
+=> ALTER TABLE posting_pulih5 ADD CONSTRAINT posting_pulih5_batas CHECK (dibuat >= '<waktu>' AND dibuat < '<waktu>'::timestamptz + interval '1 day')
+ALTER TABLE
+=> ALTER TABLE posting ATTACH PARTITION posting_pulih5 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  verifying table "posting_pulih5"
+DEBUG:  validating foreign key constraint "posting_buku_id_fkey1"
+DEBUG:  validating foreign key constraint "posting_jurnal_id_fkey1"
+=> ALTER TABLE posting DETACH PARTITION posting_pulih5
+=> DROP TABLE posting_pulih5
+# Dari bentuk yang dicoba, hanya CHECK literal yang sama dengan batas partisi (percobaan 2) membebaskan ATTACH dari pemindaian.
+# Percobaan 3: tabel asal yang dilepas DETACH CONCURRENTLY, yang membawa CHECK dan foreign key-nya sendiri, dipasang kembali.
+=> ALTER TABLE posting ATTACH PARTITION posting_lalu_05 FOR VALUES FROM ('<waktu>') TO ('<waktu>')
+ALTER TABLE
+DEBUG:  partition constraint for table "posting_lalu_05" is implied by existing constraints
+# Tidak ada pemindaian dan tidak ada validasi foreign key. Partisi dan jumlah posting kembali seperti di awal.
+$ ./api-t5 -cek-cache
+cek cache: 10288 buku diperiksa, 0 tidak cocok
+# exit status 0
+
+# --- D. Partisi bulan depan belum ada saat bulan mulai: INSERT gagal ---
+# Jam diperankan dengan kolom dibuat yang eksplisit di bulan ke-3 sesudah bulan berjalan: tabel punya partisi sampai bulan ke-2.
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah, dibuat) VALUES ((SELECT min(id) FROM jurnal), (SELECT min(id) FROM buku), 1000, (((date_trunc('month', now() AT TIME ZONE 'Asia/Jakarta') - make_interval(months => -3))::timestamp AT TIME ZONE 'Asia/Jakarta') + interval '1 day'))
+ERROR:  no partition of relation "posting" found for row
+   -- SQLSTATE 23514
+# Job bulanan memanggil buat_partisi_posting sebelum bulannya mulai; sesudah itu baris yang sama masuk (dibatalkan dengan ROLLBACK):
+=> BEGIN
+=> SELECT buat_partisi_posting('posting_bulan_03', '<tanggal>'::date)
+ buat_partisi_posting
+----------------------
+
+(1 row)
+=> INSERT INTO posting (jurnal_id, buku_id, jumlah, dibuat) VALUES ((SELECT min(id) FROM jurnal), (SELECT min(id) FROM buku), 1000, (((date_trunc('month', now() AT TIME ZONE 'Asia/Jakarta') - make_interval(months => -3))::timestamp AT TIME ZONE 'Asia/Jakarta') + interval '1 day'))
+INSERT 0 1
+=> ROLLBACK

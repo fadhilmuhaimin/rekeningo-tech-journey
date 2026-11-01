@@ -1,0 +1,83 @@
+# Lab t5-partisi · snapshot saldo akhir bulan dan pemeriksaan malam yang membaca satu bulan
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_partisi · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-partisi run.
+
+# --- A. Pemeriksaan malam tanpa snapshot: seluruh posting sejak awal (versi pertama) ---
+# Job malam membandingkan buku.saldo_cache dengan jumlah posting tiap buku. Baris yang dibaca = selisih seq_tup_read + idx_tup_fetch
+# di pg_stat_user_tables atas semua partisi posting, sebelum dan sesudah job (proses job sudah keluar, statistiknya sudah dilepas ke server).
+$ ./api-t5 -cek-cache
+cek cache: 10288 buku diperiksa, 0 tidak cocok
+# exit status 0
+# Baris posting dibaca: 1.800.000 dari 1.800.000 posting di tabel.
+
+# --- B. Snapshot akhir bulan: 11 bulan, satu job per bulan, dari yang paling lama ---
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-11 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-10 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-9 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-8 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-7 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-6 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-5 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-4 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-3 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-2 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan ke-1 sebelum bulan berjalan>
+snapshot <tanggal>: 10288 buku ditulis
+# Tiap job membaca persis posting bulannya (selisih seq_tup_read + idx_tup_fetch atas partisi posting, dibandingkan dengan jumlah posting bulan itu di tabel):
+# 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000, 150.000 baris, dari bulan paling lama sampai bulan lalu.
+=> SELECT count(*) AS baris, count(DISTINCT periode) AS periode, (SELECT count(*) FROM buku) AS buku FROM snapshot_saldo
+ baris  | periode | buku
+--------+---------+-------
+ 113168 | 11      | 10288
+(1 row)
+# Tiap snapshot dibandingkan dengan hitungan langsung atas tabel posting (saldo dan jumlah posting sampai akhir bulannya): 0 baris berbeda dari 113.168.
+$ ./api-t5 -buat-snapshot <bulan paling lama>   # dijalankan lagi
+snapshot <tanggal>: 0 buku ditulis
+$ ./api-t5 -buat-snapshot <tanggal 1 bulan berjalan>   # bulan belum selesai
+-buat-snapshot: bulan belum selesai
+# exit status 2
+# Job berjalan sebagai role aplikasi (api_t5), yang punya hak SELECT dan INSERT atas snapshot_saldo. Tanpa hak INSERT job gagal keras:
+=> REVOKE INSERT ON snapshot_saldo FROM api_t5
+REVOKE
+$ ./api-t5 -buat-snapshot <bulan paling lama>   # tanpa hak INSERT
+-buat-snapshot: ERROR: permission denied for table snapshot_saldo (SQLSTATE 42501)
+# exit status 2
+=> GRANT INSERT ON snapshot_saldo TO api_t5
+GRANT
+
+# --- C. Pemeriksaan malam dari snapshot terakhir: posting sesudahnya saja ---
+$ ./api-t5 -cek-cache -dari-snapshot
+cek cache dari snapshot <tanggal>: 10288 buku diperiksa, 0 tidak cocok
+# exit status 0
+# Baris posting dibaca: 150.000 dari 1.800.000, yaitu 8,3% (satu bulan dari 12).
+# Snapshot yang lebih tua membuat pemeriksaan membaca lebih banyak bulan: -snapshot-periode memilih periodenya.
+$ ./api-t5 -cek-cache -dari-snapshot -snapshot-periode <tanggal 1 tiga bulan lalu>
+cek cache dari snapshot <tanggal>: 10288 buku diperiksa, 0 tidak cocok
+# exit status 0
+# Baris posting dibaca: 450.000, yaitu tiga bulan (dua bulan lalu, bulan lalu, dan bulan berjalan) × 150.000 posting.
+
+# --- D. Jawaban yang sama: satu selisih cache yang nyata terlihat oleh kedua pemeriksaan ---
+# Kode yang menulis saldo_cache tanpa posting dibuat dengan UPDATE sebagai role aplikasi (api_t5 memegang hak UPDATE atas kolom itu).
+(api_t5) => UPDATE buku SET saldo_cache = saldo_cache + 5000 WHERE id = (SELECT min(id) FROM buku WHERE jenis = 'karyawan')
+UPDATE 1
+$ ./api-t5 -cek-cache
+buku 8 (karyawan Dimas): saldo_cache 431000, jumlah posting 426000, selisih 5000
+cek cache: 10288 buku diperiksa, 1 tidak cocok
+# exit status 1
+$ ./api-t5 -cek-cache -dari-snapshot
+buku 8 (karyawan Dimas): saldo_cache 431000, snapshot + posting sesudahnya 426000, selisih 5000
+cek cache dari snapshot <tanggal>: 10288 buku diperiksa, 1 tidak cocok
+# exit status 1
+# Kedua pemeriksaan menandai satu buku yang sama dengan saldo_cache, hitungan, dan selisih yang sama (5000).
+(api_t5) => UPDATE buku SET saldo_cache = saldo_cache - 5000 WHERE id = (SELECT min(id) FROM buku WHERE jenis = 'karyawan')
+UPDATE 1

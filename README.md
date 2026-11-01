@@ -215,6 +215,7 @@ Lab yang punya `Makefile` dijalankan dengan `make -C labs/<nama> run`. Sisanya d
 | `b7-2-modul` | 4.5 | `make -C labs/b7-2-modul run` |
 | `t5-skala` | 5.1 | `make -C labs/t5-skala run` |
 | `t5-replika` | 5.2 | `make -C labs/t5-replika run`, lalu `make -C labs/t5-replika down` (primary + replica di compose sendiri, port 54340–54341) |
+| `t5-partisi` | 5.10, 5.11 (rencana) | `make -C labs/t5-partisi run` (±1 menit; satu bagian: `BAGIAN=skala`, `lepas`, atau `testing`); `make -C labs/t5-partisi cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit |
 
 Lab server memakai port tetap di rentang 18080–18142. Lab sejak halaman 3.7 sengaja gagal kalau port sudah terpakai, supaya rekaman tidak diam-diam diambil dari server lama. Lab yang lebih lama belum semuanya diperiksa untuk pola ini, jadi pastikan proses lab sebelumnya sudah mati sebelum kamu menjalankan lab berikutnya.
 

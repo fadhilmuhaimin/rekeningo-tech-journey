@@ -105,6 +105,9 @@ func main() {
 	laporanRedis := flag.String("laporan-redis", "", "alamat Redis untuk -laporan-cache redis (tiruan lokal di container)")
 	laporanTTL := flag.Duration("laporan-ttl", service.TTLLaporan, "TTL entri cache laporan (naskah M40: 30 detik, Asumsi)")
 	cicilanSampai := flag.String("cicilan-sampai", "", "job: tagih angsuran jatuh tempo sampai tanggal YYYY-MM-DD, lalu keluar (ADR 54; mode rentan cicilan-satu-job = versi pertama)")
+	buatSnapshot := flag.String("buat-snapshot", "", "job: tulis snapshot saldo akhir bulan YYYY-MM-DD (tanggal 1, bulan sudah selesai) untuk semua buku, lalu keluar (lab t5-partisi)")
+	dariSnapshot := flag.Bool("dari-snapshot", false, "dengan -cek-cache: baca snapshot saldo terakhir dan posting sesudahnya, bukan semua posting (lab t5-partisi)")
+	snapshotPeriode := flag.String("snapshot-periode", "", "dengan -dari-snapshot: pakai snapshot periode YYYY-MM-DD ini, bukan yang terakhir")
 	cicilanHenti := flag.Int("lab-cicilan-henti", 0, "lab saja, dengan -cicilan-sampai: berhenti mendadak sesudah sekian jurnal ditulis, sebelum angsurannya ditandai")
 	flag.Parse()
 
@@ -164,6 +167,10 @@ func main() {
 			log.Fatal(err)
 		}
 		return
+	case *buatSnapshot != "":
+		os.Exit(jalankanBuatSnapshot(r, *buatSnapshot))
+	case *cekCache && *dariSnapshot:
+		os.Exit(jalankanCekCacheSnapshot(r, *snapshotPeriode))
 	case *cekCache:
 		os.Exit(jalankanCekCache(r))
 	case *bersih:
@@ -562,6 +569,50 @@ func jalankanCekCache(r repo.Repo) int {
 }
 
 // --8<-- [end:cek-cache]
+
+// jalankanBuatSnapshot: job akhir bulan (lab t5-partisi). Exit 0 bila selesai, 2 bila bulan belum selesai atau salah format.
+func jalankanBuatSnapshot(r repo.Repo, tanggal string) int {
+	periode, err := time.ParseInLocation("2006-01-02", tanggal, service.WIB)
+	if err != nil {
+		log.Printf("-buat-snapshot: %v", err)
+		return 2
+	}
+	n, err := r.BuatSnapshot(context.Background(), periode, time.Now())
+	if err != nil {
+		log.Printf("-buat-snapshot: %v", err)
+		return 2
+	}
+	fmt.Printf("snapshot %s: %d buku ditulis\n", tanggal, n)
+	return 0
+}
+
+// jalankanCekCacheSnapshot: pemeriksaan malam yang membaca snapshot terakhir dan posting sesudahnya. Exit 1 bila ada
+// selisih, seperti jalankanCekCache.
+func jalankanCekCacheSnapshot(r repo.Repo, tanggal string) int {
+	var periode *time.Time
+	if tanggal != "" {
+		t, err := time.ParseInLocation("2006-01-02", tanggal, service.WIB)
+		if err != nil {
+			log.Printf("-snapshot-periode: %v", err)
+			return 2
+		}
+		periode = &t
+	}
+	dipakai, n, beda, err := r.CekCacheSnapshot(context.Background(), periode)
+	if err != nil {
+		log.Print(err)
+		return 2
+	}
+	for _, b := range beda {
+		fmt.Printf("buku %d (%s %s): saldo_cache %d, snapshot + posting sesudahnya %d, selisih %d\n",
+			b.BukuID, b.Jenis, b.Nama, b.Cache, b.Posting, b.Cache-b.Posting)
+	}
+	fmt.Printf("cek cache dari snapshot %s: %d buku diperiksa, %d tidak cocok\n", dipakai.Format("2006-01-02"), n, len(beda))
+	if len(beda) > 0 {
+		return 1
+	}
+	return 0
+}
 
 // jalankanCicilan: job sekali jalan. Exit 0 bila selesai (angsuran yang gagal karena saldo bukan kegagalan job), 2 bila
 // job tidak bisa jalan. Dengan -lab-sekarang, waktu Idempotency-Key mode rentan diperankan (24 jam tidak ditunggu).
