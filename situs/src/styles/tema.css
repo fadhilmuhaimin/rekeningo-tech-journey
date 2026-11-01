@@ -1538,3 +1538,27 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .bt-tabel thead th { font-weight: 600; border-bottom: 1px solid var(--garis-2); }
 .sl-markdown-content .bt-tabel :is(th, td) { overflow-wrap: anywhere; }
 @media (scripting: none) { .sl-markdown-content .bt { display: none; } }
+
+/* Peta lima zona Tahap 5 (W5-zona): memakai bb-*, jt-tabel, dan bb-predict; hanya aturan di bawah yang baru. Tanpa JavaScript
+   tebakan dan tombol tidak berfungsi: widget disembunyikan, dan pembungkus memuat isi zona dan tabel di <noscript>. Tabel kejadian
+   dua baris per kejadian (nama di atas, tiga sel sama lebar di bawah) supaya kata "Terjaga" dan "Tidak berlaku" muat di 320 px. */
+.sl-markdown-content .pz-zona { display: inline-flex; flex-wrap: wrap; gap: 0 0.35rem; align-items: baseline; }
+.sl-markdown-content .pz-tanda { font-size: 0.85em; font-weight: 700; color: var(--k-good-ink); }
+.sl-markdown-content .pz-zona[aria-pressed="true"] .pz-tanda { color: inherit; }
+.sl-markdown-content .pz-panel { border-left: 3px solid var(--garis-2); padding: 0.1rem 0 0.1rem 0.8rem; margin: 0.6rem 0; }
+.sl-markdown-content .pz-panel p { margin: 0.3rem 0; }
+.sl-markdown-content .pz-judul { margin: 0.8rem 0 0.2rem; }
+.sl-markdown-content :is(.pz-daftar, .pz-tiga) { margin: 0.2rem 0 0.4rem; padding-left: 1.2rem; }
+.sl-markdown-content .pz-daftar li { margin: 0.35rem 0; overflow-wrap: anywhere; }
+.sl-markdown-content .pz-baris { display: block; }
+.sl-markdown-content .pz-kode { white-space: nowrap; color: var(--teks-2); }
+.sl-markdown-content .pz-tabel { table-layout: fixed; }
+.sl-markdown-content .pz-tabel caption { caption-side: top; text-align: left; padding: 0.2rem 0.5rem; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .pz-tabel :is(th, td) { padding: 0.3rem 0.35rem; overflow-wrap: anywhere; }
+.sl-markdown-content .pz-tabel thead th { font-weight: 600; border-bottom: 1px solid var(--garis-2); text-align: center; }
+.sl-markdown-content .pz-tabel th.pz-kejadian { text-align: left; border-top: 2px solid var(--garis-2); padding-top: 0.5rem; }
+.sl-markdown-content .pz-tabel td.pz-sel { text-align: center; }
+.sl-markdown-content .pz-sel.is-terjaga { background: var(--k-good-fill); color: var(--k-good-ink); }
+.sl-markdown-content .pz-sel.is-rusak { background: var(--k-warn-fill); color: var(--k-warn-ink); font-weight: 700; }
+.sl-markdown-content :is(.pz-sel.is-tidak, .pz-sel.is-belum) { color: var(--teks-2); }
+@media (scripting: none) { .sl-markdown-content .pz { display: none; } }
