@@ -598,7 +598,11 @@ describe("nilai turunan cocok dengan ERD, rekaman, dan naskah", () => {
       if (t.pk.length > 1) expect(dalam).toContain(`PRIMARY KEY \`(${t.pk.join(", ")})\``);
       else if (t.pk[0] !== "id") expect(dalam).toContain(`${t.pk[0]} sebagai PRIMARY KEY`);
       else expect(dalam.startsWith("id, ")).toBe(true);
-      for (const k of t.kolom.filter((x) => !x.wajib)) expect(dalam, `${nama}.${k.nama}`).toMatch(new RegExp(`${k.nama}[^,;]* boleh kosong|${k.nama}(?!.*boleh kosong)`));
+      // Setiap "X boleh kosong" di baris tabel benar menurut ERD (kolom tanpa NOT NULL), dan himpunannya sama dengan baris naskah.
+      const dinyatakan = [...dalam.matchAll(/(\w+) boleh kosong/g)].map((m) => m[1]!);
+      for (const k of dinyatakan) expect(t.kolom.find((x) => x.nama === k)?.wajib, `${nama}.${k} boleh kosong`).toBe(false);
+      const baris_naskah = barisNaskah.find((b) => b[1]!.startsWith(`\`${nama}\` (`))!;
+      expect(dinyatakan, nama).toEqual([...baris_naskah[1]!.matchAll(/`(\w+)` boleh kosong/g)].map((m) => m[1]!));
       for (const u of t.unik) expect(dalam).toContain(`${u.kolom[0]} UNIQUE`);
       let daftarDicek = 0;
       for (const c of t.cek.filter((x) => /_(status|jenis)_check$/.test(x.nama) && /ARRAY/.test(x.ekspresi))) {
@@ -611,6 +615,23 @@ describe("nilai turunan cocok dengan ERD, rekaman, dan naskah", () => {
       if (["jadwal_cicilan", "angsuran", "pengumuman"].includes(nama)) expect(daftarDicek, nama).toBe(1);
     }
     expect(barisMdx.filter((b) => b.startsWith("| (tidak ada) |"))).toHaveLength(BARU.length);
+  });
+  test("sel pertama baris tabel yang berubah menyebut kolom Tahap 4 yang memang ada, dan nilai tujuan outbox sama dengan CHECK Tahap 4", () => {
+    const baris = mdx.split("\n");
+    const lama = (tabel: string): string => baris.find((b) => b.startsWith(`| \`${tabel}\` (`))!.split(" | ")[0]!;
+    for (const [tabel, kolom] of [["posting", "id"], ["outbox", "tujuan"], ["jurnal", "jenis"], ["buku", "jenis"]]) {
+      expect(erd4.tabel.find((x) => x.nama === tabel)!.kolom.some((k) => k.nama === kolom), `${tabel}.${kolom}`).toBe(true);
+      expect(lama(tabel)).toContain(`\`${kolom}\``);
+    }
+    expect(lama("posting")).toBe("| `posting` (PRIMARY KEY `id`)");
+    expect(erd4.tabel.find((x) => x.nama === "posting")!.pk).toEqual(["id"]);
+    expect(lama("outbox")).toBe("| `outbox` (`tujuan`: push, verifikasi)");
+    expect(baris.filter((b) => b.startsWith("| `akun` | `akun` + `mitra_pos_id`, boleh kosong")).length).toBe(1);
+  });
+  test("PRD v5 meminta empat hal P0 yang disebut halaman: laporan, notifikasi massal, cicilan dan tabungan, API publik untuk POS", () => {
+    const prd = baca("situs/src/content/docs/tahap-5/prd-v5.mdx");
+    for (const s of ["| P0 | Laporan merchant real-time |", "| P0 | Notifikasi massal |", "| P0 | Cicilan dan tabungan berjangka |", "| P0 | API publik untuk POS pihak ketiga |"]) expect(prd, s).toContain(s);
+    expect(mdx).toContain("PRD v5 meminta laporan merchant real-time, notifikasi massal, cicilan dan tabungan, serta API publik untuk POS ([[t5-prd]])");
   });
   test("nilai jenis dan tujuan baru: tabungan di buku, angsuran dan tabungan di jurnal, stream dan pengumuman di outbox; tidak ada yang hilang", () => {
     const nilai = (e: Erd, tabel: string, cek: string): string[] => [...e.tabel.find((t) => t.nama === tabel)!.cek.find((c) => c.nama === cek)!.ekspresi.matchAll(/'([^']+)'::text/g)].map((m) => m[1]!);
@@ -852,6 +873,8 @@ describe("label sumber dan baris riset R5-120 sampai R5-124", () => {
   });
   test("R5-120 dan R5-123 menyebut berkas rekaman, bagian, dan kode yang dipakai halaman", () => {
     const r = ambil("R5-120");
+    expect(r).toContain(`bagian A (${N5} tabel: ${N4} dari Tahap 4 dan ${BARU.length} baru; partisi bukan tabel inti)`);
+    expect(r).toContain("(kolom tabel baru dan tabel berubah sama dengan rancangan; empat selisih tertulis di rekaman)");
     for (const s of ["labs/api-t5/output/skema.txt", "pasang.txt", "lepas.txt", "lepas.py", "000024", "000026", "PostgreSQL 17.11", "go1.27.3", "pgx v5.11.0", "`t5_`", "0A000", "23514", "23001", "42501", "9, 5, 6, 6, 2, 2"]) expect(r, s).toContain(s);
     expect(r).toContain(`${FK_HILANG.length} foreign key lintas schema sebelum, 0 sesudah, ${FK5} di dalam schema`);
     expect(r).toContain(`${titik(BARIS_LEPAS)} baris`);
@@ -866,7 +889,8 @@ describe("label sumber dan baris riset R5-120 sampai R5-124", () => {
     const r = ambil("R5-122");
     for (const s of ["postgresql.org/docs/17/ddl-partitioning.html", "5.12.2.3", "5.12.1", "postgresql.org/docs/17/limits.html", "32 TB dengan BLCKSZ bawaan 8192 bytes", "VACUUM", "dibuka 2026-11-02"]) expect(r, s).toContain(s);
     const u = ambil("R5-124");
-    for (const s of ["postgresql.org/docs/17/ddl-constraints.html", "5.5.3", "github.com/pgpartman/pg_partman", "dibuka 2026-11-02", "tidak menampilkan nomor rilis"]) expect(u, s).toContain(s);
+    for (const s of ["postgresql.org/docs/17/ddl-constraints.html bagian 5.5.3 (Unique Constraints), dibuka 2026-11-02", "github.com/pgpartman/pg_partman, dibuka 2026-11-02", "tidak menampilkan nomor rilis"]) expect(u, s).toContain(s);
+    expect(u.match(/dibuka 2026-11-02/g)).toHaveLength(2);
     // Tiap tautan luar di halaman muncul di salah satu baris dan memakai nomor bagian yang sama.
     const luar = [...mdx.matchAll(/\]\((https:\/\/www\.postgresql\.org\/docs\/17\/([\w-]+\.html)(?:#([\w-]+))?)\)/g)].map((m) => [m[2], m[3] ?? "", m[0]]);
     expect(luar.map((x) => x[0])).toEqual(["ddl-constraints.html", "ddl-partitioning.html", "limits.html", "ddl-partitioning.html", "ddl-partitioning.html", "limits.html", "ddl-constraints.html"]);
