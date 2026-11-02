@@ -458,20 +458,22 @@ def rekam_langkah():
     catat(f"# Tabel sistem DBOS dan transaction_completion ada di schema {SKEMA_DBOS}, bukan di schema service mana pun.")
     bagian("A. Kasus yang sama: job dimatikan sesudah jurnal ditulis, lalu dijalankan lagi")
     catat("# Tiap baris: satu jadwal baru (angsuran ke-1 Rp100.000 jatuh tempo kemarin, saldo awal Rp250.000), job dimatikan SIGKILL di titik yang disebut, lalu dijalankan lagi tanpa suntikan.")
-    catat("# titik 'sesudah jurnal, sebelum penanda': ledger sudah ditulis dan sudah di-commit, proses mati sebelum langkah berikutnya tercatat.")
-    catat("# titik 'sesudah langkah jurnal tercatat': DBOS sudah mencatat langkah jurnal selesai; mati sebelum langkah penanda (hanya DBOS punya titik ini: tabel langkah tidak punya langkah di antaranya).")
+    catat("# titik 'dalam langkah jurnal, sesudah commit ledger' (DBOS RunAsTransaction: sebelum commit): ledger sudah ditulis dan di-commit, tetapi langkah jurnal belum tercatat selesai (tabel langkah: status belum terjurnal; DBOS: belum ada baris langkah).")
+    catat("# titik 'sesudah langkah jurnal tercatat, sebelum penanda': langkah jurnal sudah tercatat (tabel langkah: status terjurnal; DBOS: baris operation_outputs) dan proses mati sebelum penanda dicatat. Kedua cara punya kedua titik; tiap baris di bawah mematikan satu titik.")
     akun = iter(karyawan(10))
     hasil = []
 
-    def skenario(label, cara, varian=None, titik=None, teks_titik="sesudah jurnal, sebelum penanda", jurnal_harus=1):
+    def skenario(label, cara, varian=None, titik=None, teks_titik="", jurnal_harus=1, status_mati="menunggu"):
         a = next(akun)
         jadwal = buat_jadwal(a, ANI, 100_000, 3, mulai)
         if cara == "tabel":
-            rc, out = job(["-cicilan-sampai", hari.isoformat(), "-lab-cicilan-henti", "1"])
+            bendera = "-lab-cicilan-henti-terjurnal" if titik == "terjurnal" else "-lab-cicilan-henti"
+            rc, out = job(["-cicilan-sampai", hari.isoformat(), bendera, "1"])
         else:
             rc, out = dbos_jalan(varian, hari, jadwal, mati=titik)
         tunggu_mati(rc, f"{label}: proses pertama", out)
         antara = (status_angsuran(jadwal, 1), jurnal_angsuran(jadwal, 1))
+        harap(antara[0], status_mati, f"{label}, mati {teks_titik}: status sesudah mati")
         if cara == "tabel":
             h, _ = hasil_job(["-cicilan-sampai", hari.isoformat()], label)
             ulang = f"dibaca {h['dibaca']}, dicatat {h['dicatat']}"
@@ -481,26 +483,27 @@ def rekam_langkah():
             m = HASIL_DBOS.search(out)
             harap(m is not None, True, f"{label}: keluaran DBOS tidak dikenal: {out[-300:]!r}")
             ulang = f"dibaca {m.group(2)}, dicatat {m.group(3)}"
-        hasil.append((label, teks_titik, antara[1], ulang, jurnal_angsuran(jadwal, 1), 250_000 - saldo(a), status_angsuran(jadwal, 1)))
-        harap((hasil[-1][4], hasil[-1][6]), (jurnal_harus, "dicatat"), f"{label}, mati {teks_titik}: jurnal akhir dan status")
+        hasil.append((label, teks_titik, antara[1], antara[0], ulang, jurnal_angsuran(jadwal, 1), 250_000 - saldo(a), status_angsuran(jadwal, 1)))
+        harap((hasil[-1][5], hasil[-1][7]), (jurnal_harus, "dicatat"), f"{label}, mati {teks_titik}: jurnal akhir dan status")
         return hasil[-1]
 
-    skenario("tabel langkah", "tabel")
     dalam, sesudah = "dalam langkah jurnal, sesudah commit ledger", "sesudah langkah jurnal tercatat, sebelum penanda"
+    skenario("tabel langkah", "tabel", teks_titik="dalam langkah jurnal, sesudah commit ledger")
+    skenario("tabel langkah", "tabel", "terjurnal", "terjurnal", sesudah, status_mati="terjurnal")
     skenario("DBOS RunAsStep, tanpa referensi", "dbos", "step", "dalam-langkah", dalam, jurnal_harus=2)
     skenario("DBOS RunAsStep, tanpa referensi", "dbos", "step", "antar-langkah", sesudah)
     skenario("DBOS RunAsStep, referensi unik", "dbos", "step-referensi", "dalam-langkah", dalam)
     skenario("DBOS RunAsStep, referensi unik", "dbos", "step-referensi", "antar-langkah", sesudah)
     skenario("DBOS RunAsTransaction", "dbos", "transaksi", "dalam-langkah", "dalam langkah jurnal, sebelum commit")
     skenario("DBOS RunAsTransaction", "dbos", "transaksi", "antar-langkah", sesudah)
-    tabel_baris(["cara", "titik mati", "jurnal sesudah mati", "proses kedua", "jurnal akhir", "saldo berkurang", "status akhir"], hasil)
-    harap([(h[4], h[5], h[6]) for h in hasil],
-          [(1, 100_000, "dicatat"), (2, 200_000, "dicatat"), (1, 100_000, "dicatat"), (1, 100_000, "dicatat"),
+    tabel_baris(["cara", "titik mati", "jurnal sesudah mati", "status sesudah mati", "proses kedua", "jurnal akhir", "saldo berkurang", "status akhir"], hasil)
+    harap([(h[5], h[6], h[7]) for h in hasil],
+          [(1, 100_000, "dicatat"), (1, 100_000, "dicatat"), (2, 200_000, "dicatat"), (1, 100_000, "dicatat"), (1, 100_000, "dicatat"),
            (1, 100_000, "dicatat"), (1, 100_000, "dicatat"), (1, 100_000, "dicatat")], "hasil akhir tiap cara")
     catat("# DBOS RunAsStep tanpa referensi menagih dua kali bila proses mati di dalam langkah jurnal: langkah baru dicatat sesudah fungsinya kembali, jadi pemulihan menjalankannya lagi.")
     catat("# Dengan referensi unik, atau dengan RunAsTransaction (catatan selesai ditulis di transaction yang sama dengan jurnal), hasilnya sama dengan tabel langkah: satu jurnal.")
-    harap(hasil[1][2], 1, "RunAsStep tanpa referensi: jurnal sudah ada sebelum pemulihan")
-    harap(hasil[5][2], 0, "RunAsTransaction mati sebelum commit: belum ada jurnal")
+    harap(hasil[2][2], 1, "RunAsStep tanpa referensi: jurnal sudah ada sebelum pemulihan")
+    harap(hasil[6][2], 0, "RunAsTransaction mati sebelum commit: belum ada jurnal")
 
     bagian("B. Yang harus ditulis dan disimpan (dihitung, bukan dinilai)")
     kode_tabel = (baris_kode("api-t5/internal/service/t5.go", "job-cicilan", "langkah-tabel")
@@ -509,11 +512,16 @@ def rekam_langkah():
     batch = baris_kode("t5-cicilan/dbos/main.go", "dbos-batch")
     kode_step = baris_kode("t5-cicilan/dbos/main.go", "dbos-alur-step") + bersama + batch
     kode_tx = baris_kode("t5-cicilan/dbos/main.go", "dbos-alur-transaksi") + bersama + batch
+    awal = baris_kode("t5-cicilan/dbos/main.go", "dbos-awal", "dbos-daftar", "dbos-akhir")
+    sumber_data = baris_kode("t5-cicilan/dbos/main.go", "dbos-sumber-data")
     catat("# baris kode = baris bukan kosong, bukan komentar, bukan suntikan lab (// lab), bukan cabang versi pertama (// rentan), di wilayah bertanda `--8<-- [start:x]` sampai `[end:x]`:")
     catat("#   tabel langkah: JalankanCicilan dan tagihBenar (internal/service/t5.go) + TandaiAngsuran (internal/repo/t5.go)")
     catat("#   DBOS: alur satu varian + langkah bersama (tandai, tandaiGagal) + batch (RunWorkflow per angsuran dan GetResult), dbos/main.go")
+    catat("#   inisialisasi DBOS (dbos.NewContext, dbos.RegisterWorkflow dan dbos.Launch, dbos.Shutdown; dbos.NewDataSource hanya untuk RunAsTransaction): kolom sendiri, karena tabel langkah tidak punya padanannya. Kedua RegisterWorkflow dihitung di kedua varian (satu baris lebih untuk tiap varian).")
     catat("# tidak dihitung di kedua sisi: penulis jurnal (Go di api-t5, fungsi SQL di pembanding), daftar angsuran jatuh tempo, bendera.")
-    tabel_baris(["cara", "baris kode"], [("tabel langkah", kode_tabel), ("DBOS RunAsStep", kode_step), ("DBOS RunAsTransaction", kode_tx)])
+    tabel_baris(["cara", "baris alur dan penanda", "baris inisialisasi", "jumlah"],
+                [("tabel langkah", kode_tabel, 0, kode_tabel), ("DBOS RunAsStep", kode_step, awal, kode_step + awal),
+                 ("DBOS RunAsTransaction", kode_tx, awal + sumber_data, kode_tx + awal + sumber_data)])
     tabel_sistem = sql(f"""SELECT table_name, (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', table_schema, table_name), false, true, '')))[1]::text::int AS baris
                            FROM information_schema.tables WHERE table_schema = '{SKEMA_DBOS}' AND table_type = 'BASE TABLE' ORDER BY 1""", tampil=False)
     catat(f"# tabel di schema {SKEMA_DBOS} sesudah enam workflow DBOS, satu per angsuran (dibaca dari katalog, baris dihitung):")

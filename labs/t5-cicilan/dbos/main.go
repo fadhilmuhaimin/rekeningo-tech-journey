@@ -192,7 +192,7 @@ func jatuhTempo(ctx context.Context, sampai string, jadwal int64) ([]Angsuran, e
 
 func main() {
 	dbApp := flag.String("db-app", "", "URL database aplikasi (role api_t5, search_path ke schema lab)")
-	dbSistem := flag.String("db-sistem", "", "URL database sistem DBOS (role api_t5, tanpa search_path)")
+	dbSistem := flag.String("db-sistem", "", "URL database sistem DBOS (role pemilik lab, tanpa search_path: DBOS membuat tabel sistemnya di -dbos-schema)")
 	skema := flag.String("dbos-schema", "", "schema tabel sistem DBOS dan transaction_completion (dibuat pemilik sebelum proses ini jalan)")
 	sampai := flag.String("sampai", "", "tagih angsuran jatuh tempo sampai tanggal YYYY-MM-DD")
 	jadwal := flag.Int64("jadwal", 0, "hanya angsuran jadwal ini (0 = semua jadwal); lab memakainya supaya satu skenario tidak mengerjakan sisa skenario lain")
@@ -213,18 +213,24 @@ func main() {
 		log.Fatal(err)
 	}
 	defer s.pool.Close()
+	// --8<-- [start:dbos-awal]
 	dctx, err := dbos.NewContext(bg, dbos.Config{AppName: "cicilan-lab", DatabaseURL: *dbSistem, DatabaseSchema: *skema, ApplicationVersion: "lab"})
 	if err != nil {
 		log.Fatal(err)
 	}
+	// --8<-- [end:dbos-awal]
+	// --8<-- [start:dbos-sumber-data]
 	if s.ds, err = dbos.NewDataSource(dctx, s.pool, dbos.WithDataSourceName("ledger"), dbos.WithDataSourceSchema(*skema)); err != nil {
 		log.Fatal(err)
 	}
+	// --8<-- [end:dbos-sumber-data]
+	// --8<-- [start:dbos-daftar]
 	dbos.RegisterWorkflow(dctx, tagihStep)
 	dbos.RegisterWorkflow(dctx, tagihTransaksi)
 	if err := dbos.Launch(dctx); err != nil { // Launch melanjutkan workflow PENDING milik executor ini
 		log.Fatal(err)
 	}
+	// --8<-- [end:dbos-daftar]
 	daftar, err := jatuhTempo(bg, *sampai, *jadwal)
 	if err != nil {
 		log.Fatal(err)
@@ -234,8 +240,10 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("dbos %s sampai %s: dibaca %d, dicatat %d, gagal %d\n", s.varian, *sampai, len(daftar), dicatat, gagal)
+	// --8<-- [start:dbos-akhir]
 	if err := dbos.Shutdown(dctx, 10*time.Second); err != nil {
 		log.Print(err)
 	}
+	// --8<-- [end:dbos-akhir]
 	os.Exit(0)
 }
