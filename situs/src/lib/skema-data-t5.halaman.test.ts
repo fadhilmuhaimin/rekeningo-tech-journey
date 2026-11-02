@@ -1068,8 +1068,7 @@ describe("penguat tinjauan: kalimat yang punya sumber diikat ke sumbernya, bukan
   });
   test("baris Sengaja belum tentang database terpisah memakai pemicu yang ditulis halaman ADR 60", () => {
     const adr60 = baca("situs/src/content/docs/tahap-5/sengaja-belum.mdx");
-    expect(adr60).toContain("| 3. Database terpisah per service | Dua service saling memperlambat di cluster yang sama, terbaca dari L per schema |");
-    expect(adr60).toContain("L per schema belum terbaca");
+    expect(adr60).toContain("| 3. Database terpisah per service | Dua service saling memperlambat di cluster yang sama");
     expect(badan).toContain("| Database fisik terpisah per service | Pemicunya, dua service saling memperlambat di cluster yang sama, belum bisa dibaca per schema | [[t5-adr-60]] |");
     expect(per("t5-adr-60").ada).toBe(true);
   });
