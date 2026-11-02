@@ -1,0 +1,60 @@
+# Lab t5-cicilan · tabel langkah buatan sendiri lawan DBOS Go atas kasus yang sama
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_cicilan · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-cicilan run.
+# github.com/dbos-inc/dbos-transact-golang v1.8.0 (terbit 2026-10-28), lisensi di file LICENSE modul: MIT License
+# Pembanding dijalankan sebagai program Go terpisah (labs/t5-cicilan/dbos, modul sendiri); ledger tetap tabel yang sama.
+# Tabel sistem DBOS dan transaction_completion ada di schema tahap5_cicilan_dbos, bukan di schema service mana pun.
+
+# --- A. Kasus yang sama: job dimatikan sesudah jurnal ditulis, lalu dijalankan lagi ---
+# Tiap baris: satu jadwal baru (angsuran ke-1 Rp100.000 jatuh tempo kemarin, saldo awal Rp250.000), job dimatikan SIGKILL di titik yang disebut, lalu dijalankan lagi tanpa suntikan.
+# titik 'dalam langkah jurnal, sesudah commit ledger' (DBOS RunAsTransaction: sebelum commit): ledger sudah ditulis dan di-commit, tetapi langkah jurnal belum tercatat selesai (tabel langkah: status belum terjurnal; DBOS: belum ada baris langkah).
+# titik 'sesudah langkah jurnal tercatat, sebelum penanda': langkah jurnal sudah tercatat (tabel langkah: status terjurnal; DBOS: baris operation_outputs) dan proses mati sebelum penanda dicatat. Kedua cara punya kedua titik; tiap baris di bawah mematikan satu titik.
+ cara                            | titik mati                                       | jurnal sesudah mati | status sesudah mati | proses kedua        | jurnal akhir | saldo berkurang | status akhir
+---------------------------------+--------------------------------------------------+---------------------+---------------------+---------------------+--------------+-----------------+--------------
+ tabel langkah                   | dalam langkah jurnal, sesudah commit ledger      | 1                   | menunggu            | dibaca 1, dicatat 1 | 1            | 100000          | dicatat
+ tabel langkah                   | sesudah langkah jurnal tercatat, sebelum penanda | 1                   | terjurnal           | dibaca 1, dicatat 1 | 1            | 100000          | dicatat
+ DBOS RunAsStep, tanpa referensi | dalam langkah jurnal, sesudah commit ledger      | 1                   | menunggu            | dibaca 1, dicatat 1 | 2            | 200000          | dicatat
+ DBOS RunAsStep, tanpa referensi | sesudah langkah jurnal tercatat, sebelum penanda | 1                   | menunggu            | dibaca 1, dicatat 1 | 1            | 100000          | dicatat
+ DBOS RunAsStep, referensi unik  | dalam langkah jurnal, sesudah commit ledger      | 1                   | menunggu            | dibaca 1, dicatat 1 | 1            | 100000          | dicatat
+ DBOS RunAsStep, referensi unik  | sesudah langkah jurnal tercatat, sebelum penanda | 1                   | menunggu            | dibaca 1, dicatat 1 | 1            | 100000          | dicatat
+ DBOS RunAsTransaction           | dalam langkah jurnal, sebelum commit             | 0                   | menunggu            | dibaca 1, dicatat 1 | 1            | 100000          | dicatat
+ DBOS RunAsTransaction           | sesudah langkah jurnal tercatat, sebelum penanda | 1                   | menunggu            | dibaca 1, dicatat 1 | 1            | 100000          | dicatat
+(8 rows)
+# DBOS RunAsStep tanpa referensi menagih dua kali bila proses mati di dalam langkah jurnal: langkah baru dicatat sesudah fungsinya kembali, jadi pemulihan menjalankannya lagi.
+# Dengan referensi unik, atau dengan RunAsTransaction (catatan selesai ditulis di transaction yang sama dengan jurnal), hasilnya sama dengan tabel langkah: satu jurnal.
+
+# --- B. Yang harus ditulis dan disimpan (dihitung, bukan dinilai) ---
+# baris kode = baris bukan kosong, bukan komentar, bukan suntikan lab (// lab), bukan cabang versi pertama (// rentan), di wilayah bertanda `--8<-- [start:x]` sampai `[end:x]`:
+#   tabel langkah: JalankanCicilan dan tagihBenar (internal/service/t5.go) + TandaiAngsuran (internal/repo/t5.go)
+#   DBOS: alur satu varian + langkah bersama (tandai, tandaiGagal) + batch (RunWorkflow per angsuran dan GetResult), dbos/main.go
+#   inisialisasi DBOS (dbos.NewContext, dbos.RegisterWorkflow dan dbos.Launch, dbos.Shutdown; dbos.NewDataSource hanya untuk RunAsTransaction): kolom sendiri, karena tabel langkah tidak punya padanannya. Kedua RegisterWorkflow dihitung di kedua varian (satu baris lebih untuk tiap varian).
+# tidak dihitung di kedua sisi: penulis jurnal (Go di api-t5, fungsi SQL di pembanding), daftar angsuran jatuh tempo, bendera.
+ cara                  | baris alur dan penanda | baris inisialisasi | jumlah
+-----------------------+------------------------+--------------------+--------
+ tabel langkah         | 56                     | 0                  | 56
+ DBOS RunAsStep        | 59                     | 12                 | 71
+ DBOS RunAsTransaction | 54                     | 15                 | 69
+(3 rows)
+# tabel di schema tahap5_cicilan_dbos sesudah enam workflow DBOS, satu per angsuran (dibaca dari katalog, baris dihitung):
+ tabel                                  | baris
+----------------------------------------+-------
+ application_versions                   | 1
+ dbos_migrations                        | 1
+ dbos_transaction_completion_migrations | 1
+ event_dispatch_kv                      | 0
+ notifications                          | 0
+ operation_outputs                      | 12
+ queues                                 | 0
+ streams                                | 0
+ transaction_completion                 | 2
+ workflow_events                        | 0
+ workflow_events_history                | 0
+ workflow_input                         | 6
+ workflow_output                        | 6
+ workflow_schedules                     | 0
+ workflow_status                        | 6
+(15 rows)
+# baris sistem per angsuran = (workflow_status + workflow_input + workflow_output + operation_outputs) / workflow_status = 5; ditambah satu baris transaction_completion per langkah RunAsTransaction.
+# 1,2 juta angsuran per tahun (naskah, Asumsi) x 5 baris = 6 juta baris per tahun di tabel DBOS bila tidak dibersihkan (Hitungan atas Asumsi; pengaturan retensi DBOS tidak dibaca di lab ini: Tidak dijalankan).
+# tabel langkah: tidak ada tabel tambahan; status ada di kolom angsuran.status (3 nilai di versi benar: menunggu, terjurnal, dicatat) dan jurnal.referensi.
+# DBOS: status per langkah ada di tabel sistemnya; angsuran.status hanya dipakai untuk apa yang dilihat app (menunggu, dicatat, gagal).
