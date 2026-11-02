@@ -1071,3 +1071,49 @@ describe("penguat tinjauan: kalimat yang punya sumber diikat ke sumbernya, bukan
     expect(per("t5-adr-60").ada).toBe(true);
   });
 });
+
+describe("penguat tinjauan, putaran dua: atribusi, label di bagian ukuran, klaim negatif berlingkup, dan kalimat lab", () => {
+  const badan = mdx.slice(mdx.indexOf("\n---\n", 3) + 5);
+  const risetSatu = (id: string): string => risetBaris.find((b) => b.startsWith(`| ${id} |`))!;
+  test("bagian pertumbuhan: satu-satunya Rekaman lab adalah kalimat DETACH + DROP, dan ukuran bukan alasan partisi karena batas jauh", () => {
+    const a = badan.indexOf("### Pertumbuhan skala database");
+    const z = badan.indexOf("</Blok>", a);
+    const bagian = badan.slice(a, z);
+    expect((bagian.match(/Rekaman lab/g) ?? []).length).toBe(1);
+    expect(bagian).toContain(`(Rekaman lab, \`lepas.txt\` bagian D, tabel uji tanpa trigger ledger)`);
+    expect(bagian).toContain("(Hitungan atas Asumsi;");
+    expect(badan.includes("**Ukuran bukan alasan partisi.**")).toBe(BATAS_GB / GB(BYTE5) > 10);
+    expect(risetSatu("R5-122")).toContain("relation size 32 TB");
+    expect(badan).toContain("PostgreSQL membatasi satu relasi sampai");
+    expect(badan).toContain("Dokumentasi PostgreSQL menulis alasannya.");
+  });
+  test("kalimat lab: waktu terkecil dan batasnya dari komentar rekaman lepas, kata 'tanpa DELETE', dan Idempotency-Key", () => {
+    expect(lepasTxt).toContain(`waktu terkecil DELETE dari ${W(PERCOBAAN)} percobaan lebih dari ${W(FAKTOR)} kali waktu terkecil DETACH + DROP`);
+    expect(badan).toContain(`Waktu terkecil DELETE dari ${W(PERCOBAAN)} percobaan lebih dari ${W(FAKTOR)} kali waktu DETACH + DROP.`);
+    expect(lepasTxt).toContain("Membuang satu bulan: DETACH dan DROP lawan DELETE");
+    expect(badan).toContain("Satu bulan bisa dibuang tanpa DELETE.");
+    expect(badan).toContain(`Idempotency-Key berbeda: ia hidup ${JAM_IDEMPOTENSI} jam`);
+    expect(naskah5).toContain("pemeriksaan membaca posting sesudahnya saja");
+    expect(badan).toContain("dengan snapshot membaca posting sesudahnya saja");
+    expect(mig000026.join("\n")).toMatch(/ADD COLUMN referensi text UNIQUE;/);
+    expect(mig000026.join("\n")).not.toMatch(/referensi text[^;]*NOT NULL/);
+    expect(badan).toContain("jadi jurnal biasa boleh punya `referensi` kosong");
+    expect(readmeApi).toContain("Satu proses, enam service sebagai paket dan schema");
+    expect(badan).toContain("Di lab keenam service berjalan dalam satu proses");
+    expect(badan).toContain(`\`outbox\` ada di service ${svcDari("outbox")} karena`);
+    expect(naskah5).toContain("Satu kill switch yang dibaca semua pod");
+    expect(badan).toContain("dibaca pod (rancangan; lab api-t5 hanya membuat tabelnya)");
+    expect(F.join("\n").match(/USAGE schema (\w+) dan SELECT/)![1]).toBe("akun");
+    expect(badan).toContain("hak di satu schema lain, yaitu akun.");
+  });
+  test("klaim negatif berlingkup: tak ada lab Tahap 6 di labs/, tak ada rekaman baris yatim di labs/api-t5/output, dan INSERT tanpa id sesuai kalimatnya", () => {
+    expect([...terlacak].filter((p) => /^labs\/(api-t6|t6-)/.test(p))).toEqual([]);
+    expect(badan).toContain("sebagai proyeksi dari rencana Tahap 2 yang belum punya lab");
+    const rekamanApi = [...terlacak].filter((p) => /^labs\/api-t5\/output\/.+\.txt$/.test(p));
+    expect(rekamanApi.length).toBeGreaterThan(5);
+    for (const p of rekamanApi) expect(baca(p), p).not.toMatch(/yatim|orphan|23503/i);
+    expect(badan).toContain("Lab tidak mencoba memasukkan baris seperti itu (Tidak dijalankan)");
+    expect(badan).toContain("lab tidak mencoba itu (Tidak dijalankan)");
+    expect(badan).toContain("Setiap INSERT ke `posting` di kode dan skrip `labs/api-t5` menghilangkan kolom `id`, dan hanya migration 000024 menyebutnya");
+  });
+});
