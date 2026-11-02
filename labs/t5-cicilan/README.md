@@ -10,7 +10,7 @@ Tidak ada pihak ketiga dan tidak ada container milik lab ini: PostgreSQL datang 
 | --- | --- | --- |
 | Go | 1.27.3 | toolchain `api-t5` dan modul `dbos/` (`go 1.27.3`); seluruh tes dan rekaman berjalan di 1.27.3 |
 | PostgreSQL | 17.11 (`postgres:17`, Debian 17.11-1.pgdg13+2) | database bersama lab, seperti `api-t5` |
-| DBOS Go | `github.com/dbos-inc/dbos-transact-golang` v1.8.0 | `proxy.golang.org` (`go list -m -json`, dicek 2026-11-02): terbit 2026-10-28. File `LICENSE` modul: MIT License. Modul ini sendiri meminta Go 1.25.0 dan toolchain 1.26.10. Dependency langsungnya: pgx v5.10.0 (modul pembanding memakai v5.11.0, sama dengan api-t5), google/uuid, robfig/cron, spf13/cobra dan viper, modernc.org/sqlite. Sumber jaminan langkah: godoc modul v1.8.0 (`dbos/workflow.go`, `dbos/datasource.go`), bukan situs dokumentasi |
+| DBOS Go | `github.com/dbos-inc/dbos-transact-golang` v1.8.0 | `proxy.golang.org` (`go list -m -json`, dicek 2026-11-02): terbit 2026-10-28. File `LICENSE` modul: MIT License. Ekstensi komersial untuk DBOS Conductor (`go.dbos.dev/dbos-enterprise-go`, disebut di `dbos/enterprise.go`) adalah modul terpisah dan tidak diimpor lab ini. Modul ini sendiri meminta Go 1.25.0 dan toolchain 1.26.10. Dependency langsungnya: pgx v5.10.0 (modul pembanding memakai v5.11.0, sama dengan api-t5), google/uuid, robfig/cron, spf13/cobra dan viper, modernc.org/sqlite. Sumber jaminan langkah: godoc modul v1.8.0 (`dbos/workflow.go`, `dbos/datasource.go`), bukan situs dokumentasi |
 | pgx | v5.11.0 | di `api-t5` dan di `dbos/go.mod` |
 | Python | venv `labs/.venv`, psycopg 3.3.6 | |
 
