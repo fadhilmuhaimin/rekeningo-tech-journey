@@ -22,6 +22,10 @@ ok    lab/apit5/cmd/api
 --- PASS: TestModeRentanMenerimaPemanggilManaPunDenganKeyBaru
 --- PASS: TestJenisDiTabelIzinAdaDiConstraintJurnal
 --- PASS: TestIzinSatuJenisTidakMembukaRuteJenisLain
+--- PASS: TestSemuaRuteLedgerLewatIdentitasKecualiHealthz
+--- PASS: TestHealthzMengikutiDatabase
+--- PASS: TestModeRentanKartuTahanJugaTanpaIdentitas
+--- PASS: TestTanpaIdempotencyKeyDitolakDiPintuMasuk
 PASS
 ok    lab/apit5/cmd/ledger
 --- PASS: TestJendelaKuotaSepuluhRibuPerDetik
@@ -112,6 +116,10 @@ ok    lab/apit5/internal/handler
 --- PASS: TestSANYangBukanTepatSatuIdentitasDitolakHandler
 --- PASS: TestSertifikatTakTerverifikasiTidakDipakaiSebagaiIdentitas
 --- PASS: TestKlienMenolakServerBernamaLain
+--- PASS: TestPEMCATanpaSertifikatDitolakSejakAwal
+--- PASS: TestNamaMiripIdentitasTidakMenjadiPembayaran
+--- PASS: TestSertifikatServerDibacaUlangTiapHandshake
+--- PASS: TestSesiDilanjutkanTetapMembawaIdentitas
 PASS
 ok    lab/apit5/internal/identitas
 --- PASS: TestIDUrutTetapPerNamaDanBerbedaAntarNama
@@ -623,6 +631,10 @@ ok    lab/apit5/cmd/api
     ledger_test.go:262: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestIzinSatuJenisTidakMembukaRuteJenisLain
     ledger_test.go:291: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestModeRentanKartuTahanJugaTanpaIdentitas
+    rute_test.go:184: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTanpaIdempotencyKeyDitolakDiPintuMasuk
+    rute_test.go:200: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 FAIL
 FAIL  lab/apit5/cmd/ledger
 ok    lab/apit5/cmd/pushkuota

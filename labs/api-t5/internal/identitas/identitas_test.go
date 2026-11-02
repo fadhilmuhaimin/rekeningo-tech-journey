@@ -3,6 +3,7 @@ package identitas_test
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -214,8 +215,9 @@ func TestSertifikatTidakSahDitolakSaatHandshake(t *testing.T) {
 // menyebut "pembayaran" tidak memberi izin pembayaran bila SAN-nya notifikasi.
 func TestIdentitasHanyaDariSANBukanCNAtauHeader(t *testing.T) {
 	b := siapkan(t)
-	if s, isi := b.panggil(t, "tanpa-san", "/topup"); s != 401 || !strings.Contains(isi, "tanpa-identitas") {
-		t.Errorf("tanpa SAN: %d %s, ingin 401 tanpa-identitas", s, isi)
+	// Isi jawaban dibandingkan utuh: handler yang lupa berhenti sesudah 401 menulis jawaban kedua di badan yang sama.
+	if s, isi := b.panggil(t, "tanpa-san", "/topup"); s != 401 || isi != `{"alasan":"tanpa-identitas"}` {
+		t.Errorf("tanpa SAN: %d %s, ingin 401 dengan satu jawaban tanpa-identitas", s, isi)
 	}
 	if s, isi := b.panggil(t, "cn-menyesatkan", "/topup"); s != 403 || !strings.Contains(isi, `"identitas":"notifikasi"`) {
 		t.Errorf("CN pembayaran dengan SAN notifikasi: %d %s, ingin 403 sebagai notifikasi", s, isi)
@@ -346,5 +348,114 @@ func TestKlienMenolakServerBernamaLain(t *testing.T) {
 	}
 	if n := b.handler.Load(); n != 0 {
 		t.Errorf("handler dijalankan %d kali", n)
+	}
+}
+
+// PEM CA yang tidak memuat sertifikat ditolak sejak konfigurasi dibuat, bukan baru terlihat sebagai handshake yang gagal
+// untuk semua pemanggil (ledger yang salah memuat berkas CA harus gagal menyala).
+func TestPEMCATanpaSertifikatDitolakSejakAwal(t *testing.T) {
+	if _, err := identitas.ServerTLS([]byte("bukan PEM"), "ledger.pem", "ledger.key"); err == nil {
+		t.Error("ServerTLS menerima PEM CA tanpa sertifikat")
+	}
+	if _, err := identitas.KlienTLS(nil, "", "", "ledger."+identitas.DomainBawaan); err == nil {
+		t.Error("KlienTLS menerima PEM CA kosong")
+	}
+}
+
+// Nama yang mirip identitas: huruf besar, titik di ujung, wildcard, spasi, domain lain, dan sertifikat yang hanya
+// bersertifikat IP dijawab 401 (tanpa identitas). Awalan tambahan membentuk identitas lain yang tidak ada di tabel izin,
+// jadi dijawab 403 atas nama identitas itu, bukan atas nama `pembayaran`.
+func TestNamaMiripIdentitasTidakMenjadiPembayaran(t *testing.T) {
+	b := siapkan(t)
+	kini := time.Now()
+	kasus := []struct {
+		nama   string
+		dns    []string
+		ip     []net.IP
+		status int
+		isi    string
+	}{
+		{"huruf-besar", []string{"Pembayaran.T5.lab"}, nil, 401, "tanpa-identitas"},
+		{"titik-akhir", []string{"pembayaran.t5.lab."}, nil, 401, "tanpa-identitas"},
+		{"wildcard", []string{"*.t5.lab"}, nil, 401, "tanpa-identitas"},
+		{"spasi", []string{"pembayaran .t5.lab"}, nil, 401, "tanpa-identitas"},
+		{"sufiks-lain", []string{"pembayaran.t5.lab.contoh.test"}, nil, 401, "tanpa-identitas"},
+		{"hanya-ip", nil, []net.IP{net.IPv4(10, 0, 0, 1)}, 401, "tanpa-identitas"},
+		{"awalan", []string{"xpembayaran.t5.lab"}, nil, 403, `"identitas":"xpembayaran"`},
+	}
+	for _, k := range kasus {
+		s, key, err := b.ca.Terbitkan(pki.Pilihan{CN: "pembayaran", DNS: k.dns, IP: k.ip, EKU: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			Mulai: kini.Add(-time.Hour), Sampai: kini.Add(24 * time.Hour)})
+		if err != nil {
+			t.Fatalf("%s: %v", k.nama, err)
+		}
+		if err := pki.Tulis(b.folder, k.nama, s, key); err != nil {
+			t.Fatal(err)
+		}
+		if st, isi := b.panggil(t, k.nama, "/topup"); st != k.status || !strings.Contains(isi, k.isi) {
+			t.Errorf("%s: %d %s, ingin %d memuat %s", k.nama, st, isi, k.status, k.isi)
+		}
+	}
+	if n := b.handler.Load(); n != 0 {
+		t.Errorf("handler dijalankan %d kali oleh nama yang mirip identitas", n)
+	}
+}
+
+// Sertifikat server dibaca ulang dari berkas tiap handshake (GetCertificate): berkas yang diganti berlaku di handshake
+// berikutnya tanpa restart. Ini baru penggantian berkas; penerbitan dan rotasi otomatis (cert-manager) tidak diuji.
+func TestSertifikatServerDibacaUlangTiapHandshake(t *testing.T) {
+	b := siapkan(t)
+	serial := func() string {
+		k, err := tls.Dial("tcp", b.alamat, b.tls(t, "pembayaran"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer k.Close()
+		return k.ConnectionState().PeerCertificates[0].SerialNumber.String()
+	}
+	sebelum := serial()
+	kini := time.Now()
+	b.tulis(t, "ledger", b.ca, pki.Pilihan{CN: "ledger", DNS: []string{"ledger." + identitas.DomainBawaan}, IP: []net.IP{net.IPv4(127, 0, 0, 1)},
+		EKU: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}, Mulai: kini.Add(-time.Hour), Sampai: kini.Add(24 * time.Hour)})
+	if sesudah := serial(); sesudah == sebelum {
+		t.Errorf("serial server tetap %s sesudah berkas diganti", sebelum)
+	}
+}
+
+// Sambungan yang dilanjutkan dari tiket sesi (client dengan ClientSessionCache, mis. curl) tetap membawa rantai yang
+// sudah terverifikasi, jadi identitas terbaca sama seperti di sambungan pertama.
+func TestSesiDilanjutkanTetapMembawaIdentitas(t *testing.T) {
+	b := siapkan(t)
+	sert, kunci := b.berkas("ledger")
+	cfg, err := identitas.ServerTLS(b.ca.PEM, sert, kunci)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	mux.Handle("POST /topup", identitas.Wajib(identitas.IzinNaskah, identitas.DomainBawaan, "topup_bank", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, fmt.Sprintf("resume=%t", r.TLS.DidResume))
+	}), nil))
+	srv := httptest.NewUnstartedServer(mux)
+	srv.TLS = cfg
+	srv.StartTLS()
+	defer srv.Close()
+	ck := b.tls(t, "pembayaran")
+	ck.ClientSessionCache = tls.NewLRUClientSessionCache(4)
+	c := &http.Client{Transport: &http.Transport{TLSClientConfig: ck, DisableKeepAlives: true}}
+	var lanjut bool
+	for i := 0; i < 3; i++ {
+		res, err := c.Post(srv.URL+"/topup", "application/json", strings.NewReader("{}"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		isi, _ := io.ReadAll(res.Body)
+		res.Body.Close()
+		if res.StatusCode != 200 {
+			t.Errorf("sambungan %d: %d %s, ingin 200", i+1, res.StatusCode, isi)
+		}
+		lanjut = lanjut || strings.Contains(string(isi), "resume=true")
+	}
+	if !lanjut {
+		t.Error("tidak ada sambungan yang dilanjutkan dari tiket sesi: tes ini tidak membuktikan apa pun")
 	}
 }

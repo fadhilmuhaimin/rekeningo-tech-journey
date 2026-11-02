@@ -58,6 +58,35 @@ func TestPasangLedgerKunciBersama(t *testing.T) {
 	if n := jurnal(); n != 1 {
 		t.Errorf("jurnal sesudah kunci benar: %d, ingin 1", n)
 	}
+	// Rute kartu/tahan memakai pemeriksa kunci yang sama (ADR 42): kunci salah atau kosong dijawab 401, kunci benar lolos.
+	idTahan := "AUTH-" + order
+	tahan := func(kunci string) (int, string) {
+		req, _ := http.NewRequest("POST", srv.URL+"/ledger/kartu/tahan", strings.NewReader(fmt.Sprintf(`{"id_penerbit":%q,"akun_id":%d,"jumlah":1000}`, idTahan, akun)))
+		req.Header.Set("Idempotency-Key", idTahan)
+		if kunci != "" {
+			req.Header.Set(KunciLayananHeader, kunci)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		isi, _ := io.ReadAll(res.Body)
+		return res.StatusCode, string(isi)
+	}
+	for _, kunci := range []string{"", "salah"} {
+		if s, isi := tahan(kunci); s != 401 || !strings.Contains(isi, "kunci-layanan") {
+			t.Errorf("kartu/tahan dengan kunci %q: %d %s, ingin 401 kunci-layanan", kunci, s, isi)
+		}
+	}
+	var nTahan int
+	db.QueryRow(`SELECT count(*) FROM jurnal WHERE jenis = 'kartu_tahan' AND keterangan LIKE '%' || $1 || '%'`, idTahan).Scan(&nTahan)
+	if nTahan != 0 {
+		t.Fatalf("jurnal kartu_tahan sesudah dua kunci salah: %d", nTahan)
+	}
+	if s, isi := tahan("kunci-lab"); s == 401 || s == 404 {
+		t.Errorf("kartu/tahan dengan kunci benar: %d %s, ingin lolos dari pemeriksa kunci (jawaban lain dari isi rute)", s, isi)
+	}
 	kosong := http.NewServeMux()
 	PasangLedger(kosong, svc, "", false)
 	s2 := httptest.NewServer(kosong)
