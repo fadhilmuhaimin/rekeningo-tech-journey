@@ -76,11 +76,11 @@ const keadaan = (page) => page.evaluate(() => {
   const hasil = w.querySelector(".lg-hasil");
   const acuan = hasil?.querySelector(":scope > ul.lg-daftar");
   return {
-    slider: sl ? { nilai: Number(sl.value), min: sl.min, max: sl.max, text: sl.getAttribute("aria-valuetext"), keluar: t(w.querySelector("output")), label: t(w.querySelector("label[for]")) } : null,
+    slider: sl ? { nilai: Number(sl.value), min: sl.min, max: sl.max, text: sl.getAttribute("aria-valuetext"), keluar: t(w.querySelector("output")), label: t(w.querySelector("label[for]")), deskripsi: t(document.getElementById(sl.getAttribute("aria-describedby") ?? "-") ?? { textContent: "(tidak ada)" }) } : null,
     aturan: [...w.querySelectorAll(".lg-aturan button")].map((b) => ({ teks: t(b), pressed: b.getAttribute("aria-pressed") })),
     tabel: [...w.querySelectorAll(".lg-tabel tbody")].map((b) => ({ nama: t(b.querySelector("th")), cakup: b.querySelector("th").getAttribute("scope"), pilih: b.classList.contains("lg-pilih"), label: [...b.querySelectorAll("th[scope=row]")].map(t), kelas: [...b.querySelectorAll("td")].map((td) => td.className), sel: [...b.querySelectorAll("td")].map(t), baris: b.querySelectorAll("tr").length })),
     tabelMeta: { caption: t(w.querySelector(".lg-tabel caption")), kepala: w.querySelectorAll(".lg-tabel thead").length, kolom: w.querySelectorAll(".lg-tabel col").length },
-    acuan: acuan ? [...acuan.querySelectorAll(":scope > li")].map((li) => ({ chip: t(li.querySelector(".bb-chip")), teks: t(li) })) : null,
+    acuan: acuan ? [...acuan.querySelectorAll(":scope > li")].map((li) => ({ chip: t(li.querySelector(".bb-chip")), kelas: li.querySelector(".bb-chip").className, teks: t(li) })) : null,
     tanpaAcuan: hasil && !acuan ? [...hasil.querySelectorAll(":scope > p.bb-muted")].map(t).filter((x) => x.length) : [],
   };
 });
@@ -113,8 +113,8 @@ for (const path of HAL) {
   await page.locator(".lg .bb-predict__opts button").nth(salah).focus();
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
-  const fokus = await page.evaluate(() => { const a = document.activeElement; return { tag: a?.tagName, tipe: a?.type, diUbah: !!a?.closest(".lg-ubah"), pressed: [...document.querySelectorAll(".lg .bb-predict__opts button")].map((b) => b.getAttribute("aria-pressed")), mati: [...document.querySelectorAll(".lg .bb-predict__opts button")].map((b) => b.disabled) }; });
-  lapor(fokus.tag === "INPUT" && fokus.tipe === "range" && fokus.diUbah, `${path} sesudah menebak fokus di penggeser jeda (${fokus.tag} ${fokus.tipe})`);
+  const fokus = await page.evaluate(() => { const a = document.activeElement; const g = getComputedStyle(a); return { garis: g.outlineStyle === "auto" || (g.outlineStyle !== "none" && parseFloat(g.outlineWidth) >= 2), tag: a?.tagName, tipe: a?.type, diUbah: !!a?.closest(".lg-ubah"), pressed: [...document.querySelectorAll(".lg .bb-predict__opts button")].map((b) => b.getAttribute("aria-pressed")), mati: [...document.querySelectorAll(".lg .bb-predict__opts button")].map((b) => b.disabled) }; });
+  lapor(fokus.tag === "INPUT" && fokus.tipe === "range" && fokus.diUbah && fokus.garis, `${path} sesudah menebak fokus di penggeser jeda (${fokus.tag} ${fokus.tipe}, garis fokus terlihat ${fokus.garis})`);
   lapor(fokus.pressed[salah] === "true" && fokus.pressed.filter((x) => x === "true").length === 1 && fokus.mati.every(Boolean), `${path} aria-pressed tebakan ${fokus.pressed.join(",")} dan semua pilihan nonaktif`);
   st = await status(page);
   lapor(st[0].teks === `${L.belum} ${D.tebak.alasan}`, `${path} jawaban tebakan salah: "${st[0].teks.slice(0, 50)}..."`);
@@ -122,6 +122,7 @@ for (const path of HAL) {
   const ai0 = D.aturan.findIndex((a) => a.id === D.awal.aturan);
   let k = await keadaan(page);
   lapor(k.slider.nilai === ji0 && k.slider.min === "0" && k.slider.max === String(NJ - 1), `${path} penggeser mulai di jeda "${D.awal.jeda}" (${k.slider.nilai} dari 0 sampai ${k.slider.max})`);
+  lapor(k.slider.deskripsi === L.jeda.petunjuk, `${path} penggeser punya aria-describedby ke petunjuk: "${k.slider.deskripsi.slice(0, 40)}"`);
   lapor(harap(ji0, ai0).kasus === "lama" && st[1].teks === harap(ji0, ai0).ringkas, `${path} keadaan awal sama dengan yang ditanyakan: "${st[1].teks.slice(0, 80)}..."`);
   lapor(D.tebak.pilihan[D.tebak.jawaban].includes(rp(D.skenario.saldoAwal)) && D.tebak.alasan.includes(rp(D.skenario.saldoAwal)), `${path} jawaban benar menyebut saldo lama ${rp(D.skenario.saldoAwal)}`);
 
@@ -144,7 +145,7 @@ for (const path of HAL) {
       const ac = acuanHarap(ji, ai);
       const acuanOk = ac.length === 0
         ? k.acuan === null && k.tanpaAcuan.includes(L.tanpaAcuan)
-        : k.acuan !== null && k.acuan.length === ac.length && ac.every((x, i) => k.acuan[i].chip === L.acuanJenis[x.jenis] && k.acuan[i].teks.includes(x.teks) && k.acuan[i].teks.includes(isi(L.acuanBerkas, { berkas: x.berkas, bagian: x.bagian })));
+        : k.acuan !== null && k.acuan.length === ac.length && ac.every((x, i) => k.acuan[i].chip === L.acuanJenis[x.jenis] && k.acuan[i].kelas.split(" ").includes(x.jenis === "rekaman" ? "is-system" : "is-warn") && k.acuan[i].teks.includes(x.teks) && k.acuan[i].teks.includes(isi(L.acuanBerkas, { berkas: x.berkas, bagian: x.bagian })));
       const ok =
         k.slider.nilai === ji && k.slider.keluar === j.label && k.slider.text === isi(L.jeda.nilai, { jeda: j.label }) && k.slider.label === `${L.jeda.label}: ${j.label}` &&
         samaJson(k.aturan.map((x) => x.pressed), D.aturan.map((_, x) => String(x === ai))) &&
@@ -175,8 +176,13 @@ for (const path of HAL) {
   lapor(sesudahKlik.tag === "BUTTON" && sesudahKlik.teks === D.aturan[1].label && sesudahKlik.pressed === "true", `${path} sesudah klik aturan fokus tetap di tombol itu (${sesudahKlik.tag} "${sesudahKlik.teks}")`);
   await slider.focus();
   const urutan = [];
-  for (let i = 0; i < NA + 1; i++) { await page.keyboard.press("Tab"); urutan.push(await page.evaluate(() => document.activeElement?.textContent.replace(/\s+/g, " ").trim())); }
-  lapor(samaJson(urutan, [...D.aturan.map((a) => a.label), L.batasJudul]), `${path} Tab dari penggeser: ${urutan.join(" > ")}`);
+  const garisTab = [];
+  for (let i = 0; i < NA + 1; i++) {
+    await page.keyboard.press("Tab");
+    urutan.push(await page.evaluate(() => document.activeElement?.textContent.replace(/\s+/g, " ").trim()));
+    garisTab.push(await page.evaluate(() => { const g = getComputedStyle(document.activeElement); return g.outlineStyle === "auto" || (g.outlineStyle !== "none" && parseFloat(g.outlineWidth) >= 2); }));
+  }
+  lapor(samaJson(urutan, [...D.aturan.map((a) => a.label), L.batasJudul]) && garisTab.every(Boolean), `${path} Tab dari penggeser: ${urutan.join(" > ")}; garis fokus terlihat (>= 2 px) di tiap kontrol: ${garisTab.every(Boolean)}`);
   await page.keyboard.press("Enter");
   const bukaBatas = await page.evaluate((dasar) => {
     const d = document.querySelector(".lg details");
@@ -184,12 +190,40 @@ for (const path of HAL) {
   }, L.dasar);
   lapor(bukaBatas.open && bukaBatas.items.length === D.batas.length && D.batas.every((b, i) => bukaBatas.items[i].chip === L.dasar[b.dasar] && bukaBatas.items[i].teks.includes(b.teks)), `${path} Enter membuka batas: ${bukaBatas.items.length} butir dengan label dasar sama dengan data`);
   await page.keyboard.press("Enter");
+  // keputusan uang: judul, chip Rekaman lab (isinya kutipan baca.txt A), kalimat, dan berkas di bawahnya (peninjau 1677: mutan chip
+  // Ilustrasi di blok ini lolos semua pemeriksaan sebelumnya)
+  const uang = await page.evaluate((judul) => {
+    const h = [...document.querySelectorAll(".lg .lg-judul")].find((x) => x.textContent.trim() === judul);
+    const p = h?.nextElementSibling;
+    return p ? { chip: p.querySelector(".bb-chip")?.textContent.trim(), kelas: p.querySelector(".bb-chip")?.className, teks: p.textContent.replace(/\s+/g, " ").trim() } : null;
+  }, L.uangJudul);
+  lapor(uang !== null && uang.chip === L.acuanJenis.rekaman && uang.kelas.split(" ").includes("is-system") && uang.teks.includes(D.uang.teks) && uang.teks.includes(isi(L.acuanBerkas, { berkas: D.uang.berkas, bagian: D.uang.bagian })), `${path} blok "${L.uangJudul}": chip "${uang?.chip}", kalimat dan berkas sama dengan data`);
 
   // 4. role=status, target, istilah kode
   st = await status(page);
   lapor(st.length === 2 && st.every((x) => x.n === 1 && x.teks.length > 0 && x.teks.length <= 240), `${path} role=status: ${st.length} wilayah, satu paragraf, panjang ${st.map((x) => x.teks.length).join(" dan ")} karakter`);
+  // <output> berperan status dan aria-live polite secara implisit: tanpa aria-live="off" tiap gerakan penggeser diumumkan dua kali
+  // (peninjau 1677: mutan yang menghapus aria-live="off" lolos karena hanya role=status eksplisit yang dihitung)
+  const hidup = await page.$$eval(".lg [role=status], .lg [aria-live]:not([aria-live=off]), .lg output:not([aria-live=off])", (e) => e.length);
+  lapor(hidup === 2, `${path} wilayah live aktif termasuk <output> implisit: ${hidup} (harus 2: dua role=status; output memakai aria-live=off)`);
   const kecil = await page.$$eval(".lg button, .lg input", (b) => b.map((x) => x.getBoundingClientRect()).filter((r) => r.width < 24 || r.height < 24).length);
   lapor(kecil === 0, `${path} target >= 24 px: ${kecil} kontrol terlalu kecil`);
+  // teks widget tidak lebih kecil dari 12 px di 375 px (token --rk-ui-kecil situs ±12,2 px dipakai chip dan keterangan; peninjau 1677:
+  // mutan `.lg-berkas` 0,4em (6,4 px) lolos semua pemeriksaan sebelumnya)
+  const huruf = await page.evaluate(() => {
+    const w = document.querySelector(".lg");
+    const jalan = document.createTreeWalker(w, NodeFilter.SHOW_TEXT);
+    const kecil = [];
+    let terkecil = Infinity;
+    for (let n = jalan.nextNode(); n; n = jalan.nextNode()) {
+      if (!n.textContent.trim() || n.parentElement.closest("noscript")) continue;
+      const px = parseFloat(getComputedStyle(n.parentElement).fontSize);
+      terkecil = Math.min(terkecil, px);
+      if (px < 12) kecil.push(`${n.textContent.trim().slice(0, 24)} (${px.toFixed(1)} px)`);
+    }
+    return { terkecil, kecil };
+  });
+  lapor(huruf.kecil.length === 0, `${path} teks widget >= 12 px di 375 px: terkecil ${huruf.terkecil.toFixed(1)} px${huruf.kecil.length ? `, terlalu kecil: ${huruf.kecil.slice(0, 3).join("; ")}` : ""}`);
   const tanpaTanda = await page.evaluate(() => {
     const w = document.querySelector(".lg");
     const pola = /remote_apply|X-Lsn-Tulis|pg_current_wal_lsn\(\)|synchronous_commit|Idempotency-Key|Content-Type|SyncRep/;
