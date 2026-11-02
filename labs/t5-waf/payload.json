@@ -1,0 +1,285 @@
+{
+ "keterangan": "Masukan uji WAF lab t5-waf. Serangan: string uji generik yang lazim dipakai menguji WAF (tautologi SQL, tag script, naik direktori), dikirim hanya ke gerbang tiruan di localhost. Sah: payload yang kasir POS wajar kirim ke API ini.",
+ "serangan": [
+  {
+   "kelas": "sqli",
+   "nama": "S01 tautologi tanda kutip di query",
+   "metode": "GET",
+   "jalur": "/pos/v1/merchant/30001/qr/00000000-0000-4000-8000-000000000001?cari=%27%20OR%20%271%27%3D%271",
+   "isi": null
+  },
+  {
+   "kelas": "sqli",
+   "nama": "S02 UNION SELECT di referensi",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":25000,\"referensi\":\"1' UNION SELECT NULL--\"}"
+  },
+  {
+   "kelas": "sqli",
+   "nama": "S03 komentar sesudah tanda kutip di referensi",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":25000,\"referensi\":\"admin'--\"}"
+  },
+  {
+   "kelas": "xss",
+   "nama": "S04 tag script di referensi",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":25000,\"referensi\":\"<script>alert(1)</script>\"}"
+  },
+  {
+   "kelas": "xss",
+   "nama": "S05 atribut onerror di referensi",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":25000,\"referensi\":\"<img src=x onerror=alert(1)>\"}"
+  },
+  {
+   "kelas": "xss",
+   "nama": "S06 tag script di query",
+   "metode": "GET",
+   "jalur": "/pos/v1/merchant/30001/qr/00000000-0000-4000-8000-000000000001?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E",
+   "isi": null
+  },
+  {
+   "kelas": "traversal",
+   "nama": "S07 naik direktori di query",
+   "metode": "GET",
+   "jalur": "/pos/v1/merchant/30001/qr/00000000-0000-4000-8000-000000000001?berkas=../../etc/passwd",
+   "isi": null
+  },
+  {
+   "kelas": "traversal",
+   "nama": "S08 naik direktori di jalur",
+   "metode": "GET",
+   "jalur": "/pos/v1/merchant/30001/qr/..%2f..%2f..%2fetc%2fpasswd",
+   "isi": null
+  }
+ ],
+ "sah": [
+  {
+   "nama": "P01 referensi 1",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":25000,\"referensi\":\"MEJA 12\"}"
+  },
+  {
+   "nama": "P02 referensi 2",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":25500,\"referensi\":\"Meja 3 - Nasi goreng + es teh (2 porsi)\"}"
+  },
+  {
+   "nama": "P03 referensi 3",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":26000,\"referensi\":\"ORD-2026-000123\"}"
+  },
+  {
+   "nama": "P04 referensi 4",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":26500,\"referensi\":\"Pesanan #4521\"}"
+  },
+  {
+   "nama": "P05 referensi 5",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":27000,\"referensi\":\"Es teh manis, 1 gelas\"}"
+  },
+  {
+   "nama": "P06 referensi 6",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":27500,\"referensi\":\"Bakso & mie ayam\"}"
+  },
+  {
+   "nama": "P07 referensi 7",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":28000,\"referensi\":\"Kopi susu 'gula aren'\"}"
+  },
+  {
+   "nama": "P08 referensi 8",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":28500,\"referensi\":\"Warung Bu Sari's (cabang 2)\"}"
+  },
+  {
+   "nama": "P09 referensi 9",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":29000,\"referensi\":\"Diskon 10% member\"}"
+  },
+  {
+   "nama": "P10 referensi 10",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":29500,\"referensi\":\"Rp25.000 / 2 porsi\"}"
+  },
+  {
+   "nama": "P11 referensi 11",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":30000,\"referensi\":\"Ayam goreng; sambal ekstra\"}"
+  },
+  {
+   "nama": "P12 referensi 12",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":30500,\"referensi\":\"Menu pilih: paket A atau B\"}"
+  },
+  {
+   "nama": "P13 referensi 13",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":31000,\"referensi\":\"Order: 2x Nasi, 1x Teh; meja 5\"}"
+  },
+  {
+   "nama": "P14 referensi 14",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":31500,\"referensi\":\"Tanpa cabai -- pedas ringan\"}"
+  },
+  {
+   "nama": "P15 referensi 15",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":32000,\"referensi\":\"Kembalian: 5.000 (tunai)\"}"
+  },
+  {
+   "nama": "P16 referensi 16",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":32500,\"referensi\":\"Porsi < 500 g, tambah nasi > 1\"}"
+  },
+  {
+   "nama": "P17 referensi 17",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":33000,\"referensi\":\"Sate ayam 10 tusuk = Rp30.000\"}"
+  },
+  {
+   "nama": "P18 referensi 18",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":33500,\"referensi\":\"Nasi \\\"uduk\\\" komplit\"}"
+  },
+  {
+   "nama": "P19 referensi 19",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":34000,\"referensi\":\"Take away, atas nama O'Brien\"}"
+  },
+  {
+   "nama": "P20 referensi 20",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":34500,\"referensi\":\"Meja VIP lantai 2 / sayap kiri\"}"
+  },
+  {
+   "nama": "P21 referensi 21",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":35000,\"referensi\":\"Es campur (kelapa muda, alpukat)\"}"
+  },
+  {
+   "nama": "P22 referensi 22",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":35500,\"referensi\":\"Paket hemat A+B\"}"
+  },
+  {
+   "nama": "P23 referensi 23",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":36000,\"referensi\":\"Pesanan online #77 via kasir 2\"}"
+  },
+  {
+   "nama": "P24 referensi 24",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":36500,\"referensi\":\"Jus jeruk tanpa gula, es sedikit\"}"
+  },
+  {
+   "nama": "P25 referensi 25",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":37000,\"referensi\":\"Lunch set: ayam, sayur, buah\"}"
+  },
+  {
+   "nama": "P26 referensi 26",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":37500,\"referensi\":\"Kode promo: HEMAT-50\"}"
+  },
+  {
+   "nama": "P27 referensi 27",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":38000,\"referensi\":\"Nasi padang: rendang, gulai, sambal ijo\"}"
+  },
+  {
+   "nama": "P28 referensi 28",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":38500,\"referensi\":\"Delivery ke Jl. Merdeka No. 5, RT 02/RW 03\"}"
+  },
+  {
+   "nama": "P29 referensi 29",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":39000,\"referensi\":\"Tagihan acara 17 Agustus\"}"
+  },
+  {
+   "nama": "P30 referensi 30",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":39500,\"referensi\":\"Kopi hitam 2 gelas @ Rp8.000\"}"
+  },
+  {
+   "nama": "P31 referensi 31",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":40000,\"referensi\":\"Ayam penyet - level 3\"}"
+  },
+  {
+   "nama": "P32 referensi 32",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":40500,\"referensi\":\"Roti bakar coklat/keju\"}"
+  },
+  {
+   "nama": "P33 referensi 33",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":41000,\"referensi\":\"Order dari kasir [shift pagi]\"}"
+  },
+  {
+   "nama": "P34 referensi 34",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":41500,\"referensi\":\"Catatan: alergi kacang!\"}"
+  },
+  {
+   "nama": "P35 tanpa referensi",
+   "metode": "POST",
+   "jalur": "/pos/v1/merchant/30001/qr",
+   "isi": "{\"nominal\":40000}"
+  },
+  {
+   "nama": "P36 status QR",
+   "metode": "GET",
+   "jalur": "/pos/v1/merchant/30001/qr/00000000-0000-4000-8000-000000000001",
+   "isi": null
+  },
+  {
+   "nama": "P37 status QR dengan query",
+   "metode": "GET",
+   "jalur": "/pos/v1/merchant/30001/qr/00000000-0000-4000-8000-000000000001?ringkas=1",
+   "isi": null
+  }
+ ]
+}
