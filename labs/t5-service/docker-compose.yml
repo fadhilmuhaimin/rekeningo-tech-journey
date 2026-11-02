@@ -1,0 +1,15 @@
+# Lab Tahap 5 (t5-service): OpenTelemetry Collector (distribusi contrib) dengan tail sampling untuk trace antar service.
+# Satu container lokal dari image resmi, tanpa jaringan keluar. Dijalankan run.py dengan proyek compose sendiri
+# (`<COMPOSE_PROJECT_NAME>-t5-service`), jadi `down` tidak menyentuh PostgreSQL dan Redis lajur.
+# Jalankan: make -C labs/t5-service run BAGIAN=jejak
+services:
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.163.2
+    command: ["--config=/etc/otelcol/config.yaml"]
+    mem_limit: 256m   # Docker 8 GB dipakai bersama lab lain
+    volumes:
+      - ./otelcol.yaml:/etc/otelcol/config.yaml:ro
+      - ${JEJAK_DIR:?JEJAK_DIR diisi run.py}:/jejak   # keluaran file exporter; folder sementara di luar repo
+    ports:
+      - "127.0.0.1:${LAB_OTLP_PORT:-18323}:4318"          # OTLP/HTTP; lajur lain: LAB_PORT_OFFSET lewat run.py
+      - "127.0.0.1:${LAB_OTEL_METRIK_PORT:-18324}:8888"   # metrik Collector sendiri (hitungan keputusan sampling)

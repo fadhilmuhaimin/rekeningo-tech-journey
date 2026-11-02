@@ -1,0 +1,172 @@
+---
+title: "5.12 M44: Rilis Kamis menunggu lima tim"
+description: Minggu 6. Lima tim produk berebut satu rilis Kamis, dan satu perbaikan kecil menunggu sampai Jumat. Tiga syarat di ADR Tahap 4 terpenuhi, dan memecah service punya harga yang direkam sebagian.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import limaTim from "../../../../data/diagram/t5-m44-lima-tim-satu-rilis.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t4-modul]], [[t4-tim-infra]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 6 Tahap 5. Kamis pukul 14.00 lima tim produk ingin merilis perubahannya hari itu.
+
+Satu pipeline berjalan 14 menit, dan waktu tunggu di merge queue mencapai 6 jam.
+
+Perbaikan kecil dari tim Akun menunggu sampai Jumat. Tim Pembayaran sudah siap, tetapi menunggu merge queue tim Merchant.
+
+*Angka cerita (Ilustrasi):* hari, jam, 14 menit, dan 6 jam berasal dari naskah, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+*Dua istilah di cerita:* pipeline adalah rangkaian pemeriksaan otomatis atas satu perubahan, misalnya build dan tes. Merge queue di GitHub menggabungkan pull request ke branch utama sesudah pemeriksaannya lolos ([GitHub Docs: Managing a merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue), dibuka 2026-11-02, Tidak dijalankan).
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Dugaan pertama menyangkut kapasitas dan giliran: tambah runner CI, yaitu mesin yang menjalankan pemeriksaan, dan atur jadwal rilis bergilir supaya tiap tim mendapat harinya. Nadia mengusulkan arah lain, yaitu tiap modul jadi service saat ini juga.
+
+Dugaan pertama mempercepat dan membagi giliran, tetapi perubahan tiap tim tetap lewat satu merge queue. Dugaan kedua memecah queue itu, dan harganya ditulis di ADR lama.
+
+ADR 37 menulis keputusan modular monolith salah saat satu modul punya profil beban atau tim yang membuat deploy bersama tidak lagi masuk akal ([[t4-modul]]). ADR 44 menulis keputusannya salah saat satu PR menunggu pipeline lebih dari 10 menit, karena tim mulai melewatinya ([[t4-tim-infra]]).
+
+<details class="question">
+<summary>Tebak dulu: lima tim berbagi satu merge queue, dan runner CI ditambah sampai semua pemeriksaan berjalan serentak. Apa yang masih membuat perbaikan kecil tim Akun menunggu?</summary>
+
+Perubahan tim lain yang ada di depannya. Menurut dokumentasi GitHub, merge queue mengelompokkan perubahan satu pull request dengan versi terbaru branch dasar. Kelompok itu juga memuat perubahan pull request di depannya ([GitHub Docs: Managing a merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue), dibuka 2026-11-02, Tidak dijalankan).
+
+Runner memendekkan satu pemeriksaan, tetapi tidak mengubah bahwa nasib satu perubahan terikat pada perubahan di depannya. Itu Penalaran, yaitu kesimpulan dari dokumentasi dan angka di halaman ini tanpa dijalankan. Blok berikutnya memuat hitungannya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Lima tim produk bergantung pada satu merge queue dan satu rilis, jadi perubahan yang siap menunggu perubahan tim lain. Syarat di tiga ADR Tahap 4 terpenuhi.
+
+<Rantai data={limaTim} ringkas />
+
+*Kondisi:* angka waktu dan lima tim berasal dari cerita (Ilustrasi). Ambang berasal dari ADR Tahap 4 (Asumsi naskah). Hitungan adalah angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah.
+
+Kalau kamu pernah merilis satu app dari satu branch utama bersama beberapa tim, kamu mengenal rasanya: perubahanmu siap, tetapi rilis menunggu perubahan orang lain. Runner tambahan membantu sebagian.
+
+Build concurrency adalah jumlah build CI yang boleh berjalan bersamaan. Dokumentasi GitHub menulis bahwa pengaturan ini memengaruhi laju merge ([GitHub Docs: Managing a merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue), dibuka 2026-11-02, Tidak dijalankan). Dugaan pertama tidak salah, tetapi tidak menjawab siapa menunggu siapa.
+
+**Tiga ADR dibaca ulang.** Tabel ini menaruh syarat tiap ADR di samping keadaan Tahap 4 dan M44. Butir ADR 45 mengikuti [[t4-adr-45]].
+
+| Syarat tertulis | Tahap 4 | M44 |
+|---|---|---|
+| ADR 37: deploy bersama tidak lagi masuk akal bagi tim | Belum terlihat dari 13 developer (Asumsi) | Perbaikan kecil Akun menunggu sampai Jumat (Ilustrasi) |
+| ADR 44: satu PR menunggu pipeline lebih dari 10 menit | Waktu CI tidak diukur lab | 14 menit, 4 menit di atas ambang (Hitungan) |
+| ADR 45 butir 1: dua tim atau lebih tidak bisa merilis tanpa saling menunggu | 3 tim | 5 tim produk menunggu satu merge queue (Hitungan atas Asumsi) |
+| ADR 45 butir 2: lima tim atau lebih perlu merilis tanpa menunggu tim lain | 3 tim | 5 tim produk, tepat di ambang 5 (Hitungan atas Asumsi) |
+
+Terpenuhi berarti keadaan M44 sama dengan pemicu yang ditulis, bukan bahwa komponennya terbukti perlu. Butir 1 punya dua syarat lain, yaitu koneksi dan jumlah developer. Halaman ini hanya memakai syarat tim.
+
+Pipeline 14 menit melewati ambang 10 menit sebanyak 14 − 10 = 4 menit. Fowler menulis bahwa pedoman XP sepuluh menit untuk build "perfectly within reason" bagi sebagian besar proyek ([Continuous Integration](https://martinfowler.com/articles/continuousIntegration.html), 18 Januari 2024, dibuka 2026-11-02, Tidak dijalankan). Itu pedoman, bukan batas, jadi ambang ADR 44 tetap Asumsi naskah.
+
+**Pemicunya jadwal rilis, bukan ukuran.** Jadwal bergilir memberi tiap tim satu hari, tetapi perbaikan yang siap pada hari tim lain tetap menunggu hari itu berlalu (Penalaran). Ukuran tim hanya dipakai untuk satu pemeriksaan: apakah pemisahan meninggalkan service yang dipegang terlalu sedikit orang.
+
+28 orang dibagi enam service menjadi 28 ÷ 6 = 4,7 orang per service. Di ADR 45 Tahap 4 hasilnya 13 ÷ 6 = 2,2 (Hitungan atas Asumsi). Angka 4,7 menghitung semua 28 orang, termasuk tim Platform, SRE, dan Security. Ketiganya memegang cluster, pipeline, SLO, dan tinjauan keamanan, bukan service produk ([[t5-prd]]).
+
+Lima tim produk berjumlah 5 × 4 = 20 orang, jadi 20 ÷ 6 = 3,3 orang per service (Hitungan atas Asumsi). ADR 50 memakai ambang tiga orang per service sebagai syarat salah ([[t5-service]]).
+
+**Yang dikorbankan saat data dipecah.** Lab `api-t5` memecah 30 tabel ke enam schema, yaitu ruang nama tabel di satu database. Tiap schema punya satu role, yaitu identitas login database dengan hak sendiri.
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih. Satu proses `api-t5` berjalan sebagai role `t5_app`, yang mewarisi keenam role service.
+
+Foreign key mewajibkan nilai di satu kolom cocok dengan nilai di satu baris tabel lain. Definisi ini dari [dokumentasi PostgreSQL 17.11](https://www.postgresql.org/docs/17/ddl-constraints.html), dibuka 2026-11-02, Tidak dijalankan. Sebelum pembagian ada 18 foreign key yang menyeberang schema:
+
+<Snippet file="labs/api-t5/output/skema.txt" lines="144:163" title="Rekaman lab: labs/api-t5/output/skema.txt, bagian E (18 foreign key lintas schema sebelum dihapus)" />
+
+Sesudah semuanya dihapus, hitungan dari katalog PostgreSQL menjawab 0 untuk yang menyeberang schema dan 19 untuk yang tetap di dalam satu schema:
+
+<Snippet file="labs/api-t5/output/skema.txt" lines="164:174" title="Rekaman lab: labs/api-t5/output/skema.txt, bagian E (foreign key lintas schema jadi 0)" />
+
+Dari 18 foreign key itu, 11 menunjuk ke schema akun, 6 ke schema ledger, dan 1 ke schema notifikasi (Hitungan atas daftar rekaman). Schema akun dipegang tim Akun, yaitu tim yang perbaikannya menunggu di M44 ([[t5-prd]]).
+
+Tanpa foreign key itu, database tidak lagi menolak baris yang menunjuk ke baris yang tidak ada di schema lain. Itu Penalaran dari definisi di atas. Lab tidak mencoba memasukkan baris seperti itu.
+
+Batas hak ikut berubah. Ledger boleh membaca tiga kolom tabel `akun`, dan kolom lain dijawab ditolak:
+
+<Snippet file="labs/api-t5/output/skema.txt" lines="204:206" title="Rekaman lab: labs/api-t5/output/skema.txt, bagian F (ledger membaca tiga kolom akun, kolom nama ditolak)" />
+
+Katalog PostgreSQL di rekaman yang sama menunjukkan bahwa dari keenam role, hanya ledger yang punya hak atas schema service lain. Bila tiap service memakai role-nya sendiri, tim Akun bisa mengganti nama kolom `nama` tanpa menyentuh SQL service lain (Penalaran dari hak yang direkam). Lab tidak menjalankannya, karena satu proses `t5_app` mewarisi keenam role. Di Tahap 4 pergantian nama kolom mematahkan top-up karena kode pembayaran membaca kolom `nama` milik modul akun, dan satu role bersama membolehkannya ([[t4-m32]]).
+
+**Yang berpindah ke kode.** ADR 12 menulis bahwa pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction ([[t1-adr-12]]). ADR 45 menulis hal yang sama untuk jurnal dan baris pendampingnya bila modulnya pindah ke database lain. ADR 37 menerima itu untuk satu jalur, dengan Idempotency-Key dan rekonsiliasi, dan tiap jalur tambahan membutuhkan keduanya ([[t4-adr-45]]).
+
+Bila tiap service berjalan sebagai proses sendiri dengan role sendiri, satu COMMIT tidak lagi mencakup tabel dua service (Penalaran dari ADR 12). Konsistensi lintas service bergeser dari database ke Idempotency-Key dan rekonsiliasi, seperti yang diterima ADR 37.
+
+**Yang tidak direkam.**
+
+- Rekaman memecah data, bukan proses. `api-t5` adalah satu proses dengan satu role, jadi pipeline per service, rilis sendiri, dan putusnya transaction lintas service tidak direkam.
+- Hari, jam, 14 menit, 6 jam, dan lima tim berasal dari cerita (Ilustrasi). Lab tidak mengukur waktu CI, seperti yang ditulis ADR 44 ([[t4-tim-infra]]).
+- Naskah menulis satu artefak deploy, sedangkan di akhir Tahap 4 modul pembayaran sudah berjalan sebagai service sendiri ([[t4-modul]]). Halaman ini membacanya sebagai satu repo, satu merge queue, dan satu rilis (Asumsi pembacaan).
+- Tambahan p95 satu lompatan HTTP ke ledger antar host belum diukur. Anggaran 50 ms dibahas di [[t5-service]].
+- Tahap 4 menghitung 21 foreign key lintas modul untuk enam modul. Pembagian tabelnya berbeda dengan enam service di sini, jadi angkanya berbeda dengan 18.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti cerita M44. Jalur utama adalah Ilustrasi, dan "Ubah satu hal" memakai rekaman `skema.txt` bagian E dan F untuk batas data. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t5-m44.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: modul dipecah menjadi service dengan schema dan role sendiri**. Service Akun dirilis tanpa menunggu tim lain (Ilustrasi). Dua langkah berikutnya menunjukkan batas data yang menyertainya (Rekaman lab), dan langkah terakhir menunjukkan yang ditukar: satu transaction (Tidak dijalankan).
+
+Pipeline per service dan waktunya tidak direkam. Widget ini tidak punya layar HP, karena M44 terjadi di antara engineer, bukan di app.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: lima tim memakai satu merge queue, pipeline 14 menit, waktu tunggu 6 jam, dan perbaikan Akun dirilis Jumat (semuanya Ilustrasi).
+
+Bila modul dipecah, foreign key lintas schema turun dari 18 ke 0 (`skema.txt` bagian E). Role ledger membaca `id`, `tingkat`, dan `status` tabel `akun`, tetapi `nama` ditolak dengan kode 42501 (bagian F).
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t5-service]]: dari modul ke service, Kubernetes, dan kapan menggabungkan kembali. Keputusannya ADR 50.
+- [[t5-tim-infra]]: platform, GitOps, OpenTelemetry, dan SLO. Keputusannya ADR 58.
+- [[t4-modul]] dan [[t4-tim-infra]]: ADR 37 dan ADR 44, yang dibaca ulang di halaman ini.
+- [[t1-adr-12]]: peringatan bahwa dua service tidak lagi satu transaction.
+
+Pecah karena jadwal rilis, bukan karena ukuran, dan siapkan konsistensi yang tidak lagi satu transaction.
+
+### Cek diri
+
+**1.** Runner CI ditambah sampai semua pemeriksaan berjalan serentak, tetapi perbaikan Akun tetap menunggu. Kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Merge queue memeriksa tiap perubahan bersama perubahan di depannya (dokumentasi GitHub, Tidak dijalankan). Runner mempercepat satu pemeriksaan, bukan keterikatan pada perubahan di depannya (Penalaran). Dokumentasi yang sama menulis bahwa build concurrency memengaruhi laju merge, jadi runner membantu, dan dokumentasi tidak membahas seberapa jauh. Satu rilis membawa semua perubahan yang sudah keluar dari queue (Asumsi pembacaan).
+
+</details>
+
+**2.** Lima tim produk memenuhi pemicu ADR 45 butir 2. Apa yang belum terbukti dari itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Bahwa Kubernetes perlu. Terpenuhi berarti keadaan M44 sama dengan pemicu yang ditulis, dan lima tim produk tepat di ambang lima (Hitungan atas Asumsi). Pilihannya dan harganya dibahas di [[t5-service]].
+
+</details>
+
+**3.** Lab `api-t5` memecah 30 tabel ke enam schema. Apa yang hilang dari database, dan apa yang tidak direkam lab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+18 foreign key yang menyeberang schema: 18 sebelum pembagian dan 0 sesudahnya (`skema.txt` bagian E). Lab tidak memisahkan proses, jadi putusnya satu transaction lintas service tidak direkam. Pernyataan itu dibaca dari ADR 12 (Tidak dijalankan).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

@@ -85,7 +85,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [4.5 Skema data: ERD Tahap 3 → Tahap 4 dan pertumbuhannya](/tahap-4/skema-data/) | Tahap 4 | Tabel mana yang lahir, berubah, dan dibagi per modul saat gateway, verifikasi, QR, dan kartu masuk? |
 | [4.14 M33: Uji pulih mingguan makin lama](/tahap-4/m33-uji-pulih/) | Tahap 4 | Uji pulih mingguan makin lama karena foto kartu identitas disimpan di kolom bytea dan ikut backup |
 | 5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya · *segera* | Tahap 5 | Tabel mana yang lahir, berubah, dan dibagi per service saat laporan, cicilan, pengumuman, dan mitra POS masuk? |
-| 5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20 · *segera* | Tahap 5 | Pemeriksaan harian yang membaca semua posting tidak selesai sebelum pagi, dan posting lama tidak boleh dihapus |
+| [5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20](/tahap-5/m43-pemeriksaan-saldo/) | Tahap 5 | Pemeriksaan harian yang membaca semua posting tidak selesai sebelum pagi, dan posting lama tidak boleh dihapus |
 | 5.11 Partisi tabel ledger dan snapshot saldo + ADR 49 · *segera* | Tahap 5 | Tabel ledger dipartisi per bulan, saldo akhir bulan dicatat, dan partisi lama dilepas dan diarsipkan, bukan dihapus |
 
 ## Keamanan
@@ -132,7 +132,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [4.12 M32: Rilis Kamis memecahkan top-up](/tahap-4/m32-rilis-kamis/) | Tahap 4 | Rilis tim Merchant mengganti nama kolom dan memecahkan top-up, padahal tes tim Pembayaran lolos |
 | [4.13 Modular monolith, CODEOWNERS, ADR wajib + ADR 37](/tahap-4/modular-monolith/) | Tahap 4 | Tiga tim di satu codebase dan satu skema butuh batas yang dijaga compiler dan database, bukan ingatan |
 | [Modular monolith](/b-fondasi/b7-2-batas-modul/) | Tahap 4 | Dua tim bentrok di satu codebase |
-| 5.12 M44: Rilis Kamis menunggu lima tim · *segera* | Tahap 5 | Lima tim bergantung pada satu artefak deploy, dan satu perbaikan kecil menunggu merge queue tim lain |
+| [5.12 M44: Rilis Kamis menunggu lima tim](/tahap-5/m44-rilis-menunggu-lima-tim/) | Tahap 5 | Lima tim bergantung pada satu artefak deploy, dan satu perbaikan kecil menunggu merge queue tim lain |
 | 5.13 Dari modul ke service, Kubernetes, kapan menggabungkan kembali + ADR 50 · *segera* | Tahap 5 | Pecah modul jadi service karena jadwal rilis, siapkan konsistensi yang tidak lagi satu transaction, dan tahu kapan menggabungkannya kembali |
 
 ## Operasional

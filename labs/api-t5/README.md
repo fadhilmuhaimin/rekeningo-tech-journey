@@ -14,6 +14,7 @@ Pihak ketiga yang dipanggil server dan worker adalah tiruan lokal di container a
 | go-redis | v9.23.0 | cache laporan memakai `internal/cache` yang sama dengan cache katalog |
 | PgBouncer | 1.26.1 (`1.26.1-1.pgdg13+1`, lisensi ISC) | `pgbouncer/Dockerfile`: dasar `postgres:17` dari cache lokal, paket dari `apt.postgresql.org` dengan versi dikunci. Image `api-t5-pgbouncer:1.26.1` 664 MB (dasar 661 MB) |
 | Redis | `redis:8-alpine` (8.10.2 saat direkam) | compose `labs/b9-cache`; tag bergerak, versi hanya yang tertulis di sini |
+| OpenTelemetry Go | otel, sdk, otlptracehttp v1.47.0; contrib otelhttp v0.72.0 (Apache-2.0) | hanya dipakai `cmd/ledger` dan `cmd/layanan` (lab `t5-service`); proses `api-t5` tidak memuatnya |
 | Python | venv `labs/.venv`, psycopg 3.3.6, redis-py 8.1.0 | |
 
 Gerbang pemindai kerentanan ADR 44 (govulncheck, grype) **Tidak dijalankan** di lab ini, karena keduanya butuh unduhan basis data kerentanan. `api-t4` gagal gerbang itu di Go 1.27.1 (10 temuan stdlib yang dipanggil). Yang dicek di sini hanya bahwa Go 1.27.3 ada dan menjalankan semua tes; apakah 1.27.3 menutup temuan itu belum diperiksa.
@@ -104,7 +105,7 @@ Rekaman dari database bersih, diulang tiga kali (tenang, dengan 10 proses sibuk 
 
 ## Tidak dijalankan atau belum ada
 
-Replica dan jeda baca milik `t5-replika`, relay `stream` dan Kafka milik `t5-fanout`, dan mTLS antar proses milik `t5-service`. Canary dan kill switch milik `t5-rollout`, kuota per mitra dan WAF milik `t5-waf`, dan arsip terenkripsi milik `t5-kms`. DBOS dan tabel langkah bersaing milik `t5-cicilan`. Gerbang govulncheck dan grype serta oasdiff Tidak dijalankan. Lab ini tidak menguji kapasitas produksi dan tidak mengklaimnya.
+Replica dan jeda baca milik `t5-replika`, relay `stream` dan Kafka milik `t5-fanout`, dan mTLS antar proses milik `t5-service` (sudah ada: ledger sebagai proses sendiri di `cmd/ledger`, mode rentan `ledger-tanpa-identitas`; lihat `labs/t5-service/README.md`). Canary dan kill switch milik `t5-rollout`, kuota per mitra dan WAF milik `t5-waf`, dan arsip terenkripsi milik `t5-kms`. DBOS dan tabel langkah bersaing milik `t5-cicilan`. Gerbang govulncheck dan grype serta oasdiff Tidak dijalankan. Lab ini tidak menguji kapasitas produksi dan tidak mengklaimnya.
 
 ## Uji mutasi
 
