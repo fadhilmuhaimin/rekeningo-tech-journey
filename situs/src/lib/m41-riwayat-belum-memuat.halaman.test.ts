@@ -541,28 +541,51 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
     expect(skenario.varian.langkah).toHaveLength(3);
     expect(skenario.varian.mulai).toBe(0);
     expect(core.steps(skenario, true)).toHaveLength(3);
-    expect(skenario.sumber.catatan).toBe(`Lab t5-replika, PostgreSQL 17.11, dari database bersih (make -C labs/t5-replika run BAGIAN=baca). Jalur utama: baca.txt bagian A, server dengan mode rentan riwayat-replika dan pemutaran ulang di replica ditahan dengan sengaja (jeda buatan, bukan jeda alami). Ubah satu hal: bagian B, server tanpa mode rentan dan app yang mengirim header X-Lsn-Tulis; bagian B memakai pembayaran kedua Budi, ${rp(bayarNominalB)} dari saldo ${rp(akunA[2]!)}, jadi angkanya berbeda dari jalur utama. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter, dan jam di layar berasal dari cerita. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log.`);
+    expect(skenario.sumber.catatan).toBe(`Lab t5-replika, PostgreSQL 17.11, dari database bersih (make -C labs/t5-replika run BAGIAN=baca). Jalur utama: baca.txt bagian A, server dengan mode rentan riwayat-replika dan pemutaran ulang di replica ditahan dengan sengaja (jeda buatan, bukan jeda alami). Ubah satu hal: bagian B, server tanpa mode rentan dan app yang mengirim header X-Lsn-Tulis; bagian B memakai pembayaran kedua Budi, ${rp(bayarNominalB)} dari saldo ${rp(akunA[2]!)}, jadi angkanya berbeda dari jalur utama. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter, dan jam di layar berasal dari cerita. Tiap langkah menampilkan baris terpilih dari rekaman yang sama dalam urutan aslinya; baris yang tidak dibutuhkan langkah itu dilewati. Baris diawali tanda pagar adalah baris rekaman, bukan baris log.`);
     expect(rek[1]).toContain("PostgreSQL 17.11");
     expect(Object.keys(skenario).sort()).toEqual(["judul", "komponen", "langkah", "layarAwal", "pengantar", "perangkat", "predict", "sumber", "varian", "versi"]);
     expect((skenario as unknown as { versi: number }).versi).toBe(2);
     expect(skenario.predict.varian).toBe(false);
   });
-  test("skenario: kirim tiap langkah adalah potongan berurutan dari baca.txt, bagian A untuk jalur utama dan bagian B untuk varian", () => {
-    const potong = (a: number, b: number): string => rek.slice(a - 1, b).join("\n");
-    const lokasi = (k: string): number => {
-      const i = baca_txt.indexOf(k);
-      expect(i, k).toBeGreaterThan(-1);
-      expect(baca_txt.indexOf(k, i + 1), `kirim dua kali di rekaman: ${k.slice(0, 40)}`).toBe(-1);
-      return baca_txt.slice(0, i).split("\n").length;
+  test("skenario: kirim tiap langkah adalah baris terpilih dari baca.txt dalam urutan aslinya, bagian A untuk jalur utama dan bagian B untuk varian", () => {
+    const urut = (kirim: string, mulai: number): number[] => {
+      let kursor = mulai - 1;
+      const pos: number[] = [];
+      for (const b of kirim.split("\n")) {
+        const i = rek.findIndex((x, k) => k >= kursor && x === b);
+        expect(i, `baris tidak ada di rekaman sesudah baris ${kursor}: ${b.slice(0, 60)}`).toBeGreaterThan(-1);
+        pos.push(i + 1);
+        kursor = i + 1;
+      }
+      return pos;
     };
-    const awalAkhir = (k: string): [number, number] => { const a = lokasi(k); return [a, a + k.split("\n").length - 1]; };
-    const utama = skenario.langkah.map((l) => awalAkhir(l.kirim));
-    for (const [i, [a, b]] of utama.entries()) { expect(potong(a, b)).toBe(skenario.langkah[i]!.kirim); expect(bagianDi(a)).toBe("A"); expect(bagianDi(b)).toBe("A"); }
-    expect(utama.map(([a]) => a)).toEqual([nA + 16, nGetAwalA(), nSelectPrimary, nKirimCurl, garis(/^\$ curl -i -X GET '\/akun\/419'/, nKirimCurl + 4)]);
-    const varian = skenario.varian.langkah.map((l) => awalAkhir(l.kirim));
-    for (const [i, [a, b]] of varian.entries()) { expect(potong(a, b)).toBe(skenario.varian.langkah[i]!.kirim); expect(bagianDi(a)).toBe("B"); expect(bagianDi(b)).toBe("B"); }
-    expect(varian.map(([a]) => a)).toEqual([nB + 2, garis(/^# Dengan token: replika belum memutar WAL/), garis(/^replika=> SELECT pg_last_wal_replay_lsn\(\) >= /)]);
-    expect(varian.map(([, b]) => b)).toEqual([nB + 9, garis(/^# Token yang bukan posisi WAL dijawab 422\./) - 1, rek.filter((b, i) => b !== "" || i < rek.length - 1).length]);
+    const dari1 = (n: number, ...tambah: number[]): number[] => tambah.map((t) => n + t);
+    const rentang = (n: number, panjang: number): number[] => Array.from({ length: panjang }, (_, i) => n + i);
+    const nDenganToken = garis(/^# Dengan token: replika belum memutar WAL/);
+    const nSelectLsn = garis(/^replika=> SELECT pg_last_wal_replay_lsn\(\) >= /);
+    const nGetSusul = garis(/^\$ curl -i -X GET '\/akun\/419'/, nKirimCurl + 4);
+    const awalUtama = [nA + 16, nGetAwalA(), nSelectPrimary, nKirimCurl, nGetSusul];
+    const utama = skenario.langkah.map((l, i) => urut(l.kirim, awalUtama[i]!));
+    expect(utama).toEqual([
+      rentang(nA + 16, 8),
+      dari1(nGetAwalA(), 0, 1, 3, 5, 6, 7, 9, 11),
+      rentang(nSelectPrimary, 10),
+      rentang(nKirimCurl, 5),
+      dari1(nGetSusul, 0, 1, 3, 5, 6, 7, 9, 11),
+    ]);
+    const awalVarian = [nB + 2, nDenganToken, nSelectLsn];
+    const varian = skenario.varian.langkah.map((l, i) => urut(l.kirim, awalVarian[i]!));
+    expect(varian).toEqual([
+      rentang(nB + 2, 8),
+      dari1(nDenganToken, 1, 4, 6, 10, 12),
+      dari1(nSelectLsn, 0, 3, 6, 7, 9, 11),
+    ]);
+    for (const p of utama.flat()) expect(bagianDi(p), `jalur utama baris ${p}`).toBe("A");
+    for (const p of varian.flat()) expect(bagianDi(p), `varian baris ${p}`).toBe("B");
+    expect(rek[utama[0]![0]! - 1]).toContain("pg_wal_replay_pause");
+    expect(rek[nGetAwalA() - 1]).toContain("X-Lsn-Tulis: <LSN tulis 1>");
+    expect(rek[varian[2]![1]! - 1]).toBe(" t");
+    expect(rek[varian[1]![4]! - 1]).toContain('"riwayat":[{"id":10202');
   });
   test("skenario: layar HP tiap langkah sama persis dengan yang dibangun dari nilai rekaman (judul, jam, sinyal, saldo, dan tiap baris)", () => {
     const tunj = { jenis: "baris", kiri: "Tunjangan makan", kanan: `+${rp(akunA[0]!)}` };
@@ -607,14 +630,14 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
     expect(skenario.langkah.map((l) => l.nada ?? null)).toEqual([null, "warn", null, "good", "good"]);
     expect(skenario.varian.langkah.map((l) => l.nada ?? null)).toEqual([null, "good", "good"]);
     expect(skenario.langkah[0]!.jelas).toBe(`Pemutaran ulang di replica ditahan dengan sengaja sebelum bayar (jeda buatan). Jawaban bayar 201 memuat saldo ${rp(bayarA.saldo)}, yaitu ${angkaId(akunA[0]!)} − ${angkaId(bayarNominalA)} (Hitungan). Header X-Lsn-Tulis dipakai varian.`);
-    expect(skenario.langkah[1]!.jelas).toBe(`Server menjawab dari replica: saldo ${rp(akunA[1]!)} dan satu baris riwayat, tanpa pembayaran ${rp(bayarNominalA)}. Layar HP menampilkan jawaban itu apa adanya (Ilustrasi).`);
+    expect(skenario.langkah[1]!.jelas).toBe(`Server menjawab dari replica: saldo ${rp(akunA[1]!)} dan satu baris riwayat, tanpa pembayaran ${rp(bayarNominalA)}. HP menampilkan jawaban itu apa adanya (Ilustrasi).`);
     expect(skenario.langkah[2]!.jelas).toBe(`Saldo di buku primary ${rp(saldoPrimary)}, di replica ${rp(saldoReplikaSelect)}. Pembayaran sudah tercatat, jadi dugaan pertama Raka gugur. Replica belum memutar ulang pembayaran itu.`);
     expect(skenario.langkah[3]!.jelas).toBe(`Saldo tampil ${rp(akunA[1]!)} cukup untuk ${rp(kirimA)}, tetapi server memutuskan dari saldo primary ${rp(saldoPrimary)} dan menjawab 422 saldo-kurang. Uang tidak ikut keliru. Di layar, penolakan itu bertentangan dengan saldo yang tampil (Ilustrasi). Memakai kiriman, bukan pembayaran, karena satu pembayaran dibatasi ${rp(maksBayar)}.`);
     expect(skenario.langkah[4]!.jelas).toBe(`Sesudah pemutaran ulang dilanjutkan dan replica menyusul, saldo tampil ${rp(akunA[2]!)} dan riwayat dua baris. Rekaman tidak menulis perintah pelanjutan; kode lab memanggil pg_wal_replay_resume().`);
     expect(skenario.varian.label).toBe("app mengirim X-Lsn-Tulis dari jawaban bayar, dan server memeriksanya");
     expect(skenario.varian.langkah[0]!.jelas).toBe(`Bagian B memakai pembayaran kedua Budi: saldo awal ${rp(akunA[2]!)}, bayar ${rp(bayarNominalB)}, saldo ${rp(bayarB.saldo)} (${angkaId(akunA[2]!)} − ${angkaId(bayarNominalB)}, Hitungan). Pemutaran ulang di replica ditahan lagi dengan sengaja.`);
-    expect(skenario.varian.langkah[1]!.jelas).toBe(`Dengan header X-Lsn-Tulis server bertanya ke replica apakah ia sudah memutar ulang sampai posisi itu. Belum, jadi server membaca primary: saldo ${rp(akunB[1]!)} dan tiga baris riwayat.`);
-    expect(skenario.varian.langkah[2]!.jelas).toBe("Biayanya: selama replica tertinggal, bacaan yang membawa token kembali ke primary. Bacaan tanpa token tetap dilayani replica (bagian B).");
+    expect(skenario.varian.langkah[1]!.jelas).toBe(`Server bertanya ke replica apakah ia sudah sampai posisi token. Belum, jadi ia membaca primary: saldo ${rp(akunB[1]!)} dan tiga baris riwayat.`);
+    expect(skenario.varian.langkah[2]!.jelas).toBe("Biayanya: selama replica tertinggal, bacaan dengan token kembali ke primary. Bacaan tanpa token tetap dilayani replica (bagian B).");
     expect(skenario.pengantar).toBe(`Budi membayar ${rp(bayarNominalA)}, dan server membaca saldo serta riwayat dari replica yang ditahan. Tebak dulu apa yang app terima, lalu ikuti langkahnya sampai HP. Sesudah langkah terakhir, centang 'Ubah satu hal'.`);
     expect(skenario.judul).toBe(`Riwayat dan saldo dari replica yang tertinggal: bayar ${rp(bayarNominalA)}, layar masih lama`);
     expect(skenario.langkah.map((l) => l.judul)).toEqual([
