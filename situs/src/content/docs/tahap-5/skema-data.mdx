@@ -39,7 +39,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: PRIMARY KEY posting harus memuat kolom dibuat supaya tabelnya bisa dipartisi per bulan, dan id tidak lagi dijaga unik lintas bulan oleh constraint.">
 
-Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolom, dan foreign key di antaranya. Kedua ERD dibangun dari skema lab: Tahap 4 dari migration sampai api-t4 000023, dan Tahap 5 dari migration yang sama ditambah api-t5 000024 sampai 000026.
+Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolom, dan foreign key di antaranya. Kunci partisi adalah kolom yang menentukan partisi mana yang menyimpan sebuah baris. Kedua ERD dibangun dari skema lab: Tahap 4 dari migration sampai api-t4 000023, dan Tahap 5 dari migration yang sama ditambah api-t5 000024 sampai 000026.
 
 <Tebak client:visible data={dataTebak} />
 
@@ -116,7 +116,7 @@ Akibatnya `id` sendiri tidak lagi dijaga unik lintas partisi oleh database. Dua 
 
 Yang menjaga keunikan di lab adalah sequence `posting_id_seq`. Setiap INSERT ke `posting` di kode dan skrip `labs/api-t5` menghilangkan kolom `id`, dan hanya migration 000024 menyebutnya, untuk menyalin `id` lama. Aturan ledger tetap berlaku di tabel berpartisi: UPDATE, DELETE, dan TRUNCATE ditolak dengan SQLSTATE 23001 (Rekaman lab, `skema.txt` bagian D).
 
-**Pembagian service dan schema.** Tabel ini adalah bentuk akhir di lab, dan sama dengan rancangan tim: 9, 5, 6, 6, 2, dan 2 tabel. Kolom terakhir menghitung foreign key yang menyeberang ke schema lain sebelum dihapus, dari daftar katalog di rekaman (Rekaman lab, `skema.txt` bagian E).
+**Pembagian service dan schema.** Tabel ini adalah bentuk akhir di lab, dan sama dengan rancangan tim: 9, 5, 6, 6, 2, dan 2 tabel. Kolom terakhir menghitung foreign key dari tabel service itu yang menyeberang ke schema lain sebelum dihapus, dari daftar katalog di rekaman (Rekaman lab, `skema.txt` bagian E).
 
 | Service (schema) | Tabel | Jumlah | Foreign key lintas service yang dihapus |
 |---|---|---|---|
