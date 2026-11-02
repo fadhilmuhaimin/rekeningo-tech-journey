@@ -4,7 +4,7 @@
 export const SIDIK = {
   frontmatter: "4f0e039623f9beab",
   riset: ["fa0a03be5379dae4","848afd1131dcc7bf","c0f9de8ebd54d610","67f2116fe1516f50","79a5a3cd4a5a875a"],
-  diagram: "6f6559d2b30ad4e7",
+  diagram: "fb3218a61b36c8c6",
   tebak: "3841659259743d65",
   banding: "48def07cf84181af",
   snippet: ["2f3bff2a254d1b4d","422e1eb556b40fd2","c867c7dddb433b52","64c90368e1c737ae","42163e84b8d4f866","5945657540af21e2","37255ba057d56cdf","73dece135be018ee","6f584f80c431860f","7a21787e0691b77d","a32df71a000a06df"],
@@ -78,11 +78,11 @@ export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".baris[1].simpul[0].teks",
-  "Saldo tampil Rp250.000"
+  "Replica Rp250.000"
  ],
  [
   ".baris[1].simpul[0].sub",
-  "replica yang ditahan"
+  "saldo tampil, replay ditahan"
  ],
  [
   ".baris[1].simpul[0].nada",
@@ -90,11 +90,11 @@ export const DIAGRAM_DAUN: [string, string | number | boolean][] = [
  ],
  [
   ".baris[1].simpul[1].teks",
-  "Saldo primary Rp215.000"
+  "Primary Rp215.000"
  ],
  [
   ".baris[1].simpul[1].sub",
-  "dibaca dari primary"
+  "saldo yang menentukan"
  ],
  [
   ".baris[1].simpul[1].nada",

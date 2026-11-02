@@ -27,13 +27,13 @@
       "sub": "baca.txt bagian A",
       "simpul": [
         {
-          "teks": "Saldo tampil Rp250.000",
-          "sub": "replica yang ditahan",
+          "teks": "Replica Rp250.000",
+          "sub": "saldo tampil, replay ditahan",
           "nada": "old"
         },
         {
-          "teks": "Saldo primary Rp215.000",
-          "sub": "dibaca dari primary",
+          "teks": "Primary Rp215.000",
+          "sub": "saldo yang menentukan",
           "nada": "system"
         },
         {

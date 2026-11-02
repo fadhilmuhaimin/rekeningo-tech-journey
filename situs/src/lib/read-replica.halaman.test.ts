@@ -414,7 +414,7 @@ describe("rekaman baca.txt dan kode lab: uang dibaca dari primary", () => {
     expect(B_BAYAR.slice(1)).toEqual(["505", "35000", "10201", "215000"]);
     expect(B_KIRIM.slice(1)).toEqual(["K00504", "240000", "saldo-kurang"]);
     harus(`Budi membayar ${rp(35000)} ke Warung 505 sementara replay ditahan, dan jawaban bayar memuat saldo ${rp(215000)}. Replica masih menjawab ${rp(250000)}, sedangkan primary ${rp(215000)}. Kiriman ${rp(240000)} ditolak dengan 422 \`saldo-kurang\`:`);
-    expect(diagram.baris[1]!.simpul.map((s) => s.teks)).toEqual([`Saldo tampil ${rp(250000)}`, `Saldo primary ${rp(215000)}`, `Kiriman ${rp(240000)} ditolak: saldo kurang`]);
+    expect(diagram.baris[1]!.simpul.map((s) => s.teks)).toEqual([`Replica ${rp(250000)}`, `Primary ${rp(215000)}`, `Kiriman ${rp(240000)} ditolak: saldo kurang`]);
     expect(diagram.baris[1]!.simpul.at(-1)!.sub).toBe("422");
     expect(bagCA).toContain("# Uang tidak ikut keliru: saldo tampil Rp250.000, tetapi kiriman Rp240.000 ke rekan ditolak karena saldo di primary Rp215.000.");
     expect(bagCA).toContain("Replay di replika ditahan dengan sengaja (jeda buatan, bukan jeda alami)");
@@ -591,8 +591,8 @@ describe("diagram Rantai, widget banding, dan istilah: nilai diturunkan dari rek
     expect(diagram.sumber.teks).toBe("Rekaman lab: replika.txt dan baca.txt");
     expect(diagram.baris.map((b) => [b.label, b.sub, b.simpul.length])).toEqual([["Replica", "replika.txt bagian A dan B", 2], ["Uang", "baca.txt bagian A", 3]]);
     expect(diagram.baris[0]!.simpul[1]).toMatchObject({ teks: `UPDATE dan DDL ditolak: ${TOLAK[0]!.kode}`, nada: "system" });
-    expect(diagram.baris[1]!.simpul[0]!.sub).toBe("replica yang ditahan");
-    expect(diagram.baris[1]!.simpul[1]!.sub).toBe("dibaca dari primary");
+    expect(diagram.baris[1]!.simpul[0]!.sub).toBe("saldo tampil, replay ditahan");
+    expect(diagram.baris[1]!.simpul[1]!.sub).toBe("saldo yang menentukan");
     expect(diagram.catatan).toContain("Replay di replica ditahan dengan sengaja di baris bawah, jadi selisih Rp35.000 adalah jeda buatan, bukan jeda alami.");
     expect(B_BAYAR[2]).toBe("35000");
     const inti = cocok(badan, /## Inti\n\n([^\n]+)\n/)[1]!;
