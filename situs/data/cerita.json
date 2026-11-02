@@ -4208,14 +4208,16 @@
         "backend"
       ],
       "masalah": "Dari PRD v5, apa yang berubah di app, backend, dan database, dan kenapa salinan boleh banyak tetapi uang bergerak hanya di satu tempat?",
+      "pendek": "Fitur ke pekerjaan teknis v5",
       "prasyarat": [
         "t5-prd"
       ],
       "lab": [
         "api-t5"
       ],
-      "ada": false,
-      "nomor": "5.2"
+      "ada": true,
+      "nomor": "5.2",
+      "menit": 7
     },
     {
       "id": "t5-skema",
