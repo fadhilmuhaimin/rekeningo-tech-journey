@@ -48,6 +48,7 @@ type lingkungan struct {
 	hulu      *httptest.Server
 	dipanggil atomic.Int64
 	kepala    atomic.Value // http.Header dari panggilan hulu terakhir
+	badan     atomic.Value // body (string) dari panggilan hulu terakhir
 	tahan     chan struct{}
 	jam       atomic.Int64
 }
@@ -55,6 +56,7 @@ type lingkungan struct {
 const (
 	kunciA, kunciB, kunciC = "kunci-mitra-a", "kunci-mitra-b", "kunci-mitra-c"
 	rahasiaA, rahasiaB     = "rahasia-a", "rahasia-b"
+	kunciE, rahasiaE       = "kunci-mitra-e", "rahasia-e" // kuota 10 per detik: kuota tiap mitra datang dari barisnya
 	rahasiaHuluTes         = "rahasia-hulu-tes"
 )
 
@@ -76,6 +78,8 @@ func siapkan(t *testing.T, waf Pemeriksa, rentan ...string) *lingkungan {
 	l.hulu = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l.dipanggil.Add(1)
 		l.kepala.Store(r.Header.Clone())
+		b, _ := io.ReadAll(r.Body)
+		l.badan.Store(string(b))
 		if l.tahan != nil && r.Header.Get(HeaderMitra) == "1" { // hanya mitra A ditahan di hulu
 			<-l.tahan
 		}
@@ -92,7 +96,7 @@ func siapkan(t *testing.T, waf Pemeriksa, rentan ...string) *lingkungan {
 	t.Cleanup(func() { batas.Tutup() })
 	l.jam.Store(1_800_000_000_000)
 	batas.Jam = l.jam.Load
-	l.g = &Gerbang{WAF: waf, Rahasia: map[int64]string{1: rahasiaA, 2: rahasiaB, 3: "rahasia-c"}, Batas: batas, Hulu: u,
+	l.g = &Gerbang{WAF: waf, Rahasia: map[int64]string{1: rahasiaA, 2: rahasiaB, 3: "rahasia-c", 5: rahasiaE}, Batas: batas, Hulu: u,
 		RahasiaHulu: rahasiaHuluTes, Rentan: modes, Toleransi: 5 * time.Minute, MaksBody: 1024, GagalMaks: 5,
 		Sekarang: func() time.Time { return time.Unix(1_800_000_000, 0) }}
 	l.g.Toko = tokoPalsu{
@@ -100,6 +104,7 @@ func siapkan(t *testing.T, waf Pemeriksa, rentan ...string) *lingkungan {
 		SidikKunci(kunciB):          {ID: 2, Nama: "B", Status: "aktif", KuotaPerDetik: 100},
 		SidikKunci(kunciC):          {ID: 3, Nama: "C", Status: "dibekukan", KuotaPerDetik: 100},
 		SidikKunci("kunci-mitra-d"): {ID: 4, Nama: "D", Status: "aktif", KuotaPerDetik: 100}, // tanpa rahasia penandatangan
+		SidikKunci(kunciE):          {ID: 5, Nama: "E", Status: "aktif", KuotaPerDetik: 10},
 	}
 	l.g.Siap()
 	l.srv = httptest.NewServer(l.g)
@@ -210,7 +215,11 @@ func TestGerbangMitraTanpaRahasia(t *testing.T) {
 
 func TestGerbangKunciTidakSah(t *testing.T) {
 	l := siapkan(t, wafPalsu{})
-	l.harus(l.kirim("kunci-asal", rahasiaA, "GET", uriQR, ""), 401, "kunci-tidak-sah")
+	r := l.kirim("kunci-asal", rahasiaA, "GET", uriQR, "")
+	if h := r.Header.Get("WWW-Authenticate"); h != "X-Kunci-Api" { // 401 wajib membawa tantangan (RFC 9110 bagian 11.6.1)
+		t.Errorf("WWW-Authenticate %q", h)
+	}
+	l.harus(r, 401, "kunci-tidak-sah")
 	l.harus(l.kirim(kunciC, "rahasia-c", "GET", uriQR, ""), 401, "kunci-tidak-sah") // mitra dibekukan: jawaban sama
 	l.harus(l.kirim("", rahasiaA, "GET", uriQR, ""), 401, "kunci-tidak-sah")
 	// Tiga kegagalan tercatat; dua lagi mencapai GagalMaks (5), yang keenam dijawab 429.
@@ -307,7 +316,11 @@ func TestGerbangBerjalanPerMitra(t *testing.T) {
 			hasil <- s
 		}()
 	}
+	batas := time.Now().Add(5 * time.Second) // tes yang gagal tidak boleh menunggu tanpa akhir (mutan batas 19 menggantung 7 menit)
 	for l.dipanggil.Load() < 20 {
+		if time.Now().After(batas) {
+			t.Fatalf("hanya %d dari 20 permintaan sampai ke hulu dalam 5 detik", l.dipanggil.Load())
+		}
 		time.Sleep(5 * time.Millisecond)
 	}
 	l.harus(l.kirim(kunciA, rahasiaA, "GET", uriQR+"/x", ""), 429, "terlalu-banyak-berjalan")
