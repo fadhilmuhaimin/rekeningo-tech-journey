@@ -99,6 +99,10 @@ cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestPOSIdempotensi
 --- PASS: TestPOSValidasi
 --- PASS: TestPOSRuteTidakAdaTanpaRahasia
+--- PASS: TestPOSCakupanTetapBerlakuDiModeRentanLain
+--- PASS: TestPOSReferensiDihitungDalamKarakter
+--- PASS: TestPOSLokasiQR
+--- PASS: TestPOSQRTerpakaiTidakKedaluwarsa
 --- PASS: TestHandlerQRAlurDinamis
 --- PASS: TestHandlerQRKedaluwarsaDanKesalahan
 --- PASS: TestHandlerQRBayarMemakaiIdempotencyKey
@@ -712,6 +716,14 @@ ok    lab/apit5/internal/cache
     handler_pos_test.go:179: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestPOSRuteTidakAdaTanpaRahasia
     handler_pos_test.go:200: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSCakupanTetapBerlakuDiModeRentanLain
+    handler_pos_test.go:215: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSReferensiDihitungDalamKarakter
+    handler_pos_test.go:228: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSLokasiQR
+    handler_pos_test.go:241: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSQRTerpakaiTidakKedaluwarsa
+    handler_pos_test.go:254: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRAlurDinamis
     handler_qr_test.go:178: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRKedaluwarsaDanKesalahan
