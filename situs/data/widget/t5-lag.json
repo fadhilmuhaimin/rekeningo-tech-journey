@@ -44,7 +44,7 @@
       "jenis": "rekaman",
       "berkas": "sinkron.txt",
       "bagian": "B",
-      "teks": "Tanpa replay yang ditahan, selisih COMMIT tercepat antara remote_apply dan on di bawah 1 ms di laptop lab (nilainya tidak direkam). Harga remote_apply yang tabel ini tunjukkan baru muncul bila replay tertinggal.",
+      "teks": "Tanpa replay yang ditahan, selisih COMMIT tercepat antara remote_apply dan on di bawah 1 ms di laptop lab (nilainya tidak direkam). Harga remote_apply yang tabel ini tunjukkan baru muncul bila replay tertinggal. Waktu tunggu 0,5 detik di tabel berasal dari jeda contoh (Simulasi), bukan dari selisih ini.",
       "bukti": ["selisih COMMIT tercepat antara remote_apply dan on di bawah 1 ms: ya"]
     },
     {
@@ -61,7 +61,7 @@
       "jenis": "ilustrasi",
       "berkas": "jeda.txt",
       "bagian": "A",
-      "teks": "Jeda sekitar 2 detik berasal dari cerita Budi. Di laptop lab jeda alami tidak mencapainya, jadi jeda ini Ilustrasi dan bukan hasil ukur.",
+      "teks": "Jeda sekitar 2 detik berasal dari cerita Budi. Pada 100 pembayaran per detik di laptop lab, jeda alami tidak mencapainya, jadi jeda ini Ilustrasi dan bukan hasil ukur.",
       "bukti": ["Jeda ±2 detik di cerita M41 tidak terjadi dengan sendirinya di laptop lab"]
     },
     {
@@ -70,7 +70,7 @@
       "jenis": "rekaman",
       "berkas": "baca.txt",
       "bagian": "A",
-      "teks": "Replay ditahan, lalu Budi membayar Rp35.000. Jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000 dan riwayat masih satu baris, dibaca dari replica.",
+      "teks": "Replay ditahan, lalu Budi membayar Rp35.000. Jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000 dan riwayat masih satu baris, dibaca dari replica. Versi pertama itu mengabaikan token yang dikirim app, jadi hasilnya sama dengan app tanpa token.",
       "bukti": [
         "Jawaban bayar 201 memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000 dan riwayat masih satu baris.",
         "X-Dibaca-Dari: replika"
@@ -116,7 +116,7 @@
     { "dasar": "rancangan", "teks": "Widget memodelkan satu bacaan, 1 detik sesudah jawaban 201. Jendela token 30 detik dan aturan jeda lebih dari 30 detik di rancangan tidak dimodelkan." },
     { "dasar": "kode", "teks": "Token adalah posisi WAL primary mentah dari pg_current_wal_lsn(). Selisih dua token memperlihatkan berapa banyak seluruh database menulis di antaranya, jadi laju tulis ikut terbaca. Produksi dapat menandatangani atau membulatkannya." },
     { "dasar": "dokumentasi", "teks": "Dokumentasi menyebut pg_current_wal_lsn() sebagai posisi tulis WAL dan synchronous_commit = off sebagai mode tanpa menunggu. Jadi token dari commit semacam itu bisa lebih kecil dari posisi commit itu; ini penalaran, bukan rekaman. Kode api-t5 tidak mengatur synchronous_commit." },
-    { "dasar": "kode", "teks": "Token hanya ada di jawaban pertama bayar dan kirim. Jawaban yang diputar ulang dari Idempotency-Key membawa status, Content-Type, Location, dan isi saja, jadi app yang mengulang tanpa token membaca replica." },
+    { "dasar": "kode", "teks": "Token hanya ada di jawaban pertama bayar (POST /transfers) dan kirim (POST /kiriman). Jawaban yang diputar ulang dari Idempotency-Key membawa status, Content-Type, Location, dan isi saja, jadi app yang mengulang tanpa token membaca replica." },
     { "dasar": "kode", "teks": "Bila posisi WAL tidak terbaca, server tidak memberi token dan app membaca replica. Uang tetap aman karena keputusan uang di primary, tetapi layar bisa menampilkan saldo lama selama itu." },
     { "dasar": "kode", "teks": "Token sah yang sangat besar membuat server membaca primary, jadi satu user dapat memindahkan bacaan tampil miliknya ke sana. Akun lain tetap tertutup karena pemilik diperiksa lebih dulu." }
   ],
