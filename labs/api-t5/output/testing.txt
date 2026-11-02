@@ -91,6 +91,14 @@ cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestTopupBankEndpoint
 --- PASS: TestVerifikasiEndpoint
 --- PASS: TestBatasLajuEndpointLama
+--- PASS: TestPOSBuatDanBacaQR
+--- PASS: TestPOSCakupanMerchant
+--- PASS: TestPOSQRMilikMerchantLain
+--- PASS: TestPOSRentanTanpaCakupan
+--- PASS: TestPOSTanpaRahasiaGerbang
+--- PASS: TestPOSIdempotensi
+--- PASS: TestPOSValidasi
+--- PASS: TestPOSRuteTidakAdaTanpaRahasia
 --- PASS: TestHandlerQRAlurDinamis
 --- PASS: TestHandlerQRKedaluwarsaDanKesalahan
 --- PASS: TestHandlerQRBayarMemakaiIdempotencyKey
@@ -688,6 +696,22 @@ ok    lab/apit5/internal/cache
     handler_pembayaran_test.go:368: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestBatasLajuEndpointLama
     handler_pembayaran_test.go:426: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSBuatDanBacaQR
+    handler_pos_test.go:70: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSCakupanMerchant
+    handler_pos_test.go:89: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSQRMilikMerchantLain
+    handler_pos_test.go:113: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSRentanTanpaCakupan
+    handler_pos_test.go:127: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSTanpaRahasiaGerbang
+    handler_pos_test.go:138: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSIdempotensi
+    handler_pos_test.go:155: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSValidasi
+    handler_pos_test.go:179: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPOSRuteTidakAdaTanpaRahasia
+    handler_pos_test.go:200: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRAlurDinamis
     handler_qr_test.go:178: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestHandlerQRKedaluwarsaDanKesalahan

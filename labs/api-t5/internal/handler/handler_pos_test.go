@@ -88,6 +88,10 @@ func TestPOSBuatDanBacaQR(t *testing.T) {
 func TestPOSCakupanMerchant(t *testing.T) {
 	p := siapkanPOS(t, "")
 	pemakai := p.l.akun("pemakai", "terverifikasi", "aktif", 0)
+	// Akun yang bukan merchant tidak dibuka walau akun.mitra_pos_id-nya terisi mitra yang sama.
+	if _, err := p.l.db.Exec(`UPDATE akun SET mitra_pos_id = $1 WHERE id = $2`, p.mitraA, pemakai); err != nil {
+		t.Fatal(err)
+	}
 	for nama, merchant := range map[string]int64{"milik mitra lain": p.merchantB, "tidak ada": 999999999, "bukan merchant": pemakai} {
 		st, isi := p.dari(p.mitraA, "POST", qrPath(merchant), `{"nominal":25000}`, "Idempotency-Key", uuidKunci(2))
 		if st != 404 || isi["type"] != "/problems/tidak-ditemukan" {

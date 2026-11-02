@@ -44,7 +44,7 @@ Tidak dibawa dari `api-t4`: paket `internal/modul`, `cmd/pembayaran`, `cmd/qrlab
 - **Outbox `stream`.** Worker tanpa daftar lajur kini mengklaim hanya `push` dan `verifikasi` (`TujuanSemua`); sebelumnya daftar kosong berarti semua lajur dan akan mengirim baris `stream` sebagai push. Satu pengumuman menulis satu baris `pengumuman` dan satu baris outbox `stream`, bukan satu baris per penerima. Baris `stream` untuk pembayaran dan relay-nya milik `t5-fanout`.
 - **Cicilan.** Versi benar (ADR 54): `jurnal.referensi` UNIK `angsuran:<jadwal>:<ke>`, `INSERT ... ON CONFLICT DO NOTHING`, dan status angsuran `menunggu`, `terjurnal`, `dicatat` per langkah. Mode rentan `cicilan-satu-job` (M48) hanya memakai Idempotency-Key 24 jam. Notifikasi "diminta" pada langkah `dicatat` belum ditulis; itu milik `t5-cicilan`.
 - **Laporan merchant dari primary** hanya ada dengan `-rentan laporan-primary` (M40): tanpa mode itu rutenya tidak terdaftar. Versi benar (replica, ringkasan harian) milik `t5-replika`; `ringkasan_merchant_harian` ada sebagai tabel, belum ada yang mengisinya.
-- **API untuk mitra POS belum ada.** Tabel `mitra_pos`, `akun.mitra_pos_id`, dan `sakelar` ada; naskah tidak mendefinisikan bentuk endpoint-nya, jadi kontraknya tidak ditulis di `openapi.yaml`. Milik `t5-waf` dan `t5-rollout`.
+- **API untuk mitra POS.** Tabel `mitra_pos`, `akun.mitra_pos_id`, dan `sakelar` ada. Rute `/pos/v1/merchant/{id}/qr` dan `/pos/v1/merchant/{id}/qr/{qr}` ada hanya bila server dijalankan dengan `-pos-rahasia` (lab `t5-waf`, `internal/handler/handler_pos.go`); gerbang di depannya ada di `labs/t5-waf/gerbang`. Naskah tidak mendefinisikan bentuk endpoint-nya, jadi kontraknya belum ditulis di `openapi.yaml`. `sakelar` milik `t5-rollout`.
 
 ## Mode rentan
 
@@ -53,6 +53,7 @@ Tidak dibawa dari `api-t4`: paket `internal/modul`, `cmd/pembayaran`, `cmd/qrlab
 | `laporan-primary` | M40 | `GET /merchant/{id}/laporan/hari-ini` menjumlah posting hari ini langsung dari `posting` di primary; dengan `-laporan-cache redis` jawaban di-cache selama `-laporan-ttl` (bawaan 30 detik) |
 | `cicilan-satu-job` | M48 | job `-cicilan-sampai <tanggal>` menagih angsuran jatuh tempo dengan Idempotency-Key 24 jam sebagai satu-satunya penjaga |
 | `riwayat-replika` | M41 | saldo tampil (`GET /akun/{id}`) dan riwayat dibaca dari replica tanpa memeriksa token `X-Lsn-Tulis`; butuh `REPLIKA_DATABASE_URL` dan hanya dipakai lab `t5-replika` |
+| `pos-tanpa-cakupan` | M50 | rute `/pos/v1` (butuh `-pos-rahasia`) tidak mencocokkan merchant di alamat dengan mitra yang disebut gerbang: kunci satu mitra membuka merchant mitra lain (lab `t5-waf`) |
 
 Tanpa `REPLIKA_DATABASE_URL` jawaban `api-t5` tidak berubah. Dengan replica, jawaban bayar dan kirim memuat `X-Lsn-Tulis`. Saldo tampil dan riwayat memakai replica hanya bila replica sudah memutar WAL sampai token itu (ADR 47; rekaman di `labs/t5-replika/output/baca.txt`).
 
@@ -105,7 +106,7 @@ Rekaman dari database bersih, diulang tiga kali (tenang, dengan 10 proses sibuk 
 
 ## Tidak dijalankan atau belum ada
 
-Replica dan jeda baca milik `t5-replika`, relay `stream` dan Kafka milik `t5-fanout`, dan mTLS antar proses milik `t5-service` (sudah ada: ledger sebagai proses sendiri di `cmd/ledger`, mode rentan `ledger-tanpa-identitas`; lihat `labs/t5-service/README.md`). Canary dan kill switch milik `t5-rollout`, kuota per mitra dan WAF milik `t5-waf`, dan arsip terenkripsi milik `t5-kms`. DBOS dan tabel langkah bersaing milik `t5-cicilan`. Gerbang govulncheck dan grype serta oasdiff Tidak dijalankan. Lab ini tidak menguji kapasitas produksi dan tidak mengklaimnya.
+Replica dan jeda baca milik `t5-replika`, relay `stream` dan Kafka milik `t5-fanout`, dan mTLS antar proses milik `t5-service` (sudah ada: ledger sebagai proses sendiri di `cmd/ledger`, mode rentan `ledger-tanpa-identitas`; lihat `labs/t5-service/README.md`). Canary dan kill switch milik `t5-rollout`, kuota per mitra dan WAF ada di `t5-waf`, dan arsip terenkripsi milik `t5-kms`. DBOS dan tabel langkah bersaing milik `t5-cicilan`. Gerbang govulncheck dan grype serta oasdiff Tidak dijalankan. Lab ini tidak menguji kapasitas produksi dan tidak mengklaimnya.
 
 ## Uji mutasi
 
