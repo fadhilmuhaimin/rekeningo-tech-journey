@@ -264,6 +264,9 @@ func TestKompensasiAngsuranPeranDanBatasAlasan(t *testing.T) {
 			t.Fatalf("akun %s: %v, ingin ErrDilarang", peran, err)
 		}
 	}
+	if _, err := svc.KompensasiAngsuran(ctx, admin, int64(1)<<40, 1, "angsuran yang tidak pernah ada sama sekali"); !errors.Is(err, ErrTidakDitemukan) {
+		t.Fatalf("angsuran yang tidak ada: %v, ingin ErrTidakDitemukan", err)
+	}
 	for nama, alasan := range map[string]string{
 		"19 karakter":                "abcdefghijklmnopqrs",
 		"spasi di pinggir dipangkas": "     abcdefghijklmno     ",
