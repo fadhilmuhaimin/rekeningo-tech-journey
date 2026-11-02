@@ -921,7 +921,7 @@ describe("label sumber dan baris riset R5-120 sampai R5-124", () => {
     // Tiap tautan luar di halaman muncul di salah satu baris dan memakai nomor bagian yang sama.
     const luar = [...mdx.matchAll(/\]\((https:\/\/www\.postgresql\.org\/docs\/17\/([\w-]+\.html)(?:#([\w-]+))?)\)/g)].map((m) => [m[2], m[3] ?? "", m[0]]);
     expect(luar.map((x) => x[0])).toEqual(["ddl-constraints.html", "ddl-partitioning.html", "limits.html", "ddl-partitioning.html", "ddl-partitioning.html", "limits.html", "ddl-constraints.html"]);
-    expect(luar.map((x) => x[1])).toEqual(["DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS", "DDL-PARTITIONING-LIMITATIONS", "", "DDL-PARTITIONING-OVERVIEW", "", "", "DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS"]);
+    expect(luar.map((x) => x[1])).toEqual(["DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS", "DDL-PARTITIONING-DECLARATIVE-LIMITATIONS", "", "DDL-PARTITIONING-OVERVIEW", "", "", "DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS"]);
     expect(mdx).toContain("[PostgreSQL 17, 5.5.3]");
     expect(mdx).toContain("[PostgreSQL 17, 5.12.2.3]");
     expect(mdx).toContain("[PostgreSQL 17, 5.12.1]");

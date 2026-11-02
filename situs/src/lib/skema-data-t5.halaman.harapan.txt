@@ -108,7 +108,7 @@ Rekaman di bawah memuat kunci partisi, PRIMARY KEY, dan {{K_PARTISI_KE}} partisi
 
 Baris untuk bulan yang belum punya partisi ditolak dengan `no partition of relation "posting" found for row`, SQLSTATE {{S_NOPART}}. Baris yang sama masuk sesudah fungsi itu dipanggil, dengan jam yang diperankan (Rekaman lab t5-partisi, `pasang.txt` bagian D). Pembuatan partisi bulan berikutnya dibahas di [[t5-partisi]].
 
-PRIMARY KEY `posting` berubah dari `(id)` menjadi `(id, dibuat)`. Dokumentasi PostgreSQL menulis alasannya. Index yang membentuk constraint hanya menegakkan keunikan di dalam partisinya sendiri, jadi constraint wajib memuat semua kolom kunci partisi ([PostgreSQL {{PG}}, 5.12.2.3](https://www.postgresql.org/docs/{{PG}}/ddl-partitioning.html#DDL-PARTITIONING-LIMITATIONS)). Lab merekam penolakannya:
+PRIMARY KEY `posting` berubah dari `(id)` menjadi `(id, dibuat)`. Dokumentasi PostgreSQL menulis alasannya. Index yang membentuk constraint hanya menegakkan keunikan di dalam partisinya sendiri, jadi constraint wajib memuat semua kolom kunci partisi ([PostgreSQL {{PG}}, 5.12.2.3](https://www.postgresql.org/docs/{{PG}}/ddl-partitioning.html#DDL-PARTITIONING-DECLARATIVE-LIMITATIONS)). Lab merekam penolakannya:
 
 <Snippet file="labs/api-t5/output/skema.txt" lines="{{R_PK}}" title="Rekaman lab: labs/api-t5/output/skema.txt (bagian D)" />
 
@@ -124,11 +124,11 @@ Yang menjaga keunikan di lab adalah sequence `posting_id_seq`. Setiap INSERT ke 
 
 `outbox` ada di service ledger karena ia harus ditulis dalam satu transaction dengan jurnal ([[t3-outbox]]). Di lab schema-nya berawalan `{{AWALAN}}` (`{{AWALAN}}ledger`, `{{AWALAN}}akun`, dan seterusnya), karena nama schema dan role bersifat global di database lab bersama.
 
-Dari {{FK4}} foreign key Tahap {{T_LAMA}}, {{FK_HAPUS}} menyeberang batas service dan dihapus (Hitungan: angka yang bisa kamu ulang dari angka yang tertulis di halaman). {{KE_AKUN_CAP}} menuju service akun, {{KE_LEDGER}} menuju ledger, dan {{KE_NOTIF}} menuju notifikasi, dihitung dari daftar di rekaman. {{K_FK_BARU_CAP}} foreign key baru ada di dalam satu service: {{FK_BARU_LIST}}. Jadi {{FK4}} − {{FK_HAPUS}} + {{FK_BARU}} = {{FK5}}, dan katalog di rekaman menghitung {{FK_LINTAS_REK}} yang menyeberang dan {{FK_DALAM_REK}} di dalam satu schema.
+Dari {{FK4}} foreign key Tahap {{T_LAMA}}, {{FK_HAPUS}} menyeberang batas service dan dihapus (Rekaman lab, `skema.txt` bagian E, dibaca dari katalog). {{KE_AKUN_CAP}} menuju service akun, {{KE_LEDGER}} menuju ledger, dan {{KE_NOTIF}} menuju notifikasi, dihitung dari daftar di rekaman. {{K_FK_BARU_CAP}} foreign key baru ada di dalam satu service: {{FK_BARU_LIST}}. Jadi {{FK4}} − {{FK_HAPUS}} + {{FK_BARU}} = {{FK5}} (Hitungan: angka yang bisa kamu ulang dari angka yang tertulis di halaman), dan katalog di rekaman menghitung {{FK_LINTAS_REK}} yang menyeberang dan {{FK_DALAM_REK}} di dalam satu schema.
 
 Kolom seperti `buku.akun_id` tetap ada sebagai referensi tanpa constraint. Tanpa foreign key, database tidak lagi menolak baris yang menunjuk akun yang tidak ada di schema lain. Lab tidak mencoba memasukkan baris seperti itu (Tidak dijalankan). Biaya dan alasan pemecahannya dibahas di [[t5-m44]].
 
-Hak role di lab dicek dari katalog database. Kelima role selain ledger tidak punya hak apa pun di schema service lain. Role ledger punya satu hak di schema lain: SELECT atas kolom `id`, `tingkat`, dan `status` tabel `akun`. Kolom `nama` ditolak dengan SQLSTATE {{S_DITOLAK}} (Rekaman lab, `skema.txt` bagian F).
+Hak role di lab dicek dari katalog database. Kelima role selain ledger tidak punya hak apa pun di schema service lain. Role ledger punya hak di satu schema lain, yaitu akun. Haknya USAGE atas schema (izin menemukan tabelnya) dan SELECT atas kolom `id`, `tingkat`, dan `status` tabel `akun`. Kolom `nama` ditolak dengan SQLSTATE {{S_DITOLAK}} (Rekaman lab, `skema.txt` bagian F).
 
 **Rancangan lawan lab.** Rancangan skema Tahap {{T_BARU}}, yaitu diagram yang ditulis tim sebelum ada migration, dicocokkan dengan skema lab. Perintah `tools/erd.py --naskah 5` mencetak `{{ERD_NASKAH}}` untuk kolom, tanda kunci, dan garis relasi (dijalankan {{TGL_ERD}}, Hitungan atas ERD dan rancangan). Selisih di luar diagram ada {{K_SELISIH}}, dan yang benar adalah skema lab (Rekaman lab, `skema.txt` bagian B dan E).
 
@@ -145,8 +145,8 @@ Hak role di lab dicek dari katalog database. Kelima role selain ledger tidak pun
 
 Angka di tabel ini adalah **Asumsi** cerita, kecuali jumlah tabel inti Tahap {{T_LAMA}} dan {{T_BARU}}, yang dihitung dari ERD. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
 
-- transaksi per hari = user × aktif × {{TRX_DASAR}}
-- posting per tahun = transaksi per hari × {{POSTING_PER_TRX}} × {{HARI}}
+- transaksi per hari = user × aktif × {{TRX_DASAR}} (transaksi per user aktif per hari)
+- posting per tahun = transaksi per hari × {{POSTING_PER_TRX}} (posting per transaksi) × {{HARI}} (hari)
 - ukuran per tahun = posting per tahun × {{BYTE_POSTING}} byte, termasuk index
 
 Rencana Tahap {{T_BARU}} memakai {{TRX_DASAR}} transaksi per user aktif per hari sebagai dasar, sedangkan nilai registry Tahap {{T_BARU}} menulis {{TRX_REG}}. Halaman ini memakai {{TRX_DASAR}} untuk rumus ledger dan menulis hasil dengan {{TRX_REG}} di sebelahnya, keduanya Asumsi.
@@ -266,7 +266,7 @@ PostgreSQL menolak PRIMARY KEY yang tidak memuat kolom kunci partisi (SQLSTATE {
 - [ ] Tabel berpartisi punya PRIMARY KEY dan UNIQUE yang memuat kolom kunci partisi, dan kolom lain yang harus unik dijaga dengan cara yang diuji.
 - [ ] Setiap INSERT ke tabel berpartisi diuji untuk bulan yang belum punya partisi, dan job yang membuat partisi berjalan sebelum bulannya mulai.
 - [ ] Referensi lintas service tidak memakai foreign key, dan ada kunci bisnis UNIQUE atau Idempotency-Key yang menjaga pekerjaan berulang.
-- [ ] Kode satu service tidak membaca tabel service lain langsung, dan role service hanya punya hak atas schema miliknya.
+- [ ] Satu service membaca service lain hanya lewat kontrak tertulis (API atau daftar kolom yang diizinkan), dan role service itu tidak punya hak lain di sana.
 - [ ] Rumus ukuran data menyebut apa yang dihitung (baris atau posting), ukuran per barisnya, dan label sumbernya.
 
 ### Bacaan lanjut
