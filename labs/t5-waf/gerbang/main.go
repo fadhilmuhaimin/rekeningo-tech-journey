@@ -40,12 +40,12 @@ func (t tokoPG) CariKunci(ctx context.Context, sidik string) (Mitra, bool, error
 }
 
 func main() {
-	addr := flag.String("addr", "127.0.0.1:18330", "alamat dengar (hanya lokal)")
-	hulu := flag.String("hulu", "", "alamat api-t5, mis. http://127.0.0.1:18310")
+	addr := flag.String("addr", "", "alamat dengar, wajib dan hanya lokal (127.0.0.1:<port>; port lab dari run.py)")
+	hulu := flag.String("hulu", "", "alamat api-t5, wajib dan hanya lokal (http://127.0.0.1:<port>)")
 	crs := flag.String("crs", "crs", "folder CRS (waf.conf, crs-setup.conf, rules/)")
 	rahasiaBerkas := flag.String("rahasia-berkas", "", "berkas JSON {mitra_id: rahasia tanda tangan} (penyimpanan rahasia tiruan)")
 	rahasiaHulu := flag.String("rahasia-hulu", "", "rahasia yang dibaca api-t5 dari gerbang (-pos-rahasia)")
-	redisAlamat := flag.String("redis", "127.0.0.1:56379", "alamat Redis")
+	redisAlamat := flag.String("redis", "", "alamat Redis lab, wajib (127.0.0.1:<port>)")
 	awalan := flag.String("awalan", "t5waf:", "awalan key Redis")
 	berjalan := flag.Int("berjalan", 20, "permintaan berjalan per mitra (Asumsi)")
 	gagalMaks := flag.Int64("gagal-maks", 5, "kunci salah per alamat per jendela sebelum dijawab 429")
@@ -60,8 +60,8 @@ func main() {
 	if host, _, err := net.SplitHostPort(*addr); err != nil || (host != "127.0.0.1" && host != "::1" && host != "localhost") {
 		log.Fatalf("gerbang lab hanya mendengar di alamat lokal, dapat %q", *addr)
 	}
-	if *hulu == "" || *rahasiaBerkas == "" || *rahasiaHulu == "" {
-		log.Fatal("-hulu, -rahasia-berkas, dan -rahasia-hulu wajib")
+	if *hulu == "" || *rahasiaBerkas == "" || *rahasiaHulu == "" || *redisAlamat == "" {
+		log.Fatal("-hulu, -rahasia-berkas, -rahasia-hulu, dan -redis wajib")
 	}
 	u, err := url.Parse(*hulu)
 	if err != nil || u.Scheme != "http" || (u.Hostname() != "127.0.0.1" && u.Hostname() != "localhost") {

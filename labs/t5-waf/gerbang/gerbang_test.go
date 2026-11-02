@@ -96,9 +96,10 @@ func siapkan(t *testing.T, waf Pemeriksa, rentan ...string) *lingkungan {
 		RahasiaHulu: rahasiaHuluTes, Rentan: modes, Toleransi: 5 * time.Minute, MaksBody: 1024, GagalMaks: 5,
 		Sekarang: func() time.Time { return time.Unix(1_800_000_000, 0) }}
 	l.g.Toko = tokoPalsu{
-		SidikKunci(kunciA): {ID: 1, Nama: "A", Status: "aktif", KuotaPerDetik: 100},
-		SidikKunci(kunciB): {ID: 2, Nama: "B", Status: "aktif", KuotaPerDetik: 100},
-		SidikKunci(kunciC): {ID: 3, Nama: "C", Status: "dibekukan", KuotaPerDetik: 100},
+		SidikKunci(kunciA):          {ID: 1, Nama: "A", Status: "aktif", KuotaPerDetik: 100},
+		SidikKunci(kunciB):          {ID: 2, Nama: "B", Status: "aktif", KuotaPerDetik: 100},
+		SidikKunci(kunciC):          {ID: 3, Nama: "C", Status: "dibekukan", KuotaPerDetik: 100},
+		SidikKunci("kunci-mitra-d"): {ID: 4, Nama: "D", Status: "aktif", KuotaPerDetik: 100}, // tanpa rahasia penandatangan
 	}
 	l.g.Siap()
 	l.srv = httptest.NewServer(l.g)
@@ -197,6 +198,16 @@ func TestGerbangTandaTanganSalah(t *testing.T) {
 	}
 }
 
+// Mitra yang aktif tetapi tidak punya rahasia penandatangan di penyimpanan rahasia ditolak. Tanpa pemeriksaan itu,
+// HMAC dengan kunci kosong dihitung dan siapa pun yang tahu kunci API bisa menandatangani dengan rahasia kosong.
+func TestGerbangMitraTanpaRahasia(t *testing.T) {
+	l := siapkan(t, wafPalsu{})
+	l.harus(l.kirim("kunci-mitra-d", "", "GET", uriQR+"/x", ""), 401, "tanda-tangan-salah")
+	if n := l.dipanggil.Load(); n != 0 {
+		t.Fatalf("hulu dipanggil %d kali", n)
+	}
+}
+
 func TestGerbangKunciTidakSah(t *testing.T) {
 	l := siapkan(t, wafPalsu{})
 	l.harus(l.kirim("kunci-asal", rahasiaA, "GET", uriQR, ""), 401, "kunci-tidak-sah")
@@ -284,6 +295,8 @@ func TestGerbangKuotaBersamaDiModeRentan(t *testing.T) {
 func TestGerbangBerjalanPerMitra(t *testing.T) {
 	l := siapkan(t, wafPalsu{})
 	l.tahan = make(chan struct{})
+	lepas := sync.OnceFunc(func() { close(l.tahan) })
+	t.Cleanup(lepas) // tes yang gagal di tengah tidak menggantungkan permintaan di hulu (Cleanup berjalan sebelum srv.Close)
 	var wg sync.WaitGroup
 	hasil := make(chan int, 40)
 	for i := 0; i < 20; i++ {
@@ -299,7 +312,7 @@ func TestGerbangBerjalanPerMitra(t *testing.T) {
 	}
 	l.harus(l.kirim(kunciA, rahasiaA, "GET", uriQR+"/x", ""), 429, "terlalu-banyak-berjalan")
 	l.harus(l.kirim(kunciB, rahasiaB, "GET", uriQR+"/x", ""), 200, "")
-	close(l.tahan)
+	lepas()
 	wg.Wait()
 	close(hasil)
 	n := 0

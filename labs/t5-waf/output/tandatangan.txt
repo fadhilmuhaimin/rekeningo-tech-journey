@@ -1,0 +1,84 @@
+# Lab t5-waf · Idempotency-Key wajib, kunci dan tanda tangan bertimestamp, cakupan merchant, dan enumerasi kunci
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · Coraza v3.8.1 · OWASP CRS v4.30.0 (paranoia level 1, ambang anomali 5) · Redis 8.10.2 · enam schema service
+# Gerbang Go di 127.0.0.1:18330, api-t5 di 127.0.0.1:18310. Rekaman dari database bersih: make -C labs/t5-waf run.
+
+# --- A. Idempotency-Key wajib untuk POST yang membuat QR ---
+$ POST tanpa Idempotency-Key
+  -> 400 idempotency-key-wajib
+$ POST dengan Idempotency-Key "aaaa0000-0000-4000-8000-000000000001", dikirim dua kali (kasir mengulang)
+  -> pertama 201, kedua 201; id QR sama: ya; baris qr milik merchant 30001: 1
+$ key yang sama dengan isi lain (nominal 99.000)
+  -> 422 idempotency-key-dipakai-ulang
+
+# Mode rentan tanpa-idempoten-wajib (Idempotency-Key opsional seperti Tahap 4): kasir yang mengulang membuat dua QR
+$ dua POST yang sama tanpa Idempotency-Key -> 201, 201; baris qr milik merchant 30001: 2
+
+# --- B. Kunci API dan HMAC-SHA256 bertimestamp (toleransi 5 menit, Asumsi: sama dengan ADR 34) ---
+Yang ditandatangani: <timestamp>.<METHOD>.<alamat dan query>.<byte mentah body>. Header X-Waktu dan X-Tanda-Tangan.
+Permintaan yang lolos pemeriksaan gerbang diteruskan ke api-t5; QR contoh ini tidak ada, jadi jawabannya 404 dari api-t5.
+$ GET status QR, tanda tangan sah
+  -> 404 tidak-ditemukan
+$ GET status QR, rahasia penandatangan salah
+  -> 401 tanda-tangan-salah
+$ GET status QR, tanpa X-Waktu dan X-Tanda-Tangan
+  -> 401 waktu-di-luar-toleransi
+$ GET status QR, timestamp 240 detik lalu, ditandatangani ulang
+  -> 404 tidak-ditemukan
+$ GET status QR, timestamp 360 detik lalu, ditandatangani ulang
+  -> 401 waktu-di-luar-toleransi
+$ GET status QR, timestamp 360 detik ke depan
+  -> 401 waktu-di-luar-toleransi
+$ permintaan sah yang direkam 360 detik lalu dan diputar ulang apa adanya
+  -> 401 waktu-di-luar-toleransi
+$ POST yang nominalnya diubah sesudah ditandatangani (25.000 jadi 99.000)
+  -> 401 tanda-tangan-salah
+$ kunci API yang tidak dikenal
+  -> 401 kunci-tidak-sah
+$ kunci mitra A sesudah mitra_pos.status = dibekukan
+  -> 401 kunci-tidak-sah
+
+# --- C. Cakupan: kunci mitra A tidak membuka merchant mitra B ---
+$ A membaca QR sendiri
+  -> 200
+$ A membaca QR milik B lewat alamat merchant B
+  -> 404 tidak-ditemukan
+$ A membaca QR milik B lewat alamat merchant A sendiri
+  -> 404 tidak-ditemukan
+$ A membuat QR untuk merchant B
+  -> 404 tidak-ditemukan
+$ A membuat QR untuk merchant yang tidak ada
+  -> 404 tidak-ditemukan
+baris qr milik merchant B sesudah semua percobaan A: 1 (hanya yang dibuat B sendiri)
+$ A mengirim kepala X-Mitra-Id milik B dan rahasia gerbang (kepala identitas dibuang gerbang)
+  -> 404 tidak-ditemukan
+$ langsung ke api-t5 tanpa lewat gerbang (tanpa rahasia gerbang)
+  -> 401 bukan-dari-gerbang
+
+# Mode rentan pos-tanpa-cakupan di api-t5: merchant di alamat tidak dicocokkan dengan mitra
+$ A membaca QR milik B lewat alamat merchant B
+  -> 200
+     {"berlaku_sampai":"<waktu>","id":"<qr milik B>","jenis":"dinamis","nominal":30000,"status":"aktif"}
+
+# --- D. Enumerasi: kunci yang salah dihitung per alamat (5 kegagalan), batas per akun di api-t5 tetap berlaku ---
+$ kunci tebakan ke-1
+  -> 401 kunci-tidak-sah
+$ kunci tebakan ke-2
+  -> 401 kunci-tidak-sah
+$ kunci tebakan ke-3
+  -> 401 kunci-tidak-sah
+$ kunci tebakan ke-4
+  -> 401 kunci-tidak-sah
+$ kunci tebakan ke-5
+  -> 401 kunci-tidak-sah
+$ kunci tebakan ke-6
+  -> 429 terlalu-banyak-percobaan-kunci  [Retry-After: 60]
+$ kunci mitra A yang sah dari alamat yang sama (tidak ikut terhalang)
+  -> 404 tidak-ditemukan
+$ 11 POST beruntun dari A untuk merchant 30002, tiap kali dengan Idempotency-Key baru
+  -> 201: 10, lalu 429 rate-limit-akun (batas 10 QR per menit per akun di api-t5, lapis akun)
+
+# --- E. Gerbang hanya mau mendengar dan meneruskan ke alamat lokal; selain itu ia berhenti sebelum melayani apa pun ---
+$ gerbang -addr 0.0.0.0:<port>  -> exit status 1
+  gerbang lab hanya mendengar di alamat lokal, dapat "0.0.0.0:<port>"
+$ gerbang -hulu http://hulu.example:80  -> exit status 1
+  -hulu harus alamat lokal: "http://hulu.example:80"

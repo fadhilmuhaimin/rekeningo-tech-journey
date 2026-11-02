@@ -151,7 +151,7 @@ func TestWAFTemuanKecilDiBawahAmbang(t *testing.T) {
 	w := bukaWAFTes(t, "On")
 	p := muatPayload(t).Sah[1]
 	r, body := p.permintaan()
-	r.Host = "127.0.0.1:18730"
+	r.Host = "127.0.0.1:8080"
 	k, err := w.Periksa(r, body)
 	if err != nil || k.Blokir || !ada(k.Aturan, 920350) {
 		t.Fatalf("Host berupa IP: blokir=%v aturan=%v err=%v", k.Blokir, k.Aturan, err)

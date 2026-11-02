@@ -1,0 +1,83 @@
+# Lab t5-waf · Coraza dan CRS di gerbang: payload serangan, payload POS yang sah, dan mesin yang hanya mencatat
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · Coraza v3.8.1 · OWASP CRS v4.30.0 (paranoia level 1, ambang anomali 5) · Redis 8.10.2 · enam schema service
+# Gerbang Go di 127.0.0.1:18330, api-t5 di 127.0.0.1:18310. Rekaman dari database bersih: make -C labs/t5-waf run.
+
+# --- A. CRS 4.30.0 di Coraza v3.8.1, mode blokir, paranoia level 1, ambang anomali masuk 5: 8 payload serangan ---
+Tiap payload dikirim dengan kunci API dan tanda tangan yang SAH: yang menghentikannya WAF, bukan autentikasi.
+Payload adalah string uji generik di payload.json, dikirim hanya ke gerbang tiruan di 127.0.0.1.
+$ S01 tautologi tanda kutip di query
+  -> 403 diblokir-waf  [aturan CRS: 942100,949110]
+$ S02 UNION SELECT di referensi
+  -> 403 diblokir-waf  [aturan CRS: 942100,942190,942360,949110]
+$ S03 komentar sesudah tanda kutip di referensi
+  -> 403 diblokir-waf  [aturan CRS: 942100,949110]
+$ S04 tag script di referensi
+  -> 403 diblokir-waf  [aturan CRS: 941100,941110,941160,941390,949110]
+$ S05 atribut onerror di referensi
+  -> 403 diblokir-waf  [aturan CRS: 941100,941120,941160,941390,949110]
+$ S06 tag script di query
+  -> 403 diblokir-waf  [aturan CRS: 941100,941110,941160,941390,949110]
+$ S07 naik direktori di query
+  -> 403 diblokir-waf  [aturan CRS: 930100,930110,930120,932160,949110]
+$ S08 naik direktori di jalur
+  -> 403 diblokir-waf  [aturan CRS: 930100,930110,949110]
+
+diblokir 403: 8 dari 8
+
+# --- B. Payload POS yang sah: 37 diuji lewat gerbang yang sama (kunci dan tanda tangan sah) ---
+P01 referensi 1                POST -> 201
+P02 referensi 2                POST -> 201
+P03 referensi 3                POST -> 201
+P04 referensi 4                POST -> 201
+P05 referensi 5                POST -> 201
+P06 referensi 6                POST -> 201
+P07 referensi 7                POST -> 201
+P08 referensi 8                POST -> 201
+P09 referensi 9                POST -> 201
+P10 referensi 10               POST -> 201
+P11 referensi 11               POST -> 201
+P12 referensi 12               POST -> 201
+P13 referensi 13               POST -> 201
+P14 referensi 14               POST -> 201
+P15 referensi 15               POST -> 201
+P16 referensi 16               POST -> 201
+P17 referensi 17               POST -> 201
+P18 referensi 18               POST -> 201
+P19 referensi 19               POST -> 201
+P20 referensi 20               POST -> 201
+P21 referensi 21               POST -> 201
+P22 referensi 22               POST -> 201
+P23 referensi 23               POST -> 201
+P24 referensi 24               POST -> 201
+P25 referensi 25               POST -> 201
+P26 referensi 26               POST -> 201
+P27 referensi 27               POST -> 201
+P28 referensi 28               POST -> 201
+P29 referensi 29               POST -> 201
+P30 referensi 30               POST -> 201
+P31 referensi 31               POST -> 201
+P32 referensi 32               POST -> 201
+P33 referensi 33               POST -> 201
+P34 referensi 34               POST -> 201
+P35 tanpa referensi            POST -> 201
+P36 status QR                  GET  -> 404 tidak-ditemukan
+P37 status QR dengan query     GET  -> 404 tidak-ditemukan
+
+diuji: 37, diblokir WAF: 0, diteruskan ke api-t5: 37 (201 untuk POST, 404 untuk status QR yang tidak ada)
+Lingkup: 37 payload di payload.json, paranoia level 1. Ini bukan ukuran false positive untuk payload POS mana pun di luar daftar itu.
+
+# --- C. WAF bukan validasi: payload yang lolos WAF tetap diperiksa api-t5 ---
+$ referensi 101 karakter (tanpa aturan CRS yang cocok)
+  -> 400 validasi
+
+# --- D. Mode rentan waf-deteksi: mesin DetectionOnly, aturan tercatat tetapi tidak ada yang diblokir ---
+S01 tautologi tanda kutip di query            -> 404 tidak-ditemukan  [aturan CRS: 942100,949110]
+S02 UNION SELECT di referensi                 -> 201  [aturan CRS: 942100,942190,942360,949110]
+S03 komentar sesudah tanda kutip di referensi -> 201  [aturan CRS: 942100,949110]
+S04 tag script di referensi                   -> 201  [aturan CRS: 941100,941110,941160,941390,949110]
+S05 atribut onerror di referensi              -> 201  [aturan CRS: 941100,941120,941160,941390,949110]
+S06 tag script di query                       -> 404 tidak-ditemukan  [aturan CRS: 941100,941110,941160,941390,949110]
+S07 naik direktori di query                   -> 404 tidak-ditemukan  [aturan CRS: 930100,930110,930120,932160,949110]
+S08 naik direktori di jalur                   -> 404 tidak-ditemukan  [aturan CRS: 930100,930110,949110]
+
+status tanpa blokir: {201: 4, 404: 4}; tidak ada 403. Isi `referensi` tidak diperiksa api-t5 selain panjangnya.
