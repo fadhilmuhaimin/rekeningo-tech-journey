@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import mentah from "../../../data/widget/t5-lag.json";
 import { DataLag } from "./skema";
-import { acuanUntuk, aturanDari, detikTeks, hitung, indeksJeda, isi, jedaDari, replicaSudah, rupiah, saldoBaru } from "./logika";
+import { acuanUntuk, akibatTeks, aturanDari, detikTeks, hitung, indeksJeda, isi, jawabanTebak, jedaDari, layarTeks, nilaiJeda, replicaSudah, ringkasan, rupiah, saldoBaru, tundaTeks } from "./logika";
 
 const d = DataLag.parse(mentah);
 const klon = () => JSON.parse(JSON.stringify(mentah));
@@ -102,6 +102,45 @@ describe("teks: format dan kalimat", () => {
   });
 });
 
+describe("fungsi teks: nilai kalimat diturunkan dari hasil hitung dan templat di data (tanpa kalimat literal)", () => {
+  const semua = ATURAN.flatMap((a) => JEDA.map((j) => ({ a, j: jedaDari(d, j), h: hitung(d, jedaDari(d, j), a) })));
+  it("ringkasan diawali label aturan dan kalimat jeda, memuat saldo di layar, nama sumber bacaan, dan saldo primary yang benar", () => {
+    for (const { a, j, h } of semua) {
+      const r = ringkasan(d, j, a);
+      expect(r.startsWith(`${aturanDari(d, a).label}, ${j.kalimat}:`), r).toBe(true);
+      if (h.saldo !== null) expect(r, r).toContain(rupiah(h.saldo));
+      if (["lama", "sama", "tunda"].includes(h.kasus)) expect(r, r).toContain(`dari ${d.label.sumberNama[h.sumber]}`);
+      if (h.kasus === "keprimary") expect(r, r).toContain(`dari ${d.label.sumberNama.primary}`);
+      if (h.kasus === "lama") { expect(r, r).toContain(rupiah(saldoBaru(d))); expect(r, r).toContain(rupiah(d.skenario.saldoAwal)); }
+      if (h.kasus === "tunda") expect(r, r).toContain(tundaTeks(h));
+      expect(r.includes(d.label.sumberNama.replica_sinkron), r).toBe(h.sumber === "replica_sinkron" && h.kasus !== "macet");
+    }
+  });
+  it("sel Layar Budi memakai templat layar dengan saldo dan baris dari hasil; sel Akibat memakai templat kasus dan menyebut tunda", () => {
+    for (const { h } of semua) {
+      if (h.saldo === null) { expect(layarTeks(d, h)).toBe(d.label.layar.menunggu); continue; }
+      expect(layarTeks(d, h)).toBe(isi(d.label.layar.saldo, { saldo: rupiah(h.saldo), baris: h.baris! }));
+      expect(layarTeks(d, h)).toContain(`${h.baris} `);
+    }
+    for (const { h } of semua) {
+      if (h.kasus === "tunda") expect(akibatTeks(d, h)).toContain(tundaTeks(h));
+      else expect(akibatTeks(d, h)).toBe(d.label.akibat[h.kasus]);
+    }
+  });
+  it("tunda ditulis dengan koma desimal dan satuan detik: detik hasil dibaca kembali sama dengan detik jeda", () => {
+    for (const { j, h } of semua.filter((x) => x.h.tunda !== null)) {
+      expect(tundaTeks(h)).toBe(`${detikTeks(j.detik!)} detik`);
+      expect(tundaTeks(h)).not.toContain(".");
+      expect(Number(tundaTeks(h).replace(" detik", "").replace(",", "."))).toBe(j.detik);
+    }
+    expect(tundaTeks({ ...semua[0]!.h, tunda: null })).toBe("");
+  });
+  it("jawaban tebakan: yang benar diawali label benar, yang lain label belum; nilai penggeser memuat label jeda", () => {
+    d.tebak.pilihan.forEach((_, i) => expect(jawabanTebak(d, i).startsWith(i === d.tebak.jawaban ? d.label.benar : d.label.belum)).toBe(true));
+    for (const j of d.jeda) expect(nilaiJeda(d, j)).toContain(j.label);
+  });
+});
+
 describe("skema: cabang yang menolak data rusak", () => {
   it("id jeda ganda, detik tidak naik, null bukan di akhir, dan jeda awal tak dikenal ditolak", () => {
     tolak((x) => { x.jeda[1].id = x.jeda[0].id; }, /id jeda ganda/);
@@ -115,6 +154,11 @@ describe("skema: cabang yang menolak data rusak", () => {
     tolak((x) => { x.skenario.bayar = x.skenario.saldoAwal; }, /bayar harus lebih kecil/);
     tolak((x) => { x.tebak.jawaban = x.tebak.pilihan.length; }, /di luar pilihan/);
     tolak((x) => { x.tebak.pilihan = x.tebak.pilihan.slice(0, 3); }, /too_small|too_big|Too small|exactly|3/i);
+  });
+  it("jumlah aturan selain tiga ditolak, dan templat ringkasan harus memuat {aturan} dan {jeda}", () => {
+    tolak((x) => { x.aturan = x.aturan.slice(0, 2); }, /too_small|Too small|exactly|3/i);
+    tolak((x) => { x.label.ringkas.macet = "{aturan}: bayar belum selesai."; }, /templat tanpa \{jeda\}/);
+    tolak((x) => { x.label.ringkas.macet = "{jeda}: bayar belum selesai."; }, /templat tanpa \{aturan\}/);
   });
   it("acuan ke jeda yang tak dikenal ditolak", () => {
     tolak((x) => { x.acuan[0].jeda = "tak-ada"; }, /jeda tak-ada tidak dikenal/);

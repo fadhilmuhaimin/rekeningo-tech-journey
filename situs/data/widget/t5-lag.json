@@ -160,7 +160,7 @@
     "uangJudul": "Keputusan uang tidak memakai aturan ini",
     "batasJudul": "Yang tidak dimodelkan dan batas rancangan token",
     "dasar": {
-      "kode": "Dibaca dari kode, tidak direkam",
+      "kode": "Tidak dijalankan, dibaca dari kode api-t5",
       "dokumentasi": "Dokumentasi PostgreSQL 17, Tidak dijalankan",
       "rancangan": "Asumsi desain"
     },

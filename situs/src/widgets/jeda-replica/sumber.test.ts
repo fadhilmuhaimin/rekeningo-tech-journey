@@ -137,6 +137,11 @@ describe("sumber: remote_apply dan jeda dari sinkron.txt dan jeda.txt", () => {
     expect(d.sumber.teks).toContain("di bawah 1 detik");
     expect(d.sumber.teks).toContain("menahan replay");
   });
+  it("label dasar dokumentasi menyebut versi PostgreSQL yang sama dengan kepala rekaman lab (17), karena dokumentasi dibuka untuk versi yang dijalankan lab", () => {
+    for (const berkas of ["baca.txt", "jeda.txt", "sinkron.txt"]) expect(REKAMAN(berkas).split("\n")[1]).toContain("PostgreSQL 17.11");
+    expect(d.label.dasar.dokumentasi).toContain("PostgreSQL 17");
+    expect(d.label.dasar.dokumentasi).not.toMatch(/PostgreSQL 1[0-68-9]/);
+  });
   it("README lab: jeda sekitar 2 detik di cerita tidak terjadi alami dan tetap Ilustrasi", () => {
     expect(norm(baca("labs/t5-replika/README.md"))).toContain("Jeda ±2 detik di cerita M41 tidak terjadi dengan sendirinya di laptop lab dan tetap Ilustrasi");
   });
