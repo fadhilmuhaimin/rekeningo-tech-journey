@@ -114,7 +114,7 @@ Tanpa timeout, query yang sama dibatalkan oleh konflik, dan pencacah konflik di 
 
 Timeout tidak mencegah pembatalan. Ia menggantinya: 57014 sesudah paling sedikit 20 detik menggantikan 40001 sesudah paling sedikit 30 detik, dan replay tertahan lebih singkat. Lama itu diukur sejak query mulai, sedangkan dokumentasi menghitung 30 detik sejak WAL diterima. Angka 20 detik adalah Asumsi desain, dan 20 detik ÷ 0,02 detik = 1.000 kali lama normal satu laporan.
 
-Dokumentasi juga menulis bahwa query yang lama bisa membuat sesi lain di standby tidak melihat perubahan terbaru bila ia menunda penerapan WAL. Jadi query panjang di replica menambah jeda, bukan hanya risiko dibatalkan.
+Dokumentasi juga menulis bahwa query yang lama bisa membuat sesi lain di standby tidak melihat perubahan terbaru bila ia menunda penerapan WAL. Jadi query panjang di replica bisa menambah jeda, bukan hanya risiko dibatalkan.
 
 **`hot_standby_feedback` mencegah pembatalan dengan harga di primary.** Standby memberi tahu primary baris mana yang masih ia pakai, sehingga VACUUM menunda pembersihannya. Dokumentasi menulis bawaannya off, dan pengaturan ini bisa menggembungkan tabel di primary pada beberapa beban ([PostgreSQL 17.11, Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html), dibuka 2026-11-03). Lab membiarkannya off dan tidak mengukur penggembungan (Tidak dijalankan).
 
@@ -249,7 +249,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 - Saat jeda replica melewati 5 detik, target PRD v5 (Asumsi produk). Pembandingnya jeda alami di bawah 1 detik pada 100 pembayaran per detik di laptop (`jeda.txt` bagian A).
 - Saat query laporan dibatalkan lebih sering daripada yang diterima merchant. PRD v5 belum menulis batasnya. Yang bisa dihitung: galat 57014 dan pencacah `confl_snapshot`, yang naik dari 0 ke 1 di rekaman tanpa timeout.
 - Saat L baca melebihi yang ditampung satu replica. Laporan sendiri 13,3 koneksi (666,7 × 0,02). Bila semua bacaan selain uang pindah, 26,4 koneksi (Hitungan atas Asumsi). Bila p95 laporan di replica melewati 1 detik (Asumsi), tambah replica kedua.
-- Saat `hot_standby_feedback` dinyalakan, karena primary membengkak.
+- Saat `hot_standby_feedback` dinyalakan, karena primary bisa membengkak.
 - Saat polling diganti push ([[t5-fanout]]). Replica khusus laporan mungkin tidak diperlukan lagi.
 
 **Yang akan merevisinya.** [[t5-m41]] menunjukkan riwayat dan saldo tampil yang dipindah ke replica tanpa ADR, sehingga Budi melihat data lama. Hasilnya aturan baca sesudah tulis di [[t5-lag]]. [[t5-m42]] menunjukkan transaksi yang hilang saat primary mati, dan jawabannya ada di [[t5-rpo-rto]].
