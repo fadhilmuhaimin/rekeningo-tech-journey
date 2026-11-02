@@ -94,7 +94,7 @@ describe("registry, meta, dan susunan blok", () => {
     expect(h.path).toBe("tahap-5/fitur-ke-teknis.md");
     const peta = barisAwal(naskah, "| 5.2 |");
     expect(sel(peta)).toEqual(["5.2", "2, 3", h.judul, "Fitur → teknis", "★", "api-t5", "W5-zona"]);
-    expect(front).toContain(`title: "5.2 ${h.judul}"`);
+    expect(barisAwal(front, "title:")).toBe(`title: "5.2 ${h.judul}"`);
     expect(badan).toMatch(/^<p class="meta">Baca \d+ menit · Prasyarat: \[\[t5-prd\]\] · Jalur inti<\/p>$/m);
     expect(badan.match(/Baca (\d+) menit/)![1]).toBe(String(h.menit));
   });
