@@ -1339,12 +1339,12 @@ window.ISTILAH = {
   "u": "tahap-4/object-storage-presigned/"
  },
  "Primary": {
-  "b": "D3",
+  "b": "t5-read-replica",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.5 Read replica dan model baca",
   "s": "istilah-primary",
   "t": "Primary",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/read-replica/"
  },
  "Primary key": {
   "b": "B2.1",
@@ -1881,12 +1881,12 @@ window.ISTILAH = {
   "u": "tahap-3/m27-hari-promo/"
  },
  "WAL": {
-  "b": "D3",
+  "b": "t5-read-replica",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.5 Read replica dan model baca",
   "s": "istilah-wal",
   "t": "WAL (Write-Ahead Log)",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/read-replica/"
  },
  "WebAuthn": {
   "b": "t3-xss-csrf",
@@ -2837,12 +2837,12 @@ window.ISTILAH = {
   "u": "tahap-2/ledger/"
  },
  "primary": {
-  "b": "D3",
+  "b": "t5-read-replica",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.5 Read replica dan model baca",
   "s": "istilah-primary",
   "t": "Primary",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/read-replica/"
  },
  "primary key": {
   "b": "B2.1",

@@ -1307,9 +1307,9 @@
  {
   "t": "Primary",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
-  "b": "D3",
-  "n": "Replica dan consistency (versi lama)",
-  "u": "/d-system-design/d3-consistency/",
+  "b": "t5-read-replica",
+  "n": "5.5 Read replica dan model baca",
+  "u": "/tahap-5/read-replica/",
   "s": "istilah-primary",
   "h": null
  },
@@ -1856,9 +1856,9 @@
  {
   "t": "WAL (Write-Ahead Log)",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
-  "b": "D3",
-  "n": "Replica dan consistency (versi lama)",
-  "u": "/d-system-design/d3-consistency/",
+  "b": "t5-read-replica",
+  "n": "5.5 Read replica dan model baca",
+  "u": "/tahap-5/read-replica/",
   "s": "istilah-wal",
   "h": null
  },
