@@ -543,8 +543,11 @@ def rekam_tandatangan():
              "-rahasia-hulu", RAHASIA_HULU, "-redis", f"127.0.0.1:{REDIS_PORT}"]
     for judul, tambahan in (("-addr 0.0.0.0:<port>", ["-addr", f"0.0.0.0:{PORT_GERBANG}"]),
                             ("-hulu http://hulu.example:80", ["-addr", f"127.0.0.1:{PORT_GERBANG}", "-hulu", "http://hulu.example:80"])):
-        r = subprocess.run(dasar + tambahan, env=dict(d.ENV, DATABASE_URL=d.db_role("t5_gerbang", "t5-waf-gerbang")), capture_output=True,
-                           text=True, timeout=15)
+        try:
+            r = subprocess.run(dasar + tambahan, env=dict(d.ENV, DATABASE_URL=d.db_role("t5_gerbang", "t5-waf-gerbang")), capture_output=True,
+                               text=True, timeout=15)
+        except subprocess.TimeoutExpired:   # gerbang yang mau melayani alamat itu tidak berhenti
+            gagal(f"gerbang {judul} tidak berhenti dalam 15 detik: ia mau melayani alamat yang tidak lokal")
         baris = [re.sub(r":\d{4,5}", ":<port>", re.sub(r"^\d{4}/\d\d/\d\d \d\d:\d\d:\d\d(?:\.\d+)? ", "", l)) for l in r.stderr.splitlines()]
         tampil(f"$ gerbang {judul}  -> exit status {r.returncode}")
         for l in baris:

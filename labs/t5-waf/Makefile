@@ -15,6 +15,7 @@ cek: run
 	git diff --exit-code -- output/ ../api-t5/output/testing.txt
 	test -z "$$(git status --porcelain -- output/)"
 
-# Tes Go gerbang tanpa rekaman. TEST_REDIS_ADDR menunjuk Redis lab; tanpa itu tes kuota dilewati.
+# Tes Go gerbang tanpa rekaman. TEST_REDIS_ADDR menunjuk Redis lab; tanpa itu tes kuota dilewati. Tes baris mitra_pos butuh
+# TEST_DATABASE_URL (schema tahap5_tes, dibuat `make run BAGIAN=testing`); tanpa itu dilewati, dan TES_DB_WAJIB=1 menggagalkannya.
 test:
 	cd gerbang && go vet ./... && TEST_REDIS_ADDR=127.0.0.1:$(LAB_REDIS_PORT) go test -count=1 ./...
