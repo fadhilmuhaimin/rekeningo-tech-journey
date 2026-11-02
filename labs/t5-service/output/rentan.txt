@@ -1,0 +1,37 @@
+# Lab t5-service · mode rentan ledger tanpa identitas (M47) lawan versi mTLS
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_service · server Go di 127.0.0.1:18320
+# Rekaman dari database bersih: make -C labs/t5-service run.
+
+# --- A. Mode rentan ledger-tanpa-identitas (versi pertama): HTTP biasa, tanpa sertifikat, tanpa daftar jenis jurnal ---
+$ ledger -rentan ledger-tanpa-identitas   # role database t5_ledger, tanpa TLS
+=> SELECT count(*) AS jurnal_sebelum FROM jurnal
+ jurnal_sebelum
+----------------
+ 0
+(1 row)
+$ panggil dari pod uji, tanpa sertifikat, tanpa identitas -> POST /ledger/jurnal-topup, Idempotency-Key baru
+status 201 {"jurnal":<jurnal 1>,"ulang":false}
+=> SELECT j.jenis, j.keterangan, b.akun_id, p.jumlah FROM jurnal j JOIN posting p ON p.jurnal_id = j.id JOIN buku b ON b.id = p.buku_id WHERE j.keterangan = 'Top-up bank TB-UJI-0001' ORDER BY p.jumlah
+ jenis      | keterangan              | akun_id | jumlah
+------------+-------------------------+---------+--------
+ topup_bank | Top-up bank TB-UJI-0001 |         | -1000
+ topup_bank | Top-up bank TB-UJI-0001 | 100002  | 1000
+(2 rows)
+=> SELECT a.nama, b.saldo_cache AS saldo FROM akun a JOIN buku b ON b.akun_id = a.id WHERE a.id = 100002
+ nama    | saldo
+---------+-------
+ Lab uji | 1000
+(1 row)
+PERINGATAN: mode rentan ledger-tanpa-identitas menyala: tanpa TLS, tanpa identitas, tanpa daftar jenis jurnal
+ledger: key=TB-UJI-0001 status=201 jurnal=<jurnal 1> ulang=false
+
+# --- B. Versi benar di port yang sama: pod uji yang sama ditolak ---
+$ panggil http (tanpa TLS) ke ledger mTLS
+status 400 Client sent an HTTP request to an HTTPS server.
+$ panggil -sonde tanpa sertifikat ke ledger mTLS
+sonde: alert dari server: tls: certificate required
+=> SELECT count(*) AS jurnal_untuk_key_kedua FROM jurnal WHERE keterangan = 'Top-up bank TB-UJI-0002'
+ jurnal_untuk_key_kedua
+------------------------
+ 0
+(1 row)

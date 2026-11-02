@@ -24,12 +24,26 @@ func PasangLedger(mux *http.ServeMux, svc service.Service, kunciLayanan string, 
 	if kunciLayanan == "" {
 		return
 	}
-	mux.HandleFunc("POST /ledger/jurnal-topup", func(w http.ResponseWriter, r *http.Request) {
-		// Perbandingan waktu tetap; kunci salah dan kunci kosong dijawab sama.
+	mux.HandleFunc("POST /ledger/jurnal-topup", denganKunciLayanan(kunciLayanan, JurnalTopup(svc, catat)))
+	// POST /ledger/kartu/tahan: hold otorisasi kartu, Idempotency-Key = id_penerbit (ADR 42, lab t4-kartu).
+	mux.HandleFunc("POST /ledger/kartu/tahan", denganKunciLayanan(kunciLayanan, TahanKartu(svc, catat)))
+}
+
+// denganKunciLayanan: pemeriksa kunci bersama (versi ADR 37). Perbandingan waktu tetap; kunci salah dan kunci kosong dijawab sama.
+func denganKunciLayanan(kunciLayanan string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if subtle.ConstantTimeCompare([]byte(r.Header.Get(KunciLayananHeader)), []byte(kunciLayanan)) != 1 {
 			ledgerJawab(w, http.StatusUnauthorized, map[string]any{"alasan": "kunci-layanan"})
 			return
 		}
+		next(w, r)
+	}
+}
+
+// JurnalTopup: isi POST /ledger/jurnal-topup tanpa pemeriksa pemanggil (jenis jurnal topup_bank). Pemanggilnya yang
+// memutuskan siapa boleh sampai ke sini: kunci bersama (PasangLedger) atau identitas mTLS (lab t5-service, ADR 53).
+func JurnalTopup(svc service.Service, catat bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		kunci := r.Header.Get("Idempotency-Key")
 		if kunci == "" {
 			ledgerJawab(w, http.StatusBadRequest, map[string]any{"alasan": "idempotency-key-wajib"})
@@ -69,13 +83,13 @@ func PasangLedger(mux *http.ServeMux, svc service.Service, kunciLayanan string, 
 			log.Printf("ledger: key=%s status=%d jurnal=%v ulang=%v", kunci, status, isi["jurnal"], isi["ulang"])
 		}
 		ledgerJawab(w, status, isi)
-	})
-	// POST /ledger/kartu/tahan: hold otorisasi kartu, Idempotency-Key = id_penerbit (ADR 42, lab t4-kartu).
-	mux.HandleFunc("POST /ledger/kartu/tahan", func(w http.ResponseWriter, r *http.Request) {
-		if subtle.ConstantTimeCompare([]byte(r.Header.Get(KunciLayananHeader)), []byte(kunciLayanan)) != 1 {
-			ledgerJawab(w, http.StatusUnauthorized, map[string]any{"alasan": "kunci-layanan"})
-			return
-		}
+
+	}
+}
+
+// TahanKartu: isi POST /ledger/kartu/tahan tanpa pemeriksa pemanggil (jenis jurnal kartu_tahan).
+func TahanKartu(svc service.Service, catat bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		kunci := r.Header.Get("Idempotency-Key")
 		if kunci == "" {
 			ledgerJawab(w, http.StatusBadRequest, map[string]any{"alasan": "idempotency-key-wajib"})
@@ -117,7 +131,8 @@ func PasangLedger(mux *http.ServeMux, svc service.Service, kunciLayanan string, 
 			log.Printf("ledger: kartu-tahan key=%s status=%d jurnal=%v ulang=%v", kunci, status, isi["jurnal"], isi["ulang"])
 		}
 		ledgerJawab(w, status, isi)
-	})
+
+	}
 }
 
 func ledgerJawab(w http.ResponseWriter, status int, isi map[string]any) {
