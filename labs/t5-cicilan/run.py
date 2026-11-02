@@ -453,7 +453,7 @@ def rekam_langkah():
     sql(FUNGSI_JURNAL, tampil=False)
     info = json.loads(subprocess.run(["go", "list", "-m", "-json", DBOS_MOD], cwd=DBOS_DIR, capture_output=True, text=True, check=True).stdout)
     lisensi = (pathlib.Path(info["Dir"]) / "LICENSE").read_text().splitlines()[0]
-    catat(f"# {DBOS_MOD} {info['Version']} (terbit {info['Time'][:10]}), lisensi di berkas LICENSE modul: {lisensi}")
+    catat(f"# {DBOS_MOD} {info['Version']} (terbit {info['Time'][:10]}), lisensi di file LICENSE modul: {lisensi}")
     catat("# Pembanding dijalankan sebagai program Go terpisah (labs/t5-cicilan/dbos, modul sendiri); ledger tetap tabel yang sama.")
     catat(f"# Tabel sistem DBOS dan transaction_completion ada di schema {SKEMA_DBOS}, bukan di schema service mana pun.")
     bagian("A. Kasus yang sama: job dimatikan sesudah jurnal ditulis, lalu dijalankan lagi")
