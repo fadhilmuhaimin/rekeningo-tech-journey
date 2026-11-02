@@ -243,3 +243,193 @@ func TestKompensasiAngsuranDitolakBilaSaldoKaryawanNegatif(t *testing.T) {
 		t.Fatalf("jurnal pembalik tertinggal: %d, ingin 0", n)
 	}
 }
+
+// Tinjauan t5-cicilan (keputusan 1653). Tes di bawah menutup mutan yang lolos dari tes pelaksana: peran selain admin,
+// batas alasan 20 karakter, alasan berspasi, jurnal yang sudah dibalik lewat Balik, jurnal yang postingnya sudah dilepas,
+// jatuh tempo tepat pada tanggal job, dan galat selain saldo kurang.
+
+func galatValidasi(err error, field string) bool {
+	var ev ErrValidasi
+	return errors.As(err, &ev) && ev.Field == field
+}
+
+func TestKompensasiAngsuranPeranDanBatasAlasan(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	_, _, jadwal, _ := siapkanTerjurnal(t, svc, db, 100_000)
+	admin, _ := akunBaru(t, db, "admin", 0)
+	for _, peran := range []string{"karyawan", "warung"} {
+		pemanggil, _ := akunBaru(t, db, peran, 0)
+		if _, err := svc.KompensasiAngsuran(ctx, pemanggil, jadwal, 1, "alasan yang panjangnya sudah cukup"); !errors.Is(err, ErrDilarang) {
+			t.Fatalf("akun %s: %v, ingin ErrDilarang", peran, err)
+		}
+	}
+	for nama, alasan := range map[string]string{
+		"19 karakter":                "abcdefghijklmnopqrs",
+		"spasi di pinggir dipangkas": "     abcdefghijklmno     ",
+	} {
+		if _, err := svc.KompensasiAngsuran(ctx, admin, jadwal, 1, alasan); !galatValidasi(err, "alasan") {
+			t.Fatalf("alasan %s: %v, ingin ErrValidasi pada field alasan", nama, err)
+		}
+	}
+	if got := statusAngsuran(t, db, jadwal, 1); got != "terjurnal" {
+		t.Fatalf("status sesudah semua penolakan %q, ingin tetap terjurnal", got)
+	}
+	if _, err := svc.KompensasiAngsuran(ctx, admin, jadwal, 1, "abcdefghijklmnopqrst"); err != nil { // tepat 20 karakter
+		t.Fatalf("alasan 20 karakter: %v, ingin diterima", err)
+	}
+	if got := statusAngsuran(t, db, jadwal, 1); got != "gagal" {
+		t.Fatalf("status sesudah kompensasi %q, ingin gagal", got)
+	}
+}
+
+// Admin sudah membalik jurnal angsuran lewat jalur biasa (Balik): kompensasi tidak membuat pembalik kedua, dan jawabannya
+// jurnal sudah dibalik (UNIQUE membalik_jurnal_id), bukan galat umum. Angsurannya tetap terjurnal.
+func TestKompensasiAngsuranAtasJurnalYangSudahDibalikLewatBalik(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	akun, _, jadwal, jurnal := siapkanTerjurnal(t, svc, db, 100_000)
+	admin, _ := akunBaru(t, db, "admin", 0)
+	if _, err := svc.Balik(ctx, admin, jurnal, "jurnal angsuran dibalik lewat jalur biasa"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.KompensasiAngsuran(ctx, admin, jadwal, 1, "kompensasi sesudah jurnal dibalik"); !errors.Is(err, ErrSudahDibalik) {
+		t.Fatalf("kompensasi atas jurnal yang sudah dibalik: %v, ingin ErrSudahDibalik", err)
+	}
+	if got := statusAngsuran(t, db, jadwal, 1); got != "terjurnal" {
+		t.Fatalf("status %q, ingin tetap terjurnal", got)
+	}
+	if n := hitungSQL(t, db, `SELECT count(*) FROM jurnal WHERE membalik_jurnal_id = $1`, jurnal); n != 1 {
+		t.Fatalf("jurnal pembalik atas jurnal angsuran: %d, ingin tepat 1 (dari Balik)", n)
+	}
+	if got := saldoBuku(t, db, akun, "karyawan"); got != 100_000 {
+		t.Fatalf("saldo %d, ingin 100000: uang kembali satu kali", got)
+	}
+}
+
+// Jurnal angsuran yang postingnya sudah dilepas bersama partisinya (ADR 49): kompensasi menjawab ErrPostingDiarsip seperti
+// Balik, bukan jurnal pembalik tanpa posting yang baru ditolak database saat COMMIT. Keadaannya dibuat dengan jurnal tanpa
+// posting (session_replication_role = replica hanya untuk membuat keadaan itu, seperti TestBalikJurnalTanpaPostingDijawabDiarsip).
+func TestKompensasiAngsuranJurnalTanpaPostingDijawabDiarsip(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	_, _, jadwal := siapkanCicilan(t, svc, db, 100_000)
+	admin, _ := akunBaru(t, db, "admin", 0)
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`SET LOCAL session_replication_role = replica`); err != nil {
+		t.Fatal(err)
+	}
+	var jurnal int64
+	if err := tx.QueryRow(`INSERT INTO jurnal (jenis, keterangan, dibuat_oleh, dibuat)
+		VALUES ('angsuran', 'tes jurnal angsuran yang postingnya sudah dilepas', 1, '2016-06-10T10:00:00+07:00'::timestamptz) RETURNING id`).Scan(&jurnal); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { // jurnal tanpa posting melanggar invarian: jangan tinggalkan di schema tes
+		if hapus, err := db.Begin(); err == nil {
+			defer hapus.Rollback()
+			if _, err := hapus.Exec(`SET LOCAL session_replication_role = replica`); err == nil {
+				if _, err := hapus.Exec(`DELETE FROM jurnal WHERE id = $1`, jurnal); err == nil {
+					hapus.Commit()
+				}
+			}
+		}
+	})
+	if _, err := db.Exec(`UPDATE angsuran SET status = 'terjurnal', jurnal_id = $2 WHERE jadwal_id = $1 AND ke = 1`, jadwal, jurnal); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.KompensasiAngsuran(ctx, admin, jadwal, 1, "partisi posting bulan itu sudah dilepas"); !errors.Is(err, ErrPostingDiarsip) {
+		t.Fatalf("kompensasi jurnal tanpa posting: %v, ingin ErrPostingDiarsip", err)
+	}
+	if got := statusAngsuran(t, db, jadwal, 1); got != "terjurnal" {
+		t.Fatalf("status %q, ingin tetap terjurnal", got)
+	}
+	if n := hitungSQL(t, db, `SELECT count(*) FROM jurnal WHERE membalik_jurnal_id = $1`, jurnal); n != 0 {
+		t.Fatalf("jurnal pembalik tertinggal: %d, ingin 0", n)
+	}
+}
+
+// Angsuran yang jatuh tempo tepat pada tanggal job ikut ditagih (batas inklusif: jatuh_tempo <= tanggal job).
+func TestCicilanJatuhTempoTepatPadaTanggalJobIkutDitagih(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	akun, _ := akunBaru(t, db, "karyawan", 50_000)
+	merchant, _ := akunBaru(t, db, "warung", 0)
+	hariIni := awalHariWIB(time.Now())
+	jadwal, err := svc.BuatCicilan(ctx, akun, "cicilan", &merchant, 10_000, 2, 15, hariIni)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h, err := svc.JalankanCicilan(ctx, hariIni, OpsiCicilan{Jadwal: jadwal})
+	if err != nil || h.Dibaca != 1 || h.Dicatat != 1 {
+		t.Fatalf("jatuh tempo hari ini: %+v, %v; ingin dibaca 1 (ke-1) dan dicatat 1, ke-2 bulan depan tidak ikut", h, err)
+	}
+	if got := saldoBuku(t, db, akun, "karyawan"); got != 40_000 {
+		t.Fatalf("saldo %d, ingin 40000", got)
+	}
+}
+
+// Galat selain saldo kurang bukan alasan menandai angsuran gagal: job berhenti dengan galat, angsurannya tetap menunggu,
+// dan tidak ada yang tertulis. Jadwal ke akun merchant tanpa buku ditulis langsung, karena BuatCicilan menolaknya; kolom
+// merchant_akun_id adalah referensi tanpa constraint (Tahap 5). Satu angsuran rusak menghentikan seluruh putaran job.
+func TestCicilanGalatSelainSaldoKurangTidakMenandaiGagal(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	akun, _ := akunBaru(t, db, "karyawan", 50_000)
+	var jadwal int64
+	if err := db.QueryRow(`INSERT INTO jadwal_cicilan (akun_id, jenis, merchant_akun_id, jumlah_per_angsuran, jumlah_angsuran, hari_tagih)
+		VALUES ($1, 'cicilan', $2, 10000, 1, 15) RETURNING id`, akun, int64(1)<<40).Scan(&jadwal); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO angsuran (jadwal_id, ke, jatuh_tempo) VALUES ($1, 1, current_date - 1)`, jadwal); err != nil {
+		t.Fatal(err)
+	}
+	h, err := svc.JalankanCicilan(ctx, besok(), OpsiCicilan{Jadwal: jadwal})
+	if err == nil || kodePG(err) != "23503" {
+		t.Fatalf("merchant tanpa buku: %+v, %v; ingin galat foreign key (23503), bukan saldo kurang", h, err)
+	}
+	if h.Gagal != 0 || statusAngsuran(t, db, jadwal, 1) != "menunggu" {
+		t.Fatalf("hasil %+v, status %s; ingin gagal 0 dan tetap menunggu", h, statusAngsuran(t, db, jadwal, 1))
+	}
+	if n := hitungSQL(t, db, `SELECT count(*) FROM jurnal WHERE referensi = $1`, fmt.Sprintf("angsuran:%d:1", jadwal)); n != 0 {
+		t.Fatalf("jurnal tertulis %d, ingin 0 (satu transaction dibatalkan)", n)
+	}
+	if got := saldoBuku(t, db, akun, "karyawan"); got != 50_000 {
+		t.Fatalf("saldo %d, ingin 50000 tidak berubah", got)
+	}
+}
+
+// Versi benar punya dua titik mati: sesudah jurnal ditulis (angsuran masih menunggu) dan sesudah angsuran ditandai
+// terjurnal. Job yang mati di titik kedua meninggalkan satu jurnal dan angsuran terjurnal; putaran berikutnya hanya menandainya
+// dicatat, tanpa jurnal baru dan tanpa mencari jurnalnya lagi.
+func TestCicilanDihentikanSesudahTerjurnalDilanjutkanDariTerjurnal(t *testing.T) {
+	svc, db := siapkan(t)
+	ctx := context.Background()
+	akun, _, jadwal := siapkanCicilan(t, svc, db, 100_000)
+	h, err := svc.JalankanCicilan(ctx, besok(), OpsiCicilan{BerhentiSetelahTerjurnal: 1, Jadwal: jadwal})
+	if err != nil || !h.Dihentikan || h.Dijurnal != 1 || h.Dicatat != 0 {
+		t.Fatalf("putaran yang berhenti sesudah terjurnal: %+v, %v; ingin dihentikan, 1 jurnal, belum dicatat", h, err)
+	}
+	if got := statusAngsuran(t, db, jadwal, 1); got != "terjurnal" {
+		t.Fatalf("status sesudah mati %q, ingin terjurnal", got)
+	}
+	if n := hitungSQL(t, db, `SELECT count(*) FROM angsuran WHERE jadwal_id = $1 AND ke = 1 AND jurnal_id IS NOT NULL`, jadwal); n != 1 {
+		t.Fatalf("angsuran terjurnal tanpa jurnal_id: ingin 1 yang terikat jurnal, dapat %d", n)
+	}
+	h, err = svc.JalankanCicilan(ctx, besok(), OpsiCicilan{Jadwal: jadwal})
+	if err != nil || h.Dibaca != 1 || h.Dijurnal != 0 || h.JurnalAda != 0 || h.Dicatat != 1 {
+		t.Fatalf("putaran ulang: %+v, %v; ingin dibaca 1, dicatat 1, tanpa jurnal baru dan tanpa mencari jurnal", h, err)
+	}
+	if got := saldoBuku(t, db, akun, "karyawan"); got != 90_000 {
+		t.Fatalf("saldo %d, ingin 90000: satu angsuran", got)
+	}
+	if got := statusAngsuran(t, db, jadwal, 1); got != "dicatat" {
+		t.Fatalf("status akhir %q, ingin dicatat", got)
+	}
+}

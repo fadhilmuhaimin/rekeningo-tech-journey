@@ -174,7 +174,10 @@ type HasilCicilan struct {
 // dan sebelum angsurannya ditandai.
 type OpsiCicilan struct {
 	BerhentiSetelahJurnal int
-	Jadwal                int64 // > 0: hanya jadwal itu (menjalankan ulang satu jadwal, dan tes yang berbagi database)
+	// BerhentiSetelahTerjurnal > 0 menghentikan job (lab saja) sesudah sekian angsuran ditandai `terjurnal` dan sebelum
+	// ditandai `dicatat`: titik kedua yang bisa mati di versi benar.
+	BerhentiSetelahTerjurnal int
+	Jadwal                   int64 // > 0: hanya jadwal itu (menjalankan ulang satu jadwal, dan tes yang berbagi database)
 }
 
 // --8<-- [start:job-cicilan]
@@ -193,9 +196,10 @@ func (s Service) JalankanCicilan(ctx context.Context, sampai time.Time, o OpsiCi
 		return h, err
 	}
 	h.Dibaca = len(daftar)
-	ditulis := 0 // lab
+	ditulis, ditandai := 0, 0 // lab
 	for _, a := range daftar {
 		berhenti := func() bool { ditulis++; return o.BerhentiSetelahJurnal > 0 && ditulis >= o.BerhentiSetelahJurnal } // lab
+		berhentiTerjurnal := func() bool { ditandai++; return ditandai == o.BerhentiSetelahTerjurnal }                  // lab
 		if s.rentan == RentanCicilanSatuJob {                                                                           // rentan
 			if stop, err := s.tagihRentan(ctx, a, &h, berhenti); err != nil || stop { // rentan
 				h.Dihentikan = stop // rentan
@@ -203,7 +207,7 @@ func (s Service) JalankanCicilan(ctx context.Context, sampai time.Time, o OpsiCi
 			} // rentan
 			continue // rentan
 		} // rentan
-		if stop, err := s.tagihBenar(ctx, a, &h, berhenti); err != nil || stop {
+		if stop, err := s.tagihBenar(ctx, a, &h, berhenti, berhentiTerjurnal); err != nil || stop {
 			h.Dihentikan = stop // lab
 			return h, err
 		}
@@ -264,7 +268,7 @@ func referensiAngsuran(a repo.Angsuran) string {
 }
 
 // --8<-- [start:langkah-tabel]
-func (s Service) tagihBenar(ctx context.Context, a repo.Angsuran, h *HasilCicilan, berhenti func() bool) (bool, error) {
+func (s Service) tagihBenar(ctx context.Context, a repo.Angsuran, h *HasilCicilan, berhenti, berhentiTerjurnal func() bool) (bool, error) {
 	if a.Status == "menunggu" {
 		ref := referensiAngsuran(a)
 		var jurnal int64
@@ -292,6 +296,9 @@ func (s Service) tagihBenar(ctx context.Context, a repo.Angsuran, h *HasilCicila
 		if _, err := s.repo.TandaiAngsuran(ctx, a.JadwalID, a.Ke, []string{"menunggu"}, "terjurnal", &jurnal); err != nil {
 			return false, err
 		}
+		if berhentiTerjurnal() { // lab
+			return true, nil // lab
+		} // lab
 	}
 	ok, err := s.repo.TandaiAngsuran(ctx, a.JadwalID, a.Ke, []string{"terjurnal"}, "dicatat", nil)
 	if ok {
@@ -374,6 +381,9 @@ func (s Service) KompensasiAngsuran(ctx context.Context, peminta, jadwal int64, 
 		_, asal, _, err := s.repo.JurnalAsal(ctx, *jurnal)
 		if err != nil {
 			return err
+		}
+		if len(asal) == 0 { // jurnal selalu punya paling sedikit dua posting; nol berarti partisinya sudah dilepas (ADR 49), seperti Balik
+			return ErrPostingDiarsip
 		}
 		bukuID := make([]int64, len(asal))
 		cermin := make([]repo.Posting, len(asal))
