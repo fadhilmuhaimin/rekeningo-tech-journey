@@ -762,6 +762,50 @@ describe("tinjauan sendiri: kalimat, bullet, judul Snippet, dan frontmatter ditu
   });
 });
 
+describe("penutup celah mutasi: angka rekaman yang tidak tampil di Snippet tetapi mendasari klaim halaman", () => {
+  test("konflik.txt: tiap bagian menghapus 1.000 baris yang dibaca query; judul bagian C dan D, lama query, dan kalimat penutup sama dengan run.py dan halaman", () => {
+    const ins = [...konflik.matchAll(/^INSERT 0 (\d+)$/gm)].map((m) => Number(m[1]));
+    const del = [...konflik.matchAll(/^DELETE (\d+)$/gm)].map((m) => Number(m[1]));
+    expect(ins).toEqual([1000, 1000, 1000]);
+    expect(del).toEqual([1000, 1000, 1000]);
+    expect(runPy).toContain("INSERT INTO replika_uji.k SELECT generate_series(1, 1000)");
+    expect(konflik).toContain("# --- C. statement_timeout = 20 detik, query 45 detik: berhenti oleh timeout, bukan oleh konflik ---");
+    expect(konflik).toContain("# --- D. Tanpa statement_timeout, query 45 detik: konflik membatalkannya sesudah max_standby_streaming_delay ---");
+    expect(konflik).toContain("# --- B. Query pendek (3 detik) selama konflik: standby menunggu, query selesai ---");
+    expect(bagKD).toContain("# Dua cara berhenti, dua kode: 57014 dari timeout milik sesi pada 20 detik, 40001 dari konflik pada 30 detik. Timeout 20 detik tidak");
+    expect(bagKD).toContain("# mencegah query lama dihentikan; ia menghentikannya lebih dulu, dan replay tertahan lebih singkat (kurang dari 30 detik, lebih singkat dari di bagian D).");
+    expect(tebak.adegan.join(" ")).toContain(`menghapus ${rib(ins[0]!)} baris`);
+    expect(tebak.pilihan[2]!.teks).toContain("timeout sesudah paling sedikit 20 detik");
+    expect(tebak.judul).toBe("Query 45 detik di replica dengan statement_timeout 20 detik");
+  });
+  test("jeda.txt: jumlah jurnal bayar bagian A sama di tiga node (1.000) dan bagian B primary dan standby sinkron 1.005 lawan replica yang ditahan 1.000, selisih 5", () => {
+    const a = [...bagJA.matchAll(/^ (\d+)$/gm)].map((m) => Number(m[1]));
+    expect(a).toEqual([1000, 1000, 1000]);
+    expect(a[0]).toBe(Number(J_BAYAR[2]));
+    const b = [...bagJB.matchAll(/^(primary|replika|sinkron)=> SELECT count\(\*\) AS jurnal_bayar[^\n]*\n[^\n]*\n-+\n (\d+)\n/gm)].map((m) => `${m[1]} ${m[2]}`);
+    expect(b).toEqual(["primary 1005", "replika 1000", "sinkron 1005", "replika 1005"]);
+    expect(Number(b[0]!.split(" ")[1]) - Number(b[1]!.split(" ")[1])).toBe(J_SELISIH);
+    expect(bagJB).toContain("$ POST /transfers sebanyak lima kali ke Warung 505 (Rp10.000, Rp11.000, Rp12.000, Rp13.000, Rp14.000), semua 201");
+  });
+  test("baca.txt bagian A: saldo tampil dari replica 250.000 dua kali sebelum replica menyusul dan 215.000 sesudahnya; kiriman dan run.py memakai angka yang sama", () => {
+    const saldo = [...bagCA.matchAll(/X-Dibaca-Dari: replika\n\n\{"id":419,[^\n]*"saldo":(\d+),/g)].map((m) => Number(m[1]));
+    expect(saldo).toEqual([250000, 250000, 215000]);
+    expect(saldo[0]).toBe(B_SALDO[2] ? Number(B_SALDO[2]) : 0);
+    expect(saldo[2]).toBe(Number(B_SALDO[1]));
+    expect(runPy).toContain(`{"ke_nomor_karyawan": "${B_KIRIM[1]}", "nominal": ${B_KIRIM[2]}}`);
+    expect(runPy).toContain("s, isi = bayar(t_budi, 505, 35000)");
+  });
+  test("Kirim di kode lab: saldo pengirim dibandingkan dengan nominal sesudah lock dan ErrSaldoKurang dikembalikan; PRD v5 menulis 5 detik di baris P0 dan di batasan", () => {
+    const k = kirimGo.split("\n");
+    const i = k.findIndex((b) => b === "\t\tif dari.Saldo < nominal {");
+    expect(i).toBeGreaterThan(0);
+    expect(k[i + 1]).toBe("\t\t\treturn ErrSaldoKurang");
+    expect(kirimGo).toContain("// Kedua buku dikunci di dalam transaction jurnal (ADR 13)");
+    expect(prd).toContain("Data yang dilayani laporan tertinggal paling lama 5 detik dari pembayaran yang tercatat di ledger (Asumsi produk).");
+    expect(prd).toContain("- Data laporan merchant tertinggal paling lama 5 detik dari pembayaran yang tercatat");
+  });
+});
+
 const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "lima", "enam", "Raka", "Budi", "Ani", "Wulan", "Nadia", "pertama", "kedua", "bukan", "tanpa", "kecuali", "semua", "juga", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "penalaran", "primary", "replica", "standby", "cache", "hit", "TTL", "p95", "query", "pembayaran", "laporan", "database", "lebih", "paling", "bisa", "direkam", "tidak direkam", "dibaca dari kode", "25006", "0A000", "57014", "40001", "422", "ms", "detik", "merchant", "warung", "lab", "naskah", "cerita", "di atas", "di bawah", "paling sedikit", "paling lama", "kurang", "melewati", "bawaan", "timeout", "konflik", "replay", "jeda", "yaitu", "bukan hasil ukuran", "ditolak", "ditahan", "WAL", "slot", "GET"];
 const profil = (teks: string): string =>
   PENENTU.map((k) => {
