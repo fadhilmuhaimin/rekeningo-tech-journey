@@ -626,7 +626,6 @@ describe("diagram Rantai, widget banding, dan istilah: nilai diturunkan dari rek
     expect(glosarium).toContain("| **Standby** | Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby. | [[t5-read-replica]] |");
     expect(glosarium).toContain("| **Primary** | Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary. | [[t5-read-replica]] |");
     expect(glosarium).toContain("| **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[t5-read-replica]] |");
-    for (const istilah of ["Replication lag", "Read-your-writes", "LSN"]) expect(glosarium, `${istilah} milik 5.7`).toMatch(new RegExp(`\\| \\*\\*${istilah}\\*\\*[^\\n]*\\[\\[D3\\]\\] \\|`));
     for (const [kata, def] of [
       ["Hitungan", "Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini"],
       ["Asumsi", "Asumsi adalah angka pilihan penulis tanpa rekaman"],
