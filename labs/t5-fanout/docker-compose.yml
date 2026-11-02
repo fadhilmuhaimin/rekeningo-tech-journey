@@ -1,0 +1,29 @@
+# Lab Tahap 5 (t5-fanout): satu broker Kafka dalam mode KRaft (broker dan controller di satu proses), image resmi Apache.
+# apache/kafka:4.3.2 (Docker Hub, tag terbit 2026-10-20; 238,5 MB terkompresi untuk arm64, 691 MB di disk). Replication
+# factor 1 karena broker hanya satu; replication factor 3 dan tiga broker Tidak dijalankan. Container lokal, tanpa jaringan keluar.
+# Jalankan: make -C labs/t5-fanout run
+services:
+  kafka:
+    image: apache/kafka:4.3.2
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:9092,EXTERNAL://:9094,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://127.0.0.1:${LAB_KAFKA_PORT:-19092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_NUM_PARTITIONS: "1"
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"   # memori Docker 8 GB dipakai bersama lab lain
+    ports:
+      - "127.0.0.1:${LAB_KAFKA_PORT:-19092}:9094"   # lajur lain: port dasar 19092 + LAB_PORT_OFFSET (labs/README.md)
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null"]
+      interval: 2s
+      timeout: 10s
+      retries: 40

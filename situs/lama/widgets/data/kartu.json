@@ -3560,6 +3560,54 @@
   "jawab": "Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam; di antara 15 dan 30 detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5."
  },
  {
+  "id": "t5-m43-1",
+  "halaman": "t5-m43",
+  "judul": "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20",
+  "url": "tahap-5/m43-pemeriksaan-saldo/",
+  "tanya": "Disk dan CPU ditambah, atau ledger dipindah ke database khusus ledger. Kenapa pemeriksaan harian tetap membaca baris yang sama?",
+  "jawab": "Query yang sama menjumlah posting yang sama, dan mesin lain tidak mengurangi jumlah baris. Lab membaca 1.800.000 dari 1.800.000 posting (`snapshot.txt` bagian A). Di skala naskah, 438 juta baris setelah satu tahun (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t5-m43-2",
+  "halaman": "t5-m43",
+  "judul": "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20",
+  "url": "tahap-5/m43-pemeriksaan-saldo/",
+  "tanya": "Pemeriksaan dari snapshot membaca 8,3% posting di lab dan 8,3% di naskah. Apakah lab membuktikan 8,3% di skala naskah?",
+  "jawab": "Tidak. Lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3%. Yang direkam adalah bahwa job membaca persis satu bulan. 36,5 juta posting per bulan adalah Hitungan atas Asumsi dan tidak dijalankan."
+ },
+ {
+  "id": "t5-m43-3",
+  "halaman": "t5-m43",
+  "judul": "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20",
+  "url": "tahap-5/m43-pemeriksaan-saldo/",
+  "tanya": "Satu bulan posting dilepas dari tabel. Apa yang terjadi pada pemeriksaan tanpa snapshot, dan kenapa data lama tidak dibuang dengan `DELETE`?",
+  "jawab": "Pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, karena posting lama buku itu tidak ada lagi di tabel. Pemeriksaan dari snapshot menandai 0 (`lepas.txt` bagian F). Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B)."
+ },
+ {
+  "id": "t5-m44-1",
+  "halaman": "t5-m44",
+  "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
+  "url": "tahap-5/m44-rilis-menunggu-lima-tim/",
+  "tanya": "Runner CI ditambah sampai semua pemeriksaan berjalan serentak, tetapi perbaikan Akun tetap menunggu. Kenapa?",
+  "jawab": "Merge queue memeriksa tiap perubahan bersama perubahan di depannya (dokumentasi GitHub, Tidak dijalankan). Runner mempercepat satu pemeriksaan, bukan keterikatan pada perubahan di depannya (Penalaran). Dokumentasi yang sama menulis bahwa build concurrency memengaruhi laju merge, jadi runner membantu, dan dokumentasi tidak membahas seberapa jauh. Satu rilis membawa semua perubahan yang sudah keluar dari queue (Asumsi pembacaan)."
+ },
+ {
+  "id": "t5-m44-2",
+  "halaman": "t5-m44",
+  "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
+  "url": "tahap-5/m44-rilis-menunggu-lima-tim/",
+  "tanya": "Lima tim produk memenuhi pemicu ADR 45 butir 2. Apa yang belum terbukti dari itu?",
+  "jawab": "Bahwa Kubernetes perlu. Terpenuhi berarti keadaan M44 sama dengan pemicu yang ditulis, dan lima tim produk tepat di ambang lima (Hitungan atas Asumsi). Pilihannya dan harganya dibahas di 5.13 Dari modul ke service."
+ },
+ {
+  "id": "t5-m44-3",
+  "halaman": "t5-m44",
+  "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
+  "url": "tahap-5/m44-rilis-menunggu-lima-tim/",
+  "tanya": "Lab `api-t5` memecah 30 tabel ke enam schema. Apa yang hilang dari database, dan apa yang tidak direkam lab?",
+  "jawab": "18 foreign key yang menyeberang schema: 18 sebelum pembagian dan 0 sesudahnya (`skema.txt` bagian E). Lab tidak memisahkan proses, jadi putusnya satu transaction lintas service tidak direkam. Pernyataan itu dibaca dari ADR 12 (Tidak dijalankan)."
+ },
+ {
   "id": "t5-onprem-1",
   "halaman": "t5-onprem",
   "judul": "5.28 On-prem lawan cloud + ADR 59",

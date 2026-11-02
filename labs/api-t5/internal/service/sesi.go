@@ -47,6 +47,8 @@ type Service struct {
 	// Tahap 4: pihak ketiga tiruan dan setelan lab (t4_dep.go), batas laju endpoint baru (batas_endpoint.go).
 	t4    Dep
 	batas *batasEndpoint
+	// Lab t5-fanout: Bayar juga menulis satu baris outbox stream per pembayaran (event untuk pembayaran.tercatat). Mati = perilaku api-t5 tidak berubah.
+	eventPembayaran bool
 }
 
 func Baru(r repo.Repo, umurSesi time.Duration) Service {

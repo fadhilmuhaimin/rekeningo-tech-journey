@@ -1,0 +1,33 @@
+{
+  "istilah": "Merge queue",
+  "sehari_hari": "Merge queue adalah queue di GitHub yang menggabungkan pull request ke branch yang ramai sesudah pemeriksaannya lolos. Perubahan satu pull request diperiksa bersama versi terbaru branch dan perubahan pull request di depannya dalam queue.",
+  "cerita": [
+    {
+      "rujukan": "t5-m44",
+      "teks": "Lima tim produk memakai satu merge queue. Pipeline 14 menit dan waktu tunggu 6 jam di queue itu adalah angka cerita, bukan rekaman (Ilustrasi)."
+    }
+  ],
+  "mekanisme": [
+    "Sebuah pull request ditambahkan ke merge queue.",
+    "GitHub mengelompokkan perubahannya dalam satu merge group dengan versi terbaru branch dasar dan perubahan pull request di depannya dalam queue.",
+    "Workflow CI harus memakai event merge_group supaya pemeriksaan berjalan untuk kelompok itu, dan queue menunggu pemeriksaan wajib melapor.",
+    "Bila pemeriksaan wajib lolos, GitHub menggabungkan perubahan itu ke branch dasar. Build concurrency, antara 1 dan 100, membatasi jumlah build CI yang berjalan bersamaan."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira queue memeriksa tiap pull request sendirian. Dokumentasi menulis perubahan itu dikelompokkan dengan perubahan di depannya.",
+    "Lupa memakai event merge_group di workflow CI. Dokumentasi menulis workflow harus memakainya bila queue diwajibkan."
+  ],
+  "terkait": [
+    "Modular monolith",
+    "ADR (Architecture Decision Record)"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-165",
+      "judul": "GitHub Docs: Managing a merge queue (dibuka 2026-11-02)",
+      "url": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue",
+      "catatan": "Cara merge queue mengelompokkan perubahan, event merge_group, dan build concurrency. Halaman tanpa tanggal terbit dan nomor versi."
+    }
+  ]
+}

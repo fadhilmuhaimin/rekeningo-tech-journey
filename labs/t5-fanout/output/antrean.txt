@@ -1,0 +1,50 @@
+# Lab t5-fanout · kelas antrean dan kuota bersama antara pengumuman dan uang
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_fanout · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-fanout run.
+
+# --- A. Kelas antrean: 3.000 baris promo (kelas 2) sudah menunggu, lalu empat pembayaran (kelas 0) masuk ---
+=> 3.000 baris outbox promo (kelas 2, tujuan push) ditulis lebih dulu, satu per penerima (cara lama)
+=> 4 pembayaran Rp5.000 ke warung 418 (kelas 0, tujuan push) ditulis sesudahnya
+=> SELECT kelas, status, count(*) AS baris FROM outbox WHERE tujuan = 'push' GROUP BY kelas, status ORDER BY kelas, status
+ kelas | status   | baris
+-------+----------+-------
+ 0     | menunggu | 4
+ 2     | menunggu | 3000
+(2 rows)
+-- mode rentan urut-waktu (M27): satu putaran worker mengklaim empat baris menurut nomor saja
+$ ./api-t5 -peran worker -sekali -satu-putaran -serentak 4 -tujuan push -rentan urut-waktu
+worker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0
+log: PERINGATAN: mode rentan urut-waktu menyala
+=> SELECT kelas, status, count(*) AS baris FROM outbox WHERE tujuan = 'push' GROUP BY kelas, status ORDER BY kelas, status
+ kelas | status   | baris
+-------+----------+-------
+ 0     | menunggu | 4
+ 2     | menunggu | 2996
+ 2     | terkirim | 4
+(3 rows)
+-- versi benar: satu putaran worker mengklaim menurut kelas, lalu nomor
+$ ./api-t5 -peran worker -sekali -satu-putaran -serentak 4 -tujuan push
+worker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0
+=> SELECT kelas, status, count(*) AS baris FROM outbox WHERE tujuan = 'push' GROUP BY kelas, status ORDER BY kelas, status
+ kelas | status   | baris
+-------+----------+-------
+ 0     | terkirim | 4
+ 2     | menunggu | 2996
+ 2     | terkirim | 4
+(3 rows)
+-- kelas hanya mengatur urutan di antrean yang sama; penyedia push dan kuotanya dipakai bersama (bagian B)
+
+# --- B. Pengumuman lewat Kafka dan uang lewat outbox memakai satu kuota penyedia push (1.000 per detik di lab) ---
+-- 4.000 perangkat aktif, tiga consumer, 20 pembayaran Rp5.000 (kelas 0) ditulis tiap ±120 ms selama pengumuman berjalan
+-- versi benar: tiap consumer dibatasi 200 pesan per detik (3 x 200 = 600 per detik, di bawah kuota 1.000), 4 pengirim
+-- pengumuman diterima: 4000
+-- pengumuman dijawab 429: 0
+-- pengumuman selesai lebih dari 6 detik (4.000 pesan, laju paling tinggi 600 per detik): ya
+-- notifikasi uang diterima: 20
+-- notifikasi uang dijawab 429: 0
+-- umur notifikasi uang tertua yang masih menunggu, diukur tiap 100 ms, tidak pernah melebihi 2 detik (batas lab): ya
+-- mode rentan: tiap consumer tanpa batas laju dan tanpa backoff, 32 pengirim (96 pengirim serentak melawan kuota 1.000 per detik)
+-- pengumuman diterima: 4000
+-- pengumuman dijawab 429: lebih dari 0: ya
+-- notifikasi uang dijawab 429 paling sedikit satu kali: ya
+-- umur notifikasi uang tertua melebihi 2 detik (batas lab): ya
