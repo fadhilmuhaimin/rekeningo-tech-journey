@@ -394,6 +394,9 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-135 sam
     const naik = ids.every((x, k) => k === 0 || x > ids[k - 1]!);
     expect(naik).toBe(true);
     const r137 = barisRiset("R5-137");
+    expect(r137).toContain("Dibaca 2026-11-03 di main:");
+    expect(barisRiset("R5-138")).toContain("Dibaca 2026-11-03 di main:");
+    expect(barisRiset("R5-139")).toContain("dibaca 2026-11-03:");
     expect(r137).toContain("Read replica, bila nanti dipasang, hanya untuk laporan");
     expect(r137).toContain("memperluas aturan 2 ADR 45");
     expect(r137).toContain("laporan merchant dan bacaan berat");
@@ -530,14 +533,15 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
     expect(skenario.sumber.file).toBe("labs/t5-replika/output/baca.txt");
     expect(skenario.sumber.fileVarian).toBe("labs/t5-replika/output/baca.txt");
     expect(skenario.perangkat).toEqual([{ id: "hp", label: "HP Budi" }]);
-    expect(skenario.komponen.map((k) => k.id)).toEqual(["srv", "pri", "rep"]);
+    expect(skenario.komponen).toEqual([{ id: "srv", label: "Server api-t5" }, { id: "pri", label: "Primary" }, { id: "rep", label: "Replica" }]);
     expect(skenario.langkah).toHaveLength(5);
     expect(skenario.varian.langkah).toHaveLength(3);
     expect(skenario.varian.mulai).toBe(0);
     expect(core.steps(skenario, true)).toHaveLength(3);
-    expect(skenario.sumber.catatan).toContain("Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter");
-    expect(skenario.sumber.catatan).toContain("jeda buatan, bukan jeda alami");
-    expect(skenario.sumber.catatan).toContain(`bagian B memakai pembayaran kedua Budi, ${rp(bayarNominalB)} dari saldo ${rp(akunA[2]!)}`);
+    expect(skenario.sumber.catatan).toBe(`Lab t5-replika, PostgreSQL 17.11, dari database bersih (make -C labs/t5-replika run BAGIAN=baca). Jalur utama: baca.txt bagian A, server dengan mode rentan riwayat-replika dan pemutaran ulang di replica ditahan dengan sengaja (jeda buatan, bukan jeda alami). Ubah satu hal: bagian B, server tanpa mode rentan dan app yang mengirim header X-Lsn-Tulis; bagian B memakai pembayaran kedua Budi, ${rp(bayarNominalB)} dari saldo ${rp(akunA[2]!)}, jadi angkanya berbeda dari jalur utama. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter, dan jam di layar berasal dari cerita. Baris diawali tanda pagar diringkas dari rekaman yang sama, bukan baris log.`);
+    expect(rek[1]).toContain("PostgreSQL 17.11");
+    expect(Object.keys(skenario).sort()).toEqual(["judul", "komponen", "langkah", "layarAwal", "pengantar", "perangkat", "predict", "sumber", "varian", "versi"]);
+    expect((skenario as unknown as { versi: number }).versi).toBe(2);
     expect(skenario.predict.varian).toBe(false);
   });
   test("skenario: kirim tiap langkah adalah potongan berurutan dari baca.txt, bagian A untuk jalur utama dan bagian B untuk varian", () => {
@@ -557,18 +561,29 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
     expect(varian.map(([a]) => a)).toEqual([nB + 2, garis(/^# Dengan token: replika belum memutar WAL/), garis(/^replika=> SELECT pg_last_wal_replay_lsn\(\) >= /)]);
     expect(varian.map(([, b]) => b)).toEqual([nB + 9, garis(/^# Token yang bukan posisi WAL dijawab 422\./) - 1, rek.filter((b, i) => b !== "" || i < rek.length - 1).length]);
   });
-  test("skenario: layar HP, saldo dan baris riwayat dari rekaman; layar awal dan tiap langkah punya satu HP", () => {
-    const saldoUtama = skenario.langkah.map((l) => l.layar?.hp.saldo);
-    expect(skenario.layarAwal.hp.saldo).toBe(akunA[0]);
-    expect(saldoUtama).toEqual([akunA[1], akunA[1], undefined, akunA[1], akunA[2]]);
-    expect(skenario.varian.langkah.map((l) => l.layar?.hp.saldo)).toEqual([akunA[2], akunB[1], akunB[2]]);
-    const baris = (l: Langkah | undefined) => (l?.layar?.hp.isi ?? []).map((x) => (x.jenis === "baris" ? `${x.kiri} ${x.kanan}` : `${x.jenis}:${x.teks}`));
-    expect(baris(skenario.langkah[4])).toEqual([`Warung 505 −${rp(bayarNominalA)}`, `Tunjangan makan +${rp(250000)}`]);
-    expect(baris(skenario.langkah[0])).toEqual([`Tunjangan makan +${rp(250000)}`, "toast:Berhasil"]);
-    expect(baris(skenario.langkah[3])).toEqual([`Tunjangan makan +${rp(250000)}`, "toast:Saldo tidak cukup"]);
-    expect(baris(skenario.varian.langkah[1])).toEqual([`Warung 505 −${rp(bayarNominalB)}`, `Warung 505 −${rp(bayarNominalA)}`, `Tunjangan makan +${rp(250000)}`]);
-    expect(riwayatA[2]).toBe(baris(skenario.langkah[4]).length);
-    expect(riwayatB[0]).toBe(baris(skenario.varian.langkah[1]).length);
+  test("skenario: layar HP tiap langkah sama persis dengan yang dibangun dari nilai rekaman (judul, jam, sinyal, saldo, dan tiap baris)", () => {
+    const tunj = { jenis: "baris", kiri: "Tunjangan makan", kanan: `+${rp(akunA[0]!)}` };
+    const w35 = { jenis: "baris", kiri: "Warung 505", kanan: `\u2212${rp(bayarNominalA)}` };
+    const w12 = { jenis: "baris", kiri: "Warung 505", kanan: `\u2212${rp(bayarNominalB)}` };
+    const ok = { jenis: "toast", teks: "Berhasil", nada: "good" };
+    const layar = (saldo: number, isi: object[]) => ({ hp: { judul: "Rekeningo", waktu: "12.05", sinyal: 4, saldo, isi } });
+    expect(skenario.layarAwal).toEqual(layar(akunA[0]!, [tunj, { jenis: "tombol", teks: "Bayar Warung 505" }]));
+    expect(skenario.langkah.map((l) => l.layar)).toEqual([
+      layar(akunA[1]!, [tunj, ok]),
+      layar(akunA[1]!, [tunj, ok]),
+      undefined,
+      layar(akunA[1]!, [tunj, { jenis: "toast", teks: "Saldo tidak cukup", nada: "warn" }]),
+      layar(akunA[2]!, [w35, tunj]),
+    ]);
+    expect(skenario.varian.langkah.map((l) => l.layar)).toEqual([
+      layar(akunA[2]!, [w35, tunj, ok]),
+      layar(akunB[1]!, [w12, w35, tunj]),
+      layar(akunB[2]!, [w12, w35, tunj]),
+    ]);
+    expect(riwayatA[0]).toBe(1);
+    expect(riwayatA[2]).toBe(2);
+    expect(riwayatB[0]).toBe(3);
+    expect(akunB[1]).toBe(bayarB.saldo);
   });
   test("skenario: tebakan empat pilihan, jawaban benar di posisi kedua dan bukan pilihan terpanjang; penjelasan sama dengan rekaman", () => {
     const p = skenario.predict;
