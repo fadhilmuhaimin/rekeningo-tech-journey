@@ -1112,6 +1112,9 @@ describe("penguat tinjauan, putaran dua: atribusi, label di bagian ukuran, klaim
   test("naskah menulis angka ukuran yang sama dengan hitungan: baris Tahap 5 dan 100 byte ringkasan", () => {
     expect(naskah5).toContain(`\`posting\` ±${duaKoma(P5 / 1e6)} juta (${P5 / 1e6} juta), dipartisi per bulan`);
     expect(naskah5).toContain(`(${BYTE_RINGKASAN} B per baris adalah Asumsi)`);
+    expect(badan).toContain(`- transaksi per hari = user × aktif × ${TRX_DASAR} (transaksi per user aktif per hari)`);
+    expect(badan).toContain(`- posting per tahun = transaksi per hari × ${POSTING_PER_TRX} (posting per transaksi) × ${HARI} (hari)`);
+    expect(badan).toContain("Kolom terakhir menghitung foreign key dari tabel service itu yang menyeberang");
   });
   test("klaim negatif berlingkup: tak ada lab Tahap 6 di labs/, tak ada rekaman baris yatim di labs/api-t5/output, dan INSERT tanpa id sesuai kalimatnya", () => {
     expect([...terlacak].filter((p) => /^labs\/(api-t6|t6-)/.test(p))).toEqual([]);
