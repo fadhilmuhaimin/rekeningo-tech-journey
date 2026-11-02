@@ -188,6 +188,18 @@ const ENAM = naskah2.match(/^\| 6 \(proyeksi\) \| (\d+) juta \| (per negara) \| 
 const U6 = Number(ENAM[1]) * 1e6;
 const a6 = { user: U6, aktif: a5.aktif };
 const TAHAP_AKHIR = 6;
+const T_LAMA = String(erd5.selisih.terhadap);
+const T_BARU = String(erd5.tahap);
+const T_RENCANA = naskah2.match(/^# Cerita Rekeningo · Tahap (\d):/m)![1]!;
+const PG = String(erd5.postgres);
+const JAM_IDEMPOTENSI = naskah5.match(/Idempotency-Key yang hidup (\d+) jam/)![1]!;
+const TGL_ERD = riset.match(/Perintah `python3 tools\/erd\.py --naskah 5`, dijalankan (\d{4}-\d\d-\d\d)/)![1]!;
+const KB_PER_GB = 1e6;
+const PERTANYAAN = ((): number => {
+  const a = mdx.indexOf('<details class="question">');
+  const z = mdx.indexOf("</details>", a);
+  return (mdx.slice(a, z).match(/^\d+\. /gm) ?? []).length;
+})();
 const U5 = a5.user;
 const AKTIF5 = aktif(a5);
 const P4 = posting(a4, TRX_DASAR);
@@ -220,7 +232,7 @@ const RETENSI = Number(OB[5]);
 const TOPUP_HARI = AKTIF5 * num(TOPUP_RASIO[1]!);
 const OUTBOX_GB = (OUTBOX_HARI * HARI * BYTE_OUTBOX) / 1e9;
 const OUTBOX_RET_GB = (OUTBOX_HARI * RETENSI * BYTE_OUTBOX) / 1e9;
-const FILE_GB = (a5.upload * a5.fileKB * HARI) / 1e6;
+const FILE_GB = (a5.upload * a5.fileKB * HARI) / KB_PER_GB;
 const TRX_HARI5 = AKTIF5 * TRX_DASAR;
 const BACA = per("t5-skema").menit! - 3;
 const COBA = 3;
@@ -378,6 +390,15 @@ const NILAI: Record<string, string> = {
   OUTBOX_GB: koma(OUTBOX_GB, 1),
   OUTBOX_RET_GB: koma(OUTBOX_RET_GB, 3),
   RETENSI: String(RETENSI),
+  T_LAMA,
+  T_BARU,
+  T_RENCANA,
+  PG,
+  JAM_IDEMPOTENSI,
+  TGL_ERD,
+  GB_PER_TB: titik(BATAS_GB / BATAS_TB),
+  BYTE_PER_KB: titik(1e9 / KB_PER_GB),
+  K_PERTANYAAN: String(PERTANYAAN),
 };
 const isi = (t: string): string =>
   t.replace(/\{\{([A-Z0-9_]+)\}\}/g, (_, k: string) => {
@@ -389,14 +410,14 @@ const HARAPAN = isi(templat);
 // ---- diagram Rantai dan tebakan yang diharapkan --------------------------------------------------------------------------------
 const RANTAI_SUMBER = {
   id: "t5-skema-inti",
-  judul: "Skema Tahap 4 ke Tahap 5: tabel dan foreign key",
+  judul: `Skema Tahap ${T_LAMA} ke Tahap ${T_BARU}: tabel dan foreign key`,
   sumber: { jenis: "rekaman", teks: "Rekaman lab api-t5: skema.txt bagian A dan E" },
   baris: [
     {
       label: "Tabel",
       sub: "dari ERD lab",
       simpul: [
-        { teks: `${N4} tabel`, sub: "akhir Tahap 4", nada: "old" },
+        { teks: `${N4} tabel`, sub: `akhir Tahap ${T_LAMA}`, nada: "old" },
         { teks: `+ ${BARU.length} tabel`, sub: "tak ada yang dihapus", nada: "system" },
         { teks: `${N5} tabel`, sub: `${W(layanan.modul.length)} service`, nada: "good" },
       ],
@@ -405,31 +426,31 @@ const RANTAI_SUMBER = {
       label: "Foreign key",
       sub: "dari katalog",
       simpul: [
-        { teks: String(FK4), sub: "foreign key Tahap 4", nada: "old" },
+        { teks: String(FK4), sub: `foreign key Tahap ${T_LAMA}`, nada: "old" },
         { teks: `− ${FK_HILANG.length}, + ${FK_BARU_DAFTAR.length}`, sub: `${FK_HILANG.length} dihapus, ${FK_BARU_DAFTAR.length} baru`, nada: "system" },
         { teks: String(FK5), sub: "di dalam satu service", nada: "good" },
       ],
     },
   ],
-  catatan: `Abu-abu: Tahap 4. Biru: yang berubah. Hijau: hasilnya. Jumlah foreign key dibaca dari katalog di rekaman, dan ${FK4} − ${FK_HILANG.length} + ${FK_BARU_DAFTAR.length} = ${FK5} adalah Hitungan di halaman. Tabel uang tetap tiga, dan posting dipartisi per bulan.`,
+  catatan: `Abu-abu: Tahap ${T_LAMA}. Biru: yang berubah. Hijau: hasilnya. Jumlah foreign key dibaca dari katalog di rekaman, dan ${FK4} − ${FK_HILANG.length} + ${FK_BARU_DAFTAR.length} = ${FK5} adalah Hitungan di halaman. Tabel uang tetap tiga, dan posting dipartisi per bulan.`,
 };
 const TEBAK = {
   id: "t5-skema-tebak",
   judul: "PRIMARY KEY tabel posting yang dipartisi",
   sumber: {
     jenis: "rekaman",
-    teks: "labs/api-t5/output/skema.txt bagian C dan D; ERD dari situs/data/erd/tahap-5.json; dokumentasi PostgreSQL 17 bagian 5.12.2.3",
+    teks: `labs/api-t5/output/skema.txt bagian C dan D; ERD dari situs/data/erd/tahap-${T_BARU}.json; dokumentasi PostgreSQL ${PG} bagian 5.12.2.3`,
   },
   adegan: [
     "Raka mempartisi posting per bulan menurut kolom dibuat, supaya bulan lama bisa dilepas dari database utama.",
-    "PRIMARY KEY tabelnya masih id saja, seperti di Tahap 4. Ia menjalankan CREATE TABLE dengan PARTITION BY RANGE (dibuat).",
+    `PRIMARY KEY tabelnya masih id saja, seperti di Tahap ${T_LAMA}. Ia menjalankan CREATE TABLE dengan PARTITION BY RANGE (dibuat).`,
   ],
   pertanyaan: "Apa jawaban PostgreSQL?",
   pilihan: [
     {
       teks: "Diterima. id tetap unik di semua bulan karena PostgreSQL membuat satu index untuk seluruh tabel.",
       benar: false,
-      alasan: "PostgreSQL menolaknya. Index yang membentuk PRIMARY KEY dibuat per partisi, dan masing-masing hanya menegakkan keunikan di dalam partisinya sendiri (dokumentasi PostgreSQL 17, bagian 5.12.2.3).",
+      alasan: `PostgreSQL menolaknya. Index yang membentuk PRIMARY KEY dibuat per partisi, dan masing-masing hanya menegakkan keunikan di dalam partisinya sendiri (dokumentasi PostgreSQL ${PG}, bagian 5.12.2.3).`,
     },
     {
       teks: "Diterima, tetapi id hanya dijaga unik di dalam tiap bulan.",
@@ -447,7 +468,7 @@ const TEBAK = {
       alasan: `Pesan lab: unique constraint on partitioned table must include all partitioning columns (SQLSTATE ${S_PK}). Akibatnya id sendiri tidak lagi dijaga unik lintas bulan oleh constraint. Di lab, keunikannya datang dari sequence posting_id_seq.`,
     },
   ],
-  penutup: `Partisi per bulan mengubah PRIMARY KEY posting menjadi (${posting5.pk.join(", ")}). Di antara tabel Tahap 4, hanya posting yang PRIMARY KEY-nya berubah di Tahap 5.`,
+  penutup: `Partisi per bulan mengubah PRIMARY KEY posting menjadi (${posting5.pk.join(", ")}). Di antara tabel Tahap ${T_LAMA}, hanya posting yang PRIMARY KEY-nya berubah di Tahap ${T_BARU}.`,
   label: { sumber: "Rekaman lab · skema.txt", tebakDulu: "Tebak dulu:", benar: "Tepat", belum: "Belum tepat", ulang: "Coba pilihan lain", jawaban: "Jawaban yang tepat" },
 };
 
@@ -546,6 +567,12 @@ describe("registry, kepala, dan struktur blok", () => {
   });
   test("ERD memakai widget bertumbuh Tahap 4 dan 5 dengan id unik, dan tautan lompat menuju jangkar yang ada", () => {
     expect(mdx.match(/<ErdHalaman id="erd-t5" tahap=\{\[4, 5\]\} \/>/g)).toHaveLength(1);
+    expect([T_LAMA, T_BARU, T_RENCANA, PG, String(per("t5-skema").tahap)]).toEqual(["4", "5", "2", "17", "5"]);
+    expect(erd4.tahap).toBe(Number(T_LAMA));
+    expect(JAM_IDEMPOTENSI).toBe("24");
+    expect(PERTANYAAN).toBe(3);
+    expect(mdx).not.toMatch(/Tahap [13](?!\d)/);
+    expect(mdx.match(/Tahap 6/g)!.length).toBeGreaterThanOrEqual(3);
     expect(mdx).toContain("[lompat ke Ubah satu hal](#ubah-satu-hal)");
     expect(mdx.match(/<span id="ubah-satu-hal"><\/span>/g)).toHaveLength(1);
     const ada = HALAMAN.filter((x) => x.tahap <= 5).flatMap((x) => (x.id === "t5-skema" ? [] : [x.id]));

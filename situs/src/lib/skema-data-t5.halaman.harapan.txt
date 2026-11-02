@@ -1,6 +1,6 @@
 ---
-title: "5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya"
-description: {{K_BARU_CAP}} tabel baru menjadikan {{N4}} tabel Tahap 4 jadi {{N5}}, dibagi ke {{K_SVC}} service. Tabel posting dipartisi per bulan, lalu ukuran database diperkirakan sampai Tahap {{TAHAP_AKHIR}}.
+title: "5.3 Skema data: ERD Tahap {{T_LAMA}} → Tahap {{T_BARU}} dan pertumbuhannya"
+description: {{K_BARU_CAP}} tabel baru menjadikan {{N4}} tabel Tahap {{T_LAMA}} jadi {{N5}}, dibagi ke {{K_SVC}} service. Tabel posting dipartisi per bulan, lalu ukuran database diperkirakan sampai Tahap {{TAHAP_AKHIR}}.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -16,18 +16,18 @@ import Snippet from "../../../components/Snippet.astro";
 
 ## Inti
 
-Tahap 5 menambah {{K_BARU}} tabel dan membagi {{N5}} tabel ke {{K_SVC}} service.
+Tahap {{T_BARU}} menambah {{K_BARU}} tabel dan membagi {{N5}} tabel ke {{K_SVC}} service.
 
 <Rantai data={intiDiagram} ringkas />
 
-ERD di halaman ini dibaca dari database lab, bukan digambar tangan. Skema akhir Tahap 4 punya {{N4}} tabel, dan skema akhir Tahap 5 di lab api-t5 punya {{N5}}. {{K_BARU_CAP}} tabel baru adalah {{BARU_LIST}}. {{K_KOLOM_BARU_CAP}} kolom baru ada di {{KOLOM_BARU_TEKS}}.
+ERD di halaman ini dibaca dari database lab, bukan digambar tangan. Skema akhir Tahap {{T_LAMA}} punya {{N4}} tabel, dan skema akhir Tahap {{T_BARU}} di lab api-t5 punya {{N5}}. {{K_BARU_CAP}} tabel baru adalah {{BARU_LIST}}. {{K_KOLOM_BARU_CAP}} kolom baru ada di {{KOLOM_BARU_TEKS}}.
 
 Tabel terbesar tetap `posting` (±{{POSTING5_JUTA}} juta baris per tahun), dan ia dipartisi per bulan. Ukuran bukan alasannya. Angka ukuran adalah Asumsi dengan rumus di blok Paham, dan arti semua label ada di [Label sumber](/cara-pakai/#label-sumber).
 
 <details class="question">
-<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+<summary>Sudah tahu? Cek {{K_PERTANYAAN}} pertanyaan</summary>
 
-1. Tabel Tahap 4 mana yang berubah di Tahap 5, dan karena apa?
+1. Tabel Tahap {{T_LAMA}} mana yang berubah di Tahap {{T_BARU}}, dan karena apa?
 2. Kenapa PRIMARY KEY `posting` memuat `dibuat`, dan apa akibatnya pada `id`?
 3. Berapa foreign key yang dihapus saat tabel dibagi ke enam service, dan kenapa angkanya bukan {{FK_LINTAS_T4}}?
 
@@ -39,7 +39,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: PRIMARY KEY posting harus memuat kolom dibuat supaya tabelnya bisa dipartisi per bulan, dan id tidak lagi dijaga unik lintas bulan oleh constraint.">
 
-Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolom, dan foreign key di antaranya. Kedua ERD dibangun dari skema lab: Tahap 4 dari migration sampai api-t4 {{MIG4}}, dan Tahap 5 dari migration yang sama ditambah api-t5 {{MIG5A}} sampai {{MIG5Z}}.
+Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolom, dan foreign key di antaranya. Kedua ERD dibangun dari skema lab: Tahap {{T_LAMA}} dari migration sampai api-t4 {{MIG4}}, dan Tahap {{T_BARU}} dari migration yang sama ditambah api-t5 {{MIG5A}} sampai {{MIG5Z}}.
 
 <Tebak client:visible data={dataTebak} />
 
@@ -47,13 +47,13 @@ Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolo
 <p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: PostgreSQL menolak PRIMARY KEY yang tidak memuat kolom kunci partisi, jadi posting memakai (id, dibuat).</p>
 </noscript>
 
-Diagram dibuka di Tahap 5. Tiap tabel diberi label baru, berubah, atau tetap menurut Tahap 4. Di HP diagram tegak dan panjang, jadi [lompat ke Ubah satu hal](#ubah-satu-hal) bila kamu hanya butuh ringkasannya. Tabel pembagian service muncul di bawah diagram.
+Diagram dibuka di Tahap {{T_BARU}}. Tiap tabel diberi label baru, berubah, atau tetap menurut Tahap {{T_LAMA}}. Di HP diagram tegak dan panjang, jadi [lompat ke Ubah satu hal](#ubah-satu-hal) bila kamu hanya butuh ringkasannya. Tabel pembagian service muncul di bawah diagram.
 
-<ErdHalaman id="erd-t5" tahap={[4, 5]} />
+<ErdHalaman id="erd-t{{T_BARU}}" tahap={[{{T_LAMA}}, {{T_BARU}}]} />
 
 <span id="ubah-satu-hal"></span>
 
-**Ubah satu hal:** tekan **Bandingkan dengan Tahap 4**. Di layar lebar kedua skema tampil berdampingan, dan di HP skema Tahap 4 tampil di atas skema Tahap 5. Pilih `posting` di Tahap 5: PRIMARY KEY-nya `(id, dibuat)` dan ia membawa penanda `partisi`. Lalu pilih `angsuran`: satu foreign key, ke `jadwal_cicilan`, dan `jurnal_id` boleh kosong.
+**Ubah satu hal:** tekan **Bandingkan dengan Tahap {{T_LAMA}}**. Di layar lebar kedua skema tampil berdampingan, dan di HP skema Tahap {{T_LAMA}} tampil di atas skema Tahap {{T_BARU}}. Pilih `posting` di Tahap {{T_BARU}}: PRIMARY KEY-nya `(id, dibuat)` dan ia membawa penanda `partisi`. Lalu pilih `angsuran`: satu foreign key, ke `jadwal_cicilan`, dan `jurnal_id` boleh kosong.
 
 </Blok>
 
@@ -71,7 +71,7 @@ Service di halaman ini berarti satu schema dengan satu role, yaitu login databas
 
 **Apa yang berubah dan kenapa.** Tabel ini memuat {{K_PERUBAHAN}} perubahan, satu baris tiap perubahan. Nama tabel, kolom, dan nilai ada di skema lab api-t5 (Rekaman lab, `skema.txt` bagian A, B, dan C). Kolom Alasan adalah pertimbangan tim, bukan hasil ukur.
 
-| Tahap 4 | Tahap 5 | Alasan | Masalah atau syarat |
+| Tahap {{T_LAMA}} | Tahap {{T_BARU}} | Alasan | Masalah atau syarat |
 |---|---|---|---|
 | `posting` (PRIMARY KEY `id`) | `posting` dipartisi per bulan menurut `dibuat`, PRIMARY KEY `(id, dibuat)` | PRIMARY KEY dan UNIQUE harus memuat kolom kunci partisi; bulan lama bisa dilepas dan diarsip ([[t5-partisi]]) | [[t5-m43\|M43]] |
 | (tidak ada) | `snapshot_saldo` (buku_id, periode, saldo, jumlah_posting, dibuat; PRIMARY KEY `(buku_id, periode)`) | Saldo akhir tiap bulan, dicocokkan dengan jumlah posting; pemeriksaan membaca posting sesudahnya saja | [[t5-m43\|M43]] |
@@ -90,13 +90,13 @@ Service di halaman ini berarti satu schema dengan satu role, yaitu login databas
 
 Di lab api-t5, `ringkasan_merchant_harian` ada sebagai tabel tetapi belum diisi siapa pun (README lab api-t5).
 
-**Yang tidak berubah.** {{K_TETAP_CAP}} tabel Tahap 4 sama persis di kedua ERD: {{TETAP_LIST}}. {{K_NONFK_CAP}} tabel berubah karena kolom, nilai, atau aturan: {{NONFK_LIST}}. {{K_FKSAJA_CAP}} tabel lain berubah hanya karena kehilangan foreign key yang menyeberang service, dan tidak ada tabel atau kolom yang dihapus.
+**Yang tidak berubah.** {{K_TETAP_CAP}} tabel Tahap {{T_LAMA}} sama persis di kedua ERD: {{TETAP_LIST}}. {{K_NONFK_CAP}} tabel berubah karena kolom, nilai, atau aturan: {{NONFK_LIST}}. {{K_FKSAJA_CAP}} tabel lain berubah hanya karena kehilangan foreign key yang menyeberang service, dan tidak ada tabel atau kolom yang dihapus.
 
 **Tabel uang tetap tiga.** `jurnal` mendapat satu kolom dan dua jenis baru, `buku` satu jenis baru, dan `posting` berganti PRIMARY KEY serta dipartisi. Migration {{MIG5Z}} menulis perubahan `jurnal` sebagai berikut:
 
 <Snippet file="labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql" lines="{{R_MIG}}" lang="sql" title="labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql" />
 
-`referensi` boleh kosong dan UNIQUE sekaligus. Dokumentasi PostgreSQL menulis bahwa dua nilai kosong tidak dianggap sama dalam UNIQUE ([PostgreSQL 17, 5.5.3](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)), jadi jurnal biasa boleh punya `referensi` kosong. Kalimat itu dicek ke dokumentasi dan tidak dijalankan di lab (Tidak dijalankan). Idempotency-Key berbeda: ia hidup 24 jam ([[t2-idempotency]]), sedangkan `referensi` tidak kedaluwarsa, dan angsuran memakainya di [[t5-m48]].
+`referensi` boleh kosong dan UNIQUE sekaligus. Dokumentasi PostgreSQL menulis bahwa dua nilai kosong tidak dianggap sama dalam UNIQUE ([PostgreSQL {{PG}}, 5.5.3](https://www.postgresql.org/docs/{{PG}}/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)), jadi jurnal biasa boleh punya `referensi` kosong. Kalimat itu dicek ke dokumentasi dan tidak dijalankan di lab (Tidak dijalankan). Idempotency-Key berbeda: ia hidup {{JAM_IDEMPOTENSI}} jam ([[t2-idempotency]]), sedangkan `referensi` tidak kedaluwarsa, dan angsuran memakainya di [[t5-m48]].
 
 **`posting` dipartisi per bulan.** Partisi membagi satu tabel menjadi beberapa tabel fisik menurut nilai satu kolom. Di lab, `posting` dipartisi menurut `dibuat` dengan `RANGE (dibuat)`. ERD menggambar `posting` sekali dengan penanda `partisi`, karena partisi bukan tabel inti.
 
@@ -108,7 +108,7 @@ Rekaman di bawah memuat kunci partisi, PRIMARY KEY, dan {{K_PARTISI_KE}} partisi
 
 Baris untuk bulan yang belum punya partisi ditolak dengan `no partition of relation "posting" found for row`, SQLSTATE {{S_NOPART}}. Baris yang sama masuk sesudah fungsi itu dipanggil, dengan jam yang diperankan (Rekaman lab t5-partisi, `pasang.txt` bagian D). Pembuatan partisi bulan berikutnya dibahas di [[t5-partisi]].
 
-PRIMARY KEY `posting` berubah dari `(id)` menjadi `(id, dibuat)`. Dokumentasi PostgreSQL menulis alasannya. Index yang membentuk constraint hanya menegakkan keunikan di dalam partisinya sendiri, jadi constraint wajib memuat semua kolom kunci partisi ([PostgreSQL 17, 5.12.2.3](https://www.postgresql.org/docs/17/ddl-partitioning.html#DDL-PARTITIONING-LIMITATIONS)). Lab merekam penolakannya:
+PRIMARY KEY `posting` berubah dari `(id)` menjadi `(id, dibuat)`. Dokumentasi PostgreSQL menulis alasannya. Index yang membentuk constraint hanya menegakkan keunikan di dalam partisinya sendiri, jadi constraint wajib memuat semua kolom kunci partisi ([PostgreSQL {{PG}}, 5.12.2.3](https://www.postgresql.org/docs/{{PG}}/ddl-partitioning.html#DDL-PARTITIONING-LIMITATIONS)). Lab merekam penolakannya:
 
 <Snippet file="labs/api-t5/output/skema.txt" lines="{{R_PK}}" title="Rekaman lab: labs/api-t5/output/skema.txt (bagian D)" />
 
@@ -124,42 +124,42 @@ Yang menjaga keunikan di lab adalah sequence `posting_id_seq`. Setiap INSERT ke 
 
 `outbox` ada di service ledger karena ia harus ditulis dalam satu transaction dengan jurnal ([[t3-outbox]]). Di lab schema-nya berawalan `{{AWALAN}}` (`{{AWALAN}}ledger`, `{{AWALAN}}akun`, dan seterusnya), karena nama schema dan role bersifat global di database lab bersama.
 
-Dari {{FK4}} foreign key Tahap 4, {{FK_HAPUS}} menyeberang batas service dan dihapus (Hitungan: angka yang bisa kamu ulang dari angka yang tertulis di halaman). {{KE_AKUN_CAP}} menuju service akun, {{KE_LEDGER}} menuju ledger, dan {{KE_NOTIF}} menuju notifikasi, dihitung dari daftar di rekaman. {{K_FK_BARU_CAP}} foreign key baru ada di dalam satu service: {{FK_BARU_LIST}}. Jadi {{FK4}} − {{FK_HAPUS}} + {{FK_BARU}} = {{FK5}}, dan katalog di rekaman menghitung {{FK_LINTAS_REK}} yang menyeberang dan {{FK_DALAM_REK}} di dalam satu schema.
+Dari {{FK4}} foreign key Tahap {{T_LAMA}}, {{FK_HAPUS}} menyeberang batas service dan dihapus (Hitungan: angka yang bisa kamu ulang dari angka yang tertulis di halaman). {{KE_AKUN_CAP}} menuju service akun, {{KE_LEDGER}} menuju ledger, dan {{KE_NOTIF}} menuju notifikasi, dihitung dari daftar di rekaman. {{K_FK_BARU_CAP}} foreign key baru ada di dalam satu service: {{FK_BARU_LIST}}. Jadi {{FK4}} − {{FK_HAPUS}} + {{FK_BARU}} = {{FK5}}, dan katalog di rekaman menghitung {{FK_LINTAS_REK}} yang menyeberang dan {{FK_DALAM_REK}} di dalam satu schema.
 
 Kolom seperti `buku.akun_id` tetap ada sebagai referensi tanpa constraint. Tanpa foreign key, database tidak lagi menolak baris yang menunjuk akun yang tidak ada di schema lain. Lab tidak mencoba memasukkan baris seperti itu (Tidak dijalankan). Biaya dan alasan pemecahannya dibahas di [[t5-m44]].
 
 Hak role di lab dicek dari katalog database. Kelima role selain ledger tidak punya hak apa pun di schema service lain. Role ledger punya satu hak di schema lain: SELECT atas kolom `id`, `tingkat`, dan `status` tabel `akun`. Kolom `nama` ditolak dengan SQLSTATE {{S_DITOLAK}} (Rekaman lab, `skema.txt` bagian F).
 
-**Rancangan lawan lab.** Rancangan skema Tahap 5, yaitu diagram yang ditulis tim sebelum ada migration, dicocokkan dengan skema lab. Perintah `tools/erd.py --naskah 5` mencetak `{{ERD_NASKAH}}` untuk kolom, tanda kunci, dan garis relasi (dijalankan 2026-11-02, Hitungan atas ERD dan rancangan). Selisih di luar diagram ada {{K_SELISIH}}, dan yang benar adalah skema lab (Rekaman lab, `skema.txt` bagian B dan E).
+**Rancangan lawan lab.** Rancangan skema Tahap {{T_BARU}}, yaitu diagram yang ditulis tim sebelum ada migration, dicocokkan dengan skema lab. Perintah `tools/erd.py --naskah 5` mencetak `{{ERD_NASKAH}}` untuk kolom, tanda kunci, dan garis relasi (dijalankan {{TGL_ERD}}, Hitungan atas ERD dan rancangan). Selisih di luar diagram ada {{K_SELISIH}}, dan yang benar adalah skema lab (Rekaman lab, `skema.txt` bagian B dan E).
 
 | Yang ditulis rancangan | Skema lab |
 |---|---|
-| {{FK_LINTAS_T4}} foreign key lintas modul Tahap 4 dihapus semuanya | {{FK_HAPUS}} foreign key melintasi {{K_SVC}} service dan dihapus. Angka {{FK_LINTAS_T4}} milik Tahap 4: {{K_MODUL4}} modul `t4-modul` membagi tabel dengan cara lain ([[t4-skema]]) |
+| {{FK_LINTAS_T4}} foreign key lintas modul Tahap {{T_LAMA}} dihapus semuanya | {{FK_HAPUS}} foreign key melintasi {{K_SVC}} service dan dihapus. Angka {{FK_LINTAS_T4}} milik Tahap {{T_LAMA}}: {{K_MODUL4}} modul `t4-modul` membagi tabel dengan cara lain ([[t4-skema]]) |
 | `outbox` mendapat tujuan baru `stream` | Tujuan `stream` dan juga jenis `pengumuman`, dengan CHECK yang mewajibkan jenis itu bertujuan `stream` |
 | `jurnal.referensi` UNIQUE boleh kosong | Ditambah CHECK bentuk: `angsuran` atau `tabungan`, lalu nomor jadwal, lalu nomor angsuran |
 | `posting` dipartisi, PRIMARY KEY `(id, dibuat)` | `id` tidak dijaga unik lintas partisi oleh database, dan keunikannya datang dari sequence |
 | Status `jadwal_cicilan` dan batas angka kolom tidak ditulis | Status `aktif`, `selesai`, `dihentikan` dan batas angka adalah rancangan lab (Asumsi desain) |
 | Schema bernama `ledger`, `akun`, dan seterusnya | Awalan `t5_` di database lab bersama |
 
-### Pertumbuhan skala database, Tahap 4 sampai 6
+### Pertumbuhan skala database, Tahap {{T_LAMA}} sampai 6
 
-Angka di tabel ini adalah **Asumsi** cerita, kecuali jumlah tabel inti Tahap 4 dan 5, yang dihitung dari ERD. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
+Angka di tabel ini adalah **Asumsi** cerita, kecuali jumlah tabel inti Tahap {{T_LAMA}} dan 5, yang dihitung dari ERD. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
 
 - transaksi per hari = user × aktif × {{TRX_DASAR}}
 - posting per tahun = transaksi per hari × {{POSTING_PER_TRX}} × {{HARI}}
 - ukuran per tahun = posting per tahun × {{BYTE_POSTING}} byte, termasuk index
 
-Rencana Tahap 5 memakai {{TRX_DASAR}} transaksi per user aktif per hari sebagai dasar, sedangkan nilai registry Tahap 5 menulis {{TRX_REG}}. Halaman ini memakai {{TRX_DASAR}} untuk rumus ledger dan menulis hasil dengan {{TRX_REG}} di sebelahnya, keduanya Asumsi.
+Rencana Tahap {{T_BARU}} memakai {{TRX_DASAR}} transaksi per user aktif per hari sebagai dasar, sedangkan nilai registry Tahap {{T_BARU}} menulis {{TRX_REG}}. Halaman ini memakai {{TRX_DASAR}} untuk rumus ledger dan menulis hasil dengan {{TRX_REG}} di sebelahnya, keduanya Asumsi.
 
 | Tahap | User | Aktif | Tabel inti | Baris terbesar per tahun | Ukuran per tahun |
 |---|---|---|---|---|---|
 {{BARIS_TUMBUH}}
 
-Contoh Tahap 5: {{U5}} × {{A5}}% × {{TRX_DASAR}} = {{TRX_HARI5}} transaksi per hari. {{TRX_HARI5}} × {{POSTING_PER_TRX}} × {{HARI}} = {{POSTING5}} posting, dan {{POSTING5}} × {{BYTE_POSTING}} byte = {{BYTE5}} byte, ditulis ±{{GB5_DUA}} GB. Dengan {{TRX_REG}} transaksi hasilnya {{POSTING5_T2}} posting dan ±{{GB5_T2}} GB. Tahap {{TAHAP_AKHIR}} menghasilkan {{POSTING6}} posting dan ±{{TB6_SATU}} TB, ditulis ±{{TB6_DUA}} TB, sebagai proyeksi dari rencana Tahap 2 yang belum punya lab.
+Contoh Tahap {{T_BARU}}: {{U5}} × {{A5}}% × {{TRX_DASAR}} = {{TRX_HARI5}} transaksi per hari. {{TRX_HARI5}} × {{POSTING_PER_TRX}} × {{HARI}} = {{POSTING5}} posting, dan {{POSTING5}} × {{BYTE_POSTING}} byte = {{BYTE5}} byte, ditulis ±{{GB5_DUA}} GB. Dengan {{TRX_REG}} transaksi hasilnya {{POSTING5_T2}} posting dan ±{{GB5_T2}} GB. Tahap {{TAHAP_AKHIR}} menghasilkan {{POSTING6}} posting dan ±{{TB6_SATU}} TB, ditulis ±{{TB6_DUA}} TB, sebagai proyeksi dari rencana Tahap {{T_RENCANA}} yang belum punya lab.
 
-Posting naik {{RASIO45}} kali dari Tahap 4 ke Tahap 5 ({{POSTING5}} ÷ {{POSTING4}}), dan {{RASIO56}} kali lagi ke Tahap {{TAHAP_AKHIR}} ({{POSTING6}} ÷ {{POSTING5}}). Jumlah tabel inti Tahap 4 dan 5 dihitung dari ERD.
+Posting naik {{RASIO45}} kali dari Tahap {{T_LAMA}} ke Tahap {{T_BARU}} ({{POSTING5}} ÷ {{POSTING4}}), dan {{RASIO56}} kali lagi ke Tahap {{TAHAP_AKHIR}} ({{POSTING6}} ÷ {{POSTING5}}). Jumlah tabel inti Tahap {{T_LAMA}} dan 5 dihitung dari ERD.
 
-**Tiga angka untuk satu tahun data Tahap 5.** Ketiganya menghitung hal yang berbeda, jadi tidak ditukar. Aktif {{A5}}% dari {{U5}} user adalah {{AKTIF5}} user.
+**Tiga angka untuk satu tahun data Tahap {{T_BARU}}.** Ketiganya menghitung hal yang berbeda, jadi tidak ditukar. Aktif {{A5}}% dari {{U5}} user adalah {{AKTIF5}} user.
 
 | Sumber | Yang dihitung | Hasil | Label |
 |---|---|---|---|
@@ -167,19 +167,19 @@ Posting naik {{RASIO45}} kali dari Tahap 4 ke Tahap 5 ({{POSTING5}} ÷ {{POSTING
 
 Selisih ketiganya bukan kesalahan hitung. Dari baris pertama ke kedua, transaksi naik dari {{TRX_REG}} ke {{TRX_DASAR}} per user ({{TRX_DASAR}} ÷ {{TRX_REG}} = {{RASIO_TRX}}). Dari baris kedua ke ketiga, satuannya berbeda: rumus ledger menghitung {{K_POSTING_PER_TRX}} posting {{BYTE_POSTING}} byte ({{BYTE_LEDGER_TRX}} byte per transaksi), rumus registry satu baris {{BYTE_REG}} byte. Perbandingannya {{BYTE_LEDGER_TRX}} ÷ {{BYTE_REG}} = {{RASIO_BYTE}}, dan yang terbesar hanya {{GB5}} ÷ {{GB_REG2}} = {{RASIO_TERBESAR}} kali yang terkecil.
 
-**Ukuran bukan alasan partisi.** PostgreSQL membatasi satu relasi sampai {{BATAS_TB}} TB dengan ukuran blok bawaan {{BLOK_KB}} kB ([PostgreSQL 17, lampiran K](https://www.postgresql.org/docs/17/limits.html)). Pada {{GB5}} GB per tahun, `posting` butuh {{BATAS_GB}} ÷ {{GB5}} = {{TAHUN_BATAS}} tahun untuk mencapainya (Hitungan atas Asumsi; 1 TB dihitung 1.000 GB). Alasan partisi ada di tempat lain.
+**Ukuran bukan alasan partisi.** PostgreSQL membatasi satu relasi sampai {{BATAS_TB}} TB dengan ukuran blok bawaan {{BLOK_KB}} kB ([PostgreSQL {{PG}}, lampiran K](https://www.postgresql.org/docs/{{PG}}/limits.html)). Pada {{GB5}} GB per tahun, `posting` butuh {{BATAS_GB}} ÷ {{GB5}} = {{TAHUN_BATAS}} tahun untuk mencapainya (Hitungan atas Asumsi; 1 TB dihitung {{GB_PER_TB}} GB). Alasan partisi ada di tempat lain.
 
 Satu bulan bisa dibuang tanpa DELETE. Lab t5-partisi membuang {{BARIS_LEPAS}} baris dengan DELETE dan dengan DETACH + DROP. Waktu terkecil DELETE dari {{K_PERCOBAAN}} percobaan lebih dari {{K_FAKTOR}} kali waktu DETACH + DROP. Nilai waktunya tidak direkam (Rekaman lab, `lepas.txt` bagian D, tabel uji tanpa trigger ledger).
 
-Dokumentasi juga menulis bahwa DROP atau DETACH menghindari beban VACUUM dari DELETE massal ([PostgreSQL 17, 5.12.1](https://www.postgresql.org/docs/17/ddl-partitioning.html#DDL-PARTITIONING-OVERVIEW); Tidak dijalankan di halaman ini). Alasan lain: pemeriksaan saldo malam dengan snapshot membaca posting sesudahnya saja ([[t5-m43]]).
+Dokumentasi juga menulis bahwa DROP atau DETACH menghindari beban VACUUM dari DELETE massal ([PostgreSQL {{PG}}, 5.12.1](https://www.postgresql.org/docs/{{PG}}/ddl-partitioning.html#DDL-PARTITIONING-OVERVIEW); Tidak dijalankan di halaman ini). Alasan lain: pemeriksaan saldo malam dengan snapshot membaca posting sesudahnya saja ([[t5-m43]]).
 
-**Tabel baru Tahap 5 kecil, kecuali `outbox` tanpa retensi.** Retensi adalah berapa lama baris disimpan sebelum dibuang. Ukuran per baris `ringkasan_merchant_harian` ({{BYTE_RINGKASAN}} byte) dan `snapshot_saldo` ({{BYTE_SNAPSHOT}} byte) adalah Asumsi.
+**Tabel baru Tahap {{T_BARU}} kecil, kecuali `outbox` tanpa retensi.** Retensi adalah berapa lama baris disimpan sebelum dibuang. Ukuran per baris `ringkasan_merchant_harian` ({{BYTE_RINGKASAN}} byte) dan `snapshot_saldo` ({{BYTE_SNAPSHOT}} byte) adalah Asumsi.
 
 | Tabel | Rumus | Hasil | Label |
 |---|---|---|---|
 {{BARIS_KECIL}}
 
-Top-up per hari adalah {{AKTIF5}} × {{TOPUP_RASIO}} = {{TOPUP_HARI}} ({{TOPUP_RASIO}} top-up per user aktif per hari, Asumsi). File identitas tidak masuk tabel: {{UPLOAD}} unggahan × {{FILE_KB}} KB × {{HARI}} hari = {{FILE_GB}} GB per tahun (Asumsi, 1 KB = 1.000 byte). Alasannya dibahas di [[t4-m33]].
+Top-up per hari adalah {{AKTIF5}} × {{TOPUP_RASIO}} = {{TOPUP_HARI}} ({{TOPUP_RASIO}} top-up per user aktif per hari, Asumsi). File identitas tidak masuk tabel: {{UPLOAD}} unggahan × {{FILE_KB}} KB × {{HARI}} hari = {{FILE_GB}} GB per tahun (Asumsi, 1 KB = {{BYTE_PER_KB}} byte). Alasannya dibahas di [[t4-m33]].
 
 </Blok>
 
@@ -198,7 +198,7 @@ Top-up per hari adalah {{AKTIF5}} × {{TOPUP_RASIO}} = {{TOPUP_HARI}} ({{TOPUP_R
 | Nilai baru di kolom `jenis` | CHECK diganti dalam migration yang sama dengan kodenya |
 | Perkiraan ukuran sebelum ada data | Rumus dengan angka berlabel; besaran yang menghitung hal berbeda ditulis sebagai besaran berbeda |
 
-**Biaya skema Tahap 5.** Foreign key turun dari {{FK4}} ke {{FK5}}. Database tidak lagi menolak baris yatim yang dulu dijaga {{FK_HAPUS}} foreign key itu, dan `posting` kehilangan jaminan keunikan `id` dari constraint. Partisi menambah pekerjaan bulanan: tanpa partisi bulan depan, INSERT ditolak.
+**Biaya skema Tahap {{T_BARU}}.** Foreign key turun dari {{FK4}} ke {{FK5}}. Database tidak lagi menolak baris yatim yang dulu dijaga {{FK_HAPUS}} foreign key itu, dan `posting` kehilangan jaminan keunikan `id` dari constraint. Partisi menambah pekerjaan bulanan: tanpa partisi bulan depan, INSERT ditolak.
 
 Pemeriksaan yatim lintas service belum ada. Itu pertanyaan terbuka, karena lab tidak membuatnya.
 
@@ -216,7 +216,7 @@ Pemeriksaan yatim lintas service belum ada. Itu pertanyaan terbuka, karena lab t
 
 ### Cek diri
 
-**1.** Tabel Tahap 4 mana yang berubah di Tahap 5, dan karena apa?
+**1.** Tabel Tahap {{T_LAMA}} mana yang berubah di Tahap {{T_BARU}}, dan karena apa?
 
 <details class="success">
 <summary>Jawaban</summary>
@@ -239,7 +239,7 @@ PostgreSQL menolak PRIMARY KEY yang tidak memuat kolom kunci partisi (SQLSTATE {
 <details class="success">
 <summary>Jawaban</summary>
 
-{{FK_HAPUS}} dihapus: {{KE_AKUN}} menuju service akun, {{KE_LEDGER}} menuju ledger, dan {{KE_NOTIF}} menuju notifikasi. Yang tersisa {{FK5}}, yaitu {{FK4}} − {{FK_HAPUS}} + {{FK_BARU}}. Angka {{FK_LINTAS_T4}} adalah hitungan Tahap 4 untuk {{K_MODUL4}} modul yang membagi tabel dengan cara lain.
+{{FK_HAPUS}} dihapus: {{KE_AKUN}} menuju service akun, {{KE_LEDGER}} menuju ledger, dan {{KE_NOTIF}} menuju notifikasi. Yang tersisa {{FK5}}, yaitu {{FK4}} − {{FK_HAPUS}} + {{FK_BARU}}. Angka {{FK_LINTAS_T4}} adalah hitungan Tahap {{T_LAMA}} untuk {{K_MODUL4}} modul yang membagi tabel dengan cara lain.
 
 </details>
 
@@ -271,8 +271,8 @@ PostgreSQL menolak PRIMARY KEY yang tidak memuat kolom kunci partisi (SQLSTATE {
 
 ### Bacaan lanjut
 
-- [PostgreSQL 17: Table Partitioning](https://www.postgresql.org/docs/17/ddl-partitioning.html)
-- [PostgreSQL 17: Appendix K, batas PostgreSQL](https://www.postgresql.org/docs/17/limits.html)
-- [PostgreSQL 17: Unique Constraints](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)
+- [PostgreSQL {{PG}}: Table Partitioning](https://www.postgresql.org/docs/{{PG}}/ddl-partitioning.html)
+- [PostgreSQL {{PG}}: Appendix K, batas PostgreSQL](https://www.postgresql.org/docs/{{PG}}/limits.html)
+- [PostgreSQL {{PG}}: Unique Constraints](https://www.postgresql.org/docs/{{PG}}/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)
 
 </Blok>
