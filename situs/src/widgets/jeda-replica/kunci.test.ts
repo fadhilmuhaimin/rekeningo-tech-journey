@@ -43,6 +43,40 @@ describe("kunci: kalimat dan sel tabel", () => {
     expect(jawabanTebak(d, 0)).toBe(`Tebakanmu belum tepat. ${d.tebak.alasan}`);
     expect(nilaiJeda(d, jedaDari(d, "ditahan"))).toBe("jeda replica ditahan");
   });
+  // Kunci peninjau PR 492 (keputusan 1677): kalimat yang ada sumbernya tetapi tidak bisa diturunkan kata demi kata. Uji mutasi peninjau
+  // menemukan semuanya bisa diubah tanpa satu tes pun gagal. Baris sumber tiap kalimat di komentar; sumber sudah dibaca peninjau.
+  it("ringkasan aturan: replica biasa tidak membawa token; remote_apply hanya menunggu replica sinkron", () => {
+    const r = (id: string) => d.aturan.find((a) => a.id === id)!.ringkas;
+    // baca.txt B "Tanpa token (app tidak menyimpannya): bacaan tampilan dari replika"; replika.go sumberTampil "Tanpa token: replica"
+    expect(r("replica")).toContain("App membaca replica dan tidak membawa token.");
+    // sinkron.txt A: "replika_sinkron sinkron; replika_laporan tetap asinkron dan tidak ditunggu COMMIT."; docs PostgreSQL 17 remote_apply (diakses 2026-11-03)
+    expect(r("remote_apply")).toContain("COMMIT menunggu replica sinkron memutar WAL");
+    expect(r("remote_apply")).toContain("Replica asinkron lain tidak ikut ditunggu.");
+    // baca.txt B: bacaan "dengan token" mengirim X-Lsn-Tulis dari jawaban bayar; handler.go membaca r.Header.Get(KepalaLSNTulis) di GET akun dan riwayat
+    expect(r("token")).toContain("App mengirimnya kembali, dan server membaca replica");
+    expect(r("token")).toContain("selain itu primary.");
+  });
+  it("batas: token mentah, penalaran dokumentasi, uang di primary, dan pemilik diperiksa lebih dulu", () => {
+    const b = (awal: string) => d.batas.find((x) => x.teks.startsWith(awal))!.teks;
+    // handler_t5.go tandaiTulis menulis posisi apa adanya (klaim.test.ts); PostgreSQL 17 functions-admin: pg_current_wal_lsn = "write location"
+    expect(b("Token adalah posisi WAL primary mentah")).toContain("jadi laju tulis ikut terbaca.");
+    expect(b("Token adalah posisi WAL primary mentah")).toContain("Produksi dapat menandatangani atau membulatkannya.");
+    // runtime-config-wal (synchronous_commit = off): "there is no waiting"; kesimpulan token lebih kecil adalah penalaran peninjau, Tidak dijalankan
+    expect(b("Dokumentasi menyebut")).toContain("bisa lebih kecil dari posisi commit itu; ini penalaran, bukan rekaman.");
+    // replika.go: "Keputusan yang menentukan uang tidak lewat sini" dan TokenTulis "(app lalu tidak punya token dan membaca replica)"
+    expect(b("Bila posisi WAL tidak terbaca")).toBe("Bila posisi WAL tidak terbaca, server tidak memberi token dan app membaca replica. Uang tetap aman karena keputusan uang di primary, tetapi layar bisa menampilkan saldo lama selama itu.");
+    // replika.go LihatAkunTampil dan riwayat.go RiwayatTampil: "peminta != id" sebelum sumberTampil (sumber.test.ts)
+    expect(b("Token sah yang sangat besar")).toBe("Token sah yang sangat besar membuat server membaca primary, jadi satu user dapat memindahkan bacaan tampil miliknya ke sana. Akun lain tetap tertutup karena pemilik diperiksa lebih dulu.");
+    expect(b("Token hanya ada di jawaban pertama")).toContain("bayar (POST /transfers) dan kirim (POST /kiriman)");
+  });
+  it("acuan Ilustrasi dan acuan remote_apply alami: lingkup beban disebut, dan waktu tunggu 0,5 detik berlabel Simulasi", () => {
+    const a = (jeda: string, aturan?: string) => d.acuan.find((x) => x.jeda === jeda && x.aturan === aturan)!.teks;
+    // jeda.txt A: "Jeda ±2 detik di cerita M41 tidak terjadi dengan sendirinya di laptop lab" (beban 100 pembayaran per detik, bagian A)
+    expect(a("naskah")).toBe("Jeda sekitar 2 detik berasal dari cerita Budi. Pada 100 pembayaran per detik di laptop lab, jeda alami tidak mencapainya, jadi jeda ini Ilustrasi dan bukan hasil ukur.");
+    // jeda 0,5 detik tidak punya rekaman nilai (keputusan 1674); sinkron.txt B hanya merekam selisih COMMIT tercepat di bawah 1 ms
+    expect(a("alami", "remote_apply")).toContain("Waktu tunggu 0,5 detik di tabel berasal dari jeda contoh (Simulasi), bukan dari selisih ini.");
+    expect(a("nol", "remote_apply")).not.toContain("0,5 detik");
+  });
   it("catatan sumber dan label sumber memakai kata yang sama dengan /cara-pakai/ dan rekaman jeda.txt bagian A", () => {
     expect(d.label.sumber).toBe("Simulasi");
     expect(d.sumber.teks.startsWith("Jeda yang kamu geser adalah Simulasi.")).toBe(true);

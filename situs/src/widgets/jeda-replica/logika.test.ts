@@ -137,6 +137,7 @@ describe("fungsi teks: nilai kalimat diturunkan dari hasil hitung dan templat di
   });
   it("jawaban tebakan: yang benar diawali label benar, yang lain label belum; nilai penggeser memuat label jeda", () => {
     d.tebak.pilihan.forEach((_, i) => expect(jawabanTebak(d, i).startsWith(i === d.tebak.jawaban ? d.label.benar : d.label.belum)).toBe(true));
+    d.tebak.pilihan.forEach((_, i) => expect(jawabanTebak(d, i).endsWith(d.tebak.alasan)).toBe(true)); // peninjau 1677: alasan selalu ikut
     for (const j of d.jeda) expect(nilaiJeda(d, j)).toContain(j.label);
   });
 });
@@ -178,5 +179,14 @@ describe("skema: cabang yang menolak data rusak", () => {
   it("kunci asing ditolak (strict)", () => {
     tolak((x) => { x.asing = 1; }, /unrecognized|Unrecognized/);
     tolak((x) => { x.jeda[0].asing = 1; }, /unrecognized|Unrecognized/);
+    tolak((x) => { x.label.asing = "x"; }, /unrecognized|Unrecognized/); // peninjau 1677: label juga strict
+  });
+  it("batas bentuk data (peninjau 1677): jeda kurang dari tiga, bacaDetik 0, berkas dan bagian acuan salah bentuk, bukti kosong, acuan kosong", () => {
+    tolak((x) => { x.jeda = x.jeda.slice(3); }, /too_small/);
+    tolak((x) => { x.skenario.bacaDetik = 0; }, /bacaDetik/);
+    tolak((x) => { x.acuan[0].berkas = "jeda.pdf"; }, /berkas/);
+    tolak((x) => { x.acuan[0].bagian = "AB"; }, /bagian/);
+    tolak((x) => { x.acuan[0].bukti = []; }, /bukti/);
+    tolak((x) => { x.acuan = []; }, /too_small/);
   });
 });
