@@ -426,7 +426,11 @@ def dsn(role, schema=None, nama="t5-cicilan-dbos"):
 def dbos_jalan(varian, hari, jadwal, mati=None):
     args = [str(BIN_DBOS), "-db-app", dsn("api_t5", SCHEMA), "-db-sistem", dsn("lab", None), "-dbos-schema", SKEMA_DBOS,
             "-sampai", hari.isoformat(), "-jadwal", str(jadwal), "-varian", varian, *(["-mati", mati] if mati else [])]
-    r = subprocess.run(args, env=d.ENV, capture_output=True, text=True)
+    try:
+        r = subprocess.run(args, env=d.ENV, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        # Versi aplikasi atau executor yang berbeda membuat workflow PENDING milik proses mati tidak dipulihkan, dan GetResult menunggu tanpa batas.
+        gagal(f"program DBOS (varian {varian}) tidak selesai dalam 120 detik")
     return r.returncode, (r.stdout + r.stderr).strip()
 
 
