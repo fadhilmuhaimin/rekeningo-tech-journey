@@ -21,7 +21,7 @@ export const BARIS_MDX: string[] = [
  "Baris bawah Rantai adalah versi pertama laporan Wulan. Budi membayar Rp35.000 dan Rp12.000 ke Warung 505, keduanya dijawab 201, dan laporan warung itu menjawab dua transaksi dengan total Rp47.000 (`laporan.txt`). Laporan itu menjumlah posting dari primary, yaitu database utama yang menerima semua tulisan, dan pembayaran memakai database yang sama ([[t5-m40]]). Dari baris laporan itu lahir pertanyaan pertama Tahap 5: salinan boleh banyak, tetapi tempat uang bergerak hanya satu.",
  "</Blok>",
  "<Blok nama=\"Coba dulu: di mana uang bergerak?\" buka aman=\"Kalau berhenti di sini, kamu sudah tahu: uang bergerak di service ledger dan di satu primary. Replica, ringkasan, cache, dan event hanya untuk dilihat.\">",
- "Peta ini memuat lima zona dari PRD v5: client, edge, service, data, dan operasi. Tebak dulu di zona mana uang bergerak, lalu buka zona satu per satu. Tabel di bawah peta terisi sesuai zona yang kamu buka.",
+ "Peta ini memuat lima zona untuk PRD v5: client, edge, service, data, dan operasi. Tebak dulu di zona mana uang bergerak, lalu buka zona satu per satu. Tabel di bawah peta terisi sesuai zona yang kamu buka.",
  "Zona, tim, dan delapan kejadian di peta adalah Asumsi ([Label sumber](/cara-pakai/#label-sumber)): rancangan penulis. Rekaman tiap kejadian ada di halaman masalahnya, bila ada. Nama schema, jumlah tabel, dan hak role dibaca dari rekaman lab `api-t5`, dan di lab satu proses memegang keenam role.",
  "<PetaZona />",
  "Kolom Hal 1, Hal 2, dan Hal 3 di tabel adalah tiga hal di blok Pertanyaan sebelum kode, bukan nomor halaman. Terjaga berarti hal itu tetap benar saat kejadian terjadi, Rusak berarti hal itu dilanggar, dan Tidak berlaku berarti kejadian itu tidak menyentuhnya.",

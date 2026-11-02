@@ -223,7 +223,7 @@ describe("blok Coba dulu: widget W5-zona dan label dasar tabel", () => {
   test("zona, aman, dan tebakan: lima zona dari widget, jawaban benar menyebut service ledger dan satu primary", () => {
     const zona = Z.zona.map((z) => z.label);
     expect(zona).toEqual(["client", "edge", "service", "data", "operasi"]);
-    expect(coba).toContain("Peta ini memuat lima zona dari PRD v5: client, edge, service, data, dan operasi. Tebak dulu di zona mana uang bergerak, lalu buka zona satu per satu. Tabel di bawah peta terisi sesuai zona yang kamu buka.");
+    expect(coba).toContain("Peta ini memuat lima zona untuk PRD v5: client, edge, service, data, dan operasi. Tebak dulu di zona mana uang bergerak, lalu buka zona satu per satu. Tabel di bawah peta terisi sesuai zona yang kamu buka.");
     expect(Z.tebak.q).toBe("Ledger membuat jurnal dan posting. Di zona mana uang bergerak?");
     const benar = Z.tebak.pilihan[Z.tebak.jawaban]!;
     expect(benar).toContain("service ledger");
@@ -840,7 +840,7 @@ describe("kalimat prosa terkunci per paragraf", () => {
     "PRD v5 menambah delapan tabel. Pekerjaan pertama Tahap 5 adalah satu keputusan: data mana yang boleh jadi salinan, dan di mana uang bergerak.",
     "*Salinan* adalah data yang sama yang disimpan atau dihitung di tempat lain dan bisa tertinggal dari sumbernya, misalnya replica, ringkasan, cache, dan event. Kalau app Flutter-mu pernah menampilkan data dari cache lokal sambil menunggu server, kamu sudah mengenal salinan yang tertinggal.",
     "Baris bawah Rantai adalah versi pertama laporan Wulan. Budi membayar Rp35.000 dan Rp12.000 ke Warung 505, keduanya dijawab 201, dan laporan warung itu menjawab dua transaksi dengan total Rp47.000 (`laporan.txt`). Laporan itu menjumlah posting dari primary, yaitu database utama yang menerima semua tulisan, dan pembayaran memakai database yang sama ([[t5-m40]]). Dari baris laporan itu lahir pertanyaan pertama Tahap 5: salinan boleh banyak, tetapi tempat uang bergerak hanya satu.",
-    "Peta ini memuat lima zona dari PRD v5: client, edge, service, data, dan operasi. Tebak dulu di zona mana uang bergerak, lalu buka zona satu per satu. Tabel di bawah peta terisi sesuai zona yang kamu buka.",
+    "Peta ini memuat lima zona untuk PRD v5: client, edge, service, data, dan operasi. Tebak dulu di zona mana uang bergerak, lalu buka zona satu per satu. Tabel di bawah peta terisi sesuai zona yang kamu buka.",
     "Zona, tim, dan delapan kejadian di peta adalah Asumsi ([Label sumber](/cara-pakai/#label-sumber)): rancangan penulis. Rekaman tiap kejadian ada di halaman masalahnya, bila ada. Nama schema, jumlah tabel, dan hak role dibaca dari rekaman lab `api-t5`, dan di lab satu proses memegang keenam role.",
     "Kolom Hal 1, Hal 2, dan Hal 3 di tabel adalah tiga hal di blok Pertanyaan sebelum kode, bukan nomor halaman. Terjaga berarti hal itu tetap benar saat kejadian terjadi, Rusak berarti hal itu dilanggar, dan Tidak berlaku berarti kejadian itu tidak menyentuhnya.",
     "Dua baris tabel perlu catatan tentang dasarnya, karena keduanya penalaran dari dokumentasi, bukan kejadian yang direkam. Baris primary mati (M42) bersandar pada dokumentasi: [PostgreSQL 17, bagian 26.2.8](https://www.postgresql.org/docs/17/warm-standby.html), dibuka 2026-11-02, Tidak dijalankan. Dokumentasi itu menulis bahwa replikasi streaming asinkron secara bawaan, dan bila primary mati, transaksi yang sudah commit bisa belum sampai ke standby.",
