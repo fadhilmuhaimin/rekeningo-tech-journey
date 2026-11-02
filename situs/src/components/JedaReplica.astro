@@ -1,0 +1,50 @@
+---
+/**
+ * Widget jeda replica Tahap 5 (W5-lag, keputusan 1674). Pembaca menebak dulu saldo apa yang muncul di layar Budi bila replica
+ * tertinggal, lalu menggeser jeda replica atau memilih aturan baca (replica biasa, token LSN, remote_apply).
+ *   <JedaReplica />      // 5.7
+ * Pembungkus ini memvalidasi data/widget/t5-lag.json dengan Zod saat build (island tidak memuat Zod) dan memuat tabel jeda lawan
+ * aturan beserta rekaman dan batasnya di <noscript>. Island dirender saat build (client:visible); tanpa JavaScript island
+ * disembunyikan oleh CSS (`@media (scripting: none)`). Satu widget per blok Coba.
+ */
+import JedaReplicaIsland from "../widgets/jeda-replica/JedaReplica";
+import { DataLag } from "../widgets/jeda-replica/skema";
+import { akibatTeks, hitung, isi, jawabanTebak, layarTeks } from "../widgets/jeda-replica/logika";
+import mentah from "../../data/widget/t5-lag.json";
+
+const data = DataLag.parse(mentah);
+const L = data.label;
+const berkas = (a: { berkas: string; bagian: string }) => isi(L.acuanBerkas, { berkas: a.berkas, bagian: a.bagian });
+---
+<JedaReplicaIsland client:visible data={data} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <p>{data.sumber.teks}</p>
+  <p>{data.tebak.q} {data.tebak.pilihan[data.tebak.jawaban]}. {jawabanTebak(data, data.tebak.jawaban)}</p>
+  <table class="tm-tabel">
+    <caption>{L.noscriptCaption}</caption>
+    <thead>
+      <tr><th>{L.noscriptJeda}</th>{data.aturan.map((a) => <th>{a.label}</th>)}</tr>
+    </thead>
+    <tbody>
+      {data.jeda.map((j) => (
+        <tr>
+          <th scope="row">{j.label}</th>
+          {data.aturan.map((a) => {
+            const h = hitung(data, j, a.id);
+            return <td>{layarTeks(data, h)}; {L.tabel.kolom.dibaca} {L.sumberNama[h.sumber]}; {L.tabel.kolom.akibat}: {akibatTeks(data, h)}</td>;
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <p>{L.acuanJudul}</p>
+  <ul>
+    {data.acuan.map((a) => <li>{L.acuanJenis[a.jenis]} ({data.jeda.find((j) => j.id === a.jeda)!.label}{a.aturan ? `, ${data.aturan.find((x) => x.id === a.aturan)!.label}` : ""}): {a.teks} {berkas(a)}</li>)}
+  </ul>
+  <p>{L.uangJudul}: {data.uang.teks} {berkas(data.uang)}</p>
+  <p>{L.batasJudul}</p>
+  <ul>
+    {data.batas.map((b) => <li>{L.dasar[b.dasar]}: {b.teks}</li>)}
+  </ul>
+</noscript>
