@@ -306,9 +306,11 @@ describe("rekaman replika.txt: topologi dan penolakan tulisan di standby", () =>
   });
   test("rentang Snippet rekaman: tiap lines sama dengan bagian atau blok yang diturunkan dari berkasnya", () => {
     const nomorRP = (b: (x: string) => boolean, dariIdx = 0) => RP.nomor(b, dariIdx);
+    const mulaiReplikaMain = mainGo.split("\n").indexOf("\tvar replika *repo.Repo") + 1;
+    expect(mulaiReplikaMain).toBeGreaterThan(0);
     expect(snip.map((s) => `${s.f.split("/").pop()} ${s.a}:${s.b}`)).toEqual([
       "replika.txt 22:33", "replika.txt 75:77", "replika.txt 102:111", "jeda.txt 5:12", "jeda.txt 43:55", "konflik.txt 12:27", "konflik.txt 51:54", "konflik.txt 68:78",
-      "baca.txt 44:60", "bayar.go 58:65", "main.go 153:161",
+      "baca.txt 44:60", "bayar.go 58:65", `main.go ${mulaiReplikaMain}:${mulaiReplikaMain + 8}`,
     ]);
     const rQ = nomorRP((x) => x === "primary=> SELECT application_name, state, sync_state FROM pg_stat_replication ORDER BY application_name");
     expect(snip[0]).toMatchObject({ a: rQ, b: RP.nomor((x) => x === "(2 rows)", RP.nomor((x) => x.startsWith("primary=> SELECT slot_name")) ) });
@@ -450,7 +452,7 @@ describe("rekaman baca.txt dan kode lab: uang dibaca dari primary", () => {
     expect(replikaGo).toContain("Keputusan yang menentukan uang tidak lewat sini: Bayar, Kirim, dan semua pemeriksaan saldo memakai\n// s.repo, yaitu primary.");
     const kodeBK = bayarGo + kirimGo;
     expect(kodeBK).not.toMatch(/s\.replika/);
-    expect(mainGo.split("\n").slice(151, 161).join("\n")).toContain('os.Getenv("REPLIKA_DATABASE_URL")');
+    expect(mainGo.split("\n").slice(mainGo.split("\n").indexOf("\tvar replika *repo.Repo"), mainGo.split("\n").indexOf("\tvar replika *repo.Repo") + 9).join("\n")).toContain('os.Getenv("REPLIKA_DATABASE_URL")');
     harus("DSN replica datang dari `REPLIKA_DATABASE_URL`, lalu `Service` memilih sendiri tempat membaca. Tanpa variabel itu semua bacaan dari primary.");
   });
   test("ringkasan_merchant_harian: tabel dan PRIMARY KEY dari migrasi; tidak ada kode di labs/api-t5 dan labs/t5-replika yang mengisinya; 5.3 menulis hal yang sama", () => {
@@ -721,7 +723,7 @@ describe("baris riset 5.5: lima baris, urut ID, tanpa ID ganda, dan nilai dari r
     expect(r).toContain("40001, paling sedikit 30 dan kurang dari 60 detik, confl_snapshot 1");
     expect(r).toContain(`saldo buku primary ${B_SALDO[1]}, replica ${B_SALDO[2]}, POST /kiriman Rp240.000 ke ${B_KIRIM[1]}: 422 saldo-kurang`);
     expect(r).toContain("bayar.go` baris 58 sampai 65");
-    expect(r).toContain("`cmd/api/main.go` baris 153 sampai 161");
+    expect(r).toContain(`\`cmd/api/main.go\` baris ${mainGo.split("\n").indexOf("\tvar replika *repo.Repo") + 1} sampai ${mainGo.split("\n").indexOf("\tvar replika *repo.Repo") + 9}`);
     expect(r).toContain("`slot_laporan` dan `slot_sinkron`");
   });
   test("R5-131: hitungan di baris riset sama dengan hitungan di tes ini", () => {

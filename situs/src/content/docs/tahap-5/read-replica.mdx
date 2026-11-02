@@ -145,7 +145,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 
 *Dijalankan: lab api-t5 dan t5-replika, PostgreSQL 17.11, Go 1.27.3, dan pgx v5.11.0 (rekaman `replika.txt`, `jeda.txt`, `konflik.txt`, `baca.txt`).*
 
-<Snippet file="labs/api-t5/cmd/api/main.go" lines="153:161" lang="go" title="labs/api-t5/cmd/api/main.go" />
+<Snippet file="labs/api-t5/cmd/api/main.go" lines="157:165" lang="go" title="labs/api-t5/cmd/api/main.go" />
 
 **Yang berbeda di stack ini:** pilihan koneksi ditulis tangan. DSN replica datang dari `REPLIKA_DATABASE_URL`, lalu `Service` memilih sendiri tempat membaca. Tanpa variabel itu semua bacaan dari primary.
 
