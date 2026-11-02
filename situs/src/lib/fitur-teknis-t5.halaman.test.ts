@@ -539,6 +539,16 @@ describe("blok Konsep yang akan dibutuhkan: konsep naskah kolom kelima jadi taut
       for (const k of kata) expect(teks, `baris ${i + 1}: ${k}`).toContain(k.replace("rate limit per mitra", "rate limit per mitra"));
     });
   });
+  // Tinjauan 1507: arah sebaliknya. Mutan yang menghapus "pooler" dari kolom kelima naskah lolos karena tes di atas hanya
+  // memeriksa naskah -> halaman; label tautan halaman yang tidak ada di naskah tidak ketahuan.
+  test("tiap istilah di label tautan halaman ada di kolom kelima naskah pada baris yang sama", () => {
+    harapan.forEach((baris, i) => {
+      const dinaskah = naskahTabel[i]![4]!.toLowerCase();
+      for (const [, label] of baris) {
+        for (const k of label.split(/, dan |, | dan /).map((x) => x.trim().toLowerCase()).filter(Boolean)) expect(dinaskah, `baris ${i + 1}: ${k}`).toContain(k);
+      }
+    });
+  });
   test("pola yang sama muncul lagi: arsip (5.26), cicilan diulang (5.20), sakelar kartu (5.22); halaman berikutnya 5.3", () => {
     expect(blok).toContain("Pola yang sama muncul lagi di arsip yang dipindah ke penyimpanan objek ([[t5-kms]]), di cicilan yang diulang ([[t5-m48]]), dan di sakelar kartu ([[t5-m49]]). Setiap salinan diberi nama, diberi umur, dan dilarang memutuskan.");
     expect(naskah).toContain("Pola yang sama muncul lagi di arsip yang dipindah ke penyimpanan objek (ADR 57), di cicilan yang diulang (M48), dan di sakelar kartu (M49). Setiap salinan diberi nama, diberi umur, dan dilarang memutuskan.");
@@ -779,6 +789,16 @@ describe("baris riset R5-115 sampai R5-119: ada, urut, tanpa ganda, dan memuat k
     expect(r).toContain("20.833 dijadwalkan dan selesai, status 200 ×18.718 dan 201 ×2.115");
     expect(beban.join("\n")).toContain("status: 200 x18718, 201 x2115");
     expect(r).toContain("lima jurnal 201 ada di primary lama");
+  });
+  // Tinjauan 1507: mutan "500 x3" ditambahkan ke baris status lolos karena toContain puas dengan awalan yang sama.
+  test("beban.txt bagian A: baris status hanya memuat 200 dan 201, jumlahnya sama dengan yang dijadwalkan, dan R5-119 menyalin angkanya", () => {
+    const baris = beban.find((x) => x.startsWith("status: "));
+    expect(baris, "baris status tidak ada di beban.txt").toBeDefined();
+    const m = baris!.match(/^status: 200 x(\d+), 201 x(\d+)\s+#/);
+    expect(m, `baris status memuat selain 200 dan 201: ${baris}`).not.toBeNull();
+    const [dibaca, dibayar] = [Number(m![1]), Number(m![2])];
+    expect(dibaca + dibayar).toBe(Math.floor(1388.9 * 15));
+    expect(kolom(4)[2]).toContain(`status 200 ×${titik(dibaca)} dan 201 ×${titik(dibayar)}`);
   });
 });
 
