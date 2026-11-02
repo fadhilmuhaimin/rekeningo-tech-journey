@@ -3600,6 +3600,30 @@
   "jawab": "Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam; di antara 15 dan 30 detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5."
  },
  {
+  "id": "t5-m41-1",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil masih Rp250.000. Kenapa muat ulang otomatis tidak memperbaikinya?",
+  "jawab": "Muat ulang menanyakan replica yang sama, dan replica itu belum memutar ulang pembayaran. Jawabannya berubah sesudah replica menyusul, bukan sesudah muat ulang (`baca.txt` bagian A). Muat ulang juga tidak membuat app tahu bahwa jawabannya lebih tua dari pembayarannya sendiri (Penalaran)."
+ },
+ {
+  "id": "t5-m41-2",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Saldo tampil Rp250.000, tetapi kiriman Rp240.000 ditolak. Apa artinya untuk uang Budi?",
+  "jawab": "Uang aman: keputusan kiriman dibaca dari saldo di primary, Rp215.000, bukan dari saldo tampil (`baca.txt` bagian A). Yang keliru hanya yang dilihat user, dan hanya sampai replica menyusul."
+ },
+ {
+  "id": "t5-m41-3",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Kenapa memindahkan riwayat dan saldo tampil ke replica butuh ADR sendiri, padahal uangnya tetap benar?",
+  "jawab": "ADR 45 menulis read replica hanya untuk laporan, dan riwayat serta saldo tampil bukan laporan. Perpindahan itu melewati aturan 2 tanpa ADR yang mengubahnya. Uang benar karena keputusan uang dibaca dari primary, bukan karena aturannya sudah ditulis ulang."
+ },
+ {
   "id": "t5-m43-1",
   "halaman": "t5-m43",
   "judul": "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20",

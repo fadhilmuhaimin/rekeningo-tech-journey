@@ -1,0 +1,159 @@
+---
+title: "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat"
+description: Minggu 3. Budi membayar dan layar menulis Berhasil, tetapi riwayat dan saldo di app masih lama, karena tim Akun memindahkan bacaan tampilan ke replica yang tertinggal. Uang tidak ikut keliru, dan perpindahan itu belum punya ADR.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import riwayatReplica from "../../../../data/diagram/t5-m41-riwayat-replica.json";
+
+<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t5-read-replica]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 3 Tahap 5. Budi membayar Rp35.000 di warung. Layar app menulis "Berhasil".
+
+Riwayat dan saldo di app masih seperti sebelum membayar selama ±2 detik. Budi membuka riwayat dua kali, lalu menghubungi CS.
+
+*Angka cerita (Ilustrasi):* Rp35.000, ±2 detik, dua kali membuka riwayat, dan CS berasal dari naskah, bukan dari rekaman. Rekaman lab memakai pembayaran Rp35.000 yang sama, tetapi jeda ±2 detik tidak terjadi sendiri di lab, dan alasannya ada di blok Yang sebenarnya. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka membuka riwayat Budi dan tidak menemukan baris Rp35.000. Ia menduga dua hal. Pertama, pembayaran belum tercatat, jadi uang Budi belum keluar. Kedua, app menyimpan data lama dan belum mengambil yang baru.
+
+Karena dugaan kedua, Raka menambah muat ulang otomatis: layar riwayat dan saldo memanggil server lagi tiap beberapa detik.
+
+Minggu ini tim Akun juga mengubah sesuatu di server. Sesudah ADR 46, tim itu membaca riwayat dan saldo tampil dari replica ([[t5-read-replica]]). Replica adalah salinan database yang hanya melayani bacaan dan sedikit tertinggal dari primary, yaitu database yang menerima semua tulisan. Saldo tampil adalah saldo yang app tulis di layar.
+
+<details class="question">
+<summary>Tebak dulu: jawaban bayar memuat saldo Rp215.000, tetapi saldo yang app terima sesudahnya Rp250.000 dan riwayatnya satu baris. Dari mana server membaca keduanya?</summary>
+
+Dari replica, bukan dari primary. Header `X-Dibaca-Dari: replika` di rekaman menunjukkan sumber kedua jawaban itu (Rekaman lab, bagian A). Replica belum memutar ulang pembayaran Budi, dan di rekaman pemutaran ulangnya ditahan dengan sengaja.
+
+Dua dugaan Raka gugur: primary sudah memuat Rp215.000, dan jawaban server sudah memuat Rp250.000 sebelum app menampilkannya. Yang kedua adalah Penalaran, yaitu kesimpulan dari rekaman dan kode tanpa dijalankan, karena lab tidak punya app. Blok berikutnya memuat rekamannya.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Riwayat dan saldo tampil dibaca dari replica yang tertinggal, jadi Budi melihat catatan lama. Uang aman: keputusan bayar dibaca dari primary.
+
+<Rantai data={riwayatReplica} ringkas />
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, dengan satu primary dan satu replica asinkron di container lokal. Server `api-t5` berjalan dengan mode `-rentan riwayat-replika`.
+
+Mode itu adalah kode lab yang ditulis untuk M41, bukan salinan kode yang pernah berjalan di cerita. Rekaman memakai kata "replika" untuk node dan nilai header. Teks halaman memakai replica.
+
+**Jeda di rekaman sengaja dibuat.** Replica menerima rekaman perubahan dari primary, yaitu WAL (write-ahead log), lalu memutarnya ulang. PostgreSQL memakai replikasi streaming asinkron secara bawaan, jadi ada jeda kecil antara commit di primary dan terlihat di replica. Dokumentasi menulis jedanya biasanya di bawah satu detik bila replica sanggup mengikuti beban ([PostgreSQL 17: Log-Shipping Standby Servers](https://www.postgresql.org/docs/17/warm-standby.html), bagian 26.2.5, dibuka 2026-11-03, Tidak dijalankan).
+
+Pada 100 pembayaran per detik selama 10 detik, jeda pemutaran ulang tertinggi di bawah 1 detik, diukur di kedua standby lab. Lab hanya memeriksa batas itu, bukan nilainya (Rekaman lab, `jeda.txt` bagian A). Jeda ±2 detik di cerita tidak terjadi sendiri, jadi bagian baca menahan pemutaran ulang di replica dengan `pg_wal_replay_pause()`.
+
+Selama dijeda, menurut dokumentasi replica tidak menerapkan perubahan database baru ([PostgreSQL 17: System Administration Functions](https://www.postgresql.org/docs/17/functions-admin.html), bagian Recovery Control Functions, dibuka 2026-11-03, Tidak dijalankan).
+
+**Yang Budi lihat.** Sebelum membayar, saldo tampil Rp250.000 dan riwayat satu baris, yaitu top-up Tunjangan makan Rp250.000.
+
+Budi lalu membayar Rp35.000 ke Warung 505, dan jawaban bayar memuat saldo Rp215.000. Saldo itu cocok dengan Hitungan 250.000 − 35.000 = 215.000. Hitungan adalah angka yang dihitung dari angka lain di halaman ini.
+
+<Snippet file="labs/t5-replika/output/baca.txt" lines="9:43" title="Rekaman lab: labs/t5-replika/output/baca.txt, bagian A (saldo dan riwayat sebelum bayar, bayar Rp35.000, lalu saldo dan riwayat dari replica)" />
+
+Sesudah jawaban bayar 201, GET saldo masih menjawab Rp250.000 dan GET riwayat masih satu baris. Keduanya membawa `X-Dibaca-Dari: replika`. Kode lab menambahkan header itu supaya rekaman menunjukkan dari mana jawaban datang (Tidak dijalankan: dibaca dari kode lab).
+
+Dua GET itu juga membawa `X-Lsn-Tulis`, header dari jawaban bayar yang berisi posisi WAL primary sesudah commit. Versi pertama mengabaikannya: di mode `riwayat-replika`, `sumberTampil` memilih replica sebelum membaca token. Tanpa token ia juga memilih replica (Tidak dijalankan: dibaca dari kode lab). Arti token dibahas di [[t5-lag]].
+
+<Snippet file="labs/api-t5/internal/service/replika.go" lines="53:59" lang="go" title="Kode lab: labs/api-t5/internal/service/replika.go baris 53 sampai 59 (mode riwayat-replika dan bacaan tanpa token dibaca dari replica)" />
+
+**Dua dugaan Raka gugur, dan uang aman.** Primary memuat Rp215.000 dan replica Rp250.000. Kiriman Rp240.000 ke rekan ditolak dengan 422 `saldo-kurang`, walau saldo tampil Rp250.000:
+
+<Snippet file="labs/t5-replika/output/baca.txt" lines="44:60" title="Rekaman lab: labs/t5-replika/output/baca.txt, bagian A (saldo di primary dan replica, lalu kiriman Rp240.000 ditolak)" />
+
+Dugaan pertama gugur: primary memuat Rp215.000, jadi pembayaran sudah tercatat. Dugaan kedua gugur: jawaban server sudah memuat Rp250.000 sebelum app menampilkannya, jadi data tersimpan di app tidak mengubahnya (Penalaran). Kiriman dipakai, bukan pembayaran, karena satu pembayaran dibatasi Rp200.000 dan Rp240.000 ditolak oleh batas itu tanpa membaca saldo.
+
+Kode kiriman membuka transaction di primary, mengunci baris `buku` akun yang terlibat, lalu membandingkan saldo di baris itu dengan jumlah. Saldo tampil dari replica tidak ikut dibaca (Tidak dijalankan: dibaca dari kode lab):
+
+<Snippet file="labs/api-t5/internal/service/kirim.go" lines="86:100" lang="go" title="Kode lab: labs/api-t5/internal/service/kirim.go baris 86 sampai 100 (saldo dibaca di dalam transaction di primary)" />
+
+**Muat ulang otomatis hanya menunggu.** Di versi pertama, muat ulang menanyakan hal yang sama ke replica yang sama. Jawabannya baru berubah sesudah replica memutar ulang pembayaran. Di rekaman, sesudah replica menyusul, saldo tampil Rp215.000 dan riwayat dua baris:
+
+<Snippet file="labs/t5-replika/output/baca.txt" lines="61:73" title="Rekaman lab: labs/t5-replika/output/baca.txt, bagian A (sesudah replica menyusul)" />
+
+Layar akhirnya benar, tetapi lewat menunggu. Muat ulang tidak membuat app tahu bahwa jawaban yang ia terima lebih tua dari pembayarannya sendiri (Penalaran).
+
+**Perpindahan ini belum punya ADR.**
+
+ADR 45 menulis aturan 2: uang tidak dibaca dari salinan di luar primary, dan read replica, bila nanti dipasang, hanya untuk laporan ([[t4-adr-45]]). Riwayat dan saldo tampil bukan laporan. Tim Akun memindahkannya ke replica tanpa ADR yang mengubah aturan itu. Uangnya tetap benar karena keputusan uang memang dibaca dari primary, bukan karena aturan itu sudah ditulis ulang.
+
+**Yang tidak direkam.**
+
+- Jeda ±2 detik, Rp35.000 di warung, dan CS berasal dari cerita (Ilustrasi). Lab menahan pemutaran ulang dengan sengaja, karena pada 100 pembayaran per detik jeda alaminya di bawah 1 detik.
+- App Flutter tidak ada di lab. Layar HP di widget digambar dari cerita (Ilustrasi), dan lab hanya menjawab curl.
+- Primary dan replica berjalan di satu mesin. Jaringan antar host tidak direkam.
+- Lab tidak mengukur muat ulang otomatis di app, dan tidak mengukur seberapa sering user melihat catatan lama pada jeda alami.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti cerita M41. Jalur utama memakai rekaman `baca.txt` bagian A, dan layar HP digambar dari cerita (Ilustrasi). Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t5-m41.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: app mengirim X-Lsn-Tulis dari jawaban bayar, dan server memeriksanya**. Tiga langkah berikutnya memakai bagian B (Rekaman lab): pembayaran kedua Rp12.000, dan saldo Rp203.000 terlihat di primary sebelum replica menyusul.
+
+Perbaikannya dibahas di [[t5-lag]]. Widget ini hanya menunjukkan bahwa satu hal berbeda mengubah apa yang Budi lihat.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: bayar Rp35.000 dijawab 201 dengan saldo Rp215.000, tetapi saldo dan riwayat dari replica yang ditahan masih Rp250.000 dan satu baris (`baca.txt` bagian A).
+
+Kiriman Rp240.000 ditolak 422 karena saldo di primary Rp215.000. Sesudah replica menyusul, saldo tampil Rp215.000 dan riwayat dua baris.
+
+Bila app mengirim X-Lsn-Tulis, server membaca primary selama replica tertinggal: saldo Rp203.000 dan tiga baris riwayat (bagian B).
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t5-lag]]: replication lag, read-your-writes, dan token LSN. Keputusannya ADR 47.
+- [[t5-read-replica]]: replica dan model baca untuk laporan. Keputusannya ADR 46.
+- [[t4-adr-45]]: aturan 2 tentang replica, yang dibaca ulang di halaman ini.
+
+Replica boleh menyajikan data lama bila jaraknya diketahui, dan bacaan milik sendiri sesudah menulis tidak boleh bergantung padanya begitu saja.
+
+### Cek diri
+
+**1.** Jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil masih Rp250.000. Kenapa muat ulang otomatis tidak memperbaikinya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Muat ulang menanyakan replica yang sama, dan replica itu belum memutar ulang pembayaran. Jawabannya berubah sesudah replica menyusul, bukan sesudah muat ulang (`baca.txt` bagian A). Muat ulang juga tidak membuat app tahu bahwa jawabannya lebih tua dari pembayarannya sendiri (Penalaran).
+
+</details>
+
+**2.** Saldo tampil Rp250.000, tetapi kiriman Rp240.000 ditolak. Apa artinya untuk uang Budi?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Uang aman: keputusan kiriman dibaca dari saldo di primary, Rp215.000, bukan dari saldo tampil (`baca.txt` bagian A). Yang keliru hanya yang dilihat user, dan hanya sampai replica menyusul.
+
+</details>
+
+**3.** Kenapa memindahkan riwayat dan saldo tampil ke replica butuh ADR sendiri, padahal uangnya tetap benar?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+ADR 45 menulis read replica hanya untuk laporan, dan riwayat serta saldo tampil bukan laporan. Perpindahan itu melewati aturan 2 tanpa ADR yang mengubahnya. Uang benar karena keputusan uang dibaca dari primary, bukan karena aturannya sudah ditulis ulang.
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />
