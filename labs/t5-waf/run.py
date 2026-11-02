@@ -115,6 +115,15 @@ def siapkan():
     d.buat_schema(SCHEMA)
     d.seed(SCHEMA)
     d.pecah_layanan(SCHEMA)
+    with d.sambung("public") as c:   # pemilik: gerbang di tepi hanya boleh membaca lima kolom mitra_pos (hak dicek di bagian tandatangan F)
+        c.execute("""DO $$ BEGIN
+                       IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 't5_gerbang') THEN
+                         CREATE ROLE t5_gerbang LOGIN PASSWORD 't5_gerbang';   -- password lab, bukan secret
+                       END IF;
+                     END $$""")
+        c.execute("ALTER ROLE t5_gerbang SET search_path = t5_merchant")
+        c.execute("GRANT USAGE ON SCHEMA t5_merchant TO t5_gerbang")
+        c.execute("GRANT SELECT (id, nama, kunci_hash, status, kuota_per_detik) ON t5_merchant.mitra_pos TO t5_gerbang")
     _qr.clear()
     _urut_key[0] = 0
     mitra.clear()
@@ -140,7 +149,7 @@ def mulai_semua(rentan_api="", rentan_gerbang="", tahan=None):
         g += ["-rentan", rentan_gerbang]
     if tahan:
         g += ["-lab-tahan", tahan]
-    d.mulai(BIN_GERBANG, PORT_GERBANG, g, db=d.db_role("t5_merchant", "t5-waf-gerbang"))
+    d.mulai(BIN_GERBANG, PORT_GERBANG, g, db=d.db_role("t5_gerbang", "t5-waf-gerbang"))
 
 
 def hentikan_semua():
@@ -534,14 +543,44 @@ def rekam_tandatangan():
              "-rahasia-hulu", RAHASIA_HULU, "-redis", f"127.0.0.1:{REDIS_PORT}"]
     for judul, tambahan in (("-addr 0.0.0.0:<port>", ["-addr", f"0.0.0.0:{PORT_GERBANG}"]),
                             ("-hulu http://hulu.example:80", ["-addr", f"127.0.0.1:{PORT_GERBANG}", "-hulu", "http://hulu.example:80"])):
-        r = subprocess.run(dasar + tambahan, env=dict(d.ENV, DATABASE_URL=d.db_role("t5_merchant", "t5-waf-gerbang")), capture_output=True,
+        r = subprocess.run(dasar + tambahan, env=dict(d.ENV, DATABASE_URL=d.db_role("t5_gerbang", "t5-waf-gerbang")), capture_output=True,
                            text=True, timeout=15)
         baris = [re.sub(r":\d{4,5}", ":<port>", re.sub(r"^\d{4}/\d\d/\d\d \d\d:\d\d:\d\d(?:\.\d+)? ", "", l)) for l in r.stderr.splitlines()]
         tampil(f"$ gerbang {judul}  -> exit status {r.returncode}")
         for l in baris:
             tampil("  " + l)
         harap((r.returncode, any("hanya" in l or "lokal" in l for l in baris)), (1, True), f"gerbang menolak {judul}")
-    tulis("tandatangan.txt", "Idempotency-Key wajib, kunci dan tanda tangan bertimestamp, cakupan merchant, dan enumerasi kunci")
+
+    bagian("F. Role database gerbang (t5_gerbang): hanya membaca lima kolom mitra_pos; hak dibaca dari katalog PostgreSQL")
+    siapkan()
+    with d.sambung(SP) as c:
+        def tanya(q, *arg):
+            return c.execute(q, arg).fetchone()[0]
+        kolom = ["id", "nama", "kunci_hash", "status", "kuota_per_detik", "dibuat"]
+        baca = {k: tanya("SELECT has_column_privilege('t5_gerbang', 't5_merchant.mitra_pos', %s, 'SELECT')", k) for k in kolom}
+        tampil("$ has_column_privilege('t5_gerbang', 't5_merchant.mitra_pos', kolom, 'SELECT')")
+        tampil("  -> " + ", ".join(f"{k}: {'ya' if v else 'tidak'}" for k, v in baca.items()))
+        harap(list(baca.values()), [True] * 5 + [False], "gerbang membaca lima kolom mitra_pos, bukan kolom lain")
+        tulis_hak = {h: tanya("SELECT has_any_column_privilege('t5_gerbang', 't5_merchant.mitra_pos', %s)", h) for h in ("INSERT", "UPDATE")}
+        tulis_hak["DELETE"] = tanya("SELECT has_table_privilege('t5_gerbang', 't5_merchant.mitra_pos', 'DELETE')")
+        tampil("$ has_any_column_privilege / has_table_privilege untuk INSERT, UPDATE, DELETE pada mitra_pos")
+        tampil("  -> " + ", ".join(f"{k}: {'ya' if v else 'tidak'}" for k, v in tulis_hak.items()))
+        harap(list(tulis_hak.values()), [False] * 3, "gerbang tidak menulis mitra_pos")
+        lain = ["t5_merchant.qr", "t5_merchant.produk", "t5_akun.akun", "t5_akun.sesi", "t5_ledger.posting", "t5_ledger.jurnal"]
+        hak_lain = {t: tanya("SELECT has_any_column_privilege('t5_gerbang', %s, 'SELECT')", t) for t in lain}
+        tampil("$ has_any_column_privilege('t5_gerbang', tabel, 'SELECT') untuk tabel service lain")
+        tampil("  -> " + ", ".join(f"{k}: {'ya' if v else 'tidak'}" for k, v in hak_lain.items()))
+        harap(any(hak_lain.values()), False, "gerbang tidak membaca tabel lain")
+    mulai_semua()
+    jam_maju(2000)
+    kirim("A", "GET", "/pos/v1/merchant/30001/qr/00000000-0000-4000-8000-000000000001")   # gerbang membuka koneksi ke database
+    with d.sambung("public") as c:
+        pemakai = sorted({r[0] for r in c.execute("SELECT usename FROM pg_stat_activity WHERE application_name = 't5-waf-gerbang'")})
+    tampil(f"$ pg_stat_activity, application_name = t5-waf-gerbang -> role koneksi gerbang: {', '.join(pemakai)}")
+    harap(pemakai, ["t5_gerbang"], "gerbang memakai role t5_gerbang")
+    hentikan_semua()
+    tampil("api-t5 memakai role t5_app.")
+    tulis("tandatangan.txt", "Idempotency-Key wajib, kunci dan tanda tangan bertimestamp, cakupan merchant, enumerasi kunci, dan hak database gerbang")
 
 
 # ---------- bagian D: tes Go ----------
@@ -567,8 +606,9 @@ def rekam_testing():
     catat(teks or "(tanpa temuan)")
     catat(f"# exit status {rc}")
     harap(rc, 0, "go vet gerbang")
-    rc, teks = go_test("test", "-v", "-count=1", "./...", cwd=GERBANG, env=dict(d.ENV, TEST_REDIS_ADDR=redis_alamat, TES_REDIS_WAJIB="1"))
-    catat("$ TEST_REDIS_ADDR=<Redis lab> TES_REDIS_WAJIB=1 go test -v -count=1 ./...")
+    rc, teks = go_test("test", "-v", "-count=1", "./...", cwd=GERBANG,
+                       env=dict(d.ENV, TEST_REDIS_ADDR=redis_alamat, TES_REDIS_WAJIB="1", TEST_DATABASE_URL=tes_db, TES_DB_WAJIB="1"))
+    catat(f"$ TEST_REDIS_ADDR=<Redis lab> TES_REDIS_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema {d.TES}> TES_DB_WAJIB=1 go test -v -count=1 ./...")
     catat(teks)
     catat(f"# exit status {rc}")
     harap(rc, 0, "tes gerbang")

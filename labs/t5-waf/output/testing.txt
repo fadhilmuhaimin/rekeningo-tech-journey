@@ -6,7 +6,7 @@
 $ go vet ./...   (di labs/t5-waf/gerbang)
 (tanpa temuan)
 # exit status 0
-$ TEST_REDIS_ADDR=<Redis lab> TES_REDIS_WAJIB=1 go test -v -count=1 ./...
+$ TEST_REDIS_ADDR=<Redis lab> TES_REDIS_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema tahap5_tes> TES_DB_WAJIB=1 go test -v -count=1 ./...
 --- PASS: TestGerbangMeneruskanDenganIdentitasDariGerbang
 --- PASS: TestGerbangTandaTanganSalah
 mitra 4 tanpa rahasia tanda tangan
@@ -32,9 +32,24 @@ hitungan gagal tidak terbaca: dial tcp 127.0.0.1:1: connect: connection refused
 --- PASS: TestGerbangRedisMati
 hulu gagal: dial tcp 127.0.0.1:<port>: connect: connection refused
 --- PASS: TestGerbangHuluMati
+--- PASS: TestGerbangKuotaSebelumTandaTangan
+--- PASS: TestGerbangKunciBucketDariKunciYangSah
+--- PASS: TestGerbangKuotaTiapMitraDariBarisnya
+--- PASS: TestGerbangBerjalanDanTokenTidakBocorSesudahDitolak
+--- PASS: TestGerbangSlotDilepasSesudahKuotaHabis
+--- PASS: TestPembatasKeluarTidakDiBawahNol
+--- PASS: TestGerbangRuteHanyaPosV1
+--- PASS: TestGerbangTandaTanganMencakupQuery
+--- PASS: TestGerbangBodyDiteruskanUtuh
+--- PASS: TestGerbangPutarUlangDalamJendelaDiterima
+--- PASS: TestPeriksaTandaMemakaiHmacEqual
+--- PASS: TestWAFGalatBodyDikembalikan
+--- PASS: TestCorazaWrapHandlerBawaanGalatMenjawab200Kosong
+--- PASS: TestTokoPGMembacaBarisMitra
 --- PASS: TestTandaTanganVektor
 --- PASS: TestPeriksaTanda
 --- PASS: TestPeriksaTandaToleransi
+--- PASS: TestPeriksaTandaTimestampJauhDiDepan
 --- PASS: TestSidikKunci
 --- PASS: TestWAFSeranganDiblokir
 --- PASS: TestWAFSahLolos
@@ -56,19 +71,23 @@ $ TES_DB_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema tahap5_tes> go test -v -coun
 --- PASS: TestPOSIdempotensi
 --- PASS: TestPOSValidasi
 --- PASS: TestPOSRuteTidakAdaTanpaRahasia
+--- PASS: TestPOSCakupanTetapBerlakuDiModeRentanLain
+--- PASS: TestPOSReferensiDihitungDalamKarakter
+--- PASS: TestPOSLokasiQR
+--- PASS: TestPOSQRTerpakaiTidakKedaluwarsa
 PASS
 ok    lab/apit5/internal/handler
 # exit status 0
 
 # --- C. Tanpa Redis: tes kuota dilewati; dengan TES_REDIS_WAJIB=1 gagal keras ---
 $ go test -v -count=1 -run KuotaPerMitra .   (tanpa TEST_REDIS_ADDR)
-    gerbang_test.go:249: TEST_REDIS_ADDR kosong: tes ini butuh Redis
+    gerbang_test.go:258: TEST_REDIS_ADDR kosong: tes ini butuh Redis
 --- SKIP: TestGerbangKuotaPerMitra
 PASS
 ok    lab/t5waf
 $ TES_REDIS_WAJIB=1 go test -count=1 -run KuotaPerMitra .   (tanpa TEST_REDIS_ADDR)
 --- FAIL: TestGerbangKuotaPerMitra
-    gerbang_test.go:249: TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong
+    gerbang_test.go:258: TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong
 FAIL
 FAIL  lab/t5waf
 FAIL

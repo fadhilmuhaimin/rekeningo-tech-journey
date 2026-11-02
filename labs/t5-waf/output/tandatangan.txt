@@ -1,4 +1,4 @@
-# Lab t5-waf · Idempotency-Key wajib, kunci dan tanda tangan bertimestamp, cakupan merchant, dan enumerasi kunci
+# Lab t5-waf · Idempotency-Key wajib, kunci dan tanda tangan bertimestamp, cakupan merchant, enumerasi kunci, dan hak database gerbang
 # PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · Coraza v3.8.1 · OWASP CRS v4.30.0 (paranoia level 1, ambang anomali 5) · Redis 8.10.2 · enam schema service
 # Gerbang Go di 127.0.0.1:18330, api-t5 di 127.0.0.1:18310. Rekaman dari database bersih: make -C labs/t5-waf run.
 
@@ -82,3 +82,13 @@ $ gerbang -addr 0.0.0.0:<port>  -> exit status 1
   gerbang lab hanya mendengar di alamat lokal, dapat "0.0.0.0:<port>"
 $ gerbang -hulu http://hulu.example:80  -> exit status 1
   -hulu harus alamat lokal: "http://hulu.example:80"
+
+# --- F. Role database gerbang (t5_gerbang): hanya membaca lima kolom mitra_pos; hak dibaca dari katalog PostgreSQL ---
+$ has_column_privilege('t5_gerbang', 't5_merchant.mitra_pos', kolom, 'SELECT')
+  -> id: ya, nama: ya, kunci_hash: ya, status: ya, kuota_per_detik: ya, dibuat: tidak
+$ has_any_column_privilege / has_table_privilege untuk INSERT, UPDATE, DELETE pada mitra_pos
+  -> INSERT: tidak, UPDATE: tidak, DELETE: tidak
+$ has_any_column_privilege('t5_gerbang', tabel, 'SELECT') untuk tabel service lain
+  -> t5_merchant.qr: tidak, t5_merchant.produk: tidak, t5_akun.akun: tidak, t5_akun.sesi: tidak, t5_ledger.posting: tidak, t5_ledger.jurnal: tidak
+$ pg_stat_activity, application_name = t5-waf-gerbang -> role koneksi gerbang: t5_gerbang
+api-t5 memakai role t5_app.
