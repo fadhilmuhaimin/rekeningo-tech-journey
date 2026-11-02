@@ -1025,9 +1025,12 @@ describe("penguat tinjauan: kalimat yang punya sumber diikat ke sumbernya, bukan
   });
   test("hak role diturunkan dari rekaman F: jumlah role selain ledger, USAGE dan SELECT, kolom yang diizinkan dan yang ditolak", () => {
     const f = F.join("\n");
-    expect(badan).toContain(`dan ke${W(layanan.modul.length - 1)} role selain ledger tidak punya hak apa pun di schema service lain`);
+    expect(badan).toContain(`Kelima role selain ledger tidak punya satu pun hak itu di schema service lain`.replace("Kelima", `Ke${W(layanan.modul.length - 1)}`));
+    const kodeRun = baca("labs/api-t5/run.py");
+    for (const s of ["has_table_privilege", "has_column_privilege", "has_schema_privilege(%s, oid, 'USAGE')"]) expect(kodeRun, s).toContain(s);
+    expect(badan).toContain("hak atas tabel, hak atas kolom, dan USAGE atas schema (izin menemukan tabelnya)");
     expect(f).toContain("hanya t5_ledger yang punya, yaitu USAGE schema akun dan SELECT atas");
-    expect(badan).toContain("Haknya USAGE atas schema (izin menemukan tabelnya) dan SELECT atas kolom");
+    expect(badan).toContain("yaitu akun: USAGE atas schema dan SELECT atas kolom");
     const ditolak = F.find((b) => /^t5_ledger: SELECT (\w+) FROM t5_akun\.akun LIMIT 1$/.test(b))!.match(/SELECT (\w+) FROM/)![1]!;
     expect(badan).toContain(`Kolom \`${ditolak}\` ditolak dengan SQLSTATE`);
     const izin = F.find((b) => /^t5_ledger: SELECT [\w, ]+ FROM t5_akun\.akun LIMIT 1 {3}-- berhasil/.test(b))!.match(/SELECT ([\w, ]+) FROM/)![1]!.split(", ");
@@ -1104,7 +1107,7 @@ describe("penguat tinjauan, putaran dua: atribusi, label di bagian ukuran, klaim
     expect(naskah5).toContain("Satu kill switch yang dibaca semua pod");
     expect(badan).toContain("dibaca pod (rancangan; lab api-t5 hanya membuat tabelnya)");
     expect(F.join("\n").match(/USAGE schema (\w+) dan SELECT/)![1]).toBe("akun");
-    expect(badan).toContain("hak di satu schema lain, yaitu akun.");
+    expect(badan).toContain("hak di satu schema lain, yaitu akun:");
   });
   test("naskah menulis angka ukuran yang sama dengan hitungan: baris Tahap 5 dan 100 byte ringkasan", () => {
     expect(naskah5).toContain(`\`posting\` ±${duaKoma(P5 / 1e6)} juta (${P5 / 1e6} juta), dipartisi per bulan`);

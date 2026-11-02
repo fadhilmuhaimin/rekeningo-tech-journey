@@ -130,7 +130,7 @@ Jadi {{FK4}} − {{FK_HAPUS}} + {{FK_BARU}} = {{FK5}} (Hitungan: angka yang bisa
 
 Kolom seperti `buku.akun_id` tetap ada sebagai referensi tanpa constraint. Tanpa foreign key, database tidak lagi menolak baris yang menunjuk akun yang tidak ada di schema lain. Lab tidak mencoba memasukkan baris seperti itu (Tidak dijalankan). Biaya dan alasan pemecahannya dibahas di [[t5-m44]].
 
-Hak role di lab dicek dari katalog database, dan kelima role selain ledger tidak punya hak apa pun di schema service lain. Role ledger punya hak di satu schema lain, yaitu akun. Haknya USAGE atas schema (izin menemukan tabelnya) dan SELECT atas kolom `id`, `tingkat`, dan `status` tabel `akun`. Kolom `nama` ditolak dengan SQLSTATE {{S_DITOLAK}} (Rekaman lab, `skema.txt` bagian F).
+Hak role di lab dicek dari katalog database: hak atas tabel, hak atas kolom, dan USAGE atas schema (izin menemukan tabelnya). Kelima role selain ledger tidak punya satu pun hak itu di schema service lain. Role ledger punya hak di satu schema lain, yaitu akun: USAGE atas schema dan SELECT atas kolom `id`, `tingkat`, dan `status` tabel `akun`. Kolom `nama` ditolak dengan SQLSTATE {{S_DITOLAK}} (Rekaman lab, `skema.txt` bagian F).
 
 **Rancangan lawan lab.** Rancangan skema Tahap {{T_BARU}}, yaitu diagram yang ditulis tim sebelum ada migration, dicocokkan dengan skema lab. Perintah `tools/erd.py --naskah 5` mencetak `{{ERD_NASKAH}}` untuk kolom, tanda kunci, dan garis relasi (dijalankan {{TGL_ERD}}, Hitungan atas ERD dan rancangan). Selisih di luar diagram ada {{K_SELISIH}}, dan yang benar adalah skema lab (Rekaman lab, `skema.txt` bagian B dan E).
 
