@@ -1106,6 +1106,10 @@ describe("penguat tinjauan, putaran dua: atribusi, label di bagian ukuran, klaim
     expect(F.join("\n").match(/USAGE schema (\w+) dan SELECT/)![1]).toBe("akun");
     expect(badan).toContain("hak di satu schema lain, yaitu akun.");
   });
+  test("naskah menulis angka ukuran yang sama dengan hitungan: baris Tahap 5 dan 100 byte ringkasan", () => {
+    expect(naskah5).toContain(`\`posting\` ±${duaKoma(P5 / 1e6)} juta (${P5 / 1e6} juta), dipartisi per bulan`);
+    expect(naskah5).toContain(`(${BYTE_RINGKASAN} B per baris adalah Asumsi)`);
+  });
   test("klaim negatif berlingkup: tak ada lab Tahap 6 di labs/, tak ada rekaman baris yatim di labs/api-t5/output, dan INSERT tanpa id sesuai kalimatnya", () => {
     expect([...terlacak].filter((p) => /^labs\/(api-t6|t6-)/.test(p))).toEqual([]);
     expect(badan).toContain("sebagai proyeksi dari rencana Tahap 2 yang belum punya lab");
