@@ -38,6 +38,7 @@ hulu gagal: dial tcp 127.0.0.1:<port>: connect: connection refused
 --- PASS: TestGerbangBerjalanDanTokenTidakBocorSesudahDitolak
 --- PASS: TestGerbangSlotDilepasSesudahKuotaHabis
 --- PASS: TestPembatasKeluarTidakDiBawahNol
+--- PASS: TestPembatasSlotBocorSembuhHanyaSesudahSepi
 --- PASS: TestGerbangRuteHanyaPosV1
 --- PASS: TestGerbangTandaTanganMencakupQuery
 --- PASS: TestGerbangBodyDiteruskanUtuh
