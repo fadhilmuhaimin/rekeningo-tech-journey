@@ -890,6 +890,11 @@ describe("penutup celah mutasi putaran kedua: struktur, tautan, judul Snippet, k
     harus(`Aturan ${hal45.match(/^(\d)\. Uang tidak dibaca dari salinan/m)![1]} di ADR itu sudah menulis batasnya: uang tidak dibaca dari salinan di luar primary, dan read replica hanya untuk laporan.`);
     harus(`**Status:** diterima sesudah M${dari("t5-m40").judul.match(/^M(\d+)/)![1]}, dan menjalankan aturan ${hal45.match(/^(\d)\. Uang tidak dibaca dari salinan/m)![1]} ADR ${dari("t4-adr-45").adr![0]} ([[t4-adr-45]]). Dibaca ulang di [[t5-m41]].`);
     harus(`Laporan di primary menambah kerja mesin yang menulis uang ([[t5-m40]]). Pemicu ADR ${dari("t4-adr-45").adr![0]} terpenuhi`);
+    harus(`ADR ${dari("t5-read-replica").adr![0]} menjalankan aturan itu.`);
+    harus(`Ini aturan ${hal45.match(/^(\d)\. Uang tidak dibaca dari salinan/m)![1]} ADR ${dari("t4-adr-45").adr![0]}.`);
+    const tabelRingkasan = cocok(migrasi25, /CREATE TABLE (ringkasan_\w+) \(/)[1]!;
+    expect([...new Set([...badan.matchAll(/ringkasan_\w+/g)].map((m) => m[0]))]).toEqual([tabelRingkasan]);
+    expect(hitung(badan, tabelRingkasan)).toBe(3);
     const sel = (b: string, n: number) => b.split(" | ")[n]!;
     const baris = (awal: string) => badan.split("\n").find((b) => b.startsWith(`| ${awal} |`))!;
     expect(sel(baris("Cara kerja"), 1)).toBe(`Jawaban laporan disimpan ${L_C[1]} detik di Redis ([[t3-cache]])`);
@@ -931,7 +936,7 @@ describe("penutup celah mutasi putaran kedua: struktur, tautan, judul Snippet, k
   });
 });
 
-const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "lima", "enam", "Raka", "Budi", "Ani", "Wulan", "Nadia", "pertama", "kedua", "bukan", "tanpa", "kecuali", "semua", "juga", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "penalaran", "primary", "replica", "standby", "cache", "hit", "TTL", "p95", "query", "pembayaran", "laporan", "database", "lebih", "paling", "bisa", "direkam", "tidak direkam", "dibaca dari kode", "25006", "0A000", "57014", "40001", "422", "ms", "detik", "merchant", "warung", "lab", "naskah", "cerita", "di atas", "di bawah", "paling sedikit", "paling lama", "kurang", "melewati", "bawaan", "timeout", "konflik", "replay", "jeda", "yaitu", "bukan hasil ukuran", "ditolak", "ditahan", "WAL", "slot", "GET"];
+const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "lima", "enam", "Raka", "Budi", "Ani", "Wulan", "Nadia", "pertama", "kedua", "bukan", "tanpa", "kecuali", "semua", "juga", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "penalaran", "primary", "replica", "standby", "cache", "hit", "TTL", "p95", "query", "pembayaran", "laporan", "database", "lebih", "paling", "bisa", "direkam", "tidak direkam", "dibaca dari kode", "25006", "0A000", "57014", "40001", "422", "ms", "detik", "merchant", "warung", "lab", "naskah", "cerita", "di atas", "di bawah", "paling sedikit", "paling lama", "kurang", "melewati", "bawaan", "timeout", "konflik", "replay", "jeda", "yaitu", "bukan hasil ukuran", "ditolak", "ditahan", "WAL", "slot", "GET", "menolak", "tertinggal", "asinkron", "sinkron", "VACUUM", "snapshot", "lebih awal", "ON CONFLICT DO UPDATE", "ringkasan_merchant_harian", "Hot Standby", "slot replikasi", "komponen", "ledger", "ADR 45", "ADR 46", "aturan", "tulisan", "bacaan", "uang"];
 const profil = (teks: string): string =>
   PENENTU.map((k) => {
     const n = (teks.match(new RegExp(`(?<![\\p{L}-])${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}-])`, "gu")) ?? []).length;
