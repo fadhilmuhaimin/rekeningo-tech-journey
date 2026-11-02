@@ -27,7 +27,7 @@ status 200 dan 201
  1
 (1 row)
 
-# --- C. Key berbeda dengan isi yang sama adalah permintaan lain; key yang sama dengan isi berbeda ditolak ---
+# --- C. Key baru (ledger mewajibkan order_id sama dengan key) dengan akun dan jumlah yang sama adalah permintaan lain; key yang sama dengan jumlah berbeda ditolak ---
 $ pembayaran -> ledger  jalur=topup Idempotency-Key=TB-LAB-1003 akun=100001 jumlah=200000
 status 201 {"jurnal":<jurnal 2>,"ulang":false}
 $ pembayaran -> ledger  jalur=topup Idempotency-Key=TB-LAB-1003 akun=100001 jumlah=300000

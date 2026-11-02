@@ -386,7 +386,7 @@ def rekam_idempoten():
     harap(len({json.loads(i)["jurnal"] for _, i in hasil}), 1, "satu jurnal untuk dua jawaban")
     tampil_sql("SELECT count(*) AS jurnal_untuk_key FROM jurnal WHERE keterangan = 'Top-up bank TB-LAB-1002'")
 
-    bagian("C. Key berbeda dengan isi yang sama adalah permintaan lain; key yang sama dengan isi berbeda ditolak")
+    bagian("C. Key baru (ledger mewajibkan order_id sama dengan key) dengan akun dan jumlah yang sama adalah permintaan lain; key yang sama dengan jumlah berbeda ditolak")
     s3, _ = catat_layanan("pembayaran", "topup", "TB-LAB-1003", AKUN["budi"], 200000)
     harap(s3, 201, "key baru")
     s4, i4 = catat_layanan("pembayaran", "topup", "TB-LAB-1003", AKUN["budi"], 300000)
