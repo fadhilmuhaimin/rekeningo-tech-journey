@@ -60,7 +60,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "<Blok nama=\"Coba sendiri\">",
  "Widget ini mengikuti cerita M41. Jalur utama memakai rekaman `baca.txt` bagian A, dan layar HP digambar dari cerita (Ilustrasi). Tebak dulu, lalu tekan Berikutnya atau panah kanan.",
  "<WidgetLama nama=\"alur\" src=\"data/skenario/t5-m41.json\" />",
- "Sesudah langkah terakhir, centang **Ubah satu hal: app mengirim X-Lsn-Tulis dari jawaban bayar, dan server memeriksanya**. Tiga langkah berikutnya memakai bagian B (Rekaman lab): pembayaran kedua Rp12.000, dan saldo Rp203.000 terlihat di primary sebelum replica menyusul.",
+ "Sesudah langkah terakhir, centang **Ubah satu hal: app mengirim X-Lsn-Tulis dari jawaban bayar, dan server memeriksanya**. Jalurnya berganti menjadi tiga langkah dari bagian B (Rekaman lab): pembayaran kedua Rp12.000, dan saldo Rp203.000 terlihat di primary sebelum replica menyusul.",
  "Perbaikannya dibahas di [[t5-lag]]. Widget ini hanya menunjukkan bahwa satu hal berbeda mengubah apa yang Budi lihat.",
  "<noscript>",
  "Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: bayar Rp35.000 dijawab 201 dengan saldo Rp215.000, tetapi saldo dan riwayat dari replica yang ditahan masih Rp250.000 dan satu baris (`baca.txt` bagian A).",

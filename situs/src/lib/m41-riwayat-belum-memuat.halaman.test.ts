@@ -335,6 +335,7 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
   });
   test("Yang tidak direkam: empat butir dengan lingkup, dan lab tidak punya app", () => {
     harus(`- Jeda ±${detikCerita} detik, ${rp(bayarNominalA)} di warung, dan CS berasal dari cerita (Ilustrasi). Lab menahan pemutaran ulang dengan sengaja, karena pada ${rps} pembayaran per detik jeda alaminya di bawah 1 detik.`);
+    harus("**Yang tidak direkam.**");
     harus("- App Flutter tidak ada di lab. Layar HP di widget digambar dari cerita (Ilustrasi), dan lab hanya menjawab curl.");
     harus("- Primary dan replica berjalan di satu mesin. Jaringan antar host tidak direkam.");
     harus("- Lab tidak mengukur muat ulang otomatis di app, dan tidak mengukur seberapa sering user melihat catatan lama pada jeda alami.");
@@ -343,7 +344,7 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     expect(baca("labs/t5-replika/README.md")).toContain("Jeda antar-wilayah, jaringan antar host, dan penyimpanan terkelola **Tidak dijalankan**");
   });
   test("Coba sendiri, noscript, Konsep yang lahir, dan Cek diri memakai angka dari rekaman", () => {
-    harus(`Sesudah langkah terakhir, centang **Ubah satu hal: ${skenario.varian.label}**. Tiga langkah berikutnya memakai bagian B (Rekaman lab): pembayaran kedua ${rp(bayarNominalB)}, dan saldo ${rp(akunB[1]!)} terlihat di primary sebelum replica menyusul.`);
+    harus(`Sesudah langkah terakhir, centang **Ubah satu hal: ${skenario.varian.label}**. Jalurnya berganti menjadi tiga langkah dari bagian B (Rekaman lab): pembayaran kedua ${rp(bayarNominalB)}, dan saldo ${rp(akunB[1]!)} terlihat di primary sebelum replica menyusul.`);
     harus(`Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: bayar ${rp(bayarNominalA)} dijawab 201 dengan saldo ${rp(bayarA.saldo)}, tetapi saldo dan riwayat dari replica yang ditahan masih ${rp(akunA[1]!)} dan satu baris (\`baca.txt\` bagian A).`);
     harus(`Kiriman ${rp(kirimA)} ditolak 422 karena saldo di primary ${rp(saldoPrimary)}. Sesudah replica menyusul, saldo tampil ${rp(akunA[2]!)} dan riwayat dua baris.`);
     harus(`Bila app mengirim X-Lsn-Tulis, server membaca primary selama replica tertinggal: saldo ${rp(akunB[1]!)} dan tiga baris riwayat (bagian B).`);
@@ -352,6 +353,8 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     harus("- [[t5-lag]]: replication lag, read-your-writes, dan token LSN. Keputusannya ADR 47.");
     harus("- [[t5-read-replica]]: replica dan model baca untuk laporan. Keputusannya ADR 46.");
     harus("- [[t4-adr-45]]: aturan 2 tentang replica, yang dibaca ulang di halaman ini.");
+    harus("Replica boleh menyajikan data lama bila jaraknya diketahui, dan bacaan milik sendiri sesudah menulis tidak boleh bergantung padanya begitu saja.");
+    expect(naskah).toContain("Setiap salinan diberi nama, diberi umur, dan dilarang memutuskan.");
     expect(naskah).toContain("| 47 | Tiga kelas baca");
     expect(naskah).toContain("| 46 | Satu read replica asinkron untuk laporan merchant dan bacaan berat.");
   });
