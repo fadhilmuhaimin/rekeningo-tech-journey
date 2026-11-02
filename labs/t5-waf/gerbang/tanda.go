@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -35,6 +36,9 @@ func PeriksaTanda(rahasia string, sekarang time.Time, toleransi time.Duration, t
 		return ErrWaktu
 	}
 	selisih := sekarang.Sub(time.Unix(ts, 0))
+	if selisih == math.MinInt64 { // Sub jenuh di -292 tahun untuk timestamp yang lebih jauh di depan, dan -MinInt64 meluap ke dirinya sendiri
+		return ErrWaktu
+	}
 	if selisih < 0 {
 		selisih = -selisih
 	}

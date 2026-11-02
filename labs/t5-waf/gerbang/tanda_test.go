@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 )
@@ -69,6 +70,17 @@ func TestPeriksaTandaToleransi(t *testing.T) {
 	for _, ts := range []string{"", "abc", "1.5", "-"} {
 		if err := PeriksaTanda("r", sekarangTes, toleransi, ts, "00", "GET", "/p", nil); err != ErrWaktu {
 			t.Errorf("timestamp %q: %v", ts, err)
+		}
+	}
+}
+
+// Timestamp yang jauh di depan (lebih dari 292 tahun) membuat Sub jenuh di nilai terkecil Duration, dan -nilai itu
+// meluap ke dirinya sendiri: tanpa penjaga, selisih tampak negatif dan lolos dari batas toleransi.
+func TestPeriksaTandaTimestampJauhDiDepan(t *testing.T) {
+	for _, ts := range []int64{1 << 40, 1 << 62, 253402300800, math.MaxInt64, math.MinInt64, sekarangTes.Unix() + 300*365*24*3600} {
+		err := PeriksaTanda("r", sekarangTes, 5*time.Minute, fmt.Sprint(ts), TandaTangan("r", ts, "GET", "/p", nil), "GET", "/p", nil)
+		if err != ErrWaktu {
+			t.Errorf("timestamp %d dengan tanda tangan sah: %v, harus ErrWaktu", ts, err)
 		}
 	}
 }
