@@ -56,8 +56,8 @@ return {boleh, math.floor(token), tunggu}
 
 // --8<-- [start:berjalan]
 // skripMasuk menaikkan hitungan permintaan yang sedang berjalan dan menolaknya bila melewati batas. Masa berlaku
-// (ARGV[2], milidetik) dipasang tiap kali dan lebih panjang dari timeout gerbang: bila gerbang mati sebelum Keluar,
-// hitungan yang bocor sembuh sendiri.
+// (ARGV[2], milidetik) lebih panjang dari timeout gerbang dan dipasang ulang pada setiap percobaan, juga yang ditolak:
+// hitungan yang bocor karena gerbang mati sebelum Keluar baru sembuh sesudah mitra itu sepi selama masa berlaku itu.
 var skripMasuk = redis.NewScript(`
 local n = redis.call('INCR', KEYS[1])
 redis.call('PEXPIRE', KEYS[1], ARGV[2])

@@ -175,6 +175,32 @@ func TestPembatasKeluarTidakDiBawahNol(t *testing.T) {
 	}
 }
 
+// Hitungan berjalan yang bocor (gerbang mati sebelum Keluar) sembuh sendiri, tetapi hanya sesudah mitra itu sepi selama
+// masa berlaku: setiap percobaan, juga yang ditolak, memasang ulang masa berlakunya. Mitra yang terus mengulang tanpa
+// jeda (M50) tidak pernah melihat slotnya pulih. Tes ini mengunci perilaku itu supaya komentar di kuota.go tetap benar.
+func TestPembatasSlotBocorSembuhHanyaSesudahSepi(t *testing.T) {
+	p := BuatPembatas(redisTes(t), fmt.Sprintf("t5waf-tes-bocor-%d-%d:", time.Now().UnixNano(), os.Getpid()), 20)
+	defer p.Tutup()
+	p.Jam = func() int64 { return 1_800_000_000_000 }
+	p.Napas = 600 * time.Millisecond
+	ctx := context.Background()
+	for i := 0; i < 20; i++ { // 20 slot diambil dan tidak pernah dilepas
+		if put, err := p.Masuk(ctx, "k", 1000); err != nil || !put.Boleh {
+			t.Fatalf("masuk %d: %v %v", i, put, err)
+		}
+	}
+	for i := 0; i < 6; i++ { // 6 x 150 ms = 900 ms, lebih lama dari masa berlaku (600 ms): tetap ditolak karena terus mencoba
+		time.Sleep(150 * time.Millisecond)
+		if put, err := p.Masuk(ctx, "k", 1000); err != nil || put.Boleh {
+			t.Fatalf("percobaan %d: %v %v, slot yang bocor harus masih menolak selama mitra terus mencoba", i, put, err)
+		}
+	}
+	time.Sleep(900 * time.Millisecond) // sepi lebih lama dari masa berlaku
+	if put, err := p.Masuk(ctx, "k", 1000); err != nil || !put.Boleh {
+		t.Fatalf("sesudah sepi: %v %v, hitungan yang bocor harus sudah sembuh", put, err)
+	}
+}
+
 // Hanya alamat di bawah /pos/v1/ yang diteruskan: versi lain, awalan tanpa garis miring, dan /pos/ sendiri tidak.
 func TestGerbangRuteHanyaPosV1(t *testing.T) {
 	l := siapkan(t, wafPalsu{})
