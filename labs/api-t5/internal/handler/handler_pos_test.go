@@ -207,3 +207,58 @@ func TestPOSRuteTidakAdaTanpaRahasia(t *testing.T) {
 		t.Fatalf("rute POS tanpa -pos-rahasia: %d", resp.StatusCode)
 	}
 }
+
+// --- tambahan tinjauan independen (keputusan 1661) ---
+
+// Cakupan kunci tidak ikut mati di mode rentan lain: hanya pos-tanpa-cakupan yang mematikannya.
+func TestPOSCakupanTetapBerlakuDiModeRentanLain(t *testing.T) {
+	p := siapkanPOS(t, service.RentanLaporanPrimary)
+	for _, merchant := range []int64{p.merchantB, 999999999} {
+		if st, isi := p.dari(p.mitraA, "POST", qrPath(merchant), `{"nominal":25000}`, "Idempotency-Key", uuidKunci(8)); st != 404 {
+			t.Errorf("merchant %d lewat mitra A di mode lain: %d %v", merchant, st, isi)
+		}
+	}
+	if st, isi := p.dari(p.mitraA, "POST", qrPath(p.merchantA), `{"nominal":25000}`, "Idempotency-Key", uuidKunci(9)); st != 201 {
+		t.Errorf("merchant sendiri di mode lain: %d %v", st, isi)
+	}
+}
+
+// Panjang referensi dihitung dalam karakter, bukan byte: 100 huruf "é" (200 byte) sah, 101 ditolak.
+func TestPOSReferensiDihitungDalamKarakter(t *testing.T) {
+	p := siapkanPOS(t, "")
+	seratus, seratusSatu := strings.Repeat("é", 100), strings.Repeat("é", 101)
+	if st, isi := p.dari(p.mitraA, "POST", qrPath(p.merchantA), `{"nominal":25000,"referensi":"`+seratus+`"}`, "Idempotency-Key", uuidKunci(10)); st != 201 {
+		t.Errorf("100 karakter (200 byte): %d %v", st, isi)
+	}
+	if st, isi := p.dari(p.mitraA, "POST", qrPath(p.merchantA), `{"nominal":25000,"referensi":"`+seratusSatu+`"}`, "Idempotency-Key", uuidKunci(11)); st != 400 {
+		t.Errorf("101 karakter: %d %v", st, isi)
+	}
+}
+
+// QR yang dibuat dijawab dengan Location ke alamat statusnya, dan jawaban ulang atas Idempotency-Key yang sama
+// membawa Location yang sama.
+func TestPOSLokasiQR(t *testing.T) {
+	p := siapkanPOS(t, "")
+	h := []string{"X-Gerbang-Rahasia", rahasiaGerbangTes, "X-Mitra-Id", fmt.Sprint(p.mitraA), "Idempotency-Key", uuidKunci(12)}
+	for i := 0; i < 2; i++ {
+		st, kepala, isi := p.l.kirim("POST", qrPath(p.merchantA), "", `{"nominal":25000}`, h...)
+		if want := qrPath(p.merchantA) + "/" + fmt.Sprint(isi["id"]); st != 201 || kepala.Get("Location") != want {
+			t.Fatalf("percobaan %d: %d Location %q, harus %q", i+1, st, kepala.Get("Location"), want)
+		}
+	}
+}
+
+// Status QR yang sudah terpakai tidak berubah menjadi kedaluwarsa sesudah masa berlakunya lewat: hanya yang masih
+// aktif yang dijawab kedaluwarsa.
+func TestPOSQRTerpakaiTidakKedaluwarsa(t *testing.T) {
+	p := siapkanPOS(t, "")
+	_, isi := p.dari(p.mitraA, "POST", qrPath(p.merchantA), `{"nominal":25000}`, "Idempotency-Key", uuidKunci(13))
+	id := isi["id"].(string)
+	if _, err := p.l.db.Exec(`UPDATE qr SET status = 'terpakai' WHERE id = $1`, id); err != nil {
+		t.Fatal(err)
+	}
+	p.l.maju(10 * time.Minute)
+	if st, isi := p.dari(p.mitraA, "GET", qrPath(p.merchantA)+"/"+id, ""); st != 200 || isi["status"] != "terpakai" {
+		t.Fatalf("QR terpakai sesudah masa berlaku: %d %v", st, isi)
+	}
+}
