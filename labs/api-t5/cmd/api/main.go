@@ -109,6 +109,7 @@ func main() {
 	buatSnapshot := flag.String("buat-snapshot", "", "job: tulis snapshot saldo akhir bulan YYYY-MM-DD (tanggal 1, bulan sudah selesai) untuk semua buku, lalu keluar (lab t5-partisi)")
 	dariSnapshot := flag.Bool("dari-snapshot", false, "dengan -cek-cache: baca snapshot saldo terakhir dan posting sesudahnya, bukan semua posting (lab t5-partisi)")
 	snapshotPeriode := flag.String("snapshot-periode", "", "dengan -dari-snapshot: pakai snapshot periode YYYY-MM-DD ini, bukan yang terakhir")
+	posRahasia := flag.String("pos-rahasia", "", "lab t5-waf: membuka /pos/v1 untuk mitra POS; nilainya harus dibawa gerbang di kepala X-Gerbang-Rahasia (mode rentan pos-tanpa-cakupan = tanpa cakupan mitra)")
 	cicilanHenti := flag.Int("lab-cicilan-henti", 0, "lab saja, dengan -cicilan-sampai: berhenti mendadak sesudah sekian jurnal ditulis, sebelum angsurannya ditandai")
 	flag.Parse()
 
@@ -129,7 +130,7 @@ func main() {
 	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu",
 		service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold, service.RentanUnduhRentan, service.RentanTanpaAudit,
 		service.RentanVerifikasiTanpaKey, service.RentanBerkasBytea, service.RentanLogBiasa, service.RentanLaporanPrimary, service.RentanCicilanSatuJob,
-		service.RentanRiwayatReplika:
+		service.RentanRiwayatReplika, service.RentanPosTanpaCakupan:
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
@@ -283,7 +284,7 @@ func main() {
 	if *jamLab {
 		svc = svc.DenganJam(jam)
 	}
-	srvHandler := handler.Baru(svc).DenganRentan(*rentan)
+	srvHandler := handler.Baru(svc).DenganRentan(*rentan).DenganPOS(*posRahasia)
 	if batasIP != nil {
 		srvHandler = srvHandler.DenganBatasLoginIP(batasIP)
 	}
