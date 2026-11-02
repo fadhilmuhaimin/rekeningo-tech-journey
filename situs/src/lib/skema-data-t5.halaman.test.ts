@@ -60,6 +60,7 @@ interface Tabel {
 }
 interface Erd {
   tahap: number;
+  postgres: string | number;
   sumber: { file: string[] };
   tabel: Tabel[];
   selisih: {
@@ -255,7 +256,6 @@ const SELISIH = SELISIH_REKAMAN + SELISIH_LAIN;
 const FK_LINTAS_T4 = modul4.lintas.length;
 const ERD_NASKAH = execFileSync("python3", ["tools/erd.py", "--naskah", "5"], { cwd: akar, encoding: "utf8" }).trim();
 
-const baruTeks = (tabel: string): string => bt([tabel])[0]!;
 const TABEL_SERVICE = layanan.modul
   .map((m) => `| \`${m.nama}\` | ${bt(m.tabel).join(", ")} | ${m.tabel.length} | ${hitungSvc("dariSvc", m.nama)} |`)
   .join("\n");
