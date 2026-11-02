@@ -4208,6 +4208,7 @@
         "backend"
       ],
       "masalah": "Dari PRD v5, apa yang berubah di app, backend, dan database, dan kenapa salinan boleh banyak tetapi uang bergerak hanya di satu tempat?",
+      "pendek": "Fitur ke pekerjaan teknis v5",
       "prasyarat": [
         "t5-prd"
       ],

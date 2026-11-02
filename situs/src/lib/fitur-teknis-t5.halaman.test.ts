@@ -44,7 +44,7 @@ const laporan = rek("api-t5", "laporan.txt");
 const beban = rek("api-t5", "beban.txt");
 const promosi = rek("t5-replika", "promosi.txt");
 
-interface H { id: string; judul: string; tahap: number; nomor?: string; ada?: boolean; adr?: number[]; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; path?: string; peran?: string[]; bagian?: number | string; lab?: string[] }
+interface H { id: string; judul: string; pendek?: string; tahap: number; nomor?: string; ada?: boolean; adr?: number[]; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; path?: string; peran?: string[]; bagian?: number | string; lab?: string[] }
 const hal = cerita.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
@@ -92,6 +92,12 @@ describe("registry, meta, dan susunan blok", () => {
     const h = dari("t5-fitur-teknis");
     expect([h.tahap, h.nomor, h.jenis, h.bagian, h.inti, h.ada, h.prasyarat, h.lab, h.peran]).toEqual([5, "5.2", "fitur", 2, true, true, ["t5-prd"], ["api-t5"], ["mobile", "backend"]]);
     expect(h.path).toBe("tahap-5/fitur-ke-teknis.md");
+    // Judul registry 94 karakter membungkus baris meta halaman penaut (5.3) saat 5.2 masih "segera": CLS 0,152 di 667x375
+    // (scratch ukur-cls, Verdana, font telat 1500 ms); `pendek` memendekkan label rujukan jadi "5.2 Fitur ke pekerjaan teknis v5" (CLS 0,001).
+    expect(h.pendek).toBe("Fitur ke pekerjaan teknis v5");
+    expect(h.judul.toLowerCase()).toContain(h.pendek!.toLowerCase());
+    expect(h.pendek!.length).toBeLessThan(h.judul.split(":")[0]!.length);
+    expect(`${h.nomor} ${h.pendek}`.length).toBeLessThanOrEqual(35);
     const peta = barisAwal(naskah, "| 5.2 |");
     expect(sel(peta)).toEqual(["5.2", "2, 3", h.judul, "Fitur → teknis", "★", "api-t5", "W5-zona"]);
     expect(barisAwal(front, "title:")).toBe(`title: "5.2 ${h.judul}"`);
