@@ -1,0 +1,44 @@
+{
+  "id": "t5-skema-tebak",
+  "judul": "PRIMARY KEY tabel posting yang dipartisi",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/api-t5/output/skema.txt bagian C dan D; ERD dari situs/data/erd/tahap-5.json; dokumentasi PostgreSQL 17 bagian 5.12.2.3"
+  },
+  "adegan": [
+    "Raka mempartisi posting per bulan menurut kolom dibuat, supaya bulan lama bisa dilepas dari database utama.",
+    "PRIMARY KEY tabelnya masih id saja, seperti di Tahap 4. Ia menjalankan CREATE TABLE dengan PARTITION BY RANGE (dibuat)."
+  ],
+  "pertanyaan": "Apa jawaban PostgreSQL?",
+  "pilihan": [
+    {
+      "teks": "Diterima. id tetap unik di semua bulan karena PostgreSQL membuat satu index untuk seluruh tabel.",
+      "benar": false,
+      "alasan": "PostgreSQL menolaknya. Index yang membentuk PRIMARY KEY dibuat per partisi, dan masing-masing hanya menegakkan keunikan di dalam partisinya sendiri (dokumentasi PostgreSQL 17, bagian 5.12.2.3)."
+    },
+    {
+      "teks": "Diterima, tetapi id hanya dijaga unik di dalam tiap bulan.",
+      "benar": false,
+      "alasan": "Constraint seperti itu tidak bisa dibuat. Lab merekam PRIMARY KEY pada id di tabel dengan PARTITION BY RANGE (dibuat) ditolak dengan SQLSTATE 0A000."
+    },
+    {
+      "teks": "Ditolak: tabel yang dipartisi tidak boleh punya PRIMARY KEY sama sekali.",
+      "benar": false,
+      "alasan": "Boleh punya, asalkan PRIMARY KEY memuat kolom kunci partisi. Tabel posting di lab memakai PRIMARY KEY (id, dibuat)."
+    },
+    {
+      "teks": "Ditolak: PRIMARY KEY harus memuat kolom kunci partisi, jadi posting memakai (id, dibuat).",
+      "benar": true,
+      "alasan": "Pesan lab: unique constraint on partitioned table must include all partitioning columns (SQLSTATE 0A000). Akibatnya id sendiri tidak lagi dijaga unik lintas bulan oleh constraint. Di lab, keunikannya datang dari sequence posting_id_seq."
+    }
+  ],
+  "penutup": "Partisi per bulan mengubah PRIMARY KEY posting menjadi (id, dibuat). Di antara tabel Tahap 4, hanya posting yang PRIMARY KEY-nya berubah di Tahap 5.",
+  "label": {
+    "sumber": "Rekaman lab · skema.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
