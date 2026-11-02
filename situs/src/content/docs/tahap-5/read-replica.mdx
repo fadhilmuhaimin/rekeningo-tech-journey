@@ -12,7 +12,7 @@ import Tebak from "../../../widgets/tebak/Tebak.tsx";
 import intiDiagram from "../../../../data/diagram/t5-replica-inti.json";
 import dataTebak from "../../../../data/widget/t5-replica-tebak.json";
 
-<p class="meta">Baca 19 menit · coba 4 menit · Prasyarat: [[t5-m40]] · Jalur inti</p>
+<p class="meta">Baca 16 menit · coba 4 menit · Prasyarat: [[t5-m40]] · Jalur inti</p>
 
 <Blok nama="Mulai" buka>
 
@@ -30,7 +30,7 @@ Replica selalu sedikit tertinggal, jadi ADR 46 membagi bacaan: laporan dari repl
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
 
 1. Pernyataan apa yang ditolak standby, dan dengan kode apa?
-2. Query 45 detik berjalan di replica dengan `statement_timeout` 20 detik. Berhenti kapan, dengan kode apa, dan apa bedanya dengan tanpa timeout?
+2. Query 45 detik di replica dengan `statement_timeout` 20 detik: kapan ia berhenti, dengan kode apa, dan apa yang berubah tanpa timeout?
 3. Saldo tampil di replica Rp250.000, saldo primary Rp215.000. Kiriman Rp240.000 diterima atau ditolak, dan saldo yang menentukan itu dibaca dari mana?
 
 Yakin dengan ketiganya? Lompat ke [[berikutnya]].
@@ -116,7 +116,7 @@ Timeout tidak mencegah pembatalan. Ia menggantinya: 57014 sesudah paling sedikit
 
 Dokumentasi juga menulis bahwa query yang lama bisa membuat sesi lain di standby tidak melihat perubahan terbaru bila ia menunda penerapan WAL. Jadi query panjang di replica menambah jeda, bukan hanya risiko dibatalkan.
 
-**`hot_standby_feedback` mencegah pembatalan dengan harga di primary.** Standby memberi tahu primary baris mana yang masih ia pakai, sehingga VACUUM menunda pembersihannya. Dokumentasi menulis bawaannya off, dan pengaturan ini bisa menggembungkan tabel di primary pada beberapa beban ([PostgreSQL 17.11, Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html)). Lab membiarkannya off dan tidak mengukur penggembungan (Tidak dijalankan).
+**`hot_standby_feedback` mencegah pembatalan dengan harga di primary.** Standby memberi tahu primary baris mana yang masih ia pakai, sehingga VACUUM menunda pembersihannya. Dokumentasi menulis bawaannya off, dan pengaturan ini bisa menggembungkan tabel di primary pada beberapa beban ([PostgreSQL 17.11, Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html), dibuka 2026-11-03). Lab membiarkannya off dan tidak mengukur penggembungan (Tidak dijalankan).
 
 **Uang tidak dibaca dari replica.** Di `baca.txt` bagian A Budi membayar Rp35.000 ke Warung 505 sementara replay ditahan, dan jawaban bayar memuat saldo Rp215.000. Replica masih menjawab Rp250.000, sedangkan primary Rp215.000. Kiriman Rp240.000 ditolak dengan 422 `saldo-kurang`:
 
@@ -236,7 +236,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 - **A ditolak** karena polling satu perangkat per merchant tiap 30 detik tidak punya panggilan kedua dalam umur isi cache. Rekaman `laporan.txt` bagian C mencatat 0 hit dari 18, dan kontrol dengan dua client per warung dalam satu jendela mencatat 9 hit dari 18. Hitungan 5.4 menulis penjualan baru bisa terlihat 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5 ([[t5-m40]]).
 - **B ditolak** karena index mempercepat satu query, sedangkan beban M40 datang dari jumlah query. Rekaman hanya menunjukkan query laporan di bawah 1 ms pada data satu hari dan 9 warung. Belum ada bukti bahwa query-nya yang lambat (Tidak dijalankan).
 - **C ditolak untuk sekarang** karena push butuh event streaming yang dibahas di [[t5-fanout]]. Opsi ini mengurangi query, tetapi tidak ada rekamannya di halaman ini (Tidak dijalankan).
-- **D ditolak** karena terlalu berat untuk satu laporan. Dokumentasi PostgreSQL 17 menulis bawaan `max_slot_wal_keep_size` -1, yaitu slot boleh menahan WAL tanpa batas ([PostgreSQL 17.11, Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html)). Debezium hanya disebut dan tidak dijalankan.
+- **D ditolak** karena terlalu berat untuk satu laporan. Dokumentasi PostgreSQL 17 menulis bawaan `max_slot_wal_keep_size` -1, yaitu slot boleh menahan WAL tanpa batas ([PostgreSQL 17.11, Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html), dibuka 2026-11-03). Debezium hanya disebut dan tidak dijalankan.
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
@@ -259,7 +259,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 | Yang ditunda | Kenapa ditunda | Muncul lagi di |
 |---|---|---|
 | Kode yang mengisi `ringkasan_merchant_harian` | Tabel ada di lab, tetapi tidak ada kode yang mengisinya | Belum dijadwalkan |
-| Laporan merchant yang dibaca dari replica di lab | Lab `t5-replika` menjalankan bacaan akun dan riwayat, bukan laporan | Belum dijadwalkan |
+| Laporan merchant yang dibaca dari replica di lab | Lab `t5-replika` menjalankan bacaan riwayat dan saldo tampil, bukan laporan | Belum dijadwalkan |
 | Replica kedua | Belum ada ukuran p95 laporan, dan ambang 1 detik adalah Asumsi | Belum dijadwalkan |
 | Database analitik lewat CDC | Debezium hanya disebut, dan slot menahan WAL | [[t5-adr-60]] |
 
@@ -274,7 +274,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 <details class="success">
 <summary>Jawaban</summary>
 
-UPDATE, INSERT, DELETE, TRUNCATE, CREATE, ALTER, DROP, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION` dijawab 25006. `SET TRANSACTION READ WRITE` dijawab 0A000. Sesudahnya jumlah jurnal, posting, dan total saldo di tiga node tidak berubah (`replika.txt` bagian B).
+Pernyataan yang menulis atau mengunci baris dijawab 25006: UPDATE, INSERT, DELETE, TRUNCATE, CREATE, ALTER, DROP, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION`. Untuk `SET TRANSACTION READ WRITE` jawabannya 0A000. Sesudahnya jumlah jurnal, posting, dan total saldo di tiga node tidak berubah (`replika.txt` bagian B).
 
 </details>
 

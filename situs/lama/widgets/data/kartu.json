@@ -3605,7 +3605,7 @@
   "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
   "url": "tahap-5/read-replica/",
   "tanya": "Pernyataan apa yang ditolak standby, dan dengan kode apa?",
-  "jawab": "UPDATE, INSERT, DELETE, TRUNCATE, CREATE, ALTER, DROP, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION` dijawab 25006. `SET TRANSACTION READ WRITE` dijawab 0A000. Sesudahnya jumlah jurnal, posting, dan total saldo di tiga node tidak berubah (`replika.txt` bagian B)."
+  "jawab": "Pernyataan yang menulis atau mengunci baris dijawab 25006: UPDATE, INSERT, DELETE, TRUNCATE, CREATE, ALTER, DROP, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION`. Untuk `SET TRANSACTION READ WRITE` jawabannya 0A000. Sesudahnya jumlah jurnal, posting, dan total saldo di tiga node tidak berubah (`replika.txt` bagian B)."
  },
  {
   "id": "t5-read-replica-2",
@@ -3629,7 +3629,7 @@
   "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
   "url": "tahap-5/read-replica/",
   "tanya": "Cache 30 detik ditolak sedangkan replica dipilih. Apa beda antara data yang tertinggal di keduanya?",
-  "jawab": "Cache menyimpan jawaban lama sampai TTL 30 detik habis, jadi laporan bisa setua 30 detik, dan rekaman mencatat 0 hit dari 18 untuk satu client per warung. Replica menjawab dari data yang tertinggal sebesar jeda replay, di lab di bawah 1 detik pada 100 pembayaran per detik. Jeda itu batas di laptop, bukan nilai produksi."
+  "jawab": "Cache menyimpan jawaban sampai TTL 30 detik habis, jadi laporan bisa setua 30 detik. Rekaman mencatat 0 hit dari 18 untuk satu client per warung. Replica menjawab dari data yang tertinggal sebesar jeda replay, di lab di bawah 1 detik pada 100 pembayaran per detik. Jeda itu batas di laptop, bukan nilai produksi."
  },
  {
   "id": "t5-m43-1",
