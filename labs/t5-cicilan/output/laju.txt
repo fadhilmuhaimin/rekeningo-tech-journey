@@ -1,0 +1,43 @@
+# Lab t5-cicilan · job cicilan atas 2.000 angsuran dan hitungan 13.333 per hari
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_cicilan · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-cicilan run.
+
+# --- A. Job satu proses atas 2.000 angsuran jatuh tempo (200 jadwal x 10 angsuran Rp1.000, 20 warung), versi benar ---
+# Jadwal ditulis langsung di database (bukan lewat POST /cicilan) supaya 2.000 angsuran siap dalam satu perintah; job-nya job yang sama.
+=> WITH w AS (SELECT id, row_number() OVER (ORDER BY id) AS n FROM akun WHERE jenis = 'warung' ORDER BY id LIMIT 20),
+                   k AS (SELECT id, row_number() OVER (ORDER BY id) AS n FROM akun WHERE jenis = 'karyawan' ORDER BY id OFFSET 3 LIMIT 200)
+              INSERT INTO jadwal_cicilan (akun_id, jenis, merchant_akun_id, jumlah_per_angsuran, jumlah_angsuran, hari_tagih)
+              SELECT k.id, 'cicilan', w.id, 1000, 10, 15 FROM k JOIN w ON w.n = (k.n - 1) % 20 + 1 ORDER BY k.id
+INSERT 0 200
+=> INSERT INTO angsuran (jadwal_id, ke, jatuh_tempo) SELECT j.id, k, current_date - 1 FROM jadwal_cicilan j, generate_series(1, 10) k
+INSERT 0 2000
+=> SELECT count(*) AS jadwal, (SELECT count(*) FROM angsuran WHERE status = 'menunggu') AS angsuran_menunggu FROM jadwal_cicilan
+ jadwal | angsuran_menunggu
+--------+-------------------
+ 200    | 2000
+(1 row)
+$ api-t5 -cicilan-sampai <tanggal>
+hasil: dibaca 2000, jurnal baru 2000, dicatat 2000, gagal 0
+laju terukur memenuhi batas 20 angsuran per detik (Asumsi naskah): ya
+=> SELECT count(*) AS angsuran, count(*) FILTER (WHERE status = 'dicatat') AS dicatat,
+                     (SELECT count(*) FROM jurnal WHERE jenis = 'angsuran') AS jurnal_angsuran,
+                     (SELECT count(DISTINCT referensi) FROM jurnal WHERE jenis = 'angsuran') AS referensi_berbeda FROM angsuran
+ angsuran | dicatat | jurnal_angsuran | referensi_berbeda
+----------+---------+-----------------+-------------------
+ 2000     | 2000    | 2000            | 2000
+(1 row)
+=> SELECT DISTINCT 250000 - sum(p.jumlah) AS berkurang_per_karyawan FROM posting p JOIN buku b ON b.id = p.buku_id JOIN jadwal_cicilan j ON j.akun_id = b.akun_id AND b.jenis = 'karyawan' GROUP BY b.akun_id
+ berkurang_per_karyawan
+------------------------
+ 10000
+(1 row)
+=> SELECT count(*) AS posting_tak_seimbang FROM (SELECT jurnal_id FROM posting GROUP BY jurnal_id HAVING sum(jumlah) <> 0) x
+ posting_tak_seimbang
+----------------------
+ 0
+(1 row)
+# job dijalankan sekali lagi: dibaca 0, jurnal baru 0
+
+# --- B. Hitungan atas Asumsi naskah (bukan rekaman) ---
+# 13.333 angsuran per hari puncak (100.000 jadwal x 40% jatuh tempo di tiga hari gajian ÷ 3, naskah bagian 3) ÷ 20 per detik = 666,65 detik, dibulatkan 667 detik = 11,1 menit
+# Laju terukur di atas hanya batas bawah di laptop lab (satu proses, satu transaction per angsuran); nilainya tidak direkam dan bukan kapasitas produksi.

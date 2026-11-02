@@ -109,7 +109,11 @@ func main() {
 	buatSnapshot := flag.String("buat-snapshot", "", "job: tulis snapshot saldo akhir bulan YYYY-MM-DD (tanggal 1, bulan sudah selesai) untuk semua buku, lalu keluar (lab t5-partisi)")
 	dariSnapshot := flag.Bool("dari-snapshot", false, "dengan -cek-cache: baca snapshot saldo terakhir dan posting sesudahnya, bukan semua posting (lab t5-partisi)")
 	snapshotPeriode := flag.String("snapshot-periode", "", "dengan -dari-snapshot: pakai snapshot periode YYYY-MM-DD ini, bukan yang terakhir")
-	cicilanHenti := flag.Int("lab-cicilan-henti", 0, "lab saja, dengan -cicilan-sampai: berhenti mendadak sesudah sekian jurnal ditulis, sebelum angsurannya ditandai")
+	cicilanHenti := flag.Int("lab-cicilan-henti", 0, "lab saja, dengan -cicilan-sampai: proses dimatikan sinyal 9 (SIGKILL) sesudah sekian jurnal ditulis, sebelum angsurannya ditandai")
+	cicilanHentiTerjurnal := flag.Int("lab-cicilan-henti-terjurnal", 0, "lab saja, dengan -cicilan-sampai: proses dimatikan sinyal 9 (SIGKILL) sesudah sekian angsuran ditandai terjurnal, sebelum ditandai dicatat (versi benar)")
+	kompensasi := flag.String("kompensasi-angsuran", "", "job: kompensasi satu angsuran terjurnal yang tidak bisa diselesaikan, bentuk <jadwal>:<ke>: jurnal pembalik dan status gagal, lalu keluar (ADR 54, lab t5-cicilan)")
+	kompensasiOleh := flag.Int64("kompensasi-oleh", 0, "dengan -kompensasi-angsuran: nomor akun admin yang meminta kompensasi")
+	kompensasiAlasan := flag.String("kompensasi-alasan", "", "dengan -kompensasi-angsuran: alasan, minimal 20 karakter")
 	flag.Parse()
 
 	// Mode rentan push-dalam-tx adalah versi pertama minggu 1: client tanpa batas waktu dan tanpa pengaman
@@ -204,8 +208,11 @@ func main() {
 	if *retensi {
 		os.Exit(jalankanRetensi(r, *umurSesi, dep, *labSekarang))
 	}
+	if *kompensasi != "" {
+		os.Exit(jalankanKompensasi(r, *umurSesi, *kompensasi, *kompensasiOleh, *kompensasiAlasan))
+	}
 	if *cicilanSampai != "" {
-		os.Exit(jalankanCicilan(r, *umurSesi, *rentan, *cicilanSampai, *labSekarang, *cicilanHenti))
+		os.Exit(jalankanCicilan(r, *umurSesi, *rentan, *cicilanSampai, *labSekarang, *cicilanHenti, *cicilanHentiTerjurnal))
 	}
 	if *cekTopup || *rekon != "" || *kedaluwarsaHold || *koreksiRekon {
 		os.Exit(jalankanJobT4(r, *umurSesi, dep, *rentan, *cekTopup, *cekUmur, *rekon, *kedaluwarsaHold, *koreksiRekon, *labSekarang))
@@ -617,7 +624,7 @@ func jalankanCekCacheSnapshot(r repo.Repo, tanggal string) int {
 
 // jalankanCicilan: job sekali jalan. Exit 0 bila selesai (angsuran yang gagal karena saldo bukan kegagalan job), 2 bila
 // job tidak bisa jalan. Dengan -lab-sekarang, waktu Idempotency-Key mode rentan diperankan (24 jam tidak ditunggu).
-func jalankanCicilan(r repo.Repo, umurSesi time.Duration, rentan, sampai, sekarang string, henti int) int {
+func jalankanCicilan(r repo.Repo, umurSesi time.Duration, rentan, sampai, sekarang string, henti, hentiTerjurnal int) int {
 	svc := service.Baru(r, umurSesi).DenganMode(rentan)
 	if sekarang != "" {
 		t, err := time.Parse(time.RFC3339, sekarang)
@@ -632,12 +639,37 @@ func jalankanCicilan(r repo.Repo, umurSesi time.Duration, rentan, sampai, sekara
 		log.Printf("-cicilan-sampai: %v", err)
 		return 2
 	}
-	h, err := svc.JalankanCicilan(context.Background(), tanggal, service.OpsiCicilan{BerhentiSetelahJurnal: henti})
+	h, err := svc.JalankanCicilan(context.Background(), tanggal, service.OpsiCicilan{BerhentiSetelahJurnal: henti, BerhentiSetelahTerjurnal: hentiTerjurnal})
 	if err != nil {
 		log.Print(err)
 		return 2
 	}
+	if h.Dihentikan {
+		// Titik kematian disuntik (lab saja): proses mati tepat sesudah jurnal ditulis dan sebelum angsurannya ditandai
+		// (-lab-cicilan-henti), atau sesudah ditandai terjurnal dan sebelum dicatat (-lab-cicilan-henti-terjurnal), tanpa
+		// defer dan tanpa keluaran, seperti node yang dikosongkan atau OOM kill.
+		_ = syscall.Kill(syscall.Getpid(), syscall.SIGKILL)
+		time.Sleep(time.Hour) // tidak tercapai: sinyal 9 tidak bisa ditangkap (select {} memicu deteksi deadlock Go lebih dulu)
+	}
 	fmt.Printf("cicilan sampai %s: dibaca %d, jurnal baru %d, jurnal sudah ada %d, dicatat %d, dilewati %d, gagal %d\n",
 		sampai, h.Dibaca, h.Dijurnal, h.JurnalAda, h.Dicatat, h.Dilewati, h.Gagal)
+	return 0
+}
+
+// jalankanKompensasi: job sekali jalan untuk satu angsuran (<jadwal>:<ke>). Exit 0 bila jurnal pembalik tercatat dan
+// angsurannya gagal, 2 bila tidak (alasan di log).
+func jalankanKompensasi(r repo.Repo, umurSesi time.Duration, angsuran string, oleh int64, alasan string) int {
+	var jadwal int64
+	var ke int
+	if n, err := fmt.Sscanf(angsuran, "%d:%d", &jadwal, &ke); err != nil || n != 2 {
+		log.Printf("-kompensasi-angsuran: bentuk <jadwal>:<ke>, dapat %q", angsuran)
+		return 2
+	}
+	balik, err := service.Baru(r, umurSesi).KompensasiAngsuran(context.Background(), oleh, jadwal, ke, alasan)
+	if err != nil {
+		log.Printf("kompensasi angsuran %s: %v", angsuran, err)
+		return 2
+	}
+	fmt.Printf("kompensasi angsuran %s: jurnal pembalik %d, angsuran gagal\n", angsuran, balik)
 	return 0
 }

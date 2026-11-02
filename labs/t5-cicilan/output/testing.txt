@@ -1,0 +1,37 @@
+# Lab t5-cicilan · tes Go untuk cicilan serentak dan kompensasi, dan versi DBOS
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · pgx v5.11.0 · schema tahap5_cicilan_tes · server Go di 127.0.0.1:18310
+# Rekaman dari database bersih: make -C labs/t5-cicilan run.
+
+# --- A. go vet atas api-t5 dan atas pembanding DBOS ---
+$ go vet ./...   # api-t5
+(tanpa temuan)
+# exit status 0
+$ go vet ./...   # labs/t5-cicilan/dbos
+(tanpa temuan)
+# exit status 0
+
+# --- B. Tes cicilan dan kompensasi dengan PostgreSQL sungguhan (schema tahap5_cicilan_tes) ---
+$ TEST_DATABASE_URL=<pemilik, schema tahap5_cicilan_tes> TES_DB_WAJIB=1 go test -v -count=1 -p 1 -run 'Cicilan|Kompensasi' ./internal/service
+--- PASS: TestCicilanDuaJobSerentakPeriksaReferensiSesudahKunciBuku
+--- PASS: TestCicilanSatuJobRentanDuaJobSerentakDalam24JamTidakGanda
+--- PASS: TestKompensasiAngsuranLewatJurnalPembalik
+--- PASS: TestKompensasiAngsuranDitolakBilaSaldoKaryawanNegatif
+--- PASS: TestKompensasiAngsuranPeranDanBatasAlasan
+--- PASS: TestKompensasiAngsuranAtasJurnalYangSudahDibalikLewatBalik
+--- PASS: TestKompensasiAngsuranJurnalTanpaPostingDijawabDiarsip
+--- PASS: TestCicilanJatuhTempoTepatPadaTanggalJobIkutDitagih
+--- PASS: TestCicilanGalatSelainSaldoKurangTidakMenandaiGagal
+--- PASS: TestCicilanDihentikanSesudahTerjurnalDilanjutkanDariTerjurnal
+--- PASS: TestCicilanDiulangSesudahCrashTidakMenagihDua
+--- PASS: TestCicilanSatuJobRentanMenagihDuaSesudah24Jam
+--- PASS: TestCicilanSaldoKurangDanTabungan
+--- PASS: TestBuatCicilanValidasi
+--- PASS: TestCicilanLangkahDanJadwalDihentikan
+--- PASS: TestBatasValidasiCicilanDanPengumuman
+PASS
+ok    lab/apit5/internal/service
+# exit status 0
+
+# --- C. Versi dan lisensi pembanding ---
+github.com/dbos-inc/dbos-transact-golang v1.8.0 terbit 2026-10-28 (go list -m -json, proxy modul)
+LICENSE modul: MIT License
