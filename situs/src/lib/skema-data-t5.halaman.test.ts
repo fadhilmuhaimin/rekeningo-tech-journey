@@ -938,3 +938,136 @@ describe("label sumber dan baris riset R5-120 sampai R5-124", () => {
     expect(mdx).toContain("[Label sumber](/cara-pakai/#label-sumber)");
   });
 });
+
+// ---- penguat tinjauan (keputusan 1511) -----------------------------------------------------------------------------------
+// Uji mutasi KEMBAR (perubahan identik di MDX dan templat) meloloskan 35 dari 42 mutan, karena templat mengunci kalimat tetapi tidak
+// menilainya. Tes di bawah mengikat kalimat yang punya sumber ke sumbernya: huruf bagian rekaman, klaim negatif, kata bilangan, nama
+// kode, hak role, kalimat partisi, tingkat judul, dan baris Sengaja belum. Kalimat naratif bebas tetap hanya terkunci literal.
+describe("penguat tinjauan: kalimat yang punya sumber diikat ke sumbernya, bukan hanya ke templat", () => {
+  const badan = mdx.slice(mdx.indexOf("\n---\n", 3) + 5);
+  const hurufDi = (baris: string[], idx: number): string => {
+    for (let k = idx; k >= 0; k--) {
+      const m = baris[k]!.match(/^# --- ([A-Z])\. /);
+      if (m) return m[1]!;
+    }
+    throw new Error("baris di luar bagian rekaman");
+  };
+  const hurufBagianDari = (baris: string[], pola: RegExp): string => {
+    const i = baris.findIndex((b) => pola.test(b));
+    if (i < 0) throw new Error(`rekaman: ${pola} tidak ditemukan`);
+    return hurufDi(baris, i);
+  };
+  test("huruf bagian rekaman di kutipan dan judul Snippet diturunkan dari kepala bagian, dalam urutan kemunculan", () => {
+    const LA = hurufBagianDari(skemaTxt, /^=> SELECT count\(\*\) AS tabel FROM pg_class/);
+    const LB = hurufBagianDari(skemaTxt, /^# Selisih dengan naskah, skema lab yang benar/);
+    const LC = hurufBagianDari(skemaTxt, /^=> SELECT pg_get_partkeydef/);
+    const LD = hurufBagianDari(skemaTxt, /constraint posting_bulan_00_tidak_diubah/);
+    const LE = hurufBagianDari(skemaTxt, /^# foreign key lintas schema service SEBELUM dihapus/);
+    const LF = hurufBagianDari(skemaTxt, /^t5_ledger: SELECT nama FROM t5_akun\.akun LIMIT 1$/);
+    expect([LA, LB, LC, LD, LE, LF]).toEqual(["A", "B", "C", "D", "E", "F"]);
+    const kutipan = [...badan.matchAll(/`skema\.txt` bagian ([A-Z](?:, [A-Z])*(?:,? dan [A-Z])?)/g)].map((m) => m[1]!);
+    expect(kutipan).toEqual([`${LE} dan ${LF}`, `${LA}, ${LB}, dan ${LC}`, LD, LE, LE, LF, `${LB} dan ${LE}`]);
+    const judul = [...badan.matchAll(/<Snippet file="labs\/api-t5\/output\/skema\.txt" lines="(\d+):(\d+)"[^>]*title="([^"]+)"/g)].map((m) => ({ a: Number(m[1]), judul: m[3]! }));
+    expect(judul).toHaveLength(2);
+    for (const s of judul) expect(s.judul).toContain(`(bagian ${hurufDi(skemaTxt, s.a - 1)})`);
+    const LPASANG = hurufBagianDari(pasangTxt, /no partition of relation "posting" found for row/);
+    const LLEPAS = hurufBagianDari(lepasTxt.split("\n"), /DETACH PARTITION uji_part_a CONCURRENTLY/);
+    expect(badan).toContain(`\`pasang.txt\` bagian ${LPASANG})`);
+    expect(badan).toContain(`\`lepas.txt\` bagian ${LLEPAS}, tabel uji tanpa trigger ledger`);
+    expect(badan.match(/`(?:skema|pasang|lepas)\.txt` bagian/g)).toHaveLength(kutipan.length + 2);
+  });
+  test("klaim negatif dan kata bilangan terikat ke sumbernya: tanpa yang dihapus, tabel uang, waktu, nilai kosong, referensi", () => {
+    const adaDihapus = erd5.selisih.tabel_dihapus.length + erd5.selisih.kolom_dihapus.length > 0;
+    expect(badan.includes("tidak ada tabel atau kolom yang dihapus")).toBe(!adaDihapus);
+    const uang = layanan.modul.find((m) => m.nama === "ledger")!.tabel.slice(0, 3);
+    expect(badan).toContain(`**Tabel uang tetap ${W(uang.length)}.**`);
+    const paragrafUang = badan.split("**Tabel uang tetap")[1]!.split("\n\n")[0]!;
+    for (const t of uang) expect(paragrafUang).toContain(`\`${t}\``);
+    expect(lepasTxt).toContain("Nilai waktunya tidak direkam.");
+    expect(badan).toContain("Nilai waktunya tidak direkam");
+    expect(risetBaris.find((b) => b.startsWith("| R5-124 |"))).toContain("dua nilai kosong tidak dianggap sama dalam perbandingan UNIQUE");
+    expect(badan).toContain("dua nilai kosong tidak dianggap sama dalam UNIQUE");
+    expect(naskah5).toContain("Referensi bisnis yang tidak kedaluwarsa");
+    expect(badan).toContain("sedangkan `referensi` tidak kedaluwarsa");
+    const r122 = risetBaris.find((b) => b.startsWith("| R5-122 |"))!;
+    expect(r122).toContain("hanya menegakkan keunikan di dalam partisinya sendiri");
+    expect(badan).toContain("hanya menegakkan keunikan di dalam partisinya sendiri");
+    expect(r122).toContain("menghindari beban VACUUM dari DELETE massal");
+    expect(badan).toContain("DROP atau DETACH menghindari beban VACUUM dari DELETE massal");
+    expect(BULAN).toBe(12);
+    expect(badan).toContain("satu snapshot per bulan)");
+    const ukuran: [string, number][] = [
+      ["ringkasan_merchant_harian", GB(RING_HARI * HARI * BYTE_RINGKASAN)],
+      ["snapshot_saldo", GB(BUKU_SNAPSHOT * BULAN * BYTE_SNAPSHOT)],
+      ["outbox", OUTBOX_GB],
+    ];
+    const terbesar = [...ukuran].sort((x, y) => y[1] - x[1])[0]![0];
+    expect(badan).toContain(`kecuali \`${terbesar}\` tanpa retensi`);
+  });
+  test("kolom Label di tabel ukuran memakai Asumsi, karena masukannya Asumsi", () => {
+    const potong = (dari: string, sampai: string): string[] => {
+      const a = badan.indexOf(dari);
+      const z = badan.indexOf(sampai, a);
+      expect(a).toBeGreaterThan(-1);
+      expect(z).toBeGreaterThan(a);
+      return badan.slice(a, z).split("\n").filter((l) => l.startsWith("| ") && !l.startsWith("| ---") && !/^\| (Sumber|Tabel) \|/.test(l));
+    };
+    const baris = [...potong("**Tiga angka untuk satu tahun data Tahap 5.**", "Selisih ketiganya"), ...potong("**Tabel baru Tahap 5 kecil", "Top-up per hari")];
+    expect(baris).toHaveLength(8);
+    for (const b of baris) expect(b.split("|").slice(-2)[0]!.trim(), b).toMatch(/^Asumsi/);
+  });
+  test("nama snake_case di code span ada sebagai kata utuh di ERD, migration, rekaman, atau README lab", () => {
+    const korpus = [mig000024, mig000026.join("\n"), skemaTxt.join("\n"), pasangTxt.join("\n"), lepasTxt, lepasPy, readmeApi, readmePartisi, JSON.stringify(erd4), JSON.stringify(erd5), JSON.stringify(layanan), baca("labs/api-t5/layanan.sql"), baca("labs/api-t5/migrasi/000025_tabel_tahap5.up.sql")].join("\n");
+    const nama = [...new Set([...badan.matchAll(/`([a-z][a-z0-9_]*)`/g)].map((m) => m[1]!))];
+    expect(nama.length).toBeGreaterThan(40);
+    const hilang = nama.filter((n) => !new RegExp(`(^|[^A-Za-z0-9_])${n}($|[^A-Za-z0-9_])`).test(korpus));
+    expect(hilang).toEqual([]);
+  });
+  test("hak role diturunkan dari rekaman F: jumlah role selain ledger, USAGE dan SELECT, kolom yang diizinkan dan yang ditolak", () => {
+    const f = F.join("\n");
+    expect(badan).toContain(`dan ke${W(layanan.modul.length - 1)} role selain ledger tidak punya hak apa pun di schema service lain`);
+    expect(f).toContain("hanya t5_ledger yang punya, yaitu USAGE schema akun dan SELECT atas");
+    expect(badan).toContain("Haknya USAGE atas schema (izin menemukan tabelnya) dan SELECT atas kolom");
+    const ditolak = F.find((b) => /^t5_ledger: SELECT (\w+) FROM t5_akun\.akun LIMIT 1$/.test(b))!.match(/SELECT (\w+) FROM/)![1]!;
+    expect(badan).toContain(`Kolom \`${ditolak}\` ditolak dengan SQLSTATE`);
+    const izin = F.find((b) => /^t5_ledger: SELECT [\w, ]+ FROM t5_akun\.akun LIMIT 1 {3}-- berhasil/.test(b))!.match(/SELECT ([\w, ]+) FROM/)![1]!.split(", ");
+    expect(badan).toContain(`SELECT atas kolom ${btDan(izin)} tabel \`akun\``);
+  });
+  test("kalimat partisi diturunkan dari ERD, migration, dan komentar rekaman", () => {
+    const pk4 = erd4.tabel.find((t) => t.nama === "posting")!.pk;
+    expect(badan).toContain(`PRIMARY KEY \`posting\` berubah dari \`(${pk4.join(", ")})\` menjadi \`(${posting5.pk.join(", ")})\``);
+    const rek = skemaTxt.join("\n");
+    expect(rek).toContain("posting_bulan_00 = bulan berjalan");
+    expect(rek).toContain("posting_sebelum menampung semua baris sebelum bulan berjalan");
+    expect(badan).toContain("`posting_bulan_00` adalah bulan berjalan");
+    expect(badan).toContain("`posting_sebelum` menampung semua baris sebelum bulan itu");
+    expect(pasangTxt.join("\n")).toContain("Job bulanan memanggil buat_partisi_posting sebelum bulannya mulai");
+    expect(badan).toContain("dibuat sebelum bulannya mulai");
+    expect(mig000024).toContain("keunikannya datang dari sequence `posting_id_seq`");
+    expect(badan).toContain("Yang menjaga keunikan di lab adalah sequence `posting_id_seq`");
+    expect(badan).toContain("sequence yang mengisi `id`");
+    const angs = erd5.tabel.find((t) => t.nama === "angsuran")!;
+    expect(angs.fk.map((f) => f.ke_tabel)).toEqual(["jadwal_cicilan"]);
+    expect(angs.kolom.find((k) => k.nama === "jurnal_id")!.wajib).toBe(false);
+    expect(badan).toContain("Lalu pilih `angsuran`: satu foreign key, ke `jadwal_cicilan`, dan `jurnal_id` boleh kosong.");
+    expect(posting5.partisi).toBeDefined();
+    expect(badan).toContain("ia membawa penanda `partisi`");
+  });
+  test("struktur: tingkat judul tidak melompat, Rantai Inti ringkas, Tebak dimuat saat terlihat, ERD memakai id dan tahap dari ERD", () => {
+    const tingkat = [...badan.matchAll(/^(#{2,6}) /gm)].map((m) => m[1]!.length);
+    expect(tingkat[0]).toBe(2);
+    tingkat.forEach((n, i) => {
+      if (i > 0) expect(n - tingkat[i - 1]!, `judul ke-${i}`).toBeLessThanOrEqual(1);
+    });
+    expect(badan).toContain("<Rantai data={intiDiagram} ringkas />");
+    expect(badan).toContain("<Tebak client:visible data={dataTebak} />");
+    expect(badan).toContain(`<ErdHalaman id="erd-t${erd5.tahap}" tahap={[${erd4.tahap}, ${erd5.tahap}]} />`);
+  });
+  test("baris Sengaja belum tentang database terpisah memakai pemicu yang ditulis halaman ADR 60", () => {
+    const adr60 = baca("situs/src/content/docs/tahap-5/sengaja-belum.mdx");
+    expect(adr60).toContain("| 3. Database terpisah per service | Dua service saling memperlambat di cluster yang sama, terbaca dari L per schema |");
+    expect(adr60).toContain("L per schema belum terbaca");
+    expect(badan).toContain("| Database fisik terpisah per service | Pemicunya, dua service saling memperlambat di cluster yang sama, belum bisa dibaca per schema | [[t5-adr-60]] |");
+    expect(per("t5-adr-60").ada).toBe(true);
+  });
+});
