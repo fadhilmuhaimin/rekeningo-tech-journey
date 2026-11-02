@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -191,7 +190,7 @@ func (t Tx) AngsuranGagalSesudahBalik(ctx context.Context, jadwal int64, ke int)
 		return err
 	}
 	if n, err := res.RowsAffected(); err != nil || n != 1 {
-		return fmt.Errorf("angsuran %d:%d tidak berstatus terjurnal", jadwal, ke)
+		return errors.New("angsuran tidak berstatus terjurnal")
 	}
 	return nil
 }
