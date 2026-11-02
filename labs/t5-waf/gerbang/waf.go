@@ -46,8 +46,9 @@ func BukaWAF(crs, mesin string) (*PenjagaWAF, error) {
 }
 
 // Periksa menjalankan fase 1 dan 2 (kepala dan body permintaan). Galat dari Coraza dikembalikan sebagai galat, dan
-// pemanggil menolak permintaannya: middleware http bawaan Coraza menjawab 200 kosong bila pemrosesan gagal (gagal
-// terbuka), dan gerbang ini sengaja tidak meniru itu.
+// pemanggil menolak permintaannya dengan 503. Middleware http bawaan Coraza (WrapHandler) tidak meneruskan permintaan
+// yang pemrosesannya galat, tetapi juga tidak menulis jawaban: client menerima 200 kosong dan mengira permintaannya
+// berhasil. Gerbang ini sengaja tidak meniru itu.
 func (p *PenjagaWAF) Periksa(r *http.Request, body []byte) (Keputusan, error) {
 	tx := p.waf.NewTransaction()
 	defer func() {
