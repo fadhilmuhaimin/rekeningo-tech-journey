@@ -4240,8 +4240,9 @@
         "api-t4",
         "api-t5"
       ],
-      "ada": false,
-      "nomor": "5.3"
+      "ada": true,
+      "nomor": "5.3",
+      "menit": 19
     },
     {
       "id": "t5-m40",

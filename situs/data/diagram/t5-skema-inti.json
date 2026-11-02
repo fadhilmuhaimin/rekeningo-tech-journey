@@ -1,0 +1,53 @@
+{
+  "id": "t5-skema-inti",
+  "judul": "Tahap 4 ke Tahap 5: tabel dan foreign key",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t5: skema.txt bagian A dan E"
+  },
+  "baris": [
+    {
+      "label": "Tabel",
+      "sub": "dari ERD lab",
+      "simpul": [
+        {
+          "teks": "22 tabel",
+          "sub": "akhir Tahap 4",
+          "nada": "old"
+        },
+        {
+          "teks": "+ 8 tabel",
+          "sub": "tak ada yang dihapus",
+          "nada": "system"
+        },
+        {
+          "teks": "30 tabel",
+          "sub": "enam service",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Foreign key",
+      "sub": "dari katalog",
+      "simpul": [
+        {
+          "teks": "35",
+          "sub": "foreign key Tahap 4",
+          "nada": "old"
+        },
+        {
+          "teks": "− 18, + 2",
+          "sub": "18 dihapus, 2 baru",
+          "nada": "system"
+        },
+        {
+          "teks": "19",
+          "sub": "di dalam satu service",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: Tahap 4. Biru: yang berubah. Hijau: hasilnya. Jumlah foreign key dibaca dari katalog di rekaman, dan 35 − 18 + 2 = 19 adalah Hitungan di halaman. Tabel uang tetap tiga, dan posting dipartisi per bulan."
+}

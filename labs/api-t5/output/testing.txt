@@ -15,6 +15,19 @@ $ TEST_DATABASE_URL=<pemilik, schema tahap5_tes> TEST_APP_DATABASE_URL=<role api
 --- PASS: TestEndpointLepasGerbangHanyaBilaGerbangAda
 PASS
 ok    lab/apit5/cmd/api
+--- PASS: TestPembayaranMembuatSatuJurnalTopupBankPerKey
+--- PASS: TestPembayaranMenahanDanaKartuDenganJenisKartuTahan
+--- PASS: TestNotifikasiBersertifikatSahTidakMembuatJurnal
+--- PASS: TestTanpaSertifikatDitolakSebelumHandlerDanTidakAdaJurnal
+--- PASS: TestModeRentanMenerimaPemanggilManaPunDenganKeyBaru
+--- PASS: TestJenisDiTabelIzinAdaDiConstraintJurnal
+--- PASS: TestIzinSatuJenisTidakMembukaRuteJenisLain
+--- PASS: TestSemuaRuteLedgerLewatIdentitasKecualiHealthz
+--- PASS: TestHealthzMengikutiDatabase
+--- PASS: TestModeRentanKartuTahanJugaTanpaIdentitas
+--- PASS: TestTanpaIdempotencyKeyDitolakDiPintuMasuk
+PASS
+ok    lab/apit5/cmd/ledger
 --- PASS: TestJendelaKuotaSepuluhRibuPerDetik
 --- PASS: TestJendelaTanpaBatas
 --- PASS: TestJendelaBaruTepatSatuDetikDanKuotaPenuh
@@ -89,9 +102,31 @@ cek status top-up 1 sesudah kabar diparkir: gateway tidak dikonfigurasi
 --- PASS: TestPengumumanEndpoint
 --- PASS: TestCicilanEndpoint
 --- PASS: TestRuteHandlerSamaDenganOpenAPI
+--- PASS: TestPasangLedgerKunciBersama
 --- PASS: TestBatasLajuPengumumanDanCicilan
 PASS
 ok    lab/apit5/internal/handler
+--- PASS: TestIdentitasBerizinMembuatJurnalJenisItu
+--- PASS: TestSertifikatSahTanpaIzinJenisDijawab403
+--- PASS: TestSertifikatTidakSahDitolakSaatHandshake
+--- PASS: TestIdentitasHanyaDariSANBukanCNAtauHeader
+--- PASS: TestServerTLSMenuntutSertifikatKlienDanTLS13
+--- PASS: TestIzinNaskahMemuatEnamJenisTanpaTumpangTindih
+--- PASS: TestKelasGalatMembedakanAlertDariKoneksiMati
+--- PASS: TestSANYangBukanTepatSatuIdentitasDitolakHandler
+--- PASS: TestSertifikatTakTerverifikasiTidakDipakaiSebagaiIdentitas
+--- PASS: TestKlienMenolakServerBernamaLain
+--- PASS: TestPEMCATanpaSertifikatDitolakSejakAwal
+--- PASS: TestNamaMiripIdentitasTidakMenjadiPembayaran
+--- PASS: TestSertifikatServerDibacaUlangTiapHandshake
+--- PASS: TestSesiDilanjutkanTetapMembawaIdentitas
+PASS
+ok    lab/apit5/internal/identitas
+--- PASS: TestIDUrutTetapPerNamaDanBerbedaAntarNama
+--- PASS: TestTraceparentMerambatDariClientKeServer
+--- PASS: TestPasangMemasangPropagatorTraceContext
+PASS
+ok    lab/apit5/internal/jejak
 --- PASS: TestSatuPembuatClientUntukSemuaPanggilanKeluar
 --- PASS: TestBatasWaktuBawaanTigaDetikDiSemuaPembuat
 --- PASS: TestClientTidakMengikutiRedirect
@@ -158,6 +193,10 @@ ok    lab/apit5/internal/notifid
 --- PASS: TestEndpointTidakSahDitolak
 PASS
 ok    lab/apit5/internal/objek
+--- PASS: TestTerbitkanMenolakEKUKosongDanMemakaiCAPenerbit
+--- PASS: TestTulisMemberiIzinKetatUntukKunciPrivat
+PASS
+ok    lab/apit5/internal/pki
 --- PASS: TestMuatMembacaDokumenKVv2DenganTokenDanUrutanSekarangLaluLama
 --- PASS: TestDokumenTanpaLamaHanyaSatuRahasiaDanLamaSamaDenganSekarangTidakGanda
 --- PASS: TestPembacaanGagalMemakaiPembacaanTerakhirDanMenghitungKegagalan
@@ -553,14 +592,18 @@ ok    lab/apit5/internal/worker
 # --- B. Tanpa TEST_DATABASE_URL dan TEST_REDIS_ADDR: tes yang butuh keduanya dilewati, tes tanpa itu tetap jalan ---
 $ go test -count=1 ./...
 ok    lab/apit5/cmd/api
+ok    lab/apit5/cmd/ledger
 ok    lab/apit5/cmd/pushkuota
 ok    lab/apit5/cmd/tiruan
 ok    lab/apit5/internal/cache
 ok    lab/apit5/internal/handler
+ok    lab/apit5/internal/identitas
+ok    lab/apit5/internal/jejak
 ok    lab/apit5/internal/klien
 ok    lab/apit5/internal/lajur
 ok    lab/apit5/internal/notifid
 ok    lab/apit5/internal/objek
+ok    lab/apit5/internal/pki
 ok    lab/apit5/internal/rahasia
 ok    lab/apit5/internal/redisbatas
 ok    lab/apit5/internal/repo
@@ -574,6 +617,26 @@ ok    lab/apit5/internal/worker
 # --- C. TES_DB_WAJIB=1 dan TES_REDIS_WAJIB=1 tanpa database dan Redis: gagal keras, bukan hijau karena tes dilewati ---
 $ TES_DB_WAJIB=1 TES_REDIS_WAJIB=1 go test -count=1 ./...
 ok    lab/apit5/cmd/api
+--- FAIL: TestPembayaranMembuatSatuJurnalTopupBankPerKey
+    ledger_test.go:186: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPembayaranMenahanDanaKartuDenganJenisKartuTahan
+    ledger_test.go:202: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestNotifikasiBersertifikatSahTidakMembuatJurnal
+    ledger_test.go:219: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTanpaSertifikatDitolakSebelumHandlerDanTidakAdaJurnal
+    ledger_test.go:231: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestModeRentanMenerimaPemanggilManaPunDenganKeyBaru
+    ledger_test.go:248: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestJenisDiTabelIzinAdaDiConstraintJurnal
+    ledger_test.go:262: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestIzinSatuJenisTidakMembukaRuteJenisLain
+    ledger_test.go:291: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestModeRentanKartuTahanJugaTanpaIdentitas
+    rute_test.go:184: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestTanpaIdempotencyKeyDitolakDiPintuMasuk
+    rute_test.go:200: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+FAIL
+FAIL  lab/apit5/cmd/ledger
 ok    lab/apit5/cmd/pushkuota
 ok    lab/apit5/cmd/tiruan
 ok    lab/apit5/internal/cache
@@ -645,14 +708,19 @@ ok    lab/apit5/internal/cache
     handler_t5_test.go:101: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestCicilanEndpoint
     handler_t5_test.go:128: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
+--- FAIL: TestPasangLedgerKunciBersama
+    ledger_layanan_test.go:20: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 --- FAIL: TestBatasLajuPengumumanDanCicilan
     tinjau_t5_test.go:12: TES_DB_WAJIB=1 tetapi TEST_DATABASE_URL kosong
 FAIL
 FAIL  lab/apit5/internal/handler
+ok    lab/apit5/internal/identitas
+ok    lab/apit5/internal/jejak
 ok    lab/apit5/internal/klien
 ok    lab/apit5/internal/lajur
 ok    lab/apit5/internal/notifid
 ok    lab/apit5/internal/objek
+ok    lab/apit5/internal/pki
 ok    lab/apit5/internal/rahasia
 TES_REDIS_WAJIB=1 tetapi TEST_REDIS_ADDR kosong: tes yang butuh Redis tidak boleh dilewati
 FAIL  lab/apit5/internal/redisbatas
