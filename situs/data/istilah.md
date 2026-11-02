@@ -349,6 +349,8 @@
 *[staging]: Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya.
 *[Stale]: Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.
 *[stale]: Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.
+*[Standby]: Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby.
+*[standby]: Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby.
 *[Stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.
 *[stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.
 *[Tes integrasi]: Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.

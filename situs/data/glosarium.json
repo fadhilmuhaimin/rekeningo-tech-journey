@@ -1424,9 +1424,9 @@
  {
   "t": "Read replica",
   "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
-  "b": "D2",
-  "n": "Scaling (versi lama)",
-  "u": "/d-system-design/d2-scaling/",
+  "b": "t5-read-replica",
+  "n": "5.5 Read replica dan model baca",
+  "u": "/tahap-5/read-replica/",
   "s": "istilah-read-replica",
   "h": null
  },
@@ -1716,6 +1716,15 @@
   "n": "Caching dan invalidation (versi lama)",
   "u": "/b-fondasi/b9-caching/",
   "s": "istilah-stale",
+  "h": null
+ },
+ {
+  "t": "Standby",
+  "d": "Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby.",
+  "b": "t5-read-replica",
+  "n": "5.5 Read replica dan model baca",
+  "u": "/tahap-5/read-replica/",
+  "s": "istilah-standby",
   "h": null
  },
  {
