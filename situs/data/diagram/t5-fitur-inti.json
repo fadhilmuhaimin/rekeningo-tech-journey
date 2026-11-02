@@ -1,0 +1,49 @@
+{
+  "id": "t5-fitur-inti",
+  "judul": "Tabel dan laporan pertama",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t5"
+  },
+  "baris": [
+    {
+      "label": "Database",
+      "simpul": [
+        {
+          "teks": "22 tabel",
+          "sub": "akhir Tahap 4",
+          "nada": "old"
+        },
+        {
+          "teks": "+ 8 tabel",
+          "sub": "tabel baru Tahap 5",
+          "nada": "system"
+        },
+        {
+          "teks": "30 tabel",
+          "sub": "skema lab api-t5",
+          "nada": "good"
+        }
+      ],
+      "sub": "jumlah tabel"
+    },
+    {
+      "label": "Laporan",
+      "simpul": [
+        {
+          "teks": "2 pembayaran"
+        },
+        {
+          "teks": "Jumlah posting",
+          "nada": "system"
+        },
+        {
+          "teks": "Laporan Rp47.000",
+          "nada": "warn"
+        }
+      ],
+      "sub": "mode rentan"
+    }
+  ],
+  "catatan": "Abu-abu: akhir Tahap 4. Biru: yang ditambahkan. Hijau: hasilnya. Kuning: laporan yang membaca tempat uang bergerak."
+}
