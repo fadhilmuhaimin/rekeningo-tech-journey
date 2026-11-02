@@ -1,0 +1,293 @@
+---
+title: "5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya"
+description: Delapan tabel baru menjadikan 22 tabel Tahap 4 jadi 30, dibagi ke enam service. Tabel posting dipartisi per bulan, lalu ukuran database diperkirakan sampai Tahap 6.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import intiDiagram from "../../../../data/diagram/t5-skema-inti.json";
+import ErdHalaman from "../../../components/ErdHalaman.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t5-skema-tebak.json";
+import Snippet from "../../../components/Snippet.astro";
+
+<p class="meta">Baca 16 menit · coba 3 menit · Prasyarat: [[t5-fitur-teknis]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Tahap 5 menambah delapan tabel dan membagi 30 tabel ke enam service.
+
+<Rantai data={intiDiagram} ringkas />
+
+ERD di halaman ini dibaca dari database lab, bukan digambar tangan. Skema akhir Tahap 4 punya 22 tabel, dan skema akhir Tahap 5 di lab api-t5 punya 30. Delapan tabel baru adalah `snapshot_saldo`, `arsip_partisi`, `ringkasan_merchant_harian`, `jadwal_cicilan`, `angsuran`, `pengumuman`, `mitra_pos`, dan `sakelar`. Dua kolom baru ada di `akun` (`mitra_pos_id`) dan `jurnal` (`referensi`).
+
+Tabel terbesar tetap `posting` (±440 juta baris per tahun), dan ia dipartisi per bulan. Ukuran bukan alasannya. Angka ukuran adalah Asumsi dengan rumus di blok Paham, dan arti semua label ada di [Label sumber](/cara-pakai/#label-sumber).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Tabel Tahap 4 mana yang berubah di Tahap 5, dan karena apa?
+2. Kenapa PRIMARY KEY `posting` memuat `dibuat`, dan apa akibatnya pada `id`?
+3. Berapa foreign key yang dihapus saat tabel dibagi ke enam service, dan kenapa angkanya bukan 21?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: PRIMARY KEY posting harus memuat kolom dibuat supaya tabelnya bisa dipartisi per bulan, dan id tidak lagi dijaga unik lintas bulan oleh constraint.">
+
+Tebak dulu, lalu cek jawabanmu di ERD di bawahnya. ERD adalah gambar tabel, kolom, dan foreign key di antaranya. Kunci partisi adalah kolom yang menentukan partisi mana yang menyimpan sebuah baris. Kedua ERD dibangun dari skema lab: Tahap 4 dari migration sampai api-t4 000023, dan Tahap 5 dari migration yang sama ditambah api-t5 000024 sampai 000026.
+
+<Tebak client:visible data={dataTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Jawaban yang tepat: PostgreSQL menolak PRIMARY KEY yang tidak memuat kolom kunci partisi, jadi posting memakai (id, dibuat).</p>
+</noscript>
+
+Diagram dibuka di Tahap 5. Tiap tabel diberi label baru, berubah, atau tetap menurut Tahap 4. Di HP diagram tegak dan panjang, jadi [lompat ke Ubah satu hal](#ubah-satu-hal) bila kamu hanya butuh ringkasannya. Tabel pembagian service muncul di bawah diagram.
+
+<ErdHalaman id="erd-t5" tahap={[4, 5]} />
+
+<span id="ubah-satu-hal"></span>
+
+**Ubah satu hal:** tekan **Bandingkan dengan Tahap 4**. Di layar lebar kedua skema tampil berdampingan, dan di HP skema Tahap 4 tampil di atas skema Tahap 5. Pilih `posting` di Tahap 5: PRIMARY KEY-nya `(id, dibuat)` dan ia membawa penanda `partisi`. Lalu pilih `angsuran`: satu foreign key, ke `jadwal_cicilan`, dan `jurnal_id` boleh kosong.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+PRD v5 meminta laporan merchant real-time, notifikasi massal, cicilan dan tabungan, serta API publik untuk POS ([[t5-prd]]). [[t5-fitur-teknis]] menurunkannya jadi pekerjaan, dan halaman ini menunjukkan akibatnya pada tabel.
+
+Setiap perubahan di bawah punya alasan dan masalah yang memicunya. Tanpa catatan itu, tim berikutnya tidak tahu kenapa `angsuran` punya kunci bisnis sendiri dan kenapa 30 tabel dibagi ke enam schema. Schema adalah kelompok tabel bernama di dalam satu database PostgreSQL.
+
+Service di halaman ini berarti satu schema dengan satu role, yaitu login database dengan hak sendiri. Di lab keenam service berjalan dalam satu proses, `t5_app`, yang mewarisi keenam role. "Enam service" karena itu dibaca dari schema dan hak role, bukan dari proses terpisah (README lab api-t5; Rekaman lab, `skema.txt` bagian E dan F). Pemisahan prosesnya dibahas di [[t5-service]].
+
+### Cara kerjanya
+
+**Apa yang berubah dan kenapa.** Tabel ini memuat empat belas perubahan, satu baris tiap perubahan. Nama tabel, kolom, dan nilai ada di skema lab api-t5 (Rekaman lab, `skema.txt` bagian A, B, dan C). Kolom Alasan adalah pertimbangan tim, bukan hasil ukur.
+
+| Tahap 4 | Tahap 5 | Alasan | Masalah atau syarat |
+|---|---|---|---|
+| `posting` (PRIMARY KEY `id`) | `posting` dipartisi per bulan menurut `dibuat`, PRIMARY KEY `(id, dibuat)` | PRIMARY KEY dan UNIQUE harus memuat kolom kunci partisi; bulan lama bisa dilepas dan diarsip ([[t5-partisi]]) | [[t5-m43\|M43]] |
+| (tidak ada) | `snapshot_saldo` (buku_id, periode, saldo, jumlah_posting, dibuat; PRIMARY KEY `(buku_id, periode)`) | Saldo akhir tiap bulan, dicocokkan dengan jumlah posting; pemeriksaan membaca posting sesudahnya saja | [[t5-m43\|M43]] |
+| (tidak ada) | `arsip_partisi` (periode sebagai PRIMARY KEY, kunci_objek, checksum, kunci_data_terbungkus, versi_kek, dibuat) | Partisi lama dipindah ke penyimpanan objek terenkripsi, dan arsipnya tercatat | [[t5-m43\|M43]], [[t5-kms\|ADR 57]] |
+| (tidak ada) | `ringkasan_merchant_harian` (merchant_akun_id, tanggal, jumlah_transaksi, total, diperbarui_pada; PRIMARY KEY `(merchant_akun_id, tanggal)`) | Laporan periode tanpa menjumlah posting; dibaca dari replica | [[t5-m40\|M40]] |
+| (tidak ada) | `jadwal_cicilan` (id, akun_id, jenis: cicilan atau tabungan, merchant_akun_id boleh kosong, jumlah_per_angsuran, jumlah_angsuran, hari_tagih, status) | Jadwal milik service cicilan | [[t5-m48\|M48]] |
+| (tidak ada) | `angsuran` (jadwal_id, ke, jatuh_tempo, status: menunggu, terjurnal, dicatat, gagal; jurnal_id boleh kosong; PRIMARY KEY `(jadwal_id, ke)`) | Kunci bisnis yang tidak kedaluwarsa menahan jurnal kedua; jurnal_id terisi tepat ketika status terjurnal atau dicatat | [[t5-m48\|M48]] |
+| (tidak ada) | `pengumuman` (id, judul, status: dibuat, berjalan, selesai, dihentikan; jumlah_penerima, dibuat_oleh, mulai, selesai) | Satu baris per pengumuman, bukan satu baris per penerima | [[t5-m45\|M45]] |
+| (tidak ada) | `mitra_pos` (id, nama, kunci_hash UNIQUE, status, kuota_per_detik, dibuat) | Identitas, kunci, dan kuota per mitra POS | [[t5-m50\|M50]] |
+| (tidak ada) | `sakelar` (nama sebagai PRIMARY KEY, nilai, diubah_oleh, diubah) | Kill switch disimpan di satu tempat dan dibaca pod (rancangan; lab api-t5 hanya membuat tabelnya) | [[t5-m49\|M49]] |
+| `akun` | `akun` + `mitra_pos_id`, boleh kosong | Cakupan kunci mitra: hanya merchant miliknya | [[t5-m50\|M50]] |
+| `outbox` (`tujuan`: push, verifikasi) | `outbox` + tujuan `stream` dan jenis `pengumuman`; CHECK mewajibkan jenis `pengumuman` bertujuan `stream` | Outbox tetap pintu masuk atomik; relay yang mengirim ke event streaming | [[t5-m45\|M45]] |
+| `jurnal` (`jenis`) | `jurnal` + jenis `angsuran` dan `tabungan`, dan kolom `referensi` UNIQUE boleh kosong dengan CHECK bentuk `angsuran:<jadwal>:<ke>` atau `tabungan:<jadwal>:<ke>` | Referensi bisnis yang tidak kedaluwarsa menahan jurnal berulang | [[t5-m48\|M48]] |
+| `buku` (`jenis`) | `buku` + jenis `tabungan`, ditambahkan ke aturan buku milik akun | Tabungan adalah buku seperti buku lain: saldonya jumlah posting | [[t5-m48\|M48]] |
+| 22 tabel dalam enam schema modul | 30 tabel dalam enam schema service, tanpa foreign key lintas service | Service tidak boleh terikat migration service lain | [[t5-m44\|M44]] |
+
+Di lab api-t5, `ringkasan_merchant_harian` ada sebagai tabel tetapi belum diisi siapa pun (README lab api-t5).
+
+**Yang tidak berubah.** Enam tabel Tahap 4 sama persis di kedua ERD: `sesi`, `batch_pencairan`, `baris_pencairan`, `kota`, `verifikasi`, dan `audit_log`. Lima tabel berubah karena kolom, nilai, atau aturan: `akun`, `buku`, `jurnal`, `outbox`, dan `posting`. Sebelas tabel lain berubah hanya karena kehilangan foreign key yang menyeberang service, dan tidak ada tabel atau kolom yang dihapus.
+
+**Tabel uang tetap tiga.** `jurnal` mendapat satu kolom dan dua jenis baru, `buku` satu jenis baru, dan `posting` berganti PRIMARY KEY serta dipartisi. Migration 000026 menulis perubahan `jurnal` sebagai berikut:
+
+<Snippet file="labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql" lines="8:12" lang="sql" title="labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql" />
+
+`referensi` boleh kosong dan UNIQUE sekaligus. Dokumentasi PostgreSQL menulis bahwa dua nilai kosong tidak dianggap sama dalam UNIQUE ([PostgreSQL 17, 5.5.3](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)), jadi jurnal biasa boleh punya `referensi` kosong. Kalimat itu dicek ke dokumentasi dan tidak dijalankan di lab (Tidak dijalankan). Idempotency-Key berbeda: ia hidup 24 jam ([[t2-idempotency]]), sedangkan `referensi` tidak kedaluwarsa, dan angsuran memakainya di [[t5-m48]].
+
+**`posting` dipartisi per bulan.** Partisi membagi satu tabel menjadi beberapa tabel fisik menurut nilai satu kolom. Di lab, `posting` dipartisi menurut `dibuat` dengan `RANGE (dibuat)`. ERD menggambar `posting` sekali dengan penanda `partisi`, karena partisi bukan tabel inti.
+
+Rekaman di bawah memuat kunci partisi, PRIMARY KEY, dan keempat partisi. Nama partisi relatif terhadap bulan migration dijalankan, dan batasnya disamarkan sebagai `<waktu>` supaya rekaman sama di bulan mana pun.
+
+<Snippet file="labs/api-t5/output/skema.txt" lines="87:99" title="Rekaman lab: labs/api-t5/output/skema.txt (bagian C)" />
+
+`posting_bulan_00` adalah bulan berjalan, dan `posting_sebelum` menampung semua baris sebelum bulan itu. Fungsi `buat_partisi_posting` membuat satu partisi bulan.
+
+Baris untuk bulan yang belum punya partisi ditolak dengan `no partition of relation "posting" found for row`, SQLSTATE 23514. Baris yang sama masuk sesudah fungsi itu dipanggil, dengan jam yang diperankan (Rekaman lab t5-partisi, `pasang.txt` bagian D). Pembuatan partisi bulan berikutnya dibahas di [[t5-partisi]].
+
+PRIMARY KEY `posting` berubah dari `(id)` menjadi `(id, dibuat)`. Dokumentasi PostgreSQL menulis alasannya. Index yang membentuk constraint hanya menegakkan keunikan di dalam partisinya sendiri, jadi constraint wajib memuat semua kolom kunci partisi ([PostgreSQL 17, 5.12.2.3](https://www.postgresql.org/docs/17/ddl-partitioning.html#DDL-PARTITIONING-DECLARATIVE-LIMITATIONS)). Lab merekam penolakannya:
+
+<Snippet file="labs/api-t5/output/skema.txt" lines="134:136" title="Rekaman lab: labs/api-t5/output/skema.txt (bagian D)" />
+
+Akibatnya `id` sendiri tidak lagi dijaga unik lintas partisi oleh database. Dua baris di bulan berbeda boleh punya `id` yang sama bila ada yang menyisipkannya, dan lab tidak mencoba itu (Tidak dijalankan).
+
+Yang menjaga keunikan di lab adalah sequence `posting_id_seq`. Setiap INSERT ke `posting` di kode dan skrip `labs/api-t5` menghilangkan kolom `id`, dan hanya migration 000024 menyebutnya, untuk menyalin `id` lama. Aturan ledger tetap berlaku di tabel berpartisi: UPDATE, DELETE, dan TRUNCATE ditolak dengan SQLSTATE 23001 (Rekaman lab, `skema.txt` bagian D).
+
+**Pembagian service dan schema.** Tabel ini adalah bentuk akhir di lab, dan sama dengan rancangan tim: 9, 5, 6, 6, 2, dan 2 tabel. Kolom terakhir menghitung foreign key dari tabel service itu yang menyeberang ke schema lain sebelum dihapus, dari daftar katalog di rekaman (Rekaman lab, `skema.txt` bagian E).
+
+| Service (schema) | Tabel | Jumlah | Foreign key lintas service yang dihapus |
+|---|---|---|---|
+| `ledger` | `buku`, `jurnal`, `posting`, `kunci_idempotensi`, `batch_pencairan`, `baris_pencairan`, `snapshot_saldo`, `arsip_partisi`, `outbox` | 9 | 4 |
+| `akun` | `akun`, `sesi`, `kota`, `verifikasi`, `audit_log` | 5 | 0 |
+| `pembayaran` | `topup_bank`, `webhook_event`, `insiden_rekon`, `kartu`, `otorisasi_kartu`, `sakelar` | 6 | 7 |
+| `merchant` | `produk`, `promo`, `operasi_sinkron`, `qr`, `ringkasan_merchant_harian`, `mitra_pos` | 6 | 6 |
+| `notifikasi` | `perangkat`, `pengumuman` | 2 | 1 |
+| `cicilan` | `jadwal_cicilan`, `angsuran` | 2 | 0 |
+
+`outbox` ada di service ledger karena ia harus ditulis dalam satu transaction dengan jurnal ([[t3-outbox]]). Di lab schema-nya berawalan `t5_` (`t5_ledger`, `t5_akun`, dan seterusnya), karena nama schema dan role bersifat global di database lab bersama.
+
+Dari 35 foreign key Tahap 4, 18 menyeberang batas service dan dihapus (Rekaman lab, `skema.txt` bagian E, dibaca dari katalog). Sebelas menuju service akun, 6 menuju ledger, dan 1 menuju notifikasi, dihitung dari daftar di rekaman. Dua foreign key baru ada di dalam satu service: `snapshot_saldo` ke `buku`, dan `angsuran` ke `jadwal_cicilan`.
+
+Jadi 35 − 18 + 2 = 19 (Hitungan: angka yang bisa kamu ulang dari angka yang tertulis di halaman). Katalog di rekaman menghitung 0 yang menyeberang dan 19 di dalam satu schema.
+
+Kolom seperti `buku.akun_id` tetap ada sebagai referensi tanpa constraint. Tanpa foreign key, database tidak lagi menolak baris yang menunjuk akun yang tidak ada di schema lain. Lab tidak mencoba memasukkan baris seperti itu (Tidak dijalankan). Biaya dan alasan pemecahannya dibahas di [[t5-m44]].
+
+Hak role di lab dicek dari katalog database: hak atas tabel, hak atas kolom, dan USAGE atas schema (izin menemukan tabelnya). Kelima role selain ledger tidak punya satu pun hak itu di schema service lain. Role ledger punya hak di satu schema lain, yaitu akun: USAGE atas schema dan SELECT atas kolom `id`, `tingkat`, dan `status` tabel `akun`. Kolom `nama` ditolak dengan SQLSTATE 42501 (Rekaman lab, `skema.txt` bagian F).
+
+**Rancangan lawan lab.** Rancangan skema Tahap 5, yaitu diagram yang ditulis tim sebelum ada migration, dicocokkan dengan skema lab. Perintah `tools/erd.py --naskah 5` mencetak `Tahap 5: 0 selisih naskah 3b dengan lab (lab yang benar)` untuk kolom, tanda kunci, dan garis relasi (dijalankan 2026-11-02, Hitungan atas ERD dan rancangan). Selisih di luar diagram ada enam, dan yang benar adalah skema lab (Rekaman lab, `skema.txt` bagian B dan E).
+
+| Yang ditulis rancangan | Skema lab |
+|---|---|
+| 21 foreign key lintas modul Tahap 4 dihapus semuanya | 18 foreign key melintasi enam service dan dihapus. Angka 21 milik Tahap 4: enam modul `t4-modul` membagi tabel dengan cara lain ([[t4-skema]]) |
+| `outbox` mendapat tujuan baru `stream` | Tujuan `stream` dan juga jenis `pengumuman`, dengan CHECK yang mewajibkan jenis itu bertujuan `stream` |
+| `jurnal.referensi` UNIQUE boleh kosong | Ditambah CHECK bentuk: `angsuran` atau `tabungan`, lalu nomor jadwal, lalu nomor angsuran |
+| `posting` dipartisi, PRIMARY KEY `(id, dibuat)` | `id` tidak dijaga unik lintas partisi oleh database, dan keunikannya datang dari sequence |
+| Status `jadwal_cicilan` dan batas angka kolom tidak ditulis | Status `aktif`, `selesai`, `dihentikan` dan batas angka adalah rancangan lab (Asumsi desain) |
+| Schema bernama `ledger`, `akun`, dan seterusnya | Awalan `t5_` di database lab bersama |
+
+### Pertumbuhan skala database, Tahap 4 sampai 6
+
+Angka di tabel ini adalah **Asumsi** cerita, kecuali jumlah tabel inti Tahap 4 dan 5, yang dihitung dari ERD. Rumusnya ditulis supaya kamu bisa mengganti angkanya:
+
+- transaksi per hari = user × aktif × 3 (transaksi per user aktif per hari)
+- posting per tahun = transaksi per hari × 2 (posting per transaksi) × 365 (hari)
+- ukuran per tahun = posting per tahun × 250 byte, termasuk index
+
+Rencana Tahap 5 memakai 3 transaksi per user aktif per hari sebagai dasar, sedangkan nilai registry Tahap 5 menulis 2. Halaman ini memakai 3 untuk rumus ledger dan menulis hasil dengan 2 di sebelahnya, keduanya Asumsi.
+
+| Tahap | User | Aktif | Tabel inti | Baris terbesar per tahun | Ukuran per tahun |
+|---|---|---|---|---|---|
+| 4 | 100.000 | 20% | 22, dibagi per modul | `posting` ±44 juta | ±11 GB |
+| 5 | 1.000.000 | 20% | 30, dibagi per service | `posting` ±440 juta, dipartisi per bulan | ±110 GB |
+| 6 (proyeksi) | 10.000.000 | 20% | per negara | `posting` ±4,4 miliar | ±1 TB |
+
+Contoh Tahap 5: 1.000.000 × 20% × 3 = 600.000 transaksi per hari. 600.000 × 2 × 365 = 438.000.000 posting, dan 438.000.000 × 250 byte = 109.500.000.000 byte, ditulis ±110 GB. Dengan 2 transaksi hasilnya 292.000.000 posting dan ±73,0 GB. Tahap 6 menghasilkan 4.380.000.000 posting dan ±1,1 TB, ditulis ±1 TB, sebagai proyeksi dari rencana Tahap 2 yang belum punya lab.
+
+Posting naik 10,0 kali dari Tahap 4 ke Tahap 5 (438.000.000 ÷ 43.800.000), dan 10,0 kali lagi ke Tahap 6 (4.380.000.000 ÷ 438.000.000). Jumlah tabel inti Tahap 4 dan 5 dihitung dari ERD.
+
+**Tiga angka untuk satu tahun data Tahap 5.** Ketiganya menghitung hal yang berbeda, jadi tidak ditukar. Aktif 20% dari 1.000.000 user adalah 200.000 user.
+
+| Sumber | Yang dihitung | Hasil | Label |
+|---|---|---|---|
+| Rumus registry dengan 2 transaksi | 200.000 × 2 × 365 × 300 byte, satu baris per transaksi | ±43,8 GB | Asumsi |
+| Rumus registry dengan 3 transaksi | 200.000 × 3 × 365 × 300 byte, satu baris per transaksi | ±65,7 GB | Asumsi |
+| Rumus ledger dengan 3 transaksi (halaman ini) | 438.000.000 posting × 250 byte | ±109,5 GB | Asumsi |
+
+Selisih ketiganya bukan kesalahan hitung. Dari baris pertama ke kedua, transaksi naik dari 2 ke 3 per user (3 ÷ 2 = 1,5). Dari baris kedua ke ketiga, satuannya berbeda: rumus ledger menghitung dua posting 250 byte (500 byte per transaksi), rumus registry satu baris 300 byte. Perbandingannya 500 ÷ 300 = 1,67, dan yang terbesar hanya 109,5 ÷ 43,8 = 2,5 kali yang terkecil.
+
+**Ukuran bukan alasan partisi.** PostgreSQL membatasi satu relasi sampai 32 TB dengan ukuran blok bawaan 8 kB ([PostgreSQL 17, lampiran K](https://www.postgresql.org/docs/17/limits.html)). Pada 109,5 GB per tahun, `posting` butuh 32.000 ÷ 109,5 = 292 tahun untuk mencapainya (Hitungan atas Asumsi; 1 TB dihitung 1.000 GB). Alasan partisi ada di tempat lain.
+
+Satu bulan bisa dibuang tanpa DELETE. Lab t5-partisi membuang 200.000 baris dengan DELETE dan dengan DETACH + DROP. Waktu terkecil DELETE dari tiga percobaan lebih dari dua kali waktu DETACH + DROP. Nilai waktunya tidak direkam (Rekaman lab, `lepas.txt` bagian D, tabel uji tanpa trigger ledger).
+
+Dokumentasi juga menulis bahwa DROP atau DETACH menghindari beban VACUUM dari DELETE massal ([PostgreSQL 17, 5.12.1](https://www.postgresql.org/docs/17/ddl-partitioning.html#DDL-PARTITIONING-OVERVIEW); Tidak dijalankan di halaman ini). Alasan lain: pemeriksaan saldo malam dengan snapshot membaca posting sesudahnya saja ([[t5-m43]]).
+
+**Tabel baru Tahap 5 kecil, kecuali `outbox` tanpa retensi.** Retensi adalah berapa lama baris disimpan sebelum dibuang. Ukuran per baris `ringkasan_merchant_harian` (100 byte) dan `snapshot_saldo` (50 byte) adalah Asumsi.
+
+| Tabel | Rumus | Hasil | Label |
+|---|---|---|---|
+| `ringkasan_merchant_harian` | 200.000 × 365 × 100 byte | ±7,3 GB | Asumsi (satu baris per merchant per hari) |
+| `snapshot_saldo` | 1.200.000 × 12 × 50 byte | ±720 MB | Asumsi (1.000.000 user dan 200.000 merchant, satu snapshot per bulan) |
+| `angsuran` | 100.000 × 12 | 1,2 juta baris | Asumsi (100.000 jadwal aktif, 10% user, 12 angsuran per tahun) |
+| `outbox` tanpa pembersihan | 650.000 × 365 × 300 byte | ±71,2 GB | Asumsi (600.000 transaksi uang dan 50.000 top-up per hari) |
+| `outbox` dengan retensi 7 hari | 650.000 × 7 × 300 byte | ±1,365 GB | Asumsi |
+
+Top-up per hari adalah 200.000 × 0,25 = 50.000 (0,25 top-up per user aktif per hari, Asumsi). File identitas tidak masuk tabel: 20.000 unggahan × 500 KB × 365 hari = 3.650 GB per tahun (Asumsi, 1 KB = 1.000 byte). Alasannya dibahas di [[t4-m33]].
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### Trade-off: kapan pakai apa
+
+| Situasi | Pilihan |
+|---|---|
+| Tabel yang terus bertambah dan dibuang per periode, mis. `posting` | Partisi menurut kolom waktu, dengan PRIMARY KEY yang memuat kolom itu; partisi bulan berikutnya dibuat sebelum bulannya mulai |
+| Kolom yang harus unik tetapi bukan kunci partisi, mis. `id` | Dijaga di luar constraint tabel, mis. sequence yang mengisi `id`, dan diuji dengan INSERT yang menyebut `id` sendiri |
+| Batas antar tim | Schema dan role per service; foreign key lintas service dihapus |
+| Referensi ke tabel milik service lain | Kolom tanpa constraint, dijaga Idempotency-Key dan rekonsiliasi |
+| Laporan yang membaca banyak baris | Tabel ringkasan seperti `ringkasan_merchant_harian`, dibaca dari replica ([[t5-read-replica]]) |
+| Pekerjaan berulang yang tidak boleh jalan dua kali, mis. angsuran | Kunci bisnis UNIQUE di database, seperti `jurnal.referensi` |
+| Nilai baru di kolom `jenis` | CHECK diganti dalam migration yang sama dengan kodenya |
+| Perkiraan ukuran sebelum ada data | Rumus dengan angka berlabel; besaran yang menghitung hal berbeda ditulis sebagai besaran berbeda |
+
+**Biaya skema Tahap 5.** Foreign key turun dari 35 ke 19. Database tidak lagi menolak baris yatim yang dulu dijaga 18 foreign key itu, dan `posting` kehilangan jaminan keunikan `id` dari constraint. Partisi menambah pekerjaan bulanan: tanpa partisi bulan depan, INSERT ditolak.
+
+Pemeriksaan yatim lintas service belum ada. Itu pertanyaan terbuka, karena lab tidak membuatnya.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Database fisik terpisah per service | Pemicunya, dua service saling memperlambat di cluster yang sama, belum bisa dibaca per schema | [[t5-adr-60]] |
+| Pembuatan partisi otomatis oleh ekstensi seperti pg_partman | Lab membuat partisi dengan fungsi `buat_partisi_posting`; ekstensi itu hanya disebut dan Tidak dijalankan | [[t5-partisi]] |
+| Pemeriksaan yatim lintas service sebagai pengganti foreign key | Lab tidak membuatnya, dan rancangan hanya menyebut Idempotency-Key dan rekonsiliasi sebagai penjaganya | [[t5-m44]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Tabel Tahap 4 mana yang berubah di Tahap 5, dan karena apa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Enam belas tabel. Lima berubah karena kolom, nilai, atau aturan: `akun`, `buku`, `jurnal`, `outbox`, dan `posting`. Sebelas lain berubah hanya karena kehilangan foreign key yang menyeberang service. Enam tabel tidak berubah.
+
+</details>
+
+**2.** Kenapa PRIMARY KEY `posting` memuat `dibuat`, dan apa akibatnya pada `id`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+PostgreSQL menolak PRIMARY KEY yang tidak memuat kolom kunci partisi (SQLSTATE 0A000). Karena itu `posting` memakai `(id, dibuat)`, dan database tidak lagi menjaga `id` unik lintas partisi. Di lab keunikan itu datang dari sequence.
+
+</details>
+
+**3.** Berapa foreign key yang dihapus saat tabel dibagi ke enam service, berapa yang tersisa, dan kenapa angkanya bukan 21?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+18 dihapus: 11 menuju service akun, 6 menuju ledger, dan 1 menuju notifikasi. Yang tersisa 19, yaitu 35 − 18 + 2. Angka 21 adalah hitungan Tahap 4 untuk enam modul yang membagi tabel dengan cara lain.
+
+</details>
+
+**4.** Dari rumus apa ±109,5 GB posting per tahun, dan kenapa ±43,8 GB dan ±65,7 GB berbeda?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+1.000.000 × 20% × 3 = 600.000 transaksi per hari. Lalu 600.000 × 2 × 365 = 438.000.000 posting, dan 438.000.000 × 250 byte = 109,5 GB. Angka 43,8 GB dan 65,7 GB menghitung satu baris 300 byte per transaksi, dengan 2 dan 3 transaksi per user. Semuanya Asumsi.
+
+</details>
+
+**5.** Berapa ukuran `outbox` per tahun tanpa pembersihan dan dengan retensi 7 hari?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+650.000 × 365 × 300 byte = ±71,2 GB tanpa pembersihan. Dengan retensi 7 hari, 650.000 × 7 × 300 byte = ±1,365 GB. Semua angka ini Asumsi.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Tabel berpartisi punya PRIMARY KEY dan UNIQUE yang memuat kolom kunci partisi, dan kolom lain yang harus unik dijaga dengan cara yang diuji.
+- [ ] Setiap INSERT ke tabel berpartisi diuji untuk bulan yang belum punya partisi, dan job yang membuat partisi berjalan sebelum bulannya mulai.
+- [ ] Referensi lintas service tidak memakai foreign key, dan ada kunci bisnis UNIQUE atau Idempotency-Key yang menjaga pekerjaan berulang.
+- [ ] Satu service membaca service lain hanya lewat API atau daftar kolom yang diizinkan, dan role service itu tidak punya hak lain di sana.
+- [ ] Rumus ukuran data menyebut apa yang dihitung (baris atau posting), ukuran per barisnya, dan label sumbernya.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Table Partitioning](https://www.postgresql.org/docs/17/ddl-partitioning.html)
+- [PostgreSQL 17: Appendix K, batas PostgreSQL](https://www.postgresql.org/docs/17/limits.html)
+- [PostgreSQL 17: Unique Constraints](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-UNIQUE-CONSTRAINTS)
+
+</Blok>

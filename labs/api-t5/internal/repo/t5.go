@@ -155,6 +155,7 @@ func (r Repo) AngsuranJatuhTempo(ctx context.Context, sampai time.Time, jadwal i
 	return hasil, rows.Err()
 }
 
+// --8<-- [start:langkah-tandai]
 // TandaiAngsuran memajukan status satu angsuran. `dari` menjaga langkah: baris yang statusnya sudah lain tidak berubah
 // (false), jadi job yang diulang atau dua job serentak tidak mundur atau melompat.
 func (r Repo) TandaiAngsuran(ctx context.Context, jadwal int64, ke int, dari []string, ke2 string, jurnal *int64) (bool, error) {
@@ -166,6 +167,32 @@ func (r Repo) TandaiAngsuran(ctx context.Context, jadwal int64, ke int, dari []s
 	}
 	n, err := res.RowsAffected()
 	return n == 1, err
+}
+
+// --8<-- [end:langkah-tandai]
+
+// AngsuranKunci membaca status dan jurnal satu angsuran dan mengunci barisnya sampai transaction selesai.
+func (t Tx) AngsuranKunci(ctx context.Context, jadwal int64, ke int) (status string, jurnal *int64, err error) {
+	err = t.tx.QueryRowContext(ctx, `SELECT status, jurnal_id FROM angsuran WHERE jadwal_id = $1 AND ke = $2 FOR UPDATE`, jadwal, ke).
+		Scan(&status, &jurnal)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = ErrTidakAda
+	}
+	return
+}
+
+// AngsuranGagalSesudahBalik mengubah angsuran `terjurnal` menjadi `gagal`. Kolom jurnal_id dikosongkan karena CHECK
+// angsuran_jurnal_sesuai_status; jurnal asal tetap terbaca lewat referensinya, dan jurnal pembalik menunjuknya.
+func (t Tx) AngsuranGagalSesudahBalik(ctx context.Context, jadwal int64, ke int) error {
+	res, err := t.tx.ExecContext(ctx, `UPDATE angsuran SET status = 'gagal', jurnal_id = NULL
+		WHERE jadwal_id = $1 AND ke = $2 AND status = 'terjurnal'`, jadwal, ke)
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err != nil || n != 1 {
+		return errors.New("angsuran tidak berstatus terjurnal")
+	}
+	return nil
 }
 
 // BukuTabungan: buku tabungan milik akun, dibuat bila belum ada, dikunci sampai transaction selesai.

@@ -314,6 +314,16 @@ ok    lab/apit5/internal/repo
 --- PASS: TestBOUbahBatasHarianButuhPenyetujuDanNilaiWajar
 --- PASS: TestBOVerifikasiRantaiAuditUtuhSesudahAksi
 --- PASS: TestPeriksaAlasan
+--- PASS: TestCicilanDuaJobSerentakPeriksaReferensiSesudahKunciBuku
+--- PASS: TestCicilanSatuJobRentanDuaJobSerentakDalam24JamTidakGanda
+--- PASS: TestKompensasiAngsuranLewatJurnalPembalik
+--- PASS: TestKompensasiAngsuranDitolakBilaSaldoKaryawanNegatif
+--- PASS: TestKompensasiAngsuranPeranDanBatasAlasan
+--- PASS: TestKompensasiAngsuranAtasJurnalYangSudahDibalikLewatBalik
+--- PASS: TestKompensasiAngsuranJurnalTanpaPostingDijawabDiarsip
+--- PASS: TestCicilanJatuhTempoTepatPadaTanggalJobIkutDitagih
+--- PASS: TestCicilanGalatSelainSaldoKurangTidakMenandaiGagal
+--- PASS: TestCicilanDihentikanSesudahTerjurnalDilanjutkanDariTerjurnal
 --- PASS: TestKirimBatasHarian
 --- PASS: TestKirimBersamaanTidakNegatif
 --- PASS: TestTopupSatuBarisSalahSemuaDitolak
