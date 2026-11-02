@@ -21,6 +21,9 @@ waf: aturan=942100,949110 blokir=true
 waf: aturan=942100,949110 blokir=true
 waf: aturan=942100,949110 blokir=true
 --- PASS: TestGerbangWAF
+waf: aturan=942100,949110 blokir=true
+waf: aturan=942100,949110 blokir=true
+--- PASS: TestGerbangKepalaAturanHanyaDiLab
 waf gagal: rusak
 --- PASS: TestGerbangWAFGagalTertutup
 --- PASS: TestGerbangRuteDanBatasBody

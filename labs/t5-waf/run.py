@@ -60,6 +60,8 @@ def versi_dari(berkas, pola):
 
 
 CORAZA = versi_dari(GERBANG / "go.mod", r"corazawaf/coraza/v3 (v[\d.]+)")
+PL = versi_dari(CRS / "waf.conf", r"blocking_paranoia_level=(\d+)")                  # setelan WAF dibaca dari crs/waf.conf, bukan ditulis ulang
+AMBANG = versi_dari(CRS / "waf.conf", r"inbound_anomaly_score_threshold=(\d+)")
 CRS_VERSI = versi_dari(CRS / "rules/REQUEST-901-INITIALIZATION.conf", r"ver:'OWASP_CRS/([\d.]+)'")
 
 
@@ -69,7 +71,7 @@ def tulis(nama, judul):
     pg = d.satu("SHOW server_version", "public")
     rv = redis.Redis(port=REDIS_PORT).info()["redis_version"]
     kepala = [f"# Lab {LAB} · {judul}",
-              f"# PostgreSQL {pg} · {versi_go()} · Coraza v{CORAZA.lstrip('v')} · OWASP CRS v{CRS_VERSI} (paranoia level 1, ambang anomali 5) · Redis {rv} · enam schema service",
+              f"# PostgreSQL {pg} · {versi_go()} · Coraza v{CORAZA.lstrip('v')} · OWASP CRS v{CRS_VERSI} (paranoia level {PL}, ambang anomali {AMBANG}) · Redis {rv} · enam schema service",
               f"# Gerbang Go di 127.0.0.1:{DASAR_GERBANG}, api-t5 di 127.0.0.1:{d.DASAR}. Rekaman dari database bersih: make -C labs/{LAB} run."]
     d.OUT.mkdir(exist_ok=True)
     (d.OUT / nama).write_text("\n".join(l.rstrip() for l in "\n".join(kepala + d.log).split("\n")) + "\n")
@@ -330,7 +332,7 @@ def jalur_untuk(p, i):
 
 
 def rekam_waf():
-    bagian(f"A. CRS {CRS_VERSI} di Coraza {CORAZA}, mode blokir, paranoia level 1, ambang anomali masuk 5: {len(PAYLOAD['serangan'])} payload serangan")
+    bagian(f"A. CRS {CRS_VERSI} di Coraza {CORAZA}, mode blokir, paranoia level {PL}, ambang anomali masuk {AMBANG}: {len(PAYLOAD['serangan'])} payload serangan")
     siapkan()
     mulai_semua()
     jam_maju(2000)
@@ -358,7 +360,7 @@ def rekam_waf():
         harap(s in ((201,) if p["metode"] == "POST" else (404,)), True, f"{p['nama']} diteruskan ke api-t5: dapat {s}")
     tampil(f"\ndiuji: {len(PAYLOAD['sah'])}, diblokir WAF: {len(fp)}, diteruskan ke api-t5: {len(PAYLOAD['sah']) - len(fp)} (201 untuk POST, 404 untuk status QR yang tidak ada)")
     harap(len(fp), 0, "tidak ada payload sah yang diblokir")
-    tampil("Lingkup: 37 payload di payload.json, paranoia level 1. Ini bukan ukuran false positive untuk payload POS mana pun di luar daftar itu.")
+    tampil(f"Lingkup: {len(PAYLOAD['sah'])} payload di payload.json, paranoia level {PL}. Ini bukan ukuran false positive untuk payload POS mana pun di luar daftar itu.")
 
     bagian("C. WAF bukan validasi: payload yang lolos WAF tetap diperiksa api-t5")
     s, kep, teks = kirim("A", "POST", "/pos/v1/merchant/30001/qr", json.dumps({"nominal": 25000, "referensi": "a" * 101}))

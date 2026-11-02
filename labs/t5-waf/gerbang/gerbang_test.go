@@ -338,6 +338,23 @@ func TestGerbangWAF(t *testing.T) {
 	l.harus(l.kirim("", "", "POST", uriQR, `{"referensi":"SERANG"}`), 403, "diblokir-waf")
 }
 
+// Daftar aturan CRS di kepala jawaban hanya ada pada gerbang lab (-lab): di luar lab ia membantu penyerang menyusun
+// payload yang menghindari aturan.
+func TestGerbangKepalaAturanHanyaDiLab(t *testing.T) {
+	l := siapkan(t, wafPalsu{blokirBila: "SERANG"})
+	r := l.kirim(kunciA, rahasiaA, "POST", uriQR, `{"referensi":"SERANG"}`)
+	if h := r.Header.Get("X-Lab-Waf-Aturan"); h != "" {
+		t.Errorf("kepala aturan di luar lab: %q", h)
+	}
+	l.harus(r, 403, "diblokir-waf")
+	l.g.Lab = true
+	r = l.kirim(kunciA, rahasiaA, "POST", uriQR, `{"referensi":"SERANG"}`)
+	if h := r.Header.Get("X-Lab-Waf-Aturan"); h != "942100,949110" {
+		t.Errorf("kepala aturan di lab: %q", h)
+	}
+	l.harus(r, 403, "diblokir-waf")
+}
+
 // WAF yang gagal memeriksa menolak permintaan (gagal tertutup), tidak meloloskannya.
 func TestGerbangWAFGagalTertutup(t *testing.T) {
 	l := siapkan(t, wafPalsu{galat: fmt.Errorf("rusak")})
