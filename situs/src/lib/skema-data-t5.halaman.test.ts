@@ -410,7 +410,7 @@ const HARAPAN = isi(templat);
 // ---- diagram Rantai dan tebakan yang diharapkan --------------------------------------------------------------------------------
 const RANTAI_SUMBER = {
   id: "t5-skema-inti",
-  judul: `Skema Tahap ${T_LAMA} ke Tahap ${T_BARU}: tabel dan foreign key`,
+  judul: `Tahap ${T_LAMA} ke Tahap ${T_BARU}: tabel dan foreign key`,
   sumber: { jenis: "rekaman", teks: "Rekaman lab api-t5: skema.txt bagian A dan E" },
   baris: [
     {
