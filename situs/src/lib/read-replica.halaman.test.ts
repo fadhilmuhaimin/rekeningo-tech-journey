@@ -806,6 +806,131 @@ describe("penutup celah mutasi: angka rekaman yang tidak tampil di Snippet tetap
   });
 });
 
+describe("penutup celah mutasi putaran kedua: struktur, tautan, judul Snippet, kalimat Inti, Coba, Kenapa ini ada, ADR, dan Cek diri diturunkan dari sumber", () => {
+  const K1 = Number(cocok(runPy, /konflik\("statement_timeout 20 detik", "(\d+)s", (\d+)\)/)[1]);
+  const DETIK_QUERY = Number(cocok(runPy, /konflik\("statement_timeout 20 detik", "(\d+)s", (\d+)\)/)[2]);
+  const SALDO_REPLICA = Number(B_SALDO[2]), SALDO_PRIMARY = Number(B_SALDO[1]), NOMINAL = Number(B_KIRIM[2]);
+  const MAKS = Number(cocok(bayarGo, /const MaksBayar = ([\d_]+)/)[1]!.replace(/_/g, ""));
+  const slotWal = cocok(barisRiset("R5-132"), /max_slot_wal_keep_size is (-?\d+) \(the default\)/)[1]!;
+  const cek = badan.split("### Cek diri")[1]!.split("### Saat me-review")[0]!;
+  const jawab = [...cek.matchAll(/<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)].map((m) => m[1]!);
+  const huruf = (isi: string, nomorBaris: number): string => {
+    const b = isi.split("\n");
+    for (let i = nomorBaris - 1; i >= 0; i--) { const m = b[i]!.match(/^# --- ([A-Z])\. /); if (m) return m[1]!; }
+    return "";
+  };
+  test("heading, label dan slot tab, atribut lang, dan jumlah kemunculan tiap tautan [[id]]", () => {
+    expect([...badan.matchAll(/^(#{2,5}) (.+)$/gm)].map((m) => `${m[1]} ${m[2]}`)).toEqual([
+      "## Inti", "### Kenapa ini ada", "### Cara kerjanya", "### Di stack lain", "### ADR 46: satu read replica asinkron untuk laporan, uang tetap dari primary",
+      "### Sengaja belum dilakukan", "### Cek diri", "### Saat me-review kode AI, cek ini", "### Bacaan lanjut",
+    ]);
+    harus('<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>');
+    expect([...badan.matchAll(/<Fragment slot="(t\d)">/g)].map((m) => m[1])).toEqual(["t0", "t1", "t2", "t3", "t4", "t5"]);
+    expect([...badan.matchAll(/<Snippet file="([^"]+)" lines="[^"]+"( lang="\w+")? title/g)].map((m) => `${m[1]!.split(".").pop()} ${m[2] ?? ""}`.replace(/\s+/g, " ").trim())).toEqual(["txt", "txt", "txt", "txt", "txt", "txt", "txt", "txt", "txt", 'go lang="go"', 'go lang="go"']);
+    expect([...badan.matchAll(/<Snippet lang="(\w+)" code=/g)].map((m) => m[1])).toEqual(["js", "php", "python"]);
+    const n = (id: string) => hitung(badan, `[[${id}]]`);
+    expect({ berikutnya: n("berikutnya"), "t3-cache": n("t3-cache"), "t3-pool": n("t3-pool"), "t4-adr-45": n("t4-adr-45"), "t5-adr-60": n("t5-adr-60"), "t5-fanout": n("t5-fanout"), "t5-lag": n("t5-lag"),
+      "t5-m40": n("t5-m40"), "t5-m41": n("t5-m41"), "t5-m42": n("t5-m42"), "t5-prd": n("t5-prd"), "t5-rpo-rto": n("t5-rpo-rto"), "t5-skema": n("t5-skema") }).toEqual({
+      berikutnya: 1, "t3-cache": 2, "t3-pool": 1, "t4-adr-45": 2, "t5-adr-60": 1, "t5-fanout": 4, "t5-lag": 2, "t5-m40": 5, "t5-m41": 3, "t5-m42": 1, "t5-prd": 3, "t5-rpo-rto": 2, "t5-skema": 1,
+    });
+  });
+  test("tautan Markdown: label dan alamat sama dengan daftar yang diturunkan dari kepala rekaman, baris riset, dan registri; versi di label sama dengan versi di alamat", () => {
+    const tautan = [...badan.matchAll(/\[([^\]]+)\]\((https?:\/\/[^)]+|\/[^)]+)\)/g)].map((m) => [m[1]!, m[2]!]);
+    const pg = kepala[1]!, mayor = pg.split(".")[0]!;
+    const H = `https://www.postgresql.org/docs/${mayor}/hot-standby.html`, R = `https://www.postgresql.org/docs/${mayor}/runtime-config-replication.html`;
+    expect(tautan).toEqual([
+      ["Label sumber", "/cara-pakai/#label-sumber"], [`PostgreSQL ${pg}, Hot Standby`, H], [`PostgreSQL ${pg}, Replication`, R], [`PostgreSQL ${pg}, Replication`, R],
+      ["@prisma/extension-read-replicas", "https://github.com/prisma/extension-read-replicas"], ["Laravel 13.x: Database", "https://laravel.com/docs/13.x/database"],
+      ["Django 5.2: Multiple databases", "https://docs.djangoproject.com/en/5.2/topics/db/multi-db/"], ["Serverpod: database connection", "https://docs.serverpod.dev/concepts/database/connection"],
+      ["Supabase: Read Replicas", "https://supabase.com/docs/guides/platform/read-replicas"], [`PostgreSQL ${pg}, Replication`, R],
+      [`PostgreSQL ${mayor}: Hot Standby`, H], [`PostgreSQL ${mayor}: Replication`, R], ["@prisma/extension-read-replicas", "https://github.com/prisma/extension-read-replicas"],
+      ["Laravel 13.x: Database", "https://laravel.com/docs/13.x/database"], ["Django 5.2: Multiple databases", "https://docs.djangoproject.com/en/5.2/topics/db/multi-db/"],
+      ["Supabase: Read Replicas", "https://supabase.com/docs/guides/platform/read-replicas"], ["Serverpod: database connection", "https://docs.serverpod.dev/concepts/database/connection"],
+    ]);
+    expect([...new Set([...badan.matchAll(/PostgreSQL (\d+(?:\.\d+)?)/g)].map((m) => m[1]))].sort()).toEqual([mayor, pg].sort());
+    const r133 = barisRiset("R5-133");
+    expect(r133).toContain("laravel.com/docs/13.x/database");
+    expect(r133).toContain("docs.djangoproject.com/en/5.2/topics/db/multi-db/ (Django 5.2");
+    expect(hitung(badan, "13.x")).toBe(4);
+    expect(hitung(badan, "5.2")).toBe(4);
+    harus("(npm 0.5.0, terbit 2025-12-02, butuh Prisma 7.0 ke atas)");
+    for (const k of ["npm @prisma/extension-read-replicas 0.5.0, terbit 2025-12-02", "Requires Prisma 7.0+", "requests within two seconds of a write"]) expect(r133, k).toContain(k);
+    harus("yang memakai sesi dan 2 detik bawaan");
+    expect(daun(tebakMentah).length).toBeGreaterThan(10);
+  });
+  test("judul Snippet lengkap: berkas, huruf bagian dari rekaman, rentang baris kode, dan keterangan tetap", () => {
+    const ket = ["dua standby asinkron dan dua slot", "UPDATE ditolak di replica", "FOR UPDATE, SET TRANSACTION, dan PREPARE TRANSACTION", "jeda alami di bawah beban", "jeda buatan, bukan jeda alami",
+      "pengaturan bawaan replica", "timeout 20 detik", "tanpa timeout", "saldo di primary lawan replica, kiriman ditolak"];
+    snip.forEach((s, i) => {
+      if (s.f.endsWith(".txt")) expect(s.judul, s.f).toBe(`Rekaman lab: ${s.f}, bagian ${huruf(baca(s.f), s.a)} (${ket[i]})`);
+    });
+    expect(snip[9]!.judul).toBe(`Kode lab: labs/api-t5/internal/service/bayar.go baris ${snip[9]!.a} sampai ${snip[9]!.b} (saldo dibaca sesudah lock di primary)`);
+    expect(snip[10]!.judul).toBe("labs/api-t5/cmd/api/main.go");
+  });
+  test("Inti: paragraf pembuka, dua paragraf rekaman, dan tiga pertanyaan memakai kode, saldo, dan nominal rekaman; Coba memakai detik rekaman", () => {
+    harus(`Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) \`replika.txt\` bagian ${huruf(replika, RP.nomor((x) => x.startsWith("replika=> UPDATE t5_ledger.buku"), rB0))}, standby menolak UPDATE, DDL, \`SELECT ... FOR UPDATE\`, dan \`PREPARE TRANSACTION\` dengan kode ${TOLAK[0]!.kode}.`);
+    harus(`Di \`baca.txt\` bagian ${huruf(bacaTxt, BC.nomor((x) => x.startsWith("primary=> SELECT saldo_cache")))} replay ditahan dengan sengaja, dan saldo tampil di replica ${rp(SALDO_REPLICA)} sedangkan saldo primary ${rp(SALDO_PRIMARY)}. Kiriman ${rp(NOMINAL)} ditolak.`);
+    harus("Replica selalu sedikit tertinggal, jadi ADR 46 membagi bacaan: laporan dari replica, uang dari primary.");
+    harus("Primary adalah database yang menerima semua tulisan.");
+    expect([...badan.matchAll(/^(\d)\. (.+)$/gm)].slice(0, 3).map((m) => `${m[1]} ${m[2]}`)).toEqual([
+      "1 Pernyataan apa yang ditolak standby, dan dengan kode apa?",
+      `2 Query ${DETIK_QUERY} detik di replica dengan \`statement_timeout\` ${tebak.adegan[0]!.match(/statement_timeout (\d+) detik/)![1]} detik: kapan ia berhenti, dengan kode apa, dan apa yang berubah tanpa timeout?`,
+      `3 Saldo tampil di replica ${rp(SALDO_REPLICA)}, saldo primary ${rp(SALDO_PRIMARY)}. Kiriman ${rp(NOMINAL)} diterima atau ditolak, dan saldo yang menentukan itu dibaca dari mana?`,
+    ]);
+    harus("<summary>Sudah tahu? Cek 3 pertanyaan</summary>");
+    expect(K1).toBe(20);
+    harus(`Kalau berhenti di sini, kamu sudah tahu: statement_timeout ${K1} detik di replica menghentikan query lama lebih awal daripada konflik pada ${K_D[3]} detik, dan saldo, kiriman, serta batas harian tetap dibaca dari primary.`);
+    harus(`Tebak dulu apa yang terjadi pada query ${DETIK_QUERY} detik di replica.`);
+    harus(`Query ${K_B[0]!.match(/query (\d+) detik/)![1]} detik selesai dan replay menunggunya (bagian ${huruf(konflik, KF.nomor((x) => x.startsWith("# query 3 detik")))}).`);
+    harus(`Rekaman hanya membuktikan batas di bawah ${cocok(bagJA, /replay_lag tertinggi di kedua standby di bawah (\d+) detik/)[1]} detik di laptop, bukan di produksi.`);
+  });
+  test("Kenapa ini ada dan ADR: pemicu, ambang, aturan 2, Status, dan sel tabel opsi memakai angka naskah, rekaman, dan registri", () => {
+    harus(`menunda read replica dengan dua pemicu: laporan merchant real-time diminta, atau L baca mencapai ${AMBANG} koneksi.`);
+    harus("PRD v5 memenuhi pemicu pertama ([[t5-prd]]).");
+    harus(`Aturan ${hal45.match(/^(\d)\. Uang tidak dibaca dari salinan/m)![1]} di ADR itu sudah menulis batasnya: uang tidak dibaca dari salinan di luar primary, dan read replica hanya untuk laporan.`);
+    harus(`**Status:** diterima sesudah M${dari("t5-m40").judul.match(/^M(\d+)/)![1]}, dan menjalankan aturan ${hal45.match(/^(\d)\. Uang tidak dibaca dari salinan/m)![1]} ADR ${dari("t4-adr-45").adr![0]} ([[t4-adr-45]]). Dibaca ulang di [[t5-m41]].`);
+    harus(`Laporan di primary menambah kerja mesin yang menulis uang ([[t5-m40]]). Pemicu ADR ${dari("t4-adr-45").adr![0]} terpenuhi`);
+    const sel = (b: string, n: number) => b.split(" | ")[n]!;
+    const baris = (awal: string) => badan.split("\n").find((b) => b.startsWith(`| ${awal} |`))!;
+    expect(sel(baris("Cara kerja"), 1)).toBe(`Jawaban laporan disimpan ${L_C[1]} detik di Redis ([[t3-cache]])`);
+    expect(sel(baris("Cara kerja"), 3)).toBe("App menerima kabar saat ada penjualan, bukan bertanya tiap 30 detik");
+    expect(naskahTabel("Polling laporan")).toContain("polling 30 detik");
+    expect(sel(baris("Kekurangan"), 1)).toBe(`${L_C[2]} hit dari ${L_C[6]} untuk satu client per warung berjarak ${L_JARAK[1]} detik (\`laporan.txt\` bagian ${huruf(laporan, LP.nomor((x) => x.startsWith("# server: ./api-t5 -lab -rentan laporan-primary -laporan-cache redis")))})`);
+    expect(sel(baris("Kekurangan"), 2)).toBe(`Mempercepat satu query, bukan mengurangi ${koma(bulat(20000 / 30, 1), 1)} query per detik (Hitungan atas Asumsi)`);
+    expect(sel(baris("Biaya operasional"), 1)).toBe(`Redis sudah ada ([[t3-cache]]), isi bisa setua ${L_C[1]} detik`);
+    expect(sel(baris("Bukti"), 2)).toBe(`Tidak dijalankan: query laporan di bawah ${L_MS} ms pada data kecil (bagian ${huruf(laporan, LP.nomor((x) => x.startsWith("waktu eksekusi query laporan satu warung")))})`);
+    expect(sel(baris("Kekurangan"), 4)).toBe("Slot replikasi menahan WAL, dan bawaan `max_slot_wal_keep_size` tanpa batas");
+    harus(`polling satu perangkat per merchant tiap ${L_C[1]} detik tidak punya panggilan kedua dalam umur isi cache.`);
+    harus(`bawaan \`max_slot_wal_keep_size\` ${slotWal}, yaitu slot boleh menahan WAL tanpa batas`);
+    harus(`Dengan \`max_slot_wal_keep_size\` bawaan ${slotWal}, dokumentasi menulis slot boleh menahan WAL tanpa batas.`);
+    harus(`beban M${dari("t5-m40").judul.match(/^M(\d+)/)![1]} datang dari jumlah query.`);
+  });
+  test("pre-mortem, kapan salah, dan Cek diri: nomor aturan, detik, dan pencacah sama dengan rekaman; nomor soal berurut; jawaban lengkap diturunkan", () => {
+    const aturan = [...badan.matchAll(/^(\d)\. (Satu read replica asinkron|Semua yang memutuskan uang|Laporan hari ini menjumlah|Sesi laporan di replica|`hot_standby_feedback` tetap off|Jeda replica dibaca)/gm)];
+    expect(aturan).toHaveLength(6);
+    harus("Pencegahannya aturan 6: jeda dipantau, dan tampilan laporan menyebut waktu datanya.");
+    expect(badan).toContain("6. Jeda replica dibaca di primary dari `replay_lag`");
+    harus(`dan timeout ${K1} detik di bawah ${K_D[3]} detik.`);
+    harus(`Saat jeda replica melewati ${cocok(barisAdr46, /lebih dari (\d+) detik \(target PRD/)[1]} detik, target PRD v5 (Asumsi produk).`);
+    harus(`yang naik dari ${CONFL[0]} ke ${CONFL[2]} di rekaman tanpa timeout.`);
+    harus(`Pembandingnya jeda alami di bawah ${cocok(bagJA, /replay_lag tertinggi di kedua standby di bawah (\d+) detik/)[1]} detik pada ${J_RPS[1]} pembayaran per detik di laptop`);
+    expect([...cek.matchAll(/\*\*(\d)\.\*\*/g)].map((m) => m[1])).toEqual(["1", "2", "3", "4"]);
+    expect(jawab[1]).toBe(`Query berhenti sesudah paling sedikit ${K_C[2]} detik dan sebelum ${K_C[3]} detik, dengan ${K_C[1]}. Tanpa timeout, konflik dengan replay membatalkannya sesudah paling sedikit ${K_D[2]} detik, dengan ${K_D[1]}. Timeout tidak mencegah pembatalan: ia menghentikan query lebih awal, dan replay tertahan lebih singkat (\`konflik.txt\` bagian ${huruf(konflik, kC0)} dan ${huruf(konflik, kD0)}).`);
+    expect(jawab[2]).toBe(`Ditolak dengan ${B_KIRIM[0]!.match(/HTTP\/1\.1 (\d+)/)![1]} \`${B_KIRIM[3]}\`, karena saldo yang menentukan dibaca dari primary di dalam transaction. Pembayaran tidak bisa dipakai: satu pembayaran dibatasi ${rp(MAKS)}, jadi ${rp(NOMINAL)} ditolak oleh batas itu tanpa membaca saldo (\`baca.txt\` bagian ${huruf(bacaTxt, BC.nomor((x) => x.startsWith("primary=> SELECT saldo_cache")))}, README lab).`);
+    expect(jawab[3]).toBe(`Cache menyimpan jawaban sampai TTL ${L_C[1]} detik habis, jadi laporan bisa setua ${L_C[1]} detik. Rekaman mencatat ${L_C[2]} hit dari ${L_C[6]} untuk satu client per warung. Replica menjawab dari data yang tertinggal sebesar jeda replay, di lab di bawah ${cocok(bagJA, /replay_lag tertinggi di kedua standby di bawah (\d+) detik/)[1]} detik pada ${J_RPS[1]} pembayaran per detik. Jeda itu batas di laptop, bukan nilai produksi.`);
+  });
+  test("recording: kalimat ringkas di akhir bagian C dan D, pesan galat standby, batas Rp200.000 di komentar rekaman, dan run.py memakai angka yang sama", () => {
+    expect(bagKC).toContain("replay baru menyusul sesudah query berhenti, dan itu kurang dari 30 detik sesudah VACUUM (nilai tidak direkam).");
+    expect(bagKD).toContain("replay baru menyusul sesudah query dibatalkan, lebih lama dari di bagian C (nilai tidak direkam).");
+    expect(TOLAK[0]!.galat).toBe("cannot execute UPDATE in a read-only transaction");
+    expect(TOLAK.filter((t) => !t.sql.startsWith("SET") && !t.sql.startsWith("PREPARE")).every((t) => /in a read-only transaction$/.test(t.galat))).toBe(true);
+    expect(TOLAK.find((t) => t.sql.startsWith("SET"))!.galat).toBe("cannot set transaction read-write mode during recovery");
+    expect(TOLAK.find((t) => t.sql.startsWith("PREPARE"))!.galat).toBe("cannot execute PREPARE TRANSACTION during recovery");
+    expect(bagCA).toContain(`satu pembayaran dibatasi ${rp(MAKS)} dan ${rp(NOMINAL)} ditolak oleh batas itu tanpa membaca saldo.`);
+    expect(MAKS).toBe(200000);
+  });
+});
+
 const PENENTU = ["tidak", "belum", "hanya", "tetap", "sama", "sebelum", "sesudah", "satu", "dua", "tiga", "empat", "lima", "enam", "Raka", "Budi", "Ani", "Wulan", "Nadia", "pertama", "kedua", "bukan", "tanpa", "kecuali", "semua", "juga", "Rekaman lab", "Tidak dijalankan", "Ilustrasi", "Asumsi", "Hitungan", "penalaran", "primary", "replica", "standby", "cache", "hit", "TTL", "p95", "query", "pembayaran", "laporan", "database", "lebih", "paling", "bisa", "direkam", "tidak direkam", "dibaca dari kode", "25006", "0A000", "57014", "40001", "422", "ms", "detik", "merchant", "warung", "lab", "naskah", "cerita", "di atas", "di bawah", "paling sedikit", "paling lama", "kurang", "melewati", "bawaan", "timeout", "konflik", "replay", "jeda", "yaitu", "bukan hasil ukuran", "ditolak", "ditahan", "WAL", "slot", "GET"];
 const profil = (teks: string): string =>
   PENENTU.map((k) => {
