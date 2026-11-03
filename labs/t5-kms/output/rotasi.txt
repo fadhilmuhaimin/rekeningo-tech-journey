@@ -19,7 +19,7 @@ HTTP 200
 $ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v1> -periode <tanggal> -keluar pulih.csv
 terbuka: 1282072 byte
 # exit status 0
-# Rotate tidak mengubah data key terbungkus yang sudah ada. Data key yang dibuat sesudahnya memakai versi 2 (arsip kecil berisi 1.000 posting bulan berjalan):
+# Rotate tidak mengubah data key terbungkus yang sudah ada. Data key yang dibuat sesudahnya memakai versi 2 (arsip kecil: 1.000 baris pertama dari posting_lalu_01, diberi periode bulan berjalan):
 $ BAO_TOKEN=<token pengarsip> kmsarsip arsipkan -sumber posting_bulan_00_kecil.csv -tujuan posting_bulan_00_kecil.enc -periode <tanggal> -jangkar jangkar-arsip.jsonl
 {"checksum": "<checksum posting_bulan_00_kecil>", "data_key_terbungkus": "<data key terbungkus posting_bulan_00_kecil v2>", "versi_kek": 2}
 (api_t5) => INSERT INTO arsip_partisi (periode, kunci_objek, checksum, kunci_data_terbungkus, versi_kek)
@@ -108,7 +108,7 @@ $ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungku
 terbuka: 1282072 byte
 # exit status 0
 $ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_bulan_00_kecil.enc -terbungkus <data key terbungkus posting_bulan_00_kecil v2> -periode <tanggal> -keluar pulih.csv
-terbuka: 48144 byte
+terbuka: 45000 byte
 # exit status 0
 # Rotasi tanpa pembungkusan ulang membuat versi lama tidak bisa dicabut tanpa kehilangan arsip yang memakainya; pencabutan sungguhan = rewrap semua, lalu trim.
 
