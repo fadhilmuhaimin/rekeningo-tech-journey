@@ -1609,7 +1609,7 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .fo-hasil { margin-top: 0.4rem; }
 .sl-markdown-content .fo-tabel { table-layout: fixed; }
 .sl-markdown-content .fo-tabel caption { caption-side: top; text-align: left; padding: 0.2rem 0.5rem; font-size: var(--rk-ui-kecil); }
-.sl-markdown-content .fo-tabel col:first-child { width: 36%; }
+.sl-markdown-content .fo-tabel col:first-child { width: 42%; }
 .sl-markdown-content .fo-tabel :is(th, td) { padding: 0.3rem 0.35rem; overflow-wrap: anywhere; vertical-align: top; text-align: left; }
 .sl-markdown-content .fo-tabel th[scope="row"] { font-weight: 600; }
 .sl-markdown-content .fo-tabel th.fo-nama { text-align: left; border-top: 2px solid var(--garis-2); padding-top: 0.5rem; }
