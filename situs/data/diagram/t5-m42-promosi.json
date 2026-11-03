@@ -1,0 +1,24 @@
+{
+  "id": "t5-m42-promosi",
+  "judul": "Replica asinkron kehilangan lima pembayaran; standby sinkron menahan jawabannya",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t5-replika · promosi.txt bagian A dan B" },
+  "baris": [
+    {
+      "label": "Replica asinkron",
+      "sub": "koneksi WAL putus, lalu dipromosikan",
+      "simpul": [
+        { "teks": "5 pembayaran dijawab 201, 0 ada di node baru", "sub": "saldo Warung 505: Rp156.000 lawan Rp6.000", "nada": "warn" },
+        { "teks": "ledger node baru tetap seimbang", "sub": "0 buku selisih", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Standby sinkron",
+      "sub": "FIRST 1, lalu dipromosikan",
+      "simpul": [
+        { "teks": "3 pembayaran dijawab 201, 3 ada di node baru", "sub": "tiga jurnal dari tiga", "nada": "good" },
+        { "teks": "pembayaran keempat tidak dijawab 201", "sub": "ada di primary lama, tidak di node baru", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Lab merekam pembayaran ke Warung 505 dengan satu standby sinkron. Primary tidak dimatikan: koneksi WAL diputus lalu replica dipromosikan."
+}

@@ -4368,8 +4368,9 @@
       "lab": [
         "t5-replika"
       ],
-      "ada": false,
-      "nomor": "5.8"
+      "ada": true,
+      "nomor": "5.8",
+      "menit": 13
     },
     {
       "id": "t5-rpo-rto",
