@@ -12,6 +12,7 @@ $ TES_DB_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema tahap5_tes> go test -tags t5
 --- PASS: TestSakelarKartuBarisTidakAdaTidakTerbaca (<detik>)
 --- PASS: TestSakelarKartuSetelHanyaPodSendiri (<detik>)
 --- PASS: TestLabTolakTepatPersen (<detik>)
+--- PASS: TestLabTolakTersebarRata (<detik>)
 --- PASS: TestHitungOtorisasi (<detik>)
 --- PASS: TestOtorisasiSakelarTabel (<detik>)
 --- PASS: TestSetKartuAktifBOMenulisSakelarDanAudit (<detik>)

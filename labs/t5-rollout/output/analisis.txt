@@ -3,7 +3,7 @@
 # Rekaman dari database bersih dan beban kerja baru: make -C labs/t5-rollout run.
 
 # --- C. Analisis yang gagal membalik rollout: versi baru menolak 31% otorisasi ---
-# Versi v3 dijalankan dengan -lab-tolak-persen 31: dari setiap 100 otorisasi, 31 pertama ditolak dengan alasan versi-baru.
+# Versi v3 dijalankan dengan -lab-tolak-persen 31: 31 persen otorisasi ditolak dengan alasan versi-baru, tersebar rata (sesudah k panggilan tepat k x 31 / 100, dibulatkan ke bawah).
 # Angka 31% memerankan naskah M49 (Ilustrasi); kode versi baru yang salah tidak ada. Analisis: rasio tolak >= 10% dari paling sedikit 10 keputusan = gagal.
 Rollout kartu versi v1: phase Healthy, 3 pod siap
 HTTPRoute kartu-route, bobot awal: {"kartu-stable": 100, "kartu-canary": 0}
