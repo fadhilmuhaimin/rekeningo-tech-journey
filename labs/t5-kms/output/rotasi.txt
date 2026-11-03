@@ -1,0 +1,138 @@
+# Lab t5-kms · rotasi KEK: rotate, rewrap, min_decryption_version, trim, OpenBao tidak tersedia, dan umur KEK
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · OpenBao v2.7.2 mode dev, image ghcr.io/openbao/openbao@sha256:5046911075e1… · schema tahap5_kms
+# Rekaman dari database bersih: make -C labs/t5-kms run.
+
+# --- A. Keadaan awal: dua arsip, dua data key terbungkus dengan KEK versi 1 ---
+# kunci kek-arsip: versi terbaru 1, min_decryption_version 1, min_encryption_version 0, min_available_version 0, versi yang tampil di daftar kunci [1]
+=> SELECT kunci_objek, left(kunci_data_terbungkus, 9) AS awal_kunci, versi_kek FROM arsip_partisi ORDER BY periode
+ kunci_objek               | awal_kunci | versi_kek
+---------------------------+------------+-----------
+ objek/posting_lalu_02.enc | vault:v1:  | 1
+ objek/posting_lalu_01.enc | vault:v1:  | 1
+(2 rows)
+
+# --- B. rotate: versi baru dibuat, data key lama tetap terbuka, dan data key baru memakai versi 2 ---
+$ curl -X POST $BAO/v1/transit/keys/kek-arsip/rotate -H 'X-Vault-Token: <token operator>'
+HTTP 200
+# kunci kek-arsip: versi terbaru 2, min_decryption_version 1, min_encryption_version 0, min_available_version 0, versi yang tampil di daftar kunci [1, 2]
+# Data key terbungkus versi 1 masih terbuka sesudah rotate:
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v1> -periode <tanggal> -keluar pulih.csv
+terbuka: 1282072 byte
+# exit status 0
+# Rotate tidak mengubah data key terbungkus yang sudah ada. Data key yang dibuat sesudahnya memakai versi 2 (arsip kecil berisi 1.000 posting bulan berjalan):
+$ BAO_TOKEN=<token pengarsip> kmsarsip arsipkan -sumber posting_bulan_00_kecil.csv -tujuan posting_bulan_00_kecil.enc -periode <tanggal> -jangkar jangkar-arsip.jsonl
+{"checksum": "<checksum posting_bulan_00_kecil>", "data_key_terbungkus": "<data key terbungkus posting_bulan_00_kecil v2>", "versi_kek": 2}
+(api_t5) => INSERT INTO arsip_partisi (periode, kunci_objek, checksum, kunci_data_terbungkus, versi_kek)
+   VALUES (<periode>, 'objek/<nama>.enc', <checksum>, <data key terbungkus>, <versi kunci>)
+
+# --- C. rewrap: data key dibungkus ulang dengan versi 2 tanpa pernah keluar sebagai teks biasa; baris database butuh hak UPDATE dua kolom ---
+$ BAO_TOKEN=<token pembungkus-ulang> kmsarsip rewrap -terbungkus <data key terbungkus posting_lalu_02 v1>
+{"data_key_terbungkus": "<data key terbungkus posting_lalu_02 v2>", "versi_kek": 2}
+# exit status 0
+# Token pembungkus-ulang tidak bisa decrypt (kebijakannya hanya rewrap), jadi rewrap tidak pernah menjawab teks biasa. Mengubah baris arsip_partisi:
+(api_t5) => UPDATE arsip_partisi SET kunci_data_terbungkus = '<data key terbungkus posting_lalu_02 v2>', versi_kek = 2 WHERE periode = '<tanggal>'
+ERROR:  permission denied for table arsip_partisi
+   -- SQLSTATE 42501
+# Hak yang dimiliki role aplikasi atas arsip_partisi hanya SELECT dan INSERT (api-t5), jadi pembungkusan ulang butuh hak UPDATE untuk dua kolom itu, tidak lebih:
+=> GRANT UPDATE (kunci_data_terbungkus, versi_kek) ON arsip_partisi TO api_t5
+GRANT
+(api_t5) => UPDATE arsip_partisi SET kunci_data_terbungkus = <v2>, versi_kek = 2 WHERE periode = <periode>
+UPDATE 1
+(api_t5) => UPDATE arsip_partisi SET checksum = repeat('0', 64) WHERE periode = '<tanggal>'
+ERROR:  permission denied for table arsip_partisi
+   -- SQLSTATE 42501
+(api_t5) => UPDATE arsip_partisi SET kunci_objek = 'lain' WHERE periode = '<tanggal>'
+ERROR:  permission denied for table arsip_partisi
+   -- SQLSTATE 42501
+# checksum dan kunci_objek tetap tidak bisa diubah role aplikasi (42501); hanya dua kolom kunci yang berubah.
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal> -keluar pulih.csv
+terbuka: 1282072 byte
+# exit status 0
+# File arsip tidak disentuh (checksum sama), dan terbuka dengan data key terbungkus versi 2; isinya sama dengan file asal.
+=> SELECT kunci_objek, left(kunci_data_terbungkus, 9) AS awal_kunci, versi_kek FROM arsip_partisi ORDER BY periode
+ kunci_objek                      | awal_kunci | versi_kek
+----------------------------------+------------+-----------
+ objek/posting_lalu_02.enc        | vault:v2:  | 2
+ objek/posting_lalu_01.enc        | vault:v1:  | 1
+ objek/posting_bulan_00_kecil.enc | vault:v2:  | 2
+(3 rows)
+
+# --- D. min_decryption_version: versi lama ditolak, dan bisa dibalik ---
+$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{"min_decryption_version": 2}'
+HTTP 200
+# kunci kek-arsip: versi terbaru 2, min_decryption_version 2, min_encryption_version 0, min_available_version 0, versi yang tampil di daftar kunci [2]
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_01.enc -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal>
+kmsarsip: openbao menjawab 400: ciphertext or signature version is disallowed by policy (too old)
+# exit status 2
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal> -keluar pulih.csv
+terbuka: 1282072 byte
+# exit status 0
+# posting_lalu_01 masih dibungkus versi 1 dan ditolak; posting_lalu_02 (sudah dibungkus ulang) terbuka.
+# Menaikkan min_decryption_version hanya menyembunyikan versi lama dari daftar dan dari decrypt. Menurunkannya lagi membuka posting_lalu_01 kembali:
+$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{"min_decryption_version": 1}'
+HTTP 200
+# kunci kek-arsip: versi terbaru 2, min_decryption_version 1, min_encryption_version 0, min_available_version 0, versi yang tampil di daftar kunci [1, 2]
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_01.enc -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal> -keluar pulih.csv
+terbuka: 1282072 byte
+# exit status 0
+# Kenaikan itu bisa dibalik, jadi bukan pencabutan: versi 1 masih tersimpan di OpenBao.
+
+# --- E. trim: menghapus versi lama dari OpenBao. Arsip yang masih dibungkus versi itu hilang, jadi rewrap dulu semuanya ---
+# Pemeriksaan sebelum trim: baris arsip_partisi yang masih dibungkus versi di bawah 2:
+=> SELECT kunci_objek, versi_kek FROM arsip_partisi WHERE versi_kek < 2 ORDER BY periode
+ kunci_objek               | versi_kek
+---------------------------+-----------
+ objek/posting_lalu_01.enc | 1
+(1 row)
+$ curl -X POST $BAO/v1/transit/keys/kek-arsip/trim -H 'X-Vault-Token: <token operator>' -d '{"min_available_version": 2}'
+HTTP 400
+{"errors": ["minimum available version cannot be set when minimum encryption version is not set"]}
+# trim ditolak. Urutan yang diterima: min_encryption_version, min_decryption_version, lalu trim.
+$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{"min_encryption_version": 2}'
+HTTP 200
+$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{"min_decryption_version": 2}'
+HTTP 200
+$ curl -X POST $BAO/v1/transit/keys/kek-arsip/trim -H 'X-Vault-Token: <token operator>' -d '{"min_available_version": 2}'
+HTTP 200
+# kunci kek-arsip: versi terbaru 2, min_decryption_version 2, min_encryption_version 2, min_available_version 2, versi yang tampil di daftar kunci [2]
+$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{"min_decryption_version": 1}'
+HTTP 400
+{"errors": ["min decryption version should not be less then min available version"]}
+# Menurunkan min_decryption_version lagi tidak mengembalikan versi 1:
+# kunci kek-arsip: versi terbaru 2, min_decryption_version 2, min_encryption_version 2, min_available_version 2, versi yang tampil di daftar kunci [2]
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_01.enc -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal>
+kmsarsip: openbao menjawab 400: ciphertext or signature version is disallowed by policy (too old)
+# exit status 2
+# posting_lalu_01, yang tidak sempat dibungkus ulang, tidak bisa dibuka lagi sesudah trim. posting_lalu_02 dan posting_bulan_00_kecil (versi 2) tetap terbuka:
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal> -keluar pulih.csv
+terbuka: 1282072 byte
+# exit status 0
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_bulan_00_kecil.enc -terbungkus <data key terbungkus posting_bulan_00_kecil v2> -periode <tanggal> -keluar pulih.csv
+terbuka: 48144 byte
+# exit status 0
+# Rotasi tanpa pembungkusan ulang membuat versi lama tidak bisa dicabut tanpa kehilangan arsip yang memakainya; pencabutan sungguhan = rewrap semua, lalu trim.
+
+# --- F. OpenBao tidak tersedia saat pemulihan, dan restart di mode dev menghapus semua kunci ---
+# Container OpenBao dijeda (docker pause): pemulihan posting_lalu_02 menunggu sampai batas waktu klien (5 detik).
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal>
+kmsarsip: Post "http://127.0.0.1:<port openbao>/v1/transit/decrypt/kek-arsip": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+# exit status 2
+# Container dilanjutkan: posting_lalu_02 terbuka lagi. Selama jeda, arsip tidak terbaca.
+$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal> -keluar pulih.csv
+terbuka: 1282072 byte
+# exit status 0
+# Container dimulai ulang (docker restart). Mode dev menyimpan semua di memori:
+$ curl -X GET $BAO/v1/sys/mounts -H 'X-Vault-Token: <token operator>'
+HTTP 200
+# mount sesudah restart: ['cubbyhole/', 'identity/', 'secret/', 'sys/']
+$ BAO_TOKEN=<token operator> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal>
+kmsarsip: openbao menjawab 404: no handler for route "transit/decrypt/kek-arsip". route entry not found.
+# exit status 2
+# KEK ikut hilang, jadi semua arsip yang dibungkus kunci itu tidak bisa dibuka selamanya. Produksi memakai penyimpanan persisten, unseal, dan cadangan KEK: Tidak dijalankan.
+
+# --- G. Umur KEK: 2^32 pesan per kunci (Hitungan atas Asumsi naskah) ---
+# Batas: crypto/cipher.NewGCMWithRandomNonce: sebuah kunci tidak boleh mengenkripsi lebih dari 2^32 pesan = 4.294.967.296.
+# Satu data key per posting, 3 transaksi per user aktif per hari: 200.000 × 3 × 2 × 365 = 438.000.000 posting per tahun; 4.294.967.296 ÷ 438.000.000 = 9,8 tahun.
+# Satu data key per posting, 2 transaksi per user aktif per hari: 200.000 × 2 × 2 × 365 = 292.000.000 posting per tahun; 4.294.967.296 ÷ 292.000.000 = 14,7 tahun.
+# Satu data key per file, 12 file per tahun: 4.294.967.296 ÷ 12 = 357.913.941 tahun; batas itu tidak relevan.
+# Syarat hitungan: satu pembungkusan data key memakai satu nonce acak di KEK. Bahwa mesin transit OpenBao memakai nonce acak 96 bit untuk aes256-gcm96 [perlu verifikasi: dokumentasi tidak terbaca dari mesin ini].
