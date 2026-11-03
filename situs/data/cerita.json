@@ -4531,8 +4531,9 @@
       "lab": [
         "t5-fanout"
       ],
-      "ada": false,
-      "nomor": "5.14"
+      "ada": true,
+      "nomor": "5.14",
+      "menit": 15
     },
     {
       "id": "t5-fanout",
@@ -4769,8 +4770,9 @@
       "lab": [
         "t5-rollout"
       ],
-      "ada": false,
-      "nomor": "5.23"
+      "ada": true,
+      "nomor": "5.23",
+      "menit": 20
     },
     {
       "id": "t5-m50",

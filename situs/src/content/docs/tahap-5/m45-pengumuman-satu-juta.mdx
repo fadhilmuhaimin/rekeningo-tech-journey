@@ -1,0 +1,198 @@
+---
+title: "5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat"
+description: Minggu 7. Pengumuman diskon ke 1.000.000 HP berjalan saat makan siang, dan notifikasi uang menunggu ±34,5 menit. Halaman ini menghitung kapasitas worker, membaca kelas queue dari rekaman, dan menunjukkan batas kelas itu.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import kapasitasUang from "../../../../data/diagram/t5-m45-kapasitas-uang.json";
+
+<p class="meta">Baca 12 menit · coba 3 menit · Prasyarat: [[t3-tim-infra]], [[t4-breaker]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 7 Tahap 5. Kamis pukul 11.30 tim Merchant mengirim pengumuman diskon makan siang ke 1.000.000 HP.
+
+Pukul 12.10 Ani masih menunggu notifikasi pembayaran dari pembeli. Notifikasi uang yang paling lama menunggu sudah berumur 34,5 menit. Ratih menghentikan pengumuman.
+
+PRD v3 menjanjikan 95% notifikasi bayar dan transfer dalam kurang dari 30 detik ([[t3-prd]]).
+
+*Angka cerita (Ilustrasi):* Kamis, 11.30, 12.10, dan Ani yang menunggu berasal dari naskah, bukan dari rekaman. Angka 34,5 menit dihitung di blok Yang sebenarnya.
+
+Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Tim Merchant dan Raka mengira satu hal: satu juta pesan pengumuman berada di queue yang sama dengan notifikasi uang, jadi uang menunggu di belakangnya. Karena itu Ratih menghentikan pengumuman.
+
+Dugaan itu pernah benar. Di [[t3-m27]], 10.000 promo membuat notifikasi uang menunggu, karena worker mengklaim baris menurut nomor. ADR 32 menutupnya dengan kelas queue: worker mengklaim baris kelas uang lebih dulu ([[t3-tim-infra]]).
+
+Umur notifikasi uang tertua adalah umur baris uang yang belum terkirim dan paling lama menunggu di queue. Janji 30 detik tadi dihitung sampai pesan diserahkan ke penyedia push, jadi baris yang masih menunggu belum memenuhinya.
+
+<details class="question">
+<summary>Tebak dulu: pukul 12.10 pengumuman dihentikan, dan uang makan siang masih datang seperti sebelumnya. Sepuluh menit kemudian, umur notifikasi uang tertua turun, tetap, atau naik?</summary>
+
+Naik, dari 34,5 menit ke 43,1 menit (Hitungan atas Asumsi: dihitung dari angka Asumsi di blok berikutnya). Menghentikan pengumuman tidak mengurangi queue uang.
+
+Notifikasi uang datang 96,3 per detik, sedangkan worker mengirim 13,33 per detik. Selisihnya, 83 baris per detik, menumpuk selama jendela makan siang berjalan. Blok berikutnya menghitungnya dan menunjukkan rekaman kelas queue.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Notifikasi uang makan siang datang 96,3 per detik, dan worker mengirim 13,33 per detik. Queue uang tumbuh 83 per detik, dengan atau tanpa pengumuman (Hitungan atas Asumsi). Kelas queue sudah mendahulukan uang, jadi menghentikan pengumuman tidak mengubah laju itu.
+
+<Rantai data={kapasitasUang} ringkas />
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab t5-fanout. Bagian B rekaman `antrean.txt` mengirim pengumuman lewat Kafka (apache/kafka 4.3.2, satu broker), yaitu platform event streaming, dan consumer, yaitu proses yang membaca event dari Kafka. Uang dikirim lewat outbox dan worker, dan penyedia push adalah tiruan lokal dengan kuota. Cerita memakai jalur lama: satu baris outbox per penerima.
+
+*Dua label turunan:* Hitungan adalah angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah. Dibaca dari kode berarti isi kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.
+
+**Kelas queue mendahulukan uang.** Bagian A rekaman `antrean.txt` menaruh 3.000 baris promo (kelas 2), lalu empat pembayaran Rp5.000 (kelas 0). Dengan mode rentan urut-waktu dari M27, satu putaran worker mengirim empat promo dan empat uang tetap menunggu. Dengan versi benar, putaran berikutnya mengirim empat uang, dan 2.996 promo tetap menunggu.
+
+<Snippet file="labs/t5-fanout/output/antrean.txt" lines="14:34" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian A (urut nomor lawan urut kelas)" />
+
+Urutannya dipilih di satu baris SQL. Dengan kelas, `ORDER BY` memakai `kelas, id`, dan tanpa kelas hanya `id`:
+
+<Snippet file="labs/api-t5/internal/repo/outbox.go" lines="95:106" lang="go" title="Kode lab: labs/api-t5/internal/repo/outbox.go baris 95 sampai 106 (urutan klaim dan ORDER BY)" />
+
+Dengan satu worker, klaim berurutan kelas mengambil uang lebih dulu selama queue uang masih punya baris yang siap diklaim. Itu dibaca dari kode, dan Tidak dijalankan untuk queue uang yang terus terisi. Jadi pengumuman tidak berada di depan uang.
+
+**Yang membatasi uang adalah kapasitas.** Tabel di bawah menghitung jendela makan siang: 80% notifikasi sehari terjadi dalam 90 menit, yaitu 5.400 detik (Asumsi naskah).
+
+Notifikasi uang sehari adalah 600.000 transaksi uang ditambah 50.000 top-up bank, seperti di [[t5-prd]]. Naskah memakai 3 transaksi uang per user aktif per hari, dan registry memuat 2, jadi kolom kedua ditulis di sebelahnya.
+
+| Besaran | Rumus | 3 transaksi | 2 transaksi |
+|---|---|---|---|
+| λ, uang datang per detik | (transaksi + top-up) × 0,8 ÷ 5.400 | 96,3 | 66,7 |
+| Kapasitas worker per detik | c ÷ t = 4 ÷ 0,3 | 13,33 | 13,33 |
+| Pemakaian worker | λ ÷ 13,33 | 722% | 500% |
+| Queue uang tumbuh per detik | λ − 13,33 | 83 | 53 |
+| Umur uang tertua pukul 12.10 | 2.400 × (1 − 13,33 ÷ λ) | 2.068 detik (34,5 menit) | 1.920 detik (32,0 menit) |
+| Umur uang tertua pukul 12.20 | 3.000 × (1 − 13,33 ÷ λ) | 2.585 detik (43,1 menit) | 2.400 detik (40,0 menit) |
+| Isi queue uang pukul 13.00 | (λ − 13,33) × 5.400 | ±448.000 baris | ±288.000 baris |
+
+Semua sel tabel adalah Hitungan atas Asumsi, dengan queue uang kosong pukul 11.30 dan kedatangan tetap sampai 13.00. Tabel beban [[t5-prd]] memakai puncak 75,2 per detik, yaitu 564% kapasitas. Jendela makan siang lebih padat, jadi λ naik ke 96,3.
+
+Kapasitas 13,33 per detik datang dari c = 4 pengirim serentak dan t = 0,3 detik per pengiriman, dua Asumsi dari [[t3-estimasi]]. Lab mengukur c dan t pada penyedia tiruan berlatensi 300 ms:
+
+<Snippet file="labs/t5-fanout/output/pengirim.txt" lines="20:26" title="Rekaman lab: labs/t5-fanout/output/pengirim.txt, bagian B (c dan t terukur)" />
+
+Rekaman itu memeriksa rumus c ÷ t dan kode pengirim, bukan t penyedia sungguhan. Jadi 96,3 per detik dan 722% tetap Hitungan atas Asumsi.
+
+**Pengumuman satu baris per penerima.** Cara lama menulis satu baris outbox untuk tiap penerima, jadi 1.000.000 baris baru di primary untuk satu pengumuman. Naskah memakai 300 byte per baris, jadi ±300 MB (Asumsi). Lab mengukur 166 byte per baris di tumpukan tabel, tanpa index, jadi ±166 MB (Hitungan atas rekaman):
+
+<Snippet file="labs/t5-fanout/output/aliran.txt" lines="53:59" title="Rekaman lab: labs/t5-fanout/output/aliran.txt, bagian B (satu baris outbox per penerima)" />
+
+Pengirimnya juga habis dipakai uang. Satu pengumuman ke 1.000.000 HP butuh 1.000.000 × 0,3 ÷ 4 = 75.000 detik di 4 pengirim. Itu 20,8 jam (Hitungan atas Asumsi, sama dengan [[t5-prd]]). Saat makan siang, kedatangan uang melebihi kapasitas, jadi promo tidak mendapat giliran selama queue uang masih punya baris yang siap diklaim (dibaca dari kode).
+
+**Menambah kapasitas membuka dua hal lain.** Pengirim serentak yang dibutuhkan adalah L = λ × t = 96,3 × 0,3 = 28,89, dibulatkan ke 29. Delapan proses × 4 pengirim = 32 pengirim, dengan kapasitas 106,7 per detik dan pemakaian 90,3%. Sebelas proses = 44 pengirim, dengan kapasitas 146,7 per detik dan pemakaian 65,7% (Hitungan atas Asumsi; `pengirim.txt` bagian A mengulang hitungannya).
+
+Delapan adalah jumlah proses paling sedikit untuk 29 pengirim, dan 11 proses menjaga pemakaian paling tinggi ±70% (Asumsi desain naskah). Pemakaian dihitung dari nilai tepat, bukan dari angka yang sudah dibulatkan. Dari 96,3 ÷ 146,7 hasilnya 65,6%.
+
+Hal pertama adalah kuota penyedia push. Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit. Di atas kuota, jawabannya 429 RESOURCE_EXHAUSTED sampai kuota terisi lagi di menit berikutnya ([Firebase Cloud Messaging: Throttling and Quotas](https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas), dibuka 2026-11-04, Tidak dijalankan).
+
+Penyedia tiruan di lab menerjemahkan 600.000 per menit menjadi 10.000 per detik, dalam jendela satu detik. Rekaman `antrean.txt` memakai 1.000 pesan per detik, sepersepuluh dari itu (Asumsi lab, bukan angka penyedia).
+
+<Snippet file="labs/t5-fanout/output/antrean.txt" lines="37:45" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian B, versi benar (pengumuman dan uang memakai satu kuota)" />
+
+Pada versi benar, tiap consumer dibatasi 200 pesan per detik, dan 3 × 200 = 600 per detik masih di bawah kuota 1.000. Pengumuman 4.000 pesan diterima, tidak ada 429 untuk pengumuman maupun uang, dan umur uang tertua tidak melewati 2 detik (batas lab, Asumsi).
+
+Bagian B yang sama memuat mode rentan, dengan consumer tanpa batas laju dan tanpa backoff. Backoff adalah jeda yang bertambah di antara pengulangan sesudah jawaban 429. Hasilnya kamu tebak di blok Coba sendiri.
+
+Penyedia tiruan memanggil `Coba` satu kali per pesan, untuk pengumuman dan uang sama saja. Kelas pesan hanya dipakai untuk menghitung (dibaca dari kode):
+
+<Snippet file="labs/api-t5/cmd/pushkuota/main.go" region="jendela" lang="go" title="Kode lab: labs/api-t5/cmd/pushkuota/main.go, fungsi Coba (satu jendela kuota)" />
+
+Hal kedua adalah breaker dari ADR 36 ([[t4-breaker]]). Breaker itu dibuat dengan `lajur.Baru` di dalam proses worker, jadi tiap proses punya hitungan gagalnya sendiri dan dua proses tidak berbagi hitungan:
+
+<Snippet file="labs/api-t5/cmd/api/breaker.go" lines="11:19" lang="go" title="Kode lab: labs/api-t5/cmd/api/breaker.go, fungsi breakerLajur (satu peta breaker per proses)" />
+
+Breaker membuka sesudah gagal berturut-turut keenam. Dengan 11 proses, semua breaker baru terbuka sesudah paling sedikit 6 × 11 = 66 kegagalan (Hitungan atas kode). Lab menyambungkan breaker hanya ke lajur verifikasi lewat bendera `-breaker`, bukan ke lajur push. Jadi kalimat ini pembacaan kode (Tidak dijalankan), bukan rekaman.
+
+**Yang tidak direkam.**
+
+- Kamis, 11.30, 12.10, Ani yang menunggu, dan keputusan Ratih berasal dari cerita (Ilustrasi).
+- 96,3 per detik, 722%, 83 per detik, 34,5 dan 43,1 menit, ±448.000 baris, dan 20,8 jam adalah Hitungan atas Asumsi. Lab tidak mengisi queue uang selama 90 menit dan tidak mengirim pengumuman ke 1.000.000 HP. Ia hanya mengukur c = 4 dan t pada tiruan 300 ms.
+- Bagian B memakai satu broker Kafka (replication factor 3 Tidak dijalankan), 4.000 perangkat, dan kuota 1.000 per detik. Jumlah 429 dan umur uang tertua tidak direkam sebagai nilai, hanya batasnya.
+- Lab menulis satu pengumuman sebagai satu baris outbox, tetapi enam rekaman Kafka, satu per rentang perangkat (`aliran.txt`, bagian A). Rancangan itu dan keputusannya dibahas di [[t5-fanout]].
+- Breaker di lajur push dan 66 kegagalan tidak dijalankan. Jalur galat consumer juga tidak diperankan.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti cerita M45. Jalur utama punya enam langkah: satu langkah cerita (Ilustrasi), tiga langkah rekaman, dan dua langkah Hitungan atas Asumsi. Langkah Hitungan kedua juga memuat keputusan Ratih dari cerita (Ilustrasi).
+
+"Ubah satu hal" memakai rekaman `antrean.txt` bagian B. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t5-m45.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: consumer pengumuman tanpa batas laju dan tanpa backoff**. Dua langkah varian menggantikan langkah terakhir jalur utama, dan jawaban tebakan terbuka di langkah terakhir.
+
+Rekaman mode rentan memuat lima baris ini. Jumlah 429 tidak direkam, karena bergantung pada waktu:
+
+<Snippet file="labs/t5-fanout/output/antrean.txt" lines="46:50" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian B, mode rentan (tanpa batas laju dan tanpa backoff)" />
+
+Kelas queue mengatur urutan klaim di outbox, dan tidak melindungi uang dari kuota yang dihabiskan pengumuman.
+
+Hasil mode rentan berlaku pada skala lab. Penyedia tiruan di bagian B menjawab dalam 2 ms, bukan t = 0,3 detik, supaya ribuan perangkat selesai dalam beberapa detik (dibaca dari kode lab). Dengan t = 0,3 detik, 96 pengirim serentak hanya mengirim 96 ÷ 0,3 = 320 per detik (Hitungan atas Asumsi), di bawah kuota 1.000.
+
+Pada angka cerita, kuota 10.000 per detik terlampaui bila pengumuman ke 1.000.000 HP dikirim dalam satu menit. Itu 1.000.000 ÷ 60 = 16.667 per detik, atau 167% kuota (Hitungan atas Asumsi, `pengirim.txt` bagian A).
+
+Widget ini tidak punya layar HP, karena M45 terlihat di queue dan penyedia push, bukan di satu app.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: kelas queue mengirim empat uang lebih dulu dari 2.996 promo (bagian A). Uang datang 96,3 per detik dan worker mengirim 13,33 per detik, jadi queue uang tumbuh 83 per detik (Hitungan atas Asumsi). Dengan pengumuman dibatasi laju, uang tidak dijawab 429 (bagian B).
+
+Bila consumer pengumuman tanpa batas laju dan tanpa backoff, uang ikut dijawab 429 paling sedikit satu kali. Umur uang tertua juga melewati 2 detik (bagian B).
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t5-fanout]]: fan-out, yaitu satu kejadian untuk banyak penerima, dengan backpressure ke penyedia push, consumer group, dan event streaming. Keputusannya ADR 51.
+- [[t3-tim-infra]]: ADR 32, yang memilih kelas queue. Halaman ini membaca batasnya: kelas mengatur urutan klaim, bukan kapasitas worker dan bukan kuota penyedia push.
+- [[t4-breaker]]: ADR 36, yang menaruh breaker per vendor. Halaman ini membaca satu akibatnya: tiap proses worker punya breaker sendiri.
+
+Kelas queue mengatur urutan, bukan kapasitas. Kapasitas dihitung dari kedatangan λ, pengirim serentak c, dan lama kirim t.
+
+### Cek diri
+
+**1.** Pukul 12.10 Ratih menghentikan pengumuman. Kenapa umur notifikasi uang tertua tetap naik?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Uang datang 96,3 per detik, dan worker mengirim 13,33 per detik, jadi queue uang tumbuh 83 per detik. Kelas queue sudah mendahulukan uang, sehingga pengumuman tidak mengubah laju itu. Umur tertua naik dari 34,5 ke 43,1 menit dalam sepuluh menit (Hitungan atas Asumsi).
+
+</details>
+
+**2.** Apa yang dipisahkan kelas queue menurut rekaman, dan apa yang tidak dilindunginya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kelas queue memisahkan urutan klaim: empat uang terkirim lebih dulu dari 2.996 promo (`antrean.txt`, bagian A). Ia tidak melindungi uang dari kuota penyedia push yang dihabiskan pengumuman tanpa batas laju dan tanpa backoff: uang ikut dijawab 429 (`antrean.txt`, bagian B).
+
+</details>
+
+**3.** Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Kamis, 11.30, dan 12.10 adalah Ilustrasi. Angka 96,3, 722%, 83, 34,5 menit, dan 20,8 jam adalah Hitungan atas Asumsi. Lab mengukur c dan t pada tiruan. Ia tidak mengukur queue uang 90 menit, pengumuman ke 1.000.000 HP, atau jumlah 429 sebagai nilai (`pengirim.txt`, bagian B, dan `antrean.txt`, bagian B).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

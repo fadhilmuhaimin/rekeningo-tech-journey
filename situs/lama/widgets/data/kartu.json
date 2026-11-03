@@ -3864,6 +3864,30 @@
   "jawab": "ceil(1 × 100 ÷ 50) = 2 pod (Hitungan dari rumus dokumentasi, dengan CPU contoh yang Ilustrasi). Di lab jumlah pod naik di atas 1 dan tidak melewati maksimal 4, tanpa jumlah tepat (`hpa.txt` bagian E)."
  },
  {
+  "id": "t5-m45-1",
+  "halaman": "t5-m45",
+  "judul": "5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat",
+  "url": "tahap-5/m45-pengumuman-satu-juta/",
+  "tanya": "Pukul 12.10 Ratih menghentikan pengumuman. Kenapa umur notifikasi uang tertua tetap naik?",
+  "jawab": "Uang datang 96,3 per detik, dan worker mengirim 13,33 per detik, jadi queue uang tumbuh 83 per detik. Kelas queue sudah mendahulukan uang, sehingga pengumuman tidak mengubah laju itu. Umur tertua naik dari 34,5 ke 43,1 menit dalam sepuluh menit (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t5-m45-2",
+  "halaman": "t5-m45",
+  "judul": "5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat",
+  "url": "tahap-5/m45-pengumuman-satu-juta/",
+  "tanya": "Apa yang dipisahkan kelas queue menurut rekaman, dan apa yang tidak dilindunginya?",
+  "jawab": "Kelas queue memisahkan urutan klaim: empat uang terkirim lebih dulu dari 2.996 promo (`antrean.txt`, bagian A). Ia tidak melindungi uang dari kuota penyedia push yang dihabiskan pengumuman tanpa batas laju dan tanpa backoff: uang ikut dijawab 429 (`antrean.txt`, bagian B)."
+ },
+ {
+  "id": "t5-m45-3",
+  "halaman": "t5-m45",
+  "judul": "5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat",
+  "url": "tahap-5/m45-pengumuman-satu-juta/",
+  "tanya": "Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur?",
+  "jawab": "Kamis, 11.30, dan 12.10 adalah Ilustrasi. Angka 96,3, 722%, 83, 34,5 menit, dan 20,8 jam adalah Hitungan atas Asumsi. Lab mengukur c dan t pada tiruan. Ia tidak mengukur queue uang 90 menit, pengumuman ke 1.000.000 HP, atau jumlah 429 sebagai nilai (`pengirim.txt`, bagian B, dan `antrean.txt`, bagian B)."
+ },
+ {
   "id": "t5-fanout-1",
   "halaman": "t5-fanout",
   "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
@@ -4006,6 +4030,38 @@
   "url": "tahap-5/m49-canary-sepertiga/",
   "tanya": "Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur dari canary?",
   "jawab": "Hari, jam, 2%, dan 31% adalah Ilustrasi. Lab mengukur bagian pod dan memeriksa batas bagian permintaan, tetapi tidak mengukur bagian user dan tidak mencatat hitungan permintaan tepat per versi (`tanpa-router.txt`, bagian A)."
+ },
+ {
+  "id": "t5-rollout-1",
+  "halaman": "t5-rollout",
+  "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
+  "url": "tahap-5/progressive-delivery/",
+  "tanya": "Rollout tiga replika memakai plugin Gateway API dan `setWeight: 5`. Berapa bobot di HTTPRoute dan berapa pod versi baru, dan apa bedanya dengan rollout tanpa router?",
+  "jawab": "Bobot 95 dan 5, dengan 1 pod versi baru dan 3 pod versi lama (`gateway.txt` bagian B). Tanpa router, bagian ditentukan jumlah pod: 25,0% atau 33,3% menurut `maxSurge` (`tanpa-router.txt` bagian A)."
+ },
+ {
+  "id": "t5-rollout-2",
+  "halaman": "t5-rollout",
+  "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
+  "url": "tahap-5/progressive-delivery/",
+  "tanya": "Versi baru menolak 31% otorisasi (Ilustrasi). Apa yang terjadi, dan apa yang tidak direkam?",
+  "jawab": "Analisis Failed karena satu pengukuran gagal melewati `failureLimit` 0. Rollout menjadi Degraded, bobot kembali 100 dan 0, dan 100 dari 100 permintaan berikutnya dijawab versi lama (`analisis.txt` bagian C). Metrik p95 dan selisih rekonsiliasi tidak direkam."
+ },
+ {
+  "id": "t5-rollout-3",
+  "halaman": "t5-rollout",
+  "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
+  "url": "tahap-5/progressive-delivery/",
+  "tanya": "Sakelar dimatikan lewat pod 1 dan pod 2 serta pod 3 masih punya cache. Apa jawaban ketiga pod, dan berapa otorisasi yang lolos di puncak?",
+  "jawab": "Pod 1 menolak seketika. Pod 2 dan pod 3 masih menyetujui sampai cache mereka habis, paling lama 5 detik ditambah toleransi ukur (`sakelar.txt` bagian D). Di puncak paling banyak 5 × 1,16 = 5,8 otorisasi lolos (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t5-rollout-4",
+  "halaman": "t5-rollout",
+  "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
+  "url": "tahap-5/progressive-delivery/",
+  "tanya": "Sakelar tidak terbaca. Kenapa jawabannya 200 dengan tolak, bukan 503?",
+  "jawab": "Penerbit tiruan membaca semua jawaban yang bukan 200 sebagai tidak ada jawaban dan menyetujui (`otorisasi.txt` bagian D, lab t4-kartu). Karena itu pod menjawab 200 dengan keputusan tolak dalam kurang dari 2 detik (`sakelar.txt` bagian D)."
  },
  {
   "id": "t5-onprem-1",
