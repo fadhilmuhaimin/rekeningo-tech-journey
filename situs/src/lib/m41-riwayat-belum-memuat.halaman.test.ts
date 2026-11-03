@@ -198,7 +198,10 @@ describe("rekaman baca.txt dan jeda.txt: nilai turunan dari berkasnya sendiri", 
     expect(rek[1]).toContain("go1.27.3");
     expect(rek[1]).toContain("pgx v5.11.0");
     expect(rek[1]).toContain("primary, replika asinkron, dan standby sinkron di container lokal");
-    harus("*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, dengan satu primary dan satu replica asinkron di container lokal. Server `api-t5` berjalan dengan mode `-rentan riwayat-replika`.");
+    harus("*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, dengan satu primary, satu replica asinkron, dan satu standby sinkron di container lokal. Server `api-t5` berjalan dengan mode `-rentan riwayat-replika`.");
+    // tiga node di kepala rekaman, dan "kedua standby" di kalimat jeda memang merujuk dua standby itu
+    expect(rek[1]).toContain("primary, replika asinkron, dan standby sinkron");
+    expect(jeda).toContain("replay_lag tertinggi di kedua standby");
   });
 });
 
@@ -264,7 +267,17 @@ describe("kode lab: sumberTampil, kiriman, bayar, header, dan lingkup klaim 'tid
     expect(kodeBayar).toContain("s.repo.DalamTx(");
     expect(kodeLedger).toMatch(/KunciBukuAkun[\s\S]{0,400}FOR UPDATE/);
     expect(kodeLedger).toContain("FROM buku WHERE akun_id = ANY($1)");
-    harus("Kode kiriman membuka transaction di primary, mengunci baris `buku` akun yang terlibat, lalu membandingkan saldo di baris itu dengan jumlah. Saldo tampil dari replica tidak ikut dibaca (Tidak dijalankan: dibaca dari kode lab):");
+    // "Kode bayar melakukan hal yang sama": transaction di primary, kunci baris buku, lalu bandingkan saldo (urutan di kedua kode)
+    for (const kode of [kodeKirim, kodeBayar]) {
+      const i1 = kode.indexOf("s.repo.DalamTx(");
+      const i2 = kode.indexOf("tx.KunciBukuAkun(");
+      const i3 = kode.indexOf("dari.Saldo < ");
+      expect(i1).toBeGreaterThan(0);
+      expect(i2).toBeGreaterThan(i1);
+      expect(i3).toBeGreaterThan(i2);
+      expect(kode).toContain("return ErrSaldoKurang");
+    }
+    harus("Kode kiriman membuka transaction di primary, mengunci baris `buku` akun yang terlibat, lalu membandingkan saldo di baris itu dengan jumlah. Kode bayar melakukan hal yang sama. Saldo tampil dari replica tidak ikut dibaca di keduanya (Tidak dijalankan: dibaca dari kode lab):");
   });
   test("header X-Lsn-Tulis dan X-Dibaca-Dari berasal dari kode lab, dan jawaban bayar memuatnya", () => {
     expect(kodeHandlerT5).toContain('KepalaLSNTulis   = "X-Lsn-Tulis"');
@@ -296,7 +309,7 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
   });
   test("tebak dulu: angka dari rekaman, jawaban memuat header, Penalaran didefinisikan di pemakaian pertama", () => {
     harus(`<summary>Tebak dulu: jawaban bayar memuat saldo ${rp(bayarA.saldo)}, tetapi saldo yang app terima sesudahnya ${rp(akunA[1]!)} dan riwayatnya satu baris. Dari mana server membaca keduanya?</summary>`);
-    harus("Dari replica, bukan dari primary. Header `X-Dibaca-Dari: replika` di rekaman menunjukkan sumber kedua jawaban itu (Rekaman lab, bagian A). Replica belum memutar ulang pembayaran Budi, dan di rekaman pemutaran ulangnya ditahan dengan sengaja.");
+    harus("Dari replica, bukan dari primary. Header `X-Dibaca-Dari: replika` di rekaman menunjukkan sumber kedua jawaban itu (Rekaman lab, `baca.txt` bagian A). Replica belum memutar ulang pembayaran Budi, dan di rekaman pemutaran ulangnya ditahan dengan sengaja.");
     harus(`Dua dugaan Raka gugur: primary sudah memuat ${rp(bayarA.saldo)}, dan jawaban server sudah memuat ${rp(akunA[1]!)} sebelum app menampilkannya. Yang kedua adalah Penalaran, yaitu kesimpulan dari rekaman dan kode tanpa dijalankan, karena lab tidak punya app. Blok berikutnya memuat rekamannya.`);
     expect(badan.indexOf("Penalaran")).toBe(badan.indexOf("Yang kedua adalah Penalaran, yaitu kesimpulan") + "Yang kedua adalah ".length);
     expect(badan.indexOf("Penalaran")).toBeLessThan(badan.indexOf("(Penalaran)"));
@@ -334,7 +347,7 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     expect(naskah).toContain("memperluas aturan 2 ADR 45 (\"read replica hanya untuk laporan\") ke bacaan tampil milik sendiri");
   });
   test("Yang tidak direkam: empat butir dengan lingkup, dan lab tidak punya app", () => {
-    harus(`- Jeda ±${detikCerita} detik, ${rp(bayarNominalA)} di warung, dan CS berasal dari cerita (Ilustrasi). Lab menahan pemutaran ulang dengan sengaja, karena pada ${rps} pembayaran per detik jeda alaminya di bawah 1 detik.`);
+    harus(`- Jeda ±${detikCerita} detik, dua kali membuka riwayat, dan CS berasal dari cerita (Ilustrasi). Lab menahan pemutaran ulang dengan sengaja, karena pada ${rps} pembayaran per detik jeda alaminya di bawah 1 detik.`);
     harus("**Yang tidak direkam.**");
     harus("- App Flutter tidak ada di lab. Layar HP di widget digambar dari cerita (Ilustrasi), dan lab hanya menjawab curl.");
     harus("- Primary dan replica berjalan di satu mesin. Jaringan antar host tidak direkam.");
@@ -516,7 +529,7 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
       judul: "Riwayat dan saldo tampil dari replica yang tertinggal, keputusan uang dari primary",
       sumber: { jenis: "rekaman", teks: "Rekaman lab t5-replika · baca.txt bagian A (pemutaran ulang di replica ditahan dengan sengaja)" },
       baris: [
-        { label: "Yang Budi lihat", sub: "dibaca dari replica", simpul: [
+        { label: "Yang Budi lihat", sub: "saldo dan riwayat dari replica", simpul: [
           { teks: "Bayar: 201", sub: `saldo di jawaban ${rp(bayarA.saldo)}`, nada: "good", kode: false },
           { teks: `Saldo tampil ${rp(akunA[1]!)}`, sub: "replica belum memutar ulang", nada: "warn", kode: false },
           { teks: `Riwayat tanpa ${rp(bayarNominalA)}`, sub: "satu baris, top-up", nada: "warn", kode: false },

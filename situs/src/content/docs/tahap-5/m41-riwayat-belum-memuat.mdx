@@ -32,7 +32,7 @@ Minggu ini tim Akun juga mengubah sesuatu di server. Sesudah ADR 46, tim itu mem
 <details class="question">
 <summary>Tebak dulu: jawaban bayar memuat saldo Rp215.000, tetapi saldo yang app terima sesudahnya Rp250.000 dan riwayatnya satu baris. Dari mana server membaca keduanya?</summary>
 
-Dari replica, bukan dari primary. Header `X-Dibaca-Dari: replika` di rekaman menunjukkan sumber kedua jawaban itu (Rekaman lab, bagian A). Replica belum memutar ulang pembayaran Budi, dan di rekaman pemutaran ulangnya ditahan dengan sengaja.
+Dari replica, bukan dari primary. Header `X-Dibaca-Dari: replika` di rekaman menunjukkan sumber kedua jawaban itu (Rekaman lab, `baca.txt` bagian A). Replica belum memutar ulang pembayaran Budi, dan di rekaman pemutaran ulangnya ditahan dengan sengaja.
 
 Dua dugaan Raka gugur: primary sudah memuat Rp215.000, dan jawaban server sudah memuat Rp250.000 sebelum app menampilkannya. Yang kedua adalah Penalaran, yaitu kesimpulan dari rekaman dan kode tanpa dijalankan, karena lab tidak punya app. Blok berikutnya memuat rekamannya.
 
@@ -46,7 +46,7 @@ Riwayat dan saldo tampil dibaca dari replica yang tertinggal, jadi Budi melihat 
 
 <Rantai data={riwayatReplica} ringkas />
 
-*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, dengan satu primary dan satu replica asinkron di container lokal. Server `api-t5` berjalan dengan mode `-rentan riwayat-replika`.
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, dengan satu primary, satu replica asinkron, dan satu standby sinkron di container lokal. Server `api-t5` berjalan dengan mode `-rentan riwayat-replika`.
 
 Mode itu adalah kode lab yang ditulis untuk M41, bukan salinan kode yang pernah berjalan di cerita. Rekaman memakai kata "replika" untuk node dan nilai header. Teks halaman memakai replica.
 
@@ -74,7 +74,7 @@ Dua GET itu juga membawa `X-Lsn-Tulis`, header dari jawaban bayar yang berisi po
 
 Dugaan pertama gugur: primary memuat Rp215.000, jadi pembayaran sudah tercatat. Dugaan kedua gugur: jawaban server sudah memuat Rp250.000 sebelum app menampilkannya, jadi data tersimpan di app tidak mengubahnya (Penalaran). Kiriman dipakai, bukan pembayaran, karena satu pembayaran dibatasi Rp200.000 dan Rp240.000 ditolak oleh batas itu tanpa membaca saldo.
 
-Kode kiriman membuka transaction di primary, mengunci baris `buku` akun yang terlibat, lalu membandingkan saldo di baris itu dengan jumlah. Saldo tampil dari replica tidak ikut dibaca (Tidak dijalankan: dibaca dari kode lab):
+Kode kiriman membuka transaction di primary, mengunci baris `buku` akun yang terlibat, lalu membandingkan saldo di baris itu dengan jumlah. Kode bayar melakukan hal yang sama. Saldo tampil dari replica tidak ikut dibaca di keduanya (Tidak dijalankan: dibaca dari kode lab):
 
 <Snippet file="labs/api-t5/internal/service/kirim.go" lines="86:100" lang="go" title="Kode lab: labs/api-t5/internal/service/kirim.go baris 86 sampai 100 (saldo dibaca di dalam transaction di primary)" />
 
@@ -90,7 +90,7 @@ ADR 45 menulis aturan 2: uang tidak dibaca dari salinan di luar primary, dan rea
 
 **Yang tidak direkam.**
 
-- Jeda ±2 detik, Rp35.000 di warung, dan CS berasal dari cerita (Ilustrasi). Lab menahan pemutaran ulang dengan sengaja, karena pada 100 pembayaran per detik jeda alaminya di bawah 1 detik.
+- Jeda ±2 detik, dua kali membuka riwayat, dan CS berasal dari cerita (Ilustrasi). Lab menahan pemutaran ulang dengan sengaja, karena pada 100 pembayaran per detik jeda alaminya di bawah 1 detik.
 - App Flutter tidak ada di lab. Layar HP di widget digambar dari cerita (Ilustrasi), dan lab hanya menjawab curl.
 - Primary dan replica berjalan di satu mesin. Jaringan antar host tidak direkam.
 - Lab tidak mengukur muat ulang otomatis di app, dan tidak mengukur seberapa sering user melihat catatan lama pada jeda alami.

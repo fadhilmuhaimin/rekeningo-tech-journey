@@ -5,7 +5,7 @@
   "baris": [
     {
       "label": "Yang Budi lihat",
-      "sub": "dibaca dari replica",
+      "sub": "saldo dan riwayat dari replica",
       "simpul": [
         { "teks": "Bayar: 201", "sub": "saldo di jawaban Rp215.000", "nada": "good" },
         { "teks": "Saldo tampil Rp250.000", "sub": "replica belum memutar ulang", "nada": "warn" },
