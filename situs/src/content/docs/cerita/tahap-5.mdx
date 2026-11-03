@@ -43,7 +43,7 @@ Angka ini tidak menjawab "butuh berapa server". Jawaban itu hanya datang dari lo
 | Laporan dan bacaan berat dibaca dari replica, sedangkan yang memutuskan uang tetap dibaca dari primary | [5.5 Read replica dan model baca untuk laporan + ADR 46](/tahap-5/read-replica/) |
 | Budi melihat Berhasil, tetapi riwayat dan saldo belum berubah karena dibaca dari replica yang tertinggal | [5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat](/tahap-5/m41-riwayat-belum-memuat/) |
 | Replica bisa tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya | [5.7 Replication lag dan read-your-writes + ADR 47](/tahap-5/replication-lag/) |
-| Primary mati, replica asinkron belum menerima commit terakhir, dan dua top-up yang sudah dijawab sukses hilang | 5.8 M42: Database utama mati, dua top-up hilang · *segera* |
+| Primary mati, replica asinkron belum menerima commit terakhir, dan dua top-up yang sudah dijawab sukses hilang | [5.8 M42: Database utama mati, dua top-up hilang](/tahap-5/m42-database-utama-mati/) |
 | Batas transaksi yang boleh hilang dan waktu pulih ditulis lebih dulu, lalu dibuktikan dengan replica sinkron dan latihan failover | 5.9 RPO, RTO, replica sinkron, dan failover + ADR 48 · *segera* |
 | Pemeriksaan harian yang membaca semua posting tidak selesai sebelum pagi, dan posting lama tidak boleh dihapus | [5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20](/tahap-5/m43-pemeriksaan-saldo/) |
 | Tabel ledger dipartisi per bulan, saldo akhir bulan dicatat, dan partisi lama dilepas dan diarsipkan, bukan dihapus | 5.11 Partisi tabel ledger dan snapshot saldo + ADR 49 · *segera* |

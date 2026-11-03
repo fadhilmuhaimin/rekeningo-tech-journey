@@ -3688,6 +3688,30 @@
   "jawab": "Bacaan tanpa token dijawab replica, jadi app yang tidak mengirim token bisa melihat saldo lama (`baca.txt` bagian B). Bacaan tanpa token dari primary adalah Asumsi desain yang belum ada di kode lab."
  },
  {
+  "id": "t5-m42-1",
+  "halaman": "t5-m42",
+  "judul": "5.8 M42: Database utama mati, dua top-up hilang",
+  "url": "tahap-5/m42-database-utama-mati/",
+  "tanya": "Raka meminta gateway mengirim ulang kedua top-up. Kenapa gateway tidak mengirim ulang sendiri?",
+  "jawab": "Handler webhook menjawab 200 sesudah COMMIT (kode lab, Tidak dijalankan), dan gateway tiruan di Tahap 4 mengirim satu kali untuk jawaban 2xx (`retry.txt` bagian A). Kehilangannya terjadi sesudah jawaban itu, jadi tidak ada galat yang memicu ulangan."
+ },
+ {
+  "id": "t5-m42-2",
+  "halaman": "t5-m42",
+  "judul": "5.8 M42: Database utama mati, dua top-up hilang",
+  "url": "tahap-5/m42-database-utama-mati/",
+  "tanya": "Lab merekam lima pembayaran yang tidak ada di node baru, sedangkan naskah menghitung 69. Apakah lab membuktikan 69?",
+  "jawab": "Tidak. Lima adalah pembayaran yang dijawab sesudah koneksi putus. 69 adalah 1 detik × 69,4 transaksi uang per detik, Hitungan atas Asumsi, dan dengan 2 transaksi per user aktif hasilnya 46."
+ },
+ {
+  "id": "t5-m42-3",
+  "halaman": "t5-m42",
+  "judul": "5.8 M42: Database utama mati, dua top-up hilang",
+  "url": "tahap-5/m42-database-utama-mati/",
+  "tanya": "Dengan standby sinkron, apakah semua commit di primary lama ada di node baru?",
+  "jawab": "Tidak. Tiga jurnal yang dijawab 201 ada di node baru. Jurnal keempat ter-commit lokal di primary lama (4 lawan 3) dan client tidak menerima 201 untuknya (`promosi.txt` bagian B)."
+ },
+ {
   "id": "t5-m43-1",
   "halaman": "t5-m43",
   "judul": "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20",
