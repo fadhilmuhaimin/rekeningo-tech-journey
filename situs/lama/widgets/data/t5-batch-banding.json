@@ -47,7 +47,7 @@
       },
       "catatan": {
         "tabel": "Ledger sudah menulis satu jurnal dan angsuran masih menunggu. Proses kedua menemukan jurnal lewat referensi: jurnal akhir 1, saldo berkurang Rp100.000, status dicatat (langkah.txt bagian A).",
-        "dbos": "RunAsStep tanpa referensi: jurnal akhir 2 dan saldo berkurang Rp200.000, karena langkah baru tercatat sesudah fungsinya kembali. RunAsStep dengan referensi unik dan RunAsTransaction: jurnal akhir 1 (langkah.txt bagian A)."
+        "dbos": "RunAsStep tanpa referensi: jurnal akhir 2 dan saldo berkurang Rp200.000, karena langkah baru tercatat sesudah fungsinya kembali. RunAsStep dengan referensi unik: jurnal akhir 1. RunAsTransaction mati sebelum commit, jadi belum ada jurnal, dan jurnal akhirnya 1 (langkah.txt bagian A)."
       },
       "nada": { "dbos": "warn" }
     },

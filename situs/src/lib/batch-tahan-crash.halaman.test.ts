@@ -282,9 +282,9 @@ describe("rekaman langkah.txt: delapan baris, jumlah baris kode, dan tabel siste
     expect(langkahTeks).toContain("github.com/dbos-inc/dbos-transact-golang v1.8.0 (terbit 2026-10-28), lisensi di file LICENSE modul: MIT License");
   });
   test("kalimat halaman tentang tabel langkah dan DBOS memakai angka dari tabel di atas", () => {
-    harus("Hanya satu baris yang menagih dua kali: `RunAsStep` tanpa referensi, mati di dalam langkah jurnal. Langkah baru dicatat sesudah fungsinya kembali, jadi pemulihan menjalankannya lagi. Godoc menyebut jaminan itu setidaknya sekali. Di rekaman ini pustaka itu tidak menggantikan penulis ledger yang idempoten.");
+    harus("Hanya satu baris yang menagih dua kali: `RunAsStep` tanpa referensi, mati di dalam langkah jurnal. Langkah baru dicatat sesudah fungsinya kembali, jadi pemulihan menjalankannya lagi, dan godoc menyebut jaminan langkah itu setidaknya sekali. Di rekaman ini `RunAsStep` tidak menggantikan penulis ledger yang idempoten. `RunAsTransaction` menulis jurnal dan catatan selesainya dalam satu transaction, jadi mati sebelum commit tidak meninggalkan jurnal.");
     harus("Kode alur dan penanda hampir sama: 56 baris lawan 59 dan 54. Dengan inisialisasi DBOS jumlahnya 56 lawan 71 dan 69. Cabang saldo kurang ikut terhitung walau tidak dijalankan di rekaman.");
-    harus(`Yang disimpan juga berbeda: tabel langkah buatan tidak menambah tabel atau baris. DBOS menyimpan 5 baris sistem per angsuran, dihitung dari 30 baris untuk 6 workflow (6 + 6 + 6 + 12) ÷ 6 = 5. Dengan 1,2 juta angsuran per tahun (Asumsi), itu 6 juta baris per tahun bila tidak dibersihkan (Hitungan atas Asumsi). Lab tidak membaca pengaturan retensi tabel DBOS (Tidak dijalankan).`);
+    harus(`Yang disimpan juga berbeda: tabel langkah buatan tidak menambah tabel atau baris. DBOS menyimpan 5 baris sistem per angsuran, dihitung dari 30 baris untuk 6 workflow (6 + 6 + 6 + 12) ÷ 6 = 5. Dengan 1,2 juta angsuran per tahun (Asumsi: 100.000 jadwal × 12 angsuran, [[t5-skema]]), itu 6 juta baris per tahun bila tidak dibersihkan (Hitungan atas Asumsi). Lab tidak membaca pengaturan retensi tabel DBOS (Tidak dijalankan).`);
     expect(readmeLab).toContain("Cabang saldo kurang (`tandaiGagal` dan dua `if saldoKurang` di DBOS, cabang `ErrSaldoKurang` di tabel langkah) ikut terhitung tetapi tidak dijalankan di rekaman `langkah.txt`");
     expect(readmeLab).toContain("Jumlahnya 56 lawan 71 dan 69");
     expect(readmeLab).toContain("(`workflow_status`, `workflow_input`, `workflow_output`, dan dua baris `operation_outputs`) dalam 15 tabel");
@@ -537,7 +537,7 @@ describe("angka dan hitungan di prosa: diturunkan dari naskah, rekaman, dan kode
     expect(batasJam).toBe(72_000);
     expect(kaliBatas.toFixed(1)).toBe("5.4");
     expect(kolomAdr54[3]).toContain("Job melewati 1 jam (Asumsi) pada puncak 13.333 angsuran: 667 detik pada 20 per detik");
-    harus(`- Saat job melewati 1 jam (Asumsi) pada ${lajuNaskah} per detik. Batasnya 3.600 × ${lajuNaskah} = ${angkaId(batasJam)} angsuran per hari puncak, atau ${angkaId(batasJam)} ÷ ${angkaId(puncakNaskah)} = 5,4 kali puncak Asumsi sekarang (Hitungan). Pembandingnya ${detikBulat} detik pada ${angkaId(puncakNaskah)} angsuran. Pilihannya menaikkan laju atau memecah klaim.`);
+    harus(`- Saat job melewati 1 jam (Asumsi) pada ${lajuNaskah} per detik. Batasnya 3.600 × ${lajuNaskah} = ${angkaId(batasJam)} angsuran per hari puncak, atau ${angkaId(batasJam)} ÷ ${angkaId(puncakNaskah)} = 5,4 kali puncak Asumsi sekarang (Hitungan atas Asumsi). Pembandingnya ${detikBulat} detik pada ${angkaId(puncakNaskah)} angsuran. Pilihannya menaikkan laju atau memecah klaim.`);
   });
   test("saldo Citra, saldo Budi, kompensasi, dan versi DBOS dalam prosa memakai angka rekaman", () => {
     harus(`Saldo Citra ${rp(saldoCitra)} sama dengan ${angkaId(saldoAwal)} − ${angkaId(perAngsuran)} (Hitungan). Rekaman tidak memutar jam +25 jam untuk versi benar (Tidak dijalankan). Kode versi benar tidak membaca jam: di job cicilan, \`-lab-sekarang\` hanya dipakai versi pertama (README lab), dan \`CatatJurnalReferensi\` tidak punya syarat waktu.`);
@@ -806,7 +806,7 @@ describe("registry, tautan, template blok, widget, kartu, istilah, dan label", (
     const hitung: Record<string, number> = {};
     for (const m of badan.matchAll(/\[\[([^\]]+)\]\]/g)) hitung[m[1]!] = (hitung[m[1]!] ?? 0) + 1;
     for (const id of Object.keys(hitung)) expect(id === "berikutnya" || hal.some((x) => x.id === id), id).toBe(true);
-    expect(hitung).toEqual({ "t5-m48": 5, berikutnya: 1, "t2-idempotency": 1, "t4-adr-45": 2, "t5-skema": 1, "t3-klaim-baris": 2, "t2-adr-ledger": 1, "t5-prd": 1, "t2-job-rekonsiliasi": 1, "t5-fanout": 1, "t5-adr-60": 3 });
+    expect(hitung).toEqual({ "t5-m48": 5, berikutnya: 1, "t2-idempotency": 1, "t4-adr-45": 2, "t5-skema": 2, "t3-klaim-baris": 2, "t2-adr-ledger": 1, "t5-prd": 1, "t2-job-rekonsiliasi": 1, "t5-fanout": 1, "t5-adr-60": 3 });
     expect(dari("t4-adr-45").nomor).toBe("4.29");
     expect(dari("t4-adr-45").adr).toEqual([45]);
     expect(dari("t2-idempotency").adr).toEqual([14]);
@@ -949,7 +949,7 @@ describe("registry, tautan, template blok, widget, kartu, istilah, dan label", (
     expect(akhir("DBOS RunAsStep, tanpa referensi", /^dalam langkah jurnal/)).toBe(2);
     expect(f1.catatan.tabel).toContain("jurnal akhir 1, saldo berkurang Rp100.000, status dicatat (langkah.txt bagian A)");
     expect(f1.catatan.dbos).toContain("RunAsStep tanpa referensi: jurnal akhir 2 dan saldo berkurang Rp200.000");
-    expect(f1.catatan.dbos).toContain("RunAsStep dengan referensi unik dan RunAsTransaction: jurnal akhir 1 (langkah.txt bagian A)");
+    expect(f1.catatan.dbos).toContain("RunAsStep dengan referensi unik: jurnal akhir 1. RunAsTransaction mati sebelum commit, jadi belum ada jurnal, dan jurnal akhirnya 1 (langkah.txt bagian A)");
     expect(f1.nada).toEqual({ dbos: "warn" });
     expect(hasil.filter((h) => /sesudah langkah jurnal tercatat/.test(h.titik)).every((h) => h.akhir === 1 && h.berkurang === perAngsuran)).toBe(true);
     expect(f2.catatan.tabel).toContain("Status angsuran sudah terjurnal. Proses kedua melanjutkan ke dicatat: jurnal akhir 1, saldo berkurang Rp100.000");
@@ -1047,7 +1047,7 @@ describe("penutup celah mutasi tanpa kunci baris: tabel ADR dan sengaja belum, k
     for (const o of bandingMentah.opsi) expect(o.judulBaris).toEqual(["", "Tempat status langkah", "Yang ditulis dan disimpan"]);
     expect(bandingMentah.opsi.map((o) => o.baris.map((b) => b.length))).toEqual([[2, 1, 2], [2, 1, 2]]);
     expect(bandingMentah.fitur[0]!.catatan.tabel).toBe(`Ledger sudah menulis satu jurnal dan angsuran masih menunggu. Proses kedua menemukan jurnal lewat referensi: jurnal akhir 1, saldo berkurang ${rp(perAngsuran)}, status dicatat (langkah.txt bagian A).`);
-    expect(bandingMentah.fitur[0]!.catatan.dbos).toBe(`RunAsStep tanpa referensi: jurnal akhir 2 dan saldo berkurang ${rp(2 * perAngsuran)}, karena langkah baru tercatat sesudah fungsinya kembali. RunAsStep dengan referensi unik dan RunAsTransaction: jurnal akhir 1 (langkah.txt bagian A).`);
+    expect(bandingMentah.fitur[0]!.catatan.dbos).toBe(`RunAsStep tanpa referensi: jurnal akhir 2 dan saldo berkurang ${rp(2 * perAngsuran)}, karena langkah baru tercatat sesudah fungsinya kembali. RunAsStep dengan referensi unik: jurnal akhir 1. RunAsTransaction mati sebelum commit, jadi belum ada jurnal, dan jurnal akhirnya 1 (langkah.txt bagian A).`);
     expect(bandingMentah.fitur[1]!.catatan.tabel).toBe(`Status angsuran sudah terjurnal. Proses kedua melanjutkan ke dicatat: jurnal akhir 1, saldo berkurang ${rp(perAngsuran)} (langkah.txt bagian A).`);
     expect(bandingMentah.fitur[1]!.catatan.dbos).toBe(`Langkah jurnal sudah tercatat di tabel sistem, jadi tidak dijalankan lagi: jurnal akhir 1 di ketiga cara DBOS, saldo berkurang ${rp(perAngsuran)} (langkah.txt bagian A).`);
     expect(bandingMentah.fitur[2]!.catatan.tabel).toBe(`${totalKode["tabel langkah"]!.alur} baris untuk alur dan penanda, tanpa inisialisasi (langkah.txt bagian B, dihitung dari wilayah bertanda di kode).`);
@@ -1063,7 +1063,7 @@ describe("penutup celah mutasi tanpa kunci baris: tabel ADR dan sengaja belum, k
     expect(t.pilihan.map((x) => x.benar)).toEqual([false, false, false, true]);
     expect(t.pilihan.map((x) => x.teks)).toEqual([
       "Dua jurnal untuk angsuran ke-1, dan database menolak yang kedua karena saldo karyawan menjadi negatif.",
-      "Satu jurnal, dan job yang kalah menandai angsuran gagal karena saldo sudah Rp0.",
+      "Satu jurnal, dan job yang kalah menghitung angsuran itu gagal karena saldo sudah Rp0.",
       "Satu jurnal, dan satu job melewati angsuran itu karena Idempotency-Key masih hidup.",
       "Satu jurnal: satu job menulisnya, job lain menemukannya lewat referensi, dan angsuran ke-1 dicatat.",
     ]);
@@ -1099,11 +1099,11 @@ describe("penutup celah mutasi tanpa kunci baris: tabel ADR dan sengaja belum, k
   });
   test("UNIQUE dan admin: tiap kalimat memakai kata itu di tempat yang diturunkan dari migrasi dan kode; nama tokoh Citra dan Budi hanya di kalimat dengan saldonya", () => {
     expect(migrasi26).toContain("ALTER TABLE jurnal ADD COLUMN referensi text UNIQUE;");
-    harus("Referensi adalah kolom di `jurnal` dengan constraint UNIQUE dan tanpa kolom waktu.");
+    harus("Referensi adalah kolom di `jurnal` dengan constraint UNIQUE dan tanpa kolom kedaluwarsa.");
     const tab = [...badan.matchAll(/<Fragment slot="t0">\n\n([\s\S]*?)\n<\/Fragment>/g)][0]![1]!;
     expect(tab).toContain("**Yang berbeda di stack ini:** penahannya constraint UNIQUE di database, dan kodenya `INSERT ... ON CONFLICT (referensi) DO NOTHING` yang ditulis tangan.");
     const jawaban = [...badan.matchAll(/<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)].map((m) => m[1]!);
-    expect(jawaban[0]).toContain("Referensi adalah kolom UNIQUE di `jurnal` tanpa kolom waktu, dan kode versi benar tidak membaca jam.");
+    expect(jawaban[0]).toContain("Referensi adalah kolom UNIQUE di `jurnal` tanpa kolom kedaluwarsa, dan kode versi benar tidak membaca jam.");
     expect(badan).toContain("- [ ] Pekerjaan berulang punya kunci bisnis UNIQUE di database, bukan hanya Idempotency-Key yang kedaluwarsa.");
     expect(jumlah(badan, "UNIQUE")).toBe(4);
     // admin: kode dan rekaman
@@ -1227,5 +1227,111 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka
     expect(sidikSekarang.angka).toBe(SIDIK.angka);
     expect(sidikSekarang.riset).toEqual(SIDIK.riset);
     expect(sidikSekarang.berkas).toEqual(SIDIK.berkas);
+  });
+});
+
+describe("penutup celah mutasi peninjau (keputusan 1583): klaim yang tidak punya turunan dari sumber", () => {
+  const paragraf = (potong: string): string => paragrafDengan(potong);
+  const kolomRiset = (id: string): string => barisRiset(id);
+  const nLangkahA = garis(langkah, /^# --- A\./);
+  test("huruf bagian rekaman di prosa dan noscript diturunkan dari judul bagian yang memuat faktanya", () => {
+    // Inti: 'Bagian C menolak INSERT jurnal ...' harus bagian yang memuat ERROR duplicate key
+    const hurufError = crash[nC - 1]!.match(/^# --- ([A-Z])\./)![1]!;
+    expect(nErrorC).toBeGreaterThan(nC);
+    harus(`Bagian ${hurufError} menolak INSERT jurnal dengan referensi yang sama.`);
+    // bagian B serentak: dua job menunggu lock yang sama, saldo cukup untuk satu angsuran
+    const hurufSerentakB = serentak[sB - 1]!.match(/^# --- ([A-Z])\./)![1]!;
+    expect(serentak[sB - 1]).toContain("berebut buku");
+    harus(`<p>Tanpa JavaScript tombol tebakan tidak berfungsi dan widget perbandingan tidak tampil. Jawaban yang tepat: satu job menulis jurnal angsuran ke-1, job lain menemukannya lewat referensi, dan angsuran dicatat (jurnal baru 1, jurnal sudah ada 1, gagal 0; serentak.txt bagian ${hurufSerentakB}).</p>`);
+    // noscript: jumlah jurnal akhir RunAsStep tanpa referensi diturunkan dari baris langkah.txt
+    const barisStep = langkah.find((b) => b.includes("DBOS RunAsStep, tanpa referensi") && b.includes("dalam langkah jurnal"))!;
+    const akhirStep = sel(barisStep)[5]!;
+    expect(akhirStep).toBe("2");
+    harus(`DBOS RunAsStep tanpa referensi menghasilkan ${akhirStep} (langkah.txt bagian ${langkah[nLangkahA - 1]!.match(/^# --- ([A-Z])\./)![1]!})`);
+  });
+  test("bentuk Idempotency-Key versi pertama dan umurnya diturunkan dari kode tagihRentan, tanda suntikan dari run.py", () => {
+    const rentan = kodeT5.join("\n");
+    const bentuk = cari(/kunci := fmt\.Sprintf\("([a-z]+):%d:%d", a\.JadwalID, a\.Ke\)/, rentan, "kunci tagihRentan")[1]!;
+    expect(bentuk).toBe("cicilan");
+    harus(`dengan bentuk \`${bentuk}:<jadwal>:<ke>\``);
+    const umur = cari(/kini\.Add\((\d+)\*time\.Hour\)/, rentan, "umur key")[1]!;
+    harus(`Versi pertama memberinya umur ${umur} jam dari jam job`);
+    // sinyal mematikan job: rekaman crash.txt bagian B
+    const sinyal = cari(/job pertama: keluar dengan sinyal (\d+) \((SIG[A-Z]+)\)/, crash.join("\n"), "sinyal")!;
+    harus(`dengan sinyal ${sinyal[1]} (${sinyal[2]}) ke prosesnya sendiri`);
+    // penanda baris lab di kode dan run.py
+    const penanda = cari(/"(\/\/ lab)" not in l/, runLab, "penanda suntikan lab di run.py")[1]!;
+    harus(`Baris bertanda \`${penanda}\` dipasang lab untuk mematikan proses di titik tertentu.`);
+    const bertanda = kodeT5.filter((b) => b.includes(penanda));
+    expect(bertanda.length).toBeGreaterThan(0);
+    expect(bertanda.some((b) => /berhenti/.test(b))).toBe(true);
+  });
+  test("urutan kunci buku sebelum baca referensi di jurnalAngsuran diturunkan dari kode, dan kalimat halaman, daftar periksa, dan perbaikan memakai urutan itu", () => {
+    const n = garis(kodeT5, /^func \(s Service\) jurnalAngsuran\(/);
+    const nKunci = garis(kodeT5, /^\tbuku, err := tx\.KunciBukuAkun\(ctx, akun\.\.\.\)$/, n);
+    const nRef = garis(kodeT5, /^\tif referensi != nil \{$/, nKunci);
+    expect(nKunci).toBeLessThan(nRef);
+    harus("`jurnalAngsuran` mengunci buku akun dan merchant lebih dulu, baru membaca referensi:");
+    expect(badan).toContain("- [ ] Referensi dibaca sesudah buku dikunci, bukan sebelumnya.");
+    expect(jumlah(badan, "dan hijau sesudah urutan dibalik.")).toBe(1);
+    expect(readmeLab).toContain("dan hijau sesudah perbaikan");
+    expect(badan).not.toContain("hijau sebelum urutan");
+  });
+  test("pilihan ADR 54: tabel langkah dipakai dan DBOS dibandingkan, diturunkan dari naskah; aturan 3 satu jurnal; tiga penyebab pre-mortem; syarat tiga atau lebih", () => {
+    expect(naskah).toContain("tabel langkah buatan sendiri dibandingkan dengan DBOS");
+    expect(naskah).toContain("DBOS Go v1.8.0 (workflow dengan checkpoint di PostgreSQL, MIT; dibandingkan;");
+    harus("6. Tabel langkah buatan dipakai, dan DBOS Go dibandingkan, bukan dipakai. Pembandingnya rekaman `langkah.txt`.");
+    harus("3. Job boleh dijalankan ulang kapan saja. Dua job serentak menghasilkan satu jurnal, karena referensi dibaca sesudah kunci buku didapat.");
+    const dari = badan.indexOf("**Pre-mortem.**");
+    const sampai = badan.indexOf("**Kapan keputusan ini salah.**");
+    const butir = badan.slice(dari, sampai).split("\n").filter((b) => /^\d+\. /.test(b)).length;
+    expect(butir).toBe(3);
+    harus("**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:");
+    const syarat = cari(/Jenis alur panjang bertambah dari satu \([^)]*\) menjadi (\w+ atau lebih) \(Asumsi\)/, naskah, "syarat jenis alur")[1]!;
+    expect(syarat).toBe("tiga atau lebih");
+    harus(`- Saat jenis alur panjang bertambah dari satu menjadi ${syarat} (Asumsi dari naskah).`);
+    expect(naskah).toContain("Cron dan job idempoten saja (ADR 19; ditolak: M48, key 24 jam)");
+  });
+  test("nomor ADR yang membatasi umur key diturunkan dari registry halaman 2.14", () => {
+    const nomor = dari("t2-idempotency").adr![0]!;
+    expect(dari("t2-idempotency").adr).toEqual([14]);
+    harus(`ADR ${nomor} sudah menulis batas itu: keputusannya salah saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama ([[t2-idempotency]]).`);
+  });
+  test("klaim kode dan dokumentasi tanpa penjaga: BeginTx, transaction RunAsTransaction, penjaga status gagal, kutipan Django, dan asal 1,2 juta", () => {
+    expect(kodeTx).toContain("r.db.BeginTx(ctx, nil)");
+    harus("Lab membuka transaction tanpa opsi isolasi (`BeginTx(ctx, nil)`), jadi isolasinya bawaan PostgreSQL (dibaca dari kode lab, Tidak dijalankan).");
+    expect(readmeLab).toContain("`RunAsTransaction`: jurnal dan catatan selesainya satu transaction di database aplikasi");
+    harus("`RunAsTransaction` menulis catatan selesainya di transaction database aplikasi yang sama dengan langkahnya.");
+    // job biasa tidak menagih angsuran gagal: daftar jatuh tempo hanya menunggu dan terjurnal
+    expect(kodeRepo.join("\n")).toContain("WHERE a.status IN ('menunggu', 'terjurnal') AND a.jatuh_tempo <= $1::date");
+    expect(komp.join("\n")).toContain("# job biasa sesudah kompensasi: dibaca 0 (angsuran gagal tidak ditagih lagi)");
+    expect(badan).toContain("- [ ] Job tidak menagih angsuran berstatus `gagal`.");
+    // kutipan Django ke baris riset, kalimat halaman memakai arti yang sama
+    expect(kolomRiset("R5-211")).toContain("tells the database to ignore failure to insert any rows that fail constraints such as duplicate unique values");
+    harus("**Yang berbeda di stack ini:** `ignore_conflicts=True` menyuruh database mengabaikan kegagalan insert untuk baris yang melanggar constraint, seperti nilai unik ganda. Dokumentasi juga menulis bahwa pengaturan itu menonaktifkan pengisian primary key di tiap instance model. Id jurnal yang sudah ada dibaca dengan query terpisah, seperti SELECT sesudah `DO NOTHING` di Go (penalaran).");
+    // 1,2 juta: naskah menulis rumusnya
+    const m = cari(/`angsuran` 100\.000 jadwal × 12 angsuran per tahun = ([\d,]+) juta baris/, naskah, "baris angsuran per tahun");
+    harus(`Dengan ${m[1]} juta angsuran per tahun (Asumsi: 100.000 jadwal × 12 angsuran, [[t5-skema]])`);
+    expect(prosa.join("\n")).toContain(`Dengan ${m[1]} juta angsuran per tahun`);
+  });
+  test("tiap tautan Bacaan lanjut punya alamat dan teks (tanda baca dinormalkan) yang sama dengan tautan di badan", () => {
+    const daftar = badan.slice(badan.indexOf("### Bacaan lanjut"), badan.indexOf("</Blok>", badan.indexOf("### Bacaan lanjut")));
+    const butir = [...daftar.matchAll(/^- \[([^\]]+)\]\(([^)]+)\)$/gm)];
+    expect(butir.length).toBe(9);
+    const sebelum = badan.slice(0, badan.indexOf("### Bacaan lanjut"));
+    const norm = (x: string): string => x.replace(/[:,]/g, "");
+    for (const [, teks, url] of butir) {
+      const inline = [...sebelum.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].filter((m) => m[2] === url).map((m) => norm(m[1]!));
+      expect(inline.length, `alamat Bacaan lanjut tidak dipakai di badan: ${url}`).toBeGreaterThanOrEqual(1);
+      expect(inline, `teks tautan Bacaan lanjut berbeda dari tautan di badan: ${teks}`).toContain(norm(teks!));
+    }
+  });
+  test("baris riset yang dipakai: tanggal buka, lisensi, dan jumlah kutipan diturunkan dari README dan halaman", () => {
+    expect((kolomRiset("R5-210").match(/dibuka 2026-11-03/g) ?? []).length).toBe(2);
+    expect((kolomRiset("R5-211").match(/dibuka 2026-11-03/g) ?? []).length).toBe(3);
+    expect((kolomRiset("R5-212").match(/dibuka 2026-11-03/g) ?? []).length).toBe(5);
+    expect(readmeLab).toContain("File `LICENSE` modul: MIT License.");
+    expect(kolomRiset("R5-212")).toContain("Lisensi MIT dibaca dari README lab (R5-295).");
+    expect(paragraf("lisensi MIT menurut README lab")).toContain("lisensi MIT menurut README lab");
   });
 });

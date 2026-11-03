@@ -17,7 +17,7 @@
       "alasan": "Rekaman bagian B mencatat satu jurnal dengan referensi angsuran:7:1. Job yang kalah tidak menulis jurnal kedua, jadi tidak ada yang ditolak karena saldo."
     },
     {
-      "teks": "Satu jurnal, dan job yang kalah menandai angsuran gagal karena saldo sudah Rp0.",
+      "teks": "Satu jurnal, dan job yang kalah menghitung angsuran itu gagal karena saldo sudah Rp0.",
       "benar": false,
       "alasan": "Itu hasil kode lama yang membaca referensi sebelum mengunci buku: jurnal baru 1, jurnal sudah ada 0, gagal 1 (README lab, tes Go). Rekaman bagian B mencatat gagal 0, dan angsuran ke-1 berstatus dicatat."
     },

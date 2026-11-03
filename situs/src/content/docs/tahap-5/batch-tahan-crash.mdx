@@ -31,7 +31,7 @@ Versi benar memakai referensi itu, sedangkan versi pertama hanya memakai Idempot
 
 1. Apa beda referensi dengan Idempotency-Key, dan kenapa referensi tidak terkena batas 24 jam?
 2. Dua job cicilan sudah membaca daftar yang sama dan berebut kunci buku. Saldo cukup untuk satu angsuran. Apa hasil gabungannya?
-3. Di DBOS Go, langkah jurnal tanpa referensi mati di dalam langkahnya sesudah ledger commit. Berapa jurnal akhirnya, dan apa sebabnya?
+3. Di DBOS Go (pustaka yang mencatat tiap langkah alur di PostgreSQL), langkah jurnal tanpa referensi mati di dalam langkahnya sesudah ledger commit. Berapa jurnal akhirnya, dan apa sebabnya?
 
 Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
@@ -41,7 +41,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: job yang kalah berebut kunci buku membaca referensi sesudah kunci itu didapat dan tidak menulis jurnal kedua, dan DBOS RunAsStep tanpa referensi menulis dua jurnal bila proses mati di dalam langkah jurnal.">
 
-Tebak dulu hasil dua job yang berjalan serentak. Lalu pilih satu kejadian di widget perbandingan dan lihat apa yang terjadi di tabel langkah buatan dan di DBOS Go.
+Tebak dulu hasil dua job yang berjalan serentak. Lalu pilih satu kejadian di widget perbandingan dan lihat apa yang terjadi di tabel langkah buatan dan di DBOS Go. Di DBOS Go, `RunAsStep` menjalankan satu langkah alur, dan `RunAsTransaction` menjalankannya di dalam satu transaction database.
 
 Catatan di widget menyebut file rekaman dan bagiannya bila berasal dari Rekaman lab. Tidak dijalankan berarti dicek ke kode atau dokumentasi tanpa menjalankannya. Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan Asumsi adalah angka pilihan penulis tanpa rekaman. Penalaran adalah kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.
 
@@ -70,7 +70,7 @@ Komponen 8 di ADR 45 menunda durable execution dengan pemicu alur lebih dari sat
 
 **Referensi tidak sama dengan Idempotency-Key.** Idempotency-Key tersimpan di tabel `kunci_idempotensi` dan punya kolom `kedaluwarsa`. Versi pertama memberinya umur 24 jam dari jam job, dengan bentuk `cicilan:<jadwal>:<ke>` (dibaca dari kode lab, Tidak dijalankan). Versi benar tidak menyentuh `kunci_idempotensi` (README lab).
 
-Referensi adalah kolom di `jurnal` dengan constraint UNIQUE dan tanpa kolom waktu. Migrasi lab menambahkannya, bersama CHECK bentuk yang menerima `angsuran` atau `tabungan`, lalu nomor jadwal, lalu nomor angsuran ([[t5-skema]]):
+Referensi adalah kolom di `jurnal` dengan constraint UNIQUE dan tanpa kolom kedaluwarsa. Migrasi lab menambahkannya, bersama CHECK bentuk yang menerima `angsuran` atau `tabungan`, lalu nomor jadwal, lalu nomor angsuran ([[t5-skema]]):
 
 <Snippet files={["labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql:8:8", "labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql:12:12"]} lang="sql" title="Kode lab: labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql baris 8 dan 12 (kolom referensi unik dan CHECK bentuknya)" />
 
@@ -100,7 +100,7 @@ Saldo Citra Rp150.000 sama dengan 250.000 − 100.000 (Hitungan). Rekaman tidak 
 
 <Snippet file="labs/api-t5/internal/service/t5.go" lines="234:244" lang="go" title="Kode lab: labs/api-t5/internal/service/t5.go baris 234 sampai 244 (kunci buku, lalu baca referensi)" />
 
-Urutan itu punya alasan yang tercatat di README lab. Bila referensi dibaca sebelum kunci, job yang kalah melihat "tidak ada jurnal", lalu membaca saldo yang sudah berkurang dan menyebutnya kurang. Ia lalu menandai angsuran yang sudah dibayar sebagai `gagal`. Tes Go merah di kode lama dengan jurnal baru 1, jurnal sudah ada 0, dan gagal 1, dan hijau sesudah urutan dibalik.
+Urutan itu punya alasan yang tercatat di README lab. Bila referensi dibaca sebelum kunci, job yang kalah melihat "tidak ada jurnal", lalu membaca saldo yang sudah berkurang dan menyebutnya kurang. Ia lalu menghitung angsuran yang sudah dibayar sebagai `gagal`. Tes Go merah di kode lama dengan jurnal baru 1, jurnal sudah ada 0, dan gagal 1, dan hijau sesudah urutan dibalik.
 
 Di Read Committed, tiap SELECT melihat database sebagaimana saat SELECT itu mulai berjalan. Transaction yang menunggu baris terkunci menunggu transaction pertama commit atau rollback ([PostgreSQL 17.11, Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html), dibuka 2026-11-03). Lab membuka transaction tanpa opsi isolasi (`BeginTx(ctx, nil)`), jadi isolasinya bawaan PostgreSQL (dibaca dari kode lab, Tidak dijalankan).
 
@@ -153,7 +153,7 @@ Lab menjalankan kasus yang sama sebagai program Go terpisah: satu workflow per a
 
 <Snippet file="labs/t5-cicilan/output/langkah.txt" lines="12:22" title="Rekaman lab: labs/t5-cicilan/output/langkah.txt, bagian A (tabel langkah buatan lawan DBOS, dua titik mati)" />
 
-Hanya satu baris yang menagih dua kali: `RunAsStep` tanpa referensi, mati di dalam langkah jurnal. Langkah baru dicatat sesudah fungsinya kembali, jadi pemulihan menjalankannya lagi. Godoc menyebut jaminan itu setidaknya sekali. Di rekaman ini pustaka itu tidak menggantikan penulis ledger yang idempoten.
+Hanya satu baris yang menagih dua kali: `RunAsStep` tanpa referensi, mati di dalam langkah jurnal. Langkah baru dicatat sesudah fungsinya kembali, jadi pemulihan menjalankannya lagi, dan godoc menyebut jaminan langkah itu setidaknya sekali. Di rekaman ini `RunAsStep` tidak menggantikan penulis ledger yang idempoten. `RunAsTransaction` menulis jurnal dan catatan selesainya dalam satu transaction, jadi mati sebelum commit tidak meninggalkan jurnal.
 
 Kode yang memerankan baris itu ada di `tagihStep`. Langkah jurnal memanggil penulis ledger, dan baris bertanda `// lab` mematikan proses:
 
@@ -165,7 +165,7 @@ Yang berbeda di bagian B rekaman adalah ukurannya, dihitung dari wilayah bertand
 
 Kode alur dan penanda hampir sama: 56 baris lawan 59 dan 54. Dengan inisialisasi DBOS jumlahnya 56 lawan 71 dan 69. Cabang saldo kurang ikut terhitung walau tidak dijalankan di rekaman.
 
-Yang disimpan juga berbeda: tabel langkah buatan tidak menambah tabel atau baris. DBOS menyimpan 5 baris sistem per angsuran, dihitung dari 30 baris untuk 6 workflow (6 + 6 + 6 + 12) ÷ 6 = 5. Dengan 1,2 juta angsuran per tahun (Asumsi), itu 6 juta baris per tahun bila tidak dibersihkan (Hitungan atas Asumsi). Lab tidak membaca pengaturan retensi tabel DBOS (Tidak dijalankan).
+Yang disimpan juga berbeda: tabel langkah buatan tidak menambah tabel atau baris. DBOS menyimpan 5 baris sistem per angsuran, dihitung dari 30 baris untuk 6 workflow (6 + 6 + 6 + 12) ÷ 6 = 5. Dengan 1,2 juta angsuran per tahun (Asumsi: 100.000 jadwal × 12 angsuran, [[t5-skema]]), itu 6 juta baris per tahun bila tidak dibersihkan (Hitungan atas Asumsi). Lab tidak membaca pengaturan retensi tabel DBOS (Tidak dijalankan).
 
 Temporal hanya disebut di naskah. Dokumentasinya tidak dibuka, jadi halaman ini tidak membandingkannya (Tidak dijalankan).
 
@@ -284,7 +284,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 - Saat jenis alur panjang bertambah dari satu menjadi tiga atau lebih (Asumsi dari naskah). Di lab kode alur satu jenis hampir sama (56 lawan 59 dan 54). Jadi alasannya bukan baris satu alur, melainkan status dan pemulihan yang ditulis ulang tiap jenis (penalaran, tidak diukur).
 - Saat jadwal diubah di tengah dan identitas angsuran ke-n bergeser.
 - Saat kompensasi tidak bisa berupa jurnal pembalik.
-- Saat job melewati 1 jam (Asumsi) pada 20 per detik. Batasnya 3.600 × 20 = 72.000 angsuran per hari puncak, atau 72.000 ÷ 13.333 = 5,4 kali puncak Asumsi sekarang (Hitungan). Pembandingnya 667 detik pada 13.333 angsuran. Pilihannya menaikkan laju atau memecah klaim.
+- Saat job melewati 1 jam (Asumsi) pada 20 per detik. Batasnya 3.600 × 20 = 72.000 angsuran per hari puncak, atau 72.000 ÷ 13.333 = 5,4 kali puncak Asumsi sekarang (Hitungan atas Asumsi). Pembandingnya 667 detik pada 13.333 angsuran. Pilihannya menaikkan laju atau memecah klaim.
 
 **Yang akan merevisinya.** [[t5-adr-60]] menulis Temporal dan TigerBeetle sebagai sengaja belum, dengan pemicu jenis alur panjang lebih dari tiga atau ledger yang tidak menampung tulis. Bila pemicu itu terjadi, ADR 54 ditinjau ulang.
 
@@ -310,7 +310,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 <details class="success">
 <summary>Jawaban</summary>
 
-Idempotency-Key tersimpan di `kunci_idempotensi` dengan kolom `kedaluwarsa`, dan versi pertama memberinya umur 24 jam. Referensi adalah kolom UNIQUE di `jurnal` tanpa kolom waktu, dan kode versi benar tidak membaca jam. Rekaman `crash.txt` bagian B mengulang job tanpa memutar jam, dan +25 jam untuk versi benar Tidak dijalankan.
+Idempotency-Key tersimpan di `kunci_idempotensi` dengan kolom `kedaluwarsa`, dan versi pertama memberinya umur 24 jam. Referensi adalah kolom UNIQUE di `jurnal` tanpa kolom kedaluwarsa, dan kode versi benar tidak membaca jam. Rekaman `crash.txt` bagian B mengulang job tanpa memutar jam, dan +25 jam untuk versi benar Tidak dijalankan.
 
 </details>
 
@@ -319,7 +319,7 @@ Idempotency-Key tersimpan di `kunci_idempotensi` dengan kolom `kedaluwarsa`, dan
 <details class="success">
 <summary>Jawaban</summary>
 
-Satu jurnal: jurnal baru 1, jurnal sudah ada 1, gagal 0, dan angsuran dicatat (`serentak.txt` bagian B). Bila referensi dibaca sebelum kunci, job yang kalah menyebut saldo kurang dan menandai angsuran yang sudah dibayar sebagai `gagal` (README lab).
+Satu jurnal: jurnal baru 1, jurnal sudah ada 1, gagal 0, dan angsuran dicatat (`serentak.txt` bagian B). Bila referensi dibaca sebelum kunci, job yang kalah menyebut saldo kurang dan menghitung angsuran yang sudah dibayar sebagai `gagal` (README lab).
 
 </details>
 
