@@ -1,0 +1,24 @@
+{
+  "id": "t5-partisi-inti",
+  "judul": "Query satu bulan membaca satu partisi; satu bulan dilepas, bukan dihapus",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t5-partisi · pruning.txt bagian B dan lepas.txt bagian B dan C" },
+  "baris": [
+    {
+      "label": "Dibaca",
+      "sub": "pruning.txt bagian B",
+      "simpul": [
+        { "teks": "Query menyebut dibuat", "sub": "satu bulan", "nada": "system" },
+        { "teks": "1 dari 14 partisi dibaca", "sub": "posting_lalu_04", "nada": "good" }
+      ]
+    },
+    {
+      "label": "Dibuang",
+      "sub": "lepas.txt bagian B dan C",
+      "simpul": [
+        { "teks": "DELETE atas posting ditolak", "sub": "SQLSTATE 23001", "nada": "warn" },
+        { "teks": "DETACH melepas 28.000 posting", "sub": "jadi tabel sendiri", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Angka dari rekaman lab skala kecil: 12 bulan × 150.000 posting di 14 partisi, dan 28.000 posting per bulan di rekaman lepas. Pada skala naskah posting setahun 438 juta (Asumsi)."
+}

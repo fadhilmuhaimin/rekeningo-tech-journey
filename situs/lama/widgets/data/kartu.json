@@ -3768,6 +3768,38 @@
   "jawab": "Pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, karena posting lama buku itu tidak ada lagi di tabel. Pemeriksaan dari snapshot menandai 0 (`lepas.txt` bagian F). Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B)."
  },
  {
+  "id": "t5-partisi-1",
+  "halaman": "t5-partisi",
+  "judul": "5.11 Partisi tabel ledger dan snapshot saldo + ADR 49",
+  "url": "tahap-5/partisi-snapshot/",
+  "tanya": "`PRIMARY KEY (id)` ditolak pada `posting` yang dipartisi menurut `dibuat`. Dengan kode apa, kenapa, dan apa akibatnya untuk `id`?",
+  "jawab": "Ditolak dengan SQLSTATE 0A000, karena index yang membentuk constraint hanya menegakkan keunikan di dalam partisinya sendiri. PRIMARY KEY jadi `(id, dibuat)`, dan satu `id` muncul tiga kali di rekaman (`pruning.txt` bagian C). Keunikan `id` di lab datang dari sequence."
+ },
+ {
+  "id": "t5-partisi-2",
+  "halaman": "t5-partisi",
+  "judul": "5.11 Partisi tabel ledger dan snapshot saldo + ADR 49",
+  "url": "tahap-5/partisi-snapshot/",
+  "tanya": "Kapan `DETACH PARTITION ... CONCURRENTLY` ditolak, dan apa yang tersisa pada tabel yang dilepas?",
+  "jawab": "Di dalam blok transaction dijawab 25001, dan saat ada partisi default dijawab 55000. Tabel yang dilepas mendapat CHECK yang setara batas partisi dan kehilangan tiga trigger ledger baris demi baris. Role aplikasi ditolak 42501 karena hak (`lepas.txt` bagian C)."
+ },
+ {
+  "id": "t5-partisi-3",
+  "halaman": "t5-partisi",
+  "judul": "5.11 Partisi tabel ledger dan snapshot saldo + ADR 49",
+  "url": "tahap-5/partisi-snapshot/",
+  "tanya": "Tabel pulih dipasang dengan `ATTACH PARTITION` tanpa CHECK batas. Apa yang terjadi, dan bentuk CHECK mana yang membebaskan pemindaian?",
+  "jawab": "PostgreSQL memindai tabel dan memvalidasi foreign key. Hanya CHECK dengan batas literal yang sama dengan `FOR VALUES` membebaskan pemindaian batas, dan foreign key tetap divalidasi. Ekspresi, `NOT VALID`, dan batas atas yang lebih longgar tetap memindai (`pasang.txt` bagian A dan C)."
+ },
+ {
+  "id": "t5-partisi-4",
+  "halaman": "t5-partisi",
+  "judul": "5.11 Partisi tabel ledger dan snapshot saldo + ADR 49",
+  "url": "tahap-5/partisi-snapshot/",
+  "tanya": "Partisi dipasang dan pemeriksaan malam membaca satu bulan. Apakah itu menambah kapasitas tulis satu primary?",
+  "jawab": "Tidak. Partisi memangkas bacaan dan memudahkan retensi, tetapi tidak menambah kapasitas tulis, dan lab tidak mengklaimnya (README lab). Kapasitas tulis 69,4 transaksi uang per detik belum terukur, dan pilihan berikutnya sharding (5.30 ADR 60)."
+ },
+ {
   "id": "t5-m44-1",
   "halaman": "t5-m44",
   "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
