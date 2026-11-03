@@ -1,0 +1,329 @@
+---
+title: "5.5 Read replica dan model baca untuk laporan + ADR 46"
+description: Rekeningo memasang satu read replica asinkron untuk laporan merchant, sedangkan saldo yang menentukan bayar tetap dibaca dari primary. ADR 46 menimbang empat cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import intiDiagram from "../../../../data/diagram/t5-replica-inti.json";
+import dataTebak from "../../../../data/widget/t5-replica-tebak.json";
+
+<p class="meta">Baca 16 menit · coba 4 menit · Prasyarat: [[t5-m40]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Replica menolak tulisan, jadi laporan pindah ke sana dan uang tetap dibaca dari primary.
+
+<Rantai data={intiDiagram} ringkas />
+
+Primary adalah database yang menerima semua tulisan. Replica adalah salinan yang menerima rekaman perubahan dari primary dan memutarnya ulang (replay), dan PostgreSQL menyebut server penerima itu standby. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `replika.txt` bagian B, standby menolak UPDATE, DDL, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION` dengan kode 25006.
+
+Replica bisa tertinggal dari primary, jadi ADR 46 membagi bacaan: laporan dari replica, uang dari primary. Di `baca.txt` bagian A replay ditahan dengan sengaja, dan saldo tampil di replica Rp250.000 sedangkan saldo primary Rp215.000. Kiriman Rp240.000 ditolak.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Pernyataan apa yang ditolak standby, dan dengan kode apa?
+2. Query 45 detik di replica dengan `statement_timeout` 20 detik: kapan ia berhenti, dengan kode apa, dan apa yang berubah tanpa timeout?
+3. Saldo tampil di replica Rp250.000, saldo primary Rp215.000. Kiriman Rp240.000 diterima atau ditolak, dan saldo yang menentukan itu dibaca dari mana?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: statement_timeout 20 detik di replica menghentikan query lama lebih awal daripada konflik pada 30 detik, dan saldo, kiriman, serta batas harian tetap dibaca dari primary.">
+
+Tebak dulu apa yang terjadi pada query 45 detik di replica. Lalu pilih satu kejadian di widget perbandingan dan lihat bagian mana yang mengerjakannya di kedua susunan.
+
+Catatan di widget menyebut file rekaman dan bagiannya bila berasal dari Rekaman lab. Tidak dijalankan berarti dicek ke kode atau dokumentasi tanpa menjalankannya. Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan Asumsi adalah angka pilihan penulis tanpa rekaman. Penalaran adalah kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.
+
+<Tebak client:visible data={dataTebak} />
+
+<WidgetLama nama="banding" src="data/t5-replica-banding.json" />
+
+**Ubah satu hal:** pindah dari Bayar atau kirim uang ke Laporan penjualan hari ini. Susunan B memindahkan tempat baca laporan dari primary ke replica. Bayar atau kirim uang dan Cek batas harian kiriman tetap di primary di kedua susunan.
+
+<noscript>
+<p>Tanpa JavaScript tombol tebakan tidak berfungsi dan widget perbandingan tidak tampil. Jawaban yang tepat: query dihentikan oleh timeout sesudah paling sedikit 20 detik dengan kode 57014, sebelum konflik membatalkannya (konflik.txt bagian C). Tanpa timeout, konflik membatalkannya sesudah paling sedikit 30 detik dengan kode 40001 (bagian D).</p>
+<p>Di kedua susunan, Bayar atau kirim uang dan Cek batas harian kiriman dibaca dari primary. Di susunan B laporan hari ini dibaca dari replica.</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t5-m40]] menunjukkan laporan merchant yang menjumlah posting di primary yang sama dengan pembayaran. Rekaman lab membuktikan jalurnya, dan hitungan memperkirakan bebannya: 666,7 laporan per detik dan 13,3 laporan berjalan serentak (Hitungan atas Asumsi, diturunkan di halaman itu).
+
+[[t4-adr-45]] menunda read replica dengan tiga pemicu, dan halaman ini memakai dua: laporan merchant real-time diminta, atau L baca mencapai 5 koneksi. L baca adalah jumlah bacaan yang berjalan serentak, yaitu laju dikali lama ([[t3-pool]]). PRD v5 memenuhi pemicu pertama ([[t5-prd]]). Pemicu kedua: (1.388,9 − 69,4) × 0,02 = 26,4 koneksi, yaitu 528% dari 5 (Hitungan atas Asumsi; dengan dua transaksi per user aktif, 26,9 koneksi).
+
+Aturan 2 di ADR itu sudah menulis batasnya: uang tidak dibaca dari salinan di luar primary, dan read replica hanya untuk laporan. ADR 46 menjalankan aturan itu.
+
+### Cara kerjanya
+
+**Replica menerima WAL dan memutarnya ulang.** PostgreSQL menulis tiap perubahan ke write-ahead log (WAL) sebelum mengubah data. Replica streaming menerima WAL itu dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby.
+
+Lab `t5-replika` menjalankan satu primary dan dua standby di container lokal. Standby `replika_laporan` disiapkan untuk laporan, tetapi lab membaca riwayat dan saldo tampil darinya, dan `replika_sinkron` dipakai bagian sinkron dan promosi lab ([[t5-rpo-rto]]). Keduanya `streaming` dan `async`. Primary menahan WAL untuk tiap standby lewat slot replikasi fisik, `slot_laporan` dan `slot_sinkron`:
+
+<Snippet file="labs/t5-replika/output/replika.txt" lines="22:33" title="Rekaman lab: labs/t5-replika/output/replika.txt, bagian A (dua standby asinkron dan dua slot)" />
+
+Asinkron berarti COMMIT di primary tidak menunggu standby. Ketiga node memuat 10.200 jurnal, 20.400 posting, dan 10.288 buku di bagian A.
+
+**Replica menolak tulisan.** Dokumentasi PostgreSQL 17 menulis bahwa transaction di hot standby tidak pernah mendapat transaction ID dan tidak bisa menulis ke WAL. Karena itu DML, DDL, `SELECT ... FOR SHARE | UPDATE`, dan perintah two-phase commit menghasilkan galat ([PostgreSQL 17.11, Hot Standby](https://www.postgresql.org/docs/17/hot-standby.html), dibuka 2026-11-03). Rekaman bagian B menunjukkan UPDATE yang ditolak, lalu penolakan yang lain:
+
+<Snippet file="labs/t5-replika/output/replika.txt" lines="75:77" title="Rekaman lab: labs/t5-replika/output/replika.txt, bagian B (UPDATE ditolak di replica)" />
+
+<Snippet file="labs/t5-replika/output/replika.txt" lines="102:111" title="Rekaman lab: labs/t5-replika/output/replika.txt, bagian B (FOR UPDATE, SET TRANSACTION, dan PREPARE TRANSACTION)" />
+
+UPDATE, INSERT, DELETE, TRUNCATE, CREATE, ALTER, DROP, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION` dijawab 25006. `SET TRANSACTION READ WRITE` dijawab 0A000. Pesannya milik mode baca-saja standby, bukan milik trigger append-only ledger (README lab). Sesudah semua penolakan, jumlah jurnal, posting, dan total saldo di tiga node sama dengan sebelumnya.
+
+**Jeda replica diukur sebagai batas.** Lab menjalankan 100 pembayaran per detik selama 10 detik lewat `api-t5`. Semua 1.000 pembayaran 201, dan jeda replay tertinggi di kedua standby ada di bawah 1 detik. Nilai jedanya tidak direkam, hanya batasnya:
+
+<Snippet file="labs/t5-replika/output/jeda.txt" lines="5:12" title="Rekaman lab: labs/t5-replika/output/jeda.txt, bagian A (jeda alami di bawah beban)" />
+
+Laju lab 100 per detik adalah 100 ÷ 69,4 = 1,4 kali puncak transaksi uang Tahap 5 (Hitungan atas Asumsi). Dengan dua transaksi per user aktif puncaknya 46,3.
+
+Jeda ±2 detik di cerita [[t5-m41]] tidak terjadi dengan sendirinya di lab, jadi ia Ilustrasi. PRD v5 menulis data laporan tertinggal paling lama 5 detik ([[t5-prd]]; Asumsi produk). Rekaman hanya membuktikan batas di bawah 1 detik di laptop, bukan di produksi.
+
+Bagian B menahan replay dengan `pg_wal_replay_pause()` untuk memperagakan jeda. Replica sudah menerima WAL sampai posisi tulis terakhir tetapi belum memutarnya, dan selisihnya 5 jurnal bayar:
+
+<Snippet file="labs/t5-replika/output/jeda.txt" lines="43:55" title="Rekaman lab: labs/t5-replika/output/jeda.txt, bagian B (jeda buatan, bukan jeda alami)" />
+
+**Query panjang bentrok dengan replay.** Query di standby memakai snapshot, yaitu foto isi database pada satu saat. Primary membuang baris lama lewat VACUUM dan mengirim catatan pembersihannya lewat WAL. Catatan itu bentrok dengan query di standby yang masih bisa melihat baris yang akan dibuang (PostgreSQL 17.11, Hot Standby).
+
+Standby lalu memilih: menunda replay, atau membatalkan query. Dokumentasi menulis bahwa `max_standby_streaming_delay` bawaannya 30 detik, dan bahwa nilai itu bukan batas lama query. Nilainya adalah total waktu yang diizinkan untuk menerapkan WAL sesudah WAL diterima dari primary ([PostgreSQL 17.11, Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html), dibuka 2026-11-03). Pengaturan di lab sama dengan itu:
+
+<Snippet file="labs/t5-replika/output/konflik.txt" lines="12:27" title="Rekaman lab: labs/t5-replika/output/konflik.txt, bagian A (pengaturan bawaan replica)" />
+
+Query lab memakai `pg_sleep` untuk menjadi panjang, jadi ia tidak mewakili query laporan 20 ms (Asumsi, [[t5-m40]]). Query 3 detik selesai dan replay menunggunya (bagian B). Query 45 detik dengan `statement_timeout` 20 detik berhenti oleh timeout:
+
+<Snippet file="labs/t5-replika/output/konflik.txt" lines="51:54" title="Rekaman lab: labs/t5-replika/output/konflik.txt, bagian C (timeout 20 detik)" />
+
+Tanpa timeout, query yang sama dibatalkan oleh konflik, dan pencacah konflik di katalog replica naik dari 0 ke 1:
+
+<Snippet file="labs/t5-replika/output/konflik.txt" lines="68:78" title="Rekaman lab: labs/t5-replika/output/konflik.txt, bagian D (tanpa timeout)" />
+
+Timeout tidak mencegah pembatalan. Ia menggantinya: 57014 sesudah paling sedikit 20 detik menggantikan 40001 sesudah paling sedikit 30 detik, dan replay tertahan lebih singkat. Lama itu diukur sejak query mulai, sedangkan dokumentasi menghitung 30 detik sejak WAL diterima. Angka 20 detik adalah Asumsi desain, dan 20 detik ÷ 0,02 detik = 1.000 kali lama normal satu laporan.
+
+Dokumentasi juga menulis bahwa query yang lama bisa membuat sesi lain di standby tidak melihat perubahan terbaru bila ia menunda penerapan WAL. Jadi query panjang di replica bisa menambah jeda, bukan hanya risiko dibatalkan.
+
+**`hot_standby_feedback` bisa meniadakan pembatalan akibat catatan pembersihan, dengan harga di primary.** Standby memberi tahu primary baris mana yang masih ia pakai, sehingga VACUUM menunda pembersihannya. Dokumentasi menulis bawaannya off, dan pengaturan ini bisa menggembungkan tabel di primary pada beberapa beban ([PostgreSQL 17.11, Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html), dibuka 2026-11-03). Lab membiarkannya off dan tidak mengukur penggembungan (Tidak dijalankan).
+
+**Uang tidak dibaca dari replica.** Di `baca.txt` bagian A Budi membayar Rp35.000 ke Warung 505 sementara replay ditahan, dan jawaban bayar memuat saldo Rp215.000. Replica masih menjawab Rp250.000, sedangkan primary Rp215.000. Kiriman Rp240.000 ditolak dengan 422 `saldo-kurang`:
+
+<Snippet file="labs/t5-replika/output/baca.txt" lines="44:60" title="Rekaman lab: labs/t5-replika/output/baca.txt, bagian A (saldo di primary lawan replica, kiriman ditolak)" />
+
+Rekaman memakai kiriman, bukan pembayaran. Satu pembayaran dibatasi Rp200.000, jadi Rp240.000 ditolak oleh batas itu tanpa membaca saldo (README lab). Replay yang ditahan adalah jeda buatan, bukan jeda alami.
+
+Di kode, `Bayar` mengunci buku pengirim dan penerima di dalam `DalamTx`, lalu membandingkan saldo. `Kirim` melakukan hal yang sama untuk batas harian dan saldo (komentar di `kirim.go`):
+
+<Snippet file="labs/api-t5/internal/service/bayar.go" lines="58:65" lang="go" title="Kode lab: labs/api-t5/internal/service/bayar.go baris 58 sampai 65 (saldo dibaca sesudah lock di primary)" />
+
+Di `labs/api-t5/internal`, selain tes, hanya `internal/service/replika.go` yang memakai `s.replika`. `Bayar` dan `Kirim` memakai `s.repo`, yaitu primary (dibaca dari kode, Tidak dijalankan).
+
+**Laporan periode dibaca dari ringkasan.** Tabel `ringkasan_merchant_harian` menyimpan jumlah transaksi dan total per merchant per hari, dengan PRIMARY KEY `(merchant_akun_id, tanggal)` ([[t5-skema]]). Desainnya: job mengisi satu baris per merchant per hari dari posting yang sudah lewat, dengan `INSERT ... ON CONFLICT DO UPDATE`, supaya menjalankannya lagi tidak menambah baris.
+
+Tabel itu ada di lab, tetapi tidak ada kode di `labs/api-t5` yang mengisinya, dan lab `t5-replika` tidak membaca laporan dari replica. Bagian ini Tidak dijalankan: ia desain. Rata-rata satu merchant hanya 3 transaksi per hari (600.000 ÷ 200.000), atau 2 dengan dua transaksi per user aktif (Hitungan atas Asumsi). Jadi ringkasan hanya menolong merchant jauh di atas rata-rata atau rentang panjang (penalaran), dan sebaran transaksi per merchant tidak ada di naskah.
+
+### Di stack lain
+
+**Skenario:** satu app memisahkan koneksi baca dari koneksi tulis. Yang ditanyakan: bagaimana kode memilih koneksi, dan apa yang terjadi bila satu request menulis lalu membaca.
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-03. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab api-t5 dan t5-replika, PostgreSQL 17.11, Go 1.27.3, dan pgx v5.11.0 (rekaman `replika.txt`, `jeda.txt`, `konflik.txt`, `baca.txt`).*
+
+<Snippet file="labs/api-t5/cmd/api/main.go" lines="158:166" lang="go" title="labs/api-t5/cmd/api/main.go" />
+
+**Yang berbeda di stack ini:** pilihan koneksi ditulis tangan. DSN replica datang dari `REPLIKA_DATABASE_URL`, lalu `Service` memilih sendiri tempat membaca. Tanpa variabel itu semua bacaan dari primary.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke README [@prisma/extension-read-replicas](https://github.com/prisma/extension-read-replicas) (npm 0.5.0, terbit 2025-12-02, butuh Prisma 7.0 ke atas), dibuka 2026-11-03. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`const prisma = new PrismaClient().$extends(
+  readReplicas({ replicas: [replika] }),
+);`} />
+
+**Yang berbeda di stack ini:** README menulis bahwa bacaan non-transaksional dijalankan di replica, sedangkan tulisan dan transaction dijalankan di primary. Method `$primary()` memaksa primary. README tidak membahas jeda replica.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database), dibuka 2026-11-03. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`'mysql' => [
+    'read' => ['host' => ['192.168.1.1', '192.168.1.2']],
+    'write' => ['host' => ['192.168.1.3']],
+    'sticky' => true,
+],`} />
+
+**Yang berbeda di stack ini:** konfigurasi menulis host baca dan host tulis, dan host baca dipilih acak untuk tiap request. Opsi `sticky` hanya berlaku dalam satu request: sesudah menulis, bacaan berikutnya di request itu memakai koneksi tulis. Untuk request berikutnya ada middleware `PreventStaleDatabaseReads`, yang memakai sesi dan 2 detik bawaan ([[t5-lag]]).
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 5.2: Multiple databases](https://docs.djangoproject.com/en/5.2/topics/db/multi-db/), dibuka 2026-11-03. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`class PrimaryReplicaRouter:
+    def db_for_read(self, model, **hints):
+        return random.choice(["replica1", "replica2"])
+
+    def db_for_write(self, model, **hints):
+        return "primary"`} />
+
+**Yang berbeda di stack ini:** router menentukan koneksi untuk tiap query, dan bacaan pergi ke replica yang dipilih acak. Dokumentasi menulis bahwa susunan itu tidak menyediakan penyelesaian untuk replication lag, jadi router contoh itu tidak menangani jeda.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: database connection](https://docs.serverpod.dev/concepts/data-and-the-database/database/connection), Serverpod 4.1.0, dibuka 2026-11-03. Kode Dart tidak ditulis di tab ini.*
+
+**Yang berbeda di stack ini:** halaman Connection menulis satu blok `database` tiap konfigurasi lingkungan, berisi host, port, name, dan user. Dokumentasi Serverpod tidak membahas read replica. Di 37 halaman pada peta situsnya yang alamatnya memuat database, kata replica hanya muncul dalam replication, di dua halaman: database tertanam dan query mentah.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Read Replicas](https://supabase.com/docs/guides/platform/read-replicas), dokumen tanpa nomor versi, dibuka 2026-11-03.*
+
+**Yang berbeda di stack ini:** halaman itu menulis bahwa replikasi asinkron dan ada jeda antara update di primary dan saat replica menerimanya. Load balancer membagi request antara primary dan replica, dan replica hanya menerima request REST API berjenis GET.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 46: satu read replica asinkron untuk laporan, uang tetap dari primary
+
+**Kebutuhan.** PRD v5 meminta laporan merchant real-time, dengan data tertinggal paling lama 5 detik ([[t5-prd]]; Asumsi produk). Laporan di primary menambah kerja mesin yang menulis uang ([[t5-m40]]). Pemicu ADR 45 terpenuhi: laporan diminta, dan L baca 26,4 koneksi lawan ambang 5 (Hitungan atas Asumsi).
+
+**Status:** diterima sesudah M40, dan menjalankan aturan 2 ADR 45 ([[t4-adr-45]]). Dibaca ulang di [[t5-m41]]. Naskah tidak menulis tanggal ADR.
+
+| | A. Cache laporan di Redis | B. Index tambahan di primary | C. Polling diganti push | D. Database analitik lewat CDC | E. Read replica asinkron |
+|---|---|---|---|---|---|
+| Cara kerja | Jawaban laporan disimpan 30 detik di Redis ([[t3-cache]]) | Index baru mempercepat query laporan di primary | App menerima kabar saat ada penjualan, bukan bertanya tiap 30 detik | Perubahan dialirkan dari WAL ke database lain yang melayani laporan | Satu standby asinkron melayani laporan, primary melayani uang |
+| Kelebihan | Tidak menambah database | Tidak menambah komponen | Query laporan sebanyak kejadian, bukan sebanyak polling (penalaran) | Laporan berat tidak menyentuh ledger | Replica menolak tulisan, dan bacaan laporan keluar dari primary |
+| Kekurangan | 0 hit dari 18 untuk satu client per warung berjarak 30,5 detik (`laporan.txt` bagian C) | Mempercepat satu query, bukan mengurangi 666,7 query per detik (Hitungan atas Asumsi) | Butuh event streaming yang baru ada di [[t5-fanout]] | Slot replikasi menahan WAL, dan bawaan `max_slot_wal_keep_size` tanpa batas | Laporan tertinggal sebesar jeda replica, dan query lama bisa dibatalkan |
+| Biaya operasional | Redis sudah ada ([[t3-cache]]), isi bisa setua 30 detik | Tiap posting baru menulis satu entri index lagi (penalaran) | Event streaming dan relay yang harus dipantau | Database kedua, alat CDC, dan pemantauan slot | Satu server lagi, jeda dipantau, dan satu pengaturan konflik |
+| Bukti | Rekaman lab `laporan.txt` bagian C | Tidak dijalankan: query laporan di bawah 1 ms pada data kecil (bagian A) | Tidak dijalankan: penalaran dari [[t5-fanout]] | Tidak dijalankan: dokumentasi PostgreSQL 17 | Rekaman lab `replika.txt`, `jeda.txt`, `konflik.txt`, `baca.txt` |
+
+**Keputusan: opsi E.** Enam aturan:
+
+1. Satu read replica asinkron melayani laporan merchant dan bacaan berat. Di lab itu standby `replika_laporan`.
+2. Semua yang memutuskan uang dibaca dari primary di dalam transaction: saldo untuk bayar, cek batas harian, dan tutup buku resmi. Ini aturan 2 ADR 45. Rekaman dan kode lab mencakup bayar dan kirim, sedangkan tutup buku resmi Tidak dijalankan di lab ini.
+3. Laporan hari ini menjumlah posting di replica. Laporan periode dibaca dari `ringkasan_merchant_harian`, yang diisi job idempoten dari posting yang sudah lewat. Bagian ini desain, belum ada di lab (Tidak dijalankan).
+4. Sesi laporan di replica memakai `statement_timeout` 20 detik (Asumsi), di bawah `max_standby_streaming_delay` bawaan 30 detik. Timeout menghentikan query lama lebih awal dan mempersingkat replay yang tertahan, tetapi tidak mencegah pembatalan.
+5. `hot_standby_feedback` tetap off, seperti bawaannya. Bila dinyalakan, primary menunda pembersihan baris dan tabelnya bisa membengkak.
+6. Jeda replica dibaca di primary dari `replay_lag` di `pg_stat_replication`, seperti `jeda.txt` bagian A, dengan alert bila lebih dari 5 detik (Asumsi dari PRD v5).
+
+**Kenapa E, bukan A, B, C, atau D.**
+
+- **A ditolak** karena polling satu perangkat per merchant tiap 30 detik hampir tidak punya panggilan kedua dalam umur isi cache (penalaran). Rekaman `laporan.txt` bagian C mencatat 0 hit dari 18 pada jarak 30,5 detik. Kontrol dengan dua client per warung dalam satu jendela mencatat 9 hit dari 18. Hitungan 5.4 menulis penjualan baru bisa terlihat 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5 ([[t5-m40]]).
+- **B ditolak** karena index mempercepat satu query, sedangkan beban M40 datang dari jumlah query. Rekaman hanya menunjukkan query laporan di bawah 1 ms pada data satu hari dan 9 warung. Belum ada bukti bahwa query-nya yang lambat (Tidak dijalankan).
+- **C ditolak untuk sekarang** karena push butuh event streaming yang dibahas di [[t5-fanout]]. Opsi ini mengurangi query, tetapi tidak ada rekamannya di halaman ini (Tidak dijalankan).
+- **D ditolak** karena terlalu berat untuk satu laporan. Dokumentasi PostgreSQL 17 menulis bawaan `max_slot_wal_keep_size` -1, yaitu slot boleh menahan WAL tanpa batas ([PostgreSQL 17.11, Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html), dibuka 2026-11-03). Debezium hanya disebut dan tidak dijalankan.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Merchant membaca laporan sebagai angka final. Replica tertinggal sebesar jedanya, dan di rekaman hanya batas di bawah 1 detik yang terbukti. Pencegahannya aturan 6: jeda dipantau, dan tampilan laporan menyebut waktu datanya.
+2. Query laporan yang lama dibatalkan dengan 57014 atau 40001. Merchant melihat galat di tengah hari. Pencegahannya laporan yang pendek dan laporan periode dari ringkasan. Timeout 20 detik tidak mencegahnya, tetapi mempersingkat replay yang tertahan.
+3. Replica laporan mati lama dan slot replikasinya menahan WAL di primary. Dengan `max_slot_wal_keep_size` bawaan -1, dokumentasi menulis slot boleh menahan WAL tanpa batas. Disk primary penuh adalah kesimpulan dari itu (penalaran, Tidak dijalankan). Pencegahannya batas WAL per slot dan alert. Harganya: replica yang tertinggal melewati batas tidak bisa lanjut dan dibangun ulang.
+
+**Kapan keputusan ini salah.**
+
+- Saat jeda replica melewati 5 detik, target PRD v5 (Asumsi produk). Pembandingnya jeda alami di bawah 1 detik pada 100 pembayaran per detik di laptop (`jeda.txt` bagian A).
+- Saat query laporan dibatalkan lebih sering daripada yang diterima merchant. PRD v5 belum menulis batasnya. Yang bisa dihitung: galat 57014 dan pencacah `confl_snapshot`, yang naik dari 0 ke 1 di rekaman tanpa timeout.
+- Saat L baca melebihi yang ditampung satu replica. Laporan sendiri 13,3 koneksi (666,7 × 0,02). Bila semua bacaan selain uang pindah, 26,4 koneksi (Hitungan atas Asumsi). Bila p95 laporan di replica melewati 1 detik (Asumsi), tambah replica kedua.
+- Saat `hot_standby_feedback` dinyalakan, karena primary bisa membengkak.
+- Saat polling diganti push ([[t5-fanout]]). Replica khusus laporan mungkin tidak diperlukan lagi.
+
+**Yang akan merevisinya.** [[t5-m41]] menunjukkan riwayat dan saldo tampil yang dipindah ke replica tanpa ADR, sehingga Budi melihat data lama. Hasilnya aturan baca sesudah tulis di [[t5-lag]]. [[t5-m42]] menunjukkan transaksi yang hilang saat primary mati, dan jawabannya ada di [[t5-rpo-rto]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Kode yang mengisi `ringkasan_merchant_harian` | Tabel ada di lab, tetapi tidak ada kode yang mengisinya | Belum dijadwalkan |
+| Laporan merchant yang dibaca dari replica di lab | Lab `t5-replika` menjalankan bacaan riwayat dan saldo tampil, bukan laporan | Belum dijadwalkan |
+| Replica kedua | Belum ada ukuran p95 laporan, dan ambang 1 detik adalah Asumsi | Belum dijadwalkan |
+| Database analitik lewat CDC | Debezium hanya disebut, dan slot menahan WAL | [[t5-adr-60]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Pernyataan apa yang ditolak standby, dan dengan kode apa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pernyataan yang menulis atau mengunci baris dijawab 25006: UPDATE, INSERT, DELETE, TRUNCATE, CREATE, ALTER, DROP, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION`. Untuk `SET TRANSACTION READ WRITE` jawabannya 0A000. Sesudahnya jumlah jurnal, posting, dan total saldo di tiga node tidak berubah (`replika.txt` bagian B).
+
+</details>
+
+**2.** Query 45 detik berjalan di replica dengan `statement_timeout` 20 detik. Berhenti kapan, dengan kode apa, dan apa bedanya dengan tanpa timeout?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Query berhenti sesudah paling sedikit 20 detik dan sebelum 30 detik, dengan 57014. Tanpa timeout, konflik dengan replay membatalkannya sesudah paling sedikit 30 detik, dengan 40001. Timeout tidak mencegah pembatalan: ia menghentikan query lebih awal, dan replay tertahan lebih singkat (`konflik.txt` bagian C dan D).
+
+</details>
+
+**3.** Saldo tampil di replica Rp250.000, saldo primary Rp215.000. Kiriman Rp240.000 diterima atau ditolak, dan kenapa rekaman memakai kiriman, bukan pembayaran?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Ditolak dengan 422 `saldo-kurang`, karena saldo yang menentukan dibaca dari primary di dalam transaction. Pembayaran tidak bisa dipakai: satu pembayaran dibatasi Rp200.000, jadi Rp240.000 ditolak oleh batas itu tanpa membaca saldo (`baca.txt` bagian A, README lab).
+
+</details>
+
+**4.** Cache 30 detik ditolak sedangkan replica dipilih. Apa beda antara data yang tertinggal di keduanya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Cache menyimpan jawaban sampai TTL 30 detik habis, jadi laporan bisa setua 30 detik. Rekaman mencatat 0 hit dari 18 untuk satu client per warung. Replica menjawab dari data yang tertinggal sebesar jeda replay, di lab di bawah 1 detik pada 100 pembayaran per detik. Jeda itu batas di laptop, bukan nilai produksi.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Koneksi ke replica hanya dipakai untuk SELECT biasa, tanpa `FOR UPDATE` atau tulisan.
+- [ ] Saldo untuk bayar, cek batas harian, dan tutup buku resmi dibaca dari primary di dalam transaction.
+- [ ] Sesi laporan di replica punya `statement_timeout` di bawah `max_standby_streaming_delay`.
+- [ ] `hot_standby_feedback` tidak dinyalakan tanpa memantau ukuran tabel di primary.
+- [ ] Slot replikasi punya batas WAL dan alert.
+- [ ] Bacaan baru yang dipindah ke replica punya ADR dan jawaban untuk jeda replica.
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Hot Standby](https://www.postgresql.org/docs/17/hot-standby.html)
+- [PostgreSQL 17: Replication](https://www.postgresql.org/docs/17/runtime-config-replication.html)
+- [@prisma/extension-read-replicas](https://github.com/prisma/extension-read-replicas)
+- [Laravel 13.x: Database](https://laravel.com/docs/13.x/database)
+- [Django 5.2: Multiple databases](https://docs.djangoproject.com/en/5.2/topics/db/multi-db/)
+- [Supabase: Read Replicas](https://supabase.com/docs/guides/platform/read-replicas)
+- [Serverpod: database connection](https://docs.serverpod.dev/concepts/data-and-the-database/database/connection)
+
+</Blok>
+
+<SkripLama daftar={["cerita","banding"]} />

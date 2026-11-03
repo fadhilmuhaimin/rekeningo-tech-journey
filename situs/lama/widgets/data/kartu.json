@@ -3600,6 +3600,38 @@
   "jawab": "Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam; di antara 15 dan 30 detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5."
  },
  {
+  "id": "t5-read-replica-1",
+  "halaman": "t5-read-replica",
+  "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
+  "url": "tahap-5/read-replica/",
+  "tanya": "Pernyataan apa yang ditolak standby, dan dengan kode apa?",
+  "jawab": "Pernyataan yang menulis atau mengunci baris dijawab 25006: UPDATE, INSERT, DELETE, TRUNCATE, CREATE, ALTER, DROP, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION`. Untuk `SET TRANSACTION READ WRITE` jawabannya 0A000. Sesudahnya jumlah jurnal, posting, dan total saldo di tiga node tidak berubah (`replika.txt` bagian B)."
+ },
+ {
+  "id": "t5-read-replica-2",
+  "halaman": "t5-read-replica",
+  "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
+  "url": "tahap-5/read-replica/",
+  "tanya": "Query 45 detik berjalan di replica dengan `statement_timeout` 20 detik. Berhenti kapan, dengan kode apa, dan apa bedanya dengan tanpa timeout?",
+  "jawab": "Query berhenti sesudah paling sedikit 20 detik dan sebelum 30 detik, dengan 57014. Tanpa timeout, konflik dengan replay membatalkannya sesudah paling sedikit 30 detik, dengan 40001. Timeout tidak mencegah pembatalan: ia menghentikan query lebih awal, dan replay tertahan lebih singkat (`konflik.txt` bagian C dan D)."
+ },
+ {
+  "id": "t5-read-replica-3",
+  "halaman": "t5-read-replica",
+  "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
+  "url": "tahap-5/read-replica/",
+  "tanya": "Saldo tampil di replica Rp250.000, saldo primary Rp215.000. Kiriman Rp240.000 diterima atau ditolak, dan kenapa rekaman memakai kiriman, bukan pembayaran?",
+  "jawab": "Ditolak dengan 422 `saldo-kurang`, karena saldo yang menentukan dibaca dari primary di dalam transaction. Pembayaran tidak bisa dipakai: satu pembayaran dibatasi Rp200.000, jadi Rp240.000 ditolak oleh batas itu tanpa membaca saldo (`baca.txt` bagian A, README lab)."
+ },
+ {
+  "id": "t5-read-replica-4",
+  "halaman": "t5-read-replica",
+  "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
+  "url": "tahap-5/read-replica/",
+  "tanya": "Cache 30 detik ditolak sedangkan replica dipilih. Apa beda antara data yang tertinggal di keduanya?",
+  "jawab": "Cache menyimpan jawaban sampai TTL 30 detik habis, jadi laporan bisa setua 30 detik. Rekaman mencatat 0 hit dari 18 untuk satu client per warung. Replica menjawab dari data yang tertinggal sebesar jeda replay, di lab di bawah 1 detik pada 100 pembayaran per detik. Jeda itu batas di laptop, bukan nilai produksi."
+ },
+ {
   "id": "t5-m41-1",
   "halaman": "t5-m41",
   "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",

@@ -1562,3 +1562,34 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .pz-sel.is-rusak { background: var(--k-warn-fill); color: var(--k-warn-ink); font-weight: 700; }
 .sl-markdown-content :is(.pz-sel.is-tidak, .pz-sel.is-belum) { color: var(--teks-2); }
 @media (scripting: none) { .sl-markdown-content .pz { display: none; } }
+
+/* Simulasi jeda replica Tahap 5 (W5-lag): memakai bb-*, jt-tabel, dan bb-predict; hanya aturan di bawah yang baru. Tanpa JavaScript
+   tebakan dan penggeser tidak berfungsi: widget disembunyikan, dan pembungkus memuat tabelnya di <noscript>. Tabel satu kelompok
+   baris per aturan (nama di atas, lalu tiga baris label dan nilai) supaya "Rp250.000, riwayat 1 baris" muat di 320 px. */
+.sl-markdown-content .lg-ubah { margin: 0.4rem 0; }
+.sl-markdown-content .lg-judul { margin: 0.8rem 0 0.3rem; }
+.sl-markdown-content .lg-jeda { margin: 0.4rem 0 0.2rem; }
+.sl-markdown-content .lg-jeda label { display: block; margin-bottom: 0.3rem; }
+.sl-markdown-content .lg-jeda input[type="range"] { display: block; width: 100%; min-height: 1.75rem; margin: 0; accent-color: var(--aksen); }
+.sl-markdown-content .lg-jeda input[type="range"]:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .lg-petunjuk { margin: 0.2rem 0 0; font-size: 0.85em; }
+.sl-markdown-content .lg-aturan { margin: 0.5rem 0 0.2rem; }
+.sl-markdown-content .lg-hasil { margin-top: 0.4rem; }
+.sl-markdown-content .lg-aturan-ringkas { margin: 0.4rem 0; }
+.sl-markdown-content .lg-tabel { table-layout: fixed; }
+.sl-markdown-content .lg-tabel caption { caption-side: top; text-align: left; padding: 0.2rem 0.5rem; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .lg-tabel col:first-child { width: 36%; }
+.sl-markdown-content .lg-tabel :is(th, td) { padding: 0.3rem 0.35rem; overflow-wrap: anywhere; vertical-align: top; text-align: left; }
+.sl-markdown-content .lg-tabel th[scope="row"] { font-weight: 600; }
+.sl-markdown-content .lg-tabel th.lg-nama { text-align: left; border-top: 2px solid var(--garis-2); padding-top: 0.5rem; }
+.sl-markdown-content .lg-pilih th.lg-nama { border-top-color: var(--aksen); }
+.sl-markdown-content .lg-tanda { font-weight: 400; }
+.sl-markdown-content .lg-sel.is-sama { background: var(--k-good-fill); color: var(--k-good-ink); }
+.sl-markdown-content :is(.lg-sel.is-lama, .lg-sel.is-macet) { background: var(--k-warn-fill); color: var(--k-warn-ink); }
+.sl-markdown-content :is(.lg-sel.is-keprimary, .lg-sel.is-tunda) { background: var(--k-system-fill); color: var(--k-system-ink); }
+.sl-markdown-content .lg-daftar { margin: 0.2rem 0 0.4rem; padding-left: 1.2rem; }
+.sl-markdown-content .lg-daftar li { margin: 0.35rem 0; overflow-wrap: anywhere; }
+.sl-markdown-content .lg-berkas { display: block; font-size: 0.85em; }
+.sl-markdown-content .lg-batas { margin: 0.6rem 0 0; }
+.sl-markdown-content .lg-batas summary { cursor: pointer; }
+@media (scripting: none) { .sl-markdown-content .lg { display: none; } }

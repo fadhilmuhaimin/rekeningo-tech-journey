@@ -1,0 +1,191 @@
+{
+  "judul": "Bacaan laporan dan uang: semua dari primary, atau laporan dari replica",
+  "opsi": [
+    {
+      "id": "satu",
+      "nama": "A · Semua dari primary (versi pertama)",
+      "baris": [
+        [
+          {
+            "id": "app",
+            "label": "App",
+            "sub": "merchant dan karyawan"
+          },
+          {
+            "id": "api",
+            "label": "API",
+            "sub": "api-t5"
+          }
+        ],
+        [
+          {
+            "id": "pri",
+            "label": "Primary",
+            "sub": "satu PostgreSQL"
+          }
+        ],
+        [
+          {
+            "id": "uang",
+            "label": "Bayar dan kirim"
+          },
+          {
+            "id": "lap",
+            "label": "Laporan hari ini"
+          },
+          {
+            "id": "batas",
+            "label": "Cek batas harian"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "",
+        "Tempat membaca dan menulis",
+        "Yang dikerjakan"
+      ]
+    },
+    {
+      "id": "pisah",
+      "nama": "B · Laporan dari replica (ADR 46)",
+      "baris": [
+        [
+          {
+            "id": "app",
+            "label": "App",
+            "sub": "merchant dan karyawan"
+          },
+          {
+            "id": "api",
+            "label": "API",
+            "sub": "api-t5"
+          }
+        ],
+        [
+          {
+            "id": "pri",
+            "label": "Primary",
+            "sub": "tulisan dan uang"
+          },
+          {
+            "id": "rep",
+            "label": "Replica",
+            "sub": "asinkron, baca-saja"
+          }
+        ],
+        [
+          {
+            "id": "uang",
+            "label": "Bayar dan kirim"
+          },
+          {
+            "id": "lap",
+            "label": "Laporan hari ini"
+          },
+          {
+            "id": "batas",
+            "label": "Cek batas harian"
+          }
+        ]
+      ],
+      "judulBaris": [
+        "",
+        "Tempat membaca dan menulis",
+        "Yang dikerjakan"
+      ]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Bayar atau kirim uang",
+      "sorot": {
+        "satu": [
+          "app",
+          "api",
+          "pri",
+          "uang"
+        ],
+        "pisah": [
+          "app",
+          "api",
+          "pri",
+          "uang"
+        ]
+      },
+      "catatan": {
+        "satu": "Primary mengunci buku pengirim dan penerima di dalam satu transaction, lalu memeriksa saldo sesudah lock (kode Bayar dan Kirim di api-t5).",
+        "pisah": "Sama. Saldo yang menentukan tetap dibaca dari primary: kiriman Rp240.000 ditolak walau saldo tampil di replica Rp250.000 (baca.txt bagian A, replay ditahan dengan sengaja)."
+      }
+    },
+    {
+      "label": "Laporan penjualan hari ini",
+      "sorot": {
+        "satu": [
+          "app",
+          "api",
+          "pri",
+          "lap"
+        ],
+        "pisah": [
+          "app",
+          "api",
+          "rep",
+          "lap"
+        ]
+      },
+      "catatan": {
+        "satu": "Laporan menjumlah posting di primary yang sama dengan pembayaran (laporan.txt bagian A). Perlambatannya tidak terekam, dan 666,7 laporan per detik adalah Hitungan atas Asumsi.",
+        "pisah": "Dibaca dari replica, yang menolak tulisan dengan 25006, jadi laporan tidak bisa mengubah uang. Laporan tertinggal sebesar jeda replica, di lab di bawah 1 detik pada 100 pembayaran per detik (jeda.txt bagian A). Laporan dari replica belum dijalankan di lab: Tidak dijalankan."
+      },
+      "nada": {
+        "satu": "warn",
+        "pisah": "warn"
+      }
+    },
+    {
+      "label": "Query laporan 45 detik",
+      "sorot": {
+        "satu": [
+          "app",
+          "api",
+          "pri",
+          "lap"
+        ],
+        "pisah": [
+          "app",
+          "api",
+          "rep",
+          "lap"
+        ]
+      },
+      "catatan": {
+        "satu": "Tidak direkam. Lab hanya menjalankan query 45 detik di replica (konflik.txt).",
+        "pisah": "Dengan statement_timeout 20 detik, timeout menghentikan query dengan 57014 sesudah paling sedikit 20 detik. Tanpa timeout, konflik dengan replay membatalkannya dengan 40001 sesudah paling sedikit 30 detik (konflik.txt bagian C dan D)."
+      },
+      "nada": {
+        "pisah": "warn"
+      }
+    },
+    {
+      "label": "Cek batas harian kiriman",
+      "sorot": {
+        "satu": [
+          "app",
+          "api",
+          "pri",
+          "batas"
+        ],
+        "pisah": [
+          "app",
+          "api",
+          "pri",
+          "batas"
+        ]
+      },
+      "catatan": {
+        "satu": "Kedua buku dikunci di dalam transaction jurnal, lalu batas harian dan saldo dibaca sesudah lock (komentar dan kode Kirim di api-t5).",
+        "pisah": "Tetap primary. Aturan ADR 45 menulis uang tidak dibaca dari salinan di luar primary, dan replica hanya untuk laporan."
+      }
+    }
+  ]
+}
