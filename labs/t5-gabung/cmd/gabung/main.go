@@ -144,6 +144,7 @@ type ringkasan struct {
 	P95us  int64             `json:"p95_us"`
 	Maksus int64             `json:"maks_us"`
 	Gagal  int               `json:"gagal"`
+	Lebih  int               `json:"lebih_dari_anggaran"` // transaksi yang lebih lama dari -anggaran-ms
 	Hasil  []layanan.Jawaban `json:"hasil"`
 }
 
@@ -168,6 +169,7 @@ func jalankanBeban(args []string) error {
 	n := fs.Int("n", 200, "jumlah transaksi terukur, berurutan satu per satu")
 	pemanasan := fs.Int("pemanasan", 20, "transaksi pemanasan, tidak diukur dan tidak dicetak")
 	mulai := fs.Int("mulai", 0, "nomor transaksi pertama yang terukur")
+	anggaran := fs.Int("anggaran-ms", 50, "anggaran waktu satu transaksi (ms), untuk menghitung yang melebihinya")
 	_ = fs.Parse(args)
 	if *url == "" {
 		return errors.New("-url wajib")
@@ -209,6 +211,9 @@ func jalankanBeban(args []string) error {
 		}
 		r.Hasil = append(r.Hasil, j)
 		lat = append(lat, d.Microseconds())
+		if d > time.Duration(*anggaran)*time.Millisecond {
+			r.Lebih++
+		}
 	}
 	sort.Slice(lat, func(a, b int) bool { return lat[a] < lat[b] })
 	r.P50us, r.P95us, r.Maksus = persentil(lat, 0.50), persentil(lat, 0.95), lat[len(lat)-1]
