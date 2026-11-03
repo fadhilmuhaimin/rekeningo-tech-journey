@@ -688,7 +688,7 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
     sel("| | A. `remote_apply` untuk semua commit |", [
       ["Cara kerja", "COMMIT menunggu standby sinkron memutar WAL", "selama 5 detik tetap", "seperti sebelum ADR 46", "transaksi baru di layarnya sendiri", "posisi WAL, dan server membaca replica hanya bila"],
       ["Kelebihan", "pasti sudah memuat tulisannya", "tanpa token, dan ada framework", "Tidak ada replica yang tertinggal", "Tidak ada bacaan tambahan di primary", "hanya selama replica belum sampai"],
-      ["Kekurangan", "replica asinkron untuk bacaan tampil tidak ditunggu", "Tidak mengikuti jeda sebenarnya", "Menghapus guna ADR 46", "Hanya menolong satu app, bukan layar web atau perangkat lain", "menyimpan dan mengirim token"],
+      ["Kekurangan", "Tiap COMMIT menunggu replay, dan replica asinkron untuk bacaan tampil tidak ditunggu", "Tidak mengikuti jeda sebenarnya: terlalu pendek, saldo lama muncul lagi, terlalu panjang, primary dibaca tanpa perlu", "Menghapus guna ADR 46, dan beban baca kembali ke primary", "Hanya menolong satu app, bukan layar web atau perangkat lain", "App harus menyimpan dan mengirim token, dan bacaan tanpa token dilayani replica yang bisa tertinggal"],
       ["Biaya operasional", "standby sinkron harus tetap hidup", "Satu angka jendela", "26,4 koneksi di primary", "tanpa komponen server", "Satu query ke primary sesudah tiap tulisan"],
       ["Bukti", "Rekaman lab `sinkron.txt` bagian A dan B, dan dokumentasi PostgreSQL 17 untuk jeda commit (Tidak dijalankan)", "Tidak dijalankan: dokumentasi Laravel 13.x", "Hitungan atas Asumsi, tidak dijalankan di lab", "Tidak dijalankan: app Flutter tidak ada di lab", "Rekaman lab `baca.txt` bagian B, dan kode `sumberTampil`"],
     ]);
@@ -928,6 +928,69 @@ describe("tinjauan 1527: status top-up dan laporan dari primary, urutan pemeriks
     expect(handlerUtama).toMatch(/default:\s*\n\s*s\.errorInternal\(w, err\)/);
     expect(handlerUtama).toContain('Problem{Type: "/problems/internal", Title: "Terjadi kesalahan di server", Status: 500}');
     harusAda("Replica yang tertinggal menjawab saldo lama, dan replica yang mati membuat bacaan itu gagal dengan galat server (Tidak dijalankan: dibaca dari kode lab).");
+  });
+});
+
+describe("tinjauan 1527 (putaran tanpa kunci): kalimat mekanisme, kutipan riset, kode, urutan paragraf, dan daftar", () => {
+  test("kalimat mekanisme dan definisi yang tidak punya sumber turunan lain ditulis tepat sekali", () => {
+    for (const k of ["Tanpa token, bacaan tampilan dijawab replica. Dengan token, replica dipakai hanya bila sudah sampai posisi itu. Bila belum, atau bila replica tidak menjawab, server membaca primary.", "Keputusan uang tidak ikut aturan ini.", "Riwayat dan saldo tampil bukan laporan.", "Replication lag adalah jeda antara COMMIT di primary dan saat perubahannya terlihat di replica.", "LSN (log sequence number) adalah posisi di WAL, dan token berisi posisi primary sesudah COMMIT pembayaran itu. App mengirim token kembali di bacaan berikutnya.", "**Token membawa posisi WAL.** Sesudah COMMIT, server membaca posisi tulis WAL primary dengan `pg_current_wal_lsn()` dan mengirimnya di `X-Lsn-Tulis`.", "Dokumentasi PostgreSQL 17 menulis `pg_current_wal_lsn()` sebagai posisi tulis WAL, dan `pg_last_wal_replay_lsn()` sebagai posisi terakhir yang diputar ulang selama recovery.", "Dokumentasi menulis bahwa dengan `synchronous_commit = off` ada jeda antara jawaban sukses dan commit yang aman.", "Jadi `remote_apply` hanya menolong replica yang ditunggu, bukan replica yang melayani bacaan tampil.", "**`remote_apply` memindahkan tunggu ke COMMIT.** Cara lain: COMMIT menunggu standby sinkron memutar WAL (`synchronous_commit = remote_apply`), sehingga transaksi sudah terlihat di standby itu.", "**Token adalah masukan dari client.** Server memperlakukannya sebagai masukan yang tidak tepercaya.", "Yang ditanyakan: apa yang menjaga bacaan sesudah tulis, dan sampai kapan.", "Ia memakai satu query ke primary sesudah tulisan dan satu query ke replica di tiap bacaan bertoken.", "Tebak dulu, lalu geser jeda replica atau pilih aturan lain.", "Penjagaan bacaan sesudah tulis tidak ada di dokumentasi yang dibaca.", "Di 37 halaman pada peta situsnya yang alamatnya memuat database, kata replica hanya muncul dalam replication, di dua halaman.", "Di endpoint load balancer Data API, request GET dijawab database terdekat, dan request selain GET dijawab primary.", "Jeda antara update di primary dan saat replica menerimanya disebutnya replication lag.", "README menulis bahwa bacaan non-transaksional dijalankan di replica, dan tulisan serta transaction di primary.", "Dokumentasi menulis bahwa router primary dan replica di contohnya tidak menyediakan penyelesaian untuk replication lag, dan contoh itu hanya untuk memperagakan router.", "Bacaan tanpa token dijawab replica, jadi app yang tidak mengirim token bisa melihat saldo lama (`baca.txt` bagian B).", "Bacaan bertoken pindah ke primary, tetapi bacaan tanpa token tetap ke replica.", "1. Bacaan yang menentukan uang (saldo untuk bayar atau kirim, batas harian, status top-up yang akan dikredit) dibaca dari primary di dalam transaction. Aturan ini tidak berubah ([[t4-adr-45]]).", "- **A ditolak** karena `remote_apply` hanya menunggu standby sinkron, sedangkan replica yang melayani bacaan tampil asinkron (`sinkron.txt` bagian A).", "`TokenTulis` mengembalikan kosong bila posisi WAL tidak terbaca, dan jawaban yang diputar ulang tidak membawa token. Arah gagalnya ke replica, bukan ke primary, jadi saldo lama muncul lagi.", "satu pembayaran dibatasi Rp200.000 dan Rp240.000 ditolak oleh batas itu tanpa membaca saldo."]) harusAda(k);
+  });
+  test("kalimat tentang kode: tulisan sebelum token, satu query ke primary dan satu ke replica, konstanta sumber dan kepala, batas bayar", () => {
+    for (const [nama, svc] of [["bayar", "s.svc.Bayar("], ["kirim", "s.svc.Kirim("]] as const) {
+      const f = handlerUtama.slice(handlerUtama.indexOf(`func (s Server) ${nama}(`));
+      expect(f.indexOf(svc), nama).toBeGreaterThan(-1);
+      expect(f.indexOf(svc), nama).toBeLessThan(f.indexOf("s.tandaiTulis(w, r)"));
+    }
+    expect(repoReplika).toMatch(/func \(r Repo\) LSNTulis[\s\S]*?r\.db\.QueryRowContext\(ctx, `SELECT pg_current_wal_lsn\(\)::text`\)/);
+    expect(serviceReplika).toContain("s.replika.SampaiLSN(ctx, token)");
+    expect(serviceReplika).toContain("s.repo.LSNTulis(ctx)");
+    expect(serviceReplika).toContain('SumberPrimary = "primary"');
+    expect(serviceReplika).toContain('SumberReplika = "replika"');
+    expect(handlerT5).toContain('KepalaDibacaDari = "X-Dibaca-Dari"');
+    const bayarGo = baca("labs/api-t5/internal/service/bayar.go");
+    const maks = Number(bayarGo.match(/const MaksBayar = ([\d_]+)/)![1]!.replace(/_/g, ""));
+    expect(rp(maks)).toBe("Rp200.000");
+    const fnBayar = bayarGo.slice(bayarGo.indexOf("func (s Service) Bayar("));
+    expect(fnBayar.indexOf("jumlah > MaksBayar")).toBeGreaterThan(-1);
+    expect(fnBayar.indexOf("jumlah > MaksBayar")).toBeLessThan(fnBayar.indexOf("s.repo."));
+    expect(240000).toBeGreaterThan(maks);
+    harusAda(`satu pembayaran dibatasi ${rp(maks)} dan ${rp(240000)} ditolak oleh batas itu tanpa membaca saldo.`);
+  });
+  test("replica tampil di lab adalah replika_laporan yang asinkron, bukan standby sinkron (dasar tolakan opsi A)", () => {
+    const runPy = baca("labs/t5-replika/run.py");
+    expect(runPy).toContain('("replika", "replika_laporan")');
+    expect(runPy).toContain('"REPLIKA_DATABASE_URL": d.db_role(d.ROLE_APP, port=REPLIKA_REPLICA_PORT)');
+    expect(sinkronTxt).toContain(" replika_laporan  | streaming | async");
+    expect(sinkronTxt).toContain(" replika_sinkron  | streaming | sync");
+  });
+  test("kutipan riset yang dipakai kalimat halaman ada di baris risetnya (bagian, versi, kutipan Inggris, hasil baca)", () => {
+    const r140 = barisRiset("R5-140"), r141 = barisRiset("R5-141"), r142 = barisRiset("R5-142"), r143 = barisRiset("R5-143");
+    for (const k of ["Returns the current write-ahead log write location", "Returns the last write-ahead log location that has been replayed during recovery", "the function returns NULL"]) expect(r140, k).toContain(k);
+    expect(r140).toContain(`PostgreSQL ${bacaTxt.match(/PostgreSQL (17\.\d+)/)![1]}`);
+    for (const k of ["bagian 26.2.5", "bagian 26.2.8.1", "Streaming replication is asynchronous by default", "load balancing with causal consistency", "much larger commit delays", "tiga kali `wal_writer_delay`"]) expect(r141, k).toContain(k);
+    for (const k of ["Eventually Consistent - Revisited", "23 Desember 2008"]) expect(r142, k).toContain(k);
+    for (const k of ["kata replica hanya dalam replication di dua halaman", "non-GET ke primary", "GET lewat endpoint load balancer ke database terdekat", "`$primary()` memaksa primary", "bacaan non-transaksional ke replica, tulisan dan transaction ke primary", "doesn't provide any solution for handling replication lag", "Example purposes only!", "tidak menyebut replica"]) expect(r143, k).toContain(k);
+  });
+  test("urutan paragraf: tiap jangkar muncul tepat sekali dan menurut urutan halaman", () => {
+    let akhir = -1;
+    for (const j of ["Sesudah menulis, bacaan mi", "Di Rekaman lab ([Label sum", "Bacaan saldo tanpa token d", "Keputusan uang tidak ikut ", "1. Replica ditahan, lalu B", "2. Token itu berisi apa, d", "3. Saldo tampil masih Rp25", "Yakin dengan ketiganya? Lo", "Token adalah isi kepala `X", "Widget ini menunjukkan lay", "**Ubah satu hal:** pilih j", "Arti Rekaman lab, Asumsi, ", "[[t5-m41]] menunjukkan Bud", "[[t4-adr-45]] menulis bahw", "Dua istilah dipakai di hal", "**Replica bisa tertinggal,", "Di lab, pada 100 pembayara", "**Token membawa posisi WAL", "Dokumentasi PostgreSQL 17 ", "**Server memilih tempat me", "Tanpa token, bacaan tampil", "Sesudah replay dilanjutkan", "Di lab, kepala `X-Lsn-Tuli", "**Tiga kelas baca.** Atura", "Lab mengalihkan dua bacaan", "Di bagian A, saldo tampil ", "**Harganya: bacaan bertoke", "Satu bacaan per transaksi ", "**`remote_apply` memindahk", "Di lab, selagi replay di s", "Tanpa replay yang ditahan,", "**Token adalah masukan dar", "- Token yang bukan posisi ", "- Token sah yang sangat be", "- Token adalah posisi WAL ", "- Jawaban yang diputar ula", "- Bila posisi WAL tidak te", "Dokumentasi menulis bahwa dengan", "**Yang belum terjawab: fai", "**Skenario:** satu app men", "Tab Go dijalankan di lab. ", "*Dijalankan: lab api-t5 da", "**Yang berbeda di stack ini:** k", "*Tidak dijalankan. Dicek ke READ", "  where: { id },", "});`} />", "**Yang berbeda di stack ini:** R", "*Tidak dijalankan. Dicek ke [Lar", "$middleware->web(append: [", "    PreventStaleDatabaseRe", "]);`} />", "**Yang berbeda di stack ini:** o", "*Tidak dijalankan. Dicek ke [Dja", "**Yang berbeda di stack ini:** `", "*Tidak dijalankan. Dicek ke [Ser", "**Yang berbeda di stack ini:** halaman Conne", "*Tidak dijalankan. Dicek ke [Sup", "**Yang berbeda di stack ini:** halaman itu m", "**Kebutuhan.** Sesudah ADR", "**Status:** diterima sesud", "**Keputusan: opsi E.** Del", "1. Bacaan yang menentukan ", "2. Jawaban tulisan yang be", "3. App mengirim token itu ", "4. App menyimpan token sel", "5. Bacaan tanpa token diba", "6. Token tidak berlaku unt", "7. Bila replica tertinggal", "8. Sesudah failover, semua", "Aturan 5 adalah selisih na", "**Kenapa E, bukan A, B, C,", "- **A ditolak** karena `re", "- **B ditolak** karena jen", "- **C ditolak** karena men", "- **D ditolak** karena han", "**Kasus industri: Laravel.", "Itu opsi B yang dipakai sa", "**Pre-mortem.** Bayangkan ", "1. Token tidak sampai ke a", "2. Replica tertinggal jauh", "3. Token tidak lagi bisa d", "**Kapan keputusan ini sala", "**Yang belum diukur.** Tig", "**Yang akan merevisinya.**", "**1.** Replica ditahan, la", "Tanpa token, replica menja", "**2.** Kapan server yang m", "Saat replica sudah memutar", "**3.** Kenapa `remote_appl", "**4.** Naskah menulis bahw", "Bacaan tanpa token dijawab", "- [ ] Token dibaca sesudah", "- [ ] Bacaan yang menentuk", "- [ ] Token dari header di", "- [ ] Replica yang tidak m", "- [ ] Jawaban tulisan tanp", "- [PostgreSQL 17: Log-Ship", "- [PostgreSQL 17: WAL Conf", "- [PostgreSQL 17: System A", "- [Vogels: Eventually Cons", "- [Laravel 13.x: Database]", "- [Django 6.1: Multiple da", "- [Supabase: Read Replicas"]) {
+      expect(kali(badan, j), j).toBe(1);
+      const i = badan.indexOf(j);
+      expect(i, j).toBeGreaterThan(akhir);
+      akhir = i;
+    }
+  });
+  test("daftar periksa kode AI lima butir, dan bacaan lanjut tujuh tautan yang dipakai badan (selain dua sumber stack)", () => {
+    const periksa = badan.slice(badan.indexOf("### Saat me-review kode AI"), badan.indexOf("### Bacaan lanjut"));
+    expect(kali(periksa, "- [ ] ")).toBe(5);
+    for (const k of ["- [ ] Token dibaca sesudah COMMIT, bukan sebelum.", "- [ ] Bacaan yang menentukan uang tidak lewat pemilihan sumber tampilan dan dibaca di dalam transaction di primary.", "- [ ] Token dari header divalidasi bentuknya sebelum dipakai di query, dan dipasang sebagai parameter.", "- [ ] Replica yang tidak menjawab, atau menjawab NULL, dibaca sebagai belum sampai.", "- [ ] Jawaban tulisan tanpa token dihitung, bukan dianggap bebas dari bacaan lama."]) harusAda(k);
+    const awalLanjut = badan.indexOf("### Bacaan lanjut");
+    const url = (s: string) => [...s.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((m) => m[1]!);
+    const lanjut = url(badan.slice(awalLanjut));
+    const dipakai = [...new Set(url(badan.slice(0, awalLanjut)))];
+    expect(lanjut.length).toBe(7);
+    expect(lanjut.every((u) => dipakai.includes(u))).toBe(true);
+    expect(dipakai.filter((u) => !lanjut.includes(u)).sort()).toEqual(["https://docs.serverpod.dev/concepts/data-and-the-database/database/connection", "https://github.com/prisma/extension-read-replicas"]);
   });
 });
 

@@ -79,6 +79,9 @@ describe("kunci: kalimat dan sel tabel", () => {
   });
   it("catatan sumber dan label sumber memakai kata yang sama dengan /cara-pakai/ dan rekaman jeda.txt bagian A", () => {
     expect(d.label.sumber).toBe("Simulasi");
+    // ringkasan aturan baca adalah klaim mekanisme (sumberTampil, remote_apply): dikunci utuh, karena tidak ada sumber turunan per kalimat
+    expect(d.aturan.map((a) => a.ringkas)).toEqual(["App membaca replica dan tidak membawa token. Pembaca ini tidak tahu apa yang baru saja ia tulis.", "Jawaban bayar membawa posisi WAL primary di kepala X-Lsn-Tulis. App mengirimnya kembali, dan server membaca replica hanya bila replica sudah memutar WAL sampai posisi itu, selain itu primary.", "COMMIT menunggu replica sinkron memutar WAL, jadi pembayaran itu sudah terlihat di sana. Replica asinkron lain tidak ikut ditunggu."]);
+    expect(d.uang.bukti).toEqual(["kiriman Rp240.000 ke rekan ditolak karena saldo di primary Rp215.000", "/problems/saldo-kurang"]);
     expect(d.sumber.teks.startsWith("Jeda yang kamu geser adalah Simulasi.")).toBe(true);
     expect(d.sumber.teks).toContain("pada 100 pembayaran per detik selama 10 detik, jeda alami tertinggi di bawah 1 detik");
     expect(d.sumber.teks).not.toContain("selalu");
