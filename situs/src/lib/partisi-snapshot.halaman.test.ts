@@ -622,7 +622,8 @@ describe("rentang Snippet diturunkan dari struktur rekaman dan kode", () => {
   });
 });
 
-describe("kunci: kalimat, sidik, kata penuh, dan baris riset", () => {
+// TANPA_KUNCI=1 melewati blok ini (kunci kalimat dan sidik) supaya uji mutasi bisa menilai tes turunan sendirian (putaran TANPA kunci).
+describe.skipIf(process.env.TANPA_KUNCI === "1")("kunci: kalimat, sidik, kata penuh, dan baris riset", () => {
   test("setiap baris badan sama dengan KALIMAT_TERKUNCI, urut dan utuh", () => {
     const kalimat = badan.split("\n").map((b) => b.trim()).filter((b) => b !== "");
     const beda = kalimat.findIndex((k, i) => k !== KALIMAT_TERKUNCI[i]);
