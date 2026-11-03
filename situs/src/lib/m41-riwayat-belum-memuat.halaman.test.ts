@@ -445,6 +445,11 @@ describe("kalimat berulang di badan halaman", () => {
     const hitung = new Map<string, number>();
     for (const k of kalimat) hitung.set(k, (hitung.get(k) ?? 0) + 1);
     expect([...hitung].filter(([, n]) => n > 1).map(([k]) => k)).toEqual([]);
+    // klausa sesudah titik dua (lima kata atau lebih) juga tidak digandakan
+    const klausa = badan.split("\n").filter((b) => b.trim() && !b.startsWith("<")).flatMap((b) => b.split(/(?<=[.!?:])\s+/).map((k) => k.trim())).filter((k) => k.split(/\s+/).length >= 5);
+    const hitungKlausa = new Map<string, number>();
+    for (const k of klausa) hitungKlausa.set(k, (hitungKlausa.get(k) ?? 0) + 1);
+    expect([...hitungKlausa].filter(([, n]) => n > 1).map(([k]) => k)).toEqual([]);
   });
 });
 
