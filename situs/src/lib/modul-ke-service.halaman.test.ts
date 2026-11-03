@@ -1133,6 +1133,26 @@ describe("celah mutasi tanpa kunci yang ditutup peninjau (keputusan 1551): kalim
     expect(JSON.stringify(istilahBerkas["kubernetes"])).toContain("sepenuhnya sesuai");
     expect(JSON.stringify(istilahBerkas["kubernetes"])).not.toMatch(/sebagian sesuai/);
   });
+  test("atribusi ADR 12 dan ADR 37 sama dengan halaman 5.12 dan halaman ADR, dan opsi A mengikuti ADR 37 (pembayaran sudah service)", () => {
+    const n37 = Number(cari(/ADR (\d+) menulis keputusannya salah/, barisM44, "ADR modular monolith")[1]);
+    const kalimat = `ADR 12 memperingatkan bahwa satu transaction tidak lagi membungkus dua service ([[t1-adr-12]]), dan ADR ${n37} menerima itu untuk satu jalur, dengan Idempotency-Key dan rekonsiliasi ([[t4-modul]])`;
+    expect(badan).toContain(kalimat);
+    expect(hal512).toContain(`ADR 12 menulis bahwa pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction ([[t1-adr-12]])`);
+    expect(hal512).toContain(`ADR ${n37} menerima itu untuk satu jalur, dengan Idempotency-Key dan rekonsiliasi`);
+    expect(adr12).toContain("Pembayaran yang menyentuh dua service tidak lagi bisa dibungkus satu transaction");
+    expect(adr12).not.toMatch(/Idempotency-Key dan rekonsiliasi/);
+    expect(badan).toContain(`rekonsiliasi seperti di ADR ${n37} ([[t4-modul]]), karena satu transaction tidak lagi mencakup dua service ([[t1-adr-12]])`);
+    expect(badan).not.toMatch(/ADR 12 (dan ADR \d+ )?menulis konsistensi/);
+    expect(badan).toContain(`sejak ADR ${n37} ([[t4-modul]]). Halaman ini membaca opsi A seperti [[t5-m44]]: satu repo, satu merge queue, dan satu rilis (Asumsi pembacaan).`);
+    expect(adr45).toContain("satu service `pembayaran`");
+    expect(adr37).toContain("Modul `pembayaran` (gateway, kartu, webhook) adalah satu service terpisah");
+    const a = banding.opsi.find((o) => o.id === "mono")!.baris.flat().find((n) => n.id === "proses")!;
+    expect(a.label).toBe("Modul di satu repo");
+    expect(a.sub).toBe(`pembayaran sudah service (ADR ${n37})`);
+    const b = banding.opsi.find((o) => o.id === "svc")!.baris.flat().find((n) => n.id === "tim")!;
+    expect(b.sub).toBe("tiap service punya tim pemilik");
+    expect(timProduk.length).not.toBe(nService);
+  });
   test("baris riset R5-170 sampai R5-173: semua tanggal buka sama, dan nama penulis dan jabatan tidak diganti", () => {
     for (const id of ["R5-170", "R5-171", "R5-172", "R5-173"]) {
       const tgl = [...barisRiset(id).matchAll(/dibuka (\d{4}-\d\d-\d\d)/g)].map((m) => m[1]);
