@@ -86,7 +86,7 @@ Kapasitas 13,33 per detik datang dari c = 4 pengirim serentak dan t = 0,3 detik 
 
 Rekaman itu memeriksa rumus c ÷ t dan kode pengirim, bukan t penyedia sungguhan. Jadi 96,3 per detik dan 722% tetap Hitungan atas Asumsi.
 
-**Pengumuman satu baris per penerima.** Cara lama menulis satu baris outbox untuk tiap penerima, yaitu 1.000.000 INSERT di primary untuk satu pengumuman. Naskah memakai 300 byte per baris, jadi ±300 MB (Asumsi). Lab mengukur 166 byte per baris di tumpukan tabel, tanpa index, jadi ±166 MB (Hitungan atas rekaman):
+**Pengumuman satu baris per penerima.** Cara lama menulis satu baris outbox untuk tiap penerima, jadi 1.000.000 baris baru di primary untuk satu pengumuman. Naskah memakai 300 byte per baris, jadi ±300 MB (Asumsi). Lab mengukur 166 byte per baris di tumpukan tabel, tanpa index, jadi ±166 MB (Hitungan atas rekaman):
 
 <Snippet file="labs/t5-fanout/output/aliran.txt" lines="53:59" title="Rekaman lab: labs/t5-fanout/output/aliran.txt, bagian B (satu baris outbox per penerima)" />
 
@@ -94,15 +94,17 @@ Pengirimnya juga habis dipakai uang. Satu pengumuman ke 1.000.000 HP butuh 1.000
 
 **Menambah kapasitas membuka dua hal lain.** Pengirim serentak yang dibutuhkan adalah L = λ × t = 96,3 × 0,3 = 28,89, dibulatkan ke 29. Delapan proses × 4 pengirim = 32 pengirim, dengan kapasitas 106,7 per detik dan pemakaian 90,3%. Sebelas proses = 44 pengirim, dengan kapasitas 146,7 per detik dan pemakaian 65,7% (Hitungan atas Asumsi; `pengirim.txt` bagian A mengulang hitungannya).
 
-Pemakaian dihitung dari nilai tepat, bukan dari angka yang sudah dibulatkan. Dari 96,3 ÷ 146,7 hasilnya 65,6%.
+Delapan adalah jumlah proses paling sedikit untuk 29 pengirim, dan 11 proses menjaga pemakaian paling tinggi ±70% (Asumsi desain naskah). Pemakaian dihitung dari nilai tepat, bukan dari angka yang sudah dibulatkan. Dari 96,3 ÷ 146,7 hasilnya 65,6%.
 
-Hal pertama adalah kuota penyedia push. Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit. Di atas kuota, jawabannya 429 RESOURCE_EXHAUSTED sampai kuota terisi lagi di menit berikutnya ([Firebase Cloud Messaging: Throttling and Quotas](https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas), dibuka 2026-11-04, Tidak dijalankan). Penyedia tiruan di lab menerjemahkannya menjadi jendela satu detik, dan rekaman `antrean.txt` memakai 1.000 pesan per detik, sepersepuluh dari 10.000 (Asumsi lab, bukan angka penyedia).
+Hal pertama adalah kuota penyedia push. Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit. Di atas kuota, jawabannya 429 RESOURCE_EXHAUSTED sampai kuota terisi lagi di menit berikutnya ([Firebase Cloud Messaging: Throttling and Quotas](https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas), dibuka 2026-11-04, Tidak dijalankan).
+
+Penyedia tiruan di lab menerjemahkan 600.000 per menit menjadi 10.000 per detik, dalam jendela satu detik. Rekaman `antrean.txt` memakai 1.000 pesan per detik, sepersepuluh dari itu (Asumsi lab, bukan angka penyedia).
 
 <Snippet file="labs/t5-fanout/output/antrean.txt" lines="37:45" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian B, versi benar (pengumuman dan uang memakai satu kuota)" />
 
 Pada versi benar, tiap consumer dibatasi 200 pesan per detik, dan 3 × 200 = 600 per detik masih di bawah kuota 1.000. Pengumuman 4.000 pesan diterima, tidak ada 429 untuk pengumuman maupun uang, dan umur uang tertua tidak melewati 2 detik (batas lab, Asumsi).
 
-Bagian B yang sama memuat mode rentan, dengan consumer tanpa batas laju dan tanpa backoff. Hasilnya kamu tebak di blok Coba sendiri.
+Bagian B yang sama memuat mode rentan, dengan consumer tanpa batas laju dan tanpa backoff. Backoff adalah jeda yang bertambah di antara pengulangan sesudah jawaban 429. Hasilnya kamu tebak di blok Coba sendiri.
 
 Penyedia tiruan memanggil `Coba` satu kali per pesan, untuk pengumuman dan uang sama saja. Kelas pesan hanya dipakai untuk menghitung (dibaca dari kode):
 

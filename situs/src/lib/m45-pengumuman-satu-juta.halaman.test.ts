@@ -298,6 +298,11 @@ describe("hitungan makan siang: diturunkan dari naskah, PRD v5, dan rekaman, dib
     const proses = (n: number, kapasitas: string, pakai: string): string => `${huruf1(n === 8 ? "delapan" : "sebelas")} proses × ${pengirimC} pengirim = ${n * pengirimC} pengirim, dengan kapasitas ${kapasitas} per detik dan pemakaian ${pakai}%`;
     expect(badan).toContain(`Pengirim serentak yang dibutuhkan adalah L = λ × t = ${L[1]} × ${L[2]} = ${L[3]}, dibulatkan ke ${L[4]}.`);
     expect(badan).toContain(proses(8, P8[4]!, P8[5]!));
+    expect(pengA).toContain("proses minimal = ceil(28,9 / 4) = 8; untuk terpakai paling tinggi 70%: ceil(28,9 / 0,7 / 4) = 11");
+    expect(Math.ceil(l / pengirimC)).toBe(Number(P8[1]));
+    expect(Math.ceil(l / 0.7 / pengirimC)).toBe(Number(P11[1]));
+    expect(badan).toContain(`Delapan adalah jumlah proses paling sedikit untuk ${L[4]} pengirim, dan ${P11[1]} proses menjaga pemakaian paling tinggi ±70% (Asumsi desain naskah).`);
+    expect(naskah).toContain("paling tinggi ±70%");
     expect(badan).toContain(`Pemakaian dihitung dari nilai tepat, bukan dari angka yang sudah dibulatkan. Dari ${M3.lamT} ÷ ${P11[4]} hasilnya ${koma(bulat((M3.lam / angkaKoma(P11[4]!)) * 100, 1), 1)}%.`);
     expect(koma(bulat((M3.lam / angkaKoma(P11[4]!)) * 100, 1), 1)).not.toBe(P11[5]);
     expect(badan).toContain(`Sebelas proses = ${P11[3]} pengirim, dengan kapasitas ${P11[4]} per detik dan pemakaian ${P11[5]}%`);
@@ -349,9 +354,13 @@ describe("rekaman antrean.txt dan kode: bagian A (kelas), bagian B (kuota bersam
     expect(B.total).toBeLessThan(B.kuota);
     expect(badan).toContain(`Pada versi benar, tiap consumer dibatasi ${B.laju} pesan per detik, dan ${B.konsumen} × ${B.laju} = ${B.total} per detik masih di bawah kuota ${ribu(B.kuota)}. Pengumuman ${ribu(B.diterima)} pesan diterima, tidak ada 429 untuk pengumuman maupun uang, dan umur uang tertua tidak melewati ${B.batasUmur} detik (batas lab, Asumsi).`);
     expect(recAntreanBaris[iUmurBenarB]).toContain(": ya");
-    expect(badan).toContain(`rekaman \`antrean.txt\` memakai ${ribu(B.kuota)} pesan per detik, sepersepuluh dari 10.000 (Asumsi lab, bukan angka penyedia).`);
-    expect(B.kuota / 10000).toBe(0.1);
+    const KUOTA_MENIT = angkaKoma(cari(/kuota bawaan ([\d]+) ribu pesan per menit/, "kuota bawaan 600 ribu pesan per menit", "kuota menit")[1]!) * 1000;
+    const KUOTA_DETIK = KUOTA_MENIT / 60;
+    expect(KUOTA_DETIK).toBe(10000);
     expect(pushkuotaGo).toContain('flag.Int("kuota", 10000,');
+    expect(pushkuotaGo).toContain("naskah: 600.000 per menit = 10.000 per detik");
+    expect(badan).toContain(`Penyedia tiruan di lab menerjemahkan ${ribu(KUOTA_MENIT)} per menit menjadi ${ribu(KUOTA_DETIK)} per detik, dalam jendela satu detik. Rekaman \`antrean.txt\` memakai ${ribu(B.kuota)} pesan per detik, sepersepuluh dari itu (Asumsi lab, bukan angka penyedia).`);
+    expect(B.kuota / KUOTA_DETIK).toBe(0.1);
   });
   test("bagian B mode rentan: 32 pengirim per consumer = 96 serentak lawan kuota 1.000; pengumuman 429 lebih dari 0, uang 429 paling sedikit satu, umur melebihi 2 detik; jumlah 429 tidak ditulis", () => {
     expect(B.pengirimRentan * B.konsumen).toBe(B.serentak);
@@ -362,6 +371,12 @@ describe("rekaman antrean.txt dan kode: bagian A (kelas), bagian B (kuota bersam
     expect(recAntreanBaris[iRentanB]).toContain("tanpa batas laju dan tanpa backoff");
     expect(skenario.predict.q).toContain(`dengan ${B.serentak} pengirim serentak melawan kuota ${ribu(B.kuota)} per detik`);
     expect(badan).toContain("Jumlah 429 tidak direkam, karena bergantung pada waktu:");
+    expect(badan).toContain("Backoff adalah jeda yang bertambah di antara pengulangan sesudah jawaban 429.");
+    expect(badan.indexOf("Backoff adalah jeda")).toBeLessThan(badan.indexOf("<WidgetLama"));
+    // pemakaian pertama kata 'backoff' di badan jatuh di kalimat tepat sebelum definisinya (tidak ada pemakaian lebih awal tanpa arti)
+    expect(badan.indexOf(" backoff")).toBeGreaterThan(badan.indexOf("Bagian B yang sama memuat mode rentan"));
+    expect(badan.indexOf(" backoff")).toBeLessThan(badan.indexOf("Backoff adalah jeda"));
+    expect(badan.search(/backoff/i)).toBe(badan.indexOf(" backoff") + 1);
     expect(badan).toContain("Kelas queue mengatur urutan klaim di outbox, dan tidak melindungi uang dari kuota yang dihabiskan pengumuman.");
     expect(badan).not.toMatch(/\b\d+ jawaban 429\b/);
   });
@@ -491,7 +506,7 @@ describe("sumber luar dan baris riset R5-175 sampai R5-179", () => {
     expect(r).toContain("Quotas are per-minute, but these minutes are not aligned to the clock.");
     expect(r).toContain("Halaman tidak menyebut laju per detik");
     expect(badan).toContain("Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit. Di atas kuota, jawabannya 429 RESOURCE_EXHAUSTED sampai kuota terisi lagi di menit berikutnya (");
-    expect(badan).toContain("Penyedia tiruan di lab menerjemahkannya menjadi jendela satu detik,");
+    expect(badan).toContain("dalam jendela satu detik.");
     expect(barisRiset("R5-288")).toContain("Pengamatan lab, bukan kutipan");
   });
   test("R5-176, R5-177, R5-178: isi persis (kode dan rekaman yang dibaca), dan R5-179 memuat tiap hitungan halaman", () => {
@@ -890,15 +905,16 @@ const BADAN_DITURUNKAN: string[] = [
   `Kapasitas ${KAPT} per detik datang dari c = 4 pengirim serentak dan t = 0,3 detik per pengiriman, dua Asumsi dari [[t3-estimasi]]. Lab mengukur c dan t pada penyedia tiruan berlatensi 300 ms:`,
   `<Snippet file="labs/t5-fanout/output/pengirim.txt" lines="20:26" title="Rekaman lab: labs/t5-fanout/output/pengirim.txt, bagian B (c dan t terukur)" />`,
   `Rekaman itu memeriksa rumus c ÷ t dan kode pengirim, bukan t penyedia sungguhan. Jadi ${M3.lamT} per detik dan ${M3.pakai}% tetap Hitungan atas Asumsi.`,
-  `**Pengumuman satu baris per penerima.** Cara lama menulis satu baris outbox untuk tiap penerima, yaitu 1.000.000 INSERT di primary untuk satu pengumuman. Naskah memakai ${byte300} byte per baris, jadi ±${MB300} MB (Asumsi). Lab mengukur ${byteBaris} byte per baris di tumpukan tabel, tanpa index, jadi ±${byteBaris} MB (Hitungan atas rekaman):`,
+  `**Pengumuman satu baris per penerima.** Cara lama menulis satu baris outbox untuk tiap penerima, jadi 1.000.000 baris baru di primary untuk satu pengumuman. Naskah memakai ${byte300} byte per baris, jadi ±${MB300} MB (Asumsi). Lab mengukur ${byteBaris} byte per baris di tumpukan tabel, tanpa index, jadi ±${byteBaris} MB (Hitungan atas rekaman):`,
   `<Snippet file="labs/t5-fanout/output/aliran.txt" lines="${M2.tumbuh}:59" title="Rekaman lab: labs/t5-fanout/output/aliran.txt, bagian B (satu baris outbox per penerima)" />`,
   `Pengirimnya juga habis dipakai uang. Satu pengumuman ke 1.000.000 HP butuh 1.000.000 × 0,3 ÷ 4 = ${ribu(DETIK_PENGUMUMAN)} detik di 4 pengirim. Itu ${koma(DETIK_PENGUMUMAN / 3600, 1)} jam (Hitungan atas Asumsi, sama dengan [[t5-prd]]). Saat makan siang, kedatangan uang melebihi kapasitas, jadi promo tidak mendapat giliran selama queue uang masih punya baris yang siap diklaim (dibaca dari kode).`,
   `**Menambah kapasitas membuka dua hal lain.** Pengirim serentak yang dibutuhkan adalah L = λ × t = ${M3.lamT} × 0,3 = ${L[3]}, dibulatkan ke 29. Delapan proses × 4 pengirim = 32 pengirim, dengan kapasitas ${P8[4]} per detik dan pemakaian ${P8[5]}%. Sebelas proses = 44 pengirim, dengan kapasitas ${P11[4]} per detik dan pemakaian ${P11[5]}% (Hitungan atas Asumsi; \`pengirim.txt\` bagian A mengulang hitungannya).`,
-  `Pemakaian dihitung dari nilai tepat, bukan dari angka yang sudah dibulatkan. Dari ${M3.lamT} ÷ ${P11[4]} hasilnya ${P11TULIS}%.`,
-  `Hal pertama adalah kuota penyedia push. Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit. Di atas kuota, jawabannya 429 RESOURCE_EXHAUSTED sampai kuota terisi lagi di menit berikutnya ([Firebase Cloud Messaging: Throttling and Quotas](https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas), dibuka 2026-11-04, Tidak dijalankan). Penyedia tiruan di lab menerjemahkannya menjadi jendela satu detik, dan rekaman \`antrean.txt\` memakai ${ribu(B.kuota)} pesan per detik, sepersepuluh dari 10.000 (Asumsi lab, bukan angka penyedia).`,
+  `Delapan adalah jumlah proses paling sedikit untuk 29 pengirim, dan 11 proses menjaga pemakaian paling tinggi ±70% (Asumsi desain naskah). Pemakaian dihitung dari nilai tepat, bukan dari angka yang sudah dibulatkan. Dari ${M3.lamT} ÷ ${P11[4]} hasilnya ${P11TULIS}%.`,
+  `Hal pertama adalah kuota penyedia push. Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit. Di atas kuota, jawabannya 429 RESOURCE_EXHAUSTED sampai kuota terisi lagi di menit berikutnya ([Firebase Cloud Messaging: Throttling and Quotas](https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas), dibuka 2026-11-04, Tidak dijalankan).`,
+  `Penyedia tiruan di lab menerjemahkan 600.000 per menit menjadi 10.000 per detik, dalam jendela satu detik. Rekaman \`antrean.txt\` memakai ${ribu(B.kuota)} pesan per detik, sepersepuluh dari itu (Asumsi lab, bukan angka penyedia).`,
   `<Snippet file="labs/t5-fanout/output/antrean.txt" lines="37:45" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian B, versi benar (pengumuman dan uang memakai satu kuota)" />`,
   `Pada versi benar, tiap consumer dibatasi ${B.laju} pesan per detik, dan ${B.konsumen} × ${B.laju} = ${B.total} per detik masih di bawah kuota 1.000. Pengumuman ${ribu(B.diterima)} pesan diterima, tidak ada 429 untuk pengumuman maupun uang, dan umur uang tertua tidak melewati 2 detik (batas lab, Asumsi).`,
-  `Bagian B yang sama memuat mode rentan, dengan consumer tanpa batas laju dan tanpa backoff. Hasilnya kamu tebak di blok Coba sendiri.`,
+  `Bagian B yang sama memuat mode rentan, dengan consumer tanpa batas laju dan tanpa backoff. Backoff adalah jeda yang bertambah di antara pengulangan sesudah jawaban 429. Hasilnya kamu tebak di blok Coba sendiri.`,
   `Penyedia tiruan memanggil \`Coba\` satu kali per pesan, untuk pengumuman dan uang sama saja. Kelas pesan hanya dipakai untuk menghitung (dibaca dari kode):`,
   `<Snippet file="labs/api-t5/cmd/pushkuota/main.go" region="jendela" lang="go" title="Kode lab: labs/api-t5/cmd/pushkuota/main.go, fungsi Coba (satu jendela kuota)" />`,
   `Hal kedua adalah breaker dari ADR 36 ([[t4-breaker]]). Breaker itu dibuat dengan \`lajur.Baru\` di dalam proses worker, jadi tiap proses punya hitungan gagalnya sendiri dan dua proses tidak berbagi hitungan:`,
@@ -983,7 +999,7 @@ const SKENARIO_DITURUNKAN: string[] = [
   "#q",
   `Pengumuman dikirim consumer tanpa batas laju dan tanpa backoff, dengan ${B.serentak} pengirim serentak melawan kuota ${ribu(B.kuota)} per detik di penyedia push yang sama dengan notifikasi uang. Apa yang terjadi pada notifikasi uang?`,
   "#options",
-  `Tidak berubah: kelas queue sudah mendahulukan uang di antrean outbox`,
+  `Tidak berubah: kelas queue sudah mendahulukan uang di queue outbox`,
   `Uang selesai lebih cepat, karena pengumuman cepat habis dan kuota kosong lagi`,
   `Uang ikut dijawab 429, dan umur uang tertua melewati 2 detik`,
   `Uang menunggu sampai pengumuman selesai, lalu terkirim tanpa 429`,

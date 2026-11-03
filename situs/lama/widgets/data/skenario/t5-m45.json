@@ -29,7 +29,7 @@
   "predict": {
     "q": "Pengumuman dikirim consumer tanpa batas laju dan tanpa backoff, dengan 96 pengirim serentak melawan kuota 1.000 per detik di penyedia push yang sama dengan notifikasi uang. Apa yang terjadi pada notifikasi uang?",
     "options": [
-      "Tidak berubah: kelas queue sudah mendahulukan uang di antrean outbox",
+      "Tidak berubah: kelas queue sudah mendahulukan uang di queue outbox",
       "Uang selesai lebih cepat, karena pengumuman cepat habis dan kuota kosong lagi",
       "Uang ikut dijawab 429, dan umur uang tertua melewati 2 detik",
       "Uang menunggu sampai pengumuman selesai, lalu terkirim tanpa 429"
