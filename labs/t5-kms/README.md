@@ -59,7 +59,7 @@ Butuh Docker, Go, dan image OpenBao (diunduh sekali bila belum ada). PostgreSQL 
 
 | File | Isi |
 | --- | --- |
-| `output/arsip.txt` | A: dua partisi dilepas dan diekspor. B: arsip dengan satu data key per file, baris `arsip_partisi`, jangkar, arsip tidak ditimpa. C: tanpa KMS tidak terbaca (data key file lain, token tanpa hak `decrypt`, token tidak dikenal; dengan hak, isi sama dengan file asal). D: satu bit diubah di lima posisi file, file terpotong dan diperpanjang, periode lain, satu byte di data key terbungkus. E: tiga cara memalsukan checksum dan siapa yang melihatnya |
+| `output/arsip.txt` | A: dua partisi dilepas dan diekspor, KEK tidak exportable (export dan backup ditolak). B: arsip dengan satu data key per file, baris `arsip_partisi`, jangkar, arsip tidak ditimpa. C: tanpa KMS tidak terbaca (data key file lain, token tanpa hak `decrypt`, token tidak dikenal; dengan hak, isi sama dengan file asal dan file hasilnya berizin 0600), dan enam sel di luar diagonal pada matriks hak tiga token ditolak. D: satu bit diubah di lima posisi file, file terpotong dan diperpanjang, periode lain, satu byte di data key terbungkus. E: tiga cara memalsukan checksum dan siapa yang melihatnya |
 | `output/rotasi.txt` | B: `rotate`, data key versi 1 tetap terbuka, data key baru versi 2. C: `rewrap` dan hak `UPDATE` dua kolom. D: `min_decryption_version` naik dan turun. E: `trim` dan akibatnya. F: OpenBao dijeda lalu dilanjutkan, lalu restart. G: umur KEK |
 | `output/testing.txt` | `go vet` dan tes Go dengan OpenBao sungguhan |
 
