@@ -38,6 +38,8 @@ const sidik = (t: string): string => createHash("sha256").update(t).digest("hex"
 // Lapis pertahanan yang bisa dimatikan untuk uji mutasi tanpa kunci baris (TANPA_KUNCI=1) dan tanpa sidik jari (TANPA_SIDIK=1).
 const tanpaKunci = process.env.TANPA_KUNCI === "1";
 const tanpaSidik = process.env.TANPA_SIDIK === "1";
+// KUNCI_LITERAL (berkas kunci terpisah) tetap menyala di TANPA_KUNCI; TANPA_LITERAL=1 mematikannya untuk mengukur hanya tes turunan.
+const tanpaLiteral = process.env.TANPA_LITERAL === "1";
 
 const BERKAS = "situs/src/content/docs/tahap-5/rpo-rto-failover.mdx";
 const mdx = baca(BERKAS);
@@ -803,8 +805,8 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, dan se
   });
 });
 
-describe("tanpa kunci baris: kalimat prosa dikunci literal di berkas kunci terpisah, dengan jumlah kemunculannya", () => {
-  (tanpaKunci ? test.skip : test)("setiap kalimat di KUNCI_LITERAL ada persis sebanyak jumlahnya di badan, dan setiap kalimat prosa badan ada di daftar (tanpa pencocokan sebagian)", () => {
+describe("kalimat prosa dikunci literal di berkas kunci terpisah, dengan jumlah kemunculannya (tetap menyala di TANPA_KUNCI)", () => {
+  (tanpaLiteral ? test.skip : test)("setiap kalimat di KUNCI_LITERAL ada persis sebanyak jumlahnya di badan, dan setiap kalimat prosa badan ada di daftar (tanpa pencocokan sebagian)", () => {
     for (const [k, n] of KUNCI_LITERAL) expect(badan.split(k).length - 1, k.slice(0, 80)).toBe(n);
     const dalam = new Set(KUNCI_LITERAL.map(([k]) => k));
     const prosa = badan.split("\n").filter((b) => b.trim() !== "" && !/^(<|\||import |- \[ \]|#)/.test(b));
