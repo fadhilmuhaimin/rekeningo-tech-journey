@@ -95,7 +95,7 @@ Dengan traffic router, dokumentasi Argo Rollouts menulis bahwa pod stabil tetap 
 
 Halaman provider plugin Gateway API mencantumkan Traefik 3.7.0, Gateway API 1.5.1, dan plugin 0.13.0 sebagai kombinasi yang diuji. Lab memakai Traefik 3.7.13, Gateway API v1.6.1, dan plugin v0.17.0, dan kombinasi itu berjalan ([provider status plugin v0.17.0](https://github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi/blob/v0.17.0/docs/provider-status.md), dibuka 2026-11-04). Router lain Tidak dijalankan.
 
-**Analisis memutuskan, bukan orang.** Lab memakai satu AnalysisTemplate, yaitu definisi pengukuran, dengan penyedia web yang membaca JSON dari pod canary lewat Service canary. Pengukuran gagal bila total keputusan 10 atau lebih dan rasio tolak 10% atau lebih (Asumsi lab). `failureLimit` 0 berarti satu pengukuran gagal sudah menggagalkan seluruh analisis:
+**Analisis memutuskan, bukan orang.** Lab memakai satu AnalysisTemplate, yaitu definisi pengukuran, dengan penyedia web yang membaca JSON dari pod canary lewat Service canary. Pengukuran gagal bila jumlah keputusan paling sedikit 10 dan rasio tolak paling sedikit 10% (Asumsi lab). `failureLimit` 0 berarti satu pengukuran gagal sudah menggagalkan seluruh analisis:
 
 <Snippet file="labs/t5-rollout/manifes/kartu-gateway.yaml" lines="38:51" lang="yaml" title="Manifes lab: labs/t5-rollout/manifes/kartu-gateway.yaml, AnalysisTemplate" />
 

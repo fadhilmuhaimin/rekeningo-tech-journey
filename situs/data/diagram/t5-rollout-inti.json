@@ -1,9 +1,9 @@
 {
   "id": "t5-rollout-inti",
-  "judul": "Router memegang bobot canary, dan satu tabel memegang kill switch untuk semua pod",
+  "judul": "Canary lewat router, kill switch dari tabel",
   "sumber": {
     "jenis": "rekaman",
-    "teks": "Rekaman lab t5-rollout · gateway.txt bagian B, analisis.txt bagian C (31% adalah Ilustrasi), dan sakelar.txt bagian D (sakelar dari tabel, tiga pod)"
+    "teks": "Rekaman lab t5-rollout · gateway.txt, analisis.txt, sakelar.txt"
   },
   "baris": [
     {

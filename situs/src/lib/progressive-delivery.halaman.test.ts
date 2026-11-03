@@ -197,7 +197,7 @@ describe("rekaman gateway.txt dan analisis.txt: diturunkan dari berkas rekaman d
     expect(manifesGateway).toContain("canaryService: kartu-canary");
     expect(halaman).toContain("Rollout lab punya dua langkah: bobot 5, lalu jeda tanpa batas.");
     expect(halaman).toContain("Analisis latar dengan `startingStep: 1` mulai di langkah kedua, yaitu jeda, karena dokumentasi menghitung langkah dari 0:");
-    expect(halaman).toContain(`Pengukuran gagal bila total keputusan ${ambangC.total} atau lebih dan rasio tolak ${ambangC.persen}% atau lebih (Asumsi lab).`);
+    expect(halaman).toContain(`Pengukuran gagal bila jumlah keputusan paling sedikit ${ambangC.total} dan rasio tolak paling sedikit ${ambangC.persen}% (Asumsi lab).`);
     expect(halaman).toContain("`failureLimit` 0 berarti satu pengukuran gagal sudah menggagalkan seluruh analisis:");
   });
   test("plugin dan router: Traefik 3.7.13, Gateway API v1.6.1, plugin v0.17.0 dari kepala rekaman dan manifes; hanya satu router yang dijalankan", () => {
@@ -553,7 +553,8 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(d.baris[0]!.simpul[1]!.nada).toBe("warn");
     expect(d.baris[0]!.simpul[2]!.nada).toBe("good");
     expect(d.baris[1]!.simpul.map((s) => s.nada)).toEqual(["biasa", "good", "good"]);
-    expect(rantaiMentah.sumber.teks).toContain("31% adalah Ilustrasi");
+    expect(rantaiMentah.sumber.teks).toBe("Rekaman lab t5-rollout · gateway.txt, analisis.txt, sakelar.txt");
+    expect(d.baris[0]!.simpul[1]!.sub).toBe("versi baru, Ilustrasi dari flag lab");
     // simpul akhir terbaca benar tanpa sub (sub disembunyikan di HP)
     expect(d.baris.map((b) => b.simpul[b.simpul.length - 1]!.teks)).toEqual(["Rilis dibatalkan", "Semua menolak"]);
     expect(halaman).toContain("<Rantai data={intiDiagram} ringkas />");
