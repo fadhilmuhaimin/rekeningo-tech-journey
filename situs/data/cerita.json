@@ -4634,8 +4634,9 @@
       "lab": [
         "t5-service"
       ],
-      "ada": false,
-      "nomor": "5.18"
+      "ada": true,
+      "nomor": "5.18",
+      "menit": 11
     },
     {
       "id": "t5-mtls",
