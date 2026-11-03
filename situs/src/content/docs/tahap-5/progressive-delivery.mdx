@@ -77,7 +77,7 @@ Beban otorisasi kartu menentukan seberapa cepat satu langkah rilis bisa dinilai.
 
 Rollout lab punya dua langkah: bobot 5, lalu jeda tanpa batas. Analisis latar dengan `startingStep: 1` mulai di langkah kedua, yaitu jeda, karena dokumentasi menghitung langkah dari 0:
 
-<Snippet file="labs/t5-rollout/manifes/kartu-gateway.yaml" lines="68:83" lang="yaml" title="Rekaman lab: labs/t5-rollout/manifes/kartu-gateway.yaml, strategi canary" />
+<Snippet file="labs/t5-rollout/manifes/kartu-gateway.yaml" lines="68:83" lang="yaml" title="Manifes lab: labs/t5-rollout/manifes/kartu-gateway.yaml, strategi canary" />
 
 Naskah ADR 55 menulis empat langkah, 1%, 5%, 25%, dan 100%, dengan jeda manual sebelum 100%. Lab hanya merekam langkah 5% dan jeda tanpa batas. Langkah 1% dan 25% dan promosi manual Tidak dijalankan.
 
@@ -97,7 +97,7 @@ Halaman provider plugin Gateway API mencantumkan Traefik 3.7.0, Gateway API 1.5.
 
 **Analisis memutuskan, bukan orang.** Lab memakai satu AnalysisTemplate, yaitu definisi pengukuran, dengan penyedia web yang membaca JSON dari pod canary lewat Service canary. Pengukuran gagal bila total keputusan 10 atau lebih dan rasio tolak 10% atau lebih (Asumsi lab). `failureLimit` 0 berarti satu pengukuran gagal sudah menggagalkan seluruh analisis:
 
-<Snippet file="labs/t5-rollout/manifes/kartu-gateway.yaml" lines="38:51" lang="yaml" title="Rekaman lab: labs/t5-rollout/manifes/kartu-gateway.yaml, AnalysisTemplate" />
+<Snippet file="labs/t5-rollout/manifes/kartu-gateway.yaml" lines="38:51" lang="yaml" title="Manifes lab: labs/t5-rollout/manifes/kartu-gateway.yaml, AnalysisTemplate" />
 
 Rekaman bagian C memerankan versi baru yang salah dengan flag lab yang menolak 31% otorisasi. Angka 31% berasal dari naskah, dan kode versi baru yang salah tidak ada (Ilustrasi). Analisis Failed, Rollout menjadi Degraded, bobot kembali ke 100 dan 0, dan 100 dari 100 permintaan berikutnya dijawab versi lama:
 
@@ -238,7 +238,7 @@ Tabel kedua membandingkan tempat kill switch:
 | Cara kerja | Penanda boolean di memori tiap proses | Penyedia flag dibaca lewat OpenFeature SDK, dengan flagd sebagai mesin evaluasi | Satu baris `kartu_aktif` di primary, dibaca tiap pod dengan cache 5 detik (Asumsi) |
 | Kelebihan | Tanpa pembacaan dan tanpa cache | Satu API evaluasi flag dengan nilai default per pemanggilan (spesifikasi v0.9.0) | Satu tempat untuk semua pod, tanpa komponen baru, dan ditulis bersama audit |
 | Kekurangan | Tiap proses punya flag sendiri, dan hilang saat mulai ulang | Spesifikasi belum 1.0, dan flag aktif hanya satu | Pod lain tertinggal sampai cache habis (5,8 lolos), dan tabel yang tidak terbaca menolak semua otorisasi baru |
-| Biaya operasional | Tidak ada | Provider dan mesin evaluasi yang dijalankan dan dipantau | Satu tabel dan satu cache per pod, paling banyak satu pembacaan per 5 detik per pod (dibaca dari kode) |
+| Biaya operasional | Tidak ada | Provider dan mesin evaluasi yang dijalankan dan dipantau | Satu tabel dan satu cache per pod, paling banyak satu pembacaan per 5 detik per pod selama pembacaan berhasil (dibaca dari kode) |
 | Bukti | Rekaman lab `sakelar.txt` bagian D (flag di memori) | Tidak dijalankan: spesifikasi dan npm, dibuka 2026-11-04 | Rekaman lab `sakelar.txt` bagian D dan `testing.txt` bagian A |
 
 **Keputusan: opsi D untuk rilis dan opsi G untuk kill switch.** Tujuh aturan:
