@@ -443,6 +443,7 @@ def rekam_tanpa_router():
             catat(b)
         catat(f"Pod v1: {v1}, pod v2: {v2}; replika yang diminta {replika}, pod yang menjawab {v1 + v2}.")
         n = 200
+        tunggu_versi({"v1", "v2"})
         hit = hitung_versi(n)
         catat(f"{n} permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: v2 menjawab {hit.get('v2', 0)}, v1 menjawab {hit.get('v1', 0)}")
         catat(f"Bagian v2 terukur {100 * hit.get('v2', 0) / n:.1f}%; pod v2 dibagi semua pod yang menjawab = {100 * v2 / (v1 + v2):.1f}% (diminta 5%).")
@@ -468,6 +469,31 @@ def rekam_tanpa_router():
 def bobot_route(nama="kartu-route"):
     r = kcj("-n", _ns, "get", "httproute", nama)
     return {b["name"]: b.get("weight") for b in r["spec"]["rules"][0]["backendRefs"]}
+
+
+def tunggu_versi(versi, batas=60, path="/healthz"):
+    """Kirim permintaan sampai semua versi yang diharapkan pernah menjawab. Traefik mengambil bobot HTTPRoute dan endpoint Service
+    dengan jeda sesudah objeknya berubah, jadi hitungan yang dimulai terlalu cepat memuat permintaan yang masih memakai bobot lama
+    (satu run memberi 4 dari 200 ke versi baru, bukan 10)."""
+    lihat, t0 = set(), time.time()
+    while lihat != set(versi):
+        s, k, _ = http_(PORT_GATEWAY, "GET", path)
+        if s == 200:
+            lihat.add(k.get("x-instance", "?").split("-")[0])
+        if time.time() - t0 > batas:
+            gagal(f"menunggu versi {sorted(versi)} menjawab lewat Gateway: baru {sorted(lihat)} dalam {batas} detik")
+        time.sleep(0.05)
+
+
+def tunggu_hanya(versi, berturut=30, batas=60, path="/healthz"):
+    """Kirim permintaan sampai `berturut` permintaan beruntun semuanya dijawab versi itu (rollback sudah sampai ke Traefik)."""
+    n, t0 = 0, time.time()
+    while n < berturut:
+        s, k, _ = http_(PORT_GATEWAY, "GET", path)
+        n = n + 1 if s == 200 and k.get("x-instance", "?").split("-")[0] == versi else 0
+        if time.time() - t0 > batas:
+            gagal(f"menunggu {berturut} jawaban beruntun dari {versi} lewat Gateway: lewat {batas} detik")
+        time.sleep(0.05)
 
 
 def hitung_versi(jumlah, path="/healthz"):
@@ -510,6 +536,7 @@ def rekam_gateway():
     catat(f"HTTPRoute kartu-route, bobot sekarang: {json.dumps(b)}")
     harap(b, {"kartu-stable": 95, "kartu-canary": 5}, "bobot HTTPRoute")
     n = 200
+    tunggu_versi({"v1", "v2"})
     hit = hitung_versi(n)
     catat(f"{n} permintaan GET /healthz lewat Gateway (127.0.0.1, port Gateway): v2 menjawab {hit.get('v2', 0)}, v1 menjawab {hit.get('v1', 0)}")
     catat(f"Bagian v2 terukur: {100 * hit.get('v2', 0) / n:.1f}% (bobot 5, pod v2 hanya {v2} dari {v1 + v2})")
@@ -567,6 +594,7 @@ def rekam_analisis():
     pods = pod_milik("kartu")
     catat(f"Pod sesudah rollback: v1 {sum(1 for p in pods if versi_pod(p) == 'v1')}, v3 {sum(1 for p in pods if versi_pod(p) == 'v3')}")
     n = 100
+    tunggu_hanya("v1")
     hit = hitung_versi(n)
     catat(f"{n} permintaan sesudah rollback: v1 menjawab {hit.get('v1', 0)}, v3 menjawab {hit.get('v3', 0)}")
     harap(hit.get("v1", 0), n, "semua permintaan ke v1 sesudah rollback")
