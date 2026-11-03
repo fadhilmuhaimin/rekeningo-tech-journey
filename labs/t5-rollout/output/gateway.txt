@@ -1,0 +1,14 @@
+# Lab t5-rollout · bobot 5% lewat Gateway API dan hitungan permintaan
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · k3s v1.37.1+k3s1 · Argo Rollouts v1.10.1 · plugin Gateway API v0.17.0 · Traefik 3.7.13 · Gateway API v1.6.1 · k3d v5.9.0 · schema tahap5_rollout · api-t5 di cluster, pod ke PostgreSQL lab di host
+# Rekaman dari database bersih dan beban kerja baru: make -C labs/t5-rollout run.
+
+# --- B. Bobot 5% lewat Gateway API (plugin Argo Rollouts), versi baru yang baik ---
+# Rollout kartu (manifes/kartu-gateway.yaml): 3 replika, stableService dan canaryService, plugin Gateway API menulis bobot ke HTTPRoute.
+Rollout kartu versi v1: phase Healthy, 3 pod siap
+HTTPRoute kartu-route, bobot awal: {"kartu-stable": 100, "kartu-canary": 0}
+Rollout kartu sesudah VERSI diganti ke v2: phase Paused, currentStepIndex 1
+Pod v1: 3, pod v2: 1
+HTTPRoute kartu-route, bobot sekarang: {"kartu-stable": 95, "kartu-canary": 5}
+200 permintaan GET /healthz lewat Gateway (127.0.0.1, port Gateway): v2 menjawab 10, v1 menjawab 190
+Bagian v2 terukur: 5.0% (bobot 5, pod v2 hanya 1 dari 4)
+AnalysisRun rasio-tolak: phase Running (versi v2 tidak menolak otorisasi)

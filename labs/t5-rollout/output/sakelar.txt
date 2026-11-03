@@ -1,0 +1,56 @@
+# Lab t5-rollout · kill switch kartu di tiga pod: flag memori lawan sakelar dari tabel
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · k3s v1.37.1+k3s1 · Argo Rollouts v1.10.1 · plugin Gateway API v0.17.0 · Traefik 3.7.13 · Gateway API v1.6.1 · k3d v5.9.0 · schema tahap5_rollout · api-t5 di cluster, pod ke PostgreSQL lab di host
+# Rekaman dari database bersih dan beban kerja baru: make -C labs/t5-rollout run.
+
+# --- D1. Versi pertama: flag di memori, tiga pod (tanpa -sakelar-tabel) ---
+# Tiga pod otorisasi kartu dari satu image, satu database. Kill switch dimatikan lewat pod 1.
+otorisasi Rp1.000 di pod 1 sebelum kill switch: HTTP 200, setuju
+otorisasi Rp1.000 di pod 2 sebelum kill switch: HTTP 200, setuju
+otorisasi Rp1.000 di pod 3 sebelum kill switch: HTTP 200, setuju
+POST /bo/flag/kartu {"aktif": false} di pod 1: HTTP 200, {"aktif":false}
+otorisasi Rp1.000 di pod 1 sesudah kill switch dimatikan: HTTP 200, tolak (kill-switch)
+otorisasi Rp1.000 di pod 2 sesudah kill switch dimatikan: HTTP 200, setuju
+otorisasi Rp1.000 di pod 3 sesudah kill switch dimatikan: HTTP 200, setuju
+# Yang menolak hanya pod yang diubah; pod 2 dan pod 3 tetap menyetujui otorisasi baru.
+otorisasi Rp1.000 di pod 1 sesudah dimulai ulang: HTTP 200, setuju
+# Pod yang dimulai ulang kembali menyetujui: flag di memori hilang bersama prosesnya, tanpa ada yang menyalakannya.
+Baris otorisasi_kartu: 6
+
+# --- D2. Sakelar dari tabel (-sakelar-tabel, cache 5 detik): semua pod berhenti menyetujui dalam jendela cache ---
+# Baris sakelar kartu_aktif = t (t = menyala), dibaca tiap pod dengan cache 5 detik (Asumsi).
+otorisasi Rp1.000 di pod 1 (cache terisi): HTTP 200, setuju
+otorisasi Rp1.000 di pod 2 (cache terisi): HTTP 200, setuju
+otorisasi Rp1.000 di pod 3 (cache terisi): HTTP 200, setuju
+POST /bo/flag/kartu {"aktif": false} di pod 1: HTTP 200, {"aktif":false}
+otorisasi Rp1.000 di pod 1 segera sesudahnya: HTTP 200, tolak (kill-switch)
+otorisasi Rp1.000 di pod 2 segera sesudahnya: HTTP 200, setuju
+otorisasi Rp1.000 di pod 3 segera sesudahnya: HTTP 200, setuju
+# Dalam jendela cache pod 2 dan pod 3 masih membaca nilai lama: sesudah sakelar dimatikan, otorisasi baru di sana tetap lolos sampai cache habis.
+Pod 2 dan pod 3 menolak (alasan kill-switch) paling lambat 5 detik sesudah sakelar dimatikan: ya (batas diperiksa, lama sebenarnya tidak direkam)
+otorisasi Rp1.000 di pod 1 sesudah jendela cache: HTTP 200, tolak (kill-switch)
+otorisasi Rp1.000 di pod 2 sesudah jendela cache: HTTP 200, tolak (kill-switch)
+otorisasi Rp1.000 di pod 3 sesudah jendela cache: HTTP 200, tolak (kill-switch)
+$ SELECT nama, nilai, diubah_oleh FROM sakelar
+ nama        | nilai | diubah_oleh
+-------------+-------+-------------
+ kartu_aktif | f     | 420
+(1 row)
+Baris otorisasi_kartu (hanya yang disetujui sebelum kill switch dan di jendela cache): 21
+POST /bo/flag/kartu {"aktif": true} di pod 2: HTTP 200, {"aktif":true}
+Semua pod menyetujui lagi paling lambat 5 detik sesudah sakelar dinyalakan lewat pod 2: ya (batas diperiksa)
+
+# --- D3. Sakelar tidak terbaca: tolak yang eksplisit (HTTP 200), bukan galat ---
+# Hak SELECT atas tabel sakelar dicabut dari role service pembayaran; pod tidak bisa membaca sakelar.
+otorisasi Rp1.000 di pod 1, sakelar tak terbaca: HTTP 200, tolak (sakelar-tak-terbaca)
+otorisasi Rp1.000 di pod 2, sakelar tak terbaca: HTTP 200, tolak (sakelar-tak-terbaca)
+otorisasi Rp1.000 di pod 3, sakelar tak terbaca: HTTP 200, tolak (sakelar-tak-terbaca)
+# Status 200 dengan keputusan tolak: penerbit tiruan membaca jawaban bukan-200 sebagai tidak ada jawaban dan menyetujui (rekaman t4-kartu, otorisasi.txt).
+Sesudah hak dikembalikan semua pod menyetujui lagi: ya
+
+# --- D4. Primary berhenti menjawab: sakelar tak terbaca dalam batas waktu, otorisasi baru ditolak ---
+# docker pause pada kontainer PostgreSQL lab: koneksi tidak mati, tetapi tidak ada yang menjawab. Cache habis lebih dulu.
+otorisasi Rp1.000 di pod 1, PostgreSQL berhenti: HTTP 200, tolak (sakelar-tak-terbaca)
+otorisasi Rp1.000 di pod 2, PostgreSQL berhenti: HTTP 200, tolak (sakelar-tak-terbaca)
+otorisasi Rp1.000 di pod 3, PostgreSQL berhenti: HTTP 200, tolak (sakelar-tak-terbaca)
+Jawaban tolak tiba kurang dari 2 detik (tenggat penerbit, Asumsi dari dokumentasi satu penerbit): ya (batas diperiksa)
+Sesudah PostgreSQL berjalan lagi semua pod menyetujui: ya

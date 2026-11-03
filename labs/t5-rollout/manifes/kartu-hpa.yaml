@@ -1,0 +1,78 @@
+# HPA atas metrik CPU dari metrics-server (bawaan k3s). Beban dikirim lewat Gateway; replika bertambah menurut metrik,
+# dan Deployment tidak menulis spec.replicas sesudah HPA membuatnya (HPA yang memegang jumlah replika).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kartu-hpa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kartu-hpa
+  template:
+    metadata:
+      labels:
+        app: kartu-hpa
+    spec:
+      containers:
+        - name: api
+          image: api-t5-rollout:v1
+          imagePullPolicy: Never
+          args: ["-addr", ":8080", "-lab", "-pool", "2", "-instance", "$(POD_NAME)", "-penerbit-kunci", "kunci-penerbit-lab", "-lab-tolak-persen", "100"]
+          env:
+            - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+            - {name: DATABASE_URL, value: "${DATABASE_URL}"}
+            - {name: TZ, value: Asia/Jakarta}
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 2
+          resources:
+            requests: {cpu: 20m, memory: 16Mi}
+            limits: {memory: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kartu-hpa
+spec:
+  selector:
+    app: kartu-hpa
+  ports:
+    - {port: 8080, targetPort: 8080}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kartu-hpa-route
+spec:
+  parentRefs:
+    - {name: traefik-gateway, namespace: kube-system}
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: kartu-hpa, port: 8080}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: kartu-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: kartu-hpa
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 50}
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - {type: Pods, value: 4, periodSeconds: 15}
