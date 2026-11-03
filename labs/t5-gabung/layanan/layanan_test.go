@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -124,5 +125,40 @@ func TestPermintaanTanpaIDDitolak(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("harus 400, dapat %d", resp.StatusCode)
+	}
+}
+
+// Galat di proses perangkat berhenti di topik hasil: permintaan tidak diteruskan ke riwayat, jadi hitungan panggilannya empat
+// (masuk kirim, perangkat ambil, perangkat kirim ke hasil, masuk ambil), bukan enam.
+func TestGalatPerangkatBerhentiDiHasilDenganEmpatPanggilan(t *testing.T) {
+	p := nyalakan(t, false, 2*time.Second)
+	perm := skor.Permintaan{ID: "galat-perangkat", AkunID: 1, PerangkatID: skor.JumlahPerangkat, NominalRupiah: 1}
+	kode, j := panggil(t, p.masuk.URL, perm)
+	if kode != http.StatusUnprocessableEntity || !strings.HasPrefix(j.Galat, "perangkat:") || j.Panggilan != 4 {
+		t.Errorf("dapat %d %+v, harus 422, galat berawalan \"perangkat:\", dan 4 panggilan", kode, j)
+	}
+	if m := p.broker.Metrik(); m.Tertinggal != 0 {
+		t.Errorf("pesan tertinggal di queue: %+v", m)
+	}
+}
+
+// Id yang sama tidak boleh diproses dua kali sekaligus: yang kedua dijawab 409 selagi yang pertama menunggu hasil.
+func TestIDKembarYangSedangDiprosesDijawab409(t *testing.T) {
+	p := nyalakan(t, true, 800*time.Millisecond) // tanpa proses riwayat: permintaan pertama menunggu sampai habis waktu
+	perm := skor.Transaksi(5)
+	pertama := make(chan int, 1)
+	go func() {
+		k, _ := panggil(t, p.masuk.URL, perm)
+		pertama <- k
+	}()
+	deadline := time.Now().Add(5 * time.Second)
+	for p.broker.Metrik().Tertinggal == 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond) // tunggu sampai pesan pertama ada di queue riwayat
+	}
+	if k, j := panggil(t, p.masuk.URL, perm); k != http.StatusConflict {
+		t.Errorf("id kembar dijawab %d %+v, harus 409", k, j)
+	}
+	if k := <-pertama; k != http.StatusGatewayTimeout {
+		t.Errorf("permintaan pertama dijawab %d, harus 504", k)
 	}
 }

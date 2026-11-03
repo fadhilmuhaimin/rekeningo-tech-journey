@@ -164,6 +164,12 @@ func persentil(terurut []int64, p float64) int64 {
 	return terurut[idx]
 }
 
+// ringkasLatensi mengurutkan latensi (mikrodetik) lalu mengembalikan p50, p95 (nearest-rank), dan nilai terbesar.
+func ringkasLatensi(lat []int64) (p50, p95, maks int64) {
+	sort.Slice(lat, func(a, b int) bool { return lat[a] < lat[b] })
+	return persentil(lat, 0.50), persentil(lat, 0.95), lat[len(lat)-1]
+}
+
 // kirimUlangDial mengirim POST dan mengulang hanya bila sambungan gagal dibuat (misalnya "can't assign requested address"
 // saat port sementara host habis oleh TIME_WAIT dari proses lain). Permintaan belum terkirim pada kegagalan itu, jadi
 // mengulang tidak menggandakan transaksi. Kegagalan sesudah sambungan jadi tidak diulang.
@@ -233,7 +239,6 @@ func jalankanBeban(args []string) error {
 			r.Lebih++
 		}
 	}
-	sort.Slice(lat, func(a, b int) bool { return lat[a] < lat[b] })
-	r.P50us, r.P95us, r.Maksus = persentil(lat, 0.50), persentil(lat, 0.95), lat[len(lat)-1]
+	r.P50us, r.P95us, r.Maksus = ringkasLatensi(lat)
 	return json.NewEncoder(os.Stdout).Encode(r)
 }

@@ -135,3 +135,10 @@ func TestRingkasRiwayatMenghitungDariBaris(t *testing.T) {
 		t.Errorf("akun tanpa baris harus kosong, dapat %+v", f)
 	}
 }
+
+// Ukuran data ini ditulis apa adanya di rekaman panggilan.txt bagian A (run.py): bila berubah, teks rekaman ikut diubah.
+func TestUkuranDataSamaDenganTeksRekaman(t *testing.T) {
+	if JumlahAkun != 2000 || JumlahPerangkat != 1500 || BarisRiwayatPerAkun != 60 {
+		t.Errorf("dapat %d akun, %d perangkat, %d baris riwayat per akun; teks run.py menulis 2000, 1500, dan 60", JumlahAkun, JumlahPerangkat, BarisRiwayatPerAkun)
+	}
+}

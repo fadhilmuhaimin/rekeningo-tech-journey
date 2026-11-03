@@ -12,16 +12,22 @@ $ go test -v -count=1 ./...
 --- PASS: TestAmbilKosongBukanPanggilanBerisi
 --- PASS: TestJedaBuatanMenundaPublikasiDanAmbil
 --- PASS: TestAturMengosongkanHitunganDanMenolakNilaiTakSah
+--- PASS: TestAturLewatHTTPMenerapkanJeda
 --- PASS: TestTopikPenuhDijawab503
 PASS
 ok    lab/t5gabung/antrean
 --- PASS: TestPersentilNearestRank
+--- PASS: TestKirimUlangDialTidakMengulangSesudahSambunganJadi
+--- PASS: TestKirimUlangDialMengulangSambunganYangGagalDibuat
+--- PASS: TestRingkasLatensiMelaporkanP50P95DanMaks
 PASS
 ok    lab/t5gabung/cmd/gabung
 --- PASS: TestTigaProsesSamaDenganSatuProsesDanEnamPanggilan
 --- PASS: TestProsesRiwayatMatiMembuatPermintaanHabisWaktuDanPesanTertinggal
 --- PASS: TestIDDiLuarDataDijawab422DiKeduaVersi
 --- PASS: TestPermintaanTanpaIDDitolak
+--- PASS: TestGalatPerangkatBerhentiDiHasilDenganEmpatPanggilan
+--- PASS: TestIDKembarYangSedangDiprosesDijawab409
 PASS
 ok    lab/t5gabung/layanan
 --- PASS: TestHitungAturanSatuPerSatu
@@ -30,6 +36,7 @@ ok    lab/t5gabung/layanan
 --- PASS: TestDataDeterministik
 --- PASS: TestIDDiLuarDataDitolak
 --- PASS: TestRingkasRiwayatMenghitungDariBaris
+--- PASS: TestUkuranDataSamaDenganTeksRekaman
 PASS
 ok    lab/t5gabung/skor
 # exit status 0

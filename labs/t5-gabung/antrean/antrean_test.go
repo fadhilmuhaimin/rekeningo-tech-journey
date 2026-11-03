@@ -98,6 +98,26 @@ func TestAturMengosongkanHitunganDanMenolakNilaiTakSah(t *testing.T) {
 	}
 }
 
+// Jeda lewat POST /atur (jalur yang dipakai run.py), bukan lewat AturJeda langsung: nilai sah harus sampai ke jeda per panggilan.
+func TestAturLewatHTTPMenerapkanJeda(t *testing.T) {
+	_, k := pasang(t)
+	resp, err := http.Post(k.URL+"/atur?hop_ms=30", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("atur dijawab %d, harus 204", resp.StatusCode)
+	}
+	t0 := time.Now()
+	if err := k.Publikasi(context.Background(), "a", []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	if d := time.Since(t0); d < 30*time.Millisecond {
+		t.Errorf("publikasi %v sesudah atur hop_ms=30, harus paling cepat 30 ms", d)
+	}
+}
+
 func TestTopikPenuhDijawab503(t *testing.T) {
 	_, k := pasang(t)
 	ctx := context.Background()
@@ -106,7 +126,10 @@ func TestTopikPenuhDijawab503(t *testing.T) {
 			t.Fatalf("pesan %d: %v", i, err)
 		}
 	}
-	err := k.Publikasi(ctx, "p", []byte("x"))
+	// Batas waktu pada pesan terakhir: broker tanpa batas kapasitas memblokir pengirim, dan tes harus gagal dengan pesan, bukan menggantung.
+	ctxPenuh, batal := context.WithTimeout(ctx, 3*time.Second)
+	defer batal()
+	err := k.Publikasi(ctxPenuh, "p", []byte("x"))
 	if err == nil || !strings.Contains(err.Error(), "503") {
 		t.Fatalf("harus 503 saat penuh, dapat %v", err)
 	}
