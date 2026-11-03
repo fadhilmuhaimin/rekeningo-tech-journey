@@ -4768,8 +4768,9 @@
       "lab": [
         "t5-rollout"
       ],
-      "ada": false,
-      "nomor": "5.23"
+      "ada": true,
+      "nomor": "5.23",
+      "menit": 20
     },
     {
       "id": "t5-m50",
