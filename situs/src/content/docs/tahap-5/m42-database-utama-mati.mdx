@@ -37,16 +37,16 @@ Webhook adalah kabar dari gateway ke Rekeningo bahwa top-up sudah dibayar ([[t4-
 
 `DalamTx` mengembalikan hasil sesudah `tx.Commit()` selesai. `webhookPembayaran` menulis 200 hanya bila `TerimaWebhook` tidak mengembalikan galat (Tidak dijalankan: dibaca dari kode). Bila kedua top-up sudah ter-commit di primary, gateway sudah menerima 200 untuk keduanya.
 
-Gateway tiruan di Tahap 4 mengirim satu kali untuk jawaban 2xx (`retry.txt` bagian A, di [[t4-webhook]]). Kiriman yang dijawab sukses tidak meninggalkan galat di sisi pengirimnya, jadi tidak ada ulangan yang menutup kehilangan ini. Meminta kirim ulang butuh daftar order yang hilang, dan daftar itu belum ada.
+Gateway tiruan di Tahap 4 mengirim satu kali untuk jawaban 2xx (`retry.txt` bagian A, di [[t4-webhook]]). Kiriman yang dijawab sukses tidak meninggalkan galat di sisi pengirimnya, jadi tidak ada ulangan yang menutup kehilangan ini. Meminta kirim ulang butuh daftar order yang hilang, dan daftar itu datang dari rekonsiliasi, bukan dari kabar gateway.
 
-Backup harian berjendela sampai 24 jam, sedangkan PRD v5 menulis RPO nol ([[t5-prd]]). Memulihkan dari backup mengembalikan data ke jam pengambilannya, jadi transaksi sesudah jam itu hilang juga.
+Backup harian berjendela sampai 24 jam, sedangkan PRD v5 menulis RPO nol, yaitu tidak ada transaksi yang sudah dijawab sukses boleh hilang ([[t5-prd]]). Memulihkan dari backup mengembalikan data ke jam pengambilannya, jadi transaksi sesudah jam itu hilang juga.
 
 <details class="question">
-<summary>Tebak dulu: handler webhook membalas 200 sebelum atau sesudah COMMIT?</summary>
+<summary>Tebak dulu: kedua top-up sudah dijawab 200 sesudah COMMIT di primary. Apakah keduanya pasti ada di replica yang dipromosikan?</summary>
 
-Sesudah COMMIT. `webhookPembayaran` menulis 200 hanya bila `TerimaWebhook` tidak mengembalikan galat, dan `TerimaWebhook` memanggil `webhookAman`, yang mengembalikan hasil sesudah `DalamTx` selesai (kode lab, Tidak dijalankan).
+Tidak pasti. Jawaban 200 terkirim sesudah data tertulis di primary. Yang belum terjamin adalah apakah replica sudah menyalinnya.
 
-Jawaban 200 terkirim sesudah data tertulis di primary. Yang belum terjamin adalah apakah replica sudah menyalinnya.
+Blok berikutnya memuat dasarnya dan rekamannya.
 
 </details>
 
@@ -88,13 +88,13 @@ Primary yang restart di cerita tidak direkam. Lab tidak menguji apakah jurnal ya
 
 <Snippet file="labs/t5-replika/output/promosi.txt" lines="99:117" title="Rekaman lab: labs/t5-replika/output/promosi.txt, bagian B (standby sinkron)" />
 
-Pembayaran keempat tidak dijawab dalam 3 detik, karena COMMIT berhenti di `SyncRep`. Client pergi, penantian dibatalkan, dan primary lama mencatat bahwa transaksinya sudah ter-commit lokal dan mungkin belum direplikasi. Standby sinkron yang dipromosikan punya ketiga jurnal yang dijawab 201. Primary lama punya empat jurnal bayar dan node baru tiga: jurnal keempat tidak pernah dijawab 201 ke client.
+Pembayaran keempat tidak dijawab dalam 3 detik, karena COMMIT berhenti di `SyncRep`, nilai `wait_event` di `pg_stat_activity` yang lab baca untuk mengenali COMMIT yang menunggu standby sinkron. Client pergi, penantian dibatalkan, dan primary lama mencatat bahwa transaksinya sudah ter-commit lokal dan mungkin belum direplikasi. Standby sinkron yang dipromosikan punya ketiga jurnal yang dijawab 201. Primary lama punya empat jurnal bayar dan node baru tiga: jurnal keempat tidak pernah dijawab 201 ke client.
 
 **Jaminan itu punya syarat.** Dokumentasi PostgreSQL 17 menulis bahwa commit menunggu standby bila `synchronous_standby_names` terisi dan `synchronous_commit` bernilai `on`, `remote_write`, atau `remote_apply`. Nilai `local` tidak menunggu replikasi, dan `off` tidak menunggu apa pun (sumber yang sama). Lab memakai nilai bawaan `on` dan satu kandidat sinkron. `ANY 1` dari dua kandidat tidak dijalankan.
 
 Untuk primary yang restart selagi commit menunggu, dokumentasi menulis bahwa sebagian transaksi bisa tampak ter-commit di primary tetapi tidak di standby. Jaminannya tetap: aplikasi tidak menerima konfirmasi commit sebelum WAL diterima semua standby sinkron ([PostgreSQL 17: replikasi sinkron](https://www.postgresql.org/docs/17/warm-standby.html#SYNCHRONOUS-REPLICATION), dibuka 2026-11-03, Tidak dijalankan). Jurnal keempat di lab sampai ke keadaan itu lewat pembatalan penantian, bukan restart.
 
-**Berapa pembayaran yang hilang di skala naskah.** Lab menghitung lima karena hanya lima pembayaran dijawab sesudah koneksi putus. Naskah menghitung jumlah itu dari jeda dan laju puncak. Masukannya dari PRD v5 ([[t5-prd]]):
+**Berapa pembayaran yang hilang di skala naskah.** Lab menghitung lima karena hanya lima pembayaran dijawab sesudah koneksi putus. Naskah menghitung jumlah itu dari jeda replica 1 detik (Asumsi) dan laju puncak. Masukan lajunya dari PRD v5 ([[t5-prd]]):
 
 - 200.000 user aktif, dan 3 transaksi uang per user aktif per hari (registry menulis 2).
 - 86.400 detik per hari dan faktor puncak 10.
@@ -118,7 +118,7 @@ Lab merekam batas jeda pada 100 pembayaran per detik: `replay_lag` tertinggi di 
 
 **Rekonsiliasi harian menemukan selisihnya.** Rekonsiliasi membandingkan laporan gateway dengan ledger ([[t4-rekonsiliasi]], ADR 35). Order yang ada di laporan tetapi tidak punya top-up `dibayar` di Rekeningo tercatat sebagai insiden `tidak_di_ledger` (rekaman Tahap 4: `labs/t4-webhook/output/rekon.txt`). Lab `t5-replika` tidak menjalankan top-up atau rekonsiliasi atas node baru (Tidak dijalankan), jadi dua top-up di cerita adalah bacaan dari halaman itu.
 
-**RPO nol tidak dipenuhi replica asinkron.** RPO adalah data terakhir yang boleh hilang, dan RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang ([[t5-prd]]). Di lab, replica asinkron kehilangan lima dari lima pembayaran sesudah koneksi putus. Standby sinkron menjaga tiga dari tiga jurnal yang dijawab 201, dengan syarat di atas.
+**Replica asinkron tidak menjamin RPO nol.** RPO adalah data terakhir yang boleh hilang, dan RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang ([[t5-prd]]). Di lab, replica asinkron kehilangan lima dari lima pembayaran sesudah koneksi putus. Standby sinkron menjaga tiga dari tiga jurnal yang dijawab 201, dengan syarat di atas.
 
 </Blok>
 
