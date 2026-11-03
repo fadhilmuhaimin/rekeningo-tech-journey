@@ -170,7 +170,7 @@
     },
     "tabel": {
       "caption": "Pengumuman yang sama dengan dua jumlah partisi",
-      "kolom": { "consumer": "Consumer bekerja", "antrean": "Antrean tiap partisi", "laju": "Laju pengumuman", "selesai": "Selesai dalam", "kuota": "Kuota terpakai", "akibat": "Akibat" }
+      "kolom": { "consumer": "Consumer bekerja", "antrean": "Antrean tiap partisi", "laju": "Laju kirim", "selesai": "Selesai dalam", "kuota": "Kuota terpakai", "akibat": "Akibat" }
     },
     "kelompok": { "sebanyak": "{partisi} partisi, sebanyak consumer", "lab": "{partisi} partisi, seperti di lab" },
     "sel": {

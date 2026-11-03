@@ -1,0 +1,60 @@
+---
+/**
+ * Widget fan-out notifikasi Tahap 5 (W5-fanout, keputusan 1678). Pembaca menebak dulu berapa lama satu pengumuman ke 1.000.000
+ * perangkat selesai bila pengirim ditambah tetapi partisi tetap enam, lalu mengubah jumlah pengirim atau jumlah perangkat.
+ *   <FanOut />      // 5.15
+ * Pembungkus ini memvalidasi data/widget/t5-fanout.json dengan Zod saat build (island tidak memuat Zod) dan memuat tabel lama
+ * selesai menurut pengirim, perangkat, dan partisi beserta rekaman dan batasnya di <noscript>. Island dirender saat build
+ * (client:visible); tanpa JavaScript island disembunyikan oleh CSS (`@media (scripting: none)`). Satu widget per blok Coba.
+ */
+import FanOutIsland from "../widgets/fan-out/FanOut";
+import { DataFanOut } from "../widgets/fan-out/skema";
+import { hitung, isi, jawabanTebak, namaKelompok, selTeks } from "../widgets/fan-out/logika";
+import mentah from "../../data/widget/t5-fanout.json";
+
+const data = DataFanOut.parse(mentah);
+const L = data.label;
+const berkas = (a: { berkas: string; bagian: string }) => isi(L.acuanBerkas, { berkas: a.berkas, bagian: a.bagian });
+const kondisi = (a: (typeof data.acuan)[number]) =>
+  [
+    a.penerima ? `${L.penerimaJudul} ${data.penerima.find((x) => x.id === a.penerima)!.label}` : null,
+    a.pengirim ? `${L.pengirim.label} ${data.pengirim.find((x) => x.id === a.pengirim)!.label}` : null,
+    a.kuota ? L.noscriptKuota : null,
+  ].filter(Boolean).join(", ") || L.noscriptSemua;
+---
+<FanOutIsland client:visible data={data} />
+<noscript>
+  <p>{L.tanpaJs}</p>
+  <p>{data.sumber.teks}</p>
+  <p>{data.tebak.q} {data.tebak.pilihan[data.tebak.jawaban]}. {jawabanTebak(data, data.tebak.jawaban)}</p>
+  <table class="tm-tabel">
+    <caption>{L.noscriptCaption}</caption>
+    <thead>
+      <tr><th>{L.noscriptPengirim}</th>{data.penerima.map((n) => <th>{n.label}</th>)}</tr>
+    </thead>
+    <tbody>
+      {data.pengirim.map((p) => (
+        <tr>
+          <th scope="row">{p.label}</th>
+          {data.penerima.map((n) => {
+            const a = hitung(data, n, p, "sebanyak");
+            const b = hitung(data, n, p, "lab");
+            return <td>{namaKelompok(data, a)}: {selTeks(data, a, "selesai")}; {namaKelompok(data, b)}: {selTeks(data, b, "selesai")}</td>;
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <p>{L.acuanJudul}</p>
+  <ul>
+    {data.acuan.map((a) => <li>{L.acuanJenis[a.jenis]} ({kondisi(a)}): {a.teks} {berkas(a)}</li>)}
+  </ul>
+  <p>{L.uangJudul}</p>
+  <ul>
+    {data.uang.map((u) => <li>{L.acuanJenis.rekaman}: {u.teks} {berkas(u)}</li>)}
+  </ul>
+  <p>{L.batasJudul}</p>
+  <ul>
+    {data.batas.map((b) => <li>{L.dasar[b.dasar]}: {b.teks}</li>)}
+  </ul>
+</noscript>

@@ -1593,3 +1593,33 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .lg-batas { margin: 0.6rem 0 0; }
 .sl-markdown-content .lg-batas summary { cursor: pointer; }
 @media (scripting: none) { .sl-markdown-content .lg { display: none; } }
+
+/* Simulasi fan-out notifikasi Tahap 5 (W5-fanout): memakai bb-*, jt-tabel, dan bb-predict; hanya aturan di bawah yang baru. Tanpa
+   JavaScript tebakan dan penggeser tidak berfungsi: widget disembunyikan, dan pembungkus memuat tabelnya di <noscript>. Tabel satu
+   kelompok baris per jumlah partisi (nama di atas, lalu enam baris label dan nilai) supaya "6.742 permintaan per detik di atas
+   kuota dijawab 429" muat di 320 px. Batang consumer dan kuota hanya hiasan (aria-hidden): angkanya ada di teks sel. */
+.sl-markdown-content .fo-ubah { margin: 0.4rem 0; }
+.sl-markdown-content .fo-judul { margin: 0.8rem 0 0.3rem; }
+.sl-markdown-content .fo-kirim { margin: 0.4rem 0 0.2rem; }
+.sl-markdown-content .fo-kirim label { display: block; margin-bottom: 0.3rem; }
+.sl-markdown-content .fo-kirim input[type="range"] { display: block; width: 100%; min-height: 1.75rem; margin: 0; accent-color: var(--aksen); }
+.sl-markdown-content .fo-kirim input[type="range"]:focus-visible { outline: 2px solid var(--aksen); outline-offset: 2px; }
+.sl-markdown-content .fo-petunjuk { margin: 0.2rem 0 0; font-size: 0.85em; }
+.sl-markdown-content .fo-penerima { margin: 0.5rem 0 0.2rem; }
+.sl-markdown-content .fo-hasil { margin-top: 0.4rem; }
+.sl-markdown-content .fo-tabel { table-layout: fixed; }
+.sl-markdown-content .fo-tabel caption { caption-side: top; text-align: left; padding: 0.2rem 0.5rem; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .fo-tabel col:first-child { width: 36%; }
+.sl-markdown-content .fo-tabel :is(th, td) { padding: 0.3rem 0.35rem; overflow-wrap: anywhere; vertical-align: top; text-align: left; }
+.sl-markdown-content .fo-tabel th[scope="row"] { font-weight: 600; }
+.sl-markdown-content .fo-tabel th.fo-nama { text-align: left; border-top: 2px solid var(--garis-2); padding-top: 0.5rem; }
+.sl-markdown-content .fo-sel.is-cukup { background: var(--k-good-fill); color: var(--k-good-ink); }
+.sl-markdown-content :is(.fo-sel.is-partisi, .fo-sel.is-kuota) { background: var(--k-warn-fill); color: var(--k-warn-ink); }
+.sl-markdown-content .fo-batang { display: block; height: 0.5rem; margin-top: 0.3rem; border: 1px solid currentColor; border-radius: 2px; }
+.sl-markdown-content .fo-isi { display: block; height: 100%; background: currentColor; }
+.sl-markdown-content .fo-daftar { margin: 0.2rem 0 0.4rem; padding-left: 1.2rem; }
+.sl-markdown-content .fo-daftar li { margin: 0.35rem 0; overflow-wrap: anywhere; }
+.sl-markdown-content .fo-berkas { display: block; font-size: 0.85em; }
+.sl-markdown-content .fo-batas { margin: 0.6rem 0 0; }
+.sl-markdown-content .fo-batas summary { cursor: pointer; }
+@media (scripting: none) { .sl-markdown-content .fo { display: none; } }

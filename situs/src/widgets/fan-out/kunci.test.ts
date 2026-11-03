@@ -66,7 +66,7 @@ describe("kunci: kalimat dan sel tabel", () => {
     expect(d.tebak.alasan).toBe("Satu partisi dibaca satu consumer dalam satu grup, jadi 36 dari 42 consumer tidak punya yang dibaca. Enam consumer dengan 4 pengirim berarti 24 pengirim: 1.000.000 × 0,3 ÷ 24 = 12.500 detik, sekitar 3,5 jam.");
   });
   it("label: kolom, kelompok, caption, dan petunjuk penggeser", () => {
-    expect(d.label.tabel.kolom).toEqual({ consumer: "Consumer bekerja", antrean: "Antrean tiap partisi", laju: "Laju pengumuman", selesai: "Selesai dalam", kuota: "Kuota terpakai", akibat: "Akibat" });
+    expect(d.label.tabel.kolom).toEqual({ consumer: "Consumer bekerja", antrean: "Antrean tiap partisi", laju: "Laju kirim", selesai: "Selesai dalam", kuota: "Kuota terpakai", akibat: "Akibat" });
     expect(d.label.kelompok).toEqual({ sebanyak: "{partisi} partisi, sebanyak consumer", lab: "{partisi} partisi, seperti di lab" });
     expect(d.label.tabel.caption).toBe("Pengumuman yang sama dengan dua jumlah partisi");
     expect(d.label.pengirim.petunjuk).toBe("Tiap consumer memegang 4 pengirim; 12 pengirim sama dengan tiga consumer di lab. Pada 5.000 pengirim, 1.000.000 perangkat selesai dalam satu menit bila kuota tidak membatasi.");
