@@ -32,6 +32,9 @@ const baca = (rel: string): string => {
   return fs.readFileSync(path.join(akar, rel), "utf8");
 };
 const sidik = (t: string): string => createHash("sha256").update(t).digest("hex").slice(0, 16);
+// Lapis pertahanan yang bisa dimatikan untuk uji mutasi tanpa kunci baris (TANPA_KUNCI=1) dan tanpa sidik jari (TANPA_SIDIK=1).
+const tanpaKunci = process.env.TANPA_KUNCI === "1";
+const tanpaSidik = process.env.TANPA_SIDIK === "1";
 
 const BERKAS = "situs/src/content/docs/tahap-5/m42-database-utama-mati.mdx";
 const mdx = baca(BERKAS);
@@ -536,7 +539,6 @@ describe("diagram Rantai: nilai simpul diturunkan dari rekaman", () => {
     expect(diagram.id).toBe("t5-m42-promosi");
   });
   test("diagram dikunci dengan sidik jari dan tampil dengan Rantai ringkas di blok Yang sebenarnya, tepat satu kali, sebelum kalimat Kondisi rekaman", () => {
-    expect(sidik(JSON.stringify(diagramMentah))).toBe(SIDIK.diagram);
     expect(badan.match(/<Rantai data=\{promosi\} ringkas \/>/g)).toHaveLength(1);
     const blok = daftarBlok(badan).find((x) => x.nama === "Yang sebenarnya")!;
     expect(blok).toBeDefined();
@@ -619,9 +621,6 @@ describe("skenario alur t5-m42.json: valid, nilai dari rekaman, tebakan, dan var
     for (const x of v) expect(x.kirim + x.jelas + x.judul).not.toMatch(/\blima\b|10204|156000|150\.000|Nol dari/);
     expect(skenario.judul).toBe("Replica asinkron yang dipromosikan tidak punya lima pembayaran; standby sinkron menahan jawabannya");
   });
-  test("skenario dikunci dengan sidik jari (setiap nilai string)", () => {
-    expect(sidik(skenarioMentah)).toBe(SIDIK.skenario);
-  });
   test("tanpa JavaScript: noscript memuat hasil jalur utama dan varian dengan angka yang sama dengan rekaman; tombol tanpa fungsi tidak ditampilkan", () => {
     const m = cocok(badan, /<noscript>\n([\s\S]+?)<\/noscript>/);
     expect(m[1]).toContain("Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia.");
@@ -637,6 +636,21 @@ describe("skenario alur t5-m42.json: valid, nilai dari rekaman, tebakan, dan var
     const berkas = [...(terlacak ?? [])].filter((f) => f.startsWith("labs/t5-replika/") || f.startsWith("labs/api-t5/"));
     expect(berkas.length).toBeGreaterThan(50);
     expect(berkas.filter((f) => /\.dart$|pubspec\.yaml$/.test(f))).toEqual([]);
+  });
+});
+
+// ---- sidik jari: lapis terakhir, dimatikan pada putaran mutasi tanpa sidik ---------------------------------------------------
+describe("sidik jari elemen non-prosa (menandai bahwa sesuatu berubah, bukan bahwa ia benar)", () => {
+  (tanpaSidik ? test.skip : test)("frontmatter, diagram, skenario, lima baris riset, dan isi enam Snippet sama dengan nilai yang dikunci", () => {
+    expect(sidik(frontmatter)).toBe(SIDIK.frontmatter);
+    expect(sidik(JSON.stringify(diagramMentah))).toBe(SIDIK.diagram);
+    expect(sidik(skenarioMentah)).toBe(SIDIK.skenario);
+    expect(IDS.map((id) => sidik(barisRiset(id)))).toEqual(SIDIK.riset);
+    const isi = tag.map((t, i) => {
+      const [a, b] = lines[i]!.split(":").map(Number);
+      return sidik(baca(berkasSnippet[i]!).split("\n").slice(a! - 1, b).join("\n"));
+    });
+    expect(isi).toEqual(SIDIK.snippet);
   });
 });
 
@@ -675,13 +689,12 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, dan se
     expect(badan.split("\n").filter((b) => /^\d+\. /.test(b))).toEqual([]);
     expect(badan.split("\n").filter((b) => /^- /.test(b))).toHaveLength(7);
   });
-  test("setiap baris badan terkunci utuh: tidak ada baris di luar daftar, tidak ada entri yang hilang, urutannya sama", () => {
+  (tanpaKunci ? test.skip : test)("setiap baris badan terkunci utuh: tidak ada baris di luar daftar, tidak ada entri yang hilang, urutannya sama", () => {
     const baris = badan.split("\n").filter((b) => b.trim() !== "");
     expect(baris).toEqual(KALIMAT_TERKUNCI);
   });
   test("front matter dikunci: title dan description memuat minggu 4, primary restart, replica asinkron, node baru, standby sinkron; sidik frontmatter", () => {
     expect(frontmatter).toContain("description: Minggu 4. Primary restart, replica asinkron dipromosikan, dan pembayaran yang sudah dijawab 201 tidak ada di replica itu. Standby sinkron menahan jawaban sampai ia menyimpan commit.");
-    expect(sidik(frontmatter)).toBe(SIDIK.frontmatter);
   });
   test("jumlah elemen: lima Blok, satu Rantai, enam Snippet, satu WidgetLama, satu SkripLama, satu noscript, satu tabel, satu details tebakan, tiga Cek diri, enam impor", () => {
     expect(badan.match(/<Blok /g)).toHaveLength(5);
@@ -786,9 +799,9 @@ describe("tanpa kunci baris: kalimat bermakna dikunci literal dan diturunkan dar
     expect({
       hanya: hitung(/\bhanya\b/gi), tidakAda: hitung(/tidak ada/gi), tidakPernah: hitung(/tidak pernah|belum pernah/gi), semua: hitung(/\bsemua\b/gi),
       setiap: hitung(/\bsetiap\b/gi), selalu: hitung(/\bselalu\b/gi), tiap: hitung(/\btiap\b/gi),
-    }).toEqual(SIDIK.kata);
+    }).toEqual(tanpaSidik ? expect.anything() : SIDIK.kata);
     expect(hitung(/\bselalu\b|\bsetiap\b/gi)).toBe(0);
-    expect([...badan.matchAll(/semua ([a-z`]+)/gi)].map((m) => m[0])).toEqual(SIDIK.semuaFrasa);
+    if (!tanpaSidik) expect([...badan.matchAll(/semua ([a-z`]+)/gi)].map((m) => m[0])).toEqual(SIDIK.semuaFrasa);
     // setiap 'tidak pernah' ada di kalimat yang rekaman atau kodenya menopang: jurnal keempat tidak pernah dijawab 201 (bagian B), pembayaran yang tidak pernah sampai (node baru)
     expect([...badan.matchAll(/[^.]*tidak pernah[^.]*\./gi)].map((m) => m[0].trim())).toEqual([
       "Pemeriksaan itu lolos di node baru, jadi ia tidak bisa menemukan pembayaran yang tidak pernah sampai.",
