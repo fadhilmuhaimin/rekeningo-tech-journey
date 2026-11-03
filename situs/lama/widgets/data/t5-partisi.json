@@ -1,0 +1,79 @@
+{
+ "id": "t5-partisi",
+ "title": "Posting 12 bulan, 10.000 baris per bulan (SQLite, Simulasi)",
+ "setup": "CREATE TABLE posting (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM g WHERE x < 120000)\nINSERT INTO posting SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-01-01', '+' || ((x - 1) / 10000) || ' months'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;",
+ "check": "SELECT name AS tabel_yang_tersisa FROM sqlite_master WHERE type = 'table' ORDER BY name",
+ "predict": {
+  "q": "Panel Before menyimpan 12 bulan di satu tabel, panel After di 12 tabel. Query bulan April menyebut posting di Before dan posting_04 di After. Berapa baris ada di tabel yang dipindai query itu?",
+  "options": [
+   "120.000 di kedua panel",
+   "120.000 di Before dan 10.000 di After",
+   "10.000 di kedua panel",
+   "10.000 di Before dan 120.000 di After"
+  ],
+  "answer": 1,
+  "explain": "Before: SCAN posting memindai tabel berisi 120.000 baris, karena tidak ada index pada dibuat. After: SCAN posting_04 memindai tabel berisi 10.000 baris. Di SQLite tiap bulan adalah tabel sendiri dan query menyebut namanya; di PostgreSQL planner memilih partisi dari batas dibuat (rekaman pruning.txt bagian B). Centang 'Ubah satu hal' untuk query yang tidak menyebut bulan."
+ },
+ "panels": {
+  "before": {
+   "label": "Before: satu tabel posting",
+   "onError": "stop",
+   "steps": [
+    {
+     "sql": "EXPLAIN QUERY PLAN SELECT sum(jumlah) FROM posting WHERE dibuat >= '2026-04-01' AND dibuat < '2026-05-01'",
+     "note": "rencana query bulan April"
+    },
+    {
+     "sql": "SELECT count(*) AS baris_di_tabel_yang_dipindai FROM posting",
+     "note": "baris di tabel yang dipindai"
+    },
+    {
+     "sql": "DELETE FROM posting WHERE dibuat < '2026-02-01'",
+     "note": "buang Januari"
+    },
+    {
+     "sql": "SELECT count(*) AS baris_tersisa FROM posting",
+     "note": "sisa baris"
+    }
+   ]
+  },
+  "after": {
+   "label": "After: satu tabel per bulan",
+   "onError": "stop",
+   "setup": "CREATE TABLE posting_01 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM g WHERE x < 10000)\nINSERT INTO posting_01 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-01-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_02 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 10001 UNION ALL SELECT x + 1 FROM g WHERE x < 20000)\nINSERT INTO posting_02 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-02-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_03 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 20001 UNION ALL SELECT x + 1 FROM g WHERE x < 30000)\nINSERT INTO posting_03 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-03-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_04 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 30001 UNION ALL SELECT x + 1 FROM g WHERE x < 40000)\nINSERT INTO posting_04 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-04-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_05 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 40001 UNION ALL SELECT x + 1 FROM g WHERE x < 50000)\nINSERT INTO posting_05 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-05-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_06 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 50001 UNION ALL SELECT x + 1 FROM g WHERE x < 60000)\nINSERT INTO posting_06 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-06-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_07 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 60001 UNION ALL SELECT x + 1 FROM g WHERE x < 70000)\nINSERT INTO posting_07 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-07-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_08 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 70001 UNION ALL SELECT x + 1 FROM g WHERE x < 80000)\nINSERT INTO posting_08 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-08-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_09 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 80001 UNION ALL SELECT x + 1 FROM g WHERE x < 90000)\nINSERT INTO posting_09 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-09-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_10 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 90001 UNION ALL SELECT x + 1 FROM g WHERE x < 100000)\nINSERT INTO posting_10 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-10-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_11 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 100001 UNION ALL SELECT x + 1 FROM g WHERE x < 110000)\nINSERT INTO posting_11 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-11-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;\nCREATE TABLE posting_12 (id INTEGER NOT NULL, jurnal_id INTEGER NOT NULL, buku_id INTEGER NOT NULL, jumlah INTEGER NOT NULL, dibuat TEXT NOT NULL, PRIMARY KEY (id, dibuat));\nWITH RECURSIVE g(x) AS (SELECT 110001 UNION ALL SELECT x + 1 FROM g WHERE x < 120000)\nINSERT INTO posting_12 SELECT x, 1 + x / 2, 1 + (x % 1000), CASE WHEN x % 2 = 0 THEN -25000 ELSE 25000 END, datetime(date('2026-12-01'), '+' || (((x - 1) % 10000) * 200) || ' seconds') FROM g;",
+   "steps": [
+    {
+     "sql": "EXPLAIN QUERY PLAN SELECT sum(jumlah) FROM posting_04 WHERE dibuat >= '2026-04-01' AND dibuat < '2026-05-01'",
+     "note": "rencana query bulan April"
+    },
+    {
+     "sql": "SELECT count(*) AS baris_di_tabel_yang_dipindai FROM posting_04",
+     "note": "baris di tabel yang dipindai"
+    },
+    {
+     "sql": "DROP TABLE posting_01",
+     "note": "buang Januari"
+    },
+    {
+     "sql": "SELECT (SELECT count(*) FROM posting_02) + (SELECT count(*) FROM posting_03) + (SELECT count(*) FROM posting_04) + (SELECT count(*) FROM posting_05) + (SELECT count(*) FROM posting_06) + (SELECT count(*) FROM posting_07) + (SELECT count(*) FROM posting_08) + (SELECT count(*) FROM posting_09) + (SELECT count(*) FROM posting_10) + (SELECT count(*) FROM posting_11) + (SELECT count(*) FROM posting_12) AS baris_tersisa",
+     "note": "sisa baris"
+    }
+   ]
+  }
+ },
+ "toggles": [
+  {
+   "label": "query bulan April tidak menyebut tabel bulan",
+   "pairs": [
+    [
+     "FROM posting_04 WHERE",
+     "FROM (SELECT * FROM posting_01 UNION ALL SELECT * FROM posting_02 UNION ALL SELECT * FROM posting_03 UNION ALL SELECT * FROM posting_04 UNION ALL SELECT * FROM posting_05 UNION ALL SELECT * FROM posting_06 UNION ALL SELECT * FROM posting_07 UNION ALL SELECT * FROM posting_08 UNION ALL SELECT * FROM posting_09 UNION ALL SELECT * FROM posting_10 UNION ALL SELECT * FROM posting_11 UNION ALL SELECT * FROM posting_12) WHERE"
+    ],
+    [
+     "baris_di_tabel_yang_dipindai FROM posting_04",
+     "baris_di_tabel_yang_dipindai FROM (SELECT * FROM posting_01 UNION ALL SELECT * FROM posting_02 UNION ALL SELECT * FROM posting_03 UNION ALL SELECT * FROM posting_04 UNION ALL SELECT * FROM posting_05 UNION ALL SELECT * FROM posting_06 UNION ALL SELECT * FROM posting_07 UNION ALL SELECT * FROM posting_08 UNION ALL SELECT * FROM posting_09 UNION ALL SELECT * FROM posting_10 UNION ALL SELECT * FROM posting_11 UNION ALL SELECT * FROM posting_12)"
+    ]
+   ]
+  }
+ ]
+}

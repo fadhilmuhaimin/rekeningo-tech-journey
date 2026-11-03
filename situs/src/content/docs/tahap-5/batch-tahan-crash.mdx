@@ -1,0 +1,368 @@
+---
+title: "5.21 Batch harian tahan crash, saga + ADR 54"
+description: Rekeningo menahan jurnal angsuran kedua dengan referensi unik yang tidak kedaluwarsa, dan memajukan tiap angsuran lewat status per langkah. ADR 54 menimbang tiga cara lain, termasuk DBOS Go, dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import intiDiagram from "../../../../data/diagram/t5-batch-inti.json";
+import dataTebak from "../../../../data/widget/t5-batch-tebak.json";
+
+<p class="meta">Baca 19 menit · coba 4 menit · Prasyarat: [[t5-m48]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Referensi unik di jurnal menahan jurnal kedua tanpa batas umur, dan status per langkah membuat job lanjut dari tengah.
+
+<Rantai data={intiDiagram} ringkas />
+
+Referensi adalah kolom `referensi` di tabel `jurnal`: nilainya unik dan berbentuk `angsuran:<jadwal_id>:<ke>`. Berbeda dari Idempotency-Key, ia tidak punya umur. Angsuran adalah satu pembayaran dari satu jadwal cicilan, dan batch adalah satu putaran job yang menagih angsuran jatuh tempo ([[t5-m48]]).
+
+Versi benar memakai referensi itu, sedangkan versi pertama hanya memakai Idempotency-Key. Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `crash.txt` bagian B, versi benar dimatikan sesudah jurnal ditulis. Sesudah dijalankan lagi, jurnalnya tetap satu dan angsurannya `dicatat`. Bagian C menolak INSERT jurnal dengan referensi yang sama.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Apa beda referensi dengan Idempotency-Key, dan kenapa referensi tidak terkena batas 24 jam?
+2. Dua job cicilan sudah membaca daftar yang sama dan berebut kunci buku. Saldo cukup untuk satu angsuran. Apa hasil gabungannya?
+3. Di DBOS Go (pustaka yang mencatat tiap langkah alur di PostgreSQL), langkah jurnal tanpa referensi mati di dalam langkahnya sesudah ledger commit. Berapa jurnal akhirnya, dan apa sebabnya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: job yang kalah berebut kunci buku membaca referensi sesudah kunci itu didapat dan tidak menulis jurnal kedua, dan DBOS RunAsStep tanpa referensi menulis dua jurnal bila proses mati di dalam langkah jurnal.">
+
+Tebak dulu hasil dua job yang berjalan serentak. Lalu pilih satu kejadian di widget perbandingan dan lihat apa yang terjadi di tabel langkah buatan dan di DBOS Go. Di DBOS Go, `RunAsStep` menjalankan satu langkah alur, dan `RunAsTransaction` menjalankannya di dalam satu transaction database.
+
+Catatan di widget menyebut file rekaman dan bagiannya bila berasal dari Rekaman lab. Tidak dijalankan berarti dicek ke kode atau dokumentasi tanpa menjalankannya. Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan Asumsi adalah angka pilihan penulis tanpa rekaman. Penalaran adalah kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.
+
+<Tebak client:visible data={dataTebak} />
+
+<WidgetLama nama="banding" src="data/t5-batch-banding.json" />
+
+**Ubah satu hal:** pindah dari Mati sesudah jurnal ditulis ke Mati sesudah langkah jurnal tercatat. Di DBOS, jurnal akhir turun dari 2 ke 1 pada RunAsStep tanpa referensi, karena langkah jurnal sudah tercatat. Di tabel langkah buatan jurnal akhir tetap 1 di kedua kejadian.
+
+<noscript>
+<p>Tanpa JavaScript tombol tebakan tidak berfungsi dan widget perbandingan tidak tampil. Jawaban yang tepat: satu job menulis jurnal angsuran ke-1, job lain menemukannya lewat referensi, dan angsuran dicatat (jurnal baru 1, jurnal sudah ada 1, gagal 0; serentak.txt bagian B).</p>
+<p>Bila proses mati di dalam langkah jurnal, tabel langkah buatan menghasilkan 1 jurnal dan DBOS RunAsStep tanpa referensi menghasilkan 2 (langkah.txt bagian A). Bila proses mati sesudah langkah jurnal tercatat, keduanya menghasilkan 1 jurnal.</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t5-m48]] menunjukkan batch versi pertama yang menagih angsuran yang sama dua kali sesudah Idempotency-Key 24 jam habis. ADR 14 sudah menulis batas itu: keputusannya salah saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama ([[t2-idempotency]]). Batch yang tertunda berhari-hari memenuhi syarat itu.
+
+Komponen 8 di ADR 45 menunda durable execution dengan pemicu alur lebih dari satu hari yang harus lanjut dari tengah ([[t4-adr-45]]). Durable execution adalah cara menjalankan alur panjang dengan mencatat tiap langkah yang selesai, supaya proses lain bisa melanjutkannya sesudah proses mati. Cicilan berjalan berbulan-bulan, jadi naskah menulis pemicu itu terpenuhi.
+
+### Cara kerjanya
+
+**Referensi tidak sama dengan Idempotency-Key.** Idempotency-Key tersimpan di tabel `kunci_idempotensi` dan punya kolom `kedaluwarsa`. Versi pertama memberinya umur 24 jam dari jam job, dengan bentuk `cicilan:<jadwal>:<ke>` (dibaca dari kode lab, Tidak dijalankan). Versi benar tidak menyentuh `kunci_idempotensi` (README lab).
+
+Referensi adalah kolom di `jurnal` dengan constraint UNIQUE dan tanpa kolom kedaluwarsa. Migrasi lab menambahkannya, bersama CHECK bentuk yang menerima `angsuran` atau `tabungan`, lalu nomor jadwal, lalu nomor angsuran ([[t5-skema]]):
+
+<Snippet files={["labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql:8:8", "labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql:12:12"]} lang="sql" title="Kode lab: labs/api-t5/migrasi/000026_nilai_baru_tahap5.up.sql baris 8 dan 12 (kolom referensi unik dan CHECK bentuknya)" />
+
+Cicilan memakai awalan `angsuran`, dan tabungan memakai `tabungan` (dibaca dari kode lab `referensiAngsuran`). Rekaman memakai cicilan saja.
+
+**Satu INSERT menahan jurnal kedua.** `CatatJurnalReferensi` menulis jurnal dengan `INSERT ... ON CONFLICT (referensi) DO NOTHING RETURNING id`. Bila referensi sudah ada, INSERT tidak menulis apa pun. Dokumentasi PostgreSQL 17.11 menulis bahwa RETURNING hanya mengembalikan baris yang berhasil ditulis ([PostgreSQL 17.11, INSERT](https://www.postgresql.org/docs/17/sql-insert.html), dibuka 2026-11-03). Karena itu kode membaca jurnal yang sudah ada dengan SELECT terpisah.
+
+<Snippet file="labs/api-t5/internal/repo/t5.go" lines="216:226" lang="go" title="Kode lab: labs/api-t5/internal/repo/t5.go baris 216 sampai 226 (INSERT dengan ON CONFLICT, lalu SELECT jurnal yang sudah ada)" />
+
+Dokumentasi yang sama menulis bahwa `DO NOTHING` tanpa `conflict_target` menangani konflik dengan semua constraint dan indeks unik yang dapat dipakai. Kode ini menyebut `(referensi)`, jadi hanya konflik di kolom itu yang diabaikan.
+
+Bagian C `crash.txt` mencoba INSERT langsung ke `jurnal` dengan referensi `angsuran:2:1`, tanpa lewat kode itu. Database menolaknya dengan constraint `jurnal_referensi_key` (dari `run.py` dan README lab, karena rekaman hanya memuat hasilnya):
+
+<Snippet file="labs/t5-cicilan/output/crash.txt" lines="80:81" title="Rekaman lab: labs/t5-cicilan/output/crash.txt, bagian C (referensi yang sama ditolak database)" />
+
+**Job boleh diulang kapan saja.** Di bagian B, job versi benar dimatikan sesudah jurnal ditulis, dengan sinyal 9 (SIGKILL) ke prosesnya sendiri. Ledger sudah punya satu jurnal dengan referensi `angsuran:2:1`, tetapi angsurannya masih `menunggu`:
+
+<Snippet file="labs/t5-cicilan/output/crash.txt" lines="59:66" title="Rekaman lab: labs/t5-cicilan/output/crash.txt, bagian B (job dimatikan sesudah jurnal, versi benar)" />
+
+Job dijalankan lagi tanpa memutar jam ledger. Ia menemukan jurnal yang sudah ada dan hanya menandai angsurannya. Saldo Citra turun satu kali, dan putaran ketiga tidak mengerjakan apa pun:
+
+<Snippet file="labs/t5-cicilan/output/crash.txt" lines="67:78" title="Rekaman lab: labs/t5-cicilan/output/crash.txt, bagian B (job diulang: jurnal sudah ada 1, angsuran dicatat)" />
+
+Saldo Citra Rp150.000 sama dengan 250.000 − 100.000 (Hitungan). Rekaman tidak memutar jam +25 jam untuk versi benar (Tidak dijalankan). Kode versi benar tidak membaca jam: di job cicilan, `-lab-sekarang` hanya dipakai versi pertama (README lab), dan `CatatJurnalReferensi` tidak punya syarat waktu.
+
+**Dua job serentak menghasilkan satu jurnal.** Dua job bisa membaca daftar angsuran yang sama, lalu berebut buku. `jurnalAngsuran` mengunci buku akun dan merchant lebih dulu, baru membaca referensi:
+
+<Snippet file="labs/api-t5/internal/service/t5.go" lines="234:244" lang="go" title="Kode lab: labs/api-t5/internal/service/t5.go baris 234 sampai 244 (kunci buku, lalu baca referensi)" />
+
+Urutan itu punya alasan yang tercatat di README lab. Bila referensi dibaca sebelum kunci, job yang kalah melihat "tidak ada jurnal", lalu membaca saldo yang sudah berkurang dan menyebutnya kurang. Ia lalu menghitung angsuran yang sudah dibayar sebagai `gagal`. Tes Go merah di kode lama dengan jurnal baru 1, jurnal sudah ada 0, dan gagal 1, dan hijau sesudah urutan dibalik.
+
+Di Read Committed, tiap SELECT melihat database sebagaimana saat SELECT itu mulai berjalan. Transaction yang menunggu baris terkunci menunggu transaction pertama commit atau rollback ([PostgreSQL 17.11, Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html), dibuka 2026-11-03). Lab membuka transaction tanpa opsi isolasi (`BeginTx(ctx, nil)`), jadi isolasinya bawaan PostgreSQL (dibaca dari kode lab, Tidak dijalankan).
+
+Rekaman `serentak.txt` bagian B menahan kunci buku, memulai dua job, lalu melepas kuncinya. Gabungan kedua job: jurnal baru 1, jurnal sudah ada 1, gagal 0. Pembagian kerja antar job tidak direkam, karena bergantung waktu:
+
+<Snippet file="labs/t5-cicilan/output/serentak.txt" lines="37:52" title="Rekaman lab: labs/t5-cicilan/output/serentak.txt, bagian B (dua job berebut buku, saldo cukup untuk satu angsuran)" />
+
+Bagian A menjalankan dua job atas 24 angsuran dari enam jadwal: 24 jurnal baru, 24 referensi berbeda, dan tiap karyawan berkurang Rp40.000. Tumpang tindih kedua job di bagian A tidak dipaksa.
+
+Versi pertama berbeda. Di bagian C satu job mengklaim Idempotency-Key, dan job lain melewati angsuran itu: jurnal baru 1, dilewati 1, dicatat 1.
+
+**Status per langkah memungkinkan job lanjut dari tengah.** Tabel `angsuran` punya PRIMARY KEY `(jadwal_id, ke)` dan status `menunggu`, `terjurnal`, `dicatat`, atau `gagal`. CHECK `angsuran_jurnal_sesuai_status` menuntut `jurnal_id` terisi tepat ketika status `terjurnal` atau `dicatat` (migrasi lab). Tiap angsuran yang berhasil ditagih melewati tiga status: `menunggu`, `terjurnal` sesudah jurnal ada di ledger, dan `dicatat` sesudah selesai. `tagihBenar` memajukannya:
+
+<Snippet file="labs/api-t5/internal/service/t5.go" lines="271:308" lang="go" title="Kode lab: labs/api-t5/internal/service/t5.go baris 271 sampai 308 (tagihBenar: jurnal dengan referensi, lalu status terjurnal dan dicatat)" />
+
+Baris bertanda `// lab` dipasang lab untuk mematikan proses di titik tertentu. `TandaiAngsuran` memajukan status hanya dari status asal yang disebut. Job yang diulang atau dua job serentak tidak membuat status mundur atau melompat (komentar di `repo/t5.go`, Tidak dijalankan).
+
+Lab mematikan job di dua titik, dan job berikutnya lanjut dari titik itu (`langkah.txt` bagian A, tabel langkah):
+
+- Sesudah jurnal di-commit dan sebelum status `terjurnal`: jurnal sesudah mati 1, status `menunggu`. Proses kedua menemukan jurnal lewat referensi, dan jurnal akhir 1.
+- Sesudah status `terjurnal` dan sebelum `dicatat`: jurnal sesudah mati 1, status `terjurnal`. Proses kedua melanjutkan ke `dicatat`, dan jurnal akhir 1.
+
+**Desain dan lab berbeda di laju dan klaim.** Naskah ADR 54 menulis job mengklaim per baris (ADR 24) pada 20 per detik, dan angka itu Asumsi desain ([[t3-klaim-baris]]). Job di lab tidak memakai `klaim_sampai` dan tidak membatasi laju, tetapi membaca daftar lalu mengunci buku per angsuran (README lab). Jadi dua job serentak mengerjakan daftar yang sama dua kali, dan keduanya aman karena referensi unik dan kunci buku.
+
+Puncak 13.333 angsuran per hari berasal dari naskah (100.000 jadwal × 40% ÷ 3, Asumsi, dihitung di [[t5-m48]]). Pada 20 per detik, batch butuh 13.333 ÷ 20 = 666,65 detik, dibulatkan 667 detik, atau 11,1 menit (Hitungan atas Asumsi). Rekaman `laju.txt` mencatat satu job menyelesaikan 2.000 angsuran, dan laju terukur memenuhi batas 20 per detik di laptop. Nilainya tidak direkam, dan ia bukan kapasitas produksi:
+
+<Snippet files={["labs/t5-cicilan/output/laju.txt:19:21", "labs/t5-cicilan/output/laju.txt:41:43"]} title="Rekaman lab: labs/t5-cicilan/output/laju.txt, bagian A dan B (2.000 angsuran satu job, dan hitungan 13.333 per 20 per detik)" />
+
+**Saga dan kompensasi.** Saga adalah rangkaian transaction lokal yang dikoordinasikan. Bila satu langkah gagal karena melanggar aturan bisnis, perubahan dari langkah yang sudah selesai dibatalkan dengan transaction kompensasi ([microservices.io, Saga](https://microservices.io/patterns/data/saga.html), dibuka 2026-11-03). Di cicilan ada dua transaction lokal, yaitu jurnal di ledger dan penanda di tabel `angsuran`; di lab keduanya satu database tetapi dua transaction (`tagihBenar`).
+
+Kompensasinya jurnal pembalik atas jurnal angsuran, bukan UPDATE atau DELETE atas posting ([[t2-adr-ledger]]). Bila langkah akhir tidak bisa selesai, `KompensasiAngsuran` mencatat jurnal pembalik dan mengubah status menjadi `gagal` dalam satu transaction:
+
+<Snippet file="labs/api-t5/internal/service/t5.go" lines="402:405" lang="go" title="Kode lab: labs/api-t5/internal/service/t5.go baris 402 sampai 405 (jurnal pembalik, lalu angsuran gagal)" />
+
+Kode memeriksa peminta: hanya admin, dan alasan minimal 20 karakter. Rekaman `kompensasi.txt` menunjukkan karyawan ditolak, admin berhasil, dan saldo kembali:
+
+<Snippet file="labs/t5-cicilan/output/kompensasi.txt" lines="15:24" title="Rekaman lab: labs/t5-cicilan/output/kompensasi.txt, bagian A (karyawan ditolak, admin membuat jurnal pembalik)" />
+
+Sesudahnya saldo Budi kembali ke Rp250.000 dan saldo Warung Ani ke Rp0. Kompensasi kedua ditolak, dan job biasa tidak menagih angsuran `gagal` lagi:
+
+<Snippet file="labs/t5-cicilan/output/kompensasi.txt" lines="36:39" title="Rekaman lab: labs/t5-cicilan/output/kompensasi.txt, bagian A (saldo kembali, kompensasi kedua ditolak)" />
+
+Lab tidak punya langkah akhir yang bisa gagal permanen. Keadaan `terjurnal` dipasang langsung dengan UPDATE, jadi yang direkam adalah mekanisme kompensasinya, bukan kejadiannya.
+
+**Tabel langkah buatan dan DBOS Go atas kasus yang sama.** DBOS Go adalah pustaka workflow yang mencatat langkahnya di PostgreSQL (versi 1.8.0, terbit 2026-10-28; lisensi MIT menurut README lab). Dokumentasi modulnya menulis bahwa workflow dipulihkan bila proses mati dan bahwa ID workflow berfungsi sebagai idempotency key ([DBOS Go v1.8.0, godoc](https://pkg.go.dev/github.com/dbos-inc/dbos-transact-golang@v1.8.0/dbos), dibuka 2026-11-03).
+
+Langkah `RunAsStep` berjalan setidaknya sekali, dan langkah yang sudah dijalankan tidak dijalankan lagi saat pemulihan. `RunAsTransaction` menulis catatan selesainya di transaction database aplikasi yang sama dengan langkahnya.
+
+Lab menjalankan kasus yang sama sebagai program Go terpisah: satu workflow per angsuran dengan ID `angsuran:<jadwal>:<ke>`, memakai ledger yang sama. Tiga cara menulis langkah jurnal dan dua titik mati memberi delapan baris bersama tabel langkah buatan:
+
+<Snippet file="labs/t5-cicilan/output/langkah.txt" lines="12:22" title="Rekaman lab: labs/t5-cicilan/output/langkah.txt, bagian A (tabel langkah buatan lawan DBOS, dua titik mati)" />
+
+Hanya satu baris yang menagih dua kali: `RunAsStep` tanpa referensi, mati di dalam langkah jurnal. Langkah baru dicatat sesudah fungsinya kembali, jadi pemulihan menjalankannya lagi, dan godoc menyebut jaminan langkah itu setidaknya sekali. Di rekaman ini `RunAsStep` tidak menggantikan penulis ledger yang idempoten. `RunAsTransaction` menulis jurnal dan catatan selesainya dalam satu transaction, jadi mati sebelum commit tidak meninggalkan jurnal.
+
+Kode yang memerankan baris itu ada di `tagihStep`. Langkah jurnal memanggil penulis ledger, dan baris bertanda `// lab` mematikan proses:
+
+<Snippet file="labs/t5-cicilan/dbos/main.go" lines="93:114" lang="go" title="Kode lab: labs/t5-cicilan/dbos/main.go baris 93 sampai 114 (tagihStep: langkah jurnal dan langkah penanda)" />
+
+Yang berbeda di bagian B rekaman adalah ukurannya, dihitung dari wilayah bertanda di kode:
+
+<Snippet file="labs/t5-cicilan/output/langkah.txt" lines="32:37" title="Rekaman lab: labs/t5-cicilan/output/langkah.txt, bagian B (baris kode alur, penanda, dan inisialisasi)" />
+
+Kode alur dan penanda hampir sama: 56 baris lawan 59 dan 54. Dengan inisialisasi DBOS jumlahnya 56 lawan 71 dan 69. Cabang saldo kurang ikut terhitung walau tidak dijalankan di rekaman.
+
+Yang disimpan juga berbeda: tabel langkah buatan tidak menambah tabel atau baris. DBOS menyimpan 5 baris sistem per angsuran, dihitung dari 30 baris untuk 6 workflow (6 + 6 + 6 + 12) ÷ 6 = 5. Dengan 1,2 juta angsuran per tahun (Asumsi: 100.000 jadwal × 12 angsuran, [[t5-skema]]), itu 6 juta baris per tahun bila tidak dibersihkan (Hitungan atas Asumsi). Lab tidak membaca pengaturan retensi tabel DBOS (Tidak dijalankan).
+
+Temporal hanya disebut di naskah. Dokumentasinya tidak dibuka, jadi halaman ini tidak membandingkannya (Tidak dijalankan).
+
+### Di stack lain
+
+**Skenario:** satu job harian menagih angsuran, dan prosesnya bisa mati lalu dijalankan lagi. Yang ditanyakan: apa yang menahan tagihan kedua untuk angsuran yang sama, dan sampai kapan penahannya berlaku?
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-03. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab t5-cicilan atas api-t5, PostgreSQL 17.11, Go 1.27.3, dan pgx v5.11.0 (rekaman `crash.txt` dan `serentak.txt`).*
+
+<Snippet file="labs/api-t5/internal/repo/t5.go" lines="217:219" lang="go" title="labs/api-t5/internal/repo/t5.go" />
+
+**Yang berbeda di stack ini:** penahannya constraint UNIQUE di database, dan kodenya `INSERT ... ON CONFLICT (referensi) DO NOTHING` yang ditulis tangan. Penahan itu tidak punya batas umur, dan tidak bergantung pada Idempotency-Key.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke dokumentasi [BullMQ: Job Ids](https://docs.bullmq.io/guide/jobs/job-ids) (dokumen tanpa nomor versi; paket bullmq 6.5.4 di npm), dibuka 2026-11-03. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`await queue.add("tagih", { jadwal: 7, ke: 1 }, {
+  jobId: "angsuran:7:1",
+});`} />
+
+**Yang berbeda di stack ini:** dokumentasi menulis bahwa job dengan id yang sudah ada diabaikan. Job yang dihapus dari queue, secara manual atau lewat pengaturan seperti `removeOnComplete`, tidak dianggap duplikat, sehingga id yang sama bisa ditambahkan lagi. Penahannya berlaku selama job lama masih ada di queue.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Queues](https://laravel.com/docs/13.x/queues), bagian Unique Jobs, dibuka 2026-11-03. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`class TagihAngsuran implements ShouldQueue, ShouldBeUnique
+{
+    public function uniqueId(): string
+    {
+        return "angsuran:{$this->jadwal}:{$this->ke}";
+    }
+}`} />
+
+**Yang berbeda di stack ini:** job unik tidak didispatch bila instance lain masih ada di queue dan belum selesai. Dokumentasi menulis bahwa kunci dilepas saat job selesai atau semua percobaan ulangnya gagal, dan atribut `UniqueFor` menentukan batas waktu sesudahnya job tidak lagi unik. Sesudah selesai, penahan untuk angsuran yang sudah dibayar harus ada di tempat lain (penalaran).
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 5.2: QuerySet API](https://docs.djangoproject.com/en/5.2/ref/models/querysets/), bagian `bulk_create`, dibuka 2026-11-03. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`Jurnal.objects.bulk_create(
+    [Jurnal(referensi="angsuran:7:1", jenis="angsuran")],
+    ignore_conflicts=True,
+)`} />
+
+**Yang berbeda di stack ini:** `ignore_conflicts=True` menyuruh database mengabaikan kegagalan insert untuk baris yang melanggar constraint, seperti nilai unik ganda. Dokumentasi juga menulis bahwa pengaturan itu menonaktifkan pengisian primary key di tiap instance model. Id jurnal yang sudah ada dibaca dengan query terpisah, seperti SELECT sesudah `DO NOTHING` di Go (penalaran).
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: future calls](https://docs.serverpod.dev/concepts/scheduling/future-calls), Serverpod 4.1.0, dibuka 2026-11-03. Kode Dart tidak ditulis di tab ini.*
+
+**Yang berbeda di stack ini:** dokumentasi menulis bahwa panggilan terjadwal tersimpan di tabel `serverpod_future_call`. Identifier hanya mengelompokkan panggilan supaya bisa dibatalkan bersama, dan panggilan yang berbagi identifier berjalan sendiri-sendiri. Identifier bukan penahan jurnal ganda, jadi penahannya tetap harus ada di tabel bisnis (penalaran).
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Queues](https://supabase.com/docs/guides/queues), halaman ikhtisar tanpa nomor versi, dibuka 2026-11-03.*
+
+**Yang berbeda di stack ini:** halaman itu menulis bahwa Queues dibangun di atas ekstensi pgmq. Pesan dikirim tepat satu kali ke consumer dalam jendela visibilitas yang bisa diatur. Halaman ikhtisar itu tidak membahas pesan yang tidak selesai diproses sesudah jendela habis. Penahan angsuran ganda tetap harus ada di tabel bisnis (penalaran).
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 54: referensi unik, tabel langkah, dan kompensasi lewat jurnal pembalik
+
+**Kebutuhan.** PRD v5 meminta cicilan dan tabungan lewat batch harian, dengan tiap angsuran terdebit tepat sekali ([[t5-prd]]). Batch versi pertama menagih ganda sesudah 25 jam: saldo Budi turun dari Rp250.000 ke Rp50.000 ([[t5-m48]], `crash.txt` bagian A). Pemicu komponen 8 di ADR 45 terpenuhi menurut naskah ([[t4-adr-45]]).
+
+**Status:** diterima sesudah M48, dan memakai klaim per baris dari ADR 24 sebagai desain ([[t3-klaim-baris]]). Naskah tidak menulis tanggal ADR.
+
+| | A. Cron dan job idempoten saja | B. Koreografi lewat event | C. DBOS Go v1.8.0 | D. Referensi unik dan tabel langkah |
+|---|---|---|---|---|
+| Cara kerja | Job terjadwal menagih angsuran, dan Idempotency-Key 24 jam menjadi satu-satunya penahan ([[t2-job-rekonsiliasi]]) | Tiap langkah menerbitkan event yang memicu langkah berikutnya (choreography menurut microservices.io), tanpa tabel yang mencatat posisi angsuran | Satu workflow per angsuran, dan DBOS mencatat tiap langkah di tabel sistemnya di PostgreSQL | `jurnal.referensi` unik menahan jurnal kedua, dan `angsuran.status` mencatat langkah: menunggu, terjurnal, dicatat |
+| Kelebihan | Tidak ada tabel atau komponen baru | Tidak ada job pusat yang memegang urutan (penalaran) | Pencatatan dan pemulihan langkah ditulis sekali untuk semua alur (godoc v1.8.0) | Tanpa dependency baru: satu kolom, satu tabel, dan 56 baris alur dan penanda di lab |
+| Kekurangan | Sesudah 25 jam jurnal kedua ditulis, dan saldo Budi menjadi Rp50.000 (`crash.txt` bagian A) | Posisi angsuran tersebar di banyak event, dan naskah menulisnya sulit ditelusuri sampai angsuran terakhir | `RunAsStep` tanpa referensi menulis 2 jurnal bila proses mati di dalam langkah jurnal (`langkah.txt` bagian A); 71 dan 69 baris dengan inisialisasi lawan 56 | Status dan pemulihan ditulis tangan untuk tiap jenis alur (penalaran) |
+| Biaya operasional | Nol tambahan, dengan harga tagihan ganda sesudah 24 jam | Event streaming dan relay yang harus dipantau ([[t5-fanout]]) | Satu modul dan 15 tabel sistem di schema sendiri, 5 baris sistem per angsuran | Angsuran yang tinggal `terjurnal` terlalu lama harus dipantau (desain, Tidak dijalankan) |
+| Bukti | Rekaman lab `crash.txt` bagian A dan `serentak.txt` bagian C | Tidak dijalankan: penalaran dari naskah | Rekaman lab `langkah.txt` | Rekaman lab `crash.txt` bagian B dan C, `serentak.txt`, `kompensasi.txt` |
+
+**Keputusan: opsi D.** Enam aturan:
+
+1. Ledger menerima `referensi` unik di `jurnal` untuk jenis jurnal berulang, lewat `INSERT ... ON CONFLICT (referensi) DO NOTHING`. Bentuknya `angsuran:<jadwal_id>:<ke>` untuk cicilan dan `tabungan:<jadwal_id>:<ke>` untuk tabungan. Referensi tidak kedaluwarsa dan berbeda dari Idempotency-Key. Rekaman memakai cicilan.
+2. Tabel `angsuran` dengan PRIMARY KEY `(jadwal_id, ke)` adalah kunci bisnis. Statusnya berjalan `menunggu`, `terjurnal`, `dicatat`, atau `gagal`, dan `jurnal_id` terisi tepat ketika status `terjurnal` atau `dicatat`.
+3. Job boleh dijalankan ulang kapan saja. Dua job serentak menghasilkan satu jurnal, karena referensi dibaca sesudah kunci buku didapat.
+4. Desain, bukan yang dijalankan lab (Asumsi, Tidak dijalankan): job mengklaim per baris seperti ADR 24 dan membatasi laju pada 20 per detik. Job di lab membaca daftar lalu mengunci buku per angsuran, tanpa `klaim_sampai` dan tanpa pembatas laju.
+5. Langkah akhir yang gagal permanen dikompensasi dengan jurnal pembalik atas jurnal angsuran dan status `gagal`, dalam satu transaction. Hanya admin yang boleh, dengan alasan minimal 20 karakter.
+6. Tabel langkah buatan dipakai, dan DBOS Go dibandingkan, bukan dipakai. Pembandingnya rekaman `langkah.txt`.
+
+**Kenapa D, bukan A, B, atau C.**
+
+- **A ditolak** karena key 24 jam tidak cukup menahan batch yang tertunda. Pada +25 jam jurnal kedua ditulis dan saldo Budi menjadi Rp50.000 (`crash.txt` bagian A).
+- **B ditolak untuk sekarang** karena posisi angsuran tersebar di banyak event dan sulit ditelusuri sampai angsuran terakhir (naskah). Opsi ini tidak ada rekamannya (Tidak dijalankan).
+- **C tidak dipilih, dan bukan karena salah.** Di kedua titik mati, hasil akhir `RunAsStep` dengan referensi dan `RunAsTransaction` sama dengan tabel langkah buatan: satu jurnal, saldo berkurang Rp100.000, `dicatat`. Kode alur hampir sama (56 lawan 59 dan 54), dan DBOS menambah inisialisasi, 15 tabel, dan 5 baris per angsuran. Di Tahap 5 jenis alur panjang hanya satu: cicilan dan tabungan memakai satu mesin status ([[t5-adr-60]]). Lab tidak mengukur alur ketiga, jadi manfaat DBOS untuk banyak jenis alur adalah penalaran.
+- **Temporal** hanya disebut di naskah, dan dokumentasinya tidak dibuka. Halaman ini tidak membandingkannya (Tidak dijalankan).
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Angsuran tinggal `terjurnal` tanpa ada yang melanjutkan, karena job berhenti dan tidak ada alert. Pencegahannya alert untuk angsuran yang `terjurnal` melewati satu putaran job. Ini desain, dan lab tidak membangunnya (Tidak dijalankan).
+2. Jadwal diubah di tengah, dan nomor `ke` bergeser sehingga referensi lama menahan jurnal angsuran yang berbeda isinya. Pencegahannya jadwal yang diubah menjadi jadwal baru dengan `jadwal_id` baru, dan nomor `ke` tidak digeser (penalaran).
+3. Kompensasi tidak bisa berupa jurnal pembalik, misalnya karena merchant sudah dibekukan sesudah menerima uang. README lab menulis kasus itu Tidak dijalankan. Pencegahannya aturan bisnis untuk kasus itu ditulis sebelum fiturnya dibuka.
+
+**Kapan keputusan ini salah.**
+
+- Saat jenis alur panjang bertambah dari satu menjadi tiga atau lebih (Asumsi dari naskah). Di lab kode alur satu jenis hampir sama (56 lawan 59 dan 54). Jadi alasannya bukan baris satu alur, melainkan status dan pemulihan yang ditulis ulang tiap jenis (penalaran, tidak diukur).
+- Saat jadwal diubah di tengah dan identitas angsuran ke-n bergeser.
+- Saat kompensasi tidak bisa berupa jurnal pembalik.
+- Saat job melewati 1 jam (Asumsi) pada 20 per detik. Batasnya 3.600 × 20 = 72.000 angsuran per hari puncak, atau 72.000 ÷ 13.333 = 5,4 kali puncak Asumsi sekarang (Hitungan atas Asumsi). Pembandingnya 667 detik pada 13.333 angsuran. Pilihannya menaikkan laju atau memecah klaim.
+
+**Yang akan merevisinya.** [[t5-adr-60]] menulis Temporal dan TigerBeetle sebagai sengaja belum, dengan pemicu jenis alur panjang lebih dari tiga atau ledger yang tidak menampung tulis. Bila pemicu itu terjadi, ADR 54 ditinjau ulang.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Notifikasi angsuran | Kolom `jenis` di `outbox` tidak punya nilai angsuran, jadi "dua notifikasi" di [[t5-m48]] tetap Ilustrasi | Belum dijadwalkan |
+| Langkah akhir yang gagal permanen sungguhan | Lab memasang keadaan `terjurnal` dengan UPDATE dan merekam kompensasinya | Belum dijadwalkan |
+| Klaim per baris dan pembatas laju 20 per detik di job | Job lab membaca daftar lalu mengunci buku per angsuran, tanpa `klaim_sampai` dan tanpa pembatas laju | Belum dijadwalkan |
+| Kompensasi atas merchant yang sudah dibekukan | Lab tidak menjalankannya (README lab) | Belum dijadwalkan |
+| Retensi tabel DBOS dan gerbang pemindai atas modulnya | Lab tidak membaca pengaturan retensi, dan govulncheck dan grype Tidak dijalankan atas modul itu | Belum dijadwalkan |
+| Temporal | Dokumentasinya tidak dibuka | [[t5-adr-60]] |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Apa beda referensi dengan Idempotency-Key, dan kenapa referensi tidak terkena batas 24 jam?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Idempotency-Key tersimpan di `kunci_idempotensi` dengan kolom `kedaluwarsa`, dan versi pertama memberinya umur 24 jam. Referensi adalah kolom UNIQUE di `jurnal` tanpa kolom kedaluwarsa, dan kode versi benar tidak membaca jam. Rekaman `crash.txt` bagian B mengulang job tanpa memutar jam, dan +25 jam untuk versi benar Tidak dijalankan.
+
+</details>
+
+**2.** Dua job sudah membaca daftar yang sama dan berebut kunci buku, dan saldo cukup untuk satu angsuran. Apa hasil gabungannya, dan kenapa referensi dibaca sesudah kunci?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Satu jurnal: jurnal baru 1, jurnal sudah ada 1, gagal 0, dan angsuran dicatat (`serentak.txt` bagian B). Bila referensi dibaca sebelum kunci, job yang kalah menyebut saldo kurang dan menghitung angsuran yang sudah dibayar sebagai `gagal` (README lab).
+
+</details>
+
+**3.** Di DBOS Go, `RunAsStep` tanpa referensi mati di dalam langkah jurnal sesudah ledger commit. Berapa jurnal akhirnya, dan kenapa?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Dua jurnal, dan saldo berkurang Rp200.000 (`langkah.txt` bagian A). Langkah baru dicatat sesudah fungsinya kembali, dan godoc menyebut langkah itu berjalan setidaknya sekali. Dengan referensi unik atau `RunAsTransaction`, jurnal akhirnya 1.
+
+</details>
+
+**4.** Angsuran `terjurnal` tidak bisa diselesaikan. Apa kompensasinya, dan apa yang tidak direkam lab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Admin membuat jurnal pembalik atas jurnal angsuran dan status angsuran menjadi `gagal`, dalam satu transaction. Saldo Budi kembali ke Rp250.000 dan saldo Warung Ani ke Rp0 (`kompensasi.txt` bagian A). Lab tidak punya langkah akhir yang gagal permanen: keadaan `terjurnal` dipasang dengan UPDATE.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Pekerjaan berulang punya kunci bisnis UNIQUE di database, bukan hanya Idempotency-Key yang kedaluwarsa.
+- [ ] `ON CONFLICT DO NOTHING` menyebut `conflict_target`, dan baris yang dilewati dibaca dengan SELECT karena RETURNING tidak mengembalikannya.
+- [ ] Referensi dibaca sesudah buku dikunci, bukan sebelumnya.
+- [ ] Status angsuran dimajukan hanya dari status asal yang diharapkan.
+- [ ] Langkah dari pustaka yang berjalan setidaknya sekali memanggil penulis ledger yang idempoten.
+- [ ] Kompensasi memakai jurnal pembalik, bukan UPDATE atau DELETE atas posting.
+- [ ] Job tidak menagih angsuran berstatus `gagal`.
+
+### Bacaan lanjut
+
+- [microservices.io: Saga](https://microservices.io/patterns/data/saga.html)
+- [DBOS Go v1.8.0, godoc](https://pkg.go.dev/github.com/dbos-inc/dbos-transact-golang@v1.8.0/dbos)
+- [PostgreSQL 17.11: INSERT](https://www.postgresql.org/docs/17/sql-insert.html)
+- [PostgreSQL 17.11: Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html)
+- [BullMQ: Job Ids](https://docs.bullmq.io/guide/jobs/job-ids)
+- [Laravel 13.x: Queues](https://laravel.com/docs/13.x/queues)
+- [Django 5.2: QuerySet API](https://docs.djangoproject.com/en/5.2/ref/models/querysets/)
+- [Serverpod: future calls](https://docs.serverpod.dev/concepts/scheduling/future-calls)
+- [Supabase: Queues](https://supabase.com/docs/guides/queues)
+
+</Blok>
+
+<SkripLama daftar={["cerita","banding"]} />

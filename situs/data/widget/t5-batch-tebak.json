@@ -1,0 +1,44 @@
+{
+  "id": "t5-batch-tebak",
+  "judul": "Dua job cicilan serentak, saldo cukup untuk satu angsuran",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t5-cicilan/output/serentak.txt bagian B, README lab dan tes Go"
+  },
+  "adegan": [
+    "Saldo satu karyawan Rp250.000, dan jadwalnya punya dua angsuran sebesar saldo itu. Hanya angsuran ke-1 yang jatuh tempo.",
+    "Lab menahan kunci buku supaya dua job cicilan sudah membaca daftar yang sama sebelum salah satunya menulis. Lalu kunci dilepas."
+  ],
+  "pertanyaan": "Apa hasil gabungan kedua job untuk angsuran ke-1?",
+  "pilihan": [
+    {
+      "teks": "Dua jurnal untuk angsuran ke-1, dan database menolak yang kedua karena saldo karyawan menjadi negatif.",
+      "benar": false,
+      "alasan": "Rekaman bagian B mencatat satu jurnal dengan referensi angsuran:7:1. Job yang kalah tidak menulis jurnal kedua, jadi tidak ada yang ditolak karena saldo."
+    },
+    {
+      "teks": "Satu jurnal, dan job yang kalah menghitung angsuran itu gagal karena saldo sudah Rp0.",
+      "benar": false,
+      "alasan": "Itu hasil kode lama yang membaca referensi sebelum mengunci buku: jurnal baru 1, jurnal sudah ada 0, gagal 1 (README lab, tes Go). Rekaman bagian B mencatat gagal 0, dan angsuran ke-1 berstatus dicatat."
+    },
+    {
+      "teks": "Satu jurnal, dan satu job melewati angsuran itu karena Idempotency-Key masih hidup.",
+      "benar": false,
+      "alasan": "Itu pola versi pertama (serentak.txt bagian C, dilewati 1). Versi benar tidak memakai key: job yang kalah menemukan jurnal lewat referensi, dan hitungannya jurnal sudah ada 1, bukan dilewati."
+    },
+    {
+      "teks": "Satu jurnal: satu job menulisnya, job lain menemukannya lewat referensi, dan angsuran ke-1 dicatat.",
+      "benar": true,
+      "alasan": "Rekaman bagian B: jurnal baru 1, jurnal sudah ada 1, gagal 0. Angsuran ke-1 berstatus dicatat dan terikat ke jurnalnya, jurnal dengan referensi angsuran:7:1 berjumlah satu, dan saldo karyawan Rp0."
+    }
+  ],
+  "penutup": "Job yang kalah berebut kunci buku membaca referensi sesudah kunci itu didapat, jadi ia melihat jurnal pemenang dan tidak menulis jurnal kedua.",
+  "label": {
+    "sumber": "Rekaman lab · serentak.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

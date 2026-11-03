@@ -59,6 +59,8 @@
 *[backoff]: Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.
 *[Backup dan uji pulih]: Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.
 *[backup dan uji pulih]: Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.
+*[Batch]: Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.
+*[batch]: Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.
 *[BFF]: Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.
 *[Backend for Frontend]: Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.
 *[Branch protection]: Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.
@@ -111,6 +113,8 @@
 *[deny-list]: Daftar yang ditolak; yang tidak ada di daftar diterima, jadi daftar itu harus memuat semua yang terlarang.
 *[Double-entry]: Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.
 *[double-entry]: Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.
+*[Durable execution]: Cara menjalankan alur panjang dengan mencatat tiap langkah yang selesai, supaya alur dilanjutkan dari titik berhenti sesudah proses mati.
+*[durable execution]: Cara menjalankan alur panjang dengan mencatat tiap langkah yang selesai, supaya alur dilanjutkan dari titik berhenti sesudah proses mati.
 *[Eager loading]: Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru.
 *[eager loading]: Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru.
 *[Enumerasi]: Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada.
@@ -172,6 +176,8 @@
 *[jangkar hash]: Hash dan nomor baris terakhir sebuah log yang disimpan di luar database, supaya pemotongan ekor log bisa ketahuan.
 *[Jendela tetap]: Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.
 *[jendela tetap]: Cara menghitung batas: hitungan mulai dari nol di awal jendela waktu, naik tiap percobaan, dan dibuang saat jendelanya habis.
+*[Job idempoten]: Job yang menghasilkan keadaan akhir yang sama, dijalankan sekali atau berkali-kali dengan input yang sama.
+*[job idempoten]: Job yang menghasilkan keadaan akhir yang sama, dijalankan sekali atau berkali-kali dengan input yang sama.
 *[Job terjadwal]: Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.
 *[job terjadwal]: Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.
 *[Jurnal]: Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol.
@@ -190,6 +196,8 @@
 *[kubernetes]: Sistem yang menjadwalkan pod, yaitu grup container, ke banyak mesin dalam satu cluster.
 *[Kunci akun]: Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya.
 *[kunci akun]: Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya.
+*[Kunci bisnis]: Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur.
+*[kunci bisnis]: Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur.
 *[Last-write-wins]: Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang.
 *[last-write-wins]: Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang.
 *[Latency]: Lama waktu satu request dari dikirim sampai response diterima.
@@ -234,6 +242,7 @@
 *[N+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[n+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[N+1]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
+*[NetworkPolicy]: Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya.
 *[Nonrepeatable read]: Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.
 *[nonrepeatable read]: Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.
 *[OAuth 2.0]: Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password.

@@ -1,0 +1,88 @@
+{
+  "judul": "Satu alur angsuran: tabel langkah buatan sendiri atau DBOS Go",
+  "opsi": [
+    {
+      "id": "tabel",
+      "nama": "A · Tabel langkah buatan (pilihan ADR 54)",
+      "baris": [
+        [
+          { "id": "job", "label": "Job cicilan", "sub": "api-t5, satu proses" },
+          { "id": "ledger", "label": "Ledger", "sub": "jurnal.referensi unik" }
+        ],
+        [
+          { "id": "status", "label": "angsuran.status", "sub": "menunggu, terjurnal, dicatat" }
+        ],
+        [
+          { "id": "kode", "label": "Kode alur dan penanda", "sub": "56 baris" },
+          { "id": "simpan", "label": "Tabel tambahan", "sub": "tidak ada" }
+        ]
+      ],
+      "judulBaris": ["", "Tempat status langkah", "Yang ditulis dan disimpan"]
+    },
+    {
+      "id": "dbos",
+      "nama": "B · DBOS Go v1.8.0 (dibandingkan)",
+      "baris": [
+        [
+          { "id": "job", "label": "Workflow per angsuran", "sub": "program Go terpisah" },
+          { "id": "ledger", "label": "Ledger", "sub": "fungsi SQL milik lab" }
+        ],
+        [
+          { "id": "status", "label": "Tabel sistem DBOS", "sub": "15 tabel, schema sendiri" }
+        ],
+        [
+          { "id": "kode", "label": "Kode alur dan penanda", "sub": "59 atau 54 baris, plus inisialisasi" },
+          { "id": "simpan", "label": "Baris sistem", "sub": "5 per angsuran" }
+        ]
+      ],
+      "judulBaris": ["", "Tempat status langkah", "Yang ditulis dan disimpan"]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Mati sesudah jurnal ditulis",
+      "sorot": {
+        "tabel": ["job", "ledger", "status"],
+        "dbos": ["job", "ledger", "status"]
+      },
+      "catatan": {
+        "tabel": "Ledger sudah menulis satu jurnal dan angsuran masih menunggu. Proses kedua menemukan jurnal lewat referensi: jurnal akhir 1, saldo berkurang Rp100.000, status dicatat (langkah.txt bagian A).",
+        "dbos": "RunAsStep tanpa referensi: jurnal akhir 2 dan saldo berkurang Rp200.000, karena langkah baru tercatat sesudah fungsinya kembali. RunAsStep dengan referensi unik: jurnal akhir 1. RunAsTransaction mati sebelum commit, jadi belum ada jurnal, dan jurnal akhirnya 1 (langkah.txt bagian A)."
+      },
+      "nada": { "dbos": "warn" }
+    },
+    {
+      "label": "Mati sesudah langkah jurnal tercatat",
+      "sorot": {
+        "tabel": ["job", "status"],
+        "dbos": ["job", "status"]
+      },
+      "catatan": {
+        "tabel": "Status angsuran sudah terjurnal. Proses kedua melanjutkan ke dicatat: jurnal akhir 1, saldo berkurang Rp100.000 (langkah.txt bagian A).",
+        "dbos": "Langkah jurnal sudah tercatat di tabel sistem, jadi tidak dijalankan lagi: jurnal akhir 1 di ketiga cara DBOS, saldo berkurang Rp100.000 (langkah.txt bagian A)."
+      }
+    },
+    {
+      "label": "Kode yang ditulis",
+      "sorot": {
+        "tabel": ["kode"],
+        "dbos": ["kode"]
+      },
+      "catatan": {
+        "tabel": "56 baris untuk alur dan penanda, tanpa inisialisasi (langkah.txt bagian B, dihitung dari wilayah bertanda di kode).",
+        "dbos": "RunAsStep 59 baris dan RunAsTransaction 54, ditambah inisialisasi 12 dan 15 baris: jumlahnya 71 dan 69 (langkah.txt bagian B, dihitung dari wilayah bertanda)."
+      }
+    },
+    {
+      "label": "Yang disimpan per angsuran",
+      "sorot": {
+        "tabel": ["simpan", "status"],
+        "dbos": ["simpan", "status"]
+      },
+      "catatan": {
+        "tabel": "Tidak ada tabel atau baris tambahan: status ada di kolom angsuran.status dan referensi ada di jurnal (langkah.txt bagian B).",
+        "dbos": "5 baris sistem per angsuran di 15 tabel, ditambah satu baris transaction_completion per langkah RunAsTransaction. Dengan 1,2 juta angsuran per tahun (Asumsi), 6 juta baris per tahun (Hitungan; retensi tidak dibaca)."
+      }
+    }
+  ]
+}

@@ -184,6 +184,14 @@ window.ISTILAH = {
   "t": "Backup dan uji pulih",
   "u": "tahap-4/m33-uji-pulih/"
  },
+ "Batch": {
+  "b": "t5-batch",
+  "d": "Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.",
+  "n": "5.21 Batch harian tahan crash",
+  "s": "istilah-batch",
+  "t": "Batch",
+  "u": "tahap-5/batch-tahan-crash/"
+ },
  "Branch protection": {
   "b": "t2-tim-infra",
   "d": "Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.",
@@ -467,6 +475,14 @@ window.ISTILAH = {
   "s": "istilah-double-entry",
   "t": "Double-entry",
   "u": "tahap-2/ledger/"
+ },
+ "Durable execution": {
+  "b": "t5-batch",
+  "d": "Cara menjalankan alur panjang dengan mencatat tiap langkah yang selesai, supaya alur dilanjutkan dari titik berhenti sesudah proses mati.",
+  "n": "5.21 Batch harian tahan crash",
+  "s": "istilah-durable-execution",
+  "t": "Durable execution",
+  "u": "tahap-5/batch-tahan-crash/"
  },
  "ERD": {
   "b": "t2-skema",
@@ -857,6 +873,14 @@ window.ISTILAH = {
   "t": "Jendela tetap (fixed window)",
   "u": "tahap-3/rate-limit-redis/"
  },
+ "Job idempoten": {
+  "b": "t2-job-rekonsiliasi",
+  "d": "Job yang menghasilkan keadaan akhir yang sama, dijalankan sekali atau berkali-kali dengan input yang sama.",
+  "n": "2.26 Job terjadwal dan rekonsiliasi",
+  "s": "istilah-job-idempoten",
+  "t": "Job idempoten",
+  "u": "tahap-2/job-rekonsiliasi/"
+ },
  "Job terjadwal": {
   "b": "t2-pencairan",
   "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
@@ -926,6 +950,14 @@ window.ISTILAH = {
   "s": "istilah-kunci-akun",
   "t": "Kunci akun",
   "u": "tahap-2/m16-akun-terkunci/"
+ },
+ "Kunci bisnis": {
+  "b": "t5-batch",
+  "d": "Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur.",
+  "n": "5.21 Batch harian tahan crash",
+  "s": "istilah-kunci-bisnis",
+  "t": "Kunci bisnis",
+  "u": "tahap-5/batch-tahan-crash/"
  },
  "LSN": {
   "b": "t5-lag",
@@ -1145,6 +1177,15 @@ window.ISTILAH = {
   "s": "istilah-n-1-query",
   "t": "N+1 query",
   "u": "tahap-2/n-plus-1/"
+ },
+ "NetworkPolicy": {
+  "b": "t5-m47",
+  "d": "Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya.",
+  "h": "istilah/networkpolicy/",
+  "n": "5.18 M47",
+  "s": "istilah-networkpolicy",
+  "t": "NetworkPolicy",
+  "u": "tahap-5/m47-pod-membuat-jurnal/"
  },
  "Nonrepeatable read": {
   "b": "t2-isolation-level",
@@ -2111,6 +2152,14 @@ window.ISTILAH = {
   "t": "Backup dan uji pulih",
   "u": "tahap-4/m33-uji-pulih/"
  },
+ "batch": {
+  "b": "t5-batch",
+  "d": "Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.",
+  "n": "5.21 Batch harian tahan crash",
+  "s": "istilah-batch",
+  "t": "Batch",
+  "u": "tahap-5/batch-tahan-crash/"
+ },
  "branch protection": {
   "b": "t2-tim-infra",
   "d": "Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.",
@@ -2291,6 +2340,14 @@ window.ISTILAH = {
   "s": "istilah-double-entry",
   "t": "Double-entry",
   "u": "tahap-2/ledger/"
+ },
+ "durable execution": {
+  "b": "t5-batch",
+  "d": "Cara menjalankan alur panjang dengan mencatat tiap langkah yang selesai, supaya alur dilanjutkan dari titik berhenti sesudah proses mati.",
+  "n": "5.21 Batch harian tahan crash",
+  "s": "istilah-durable-execution",
+  "t": "Durable execution",
+  "u": "tahap-5/batch-tahan-crash/"
  },
  "eager loading": {
   "b": "t2-n-plus-1",
@@ -2521,6 +2578,14 @@ window.ISTILAH = {
   "t": "Jendela tetap (fixed window)",
   "u": "tahap-3/rate-limit-redis/"
  },
+ "job idempoten": {
+  "b": "t2-job-rekonsiliasi",
+  "d": "Job yang menghasilkan keadaan akhir yang sama, dijalankan sekali atau berkali-kali dengan input yang sama.",
+  "n": "2.26 Job terjadwal dan rekonsiliasi",
+  "s": "istilah-job-idempoten",
+  "t": "Job idempoten",
+  "u": "tahap-2/job-rekonsiliasi/"
+ },
  "job terjadwal": {
   "b": "t2-pencairan",
   "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
@@ -2590,6 +2655,14 @@ window.ISTILAH = {
   "s": "istilah-kunci-akun",
   "t": "Kunci akun",
   "u": "tahap-2/m16-akun-terkunci/"
+ },
+ "kunci bisnis": {
+  "b": "t5-batch",
+  "d": "Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur.",
+  "n": "5.21 Batch harian tahan crash",
+  "s": "istilah-kunci-bisnis",
+  "t": "Kunci bisnis",
+  "u": "tahap-5/batch-tahan-crash/"
  },
  "last-write-wins": {
   "b": "t3-offline",

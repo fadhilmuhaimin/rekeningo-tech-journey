@@ -76,7 +76,8 @@ jobs:
     name: situs (Astro) build
     runs-on: ubuntu-latest
     # Sebelum keputusan 357 satu job menjalankan semuanya: 14m47-15m36 di PR #189/#195.
-    timeout-minutes: 8
+    # Langkah gerbang build 4m51s-5m28s di PR halaman Tahap 5 (309 halaman): batas langkah 7 menit, job 10 menit (keputusan 1699).
+    timeout-minutes: 10
     permissions:
       contents: read
       actions: read   # unduh situs-dist dari run main terakhir yang lolos (pemilihan halaman PR, keputusan 866)
@@ -104,7 +105,7 @@ jobs:
       # `gh pr checks` menghitung cancelled terpisah dari gagal, jadi gerbang yang macet terbaca hijau.
       # timeout (GNU coreutils) keluar 124, atau 137 bila perlu KILL, jadi langkahnya `failure` (keputusan 357).
       - name: Gerbang kualitas situs tanpa browser
-        run: timeout -k 30s 5m bash tools/cek_situs.sh
+        run: timeout -k 30s 7m bash tools/cek_situs.sh
       # Pemilihan halaman untuk alat ukur (keputusan 866). Dasar = dist dari run push main terbaru yang seluruh jobnya hijau:
       # run itu memeriksa 100% halaman, jadi halaman yang HTML-nya sama dengan dasar sudah terbukti lolos. Basis perbandingan
       # berkas sumber adalah commit dasar itu (bukan base PR), jadi perubahan alat ukur di main sesudah dasar juga terhitung.

@@ -1,0 +1,90 @@
+{
+  "versi": 2,
+  "judul": "Pod uji tanpa sertifikat membuat jurnal di ledger versi pertama",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t5-service/output/rentan.txt",
+    "fileVarian": "labs/t5-service/output/rentan.txt",
+    "catatan": "Lab t5-service, PostgreSQL 17.11, dari database bersih (make -C labs/t5-service run). Jalur utama: rentan.txt bagian A, ledger dengan mode rentan ledger-tanpa-identitas (HTTP biasa, tanpa sertifikat, tanpa daftar jenis jurnal). Ubah satu hal: rentan.txt bagian B (ledger yang menuntut sertifikat client, port yang sama) dan satu langkah dari mtls.txt bagian C (service notifikasi dengan sertifikat sah). Pod uji diperankan oleh perintah panggil di mesin yang sama dengan ledger: lab tidak memakai Kubernetes, jadi tidak ada pod, namespace, atau NetworkPolicy. Lab tidak punya app Flutter dan tidak merekam layar HP. Baris diawali tanda pagar adalah baris rekaman, bukan baris log."
+  },
+  "pengantar": "Laras memanggil ledger dari satu pod uji. Ikuti langkahnya, lalu centang 'Ubah satu hal' dan tebak apa yang terjadi bila ledger menuntut sertifikat client.",
+  "komponen": [
+    {
+      "id": "pod",
+      "label": "Pod uji"
+    },
+    {
+      "id": "notif",
+      "label": "Service notifikasi"
+    },
+    {
+      "id": "ledger",
+      "label": "Ledger"
+    }
+  ],
+  "perangkat": [],
+  "layarAwal": {},
+  "predict": {
+    "q": "Ledger yang sama sekarang menuntut sertifikat client. Pod uji yang sama, tanpa sertifikat, mencoba menyambung untuk mengirim top-up Rp1.000 dengan key baru. Apa yang terjadi di sisi ledger?",
+    "options": [
+      "Ledger tetap membuat jurnal: key baru adalah permintaan baru, siapa pun pengirimnya",
+      "Handler ledger menjawab 401 karena pemanggil tanpa identitas, dan jurnal tidak dibuat",
+      "Handler ledger menjawab 403 karena pod uji bukan pembayaran, dan jurnal tidak dibuat",
+      "Server menolak saat handshake TLS: handler ledger tidak berjalan dan jurnal untuk key itu nol"
+    ],
+    "answer": 3,
+    "varian": true,
+    "explain": "Server menolak saat handshake. Sonde tanpa sertifikat menerima alert certificate required, dan jumlah jurnal untuk key kedua nol (rentan.txt bagian B). Log ledger mencatat galat handshake dan tidak mencatat keputusan identitas untuk penolakan seperti itu (mtls.txt bagian B dan E). Jawaban 403 hanya untuk pemanggil yang sertifikatnya sah."
+  },
+  "langkah": [
+    {
+      "dari": "ledger",
+      "judul": "Ledger berjalan dalam mode rentan, dan belum ada jurnal",
+      "kirim": "$ ledger -rentan ledger-tanpa-identitas   # role database t5_ledger, tanpa TLS\n=> SELECT count(*) AS jurnal_sebelum FROM jurnal\n jurnal_sebelum\n----------------\n 0\n(1 row)",
+      "jelas": "Mode rentan adalah kode lab untuk M47: ledger mendengar HTTP biasa, tanpa sertifikat, tanpa identitas, dan tanpa daftar jenis jurnal. Tabel jurnal masih kosong."
+    },
+    {
+      "dari": "pod",
+      "ke": "ledger",
+      "judul": "Pod uji mengirim top-up Rp1.000 tanpa sertifikat dan tanpa identitas",
+      "kirim": "$ panggil dari pod uji, tanpa sertifikat, tanpa identitas -> POST /ledger/jurnal-topup, Idempotency-Key baru\nstatus 201 {\"jurnal\":<jurnal 1>,\"ulang\":false}",
+      "jelas": "Pemanggil hanya membawa Idempotency-Key yang belum pernah dipakai. Ledger menjawab 201 dan membuat jurnal. Perintah panggil memerankan pod uji di mesin yang sama, jadi tidak ada cluster di rekaman."
+    },
+    {
+      "dari": "ledger",
+      "judul": "Jurnal top-up Rp1.000 tercatat untuk akun uji",
+      "kirim": " jenis      | keterangan              | akun_id | jumlah\n------------+-------------------------+---------+--------\n topup_bank | Top-up bank TB-UJI-0001 |         | -1000\n topup_bank | Top-up bank TB-UJI-0001 | 100002  | 1000\n(2 rows)\n nama    | saldo\n---------+-------\n Lab uji | 1000\n(1 row)",
+      "jelas": "Jurnal punya dua posting: minus Rp1.000 di buku tanpa akun (buku bank, dibaca dari kode lab) dan plus Rp1.000 untuk akun uji 100002. Saldo akun uji menjadi Rp1.000 tanpa ada kiriman dari bank (penalaran).",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "ledger menuntut sertifikat client",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "pod",
+        "ke": "ledger",
+        "judul": "Versi benar di port yang sama: pod uji memanggil dengan HTTP biasa",
+        "kirim": "$ panggil http (tanpa TLS) ke ledger mTLS\nstatus 400 Client sent an HTTP request to an HTTPS server.",
+        "jelas": "Ledger versi benar hanya mendengar HTTPS. Pod uji yang sama dijawab 400 oleh server."
+      },
+      {
+        "dari": "pod",
+        "ke": "ledger",
+        "judul": "Pod uji mencoba handshake TLS tanpa sertifikat, dan jurnalnya nol",
+        "kirim": "$ panggil -sonde tanpa sertifikat ke ledger mTLS\nsonde: alert dari server: tls: certificate required\n=> SELECT count(*) AS jurnal_untuk_key_kedua FROM jurnal WHERE keterangan = 'Top-up bank TB-UJI-0002'\n jurnal_untuk_key_kedua\n------------------------\n 0\n(1 row)",
+        "jelas": "Sonde menyelesaikan handshake, tidak mengirim permintaan HTTP, dan menunggu paling lama 500 milidetik untuk alert. Server menolak pemanggil tanpa sertifikat dengan alert certificate required. Jurnal untuk key kedua nol, sesudah percobaan HTTP biasa dan sonde.",
+        "nada": "good"
+      },
+      {
+        "dari": "notif",
+        "ke": "ledger",
+        "judul": "Service notifikasi dengan sertifikat sah dijawab 403",
+        "kirim": "$ notifikasi -> ledger  jalur=topup Idempotency-Key=TB-LAB-0002 akun=100002 jumlah=1000\nstatus 403 {\"alasan\":\"jenis-tidak-diizinkan\",\"identitas\":\"notifikasi\",\"jenis\":\"topup_bank\"}",
+        "jelas": "Pemanggil ini punya sertifikat sah, jadi handshake lolos. Handler ledger membaca identitas notifikasi dan menjawab 403 untuk jurnal topup_bank. Cara kerjanya dibahas di halaman berikutnya.",
+        "nada": "good"
+      }
+    ]
+  }
+}

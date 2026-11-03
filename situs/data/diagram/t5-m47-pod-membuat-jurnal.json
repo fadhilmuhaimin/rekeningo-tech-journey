@@ -1,0 +1,25 @@
+{
+  "id": "t5-m47-pod-membuat-jurnal",
+  "judul": "Ledger versi pertama membuat jurnal untuk pod uji tanpa sertifikat, dan Idempotency-Key hanya membedakan permintaan",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t5-service · rentan.txt bagian A dan idempoten.txt bagian A dan C" },
+  "baris": [
+    {
+      "label": "Versi pertama",
+      "sub": "ledger tanpa pemeriksa pemanggil",
+      "simpul": [
+        { "teks": "Pod uji, tanpa sertifikat", "sub": "key baru, Rp1.000" },
+        { "teks": "201: jurnal baru", "sub": "satu jurnal top-up" },
+        { "teks": "Saldo akun uji Rp1.000", "sub": "lawannya buku bank", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Key lewat service pembayaran",
+      "sub": "sertifikat sah, bukan pod uji",
+      "simpul": [
+        { "teks": "Key sama: satu jurnal", "sub": "201, lalu 200", "nada": "good" },
+        { "teks": "Key baru: jurnal kedua", "sub": "akun dan jumlah sama", "nada": "warn" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye menandai hasil yang Idempotency-Key tidak mencegah: saldo akun uji yang naik, dan jurnal kedua untuk key baru. Baris kedua memakai service pembayaran dengan sertifikat sah. Pod uji di rekaman adalah perintah panggil di mesin yang sama, bukan pod."
+}
