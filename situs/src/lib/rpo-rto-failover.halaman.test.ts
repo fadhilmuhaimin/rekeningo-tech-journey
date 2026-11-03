@@ -150,6 +150,330 @@ const JEDA_DETIK = Number(cocok(naskah.split("\n").find((b) => b.startsWith("| R
 const tag = [...badan.matchAll(/<Snippet ([^>]*?)\/>/g)].map((m) => m[1]!);
 const judulSnippet = tag.map((t) => t.match(/title="([^"]+)"/)?.[1]!);
 
+// Tabel non-prosa dan token baris riset dikunci literal di sini (tetap menyala di TANPA_KUNCI dan TANPA_LITERAL), supaya mutan sel tertukar,
+// digit, kutipan, dan URL di baris riset tertangkap tanpa bergantung pada sidik jari.
+const selTabel = (l: string): string[] => l.trim().replace(/^\|/, "").replace(/\|$/, "").split(/(?<!\\)\|/).map((x) => x.trim());
+const TABEL_ADR: string[][] = [
+  [
+    "",
+    "A. Replica asinkron saja",
+    "B. Satu standby sinkron",
+    "C. `remote_apply` untuk ledger",
+    "D. Layanan terkelola dengan failover",
+    "E. Sinkron kuorum `ANY 1 (r1, r2)`"
+  ],
+  [
+    "Cara kerja",
+    "Standby menerima WAL tanpa ditunggu COMMIT, lalu dipromosikan",
+    "`synchronous_standby_names` berisi satu nama, dan COMMIT menunggu standby itu menyimpan commit",
+    "Seperti B, dengan `synchronous_commit = remote_apply`: COMMIT menunggu standby memutar ulang commit",
+    "Penyedia menjalankan replica dan failover, dengan jendela menurut penyedia [perlu verifikasi]",
+    "Dua standby sinkron, `synchronous_commit = on`, dan COMMIT dilepas oleh jawaban salah satunya"
+  ],
+  [
+    "Kelebihan",
+    "COMMIT tidak menunggu siapa pun",
+    "3 dari 3 jurnal 201 ada di node baru (`promosi.txt` bagian B)",
+    "Commit sudah terlihat oleh query di standby (dokumentasi)",
+    "Penyedia mengambil operasi failover [perlu verifikasi]",
+    "Satu standby yang mati tidak menahan COMMIT (dokumentasi PostgreSQL 17), dan commit ada di satu standby sebelum jawaban"
+  ],
+  [
+    "Kekurangan",
+    "0 dari 5 jurnal 201 ada di node baru (`promosi.txt` bagian A)",
+    "Satu-satunya standby yang mati menahan COMMIT (`sinkron.txt` bagian C)",
+    "Jeda commit lebih besar menurut dokumentasi, dan RPO nol tidak membutuhkannya",
+    "Tidak bisa direkam di lab, dan fitur khusus penyedia menutup jalan keluar ([[t5-onprem]])",
+    "Satu server standby lagi, dan failover harus memilih standby yang lebih maju"
+  ],
+  [
+    "Biaya operasional",
+    "Satu standby, dan RPO sebanding dengan jeda (69 transaksi per jeda 1 detik, Hitungan atas Asumsi)",
+    "Satu standby, dan alert bila ia mati",
+    "Satu standby dan jeda commit yang lebih besar",
+    "Biaya penyedia, belum dihitung",
+    "Dua standby, alert jumlah standby sinkron, dan latihan failover"
+  ],
+  [
+    "Bukti",
+    "Rekaman lab `promosi.txt` bagian A",
+    "Rekaman lab `promosi.txt` bagian B dan `sinkron.txt` bagian A dan C",
+    "Rekaman lab `sinkron.txt` bagian B",
+    "Tidak dijalankan: tidak bisa direkam, dan database dijalankan sendiri atau terkelola belum diputuskan",
+    "Tidak dijalankan: lab satu kandidat. Dokumentasi PostgreSQL 17 dan CloudNativePG 1.30"
+  ]
+];
+const TABEL_SENGAJA: string[][] = [
+  [
+    "Yang ditunda",
+    "Kenapa ditunda",
+    "Muncul lagi di"
+  ],
+  [
+    "`ANY 1` dengan dua kandidat di lab",
+    "Lab memakai satu kandidat sinkron",
+    "Belum dijadwalkan"
+  ],
+  [
+    "Patroni atau CloudNativePG",
+    "Tidak ada perangkat deteksi atau fencing di lab, dan produksi sendiri atau terkelola belum diputuskan",
+    "[[t5-onprem]]"
+  ],
+  [
+    "Fencing dan `pg_rewind`",
+    "Lab tidak mematikan primary lama dan tidak membangun ulang standby",
+    "Belum dijadwalkan"
+  ],
+  [
+    "Waktu pulih terukur",
+    "Lab tidak mengukur RTO, dan 23 menit adalah Ilustrasi",
+    "Latihan bulanan SRE ([[t5-tim-infra]])"
+  ],
+  [
+    "Sinkron lintas wilayah",
+    "Jeda antar wilayah tidak diukur",
+    "[[t5-adr-60]]"
+  ]
+];
+const TOKEN_RISET: Record<string, { angka: string[]; kutipan: string[]; url: string[] }> = {
+  "R5-150": {
+    "angka": [
+      "150",
+      "5.9",
+      "17",
+      "26.2.8",
+      "17",
+      "2026",
+      "11",
+      "03",
+      "26.2.8.2",
+      "26.2.8.3",
+      "26.2.8.4",
+      "17",
+      "19.6.2",
+      "17",
+      "1",
+      "19.5.1",
+      "17",
+      "5.9",
+      "48",
+      "2026",
+      "11",
+      "03",
+      "17",
+      "17.11"
+    ],
+    "kutipan": [
+      "PostgreSQL streaming replication is asynchronous by default.",
+      "The amount of data loss is proportional to the replication delay at the time of failover.",
+      "The only possibility that data can be lost is if both the primary and the standby suffer crashes at the same time.",
+      "If any of the current synchronous standbys disconnects for whatever reason, it will be replaced immediately with the next-highest-priority standby.",
+      "at least the requested number of synchronous standbys in the list",
+      "transaction locks continue to be held until the transfer is confirmed",
+      "Such transaction commits may never be completed if any one of the synchronous standbys should crash.",
+      "you should fail over to the best candidate of those other remaining standby servers",
+      "FIRST 1 (s1, s2) and s1, s2 have the same meaning",
+      "will cause much larger commit delays",
+      "ensures the transaction will not be lost unless both the primary and all synchronous standbys suffer corruption of their database storage",
+      "the behavior for any one transaction is determined by the setting in effect when it commits"
+    ],
+    "url": [
+      "postgresql.org/docs/17/warm-standby.html#SYNCHRONOUS-REPLICATION",
+      "postgresql.org/docs/17/warm-standby.html#SYNCHRONOUS-REPLICATION-HA",
+      "postgresql.org/docs/17/runtime-config-replication.html",
+      "postgresql.org/docs/17/runtime-config-wal.html"
+    ]
+  },
+  "R5-151": {
+    "angka": [
+      "151",
+      "5.9",
+      "17",
+      "26.3",
+      "17",
+      "2026",
+      "11",
+      "03",
+      "17",
+      "60",
+      "17",
+      "5.9",
+      "4",
+      "8",
+      "48",
+      "2026",
+      "11",
+      "03"
+    ],
+    "kutipan": [
+      "PostgreSQL does not provide the system software required to identify a failure on the primary and notify the standby database server. Many such tools exist and are well integrated with the operating system facilities required for successful failover, such as IP address migration.",
+      "is necessary to avoid situations where both systems think they are the primary",
+      "The pg_rewind utility can be used to speed up this process on large clusters.",
+      "Written administration procedures are advised.",
+      "also serves as a test of the failover mechanism",
+      "Returns the last write-ahead log location that has been received and synced to disk by streaming replication.",
+      "A typical scenario is to bring an old primary server back online after failover as a standby that follows the new primary."
+    ],
+    "url": [
+      "postgresql.org/docs/17/warm-standby-failover.html",
+      "postgresql.org/docs/17/functions-admin.html",
+      "postgresql.org/docs/17/app-pgrewind.html"
+    ]
+  },
+  "R5-152": {
+    "angka": [
+      "152",
+      "5.9",
+      "2026",
+      "11",
+      "03",
+      "800",
+      "34",
+      "1",
+      "5.9",
+      "15",
+      "112"
+    ],
+    "kutipan": [
+      "The point in time to which data must be recovered after an outage.",
+      "The overall length of time an information system's components can be in the recovery phase before negatively impacting the organization's mission or mission/business processes."
+    ],
+    "url": []
+  },
+  "R5-153": {
+    "angka": [
+      "153",
+      "5.9",
+      "2026",
+      "11",
+      "03",
+      "1.5",
+      "2026",
+      "08",
+      "12",
+      "30.1",
+      "2026",
+      "09",
+      "23",
+      "4.1.5",
+      "4.1.5",
+      "4.1.5",
+      "1.30",
+      "1.30",
+      "1",
+      "1",
+      "2",
+      "3",
+      "1",
+      "0",
+      "5.9",
+      "3",
+      "48",
+      "2026",
+      "11",
+      "03"
+    ],
+    "kutipan": [
+      "Using PostgreSQL synchronous replication does not guarantee zero lost transactions under all circumstances. When the primary and the secondary that is currently acting as a synchronous replica fail simultaneously a third node that might not contain all transactions will be promoted.",
+      "Patroni will not promote a standby unless it is certain that the standby contains all transactions that may have returned a successful commit status to client",
+      "commits will block until next iteration of Patroni runs and switches the primary to standalone mode",
+      "prevents Patroni from switching off the synchronous replication",
+      "an additional layer of fail safe",
+      "write operations will pause if the required number of synchronous standbys is unavailable",
+      "ensures zero data loss (RPO=0)",
+      "write operations will continue even if fewer than the requested number of standbys are available"
+    ],
+    "url": [
+      "api.github.com/repos/patroni/patroni/releases",
+      "api.github.com/repos/cloudnative-pg/cloudnative-pg/releases",
+      "patroni.readthedocs.io/en/latest/replication_modes.html",
+      "patroni.readthedocs.io/en/latest/watchdog.html",
+      "cloudnative-pg.io/docs/1.30/replication/"
+    ]
+  },
+  "R5-154": {
+    "angka": [
+      "154",
+      "5.9",
+      "11.0",
+      "11.0",
+      "2026",
+      "11",
+      "03",
+      "8.23.1",
+      "4.0.0",
+      "13",
+      "13",
+      "5.2",
+      "5.2",
+      "5.2",
+      "4.1.0",
+      "2026",
+      "11",
+      "03",
+      "2026",
+      "11",
+      "03",
+      "1",
+      "69,4",
+      "69,4",
+      "69",
+      "1",
+      "46,3",
+      "46,3",
+      "46",
+      "69,4",
+      "0,05",
+      "3,47",
+      "46,3",
+      "0,05",
+      "2,315",
+      "2,32",
+      "1",
+      "0,05",
+      "20",
+      "23",
+      "15",
+      "8",
+      "23",
+      "43,2",
+      "0,5324",
+      "53,2",
+      "15",
+      "43,2",
+      "0,3472",
+      "34,7",
+      "0,001",
+      "43.200",
+      "43,2",
+      "15",
+      "99,9",
+      "23",
+      "69,4",
+      "46,3",
+      "4.13",
+      "50",
+      "5.9"
+    ],
+    "kutipan": [
+      "ParseConfig supports specifying multiple hosts in similar manner to libpq. Host and port may include comma separated values that will be tried in order.",
+      "zero downtime failovers",
+      "Extra parameters to use when connecting to the database.",
+      "Replication is asynchronous to ensure that transactions on the Primary aren't blocked."
+    ],
+    "url": [
+      "raw.githubusercontent.com/jackc/pgx/v5.11.0/pgconn/config.go",
+      "node-postgres.com/features/connecting",
+      "github.com/porsager/postgres",
+      "laravel.com/docs/13.x/database",
+      "docs.djangoproject.com/en/5.2/ref/databases/",
+      "docs.djangoproject.com/en/5.2/ref/settings/",
+      "docs.serverpod.dev/concepts/data-and-the-database/database/connection",
+      "supabase.com/docs/guides/platform/read-replicas"
+    ]
+  }
+};
+
 describe("registry, meta, susunan blok, dan tautan", () => {
   test("5.9 ada, konsep, jalur inti, prasyarat 5.8, lab t5-replika, peran devops dan backend, ADR 48; judul sama dengan peta naskah; menit = baca + coba", () => {
     expect(dari("t5-rpo-rto")).toMatchObject({ ada: true, nomor: "5.9", jenis: "konsep", inti: true, prasyarat: ["t5-m42"], lab: ["t5-replika"], tahap: 5, peran: ["devops", "backend"], adr: [48], path: "tahap-5/rpo-rto-failover.md" });
@@ -174,6 +498,10 @@ describe("registry, meta, susunan blok, dan tautan", () => {
   test("tautan [[id]]: himpunan sama dengan yang diharapkan; nomor dan judul sama dengan registry dan peta naskah", () => {
     const id = [...new Set([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!))].sort();
     expect(id).toEqual(["berikutnya", "t2-race-lock", "t3-adr-33", "t3-pool", "t4-modul", "t4-webhook", "t5-lag", "t5-m42", "t5-m46", "t5-onprem", "t5-pooler", "t5-prd", "t5-read-replica", "t5-tim-infra", "t5-adr-60"].sort());
+    // jumlah kemunculan tiap tautan (mutan satu tautan ke id lain tidak mengubah himpunan di atas)
+    const jumlah: Record<string, number> = {};
+    for (const m of badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)) jumlah[m[1]!] = (jumlah[m[1]!] ?? 0) + 1;
+    expect(jumlah).toEqual({ berikutnya: 1, "t2-race-lock": 1, "t3-adr-33": 2, "t3-pool": 1, "t4-modul": 2, "t4-webhook": 1, "t5-adr-60": 1, "t5-lag": 1, "t5-m42": 7, "t5-m46": 1, "t5-onprem": 4, "t5-pooler": 1, "t5-prd": 3, "t5-read-replica": 2, "t5-tim-infra": 2 });
     const sesuai: [string, string, string][] = [
       ["t2-race-lock", "2.11", "Race condition dan lock"], ["t3-adr-33", "3.30", "ADR 33"], ["t3-pool", "3.8", "Connection pool"], ["t4-modul", "4.13", "Modular monolith"], ["t4-webhook", "4.7", "Webhook masuk"],
       ["t5-lag", "5.7", "Replication lag dan read-your-writes"], ["t5-m42", "5.8", "M42"], ["t5-m46", "5.16", "M46"], ["t5-onprem", "5.28", "On-prem lawan cloud"],
@@ -385,6 +713,75 @@ describe("hitungan: tabel Hitungan dihitung ulang dari angka yang tertulis di ha
   });
 });
 
+// ---- angka di badan: setiap token angka dan jumlah kemunculannya --------------------------------------------------------------
+describe("angka di badan: himpunan token angka dan jumlahnya dikunci; tiap token punya asal yang diturunkan dari sumber", () => {
+  // Token angka di badan di luar impor, atribut Snippet, kode JS, URL tautan, dan tanggal akses (tanggal dan URL dijaga tes sumber luar).
+  const bersih = badan
+    .split("\n").filter((b) => !b.startsWith("import ")).join("\n")
+    .replace(/<Snippet [^>]*?\/>/g, "").replace(/<Snippet lang="js" code=\{`[\s\S]*?`\} \/>/g, "")
+    .replace(/\]\(https?:\/\/[^)]*\)/g, "]").replace(/(dibuka|pada|rilis) 2026-\d\d-\d\d/g, "$1 TGL");
+  const token = new Map<string, number>();
+  for (const m of bersih.matchAll(/(?<![\w.])\d+(?:[.,]\d+)*(?![\w])/g)) token.set(m[0], (token.get(m[0]) ?? 0) + 1);
+  // [token, jumlah kemunculan, asal]. Asal yang bisa dihitung diperiksa di tes berikutnya; token struktural (nomor daftar) hanya dihitung.
+  const ANGKA: [string, number, string][] = [
+    ["0", 4, "0 dari 5 (rekaman A), 0 di 0,001 tidak termasuk, 0 jurnal"], ["0,001", 1, "rumus anggaran PRD v5"], ["0,05", 4, "50 ms = 0,05 detik"], ["1", 28, "nomor daftar, ADR 1 detik, FIRST 1, ANY 1, r1"],
+    ["1.30", 5, "CloudNativePG 1.30"], ["13", 2, "Laravel 13.x"], ["15", 13, "RTO 15 menit"], ["17", 21, "PostgreSQL 17"], ["2", 6, "nomor daftar dan 2 transaksi per user aktif"], ["2,32", 1, "46,3 × 0,05"],
+    ["20", 4, "baca 20 menit; 1 ÷ 0,05 = 20"], ["201", 13, "status jawaban pembayaran"], ["23", 12, "gangguan 23 menit"], ["24", 1, "jendela backup 24 jam"], ["3", 12, "3 jurnal; 3 pertanyaan; coba 3 menit; 3 detik"],
+    ["3,47", 2, "69,4 × 0,05"], ["30", 1, "30 hari"], ["33", 4, "ADR 33"], ["34", 1, "NIST SP 800-34"], ["34,7", 2, "15 ÷ 43,2"], ["4", 5, "nomor daftar dan butir 4"], ["4.0.0", 1, "postgres npm"],
+    ["4.1.0", 1, "Serverpod"], ["4.1.5", 4, "Patroni"], ["43,2", 10, "anggaran menit"], ["43.200", 1, "menit dalam 30 hari"], ["46", 1, "1 × 46,3"], ["46,3", 3, "puncak trx 2"], ["48", 4, "ADR 48"],
+    ["5", 5, "5 jurnal; Django 5.2 terpisah"], ["5.2", 3, "Django 5.2"], ["50", 5, "anggaran 50 ms"], ["52", 1, "ADR 52"], ["53,2", 3, "23 ÷ 43,2"], ["6", 3, "nomor daftar dan 6 bulan"], ["60", 1, "t5-adr-60 di tautan"],
+    ["600", 1, "COMMIT per mode"], ["69", 4, "1 × 69,4"], ["69,4", 4, "puncak trx 3"], ["7", 2, "nomor daftar"], ["8", 4, "23 − 15 dan nomor daftar dan pg 8.23.1 terpisah"], ["8.23.1", 1, "pg npm"], ["800", 1, "NIST SP 800-34"],
+    ["9", 1, "9 jurnal bayar di primary lama; 99,9 terpisah"], ["99,9", 1, "ketersediaan PRD v5"],
+  ];
+  test("tiap token angka di badan ada di daftar dengan jumlah yang sama, tidak ada token lain (mutan satu digit mengubah token atau jumlahnya)", () => {
+    expect(Object.fromEntries([...token].sort(([a], [b]) => a.localeCompare(b)))).toEqual(Object.fromEntries(ANGKA.map(([t, n]) => [t, n]).sort(([a], [b]) => String(a).localeCompare(String(b)))));
+  });
+  test("token yang punya satu arti diturunkan dari sumber: rekaman, registry, naskah, PRD v5, go.mod, dan halaman tetangga", () => {
+    const ada = (t: string) => ANGKA.some(([x]) => x === t);
+    expect(String(JURNAL_LIMA_DI_BARU)).toBe("0");
+    expect(String(JUMLAH_ID_LIMA)).toBe("5");
+    expect(String(BAYAR_PRIMARY_A)).toBe("9");
+    expect(String(PER_MODE)).toBe("600");
+    expect(String(RTO)).toBe("15");
+    expect(String(GANGGUAN)).toBe("23");
+    expect(fmt(ANGGARAN, 1)).toBe("43,2");
+    expect(fmt(MENIT_30_HARI)).toBe("43.200");
+    expect(String(LOMPATAN_MS)).toBe("50");
+    expect(fmt(bulat(PUNCAK_TRX3, 1), 1)).toBe("69,4");
+    expect(fmt(bulat(PUNCAK_TRX2, 1), 1)).toBe("46,3");
+    expect(String(bulat(JEDA_DETIK * bulat(PUNCAK_TRX3, 1)))).toBe("69");
+    expect(String(bulat(JEDA_DETIK * bulat(PUNCAK_TRX2, 1)))).toBe("46");
+    expect(fmt(bulat((GANGGUAN / ANGGARAN) * 100, 1), 1)).toBe("53,2");
+    expect(fmt(bulat((RTO / ANGGARAN) * 100, 1), 1)).toBe("34,7");
+    expect(fmt(bulat(bulat(PUNCAK_TRX3, 1) * 0.05, 2), 2)).toBe("3,47");
+    expect(fmt(bulat(bulat(PUNCAK_TRX2, 1) * 0.05, 2), 2)).toBe("2,32");
+    expect(fmt(1 / 0.05)).toBe("20");
+    expect(String(JURNAL_TIGA_DI_BARU)).toBe("3");
+    expect(String(BATAS_DETIK)).toBe("3");
+    expect(String(BAYAR_PRIMARY_B)).toBe("4");
+    expect(String(dari("t5-rpo-rto").adr![0])).toBe("48");
+    expect(String(dari("t5-pooler").adr![0])).toBe("52");
+    expect(dari("t3-adr-33").judul).toContain("ADR 33");
+    expect(dari("t5-adr-60").judul).toContain("ADR 60");
+    expect(prd5).toContain("0,001 × 43.200 = 43,2 menit");
+    expect(prd5).toContain("Ketersediaan pembayaran 99,9% per 30 hari");
+    expect(prd5).toContain("Backup harian berjendela sampai 24 jam");
+    expect(hal3adr33).toContain("jendela kehilangan data sampai 24 jam");
+    expect(goMod).toContain("github.com/jackc/pgx/v5 v5.11.0");
+    expect(barisRiset("R5-153")).toContain("Patroni v4.1.5 terbit");
+    expect(barisRiset("R5-153")).toContain("CloudNativePG v1.30.1 terbit");
+    expect(barisRiset("R5-153")).toContain("Patroni 4.1.5");
+    expect(barisRiset("R5-154")).toContain("pg 8.23.1");
+    expect(barisRiset("R5-154")).toContain("postgres 4.0.0");
+    expect(barisRiset("R5-154")).toContain("Serverpod 4.1.0");
+    expect(barisRiset("R5-154")).toContain("Laravel 13.x");
+    expect(barisRiset("R5-154")).toContain("Django 5.2");
+    expect(barisRiset("R5-152")).toContain("NIST SP 800-34 Rev. 1");
+    expect(["0", "5", "9", "600", "15", "23", "43,2", "43.200", "50", "69,4", "46,3", "69", "46", "53,2", "34,7", "3,47", "2,32", "20", "3", "4", "48", "52", "33", "60", "24", "99,9", "30", "0,001", "800", "34", "17"].every(ada)).toBe(true);
+    expect(sinkron.split("\n")[1]).toContain("17.11");
+  });
+});
+
 // ---- sumber luar -----------------------------------------------------------------------------------------------------------------
 describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
   test("lima baris riset R5-150 sampai R5-154 ada, naik berurutan (rentang, bukan tetangga), tanpa ganda; tanggal akses sama dengan tanggal di halaman", () => {
@@ -537,6 +934,15 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
     expect(badan).toContain("Tab Go dijalankan sebagian di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-03. Kode di tab lain adalah Ilustrasi.");
     expect(tab[0]).toContain("Primary lama yang masih menerima tulisan tidak menjawab `on`, jadi pemeriksaan itu juga lolos untuknya (penalaran dari kode dan `promosi.txt` bagian A, Tidak dijalankan).");
   });
+  test("baris riset: angka, kutipan, dan URL tiap baris sama dengan nilai yang dikunci (mutan digit, versi, bagian dokumentasi, tanggal, kutipan, URL)", () => {
+    for (const id of IDS) {
+      const b = barisRiset(id);
+      expect(b.match(/(?<![\w])\d+(?:[.,]\d+)*(?![\w])/g), `${id} angka`).toEqual(TOKEN_RISET[id]!.angka);
+      expect([...b.matchAll(/"([^"]{12,})"/g)].map((m) => m[1]), `${id} kutipan`).toEqual(TOKEN_RISET[id]!.kutipan);
+      expect(b.match(/(?:[a-z0-9-]+\.)+(?:com|org|io|dev)(?:\/[^\s;,)"]*)?/g) ?? [], `${id} url`).toEqual(TOKEN_RISET[id]!.url);
+    }
+    expect(Object.keys(TOKEN_RISET)).toEqual(IDS);
+  });
   test("baris riset sumber luar: 'Berubah sejak' menulis Tidak berubah dengan tanggal yang sama dengan tanggal akses; baris R5-154 memuat hitungan 69,4 × 0,05 = 3,47 dan 46,3 × 0,05 = 2,315", () => {
     for (const id of IDS) {
       const sel = barisRiset(id).split("|").map((x) => x.trim());
@@ -580,6 +986,7 @@ describe("diagram Rantai dan tebakan: nilai diturunkan dari rekaman", () => {
   test("Rantai failover: enam simpul; hanya satu direkam (promosi), satu diperankan (run.py), fencing tidak ada, tiga Tidak dijalankan; sub sama dengan kode dan README", () => {
     const s = diagramFailover.baris[0]!.simpul;
     expect(diagramFailover.baris).toHaveLength(1);
+    expect(diagramFailover.baris[0]!.label).toBe("Failover");
     expect(s.map((x) => x.teks)).toEqual([
       "Mengenali primary gagal", "Memutuskan promosi", "Menghentikan primary lama", "Promosi dengan pg_promote()", "Mengarahkan app ke node baru", "Membangun ulang standby",
     ]);
@@ -624,6 +1031,21 @@ describe("diagram Rantai dan tebakan: nilai diturunkan dari rekaman", () => {
     expect(tebak.pilihan[3]!.alasan).toContain("Dokumentasi PostgreSQL 17 tidak menyebut batas waktu atau perpindahan itu, dan lab tidak menunggu sampai batas.");
     expect(SC.teks).toContain("tidak menyebut batas waktu penantian; lab tidak menunggunya");
     expect(tebak.pilihan[2]!.alasan).toContain("Dokumentasi menulis bahwa commit seperti ini mungkin tidak pernah selesai, bukan bahwa ia ditolak.");
+    expect(tebak.pilihan.map((x) => x.teks)).toEqual([
+      "COMMIT selesai seperti biasa, karena primary sudah menulis commit ke disknya sendiri dan tidak butuh standby lagi.",
+      "COMMIT menunggu tanpa galat, dan barisnya belum terlihat oleh sesi lain sebelum daftar standby sinkron diubah.",
+      "COMMIT ditolak segera dengan galat, supaya aplikasi langsung tahu bahwa standby sinkronnya mati.",
+      "COMMIT berpindah sendiri ke mode asinkron sesudah batas waktu tertentu, lalu selesai tanpa galat.",
+    ]);
+    expect(tebak.pilihan.map((x) => x.alasan)).toEqual([
+      "Dengan standby sinkron, COMMIT menunggu standby menyimpan commit-nya. Rekaman bagian C: sesi itu menunggu di SyncRep, dan barisnya belum terlihat oleh sesi lain.",
+      "Rekaman bagian C: sesi menunggu di SyncRep, barisnya tidak terlihat, dan COMMIT selesai sesudah synchronous_standby_names dikosongkan. Selama daftar kosong, COMMIT tidak menunggu siapa pun.",
+      "Rekaman tidak memuat galat: pg_stat_activity menunjukkan sesi itu menunggu. Dokumentasi menulis bahwa commit seperti ini mungkin tidak pernah selesai, bukan bahwa ia ditolak.",
+      "Dokumentasi PostgreSQL 17 tidak menyebut batas waktu atau perpindahan itu, dan lab tidak menunggu sampai batas. Yang terekam: COMMIT baru selesai sesudah daftar dikosongkan dengan tangan.",
+    ]);
+    // label widget sama dengan label tebakan 5.5 (satu bentuk per widget) kecuali chip sumber
+    const labelLain = JSON.parse(baca("situs/data/widget/t5-replica-tebak.json")).label as Record<string, string>;
+    expect(tebak.label).toEqual({ ...labelLain, sumber: "Rekaman lab · sinkron.txt" });
     expect(tebak.penutup).toBe("Standby sinkron yang mati menahan COMMIT tanpa galat. Yang melepasnya adalah menurunkan atau mengosongkan synchronous_standby_names, dan selama itu tidak ada standby yang dijanjikan menyimpan commit.");
   });
   test("jawaban tebakan tidak ada di prosa sebelum widget: kata 'macet' dan 'menahan COMMIT' tidak muncul di Mulai maupun di paragraf Coba sebelum <Tebak>; Inti tidak menyebut standby mati", () => {
@@ -728,7 +1150,8 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, dan se
     expect(awal).toBeGreaterThan(0);
     const bagian = badan.slice(awal).split("\n\n")[0]!.split("\n");
     expect(bagian).toHaveLength(7);
-    const sel = (b: string) => b.replace(/^\|/, "").replace(/\|$/, "").split(/(?<!\\)\|/).map((x) => x.trim());
+    const sel = selTabel;
+    expect(bagian.filter((b) => !b.startsWith("|---")).map(selTabel)).toEqual(TABEL_ADR);
     for (const b of bagian) expect(sel(b), b.slice(0, 40)).toHaveLength(6);
     expect(sel(bagian[0]!)).toEqual(["", "A. Replica asinkron saja", "B. Satu standby sinkron", "C. `remote_apply` untuk ledger", "D. Layanan terkelola dengan failover", "E. Sinkron kuorum `ANY 1 (r1, r2)`"]);
     expect(bagian.slice(2).map((b) => sel(b)[0])).toEqual(["Cara kerja", "Kelebihan", "Kekurangan", "Biaya operasional", "Bukti"]);
@@ -743,7 +1166,12 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, dan se
     expect(kekurangan[1]).toBe(`0 dari ${JUMLAH_ID_LIMA} jurnal 201 ada di node baru (\`promosi.txt\` bagian A)`);
     const kelebihan = sel(bagian[3]!);
     expect(kelebihan[2]).toBe(`${JURNAL_TIGA_DI_BARU} dari ${JUMLAH_ID_TIGA} jurnal 201 ada di node baru (\`promosi.txt\` bagian B)`);
-    expect(sel(bagian[5]!)[1]).toBe(`Satu standby, dan RPO sama dengan jeda (${fmt(bulat(JEDA_DETIK * bulat(PUNCAK_TRX3, 1)))} transaksi per jeda ${JEDA_DETIK} detik, Hitungan atas Asumsi)`);
+    expect(sel(bagian[5]!)[1]).toBe(`Satu standby, dan RPO sebanding dengan jeda (${fmt(bulat(JEDA_DETIK * bulat(PUNCAK_TRX3, 1)))} transaksi per jeda ${JEDA_DETIK} detik, Hitungan atas Asumsi)`);
+    // tabel Sengaja belum: header 3 kolom, lima baris, dan setiap sel dikunci
+    const sb = badan.slice(badan.indexOf("| Yang ditunda |")).split("\n\n")[0]!.split("\n");
+    expect(sb.filter((b) => !b.startsWith("|---")).map(selTabel)).toEqual(TABEL_SENGAJA);
+    for (const b of sb) expect(selTabel(b), b.slice(0, 40)).toHaveLength(3);
+    expect(sb).toHaveLength(7);
   });
   test("keputusan: delapan aturan berurutan 1 sampai 8, 'Keputusan: opsi E', alasan menolak A, B, C, D tiap satu butir, FIRST 1 (r1, r2) bukan opsi di tabel dan Tidak dijalankan", () => {
     const putusan = badan.slice(badan.indexOf("**Keputusan: opsi E.**"));

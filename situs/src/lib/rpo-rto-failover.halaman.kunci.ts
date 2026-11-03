@@ -158,7 +158,7 @@ export const KUNCI_LITERAL: [string, number][] = [
     1
   ],
   [
-    "**Replica asinkron kehilangan sebesar jedanya.** Replikasi streaming PostgreSQL bersifat asinkron secara bawaan.",
+    "**Replica asinkron kehilangan data sebanding dengan jedanya.** Replikasi streaming PostgreSQL bersifat asinkron secara bawaan.",
     1
   ],
   [
@@ -183,10 +183,6 @@ export const KUNCI_LITERAL: [string, number][] = [
   ],
   [
     "Tiap COMMIT lalu menunggu konfirmasi bahwa standby menulis rekaman commit ke penyimpanan tahan lama (sumber yang sama).",
-    1
-  ],
-  [
-    "Nama standby di daftar adalah `application_name`-nya.",
     1
   ],
   [
@@ -283,6 +279,10 @@ export const KUNCI_LITERAL: [string, number][] = [
   ],
   [
     "Menurut dokumentasi, `FIRST 1 (s1, s2)` sama artinya dengan `s1, s2`.",
+    1
+  ],
+  [
+    "Nama standby di daftar adalah `application_name`-nya (sumber yang sama).",
     1
   ],
   [
@@ -466,7 +466,7 @@ export const KUNCI_LITERAL: [string, number][] = [
     1
   ],
   [
-    "Alat yang diatur ke `preferred` atau tanpa mode strict menurunkan jaminan sendiri, tanpa SRE yang mencatatnya.",
+    "Alat yang diatur ke `preferred` atau tanpa mode strict menurunkan jaminan sendiri (penalaran dari kedua dokumen).",
     1
   ],
   [
@@ -546,7 +546,11 @@ export const KUNCI_LITERAL: [string, number][] = [
     1
   ],
   [
-    "**Yang berbeda di stack ini:** `pgx.ParseConfig` meneruskan ke `pgconn.ParseConfig`, yang menerima beberapa host dipisah koma dan mencobanya berurutan.",
+    "**Yang berbeda di stack ini:** `pgx.ParseConfig` meneruskan penguraian ke paket `pgconn`.",
+    1
+  ],
+  [
+    "Paket itu menerima beberapa host dipisah koma dan mencobanya berurutan.",
     1
   ],
   [
@@ -882,7 +886,7 @@ export const KUNCI_LITERAL: [string, number][] = [
     1
   ],
   [
-    "Promosi tanpa fencing menghasilkan dua primary, seperti pembayaran ke-9 di primary lama pada `promosi.txt` bagian A.",
+    "Promosi tanpa fencing menghasilkan dua primary: pada `promosi.txt` bagian A primary lama masih menerima pembayaran sesudah promosi.",
     1
   ],
   [
