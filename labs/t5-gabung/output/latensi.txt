@@ -1,0 +1,23 @@
+# Lab t5-gabung · p95 sebagai rasio dan anggaran 50 ms: satu proses lawan tiga proses
+# go1.27.3 · tanpa database dan tanpa container · modul lab/t5gabung (pustaka standar) · broker antrean tiruan di loopback
+# Skor risiko di lab ini peraga, bukan fitur produk dan bukan model risiko.
+# Rekaman: make -C labs/t5-gabung run. Waktu dan p95 tidak ditulis; yang ditulis hasil pemeriksaan terhadap batas.
+
+# --- A. p95 satu transaksi sebagai rasio, bukan nilai mutlak ---
+# Cara: 5 putaran bergantian (satu proses, lalu tiga proses). Tiap putaran 100 transaksi berurutan dan 20 transaksi pemanasan yang tidak diukur.
+# p95 dihitung per putaran dengan nearest-rank; yang dibandingkan adalah median dari 5 p95 tiap versi. Angka mesin tidak ditulis di rekaman.
+# Jeda buatan per panggilan (Asumsi: 0, 2, 4, 10 ms; lab tidak mengukur jaringan antar host). Satu transaksi tiga proses melewati 6 panggilan.
+# time.Sleep tidak kembali sebelum durasinya lewat, jadi p95 tiga proses paling sedikit 6 x jeda (batas bawah, Hitungan).
+jeda ms  batas bawah p95 tiga (6 x jeda)  p95 tiga >= batas bawah  rasio p95 tiga/satu >= batas
+      0         0 ms                    ya                     ya (batas 2)
+      2        12 ms                    ya                     ya (batas 10)
+      4        24 ms                    ya                     ya (batas 10)
+     10        60 ms                    ya                     ya (batas 10)
+# Pada jeda 0 ms jeda buatan tidak ada: rasionya hanya dari enam panggilan HTTP di loopback, serialisasi JSON, dan perpindahan goroutine.
+# Pada jeda lain rasio didominasi jeda buatan: ia menunjukkan jumlah panggilan dikali jeda, bukan kecepatan jaringan nyata.
+
+# --- B. Anggaran 50 ms ---
+# 50 ms dibagi 6 panggilan = 8,33 ms per panggilan (Hitungan): di atas jeda itu tiga proses melewati anggaran bahkan tanpa kerja apa pun di dalam proses.
+p95 satu proses di bawah 50 ms pada semua jeda: ya (satu proses tidak punya panggilan yang bisa dijedakan)
+jeda 4 ms: batas bawah 24 ms, masih di bawah 50 ms; sisa 26 ms untuk kerja di dalam proses dan keterlambatan timer. p95 sebenarnya bergantung mesin dan tidak diperiksa (putaran bisa melewati 50 ms: keterlambatan time.Sleep ikut dihitung)
+jeda 10 ms: batas bawah 60 ms, transaksi tiga proses di atas 50 ms: 500 dari 500 (semuanya, karena batas bawah melewati anggaran)
