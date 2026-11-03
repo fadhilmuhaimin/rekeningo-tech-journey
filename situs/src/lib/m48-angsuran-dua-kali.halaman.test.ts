@@ -509,6 +509,18 @@ describe("sumber luar: dua tautan Kubernetes, tanggal buka, kutipan, dan baris r
     expect(ids.slice(i, i + 5)).toEqual([205, 206, 207, 208, 209]);
     for (const n of [205, 206, 207, 208, 209]) expect(pecahBaris(barisRiset(`R5-${n}`)).length, `R5-${n}`).toBe(5);
     expect(ids.every((x, k) => k === 0 || x > ids[k - 1]!)).toBe(true);
+    const konsep: Record<string, [string, string]> = {
+      "R5-205": ["Program Job Kubernetes kadang dimulai dua kali (halaman 5.20)", "Tidak berubah dari cara naskah memerankan node yang dikosongkan (Ilustrasi)"],
+      "R5-206": ["Job dari CronJob sebaiknya idempoten (halaman 5.20)", "Tidak berubah"],
+      "R5-207": ["Baris M48, angka beban cicilan, ADR 14, dan rekaman Tahap 4 yang dikutip halaman 5.20 dibaca ke naskah dan halaman, bukan ke sumber luar (Asumsi)", "Tidak berubah"],
+      "R5-208": ["Rekaman dan kode lab yang dikutip halaman 5.20 dibaca ke berkas, bukan ke sumber luar (Rekaman lab dan Tidak dijalankan: dibaca dari kode lab)", "Tidak berubah"],
+      "R5-209": ["Hitungan atas angka yang tertulis di halaman 5.20 (Hitungan; masukan terlemah Rekaman lab, Asumsi, dan Ilustrasi)", "Tidak berlaku (hitungan atas angka sendiri)"],
+    };
+    for (const [id, [k1, k4]] of Object.entries(konsep)) {
+      const kol = pecahBaris(barisRiset(id));
+      expect(kol[1], `${id} kolom Konsep`).toBe(k1);
+      expect(kol[4], `${id} kolom Berubah sejak Okt 2026`).toBe(k4);
+    }
     const r207 = barisRiset("R5-207");
     expect(r207).toContain("Dibaca 2026-11-03 di main:");
     for (const k of ['"312 angsuran dengan dua jurnal"', '"Angsuran Rp200.000 dibayar"', '"Bug di penagihan"', '"batch selalu bisa diulang dari awal"', "48 jam", "100.000 jadwal aktif", "40% jatuh tempo di tiga hari gajian", "13.333 angsuran per hari puncak", "667 detik = 11,1 menit", "proses-mati.txt", "Saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama"]) expect(r207, k).toContain(k);
