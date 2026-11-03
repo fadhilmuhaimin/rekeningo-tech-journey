@@ -1,0 +1,98 @@
+{
+  "judul": "Modular monolith lawan enam service: yang berubah dan yang tidak",
+  "opsi": [
+    {
+      "id": "mono",
+      "nama": "A · Modular monolith (ADR 37)",
+      "baris": [
+        [
+          { "id": "tim", "label": "Lima tim produk", "sub": "satu repo" },
+          { "id": "rilis", "label": "Satu rilis", "sub": "satu merge queue" }
+        ],
+        [
+          { "id": "proses", "label": "Satu proses", "sub": "enam modul" },
+          { "id": "hop", "label": "Pemanggilan fungsi", "sub": "dalam proses" }
+        ],
+        [
+          { "id": "data", "label": "Schema dan role", "sub": "satu cluster PostgreSQL" },
+          { "id": "ledger", "label": "Ledger", "sub": "uang bergerak di sini" }
+        ]
+      ],
+      "judulBaris": ["", "Proses", "Data dan uang"]
+    },
+    {
+      "id": "svc",
+      "nama": "B · Enam service (ADR 50)",
+      "baris": [
+        [
+          { "id": "tim", "label": "Lima tim produk", "sub": "satu tim per service" },
+          { "id": "rilis", "label": "Rilis per service", "sub": "pipeline sendiri" }
+        ],
+        [
+          { "id": "proses", "label": "Enam service", "sub": "tiga instance tiap service" },
+          { "id": "hop", "label": "Panggilan HTTP", "sub": "antar proses" },
+          { "id": "k8s", "label": "Kubernetes", "sub": "HPA dan Gateway API" }
+        ],
+        [
+          { "id": "data", "label": "Schema dan role", "sub": "satu cluster PostgreSQL" },
+          { "id": "ledger", "label": "Ledger", "sub": "uang bergerak di sini" }
+        ]
+      ],
+      "judulBaris": ["", "Proses", "Data dan uang"]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Tim Akun merilis perbaikan",
+      "sorot": { "mono": ["tim", "rilis"], "svc": ["tim", "rilis"] },
+      "catatan": {
+        "mono": "Perbaikan masuk satu merge queue dan satu rilis bersama tim lain: tunggu 6 jam, dirilis Jumat (Ilustrasi, cerita M44).",
+        "svc": "Service akun punya pipeline dan rilis sendiri, jadi perbaikan tidak menunggu tim lain (Ilustrasi). Pipeline per service tidak direkam di lab."
+      },
+      "nada": { "mono": "warn" }
+    },
+    {
+      "label": "Alur skor risiko",
+      "sorot": { "mono": ["proses", "hop"], "svc": ["proses", "hop"] },
+      "catatan": {
+        "mono": "Satu proses memanggil tiga pembacaan data lewat fungsi: 0 panggilan antar proses per transaksi (panggilan.txt bagian B).",
+        "svc": "Tiga proses dengan queue: 6 panggilan antar proses per transaksi, dan skor sama di 400 dari 400 transaksi (panggilan.txt bagian B dan C). Lab memakai tiga proses dan satu broker, bukan enam service."
+      },
+      "nada": { "svc": "warn" }
+    },
+    {
+      "label": "Satu proses mati",
+      "sorot": { "mono": ["proses"], "svc": ["proses", "hop"] },
+      "catatan": {
+        "mono": "Di lab satu proses tetap menjawab 200, karena tidak ada proses lain yang bisa mati di tengah jalan (mati.txt bagian B).",
+        "svc": "Proses riwayat mati: tiga proses menjawab 504 sesudah batas tunggu 2 detik, dan satu pesan tertinggal di queue sampai proses itu hidup lagi (mati.txt bagian B dan C)."
+      },
+      "nada": { "svc": "warn" }
+    },
+    {
+      "label": "Batas data",
+      "sorot": { "mono": ["data"], "svc": ["data"] },
+      "catatan": {
+        "mono": "Schema dan role per modul sudah ada sejak ADR 37, walau proses monolith memakai satu role.",
+        "svc": "Sama: satu cluster, satu schema dan satu role per service. Foreign key lintas schema turun dari 18 ke 0 di lab api-t5, yang memecah data tetapi tidak memecah proses (skema.txt bagian E)."
+      }
+    },
+    {
+      "label": "Uang bergerak",
+      "sorot": { "mono": ["ledger"], "svc": ["ledger", "hop"] },
+      "catatan": {
+        "mono": "Jurnal dan baris pendampingnya di modul lain masih satu COMMIT (ADR 12; Tidak dijalankan di lab Tahap 5).",
+        "svc": "Ledger tetap satu-satunya tempat uang bergerak. Jurnal dan baris di service lain tidak lagi satu COMMIT: Idempotency-Key dan rekonsiliasi (ADR 12 dan ADR 37; Tidak dijalankan)."
+      },
+      "nada": { "svc": "warn" }
+    },
+    {
+      "label": "Jumlah pod",
+      "sorot": { "mono": ["proses"], "svc": ["proses", "k8s"] },
+      "catatan": {
+        "mono": "Satu artefak diskalakan seluruhnya, termasuk modul yang tidak butuh tambahan (Penalaran).",
+        "svc": "HPA menambah pod menurut CPU: di lab jumlah pod naik di atas 1 dan tidak melewati maksimal 4 (hpa.txt bagian E). Jumlah tepat tidak direkam."
+      }
+    }
+  ]
+}

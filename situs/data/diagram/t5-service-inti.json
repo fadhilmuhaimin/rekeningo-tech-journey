@@ -1,0 +1,53 @@
+{
+  "id": "t5-service-inti",
+  "judul": "Harga satu pemecahan",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t5-gabung"
+  },
+  "baris": [
+    {
+      "label": "Pilihan",
+      "sub": "ADR 50, dari M44",
+      "simpul": [
+        {
+          "teks": "5 tim, 1 rilis",
+          "sub": "pemicunya jadwal rilis",
+          "nada": "warn"
+        },
+        {
+          "teks": "6 service",
+          "sub": "di Kubernetes, pipeline per service",
+          "nada": "system"
+        },
+        {
+          "teks": "Ledger tetap",
+          "sub": "uang bergerak di satu tempat",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Harga",
+      "sub": "lab t5-gabung, 400 transaksi",
+      "simpul": [
+        {
+          "teks": "0 panggilan",
+          "sub": "satu proses, per transaksi",
+          "nada": "good"
+        },
+        {
+          "teks": "6 panggilan",
+          "sub": "tiga proses + queue: 3 kirim dan 3 ambil",
+          "nada": "warn"
+        },
+        {
+          "teks": "Skor sama",
+          "sub": "400 dari 400 transaksi",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Biru: pilihan ADR 50 (naskah). Oranye: pemicu dan harga. Hijau: yang tidak berubah."
+}

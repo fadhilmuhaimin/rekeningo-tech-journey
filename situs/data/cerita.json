@@ -4503,8 +4503,9 @@
         "t5-gabung",
         "t5-rollout"
       ],
-      "ada": false,
-      "nomor": "5.13"
+      "ada": true,
+      "nomor": "5.13",
+      "menit": 28
     },
     {
       "id": "t5-m45",

@@ -1,0 +1,38 @@
+{
+  "istilah": "Gateway API",
+  "sehari_hari": "Gateway API adalah keluarga jenis API Kubernetes untuk mengatur routing lalu lintas ke service. Ia penerus Ingress API dan tidak memuat jenis Ingress.",
+  "cerita": [
+    {
+      "rujukan": "t5-service",
+      "teks": "ADR 50 memakai Gateway API sebagai pintu masuk lalu lintas. Lab merutekan permintaan lewat Gateway Traefik 3.7.13 dengan Gateway API v1.6.1 (Rekaman lab)."
+    }
+  ],
+  "mekanisme": [
+    "Gateway API terdiri dari beberapa jenis API yang menyediakan infrastruktur dinamis dan routing lalu lintas lanjutan.",
+    "Jenisnya disusun menurut peran: penyedia infrastruktur, operator cluster, dan pengembang yang mengelola aplikasi di dalam cluster.",
+    "Resource Ingress yang sudah ada tidak berjalan sebagai Gateway API. Dokumentasi menulis satu kali konversi ke resource Gateway API perlu dilakukan."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menyamakan Gateway API dengan Ingress NGINX. Ingress NGINX adalah controller untuk Ingress API, sedangkan Gateway API adalah penerus Ingress API itu sendiri.",
+    "Mengira resource Ingress lama otomatis menjadi Gateway API. Dokumentasi menulis Gateway API tidak memuat jenis Ingress, jadi konversi satu kali diperlukan."
+  ],
+  "terkait": [
+    "Kubernetes",
+    "Canary"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-170",
+      "judul": "Kubernetes: Gateway API (dibuka 2026-11-03)",
+      "url": "https://kubernetes.io/docs/concepts/services-networking/gateway/",
+      "catatan": "Definisi Gateway API, prinsip desain berorientasi peran, dan hubungannya dengan Ingress API. Halaman tanpa nomor versi sendiri."
+    },
+    {
+      "riset": "R5-170",
+      "judul": "Kubernetes Blog: Ingress NGINX Retirement (11 November 2025, dibuka 2026-11-03)",
+      "url": "https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/",
+      "catatan": "Pengumuman pemeliharaan Ingress NGINX dihentikan pada Maret 2026, dan saran memakai Gateway API."
+    }
+  ]
+}
