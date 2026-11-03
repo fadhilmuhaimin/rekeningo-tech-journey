@@ -70,7 +70,7 @@ make -C labs/t5-rollout test                      # hanya tes Go sakelar (tanpa 
 make -C labs/t5-rollout down                      # hapus cluster lajur ini
 ```
 
-Port dasar (ditambah `LAB_PORT_OFFSET`): Gateway Traefik 18360, API server k3s 18361, `port-forward` ke pod mulai 18362. PostgreSQL memakai `LAB_DB_PORT`. Lab ini tidak jalan bersamaan dengan lab Tahap 5 lain yang memakai `dasar_t5.py` dalam satu lajur.
+Port dasar (ditambah `LAB_PORT_OFFSET`): Gateway Traefik 18360, API server k3s 18361, `port-forward` ke pod mulai 18362. PostgreSQL memakai `LAB_DB_PORT`. Lab ini tidak jalan bersamaan dengan lab Tahap 5 lain yang memakai `dasar_t5.py` dalam satu lajur. Bagian `sakelar` (D4) menjalankan `docker pause` pada kontainer PostgreSQL lajur, jadi lab menolak berjalan tanpa `COMPOSE_PROJECT_NAME`: lajur bawaan berbagi PostgreSQL dengan lajur lain.
 
 ## Rekaman
 

@@ -49,6 +49,11 @@ spec:
         web:
           url: http://kartu-canary.default.svc.cluster.local:8080/lab/otorisasi
           timeoutSeconds: 3
+          # Satu koneksi baru tiap pengukuran. Di mesin yang sangat sibuk, 40 pengukuran berturut-turut membaca satu pod
+          # stabil lewat Service canary (jumlah otorisasi 973 sampai 1.177, tanpa penolakan) sementara pod canary sudah
+          # menolak; koneksi keep-alive yang tersambung sebelum endpoint Service diperbarui adalah dugaan, belum dibuktikan.
+          headers:
+            - {key: Connection, value: close}
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout

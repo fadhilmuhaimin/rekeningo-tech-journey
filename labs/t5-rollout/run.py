@@ -689,6 +689,9 @@ def _sakelar():
     catat("Sesudah hak dikembalikan semua pod menyetujui lagi: ya")
 
     bagian("D4. Primary berhenti menjawab: sakelar tak terbaca dalam batas waktu, otorisasi baru ditolak")
+    if not PROYEK:
+        # Tanpa COMPOSE_PROJECT_NAME kontainer PostgreSQL adalah milik bersama; docker pause akan menghentikan lajur lain juga.
+        gagal("D4 memakai docker pause pada PostgreSQL lajur: isi COMPOSE_PROJECT_NAME (labs/README.md, Beberapa lajur sekaligus)")
     catat(f"# docker pause pada kontainer PostgreSQL lab: koneksi tidak mati, tetapi tidak ada yang menjawab. Cache habis lebih dulu.")
     time.sleep(TTL_SAKELAR + 1)
     jalan(["docker", "pause", DB_KONTAINER])
