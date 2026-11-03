@@ -85,7 +85,7 @@ Rekaman dari database dan container bersih, diulang dan identik per byte, juga d
 
 ## Tidak dijalankan atau belum ada
 
-Enkripsi berpotongan untuk file yang lebih besar dari memori, SoftHSM dan PKCS#11, penyimpanan objek sungguhan (file di folder sementara memerankannya), OpenBao mode produksi (penyimpanan persisten, unseal, audit device), rotasi otomatis (`auto_rotate_period`), kunci utama di HSM yang membungkus KEK, jangkar harian yang digabung dengan `audit_log`, pemulihan arsip terenkripsi ke tabel dan `ATTACH PARTITION` (rekaman `t5-partisi` berhenti di CSV tanpa enkripsi), dan enkripsi cadangan database (hanya file arsip).
+Enkripsi berpotongan untuk file yang lebih besar dari memori, SoftHSM dan PKCS#11, penyimpanan objek sungguhan (file di folder sementara memerankannya), OpenBao mode produksi (penyimpanan persisten, unseal, audit device), rotasi otomatis (`auto_rotate_period`), kunci utama di HSM yang membungkus KEK, jangkar harian yang digabung dengan `audit_log`, pemulihan arsip terenkripsi ke tabel dan `ATTACH PARTITION` (rekaman `t5-partisi` berhenti di CSV tanpa enkripsi), dan enkripsi cadangan database (hanya file arsip). Lab memanggil OpenBao lewat HTTP di loopback tanpa TLS dan memakai token root mode dev; produksi butuh TLS dan token berumur pendek: **Tidak dijalankan**.
 
 ## Uji mutasi
 
