@@ -1,0 +1,163 @@
+---
+title: "5.22 M49: Rilis kartu 5% ternyata sepertiga"
+description: Minggu 11. Tim Pembayaran merilis otorisasi kartu dengan canary "5%". Tanpa traffic router, Argo Rollouts mengatur jumlah pod, dan kill switch di memori hanya mengubah pod yang menerima permintaannya.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import canaryPod from "../../../../data/diagram/t5-m49-canary-pod.json";
+
+<p class="meta">Baca 8 menit · coba 3 menit · Prasyarat: [[t4-kartu]], [[t5-service]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 11 Tahap 5. Selasa pukul 15.00 tim Pembayaran merilis otorisasi kartu versi baru dengan canary "5%".
+
+Pukul 15.04 rasio otorisasi yang ditolak naik dari 2% ke 31%. Nadia menekan kill switch.
+
+Satu dari tiga pod berhenti menyetujui, dan dua pod lain tetap menyetujui. Sesudah pod itu dimulai ulang, ia menyetujui lagi.
+
+*Angka cerita (Ilustrasi):* hari, jam, 2%, 31%, dan tiga pod berasal dari naskah, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+*Tiga istilah di cerita:* canary adalah rilis yang lebih dulu memberi versi baru ke sebagian kecil, sebelum semuanya mendapatkannya. Pod adalah unit terkecil yang dijalankan dan dikelola di Kubernetes ([Kubernetes: Pods](https://kubernetes.io/docs/concepts/workloads/pods/), dibuka 2026-11-03, Tidak dijalankan). Kill switch adalah sakelar yang mematikan otorisasi kartu baru tanpa deploy ([[t4-kartu]]).
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Tim Pembayaran mengira dua hal. Pertama, canary "5%" berarti lima dari seratus user mencoba versi baru. Kedua, kill switch mematikan otorisasi kartu di semua pod, jadi satu tekanan sudah cukup.
+
+Rilis memakai Argo Rollouts v1.10.1, yaitu controller Kubernetes untuk rilis bertahap seperti canary ([Argo Rollouts v1.10.1: pengantar](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/index.md), dibuka 2026-11-03, Tidak dijalankan). Kill switch kartu yang dipakai tim adalah flag di memori satu proses, seperti di lab Tahap 4. ADR 42 sendiri menulis bahwa flag harus hidup di luar proses ([[t4-kartu]]).
+
+Argo Rollouts bisa memakai traffic router. Itu ingress controller atau service mesh yang menggeser lalu lintas ke versi baru sedikit demi sedikit (sumber yang sama). Rollout tim Pembayaran tidak memakainya, dan langkah pertamanya meminta `setWeight: 5`, yaitu 5% untuk versi baru.
+
+<details class="question">
+<summary>Tebak dulu: Rollout meminta tiga replika, yaitu tiga pod, dengan `setWeight: 5` dan tanpa traffic router. Berapa pod versi baru yang berjalan, dan berapa bagiannya dari semua pod yang menjawab?</summary>
+
+Satu pod versi baru. `maxSurge` adalah jumlah pod tambahan yang boleh dibuat controller untuk mencapai rasio dari `setWeight` terakhir ([Argo Rollouts v1.10.1: Canary](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md), dibuka 2026-11-03, Tidak dijalankan).
+
+Bila `maxSurge` tidak diubah, pod itu berjalan di samping tiga pod versi lama: 1 dari 4 pod, atau 25,0%. Bila `maxSurge` diatur 0, total tetap tiga pod dan bagiannya 33,3% (Rekaman lab, `tanpa-router.txt`, bagian A). Dengan tiga replika, bagian pod 5% tidak muncul di kedua pengaturan. Blok berikutnya menjelaskan kenapa controller memilih satu pod.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Tanpa traffic router, `setWeight: 5` mengatur jumlah pod, bukan bagian user. Dengan tiga replika, satu pod versi baru sudah 25,0% atau 33,3% dari pod. Kill switch di memori hanya mengubah pod yang menerima permintaannya.
+
+<Rantai data={canaryPod} ringkas />
+
+*Kondisi rekaman:* Argo Rollouts v1.10.1 di k3s v1.37.1+k3s1 yang dijalankan k3d v5.9.0. Traefik 3.7.13 menjadi Gateway, yaitu pintu masuk yang meneruskan permintaan ke satu Service tanpa bobot, dan Rollout tidak mengatur bobotnya. Service adalah objek Kubernetes yang biasanya menyasar pod lewat selector label ([Kubernetes: Service](https://kubernetes.io/docs/concepts/services-networking/service/), dibuka 2026-11-03, Tidak dijalankan). Tiap pod menjalankan satu proses `api-t5` (go1.27.3) dengan PostgreSQL 17.11, dari database bersih, di host arm64.
+
+*Dua label turunan:* Hitungan adalah angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah. Dibaca dari kode berarti isi kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.
+
+Kalau kamu pernah menyalakan fitur untuk 5% user lewat flag di app, angka itu dihitung dari user. Tanpa traffic router, Argo Rollouts menghitung pod. Dokumentasinya menulis bahwa controller berusaha mendekati persentase `setWeight` antara versi baru dan lama. Ia memilih bilangan bulat pod dengan selisih terkecil ([Argo Rollouts v1.10.1: Canary](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md), dibuka 2026-11-03, Tidak dijalankan).
+
+**Kenapa satu pod.** Lima persen dari tiga pod adalah 0,15 pod, dan pod tidak bisa pecahan.
+
+Untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 tidak menghasilkan nol pod versi baru ([utils/replicaset/canary.go](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/canary.go), dibuka 2026-11-03, Tidak dijalankan, dibaca dari kode). Jadi satu pod versi baru wajib ada.
+
+Controller lalu menimbang dua pasangan jumlah pod versi baru dan total pod. Satu pod dari 3 pod adalah 33,3%, selisih 28,3 poin persentase dari 5%. Satu pod dari 4 pod adalah 25,0%, selisih 20,0 poin. Pasangan kedua lebih dekat ke 5%, jadi empat pod berjalan (Hitungan atas kode).
+
+<Snippet file="labs/t5-rollout/output/tanpa-router.txt" lines="13:21" title="Rekaman lab: labs/t5-rollout/output/tanpa-router.txt, bagian A (3 replika, maxSurge tidak diubah)" />
+
+Dengan `maxSurge: 0` controller tidak boleh menambah pod, jadi hanya pasangan pertama yang tersisa. Tabel ini menaruh kedua pengaturan di samping rekamannya, dengan tiga replika dan `setWeight: 5`.
+
+| Pengaturan Rollout | Pod versi baru | Pod versi lama | Bagian pod versi baru |
+|---|---|---|---|
+| `maxSurge` tidak diubah | 1 | 3 | 25,0% (Rekaman lab) |
+| `maxSurge: 0` | 1 | 2 | 33,3% (Rekaman lab) |
+
+Judul halaman memakai "sepertiga" dari naskah. Rekaman memberi 33,3% hanya dengan `maxSurge: 0`.
+
+Halaman canary menulis bawaan `maxSurge` 25%, sedangkan komentar contoh di halaman spesifikasi menulis 1. Kode v1.10.1 menulis bawaannya `"25"` dan membacanya sebagai 25% dari jumlah replika, dibulatkan ke atas ([utils/replicaset/replicaset.go](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/replicaset.go), dibuka 2026-11-03, Tidak dijalankan, dibaca dari kode). Untuk tiga replika hasilnya satu pod tambahan, dan itu cocok dengan rekaman: empat pod bila `maxSurge` tidak diubah.
+
+**Permintaan mengikuti pod, dalam batas.** Lab mengirim 200 permintaan `GET /healthz` lewat Gateway ke satu Service tanpa bobot, dan semuanya terjawab.
+
+Bagian yang dijawab versi baru terukur antara 17,5% dan 32,5% pada 25,0% pod, dan antara 23,5% dan 43,5% pada 33,3% pod. Itu batas yang diperiksa lab. Hitungan tepat bergantung penyeimbang beban Traefik dan tidak direkam.
+
+Bagian user tidak direkam, karena permintaan lab tidak membawa identitas user (Tidak dijalankan).
+
+**Kill switch di memori hanya mengubah satu proses.** Rekaman Tahap 4 hanya punya satu proses: sesudah mulai ulang, kill switch yang dimatikan kembali aktif, dan dua instance Tidak dijalankan (`kill-switch.txt`, bagian B). Rekaman Tahap 5 menjalankan tiga pod dari satu image dan satu database, tanpa Rollout:
+
+<Snippet file="labs/t5-rollout/output/sakelar.txt" lines="6:16" title="Rekaman lab: labs/t5-rollout/output/sakelar.txt, bagian D (flag di memori, tiga pod)" />
+
+Lab mengirim permintaan mematikan ke pod 1. Hanya pod 1 yang menolak, dan pod 2 dan pod 3 tetap menyetujui otorisasi baru. Pod 1 dihapus dan diganti pod baru, yang menyetujui lagi tanpa ada yang menyalakannya.
+
+Sebabnya ada di kode lab. `KartuAktifSekarang` membaca satu `atomic.Bool` yang dibuat dan dinyalakan di `main` saat proses mulai, jadi tiap proses punya flagnya sendiri:
+
+<Snippet file="labs/api-t5/internal/service/kartu.go" lines="53:54" lang="go" title="Kode lab: labs/api-t5/internal/service/kartu.go, fungsi KartuAktifSekarang" />
+
+Rollout yang membuat pod versi baru juga membuat proses baru, dan di proses itu flag menyala lagi. Itu Penalaran, yaitu kesimpulan dari kode dan rekaman tanpa dijalankan. Kill switch yang dimatikan sebelum rilis tidak terbawa ke pod itu.
+
+**Yang tidak direkam.**
+
+- Selasa, 15.00, 15.04, 2%, 31%, tiga pod, dan Nadia berasal dari cerita (Ilustrasi). Lab tidak menjalankan versi kartu yang salah.
+- Bagian user, hitungan permintaan tepat per versi, dan jumlah pod di bawah beban nyata tidak direkam.
+- Argo Rollouts selain v1.10.1, `maxSurge` selain bawaan dan 0, dan `maxUnavailable` Tidak dijalankan. Lab hanya diuji di host arm64.
+- Rekaman Tahap 4 tidak punya dua instance. Rekaman Tahap 5 punya tiga pod yang menjalankan kode `api-t5` yang sama, bukan kode Tahap 4.
+- Cara menghubungkan bobot ke traffic router dan memindahkan kill switch ke tempat yang dibaca semua pod dibahas di [[t5-rollout]].
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti cerita M49. Jalur utama memuat dua langkah cerita (Ilustrasi) dan empat langkah rekaman, dan "Ubah satu hal" memakai rekaman `tanpa-router.txt` bagian A. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t5-m49.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: Rollout memakai 20 replika, bukan 3**. Dua langkah berikutnya memuat rekaman bagian pod dan batas permintaan, dan langkah terakhir memuat bagian terkecil yang bisa dicapai satu pod (Hitungan).
+
+Widget ini tidak punya layar HP, karena M49 terjadi di antara engineer, bukan di app.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: `setWeight: 5` dengan tiga replika menjalankan 1 pod versi baru dan 3 pod versi lama (25,0%). Rasio ditolak naik dari 2% ke 31% (Ilustrasi). Kill switch di pod 1 membuat pod 1 menolak, sementara pod 2 dan pod 3 menyetujui (bagian D).
+
+Dengan 20 replika, rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (bagian A).
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t5-rollout]]: progressive delivery, canary dengan traffic router, GitOps, dan kill switch yang dibaca semua pod. Keputusannya ADR 55.
+- [[t4-kartu]]: ADR 42, yang meminta flag kill switch di luar proses. Lab Tahap 4 menaruhnya di memori satu proses, dan halaman ini membaca batas itu lagi.
+- [[t5-service]]: pod dan Kubernetes, yang memecah satu proses menjadi beberapa.
+
+Canary tanpa traffic router menghitung pod, dan kill switch harus ada di tempat yang dibaca semua pod.
+
+### Cek diri
+
+**1.** Rollout dengan tiga replika dan `setWeight: 5` menjalankan satu pod versi baru. Kenapa bagiannya bukan 5%, dan berapa replika yang membuatnya 5,0%?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Lima persen dari tiga pod adalah 0,15 pod. Untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 menyisakan satu pod versi baru (dibaca dari kode). Hasilnya 25,0% atau 33,3% menurut `maxSurge`. Dengan 20 replika rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (`tanpa-router.txt`, bagian A).
+
+</details>
+
+**2.** Nadia mematikan kill switch lewat satu pod. Apa yang direkam lab untuk dua pod lain dan untuk pod yang diganti?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Dua pod lain tetap menyetujui otorisasi baru, dan pod pengganti menyetujui lagi karena flag di memori hilang bersama prosesnya (`sakelar.txt`, bagian D). Flag dibuat dan dinyalakan di `main` tiap proses (Tidak dijalankan, dibaca dari kode).
+
+</details>
+
+**3.** Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur dari canary?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Hari, jam, 2%, dan 31% adalah Ilustrasi. Lab mengukur bagian pod dan memeriksa batas bagian permintaan, tetapi tidak mengukur bagian user dan tidak mencatat hitungan permintaan tepat per versi (`tanpa-router.txt`, bagian A).
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

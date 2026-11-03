@@ -666,6 +666,15 @@
   "h": null
  },
  {
+  "t": "Gateway API",
+  "d": "Keluarga jenis API Kubernetes untuk mengatur routing lalu lintas ke service, penerus Ingress API.",
+  "b": "t5-service",
+  "n": "5.13 Dari modul ke service",
+  "u": "/tahap-5/modul-ke-service/",
+  "s": "istilah-gateway-api",
+  "h": "/istilah/gateway-api/"
+ },
+ {
   "t": "Gateway pembayaran",
   "d": "Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.",
   "b": "t3-jembatan",
@@ -736,6 +745,15 @@
   "u": "/tahap-4/kartu-virtual/",
   "s": "istilah-hold",
   "h": "/istilah/hold/"
+ },
+ {
+  "t": "HPA (Horizontal Pod Autoscaler)",
+  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.",
+  "b": "t5-service",
+  "n": "5.13 Dari modul ke service",
+  "u": "/tahap-5/modul-ke-service/",
+  "s": "istilah-hpa",
+  "h": "/istilah/hpa/"
  },
  {
   "t": "HSTS (HTTP Strict Transport Security)",
@@ -907,6 +925,15 @@
   "u": "/tahap-2/ledger/",
   "s": "istilah-kredit",
   "h": "/istilah/kredit/"
+ },
+ {
+  "t": "Kubernetes",
+  "d": "Sistem yang menjadwalkan pod, yaitu grup container, ke banyak mesin dalam satu cluster.",
+  "b": "t5-service",
+  "n": "5.13 Dari modul ke service",
+  "u": "/tahap-5/modul-ke-service/",
+  "s": "istilah-kubernetes",
+  "h": "/istilah/kubernetes/"
  },
  {
   "t": "Kunci akun",

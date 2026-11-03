@@ -1,0 +1,44 @@
+{
+  "id": "t5-service-tebak",
+  "judul": "Enam panggilan berjeda 10 ms dan batas uji 50 ms",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t5-gabung/output/latensi.txt bagian A dan B; jeda 10 ms dan batas 50 ms adalah Asumsi lab"
+  },
+  "adegan": [
+    "Lab t5-gabung menjalankan satu alur skor risiko sebagai tiga proses yang meneruskan pesan lewat queue. Satu transaksi melewati 6 panggilan berurutan, dan tiap panggilan diberi jeda buatan 10 ms.",
+    "Batas uji untuk satu transaksi adalah 50 ms. Lab menjalankan 500 transaksi tiga proses dan menghitung berapa yang melewati batas itu."
+  ],
+  "pertanyaan": "Berapa dari 500 transaksi itu yang melewati 50 ms?",
+  "pilihan": [
+    {
+      "teks": "Semuanya, 500 dari 500, karena enam jeda berurutan saja sudah 60 ms.",
+      "benar": true,
+      "alasan": "Rekaman bagian B: batas bawahnya 6 × 10 = 60 ms, di atas 50 ms, jadi 500 dari 500 transaksi melewati batas. Itu batas dari penjumlahan jeda, bukan p95 hasil profil."
+    },
+    {
+      "teks": "Tidak satu pun, karena jeda 10 ms per panggilan masih jauh di bawah 50 ms.",
+      "benar": false,
+      "alasan": "Yang dijumlahkan enam jeda, bukan satu. Enam jeda berurutan memberi paling sedikit 60 ms, dan time.Sleep tidak pernah kembali sebelum durasinya lewat."
+    },
+    {
+      "teks": "Sekitar 25 dari 500, yaitu 5% transaksi paling lambat, karena p95 hanya menangkap ekor.",
+      "benar": false,
+      "alasan": "Batas bawah 60 ms berlaku untuk tiap transaksi, bukan hanya yang paling lambat. Rekaman mencatat 500 dari 500."
+    },
+    {
+      "teks": "Separuhnya, karena hanya tiga dari enam panggilan yang dijeda.",
+      "benar": false,
+      "alasan": "Broker menjeda panggilan kirim dan panggilan ambil dengan jeda yang sama. Keenam panggilan membawa jeda 10 ms."
+    }
+  ],
+  "penutup": "Enam panggilan berurutan dengan jeda 10 ms memberi batas bawah 60 ms per transaksi, di atas batas uji 50 ms. Pada jeda itu 500 dari 500 transaksi tiga proses melewati batas, bahkan sebelum kerja di dalam proses dihitung.",
+  "label": {
+    "sumber": "Rekaman lab · latensi.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

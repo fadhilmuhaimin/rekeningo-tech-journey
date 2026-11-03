@@ -633,6 +633,15 @@ window.ISTILAH = {
   "t": "HTTP method",
   "u": "tahap-1/http/"
  },
+ "Gateway API": {
+  "b": "t5-service",
+  "d": "Keluarga jenis API Kubernetes untuk mengatur routing lalu lintas ke service, penerus Ingress API.",
+  "h": "istilah/gateway-api/",
+  "n": "5.13 Dari modul ke service",
+  "s": "istilah-gateway-api",
+  "t": "Gateway API",
+  "u": "tahap-5/modul-ke-service/"
+ },
  "Gateway pembayaran": {
   "b": "t3-jembatan",
   "d": "Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.",
@@ -666,6 +675,15 @@ window.ISTILAH = {
   "s": "istilah-hmac",
   "t": "HMAC (hash-based message authentication code)",
   "u": "tahap-4/webhook-masuk/"
+ },
+ "HPA": {
+  "b": "t5-service",
+  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.",
+  "h": "istilah/hpa/",
+  "n": "5.13 Dari modul ke service",
+  "s": "istilah-hpa",
+  "t": "HPA (Horizontal Pod Autoscaler)",
+  "u": "tahap-5/modul-ke-service/"
  },
  "HSTS": {
   "b": "t3-tls-pinning",
@@ -734,6 +752,15 @@ window.ISTILAH = {
   "s": "istilah-hold",
   "t": "Hold (dana tertahan)",
   "u": "tahap-4/kartu-virtual/"
+ },
+ "Horizontal Pod Autoscaler": {
+  "b": "t5-service",
+  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.",
+  "h": "istilah/hpa/",
+  "n": "5.13 Dari modul ke service",
+  "s": "istilah-hpa",
+  "t": "HPA (Horizontal Pod Autoscaler)",
+  "u": "tahap-5/modul-ke-service/"
  },
  "IDOR": {
   "b": "t1-idor",
@@ -905,6 +932,15 @@ window.ISTILAH = {
   "s": "istilah-kredit",
   "t": "Kredit",
   "u": "tahap-2/ledger/"
+ },
+ "Kubernetes": {
+  "b": "t5-service",
+  "d": "Sistem yang menjadwalkan pod, yaitu grup container, ke banyak mesin dalam satu cluster.",
+  "h": "istilah/kubernetes/",
+  "n": "5.13 Dari modul ke service",
+  "s": "istilah-kubernetes",
+  "t": "Kubernetes",
+  "u": "tahap-5/modul-ke-service/"
  },
  "Kunci akun": {
   "b": "t2-m16",
@@ -2592,6 +2628,15 @@ window.ISTILAH = {
   "s": "istilah-kredit",
   "t": "Kredit",
   "u": "tahap-2/ledger/"
+ },
+ "kubernetes": {
+  "b": "t5-service",
+  "d": "Sistem yang menjadwalkan pod, yaitu grup container, ke banyak mesin dalam satu cluster.",
+  "h": "istilah/kubernetes/",
+  "n": "5.13 Dari modul ke service",
+  "s": "istilah-kubernetes",
+  "t": "Kubernetes",
+  "u": "tahap-5/modul-ke-service/"
  },
  "kunci akun": {
   "b": "t2-m16",

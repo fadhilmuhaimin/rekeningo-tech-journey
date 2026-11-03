@@ -1,0 +1,33 @@
+{
+  "istilah": "HPA (Horizontal Pod Autoscaler)",
+  "sehari_hari": "HPA adalah pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU. Ia memperbarui sebuah workload resource, misalnya Deployment.",
+  "cerita": [
+    {
+      "rujukan": "t5-service",
+      "teks": "Di lab, satu Deployment dengan satu pod menerima beban, dan HPA menaikkan jumlah pod di atas 1 tanpa melewati maksimal 4. Jumlah tepatnya tidak direkam (Rekaman lab)."
+    }
+  ],
+  "mekanisme": [
+    "HPA menghitung jumlah pod yang diinginkan: pod sekarang dikali nilai metrik sekarang dibagi nilai target, dibulatkan ke atas.",
+    "Kontrolnya berjalan tiap 15 detik secara bawaan.",
+    "Bila perbandingan nilai sekarang dan target cukup dekat dengan 1, dalam toleransi 0,1 secara bawaan, HPA tidak mengubah jumlah pod.",
+    "Contoh Ilustrasi: 1 pod dengan CPU rata-rata 100% dari requests dan target 50% memberi ceil(1 × 100 ÷ 50) = 2 pod."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira HPA mengikuti beban sesaat. Kontrolnya berjalan berkala, dengan interval bawaan 15 detik, bukan terus-menerus.",
+    "Mengira HPA dan alat GitOps otomatis akur soal jumlah pod. Bentrok keduanya tidak dicoba di lab dan tetap [perlu verifikasi]."
+  ],
+  "terkait": [
+    "Kubernetes",
+    "Canary"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-172",
+      "judul": "Kubernetes: Horizontal Pod Autoscaling (dibuka 2026-11-03)",
+      "url": "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/",
+      "catatan": "Rumus jumlah pod, interval bawaan 15 detik, dan toleransi 0,1. Halaman tanpa nomor versi sendiri."
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "t5-m49-canary-pod",
+  "judul": "Canary tanpa traffic router menghitung pod, dan kill switch di memori hanya mengubah satu pod",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t5-rollout · tanpa-router.txt bagian A (3 replika, maxSurge tidak diubah) dan sakelar.txt bagian D (flag di memori, tiga pod)"
+  },
+  "baris": [
+    {
+      "label": "Canary 5%",
+      "sub": "3 replika, tanpa traffic router",
+      "simpul": [
+        {
+          "teks": "setWeight: 5",
+          "sub": "tanpa bobot dari router"
+        },
+        {
+          "teks": "1 pod baru, 3 pod lama",
+          "sub": "empat pod menjawab"
+        },
+        {
+          "teks": "25,0% pod, bukan 5%",
+          "sub": "33,3% bila maxSurge 0",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Kill switch",
+      "sub": "flag di memori, tiga pod",
+      "simpul": [
+        {
+          "teks": "Dimatikan di pod 1",
+          "sub": "satu permintaan ke satu pod"
+        },
+        {
+          "teks": "Pod 1 menolak",
+          "sub": "alasan kill-switch",
+          "nada": "good"
+        },
+        {
+          "teks": "Pod 2 dan 3 setuju",
+          "sub": "flag mereka tetap menyala",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah hasil yang bukan niat tim Pembayaran. Bagian pod dihitung dari pod yang menjawab. Bagian user dan hitungan permintaan tepat tidak direkam."
+}
