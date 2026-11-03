@@ -431,7 +431,7 @@ describe("Hitungan atas Asumsi, label sumber, dan klaim dari dokumentasi", () =>
     expect(r163).toContain("pembaruan 25 Jun 2026");
     expect(badan).toContain("Django 5.2: Composite primary keys");
     expect(r163).toContain("Django 5.2");
-    expect(r163).toContain("Laravel 13.x Migrations: 0 kemunculan");
+    expect(r163).toContain("Laravel 13.x Migrations (laravel.com/docs/13.x/migrations): 0 kemunculan");
     expect(r163).toContain("kata partition, tanpa membedakan huruf besar, muncul sekali, sebagai `partitionBy` di daftar navigasi Query Builder");
     expect(r163).toContain("\"Django doesn't support migrating to, or from, a composite primary key after the table is created\"");
     expect(r163).toContain("\"ForeignKey currently cannot reference models with composite primary keys\"");
@@ -656,6 +656,89 @@ describe("rentang Snippet diturunkan dari struktur rekaman dan kode", () => {
     expect(teksBaris(migrasi24, mulaiFungsi, akhirFungsi)).toContain("posting_tidak_dikosongkan");
     expect(teksBaris(migrasi24, mulaiTabel, akhirTabel)).toContain("PRIMARY KEY (id, dibuat)");
     expect(kodeInline).toHaveLength(3);
+  });
+});
+
+// ---- penjaga tambahan peninjau (keputusan 1543): turunan dari sumber, aktif juga pada putaran TANPA_KUNCI=1 ----------------
+// Sebab: mutasi peninjau (639 mutan baru) menemukan celah turunan yang hanya tertutup kunci kalimat: URL tautan eksternal tidak
+// diturunkan dari mana pun (21 dari 21 lolos tanpa kunci), huruf dan nama berkas rekaman di kutipan "(`berkas` bagian X)" tidak
+// dicocokkan dengan isi bagian itu (14 lolos), paragraf ganda lolos karena `toContain` puas dengan satu kemunculan, angka prosa
+// tidak dicek terhadap sumber (±half lolos), dan satu baris rekaman snapshot.txt (8,3%) tidak dibaca. Kalimat naratif bebas
+// (kata "tidak", kata penuh, kata bilangan, urutan paragraf) tetap hanya terjaga kunci kalimat: itu batas penjaga ini.
+describe("penjaga tambahan peninjau: tautan, kutipan bagian, paragraf ganda, angka prosa", () => {
+  const lF = bagianRekaman(lepas, "F"), sA = bagianRekaman(snap, "A");
+  test("tautan eksternal: tiap alamat di halaman tercatat di baris riset 160 sampai 163 (diturunkan dari riset, bukan dari daftar halaman)", () => {
+    const korpus = [160, 161, 162, 163].map((n) => barisRiset(`R5-${n}`)).join("\n");
+    const url = [...badan.matchAll(/\]\((https:\/\/[^)\s]+)\)/g)].map((m) => m[1]!);
+    expect(url.length).toBe(21);
+    for (const u of url) expect(korpus, `alamat ${u} tidak ada di baris riset`).toContain(u.replace(/^https:\/\/(www\.)?/, "").replace(/\/$/, ""));
+    expect(new Set(url).size).toBe(8);
+    // tiap alamat bertanggal akses 2026-11-03 di halaman memuat tanggal itu di teks tautannya
+    for (const m of badan.matchAll(/\[PostgreSQL 17, ([^\]]+)\]\((https:[^)]+)\), dibuka (\d{4}-\d{2}-\d{2})/g)) expect(m[3]).toBe("2026-11-03");
+  });
+  test("kutipan bagian rekaman: tiap kalimat yang menyebut (`berkas` bagian X) memuat bukti yang benar-benar ada di bagian itu", () => {
+    const tabel: [string, [string, string | RegExp][]][] = [
+      ["`pruning.txt` bagian B, `posting` punya 14 partisi dan query satu bulan hanya membaca `posting_lalu_04`", [[pB.teks, "# Dibaca: 1 dari 14 partisi (posting_lalu_04)."]]],
+      ["ditolak dengan SQLSTATE 23001 (`lepas.txt` bagian B).", [[lB.teks, "SQLSTATE 23001"]]],
+      ["membaca 14 dari 14 partisi (`pruning.txt` bagian B).", [[pB.teks, "# Dibaca: 14 dari 14 partisi: 12 partisi berisi"]]],
+      ["UPDATE yang sama ditolak lagi (`pasang.txt` bagian B).", [[aB.teks, "UPDATE 28000"], [aB.teks, "UPDATE pada posting_pulih ditolak"]]],
+      ["0 baris berbeda (`lepas.txt` bagian A).", [[lA.teks, "# Snapshot dibandingkan dengan hitungan langsung atas tabel posting: 0 baris berbeda."]]],
+      ["DETACH hanya dijaga hak pemilik tabel (`lepas.txt` bagian B).", [[lB.teks, "yang menahannya di sini hak"]]],
+      ["menandai 0 (`lepas.txt` bagian F", [[lF.teks, "cek cache: 10288 buku diperiksa, 10061 tidak cocok"], [lF.teks, "10288 buku diperiksa, 0 tidak cocok"]]],
+      ["nilai waktunya tidak direkam (`lepas.txt` bagian D).", [[lD.teks, "# Nilai waktunya tidak direkam."]]],
+      ["Semua baris tabel itu dari `pasang.txt` bagian A dan C.", [[aA.teks, "SQLSTATE 42804"], [aA.teks, 'verifying table "posting_pulih"'], [aC.teks, "is implied by existing constraints"], [aC.teks, 'verifying table "posting_pulih5"']]],
+      ["Rekaman lab `snapshot.txt` bagian A dan `lepas.txt` bagian B |", [[sA.teks, "# Baris posting dibaca: 1.800.000 dari 1.800.000 posting di tabel."], [lB.teks, "SQLSTATE 23001"]]],
+      ["ditolak dengan 23514 (`pasang.txt` bagian D).", [[aD.teks, "SQLSTATE 23514"], [aD.teks, 'no partition of relation "posting" found for row']]],
+      ["muncul tiga kali di rekaman (`pruning.txt` bagian C).", [[pC.teks, /baris_dengan_id_itu\n-+\n 3\n/], [pC.teks, "SQLSTATE 0A000"]]],
+      ["Role aplikasi ditolak 42501 karena hak (`lepas.txt` bagian C).", [[lC.teks, "# Role aplikasi (api_t5) ditolak karena hak (42501)"], [lC.teks, "SQLSTATE 25001"], [lC.teks, "SQLSTATE 55000"]]],
+      ["tetap memindai (`pasang.txt` bagian A dan C).", [[aA.teks, 'DEBUG:  verifying table "posting_pulih"'], [aC.teks, "NOT VALID"], [aC.teks, "interval '1 day')"], [aC.teks, 'verifying table "posting_pulih3"']]],
+    ];
+    for (const [kalimat, bukti] of tabel) {
+      expect(hitung(badan, new RegExp(kalimat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")), `kutipan harus muncul sekali: ${kalimat}`).toBe(1);
+      for (const [bagian, frasa] of bukti) {
+        if (typeof frasa === "string") expect(bagian, `bukti tidak ada di bagian itu: ${frasa}`).toContain(frasa);
+        else expect(bagian, `bukti tidak ada di bagian itu: ${frasa}`).toMatch(frasa);
+      }
+    }
+    // tiap kutipan "(`berkas` bagian X" di prosa atau tabel (bukan judul Snippet) sudah terdaftar di tabel di atas
+    const prosaTanpaSnippet = badan.split("\n").filter((b) => !b.includes("<Snippet")).join("\n");
+    const kutipan = [...prosaTanpaSnippet.matchAll(/`(?:pruning|lepas|pasang|snapshot)\.txt` bagian [A-G]/g)];
+    expect(kutipan.length).toBe(15);
+    for (const k of kutipan) expect(tabel.some(([kal]) => kal.includes(k[0])), `kutipan belum punya bukti: ${k[0]}`).toBe(true);
+  });
+  test("snapshot.txt memuat 150.000 dari 1.800.000 dan 8,3%, sama dengan kalimat halaman dan hitungan dari 12 bulan", () => {
+    expect(snap).toContain("# Baris posting dibaca: 150.000 dari 1.800.000, yaitu 8,3% (satu bulan dari 12).");
+    expect(badan).toContain("150.000 dari 1.800.000 posting di lab, yaitu 8,3%");
+    expect(bulat((150000 / (12 * 150000)) * 100, 1)).toBe(8.3);
+    expect(snap).toContain("# Baris posting dibaca: 1.800.000 dari 1.800.000 posting di tabel.");
+  });
+  test("tanpa paragraf, butir, atau sel prosa ganda di badan halaman (toContain puas dengan satu kemunculan)", () => {
+    const panjang = badan.split("\n").map((b) => b.trim()).filter((b) => b.length > 60 && !b.startsWith("<") && !b.startsWith("```") && !b.startsWith("|---"));
+    const ganda = panjang.filter((b, i) => panjang.indexOf(b) !== i);
+    expect(ganda).toEqual([]);
+  });
+  test("angka di prosa dan tabel: tiap angka tercatat di sumber yang dibaca halaman (rekaman, README, migration, halaman tetangga, naskah, riset, widget)", () => {
+    const sumber = [pruning, lepas, pasang, snap, readme, migrasi24, m43, skemaHal, prd5, widgetMentah, barisBeban, barisAdr49, barisM43, [160, 161, 162, 163, 164].map((n) => barisRiset(`R5-${n}`)).join("\n")].join("\n");
+    const norm = (s: string): string => (/^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s.replace(",", "."));
+    const ada = new Set([...sumber.matchAll(/(?<![\w_])\d[\d.,]*\d(?![\w_])|(?<![\w_.,])\d(?![\w_.,])/g)].flatMap((m) => {
+      const n = Number(norm(m[0]));
+      // bentuk "juta" di halaman: 146.000.000 di riset ditulis 146 juta di halaman
+      const juta = n >= 1e6 ? [String(Math.round(n / 1e5) / 10), String(Math.round(n / 1e6))] : [];
+      return [m[0], norm(m[0]), ...juta];
+    }));
+    // angka hitungan atau bilangan penomoran yang tidak ada di sumber: asalnya ditulis di halaman atau naskah (daftar pendek, tiap butir beralasan)
+    const izin = new Set([
+      "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", // bilangan kecil: penomoran butir, "bulan ke-3", "tiga trigger"
+    ]);
+    const prosa = badan.split("\n").filter((b) => !b.includes("<Snippet") && !b.startsWith("import") && !b.startsWith('<p class="meta">') && !b.startsWith("<Blok") && !b.startsWith("|---") && !b.startsWith("<TabSet"))
+      .map((b) => b.replace(/\]\([^)]*\)/g, "]").replace(/\[\[[^\]]*\]\]/g, "").replace(/\d{4}-\d{2}-\d{2}/g, "").replace(/\b\d+\.\d+(\.\d+)*\b(?=[\],])/g, ""));
+    const tak: string[] = [];
+    for (const b of prosa) for (const m of b.matchAll(/(?<![\w_])\d[\d.,]*\d(?![\w_])|(?<![\w_.,])\d(?![\w_.,])/g)) {
+      const a = m[0].replace(/[.,]$/, "");
+      if (izin.has(a)) continue;
+      if (!ada.has(a) && !ada.has(norm(a))) tak.push(`${a} di: ${b.slice(0, 70)}`);
+    }
+    expect(tak).toEqual([]);
   });
 });
 
