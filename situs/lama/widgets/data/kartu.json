@@ -3632,6 +3632,30 @@
   "jawab": "Cache menyimpan jawaban sampai TTL 30 detik habis, jadi laporan bisa setua 30 detik. Rekaman mencatat 0 hit dari 18 untuk satu client per warung. Replica menjawab dari data yang tertinggal sebesar jeda replay, di lab di bawah 1 detik pada 100 pembayaran per detik. Jeda itu batas di laptop, bukan nilai produksi."
  },
  {
+  "id": "t5-m41-1",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil masih Rp250.000. Kenapa muat ulang otomatis tidak memperbaikinya?",
+  "jawab": "Muat ulang menanyakan replica yang sama, dan replica itu belum memutar ulang pembayaran. Jawabannya berubah sesudah replica menyusul, bukan sesudah muat ulang (`baca.txt` bagian A). Muat ulang juga tidak membuat app tahu bahwa jawabannya lebih tua dari pembayarannya sendiri (Penalaran)."
+ },
+ {
+  "id": "t5-m41-2",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Saldo tampil Rp250.000, tetapi kiriman Rp240.000 ditolak. Apa artinya untuk uang Budi?",
+  "jawab": "Uang aman: keputusan kiriman dibaca dari saldo di primary, Rp215.000, bukan dari saldo tampil (`baca.txt` bagian A). Yang keliru hanya yang dilihat user, dan hanya sampai replica menyusul."
+ },
+ {
+  "id": "t5-m41-3",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Kenapa memindahkan riwayat dan saldo tampil ke replica butuh ADR sendiri, padahal uangnya tetap benar?",
+  "jawab": "ADR 45 menulis read replica hanya untuk laporan, dan riwayat serta saldo tampil bukan laporan. Perpindahan itu melewati aturan 2 tanpa ADR yang mengubahnya. Uang benar karena keputusan uang dibaca dari primary, bukan karena aturannya sudah ditulis ulang."
+ },
+ {
   "id": "t5-lag-1",
   "halaman": "t5-lag",
   "judul": "5.7 Replication lag dan read-your-writes + ADR 47",
