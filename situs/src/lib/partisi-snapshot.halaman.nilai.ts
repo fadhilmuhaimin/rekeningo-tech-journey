@@ -279,7 +279,7 @@ export const KALIMAT_TERKUNCI: string[] = [
   "Yakin dengan ketiganya? Lompat ke [[berikutnya]].",
   "</details>",
   "</Blok>",
-  "<Blok nama=\"Coba\" buka aman=\"Kalau berhenti di sini, kamu sudah tahu: query yang menyebut bulannya memindai satu bulan, query yang tidak menyebutnya memindai semua bulan, dan membuang satu bulan lewat DROP TABLE tidak menghapus baris.\">",
+  "<Blok nama=\"Coba\" buka aman=\"Kalau berhenti di sini, kamu sudah tahu: query yang menyebut bulannya memindai satu bulan, query yang tidak menyebutnya memindai semua bulan, dan DROP TABLE membuang satu bulan tanpa melaporkan hitungan baris yang dihapus.\">",
   "Widget ini menjalankan SQLite sungguhan di browser, bukan PostgreSQL. **Simulasi** di halaman ini berarti SQL dijalankan oleh SQLite (sql.js 1.14.2), datanya dibuat skrip di widget, dan hasilnya tidak pernah berlabel Rekaman lab.",
   "SQLite tidak punya partisi deklaratif, jadi panel After memakai satu tabel per bulan dan query menyebut nama tabelnya. Di PostgreSQL planner memilih partisi dari batas `dibuat`, dan itu hanya ada di rekaman lab pada blok berikutnya. Datanya 12 bulan × 10.000 = 120.000 baris buatan (Ilustrasi).",
   "Tebak dulu berapa baris yang dipindai query bulan April di tiap panel, lalu jalankan.",
