@@ -117,8 +117,9 @@ describe("kunci: kalimat dan sel tabel", () => {
     expect(b("Batas laju 6.000").teks).toBe("Batas laju 6.000 per detik adalah 60% dari kuota, pilihan desain yang meniru lab (3 × 200 = 600 dari kuota 1.000). Angka itu bukan batas dari penyedia.");
     // README t5-fanout "Kuota dengan jendela satu detik": 600.000 per menit diterjemahkan jadi 10.000 per detik; R5-288
     expect(b("Kuota 10.000 per detik").teks).toBe("Kuota 10.000 per detik adalah terjemahan lab dari 600.000 per menit milik satu penyedia push. Dokumentasinya menyebut kuota per menit dan tidak menyebut laju per detik, jadi semburan di awal menit tidak dimodelkan.");
-    // R5-07: tiap partisi dibaca satu consumer per consumer group; kesimpulan consumer menganggur adalah penalaran
-    expect(b("Dokumentasi Kafka").teks).toContain("itu penalaran dari kalimat itu, dan lab tidak memasang consumer lebih banyak dari partisi.");
+    // R5-07 dan docs/design/design.md cabang 4.3 (dibuka 2026-11-03): "consumed by exactly one consumer within each subscribing consumer group at any given
+    // time"; dokumen itu tidak menyebut consumer menganggur, dan share group boleh punya consumer lebih banyak dari partisi: kesimpulan itu penalaran
+    expect(b("Dokumentasi Kafka").teks).toBe("Dokumentasi Kafka menyebut tiap partisi dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. Consumer di atas jumlah partisi tidak punya yang dibaca; itu penalaran dari kalimat itu dan hanya berlaku untuk consumer group, bukan share group. Lab tidak memasang consumer lebih banyak dari partisi.");
     // grup.txt A: "bukan pengiriman tepat satu kali"
     expect(b("Satu notifikasi per perangkat").teks).toContain("Pengiriman tepat satu kali tidak dijalankan.");
     // README: Kafka satu broker; jalur galat consumer dan RecordDeliveryTimeout tidak diperankan; docker-compose tanpa batas memori

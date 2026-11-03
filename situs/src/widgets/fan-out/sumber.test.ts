@@ -1,7 +1,7 @@
 // Penjaga sumber widget fan-out (W5-fanout): menurunkan nilai dari rekaman lab t5-fanout, README dan kode lab, serta naskah Tahap 5, lalu
 // membandingkannya dengan t5-fanout.json. Satu nilai yang diubah di salah satu sisi membuat tes gagal (uji mutasi di badan PR).
-// Baris sumber tiap kalimat yang dikunci literal ada di komentar di dekatnya. Dua klaim dokumentasi (kuota penyedia push per menit, satu
-// partisi dibaca satu consumer per grup) dibuka 2026-11-02 oleh pelaksana lab (R5-07, R5-288) dan tidak bisa dijaga offline.
+// Baris sumber tiap kalimat yang dikunci literal ada di komentar di dekatnya. Dua klaim dokumentasi tidak bisa dijaga offline: kuota penyedia push per menit (R5-288, dibuka 2026-11-02 oleh peninjau lab) dan
+// satu partisi dibaca satu consumer per grup (R5-07; docs/design/design.md cabang 4.3 di GitHub, dibuka ulang 2026-11-03).
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
