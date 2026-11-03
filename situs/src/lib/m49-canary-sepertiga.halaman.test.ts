@@ -76,7 +76,7 @@ interface Skenario {
   langkah: Langkah[];
   varian: { label: string; mulai: number; langkah: Langkah[] };
 }
-interface H { id: string; judul: string; label?: string; masalah?: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; path?: string }
+interface H { id: string; judul: string; adr?: number[]; label?: string; masalah?: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; path?: string }
 const hal = registry.halaman as unknown as H[];
 const dari = (id: string): H => {
   const h = hal.find((x) => x.id === id);
@@ -217,7 +217,7 @@ describe("rekaman tanpa-router.txt dan hitungan pasangan pod: diturunkan dari be
     expect(timbang(3, 5, 0).opsi.map((x) => [x.canary, x.total])).toEqual([[1, 3]]);
     const [p1, p2] = unik as [Pilihan, Pilihan];
     expect(badan).toContain(
-      `Controller lalu menimbang dua pasangan. Satu pod dari ${p1.total} pod adalah ${pk((100 * p1.canary) / p1.total)}%, selisih ${pk(p1.selisih)} poin persentase dari 5%. ` +
+      `Controller lalu menimbang dua pasangan jumlah pod versi baru dan total pod. Satu pod dari ${p1.total} pod adalah ${pk((100 * p1.canary) / p1.total)}%, selisih ${pk(p1.selisih)} poin persentase dari 5%. ` +
         `Satu pod dari ${p2.total} pod adalah ${pk((100 * p2.canary) / p2.total)}%, selisih ${pk(p2.selisih)} poin. Pasangan kedua lebih dekat ke 5%, jadi ${kata(p2.total)} pod berjalan (Hitungan atas kode).`,
     );
     expect(p2.selisih).toBeLessThan(p1.selisih);
@@ -767,7 +767,7 @@ const BADAN_DITURUNKAN: string[] = [
     `Kalau kamu pernah menyalakan fitur untuk ${bobot}% user lewat flag di app, angka itu dihitung dari user. Tanpa traffic router, Argo Rollouts menghitung pod. Dokumentasinya menulis bahwa controller hanya berusaha mendekati persentase \`setWeight\` antara versi baru dan lama. Ia memilih bilangan bulat pod dengan selisih terkecil ([Argo Rollouts v1.10.1: Canary](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md), dibuka 2026-11-03, Tidak dijalankan).`,
     `**Kenapa satu pod.** ${huruf1(kata(bobot))} persen dari ${kata(A3.diminta)} pod adalah ${koma((A3.diminta * bobot) / 100, 2)} pod, dan pod tidak bisa pecahan.`,
     "Kode v1.10.1 tidak menghasilkan nol pod versi baru untuk bobot 1 sampai 99 ([utils/replicaset/canary.go](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/canary.go), dibuka 2026-11-03, Tidak dijalankan, dibaca dari kode). Syaratnya dua replika atau lebih, jadi satu pod versi baru wajib ada.",
-    `Controller lalu menimbang dua pasangan. Satu pod dari ${pas[0].total} pod adalah ${pk((100 * pas[0].canary) / pas[0].total)}%, selisih ${pk(pas[0].selisih)} poin persentase dari ${bobot}%. Satu pod dari ${pas[1].total} pod adalah ${pk((100 * pas[1].canary) / pas[1].total)}%, selisih ${pk(pas[1].selisih)} poin. Pasangan kedua lebih dekat ke ${bobot}%, jadi ${kata(pas[1].total)} pod berjalan (Hitungan atas kode).`,
+    `Controller lalu menimbang dua pasangan jumlah pod versi baru dan total pod. Satu pod dari ${pas[0].total} pod adalah ${pk((100 * pas[0].canary) / pas[0].total)}%, selisih ${pk(pas[0].selisih)} poin persentase dari ${bobot}%. Satu pod dari ${pas[1].total} pod adalah ${pk((100 * pas[1].canary) / pas[1].total)}%, selisih ${pk(pas[1].selisih)} poin. Pasangan kedua lebih dekat ke ${bobot}%, jadi ${kata(pas[1].total)} pod berjalan (Hitungan atas kode).`,
     "<Snippet file=\"labs/t5-rollout/output/tanpa-router.txt\" lines=\"13:21\" title=\"Rekaman lab: labs/t5-rollout/output/tanpa-router.txt, bagian A (3 replika, maxSurge tidak diubah)\" />",
     `Dengan \`maxSurge: 0\` controller tidak boleh menambah pod, jadi hanya pasangan pertama yang tersisa. Tabel ini menaruh kedua pengaturan di samping rekamannya, dengan ${kata(A3.diminta)} replika dan \`setWeight: ${bobot}\`.`,
     "| Pengaturan Rollout | Pod versi baru | Pod versi lama | Bagian pod versi baru |",
