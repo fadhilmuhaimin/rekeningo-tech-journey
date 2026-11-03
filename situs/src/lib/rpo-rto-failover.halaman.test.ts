@@ -681,6 +681,12 @@ describe("hitungan: tabel Hitungan dihitung ulang dari angka yang tertulis di ha
     expect([RTO, GANGGUAN, MENIT_30_HARI, ANGGARAN, LOMPATAN_MS, JEDA_DETIK]).toEqual([15, 23, 43200, 43.2, 50, 1]);
     expect(badan).toContain("RTO 15 menit dan anggaran 43,2 menit dari PRD v5 (Asumsi produk), serta gangguan 23 menit dari naskah M42 (Ilustrasi).");
     expect(badan).toContain("50 ms untuk tambahan COMMIT, yaitu anggaran satu lompatan di [[t4-modul]] (Asumsi).");
+    // urutan tiga butir masukan: laju uang, anggaran 50 ms, lalu RTO dan anggaran kegagalan (tukar urutan lolos tanpa kunci baris)
+    const urutan = ["- 69,4 transaksi uang per detik di puncak", "- 50 ms untuk tambahan COMMIT", "- RTO 15 menit dan anggaran 43,2 menit"].map((x) => badan.indexOf(x));
+    expect(urutan.every((x) => x >= 0)).toBe(true);
+    expect(urutan).toEqual([...urutan].sort((x, y) => x - y));
+    // header tabel Hitungan, garis pemisah, dan baris pertama berurutan (tukar kolom header lolos tanpa kunci baris)
+    expect(badan).toContain("| Besaran | Rumus | Hasil |\n| --- | --- | --- |\n| Transaksi uang dalam jeda");
     expect(barisAnggaran).toContain("0,001 × 43.200");
     expect(badan).toContain(`0,001 × ${fmt(MENIT_30_HARI)} = ${fmt(ANGGARAN, 1)} menit`);
   });
@@ -793,6 +799,9 @@ describe("angka di badan: himpunan token angka dan jumlahnya dikunci; tiap token
     expect(barisRiset("R5-154")).toContain("Laravel 13.x");
     expect(barisRiset("R5-154")).toContain("Django 5.2");
     expect(barisRiset("R5-152")).toContain("NIST SP 800-34 Rev. 1");
+    // CloudNativePG: jumlah instance contoh di dokumen sama dengan yang ditulis halaman (kata biasa di baris riset tidak tercakup token)
+    expect(barisRiset("R5-153")).toContain("`method: any` dan `number: 1` pada tiga instance menghasilkan `ANY 1 (cluster-example-2, cluster-example-3, cluster-example-1)`");
+    expect(badan).toContain("CloudNativePG 1.30 menulis `method: any` dengan `number: 1` untuk tiga instance.");
     expect(["0", "5", "9", "600", "15", "23", "43,2", "43.200", "50", "69,4", "46,3", "69", "46", "53,2", "34,7", "3,47", "2,32", "20", "3", "4", "48", "52", "33", "60", "24", "99,9", "30", "0,001", "800", "34", "17"].every(ada)).toBe(true);
     expect(sinkron.split("\n")[1]).toContain("17.11");
   });
