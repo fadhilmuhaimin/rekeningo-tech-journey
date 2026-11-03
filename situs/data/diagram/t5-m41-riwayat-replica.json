@@ -1,0 +1,25 @@
+{
+  "id": "t5-m41-riwayat-replica",
+  "judul": "Riwayat dan saldo tampil dari replica yang tertinggal, keputusan uang dari primary",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t5-replika · baca.txt bagian A (pemutaran ulang di replica ditahan dengan sengaja)" },
+  "baris": [
+    {
+      "label": "Yang Budi lihat",
+      "sub": "saldo dan riwayat dari replica",
+      "simpul": [
+        { "teks": "Bayar: 201", "sub": "saldo di jawaban Rp215.000", "nada": "good" },
+        { "teks": "Saldo tampil Rp250.000", "sub": "replica belum memutar ulang", "nada": "warn" },
+        { "teks": "Riwayat tanpa Rp35.000", "sub": "satu baris, top-up", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Yang menentukan uang",
+      "sub": "dibaca dari primary",
+      "simpul": [
+        { "teks": "Kiriman Rp240.000", "sub": "saldo primary Rp215.000" },
+        { "teks": "Ditolak: saldo kurang", "sub": "422, walau saldo tampil Rp250.000", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah yang tertinggal dari primary. Pemutaran ulang di replica ditahan dengan sengaja, karena jeda alami di lab di bawah 1 detik. Layar app tidak direkam: lab hanya menjawab curl."
+}
