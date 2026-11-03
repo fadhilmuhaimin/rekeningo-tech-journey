@@ -17,7 +17,7 @@ Minggu 8 Tahap 5. Selasa pukul 10.00 Dewi menjalankan latihan failover pertamany
 
 Selama 4 menit berikutnya app Budi menampilkan "Gagal memuat", dan kasir Ani menolak pembayaran. Semua service menjawab 500, dan alert menyala walau database sehat.
 
-*Angka cerita (Ilustrasi):* hari, pukul 10.00, 40 detik, dan 4 menit berasal dari naskah, bukan dari rekaman. Lab api-t5 tidak punya replica atau pod.
+*Angka cerita (Ilustrasi):* hari, pukul 10.00, 40 detik, dan 4 menit berasal dari naskah, bukan dari rekaman. Rekaman di halaman ini memakai satu PostgreSQL di lab api-t5, tanpa replica atau pod.
 
 Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
 
@@ -98,7 +98,7 @@ Kode pgx menghitung batas umur koneksi dari waktu pembuatan, `MaxConnLifetime`, 
 
 **Yang tidak direkam.**
 
-- Selasa, pukul 10.00, 40 detik, 4 menit, Dewi, app Budi, dan kasir Ani berasal dari cerita (Ilustrasi). Lab api-t5 tidak punya replica, pod, atau app.
+- Selasa, pukul 10.00, 40 detik, 4 menit, Dewi, app Budi, dan kasir Ani berasal dari cerita (Ilustrasi). Rekaman `pooler.txt` memakai satu PostgreSQL, tanpa replica, pod, atau app.
 - Rekaman memuat satu proses dengan 12 pool, bukan 18 pod. Angka 180, 83, dan 27,8 adalah Hitungan atas Asumsi.
 - Primary yang dimatikan, promosi, dan koneksi yang diputus tidak direkam di lab ini. Promosi direkam di [[t5-m42]] untuk skema ledger.
 - Queue permintaan di tiap pod, retry, dan lama 4 menit tidak direkam (penalaran dan Ilustrasi).
@@ -138,7 +138,7 @@ Pool satu pod belum menghitung pod lain: koneksi yang mungkin dipakai bersamaan 
 <details class="success">
 <summary>Jawaban</summary>
 
-Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil: lab api-t5 tidak punya replica atau pod, dan tidak merekam jumlah itu sebagai angka.
+Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil: rekaman `pooler.txt` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka.
 
 </details>
 

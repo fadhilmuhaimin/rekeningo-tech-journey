@@ -3893,7 +3893,7 @@
   "judul": "5.16 M46: Latihan failover membuat semua service error",
   "url": "tahap-5/m46-failover-semua-error/",
   "tanya": "Lab merekam galat 53300 dari 12 client dengan pool 10. Apa yang dibuktikan rekaman itu, dan apa yang tidak?",
-  "jawab": "Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil: lab api-t5 tidak punya replica atau pod, dan tidak merekam jumlah itu sebagai angka."
+  "jawab": "Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil: rekaman `pooler.txt` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka."
  },
  {
   "id": "t5-m46-2",

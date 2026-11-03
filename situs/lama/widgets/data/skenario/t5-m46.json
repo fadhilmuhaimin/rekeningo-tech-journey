@@ -5,7 +5,7 @@
     "jenis": "rekaman",
     "file": "labs/api-t5/output/pooler.txt",
     "fileVarian": "labs/api-t5/output/pooler.txt",
-    "catatan": "Lab api-t5, PostgreSQL 17.11, dari database bersih (make -C labs/api-t5 run BAGIAN=pooler). Jalur utama: pooler.txt bagian A, satu proses yang membuka 12 pool dengan 10 koneksi per pool langsung ke PostgreSQL. Ubah satu hal: pooler.txt bagian B, client yang sama lewat PgBouncer 1.26.1. Rekaman ini bukan latihan failover: lab api-t5 tidak punya replica, pod, atau app Flutter, dan tidak merekam layar HP. Jumlah koneksi yang berhasil tidak direkam sebagai angka. Baris diawali tanda pagar adalah baris rekaman, bukan baris log."
+    "catatan": "Lab api-t5, PostgreSQL 17.11, dari database bersih (make -C labs/api-t5 run BAGIAN=pooler). Jalur utama: pooler.txt bagian A, satu proses yang membuka 12 pool dengan 10 koneksi per pool langsung ke PostgreSQL. Ubah satu hal: pooler.txt bagian B, client yang sama lewat PgBouncer 1.26.1. Rekaman ini bukan latihan failover: rekaman pooler.txt memakai satu PostgreSQL tanpa replica, pod, atau app Flutter, dan tidak merekam layar HP. Jumlah koneksi yang berhasil tidak direkam sebagai angka. Baris diawali tanda pagar adalah baris rekaman, bukan baris log."
   },
   "pengantar": "Dewi menjalankan latihan failover, dan service menjawab 500. Lab memerankan satu bagiannya: banyak pool meminta koneksi bersamaan. Ikuti langkahnya, lalu centang 'Ubah satu hal' dan tebak apa yang terjadi bila client yang sama menyambung lewat PgBouncer.",
   "komponen": [

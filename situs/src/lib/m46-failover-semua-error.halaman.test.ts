@@ -216,7 +216,7 @@ describe("naskah, registry, dan halaman tetangga", () => {
     expect([detikPromosi, menitError, jamLatihan]).toEqual([40, 4, "10.00"]);
     harus(`Minggu ${mingguM46} Tahap 5. Selasa pukul ${jamLatihan} Dewi menjalankan latihan failover pertamanya. Replica dipromosikan dalam ${detikPromosi} detik.`);
     harus(`Selama ${menitError} menit berikutnya app Budi menampilkan "Gagal memuat", dan kasir Ani menolak pembayaran. Semua service menjawab ${kodeGalat === 53300 ? 500 : 0}, dan alert menyala walau database sehat.`);
-    harus(`*Angka cerita (Ilustrasi):* hari, pukul ${jamLatihan}, ${detikPromosi} detik, dan ${menitError} menit berasal dari naskah, bukan dari rekaman. Lab api-t5 tidak punya replica atau pod.`);
+    harus(`*Angka cerita (Ilustrasi):* hari, pukul ${jamLatihan}, ${detikPromosi} detik, dan ${menitError} menit berasal dari naskah, bukan dari rekaman. Rekaman di halaman ini memakai satu PostgreSQL di lab api-t5, tanpa replica atau pod.`);
     harus("Raka menduga promosi belum selesai. Dugaan lainnya: database belum siap menerima koneksi.");
   });
   test("naskah: angka koneksi potensial, tersedia, ditolak, dan rata-rata sama dengan rekaman, tabel beban, dan halaman tetangga (180, 97, 83, 27,8)", () => {
@@ -280,16 +280,17 @@ describe("rekaman pooler.txt: nilai turunan dari berkasnya sendiri", () => {
     expect(maksPgB).toBeLessThan(tersedia);
     expect(akhirB).toBeGreaterThanOrEqual(nSimpulanB);
   });
-  test("klaim negatif berlingkup: tanpa angka koneksi berhasil di bagian A; 'bukan latihan failover' hanya benar bila api-t5 tanpa replica dan pod (README dan berkas lab)", () => {
+  test("klaim negatif berlingkup: tanpa angka koneksi berhasil di bagian A; 'tanpa replica dan pod' hanya untuk rekaman pooler (kode api-t5 punya dukungan replica untuk lab t5-replika)", () => {
     expect(readmeLab).toContain("Replica dan jeda baca milik `t5-replika`");
     expect(readmeLab).toContain("Lab ini tidak menguji kapasitas produksi dan tidak mengklaimnya.");
     expect(readmeLab).toContain("Angka yang bergantung mesin (p95, jumlah koneksi, `WaitCount`) hanya diperiksa terhadap batas dan tidak direkam sebagai nilai.");
-    const berkas = (terlacak ? [...terlacak] : []).filter((f) => f.startsWith("labs/api-t5/"));
-    if (terlacak) {
-      expect(berkas.length).toBeGreaterThan(20);
-      expect(berkas.filter((f) => /(k8s|kube|helm|replica|statefulset|deployment)/i.test(f))).toEqual([]);
+    // lingkup klaim: bagian pooler (run.py rekam_pooler dan cmd/pooler), bukan seluruh folder api-t5
+    expect(baca("labs/api-t5/cmd/api/main.go")).toContain('os.Getenv("REPLIKA_DATABASE_URL")');
+    for (const [nama, kode] of [["rekam_pooler", rekamPooler], ["cmd/pooler", kodePooler]] as const) {
+      expect(kode, nama).not.toMatch(/replika|REPLIKA|replica|k3d|kubectl|kubernetes|\bpod\b|pg_promote|pg_basebackup|primary_conninfo/i);
     }
     expect(kodeRun).not.toMatch(/pg_promote|pg_basebackup|primary_conninfo/);
+    expect(rekamPooler).toContain("d.db_role(\"t5_app\", nama=\"api-t5-pooler\")");
   });
 });
 
@@ -407,7 +408,7 @@ describe("sumber luar: kutipan di baris riset R5-185 sampai R5-189 dan tautan di
   });
   test("R5-187, R5-188, dan R5-189: sumber internal yang dibaca, rumus hitungan, dan angka di kutipan sama dengan rekaman, kode, dan naskah", () => {
     const r187 = barisRiset("R5-187");
-    for (const k of ["`labs/api-t5/output/pooler.txt` bagian A", "max_connections 100, superuser_reserved_connections 3, tersedia 97", "12 client, pool 10, 120 koneksi diminta", "kode galat 53300", "paling banyak 97 pada sampel tiap 100 ms", "kurang dari 12 client mendapat seluruh 10 koneksinya", "PgBouncer 1.26.1; 120 diminta dan berhasil tanpa galat; 2400 query selesai; 12 dari 12 client penuh; paling banyak 20 koneksi ke PostgreSQL", "`cfg.MaxConns, cfg.MinConns = int32(*pool), 0`", "bawaan `-putaran` 20 dan jeda 50 ms", "`pgconn.PgError`", "tanpa retry", "`rekam_pooler`", "Lab api-t5 tidak punya replica, pod, atau app"]) expect(r187, k).toContain(k);
+    for (const k of ["`labs/api-t5/output/pooler.txt` bagian A", "max_connections 100, superuser_reserved_connections 3, tersedia 97", "12 client, pool 10, 120 koneksi diminta", "kode galat 53300", "paling banyak 97 pada sampel tiap 100 ms", "kurang dari 12 client mendapat seluruh 10 koneksinya", "PgBouncer 1.26.1; 120 diminta dan berhasil tanpa galat; 2400 query selesai; 12 dari 12 client penuh; paling banyak 20 koneksi ke PostgreSQL", "`cfg.MaxConns, cfg.MinConns = int32(*pool), 0`", "bawaan `-putaran` 20 dan jeda 50 ms", "`pgconn.PgError`", "tanpa retry", "`rekam_pooler`", "Bagian pooler memakai satu PostgreSQL dan satu proses `pooler`, tanpa replica, pod, atau app", "kode api-t5 punya dukungan replica lewat `REPLIKA_DATABASE_URL` untuk lab t5-replika, dan bagian pooler tidak memakainya"]) expect(r187, k).toContain(k);
     const r188 = barisRiset("R5-188");
     for (const k of ["6 × 3 × 10 = 180", "6 × 3 = 18", "100 − 3 = 97", "180 − 97 = 83", "180 ÷ 97 = 1,856 (186%)", "1.388,9 × 0,02 = 27,78 (27,8)", "27,8 ÷ 18 = 1,54 (1,5)", "12 × 10 = 120", "120 − 97 = 23", "0,001 × 43.200 = 43,2", "4 ÷ 43,2 = 0,0926 (9,3%)", "Tidak berlaku (hitungan atas angka sendiri)"]) expect(r188, k).toContain(k);
     const r189 = barisRiset("R5-189");
@@ -636,7 +637,7 @@ describe("ID registry, tautan, template blok, widget, kartu, tebakan, dan label"
     expect(jawaban).toHaveLength(3);
     k.forEach((x, i) => expect(jawaban[i]).toContain(x.jawab));
     for (const x of k) { expect(x.url).toBe("tahap-5/m46-failover-semua-error/"); expect(x.judul).toBe(`5.16 ${dari("t5-m46").judul}`); }
-    expect(jawaban[0]).toBe(`Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode ${kodeGalat} saat ${diminta} koneksi diminta bersamaan dan batasnya ${tersedia} (\`pooler.txt\` bagian A). Rekaman tidak membuktikan failover, ${nService * nPod} pod, atau jumlah koneksi yang berhasil: lab api-t5 tidak punya replica atau pod, dan tidak merekam jumlah itu sebagai angka.`);
+    expect(jawaban[0]).toBe(`Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode ${kodeGalat} saat ${diminta} koneksi diminta bersamaan dan batasnya ${tersedia} (\`pooler.txt\` bagian A). Rekaman tidak membuktikan failover, ${nService * nPod} pod, atau jumlah koneksi yang berhasil: rekaman \`pooler.txt\` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka.`);
     expect(jawaban[1]).toBe(`Diminta ${nService} × ${nPod} × ${nPool} = ${nPotensi} dan tersedia ${maksKoneksi} − ${cadangan} = ${tersedia}, jadi ${nDitolak} tidak bisa dibuka bila tidak ada koneksi lain. Yang sibuk rata-rata ${littleBeban[1]} × ${littleBeban[2]} = ${koma(bulat1(lambdaPuncak * waktuW))}. Semuanya Hitungan atas Asumsi.`);
     expect(jawaban[2]).toBe("`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Di lab, `MaxConns` bernilai 10 dan jitter tidak diatur.");
   });
@@ -676,7 +677,7 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
     expect(Object.keys(skenario).sort()).toEqual(["judul", "komponen", "langkah", "layarAwal", "pengantar", "perangkat", "predict", "sumber", "varian", "versi"]);
     expect((skenario as unknown as { versi: number }).versi).toBe(2);
     expect(skenario.predict.varian).toBe(true);
-    expect(skenario.sumber.catatan).toBe("Lab api-t5, PostgreSQL 17.11, dari database bersih (make -C labs/api-t5 run BAGIAN=pooler). Jalur utama: pooler.txt bagian A, satu proses yang membuka 12 pool dengan 10 koneksi per pool langsung ke PostgreSQL. Ubah satu hal: pooler.txt bagian B, client yang sama lewat PgBouncer 1.26.1. Rekaman ini bukan latihan failover: lab api-t5 tidak punya replica, pod, atau app Flutter, dan tidak merekam layar HP. Jumlah koneksi yang berhasil tidak direkam sebagai angka. Baris diawali tanda pagar adalah baris rekaman, bukan baris log.");
+    expect(skenario.sumber.catatan).toBe("Lab api-t5, PostgreSQL 17.11, dari database bersih (make -C labs/api-t5 run BAGIAN=pooler). Jalur utama: pooler.txt bagian A, satu proses yang membuka 12 pool dengan 10 koneksi per pool langsung ke PostgreSQL. Ubah satu hal: pooler.txt bagian B, client yang sama lewat PgBouncer 1.26.1. Rekaman ini bukan latihan failover: rekaman pooler.txt memakai satu PostgreSQL tanpa replica, pod, atau app Flutter, dan tidak merekam layar HP. Jumlah koneksi yang berhasil tidak direkam sebagai angka. Baris diawali tanda pagar adalah baris rekaman, bukan baris log.");
     expect(pooler[1]).toContain("PostgreSQL 17.11");
     expect(readmeLab).toContain("make -C labs/api-t5 run BAGIAN=laporan");
     expect(kodeRun).toContain('BAGIAN = {"skema": rekam_skema, "laporan": rekam_laporan, "pooler": rekam_pooler,');
@@ -749,7 +750,7 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
 const PARAGRAF_UTUH: string[] = [
   "Minggu 8 Tahap 5. Selasa pukul 10.00 Dewi menjalankan latihan failover pertamanya. Replica dipromosikan dalam 40 detik.",
   "Selama 4 menit berikutnya app Budi menampilkan \"Gagal memuat\", dan kasir Ani menolak pembayaran. Semua service menjawab 500, dan alert menyala walau database sehat.",
-  "*Angka cerita (Ilustrasi):* hari, pukul 10.00, 40 detik, dan 4 menit berasal dari naskah, bukan dari rekaman. Lab api-t5 tidak punya replica atau pod.",
+  "*Angka cerita (Ilustrasi):* hari, pukul 10.00, 40 detik, dan 4 menit berasal dari naskah, bukan dari rekaman. Rekaman di halaman ini memakai satu PostgreSQL di lab api-t5, tanpa replica atau pod.",
   "Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].",
   "Raka menduga promosi belum selesai. Dugaan lainnya: database belum siap menerima koneksi.",
   "Pod adalah satu atau lebih container yang berjalan bersama ([[t5-service]]). Pool adalah kumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request ([[t3-pool]]). Role biasa adalah role database tanpa atribut superuser, seperti role yang dipakai service.",
@@ -775,7 +776,7 @@ const PARAGRAF_UTUH: string[] = [
   "Kode pgx menghitung batas umur koneksi dari waktu pembuatan, `MaxConnLifetime`, dan jitter acak sampai `MaxConnLifetimeJitter` (`pool.go`, Tidak dijalankan). Dengan jitter 0, koneksi yang dibuat pada detik yang sama sampai batas umurnya pada waktu yang hampir sama. Itu risiko satu jam sesudah koneksi dibuat bersamaan, bukan penyebab 4 menit di cerita (penalaran).",
   "**Retry bisa memperparah (penalaran).** Client yang mengulang koneksi yang ditolak tanpa jeda meminta slot yang sama lagi. Rekaman lab tidak punya retry: tiap permintaan koneksi berjalan sekali, dan galatnya dicatat (kode lab).",
   "**Yang tidak direkam.**",
-  "- Selasa, pukul 10.00, 40 detik, 4 menit, Dewi, app Budi, dan kasir Ani berasal dari cerita (Ilustrasi). Lab api-t5 tidak punya replica, pod, atau app.",
+  "- Selasa, pukul 10.00, 40 detik, 4 menit, Dewi, app Budi, dan kasir Ani berasal dari cerita (Ilustrasi). Rekaman `pooler.txt` memakai satu PostgreSQL, tanpa replica, pod, atau app.",
   "- Rekaman memuat satu proses dengan 12 pool, bukan 18 pod. Angka 180, 83, dan 27,8 adalah Hitungan atas Asumsi.",
   "- Primary yang dimatikan, promosi, dan koneksi yang diputus tidak direkam di lab ini. Promosi direkam di [[t5-m42]] untuk skema ledger.",
   "- Queue permintaan di tiap pod, retry, dan lama 4 menit tidak direkam (penalaran dan Ilustrasi).",
@@ -790,7 +791,7 @@ const PARAGRAF_UTUH: string[] = [
   "Pool satu pod belum menghitung pod lain: koneksi yang mungkin dipakai bersamaan harus muat di batas database.",
   "### Cek diri",
   "**1.** Lab merekam galat 53300 dari 12 client dengan pool 10. Apa yang dibuktikan rekaman itu, dan apa yang tidak?",
-  "Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil: lab api-t5 tidak punya replica atau pod, dan tidak merekam jumlah itu sebagai angka.",
+  "Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil: rekaman `pooler.txt` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka.",
   "**2.** Enam service punya tiga pod tiap service dengan pool 10. Berapa koneksi yang diminta bila semua pool penuh, berapa yang tersedia, dan berapa yang sibuk rata-rata pada beban puncak?",
   "Diminta 6 × 3 × 10 = 180 dan tersedia 100 − 3 = 97, jadi 83 tidak bisa dibuka bila tidak ada koneksi lain. Yang sibuk rata-rata 1.388,9 × 0,02 = 27,8. Semuanya Hitungan atas Asumsi.",
   "**3.** Berapa nilai bawaan pgxpool v5.11.0 untuk `MaxConns` dan `MaxConnLifetimeJitter`, dan apa yang dipasang lab?",
@@ -809,7 +810,7 @@ describe("lapis 1b: noscript diturunkan dari rekaman, kalimat berangka, dan para
   });
   test("kalimat berangka dari rekaman, naskah, dan halaman tetangga: minggu, 12 pool, 20 query, 18 pod, widget", () => {
     harus(`Minggu ${mingguM46} Tahap 5. Selasa pukul ${jamLatihan}`);
-    harus(`- Selasa, pukul ${jamLatihan}, ${detikPromosi} detik, ${menitError} menit, Dewi, app Budi, dan kasir Ani berasal dari cerita (Ilustrasi). Lab api-t5 tidak punya replica, pod, atau app.`);
+    harus(`- Selasa, pukul ${jamLatihan}, ${detikPromosi} detik, ${menitError} menit, Dewi, app Budi, dan kasir Ani berasal dari cerita (Ilustrasi). Rekaman \`pooler.txt\` memakai satu PostgreSQL, tanpa replica, pod, atau app.`);
     harus(`- Rekaman memuat satu proses dengan ${klien} pool, bukan ${nService * nPod} pod. Angka ${nPotensi}, ${nDitolak}, dan ${koma(bulat1(lambdaPuncak * waktuW))} adalah Hitungan atas Asumsi.`);
     harus(`**Dari ${klien} client ke ${nService * nPod} pod.**`);
     harus(`Dengan \`MinConns\` 0, pool membuka koneksi baru saat ada permintaan dan belum ada koneksi bebas.`);
