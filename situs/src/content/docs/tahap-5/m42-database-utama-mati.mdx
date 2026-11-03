@@ -82,7 +82,7 @@ Satu pembayaran lagi dijawab 201 sesudah node baru dipromosikan: primary lama pu
 
 Primary yang restart di cerita tidak direkam. Lab tidak menguji apakah jurnal yang tidak ada di node baru masih terbaca dari disk primary yang restart.
 
-**PostgreSQL tidak mendeteksi kegagalan primary.** Dokumentasi menulis bahwa PostgreSQL tidak menyediakan perangkat lunak yang mengenali kegagalan primary dan memberi tahu standby. Promosi dipicu dengan `pg_ctl promote` atau `pg_promote()`, yang dijalankan administrator atau perangkat lain (sumber yang sama, Tidak dijalankan). Di lab hanya `run.py` yang memanggil `pg_promote()`, dan perangkat yang mendeteksi dan mempromosikan otomatis tidak dijalankan.
+**PostgreSQL tidak mendeteksi kegagalan primary.** Dokumentasi menulis bahwa PostgreSQL tidak menyediakan perangkat lunak yang mengenali kegagalan primary dan memberi tahu standby. Promosi dipicu dengan `pg_ctl promote` atau `pg_promote()`, dan banyak perangkat yang mengenali kegagalan itu ada di luar PostgreSQL (sumber yang sama, Tidak dijalankan). Di lab hanya `run.py` yang memanggil `pg_promote()`, dan perangkat yang mendeteksi dan mempromosikan otomatis tidak dijalankan.
 
 **Standby sinkron menahan jawaban sampai standby menyimpan commit.** Standby sinkron adalah standby yang ditunggu primary sebelum menjawab. Dengan `synchronous_standby_names` berisi `FIRST 1 (replika_sinkron)`, COMMIT menunggu satu standby sinkron mengonfirmasi commit-nya. Tiga pembayaran dijawab 201 selagi standby sinkron terhubung, lalu koneksinya diputus.
 

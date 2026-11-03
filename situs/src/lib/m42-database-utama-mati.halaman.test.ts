@@ -435,6 +435,9 @@ describe("hitungan: tabel Hitungan dihitung ulang dari angka yang tertulis di ha
     expect(prd5).toContain("| Top-up dari bank per detik di puncak | 5,79 |");
     expect(prd5).toContain("| Transaksi uang per hari (bayar, transfer, QR) | 600.000 |");
     expect(barisBeban).toContain("| Transaksi uang (bayar, transfer, QR) |");
+    // nilai puncak yang halaman ini hitung ulang sama dengan yang naskah tulis (rata-rata trx 2 = puncak ÷ faktor puncak)
+    expect(barisBeban).toContain(`${fmt(bulat(PUNCAK_TRX3, 1), 1)} puncak (trx ${TRX_REGISTRY}: ${fmt(bulat(PUNCAK_TRX2 / asumsi.puncak!, 2), 2)} dan ${fmt(bulat(PUNCAK_TRX2, 1), 1)})`);
+    expect(barisBeban).toContain(`${fmt(bulat(PUNCAK_TRX3 / asumsi.puncak!, 2), 2)} rata-rata dan`);
     expect(badan).toContain("Angka 69 adalah transaksi uang: bayar, transfer, dan QR. Top-up dari bank dihitung terpisah, dan jeda yang sama hanya memuat sekitar 6 top-up.");
     expect(badan).toContain("Pukul 02.10 lajunya jauh lebih kecil dari puncak, sehingga cerita hanya menemukan dua (Ilustrasi).");
   });
@@ -517,6 +520,13 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
     expect(bulat(PUNCAK_TRX3, 2)).toBe(69.44);
     expect(bulat(PUNCAK_TRX2, 2)).toBe(46.3);
     expect(bulat(PUNCAK_TOPUP, 3)).toBe(5.787);
+  });
+  test("baris riset sumber luar: kolom 'Berubah sejak' menulis Tidak berubah dengan tanggal cek yang sama dengan tanggal akses di kolom sumber", () => {
+    for (const id of ["R5-145", "R5-146", "R5-147"]) {
+      const sel = barisRiset(id).split("|").map((x) => x.trim());
+      const akses = cocok(sel[3]!, /dibuka (\d{4}-\d{2}-\d{2})/)[1]!;
+      expect(sel[sel.length - 2]!.startsWith(`Tidak berubah, dicek ${akses}`), `${id}: ${sel[sel.length - 2]}`).toBe(true);
+    }
   });
 });
 
@@ -759,7 +769,7 @@ const KUNCI_LITERAL: string[] = [
   "**Node baru lebih tua, bukan rusak.** Invarian ledger memeriksa dua hal: tidak ada buku yang `saldo_cache`-nya berbeda dari jumlah postingnya, dan jumlah semua posting nol ([[t2-ledger]]). Keduanya bernilai 0 di primary lama dan di node baru. Pemeriksaan itu lolos di node baru, jadi ia tidak bisa menemukan pembayaran yang tidak pernah sampai.",
   "**Primary lama masih menerima tulisan.** Fencing adalah langkah menghentikan primary lama sebelum node baru menerima tulisan. Fencing tidak ada di lab ini.",
   "Satu pembayaran lagi dijawab 201 sesudah node baru dipromosikan: primary lama punya 9 jurnal bayar dan node baru 3. Dokumentasi PostgreSQL menulis bahwa primary lama harus diberi tahu ia bukan primary lagi. Tanpa itu, kedua server bisa sama-sama merasa primary, dan itu berujung pada kebingungan dan kehilangan data ([PostgreSQL 17: failover](https://www.postgresql.org/docs/17/warm-standby-failover.html), dibuka 2026-11-03, Tidak dijalankan).",
-  "**PostgreSQL tidak mendeteksi kegagalan primary.** Dokumentasi menulis bahwa PostgreSQL tidak menyediakan perangkat lunak yang mengenali kegagalan primary dan memberi tahu standby. Promosi dipicu dengan `pg_ctl promote` atau `pg_promote()`, yang dijalankan administrator atau perangkat lain (sumber yang sama, Tidak dijalankan). Di lab hanya `run.py` yang memanggil `pg_promote()`, dan perangkat yang mendeteksi dan mempromosikan otomatis tidak dijalankan.",
+  "**PostgreSQL tidak mendeteksi kegagalan primary.** Dokumentasi menulis bahwa PostgreSQL tidak menyediakan perangkat lunak yang mengenali kegagalan primary dan memberi tahu standby. Promosi dipicu dengan `pg_ctl promote` atau `pg_promote()`, dan banyak perangkat yang mengenali kegagalan itu ada di luar PostgreSQL (sumber yang sama, Tidak dijalankan). Di lab hanya `run.py` yang memanggil `pg_promote()`, dan perangkat yang mendeteksi dan mempromosikan otomatis tidak dijalankan.",
   "**Standby sinkron menahan jawaban sampai standby menyimpan commit.** Standby sinkron adalah standby yang ditunggu primary sebelum menjawab. Dengan `synchronous_standby_names` berisi `FIRST 1 (replika_sinkron)`, COMMIT menunggu satu standby sinkron mengonfirmasi commit-nya. Tiga pembayaran dijawab 201 selagi standby sinkron terhubung, lalu koneksinya diputus.",
   "Pembayaran keempat tidak dijawab dalam 3 detik, karena COMMIT berhenti di `SyncRep`, nilai `wait_event` di `pg_stat_activity` yang lab baca untuk mengenali COMMIT yang menunggu standby sinkron. Client pergi, penantian dibatalkan, dan primary lama mencatat bahwa transaksinya sudah ter-commit lokal dan mungkin belum direplikasi. Standby sinkron yang dipromosikan punya ketiga jurnal yang dijawab 201. Primary lama punya empat jurnal bayar dan node baru tiga: jurnal keempat tidak pernah dijawab 201 ke client.",
   "**Jaminan itu punya syarat.** Dokumentasi PostgreSQL 17 menulis bahwa commit menunggu standby bila `synchronous_standby_names` terisi dan `synchronous_commit` bernilai `on`, `remote_write`, atau `remote_apply`. Nilai `local` tidak menunggu replikasi, dan `off` tidak menunggu apa pun (sumber yang sama). Lab memakai nilai bawaan `on` dan satu kandidat sinkron. `ANY 1` dari dua kandidat tidak dijalankan.",
@@ -796,6 +806,13 @@ describe("tanpa kunci baris: kalimat bermakna dikunci literal dan diturunkan dar
   test("kalimat literal ada tepat satu kali di badan (kecuali potongan yang sengaja berulang)", () => {
     for (const k of KUNCI_LITERAL) expect(badan.split(k).length - 1, k).toBeGreaterThanOrEqual(1);
     for (const k of KUNCI_LITERAL.filter((x) => x.length > 40)) expect(badan.split(k).length - 1, k).toBe(1);
+  });
+  test("impor diagram dan data widget di MDX menunjuk berkas yang dibaca penjaga ini (bukan diagram halaman lain)", () => {
+    expect(badan).toContain('import promosi from "../../../../data/diagram/t5-m42-promosi.json";');
+    expect(badan.match(/^import promosi from /gm)).toHaveLength(1);
+    expect(badan.match(/<Rantai data=\{promosi\} ringkas \/>/g)).toHaveLength(1);
+    expect(badan.match(/<WidgetLama nama="alur" src="data\/skenario\/t5-m42\.json" \/>/g)).toHaveLength(1);
+    expect(diagramMentah.id).toBe("t5-m42-promosi");
   });
   test("angka di prosa sama dengan rekaman dan hitungan: lima, tiga, Rp156.000, Rp6.000, Rp150.000, 9 lawan 3, 4 lawan 3, 23 menit", () => {
     expect(badan).toContain(`Saldo Warung 505 adalah Rp${fmt(SALDO_PRIMARY)} di primary lama dan Rp${fmt(SALDO_BARU)} di node baru.`);
