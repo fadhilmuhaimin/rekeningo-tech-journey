@@ -281,7 +281,7 @@ describe("kode lab: tagihRentan, KlaimKunci, titik mati, status, urutan, outbox,
     expect(kt[nDijurnal + 3]).toBe("\tif berhenti() {");
     expect(kt[nDijurnal + 6]).toBe('\tok, err := s.repo.TandaiAngsuran(ctx, a.JadwalID, a.Ke, []string{"menunggu", "terjurnal"}, "dicatat", &jurnal)');
     expect(kt[nReturnAkhir - 1]).toBe("\treturn false, err");
-    harus("**Yang dilakukan job per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab). Tiap angsuran melewati empat langkah: klaim key `cicilan:<jadwal>:<ke>` dengan umur 24 jam, tulis jurnal, tandai key selesai, lalu tandai angsuran `dicatat`.");
+    harus("**Yang dilakukan job per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab). Tiap angsuran yang berhasil ditagih melewati empat langkah: klaim key `cicilan:<jadwal>:<ke>` dengan umur 24 jam, tulis jurnal, tandai key selesai, lalu tandai angsuran `dicatat`.");
     harus("Langkah pertama memanggil `KlaimKunci` langsung, tanpa HTTP. Bila key sudah ada dan umurnya belum lewat, hasilnya bukan `KlaimBaru`: job menghitung angsuran itu sebagai dilewati dan tidak mengubahnya.");
     harus("Sesudah klaim key, job menulis jurnal dalam satu transaction, lalu commit (Tidak dijalankan: dibaca dari kode lab). Potongan berikut memuat dua langkah terakhir:");
     // tanpa HTTP: job dijalankan dari main.go lewat service dan repo, tanpa klien atau server HTTP

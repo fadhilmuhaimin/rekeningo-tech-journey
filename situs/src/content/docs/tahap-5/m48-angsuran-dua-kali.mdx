@@ -52,7 +52,7 @@ Di versi pertama, batch yang mati sesudah jurnal menagih angsuran yang sama dua 
 
 Mode itu adalah kode lab yang ditulis untuk M48, bukan salinan kode yang pernah berjalan di cerita. Jam ledger diperankan lewat `-lab-sekarang`: key bernilai 24 jam dari jam itu, jadi 23 dan 25 jam tidak ditunggu. Baris Versi benar di Rantai memakai referensi, yaitu kolom di `jurnal` yang menyimpan penanda angsuran dan harus unik.
 
-**Yang dilakukan job per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab). Tiap angsuran melewati empat langkah: klaim key `cicilan:<jadwal>:<ke>` dengan umur 24 jam, tulis jurnal, tandai key selesai, lalu tandai angsuran `dicatat`.
+**Yang dilakukan job per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab). Tiap angsuran yang berhasil ditagih melewati empat langkah: klaim key `cicilan:<jadwal>:<ke>` dengan umur 24 jam, tulis jurnal, tandai key selesai, lalu tandai angsuran `dicatat`.
 
 Langkah pertama memanggil `KlaimKunci` langsung, tanpa HTTP. Bila key sudah ada dan umurnya belum lewat, hasilnya bukan `KlaimBaru`: job menghitung angsuran itu sebagai dilewati dan tidak mengubahnya.
 
