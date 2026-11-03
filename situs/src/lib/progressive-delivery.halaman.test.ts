@@ -894,3 +894,135 @@ describe("tinjauan 5.23: batas atas 5,8, pencacah kumulatif, bawaan pod stabil, 
     expect(d.pilihan[2]!.teks).toBe("Setuju, memakai nilai terakhir yang diingat pod karena sakelar tidak pernah diubah oleh siapa pun.");
   });
 });
+
+// --- tinjauan independen (keputusan 1591), putaran tanpa kunci: kalimat yang bisa diturunkan dari rekaman, baris riset, README lab, dan kode
+describe("tinjauan 5.23: kalimat mekanisme dan kutipan dokumentasi diturunkan dari sumbernya, bukan dikunci sebagai teks", () => {
+  const r220 = barisRiset("R5-220");
+  const r222 = barisRiset("R5-222");
+  const r223 = barisRiset("R5-223");
+  test("kalimat pod 1, pod 2, dan pod 3 (bagian D) memakai kata kerja dari keputusan di rekaman sakelar.txt", () => {
+    const keputusan = (pola: RegExp): string => rekD.match(pola)![1]!;
+    const kata: Record<string, string> = { tolak: "menolak", setuju: "menyetujui" };
+    const segera = [1, 2, 3].map((n) => keputusan(new RegExp(`otorisasi Rp1\\.000 di pod ${n} segera sesudahnya: HTTP 200, (tolak|setuju)`)));
+    const sesudah = [1, 2, 3].map((n) => keputusan(new RegExp(`otorisasi Rp1\\.000 di pod ${n} sesudah jendela cache: HTTP 200, (tolak|setuju)`)));
+    expect(segera[1]).toBe(segera[2]);
+    expect(sesudah[1]).toBe(sesudah[2]);
+    expect(halaman).toContain(`Pod 1 ${kata[segera[0]!]} seketika, karena pod yang menulis memperbarui cache-nya sendiri`);
+    expect(halaman).toContain(`Pod 2 dan pod 3 masih ${kata[segera[1]!]} sampai cache mereka habis, lalu ${kata[sesudah[1]!]}:`);
+    expect(segera).toEqual(["tolak", "setuju", "setuju"]);
+  });
+  test("kalimat dokumentasi Argo Rollouts, Argo CD, dan lab: tiap kalimat ada bersama kutipan aslinya di baris riset atau README lab", () => {
+    const pasang: [string, string, string][] = [
+      [r220, "Alpha Feature (Since 1.5.0)", "sebagai fitur alpha sejak versi 1.5.0"],
+      [r220, "Alpha Feature (Since 1.5.0)", "**Plugin ini masih alpha.**"],
+      [r220, "will not start if it can not download or find the plugin executable", "Controller tidak mulai bila ia tidak bisa mengunduh atau menemukan biner plugin"],
+      [r220, "the rollout will be paused indefinitely", "Jeda tanpa `duration` menunggu sampai seseorang menjalankan `promote`"],
+      [r220, "updating the `activeService` to point to it", "blue/green mengalihkan seluruh lalu lintas biasa saat promosi"],
+      [r222, "By default, changes that are made to the live cluster will not trigger automated sync.", "Perubahan langsung di cluster tidak memicu sync kecuali `selfHeal` dinyalakan."],
+      [r223, "for a single request", "Cache bawaan Pennant berlaku per request, bukan per beberapa detik."],
+      [r223, "halaman tidak membahas bobot, canary, atau flag", "Halaman yang dibaca tidak membahas bobot, canary, atau feature flag."],
+      [r223, "preview branch butuh paket Pro", "Preview branch (paket Pro) menyediakan lingkungan per pull request."],
+      [r223, "klien tidak boleh melempar exception", "pemanggilan evaluasi flag tidak melempar exception dan selalu mengembalikan nilai default bila eksekusinya tidak normal"],
+      [baca("labs/t5-rollout/README.md"), "Argo CD v3.5.6 dan Flux **Tidak dijalankan**", "Lab tidak menjalankan Argo CD, karena ia butuh repo Git yang terjangkau dari dalam cluster"],
+      [baca("labs/t5-rollout/README.md"), "Router selain Traefik", "Router lain Tidak dijalankan."],
+    ];
+    for (const [sumber, kutipan, kalimat] of pasang) {
+      expect(sumber, `sumber tidak memuat: ${kutipan}`).toContain(kutipan);
+      expect(hitungKali(halaman, kalimat), `kalimat harus ada tepat sekali: ${kalimat}`).toBe(1);
+    }
+    expect(hitungKali(halaman, "Router lain Tidak dijalankan.")).toBe(1);
+  });
+  test("token p95 dan sha256: hanya p95 (naskah menulis p95 otorisasi), tidak ada md5, sha1, atau p99, dan sha256 ada di manifes plugin", () => {
+    expect(naskah).toContain("p95 otorisasi");
+    expect([...new Set(halaman.match(/\bp\d{2,3}\b/g) ?? [])]).toEqual(["p95"]);
+    expect(manifesPlugin).toMatch(/sha256: "[0-9a-f]{64}"/);
+    expect(halaman).not.toMatch(/md5|sha1\b|sha512/);
+    expect(hitungKali(halaman, "sha256")).toBe(3);
+  });
+  test("status tiap opsi di 'Kenapa D dan G': A, B, C, dan E ditolak, F ditunda (tidak ada yang tertukar)", () => {
+    const kenapa = halaman.slice(halaman.indexOf("**Kenapa D dan G"));
+    const status = [...kenapa.matchAll(/^- \*\*([A-F]) (ditolak|ditunda)\*\*/gm)].map((m) => `${m[1]} ${m[2]}`);
+    expect(status).toEqual(["A ditolak", "B ditolak", "C ditolak", "E ditolak", "F ditunda"]);
+  });
+  test("Tebak: label chip mengikuti jenis sumber, alasan memuat kutipan rekaman, dan penutup sama dengan jawaban benar", () => {
+    const d = DataTebak.parse(tebakMentah);
+    expect(d.label.sumber.startsWith("Rekaman lab")).toBe(d.sumber.jenis === "rekaman");
+    expect(d.sumber.teks).toContain("sakelar.txt bagian D");
+    expect(d.sumber.teks).toContain("otorisasi.txt bagian D");
+    expect(rekT4).toContain("memutuskan menurut setelan timeout (setuju)");
+    expect(d.pilihan[1]!.alasan).toContain("memutuskan menurut setelan timeout, yaitu setuju");
+    expect(d.pilihan[1]!.alasan).toContain("Galat 503 berujung persetujuan.");
+    expect(d.pilihan[0]!.alasan).toContain("tiga pod menjawab 200, tolak, sakelar-tak-terbaca");
+    expect(d.pilihan[2]!.alasan).toContain("pembacaan yang gagal tidak memperpanjang nilai lama, dan rekaman bagian D mencatat tolak");
+    expect(sakelarGo).toContain("Pembacaan yang gagal tidak memperpanjang");
+    expect(d.penutup).toContain("HTTP 200, keputusan tolak, alasan sakelar-tak-terbaca, kurang dari 2 detik.");
+    expect(d.penutup).toContain("Galat dibaca penerbit tiruan sebagai tidak ada jawaban, lalu disetujui.");
+  });
+  test("Rantai Inti: catatan dan keenam sub simpul sesuai rekaman (bobot, 31%, rollback, tabel, kill-switch, cache)", () => {
+    const d = DataRantai.parse(rantaiMentah);
+    expect(d.catatan).toBe("Kotak oranye adalah Ilustrasi. Bagian permintaan yang dijawab versi baru hanya terukur sebagai batas, dan hitungan tepat tidak direkam.");
+    expect(d.baris.flatMap((b) => b.simpul.map((x) => x.sub))).toEqual([
+      "di HTTPRoute, pod versi baru 1 dari 4",
+      "versi baru, Ilustrasi dari flag lab",
+      "analisis gagal, bobot 0, 100 dari 100 ke versi lama",
+      "ditulis ke tabel sakelar",
+      "seketika, alasan kill-switch",
+      "pod 2 dan 3 sesudah cache habis",
+    ]);
+    expect(rekD).toContain("sesudah kill switch");
+    expect(rekD).toContain("tolak (kill-switch)");
+    expect(rekC).toContain("abort True");
+  });
+  test("baris riset R5-224: tiap hasil bagi dan kali dari 1,16 diulang dari angka halaman (862,07, 172,41, 34,48, 41,76, 208,8)", () => {
+    const b = barisRiset("R5-224");
+    for (const w of LANGKAH) {
+      const perDetik = hitungLangkah(w).perDetik;
+      expect(b, `bagi ${w}%`).toContain(`${ambangC.total} ÷ ${koma(perDetik)} = ${koma(parseFloat((ambangC.total / perDetik).toFixed(2)))}`);
+      expect(b, `kali ${w}%`).toContain(`${koma(puncak)} × ${koma(w / 100)} = ${koma(perDetik)}`);
+    }
+    expect(b).toContain(`× 3.600 = ${koma(parseFloat((hitungLangkah(1).perDetik * 3600).toFixed(2)))}`);
+    expect(b).toContain(`× 3.600 = ${koma(parseFloat((hitungLangkah(5).perDetik * 3600).toFixed(2)))}`);
+    expect(b).toContain(`× 3.600 = ${ribuan(hitungLangkah(25).perJam)}`);
+    expect(b).toContain(`${TTL} × ${koma(puncak)} = ${koma(bulat(TTL * puncak, 1))}`);
+    expect(b).toContain(`${rtoMenit} × 60 = ${rtoMenit * 60} detik × ${koma(puncak)} = ${ribuan(bulat(rtoMenit * 60 * puncak, 0))}`);
+  });
+  test("noscript Coba: jawaban tanpa JavaScript sama dengan rekaman (200, tolak, kurang dari 2 detik, 503 berujung persetujuan)", () => {
+    const ns = halaman.slice(halaman.indexOf("<noscript>"), halaman.indexOf("</noscript>"));
+    expect(ns).toContain("pod menjawab HTTP 200 dengan keputusan tolak dan alasan sakelar-tak-terbaca");
+    expect(ns).toContain(`kurang dari ${tenggatPenerbit} detik (sakelar.txt bagian D)`);
+    expect(ns).toContain("galat 503 akan berujung persetujuan (otorisasi.txt bagian D, lab t4-kartu)");
+    expect(rekD).toContain("HTTP 200, tolak (sakelar-tak-terbaca)");
+  });
+  test("failureLimit 0: kalimat halaman sesuai kutipan R5-221, dan judul sepuluh Snippet sesuai berkas dan rekaman yang ditampilkan", () => {
+    expect(barisRiset("R5-221")).toContain("`failureLimit` \"is the maximum number of failed run an analysis is allowed\"");
+    expect(rekC).toContain("failed (1) > failureLimit (0)");
+    expect(tagSnippet.map((x) => x.title)).toEqual([
+      "Manifes lab: labs/t5-rollout/manifes/kartu-gateway.yaml, strategi canary",
+      "Rekaman lab: labs/t5-rollout/output/gateway.txt, bagian B (bobot 95 dan 5 dengan 3 replika)",
+      "Manifes lab: labs/t5-rollout/manifes/kartu-gateway.yaml, AnalysisTemplate",
+      "Rekaman lab: labs/t5-rollout/output/analisis.txt, bagian C (analisis gagal membalik rollout)",
+      "Kode lab: labs/api-t5/internal/service/sakelar.go, TTL cache dan batas baca",
+      "Rekaman lab: labs/t5-rollout/output/sakelar.txt, bagian D (sakelar dari tabel, jendela cache)",
+      "Kode lab: labs/api-t5/internal/service/sakelar.go, fungsi tolakSebelumDatabase",
+      "Rekaman lab: labs/t5-rollout/output/sakelar.txt, bagian D (hak SELECT dicabut)",
+      "Rekaman lab: labs/t5-rollout/output/sakelar.txt, bagian D (PostgreSQL ditahan)",
+      "Kode lab: labs/api-t5/internal/service/sakelar.go, fungsi Aktif",
+    ]);
+    // huruf bagian di judul Snippet rekaman sama dengan penanda bagian di berkas, dihitung dari baris pertama yang ditampilkan
+    for (const sn of tagSnippet.filter((x) => x.file.endsWith(".txt"))) {
+      const baris = baca(sn.file).split("\n");
+      const awal = Number(sn.lines.split(":")[0]);
+      const huruf = [...baris.slice(0, awal)].reverse().find((b) => /^# --- [A-Z]\d?\./.test(b))!.match(/^# --- ([A-Z])/)![1];
+      expect(sn.title, sn.file).toContain(`bagian ${huruf} (`);
+    }
+  });
+  test("Bacaan lanjut memuat tepat tautan dokumentasi yang dipakai di badan (kecuali kode evaluate.go dan paket npm), tanpa tautan yang tertukar", () => {
+    const lanjut = halaman.slice(halaman.indexOf("### Bacaan lanjut"));
+    const url = [...lanjut.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map((m) => m[1]!);
+    const harap = [...new Set(semuaUrl2())].filter((u) => !/npmjs\.com|evaluate\.go/.test(u)).concat("https://github.com/open-feature/spec/releases"); // rilis spesifikasi OpenFeature hanya ada di Bacaan lanjut
+    expect([...url].sort()).toEqual([...harap].sort());
+    function semuaUrl2(): string[] {
+      return [...badan.slice(0, badan.indexOf("### Bacaan lanjut")).matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)].map((m) => m[1]!);
+    }
+  });
+});
