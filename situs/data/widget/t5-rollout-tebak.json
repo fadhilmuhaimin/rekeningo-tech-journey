@@ -1,0 +1,44 @@
+{
+  "id": "t5-rollout-tebak",
+  "judul": "Sakelar kartu tidak terbaca saat cache pod sudah habis",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t5-rollout/output/sakelar.txt bagian D; labs/t4-kartu/output/otorisasi.txt bagian D"
+  },
+  "adegan": [
+    "Tiap pod otorisasi kartu menyimpan nilai sakelar kartu_aktif selama 5 detik, lalu membacanya lagi dari tabel sakelar di PostgreSQL.",
+    "Cache satu pod sudah habis dan PostgreSQL berhenti menjawab. Satu otorisasi Rp1.000 masuk ke pod itu, dan penerbit menunggu paling lama 2 detik."
+  ],
+  "pertanyaan": "Apa yang dijawab pod itu?",
+  "pilihan": [
+    {
+      "teks": "HTTP 200 dengan keputusan tolak dan alasan sakelar-tak-terbaca, tiba kurang dari 2 detik.",
+      "benar": true,
+      "alasan": "Rekaman bagian D: tiga pod menjawab 200, tolak, sakelar-tak-terbaca, baik saat hak SELECT dicabut maupun saat PostgreSQL ditahan. Jawaban tiba kurang dari 2 detik, juga untuk tiga otorisasi sekaligus."
+    },
+    {
+      "teks": "HTTP 503, supaya penerbit tahu server bermasalah dan menolak sendiri.",
+      "benar": false,
+      "alasan": "Penerbit tiruan membaca semua jawaban yang bukan 200 sebagai tidak ada jawaban, lalu memutuskan menurut setelan timeout, yaitu setuju (otorisasi.txt bagian D, lab t4-kartu). Galat 503 berujung persetujuan."
+    },
+    {
+      "teks": "Setuju, memakai nilai terakhir yang diingat pod karena sakelar tidak pernah diubah.",
+      "benar": false,
+      "alasan": "Cache sudah habis. Menurut kode SakelarKartu, pembacaan yang gagal tidak memperpanjang nilai lama, dan rekaman bagian D mencatat tolak."
+    },
+    {
+      "teks": "Menunggu sampai PostgreSQL menjawab, lalu menjawab sesudah beberapa detik.",
+      "benar": false,
+      "alasan": "Pembacaan sakelar dibatasi 1 detik, lebih pendek dari tenggat penerbit 2 detik. Rekaman bagian D mencatat jawaban kurang dari 2 detik saat PostgreSQL berhenti."
+    }
+  ],
+  "penutup": "Sakelar yang tidak terbaca dijawab tolak yang eksplisit: HTTP 200, keputusan tolak, alasan sakelar-tak-terbaca, kurang dari 2 detik. Galat dibaca penerbit tiruan sebagai tidak ada jawaban, lalu disetujui.",
+  "label": {
+    "sumber": "Rekaman lab · sakelar.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "t5-rollout-inti",
+  "judul": "Router memegang bobot canary, dan satu tabel memegang kill switch untuk semua pod",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t5-rollout · gateway.txt bagian B, analisis.txt bagian C (31% adalah Ilustrasi), dan sakelar.txt bagian D (sakelar dari tabel, tiga pod)"
+  },
+  "baris": [
+    {
+      "label": "Canary 5%",
+      "sub": "3 replika",
+      "simpul": [
+        {
+          "teks": "Bobot 95 dan 5",
+          "sub": "di HTTPRoute, pod versi baru 1 dari 4"
+        },
+        {
+          "teks": "Menolak 31%",
+          "sub": "versi baru, Ilustrasi dari flag lab",
+          "nada": "warn"
+        },
+        {
+          "teks": "Rilis dibatalkan",
+          "sub": "analisis gagal, bobot 0, 100 dari 100 ke versi lama",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Kill switch",
+      "sub": "3 pod",
+      "simpul": [
+        {
+          "teks": "Mati di pod 1",
+          "sub": "ditulis ke tabel sakelar"
+        },
+        {
+          "teks": "Pod 1 menolak",
+          "sub": "seketika, alasan kill-switch",
+          "nada": "good"
+        },
+        {
+          "teks": "Semua menolak",
+          "sub": "pod 2 dan 3 sesudah cache habis",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah Ilustrasi. Bagian permintaan yang dijawab versi baru hanya terukur sebagai batas, dan hitungan tepat tidak direkam."
+}
