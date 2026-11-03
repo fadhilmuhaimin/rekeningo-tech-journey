@@ -302,7 +302,7 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     harus(`Raka membuka riwayat Budi dan tidak menemukan baris ${rp(bayarNominalA)}. Ia menduga dua hal. Pertama, pembayaran belum tercatat, jadi uang Budi belum keluar. Kedua, app menyimpan data lama dan belum mengambil yang baru.`);
     harus("Karena dugaan kedua, Raka menambah muat ulang otomatis: layar riwayat dan saldo memanggil server lagi tiap beberapa detik.");
     expect(sebenarnyaM41).toContain("Sesudah ADR 46 tim Akun memindahkan bacaan riwayat dan saldo tampil ke replica");
-    harus("Minggu ini tim Akun juga mengubah sesuatu di server. Sesudah ADR 46, tim itu membaca riwayat dan saldo tampil dari replica ([[t5-read-replica]]). Replica adalah salinan database yang hanya melayani bacaan dan sedikit tertinggal dari primary, yaitu database yang menerima semua tulisan. Saldo tampil adalah saldo yang app tulis di layar.");
+    harus("Minggu ini tim Akun juga mengubah sesuatu di server. Sesudah ADR 46, tim itu membaca riwayat dan saldo tampil dari replica ([[t5-read-replica]]). Replica adalah salinan database yang hanya melayani bacaan dan bisa sedikit tertinggal dari primary, yaitu database yang menerima semua tulisan. Saldo tampil adalah saldo yang app tulis di layar.");
     expect(badan.indexOf("replica")).toBeGreaterThan(badan.indexOf("Yang Raka kira"));
     expect(badan.indexOf("replica")).toBeLessThan(badan.indexOf("Replica adalah salinan database yang hanya melayani bacaan"));
     expect(badan.indexOf("primary")).toBeGreaterThan(badan.indexOf("Replica adalah salinan database") - 40);
@@ -744,7 +744,7 @@ describe("penutup celah mutasi tanpa kunci: lingkup, definisi di pemakaian perta
     const kalimat = badan.replace(/<noscript>[\s\S]*?<\/noscript>/, "").split(/(?<=[.!?])\s+/);
     for (const k of ["selalu", "setiap", "tidak pernah", "hanya di", "tak satu pun", "tidak satu pun"]) expect(kalimat.filter((s) => s.toLowerCase().includes(k)), k).toEqual([]);
     const semua = kalimat.filter((s) => /\bsemua\b/i.test(s));
-    expect(semua.map((s) => s.trim())).toEqual(["Replica adalah salinan database yang hanya melayani bacaan dan sedikit tertinggal dari primary, yaitu database yang menerima semua tulisan."]);
+    expect(semua.map((s) => s.trim())).toEqual(["Replica adalah salinan database yang hanya melayani bacaan dan bisa sedikit tertinggal dari primary, yaitu database yang menerima semua tulisan."]);
   });
   test("tebakan skenario dan jawaban tebak dulu tidak membuka varian: widget tidak menyebut 'Tebakanmu', dan jalur varian tidak memuat penjelasan jalur utama", () => {
     for (const l of skenario.varian.langkah) expect(l.jelas).not.toContain("Tebakanmu");

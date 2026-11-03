@@ -27,7 +27,7 @@ Raka membuka riwayat Budi dan tidak menemukan baris Rp35.000. Ia menduga dua hal
 
 Karena dugaan kedua, Raka menambah muat ulang otomatis: layar riwayat dan saldo memanggil server lagi tiap beberapa detik.
 
-Minggu ini tim Akun juga mengubah sesuatu di server. Sesudah ADR 46, tim itu membaca riwayat dan saldo tampil dari replica ([[t5-read-replica]]). Replica adalah salinan database yang hanya melayani bacaan dan sedikit tertinggal dari primary, yaitu database yang menerima semua tulisan. Saldo tampil adalah saldo yang app tulis di layar.
+Minggu ini tim Akun juga mengubah sesuatu di server. Sesudah ADR 46, tim itu membaca riwayat dan saldo tampil dari replica ([[t5-read-replica]]). Replica adalah salinan database yang hanya melayani bacaan dan bisa sedikit tertinggal dari primary, yaitu database yang menerima semua tulisan. Saldo tampil adalah saldo yang app tulis di layar.
 
 <details class="question">
 <summary>Tebak dulu: jawaban bayar memuat saldo Rp215.000, tetapi saldo yang app terima sesudahnya Rp250.000 dan riwayatnya satu baris. Dari mana server membaca keduanya?</summary>
