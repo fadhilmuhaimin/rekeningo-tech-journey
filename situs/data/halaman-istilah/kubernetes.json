@@ -1,0 +1,46 @@
+{
+  "istilah": "Kubernetes",
+  "sehari_hari": "Kubernetes adalah sistem yang menjadwalkan pod, yaitu grup container, ke banyak mesin dalam satu cluster. Cluster terdiri dari control plane dan satu atau lebih worker node.",
+  "cerita": [
+    {
+      "rujukan": "t5-service",
+      "teks": "ADR 50 menjalankan enam service di Kubernetes. Lab memakai k3s v1.37.1+k3s1 di dalam k3d v5.9.0, dan jumlah pod naik menurut CPU di bawah beban (Rekaman lab)."
+    }
+  ],
+  "mekanisme": [
+    "Sebuah pod adalah satu atau lebih container dengan penyimpanan dan jaringan bersama.",
+    "Control plane mengelola keadaan cluster secara keseluruhan, dan komponen di tiap worker node menjaga pod tetap berjalan.",
+    "Komponen kube-scheduler mencari pod yang belum terikat ke node, lalu memasangkannya dengan node yang cocok.",
+    "Pengendali seperti HPA mengubah sebuah workload resource, misalnya Deployment, supaya jumlah pod mengikuti satu metrik."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira k3s bukan Kubernetes. Dokumentasi k3s menulis bahwa k3s adalah distribusi Kubernetes yang sepenuhnya sesuai, dikemas sebagai satu binary atau image container minimal.",
+    "Mengira Kubernetes terbukti perlu karena syarat tim terpenuhi. Terpenuhi berarti keadaannya sama dengan pemicu yang ditulis ADR, dan halaman M44 menulis bahwa itu belum membuktikan komponennya perlu."
+  ],
+  "terkait": [
+    "Modular monolith",
+    "Microservice",
+    "Canary"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-172",
+      "judul": "Kubernetes: Cluster Architecture components dan Pods (dibuka 2026-11-03)",
+      "url": "https://kubernetes.io/docs/concepts/overview/components/",
+      "catatan": "Cluster, control plane, worker node, dan kube-scheduler. Halaman tanpa nomor versi sendiri."
+    },
+    {
+      "riset": "R5-172",
+      "judul": "Kubernetes: Pods (dibuka 2026-11-03)",
+      "url": "https://kubernetes.io/docs/concepts/workloads/pods/",
+      "catatan": "Definisi pod: satu atau lebih container dengan penyimpanan dan jaringan bersama. Halaman tanpa nomor versi sendiri."
+    },
+    {
+      "riset": "R5-172",
+      "judul": "K3s: dokumentasi (dibuka 2026-11-03)",
+      "url": "https://docs.k3s.io/",
+      "catatan": "Distribusi Kubernetes yang menurut dokumentasinya sepenuhnya sesuai, dikemas sebagai satu binary atau image container minimal."
+    }
+  ]
+}
