@@ -1,0 +1,50 @@
+{
+  "id": "t5-mtls-inti",
+  "judul": "Dua lapis penolakan di ledger",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t5-service · mtls.txt"
+  },
+  "baris": [
+    {
+      "label": "Tanpa sertifikat",
+      "sub": "bagian B",
+      "simpul": [
+        {
+          "teks": "Handshake TLS",
+          "sub": "tanpa sertifikat client"
+        },
+        {
+          "teks": "Alert dari server",
+          "sub": "certificate required"
+        },
+        {
+          "teks": "Jurnal tetap 0",
+          "sub": "handler tidak jalan",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Sertifikat notifikasi",
+      "sub": "bagian C dan D",
+      "simpul": [
+        {
+          "teks": "Minta topup_bank",
+          "sub": "sertifikat sah, tanpa izin"
+        },
+        {
+          "teks": "403",
+          "sub": "jenis-tidak-diizinkan",
+          "nada": "good"
+        },
+        {
+          "teks": "Jurnal akun uji 0",
+          "sub": "topup_bank, bagian D",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Hijau menandai hasil yang diinginkan: tidak ada jurnal dari pemanggil tanpa izin. Pemanggil di rekaman adalah perintah panggil dan service notifikasi lab di mesin yang sama dengan ledger, bukan pod di cluster."
+}

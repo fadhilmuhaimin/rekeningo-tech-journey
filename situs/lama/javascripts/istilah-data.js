@@ -1672,6 +1672,15 @@ window.ISTILAH = {
   "t": "RLS (Row Level Security)",
   "u": "tahap-1/authorization/"
  },
+ "SAN": {
+  "b": "t5-mtls",
+  "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
+  "h": "istilah/san/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-san",
+  "t": "SAN (Subject Alternative Name)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "SELECT FOR UPDATE": {
   "b": "t2-race-lock",
   "d": "Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu.",
@@ -1864,6 +1873,15 @@ window.ISTILAH = {
   "s": "istilah-status-code",
   "t": "Status code",
   "u": "tahap-1/http/"
+ },
+ "Subject Alternative Name": {
+  "b": "t5-mtls",
+  "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
+  "h": "istilah/san/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-san",
+  "t": "SAN (Subject Alternative Name)",
+  "u": "tahap-5/mtls-antar-service/"
  },
  "TTL": {
   "b": "B9",
@@ -2749,6 +2767,15 @@ window.ISTILAH = {
   "t": "Lost update",
   "u": "tahap-2/race-lock/"
  },
+ "mTLS": {
+  "b": "t5-mtls",
+  "d": "TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.",
+  "h": "istilah/mtls/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-mtls",
+  "t": "mTLS (mutual TLS)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "merchant": {
   "b": "t3-jembatan",
   "d": "Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.",
@@ -2823,6 +2850,15 @@ window.ISTILAH = {
   "s": "istilah-monolith",
   "t": "Monolith",
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
+ },
+ "mutual TLS": {
+  "b": "t5-mtls",
+  "d": "TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.",
+  "h": "istilah/mtls/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-mtls",
+  "t": "mTLS (mutual TLS)",
+  "u": "tahap-5/mtls-antar-service/"
  },
  "n+1 query": {
   "b": "t2-n-plus-1",
