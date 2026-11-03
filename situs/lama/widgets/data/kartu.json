@@ -3717,7 +3717,7 @@
   "judul": "5.20 M48: Angsuran Budi terdebit dua kali",
   "url": "tahap-5/m48-angsuran-dua-kali/",
   "tanya": "Kenapa dugaan bug di penagihan gugur?",
-  "jawab": "Di rekaman, penagihan dalam satu putaran tidak menjurnal dua kali. Dua job serentak dalam 24 jam menghasilkan satu jurnal dan satu angsuran dilewati (`serentak.txt` bagian C). Jurnal kedua baru muncul sesudah job mati dan diulang sesudah key habis (`crash.txt` bagian A)."
+  "jawab": "Di rekaman, penagihan dalam satu putaran tidak menjurnal dua kali. Dua job serentak dalam 24 jam menghasilkan satu jurnal, satu job yang melewati angsuran itu, dan status `dicatat` (`serentak.txt` bagian C). Jurnal kedua baru muncul sesudah job mati dan diulang sesudah key habis (`crash.txt` bagian A)."
  },
  {
   "id": "t5-m48-3",

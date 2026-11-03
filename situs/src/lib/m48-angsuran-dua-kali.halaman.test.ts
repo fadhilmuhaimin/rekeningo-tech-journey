@@ -256,7 +256,7 @@ describe("rekaman crash.txt, serentak.txt, dan laju.txt: nilai turunan dari berk
     expect(c).toContain("# jam ledger digeser 25 jam; kiriman ulang e4 untuk top-up Rp150000");
     expect(c).toContain("# sisi 23 jam: key hidup, ledger menjawab 200 dengan jurnal yang sama, satu jurnal. Sisi 25 jam: key habis, jurnal kedua, saldo naik dua kali.");
     expect(modul4).toContain("Kiriman ulang pada +23 jam menghasilkan satu jurnal. Pada +25 jam key sudah habis");
-    harus("Tahap 4 mencatat pola yang sama untuk top-up (Rekaman lab, `proses-mati.txt` bagian C, [[t4-modul]]). Kiriman ulang pada +23 jam menghasilkan satu jurnal, dan pada +25 jam dua.");
+    harus("Tahap 4 mencatat pola yang sama untuk top-up (Rekaman lab, `proses-mati.txt` bagian C, [[t4-modul]]). Kiriman ulang satu top-up pada +23 jam menghasilkan satu jurnal, dan kiriman ulang top-up lain pada +25 jam dua.");
   });
 });
 
@@ -283,7 +283,7 @@ describe("kode lab: tagihRentan, KlaimKunci, titik mati, status, urutan, outbox,
     expect(kt[nReturnAkhir - 1]).toBe("\treturn false, err");
     harus("**Yang dilakukan job per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab). Tiap angsuran melewati empat langkah: klaim key `cicilan:<jadwal>:<ke>` dengan umur 24 jam, tulis jurnal, tandai key selesai, lalu tandai angsuran `dicatat`.");
     harus("Langkah pertama memanggil `KlaimKunci` langsung, tanpa HTTP. Bila key sudah ada dan umurnya belum lewat, hasilnya bukan `KlaimBaru`: job menghitung angsuran itu sebagai dilewati dan tidak mengubahnya.");
-    harus("Di antara kedua potongan, job menulis jurnal dalam satu transaction, lalu commit (Tidak dijalankan: dibaca dari kode lab). Potongan berikut memuat dua langkah terakhir:");
+    harus("Sesudah klaim key, job menulis jurnal dalam satu transaction, lalu commit (Tidak dijalankan: dibaca dari kode lab). Potongan berikut memuat dua langkah terakhir:");
     // tanpa HTTP: job dijalankan dari main.go lewat service dan repo, tanpa klien atau server HTTP
     const fJob = kodeMain.slice(kodeMain.indexOf("func jalankanCicilan("), kodeMain.indexOf("// jalankanKompensasi:"));
     expect(fJob.length).toBeGreaterThan(200);
@@ -354,7 +354,7 @@ describe("kode lab: tagihRentan, KlaimKunci, titik mati, status, urutan, outbox,
     expect(baca("labs/t5-cicilan/output/langkah.txt")).toContain("(3 nilai di versi benar: menunggu, terjurnal, dicatat)");
     // versi benar menandai terjurnal (lingkup pembanding: tagihBenar)
     expect(kodeT5).toContain('[]string{"menunggu"}, "terjurnal", &jurnal');
-    harus("**Versi pertama tidak punya status antara.** Angsuran yang berhasil hanya berstatus `menunggu` lalu `dicatat`. Tidak ada status yang menyatakan jurnalnya sudah ada, jadi angsuran yang sudah dijurnal tampak sama dengan yang belum (Tidak dijalankan: dibaca dari kode lab).");
+    harus("**Versi pertama tidak punya status antara.** Angsuran yang berhasil hanya berstatus `menunggu` lalu `dicatat`. Tidak ada status angsuran yang menyatakan jurnalnya sudah ada, jadi angsuran yang sudah dijurnal tampak sama dengan yang belum (Tidak dijalankan: dibaca dari kode lab).");
   });
   test("klaim 'paling banyak satu angsuran': job berurutan, tanpa goroutine, daftar diurutkan menurut jadwal dan ke, tanda dipasang tepat sesudah jurnal", () => {
     const ia = kodeT5.indexOf("// --8<-- [start:job-cicilan]");
@@ -438,7 +438,7 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     harus(`Saldo Budi turun dari ${rp(saldoAwal)} ke ${rp(angka(saldoA[1]!))}. Itu cocok dengan Hitungan ${angkaId(saldoAwal)} − 2 × ${angkaId(perAngsuran)} = ${angkaId(saldoAwal - 2 * perAngsuran)}. Hitungan adalah angka yang dihitung dari angka lain di halaman ini.`);
     expect(badan.indexOf("Hitungan")).toBeLessThan(badan.indexOf("Hitungan adalah angka"));
     expect(badan.indexOf("Hitungan adalah angka") - badan.indexOf("Hitungan")).toBeLessThan(120);
-    harus("**Dugaan Raka gugur, dugaan Hendra separuh benar.** Putaran pertama menulis satu jurnal, dan dua job serentak dalam 24 jam menghasilkan satu jurnal dan satu angsuran dilewati (Rekaman lab, `serentak.txt` bagian C). Di rekaman, jurnal kedua baru muncul pada ulangan 25 jam.");
+    harus("**Dugaan Raka gugur, dugaan Hendra separuh benar.** Putaran pertama menulis satu jurnal. Dua job serentak dalam 24 jam menghasilkan satu jurnal, satu job yang melewati angsuran itu, dan status `dicatat` (Rekaman lab, `serentak.txt` bagian C). Di rekaman, jurnal kedua baru muncul pada ulangan 25 jam.");
     harus("Dugaan Hendra benar untuk jumlah jurnal pada 23 jam dan salah pada 25 jam. Batch versi pertama tidak bisa diulang kapan saja dengan hasil yang sama, karena key hanya hidup 24 jam.");
     expect(hasilSerentakC.slice(1).map(Number)).toEqual([1, 1, 1]);
     expect(hasil25[4]).toBe("1");

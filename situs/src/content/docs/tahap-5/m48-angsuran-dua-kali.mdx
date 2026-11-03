@@ -62,7 +62,7 @@ Key yang umurnya sudah lewat diambil ulang. INSERT yang bentrok dengan key lama 
 
 <Snippet file="labs/api-t5/internal/repo/idempoten.go" lines="27:33" lang="go" title="Kode lab: labs/api-t5/internal/repo/idempoten.go baris 27 sampai 33 (key yang umurnya lewat diambil ulang)" />
 
-Di antara kedua potongan, job menulis jurnal dalam satu transaction, lalu commit (Tidak dijalankan: dibaca dari kode lab). Potongan berikut memuat dua langkah terakhir:
+Sesudah klaim key, job menulis jurnal dalam satu transaction, lalu commit (Tidak dijalankan: dibaca dari kode lab). Potongan berikut memuat dua langkah terakhir:
 
 <Snippet file="labs/api-t5/internal/service/t5.go" lines="339:350" lang="go" title="Kode lab: labs/api-t5/internal/service/t5.go baris 339 sampai 350 (key ditandai selesai, titik mati yang dipasang lab, lalu angsuran ditandai dicatat)" />
 
@@ -84,15 +84,15 @@ Di rekaman, ulangan dalam 24 jam tidak menagih ganda. Tetapi angsuran itu dilewa
 
 Saldo Budi turun dari Rp250.000 ke Rp50.000. Itu cocok dengan Hitungan 250.000 − 2 × 100.000 = 50.000. Hitungan adalah angka yang dihitung dari angka lain di halaman ini.
 
-**Dugaan Raka gugur, dugaan Hendra separuh benar.** Putaran pertama menulis satu jurnal, dan dua job serentak dalam 24 jam menghasilkan satu jurnal dan satu angsuran dilewati (Rekaman lab, `serentak.txt` bagian C). Di rekaman, jurnal kedua baru muncul pada ulangan 25 jam.
+**Dugaan Raka gugur, dugaan Hendra separuh benar.** Putaran pertama menulis satu jurnal. Dua job serentak dalam 24 jam menghasilkan satu jurnal, satu job yang melewati angsuran itu, dan status `dicatat` (Rekaman lab, `serentak.txt` bagian C). Di rekaman, jurnal kedua baru muncul pada ulangan 25 jam.
 
 Dugaan Hendra benar untuk jumlah jurnal pada 23 jam dan salah pada 25 jam. Batch versi pertama tidak bisa diulang kapan saja dengan hasil yang sama, karena key hanya hidup 24 jam.
 
 **Batas 24 jam sudah ditulis di ADR 14.** ADR 14 menulis kapan keputusannya salah: saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama ([[t2-idempotency]]). Batch yang tertunda lebih dari 24 jam memenuhi syarat itu, yaitu +25 jam di rekaman dan 48 jam di cerita (Ilustrasi). Key-nya tidak berubah.
 
-Tahap 4 mencatat pola yang sama untuk top-up (Rekaman lab, `proses-mati.txt` bagian C, [[t4-modul]]). Kiriman ulang pada +23 jam menghasilkan satu jurnal, dan pada +25 jam dua.
+Tahap 4 mencatat pola yang sama untuk top-up (Rekaman lab, `proses-mati.txt` bagian C, [[t4-modul]]). Kiriman ulang satu top-up pada +23 jam menghasilkan satu jurnal, dan kiriman ulang top-up lain pada +25 jam dua.
 
-**Versi pertama tidak punya status antara.** Angsuran yang berhasil hanya berstatus `menunggu` lalu `dicatat`. Tidak ada status yang menyatakan jurnalnya sudah ada, jadi angsuran yang sudah dijurnal tampak sama dengan yang belum (Tidak dijalankan: dibaca dari kode lab).
+**Versi pertama tidak punya status antara.** Angsuran yang berhasil hanya berstatus `menunggu` lalu `dicatat`. Tidak ada status angsuran yang menyatakan jurnalnya sudah ada, jadi angsuran yang sudah dijurnal tampak sama dengan yang belum (Tidak dijalankan: dibaca dari kode lab).
 
 **Kenapa batch bisa mati di tengah.** Naskah memperkirakan 100.000 jadwal aktif, dan 40% jatuh tempo di tiga hari gajian (Asumsi). Per hari puncak itu 100.000 × 40% ÷ 3 = 13.333,3, dibulatkan ke 13.333 angsuran.
 
@@ -154,7 +154,7 @@ Angsuran itu dilewati, bukan diselesaikan: statusnya tetap `menunggu` (`crash.tx
 <details class="success">
 <summary>Jawaban</summary>
 
-Di rekaman, penagihan dalam satu putaran tidak menjurnal dua kali. Dua job serentak dalam 24 jam menghasilkan satu jurnal dan satu angsuran dilewati (`serentak.txt` bagian C). Jurnal kedua baru muncul sesudah job mati dan diulang sesudah key habis (`crash.txt` bagian A).
+Di rekaman, penagihan dalam satu putaran tidak menjurnal dua kali. Dua job serentak dalam 24 jam menghasilkan satu jurnal, satu job yang melewati angsuran itu, dan status `dicatat` (`serentak.txt` bagian C). Jurnal kedua baru muncul sesudah job mati dan diulang sesudah key habis (`crash.txt` bagian A).
 
 </details>
 
