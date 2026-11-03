@@ -4680,8 +4680,9 @@
       "lab": [
         "t5-cicilan"
       ],
-      "ada": false,
-      "nomor": "5.20"
+      "ada": true,
+      "nomor": "5.20",
+      "menit": 12
     },
     {
       "id": "t5-batch",

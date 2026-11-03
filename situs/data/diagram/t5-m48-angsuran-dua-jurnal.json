@@ -1,0 +1,25 @@
+{
+  "id": "t5-m48-angsuran-dua-jurnal",
+  "judul": "Batch yang mati sesudah jurnal menagih angsuran yang sama dua kali bila diulang sesudah key 24 jam habis",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t5-cicilan · crash.txt bagian A dan B (jam ledger diperankan)" },
+  "baris": [
+    {
+      "label": "Versi pertama",
+      "sub": "key 24 jam sebagai satu-satunya penahan",
+      "simpul": [
+        { "teks": "Mati sesudah jurnal", "sub": "1 jurnal, angsuran menunggu" },
+        { "teks": "+23 jam: 1 jurnal", "sub": "dilewati, tetap menunggu" },
+        { "teks": "+25 jam: 2 jurnal", "sub": "saldo Budi Rp50.000", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Versi benar",
+      "sub": "referensi unik di jurnal",
+      "simpul": [
+        { "teks": "Mati sesudah jurnal", "sub": "1 jurnal, angsuran menunggu" },
+        { "teks": "Kapan saja: 1 jurnal", "sub": "angsuran dicatat", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye menandai jurnal kedua di versi pertama, dan kotak hijau angsuran yang selesai di versi benar. Jam ledger diperankan, jadi 23 dan 25 jam tidak ditunggu. Versi benar tidak membaca jam."
+}
