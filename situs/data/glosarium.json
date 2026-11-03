@@ -1423,7 +1423,7 @@
  },
  {
   "t": "Read replica",
-  "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
+  "d": "Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama.",
   "b": "t5-read-replica",
   "n": "5.5 Read replica dan model baca",
   "u": "/tahap-5/read-replica/",

@@ -545,7 +545,7 @@ describe("naskah ADR 46 dan keputusan di halaman: aturan, opsi, kapan salah", ()
     expect(angka(L_JARAK[1]!)).toBe(30.5);
     harus(`| Kekurangan | ${L_C[3]} hit dari 18`.replace("| Kekurangan | 18 hit dari 18", "| Kekurangan | 0 hit dari 18"));
     harus(`0 hit dari ${L_C[6]} untuk satu client per warung berjarak ${L_JARAK[1]} detik (\`laporan.txt\` bagian C)`);
-    harus(`Rekaman \`laporan.txt\` bagian C mencatat 0 hit dari ${L_C[6]}, dan kontrol dengan dua client per warung dalam satu jendela mencatat ${L_K[4]} hit dari ${L_K[5]}.`);
+    harus(`Rekaman \`laporan.txt\` bagian C mencatat 0 hit dari ${L_C[6]} pada jarak ${L_JARAK[1]} detik. Kontrol dengan dua client per warung dalam satu jendela mencatat ${L_K[4]} hit dari ${L_K[5]}.`);
     expect(m40).toContain("Dengan cache, penjualan baru bisa terlihat 30 + 30 = 60 detik sesudah tercatat (Hitungan atas Asumsi produk).");
     harus("Hitungan 5.4 menulis penjualan baru bisa terlihat 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5 ([[t5-m40]]).");
     expect(30 + 30).toBe(60);
@@ -624,7 +624,7 @@ describe("diagram Rantai, widget banding, dan istilah: nilai diturunkan dari rek
     harus("Susunan B memindahkan tempat baca laporan dari primary ke replica. Bayar atau kirim uang dan Cek batas harian kiriman tetap di primary di kedua susunan.");
   });
   test("glosarium: Read replica menunjuk halaman ini, Standby baru; istilah di prosa punya satu kalimat arti di pemakaian pertama", () => {
-    expect(glosarium).toContain("| **Read replica** | Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama. | [[t5-read-replica]] |");
+    expect(glosarium).toContain("| **Read replica** | Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama. | [[t5-read-replica]] |");
     expect(glosarium).toContain("| **Standby** | Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby. | [[t5-read-replica]] |");
     expect(glosarium).toContain("| **Primary** | Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary. | [[t5-read-replica]] |");
     expect(glosarium).toContain("| **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[t5-read-replica]] |");
@@ -637,7 +637,7 @@ describe("diagram Rantai, widget banding, dan istilah: nilai diturunkan dari rek
       expect(badan.indexOf(def), def).toBeGreaterThan(-1);
       expect(badan.search(new RegExp(`(?<![\\p{L}-])${kata}`, "iu")), `${kata} dipakai sebelum didefinisikan`).toBe(badan.indexOf(def));
     }
-    harus("Primary adalah database yang menerima semua tulisan. Replica adalah salinan yang menerima rekaman perubahan dari primary dan memutarnya ulang, dan PostgreSQL menyebut server penerima itu standby.");
+    harus("Primary adalah database yang menerima semua tulisan. Replica adalah salinan yang menerima rekaman perubahan dari primary dan memutarnya ulang (replay), dan PostgreSQL menyebut server penerima itu standby.");
     harus("Query di standby memakai snapshot, yaitu foto isi database pada satu saat.");
     harus("Standby yang menjawab query disebut hot standby.");
     harus("L baca adalah jumlah bacaan yang berjalan serentak, yaitu laju dikali lama ([[t3-pool]]).");
@@ -657,12 +657,13 @@ describe("dokumentasi dan stack lain: kutipan di baris riset, tanggal akses, ver
     for (const u of [
       "https://www.postgresql.org/docs/17/hot-standby.html", "https://www.postgresql.org/docs/17/runtime-config-replication.html", "https://github.com/prisma/extension-read-replicas",
       "https://laravel.com/docs/13.x/database", "https://docs.djangoproject.com/en/5.2/topics/db/multi-db/", "https://supabase.com/docs/guides/platform/read-replicas",
-      "https://docs.serverpod.dev/concepts/database/connection",
+      "https://docs.serverpod.dev/concepts/data-and-the-database/database/connection",
     ]) {
       expect(url, u).toContain(u);
       expect(url.filter((x) => x === u).length, u).toBeGreaterThanOrEqual(2);
     }
-    expect(barisRiset("R5-133")).toContain("docs.serverpod.dev/concepts/database/connection tidak terbaca saat dibuka 2026-11-03");
+    expect(barisRiset("R5-133")).toContain("docs.serverpod.dev/concepts/data-and-the-database/database/connection, Serverpod Framework 4.1.0, dibuka 2026-11-03");
+    expect(barisRiset("R5-133")).not.toContain("tidak terbaca");
   });
   test("kutipan dokumentasi PostgreSQL 17.11 di baris riset: transaction ID, daftar galat, konflik VACUUM, 30 detik, bukan batas query, feedback off, slot -1", () => {
     const r = barisRiset("R5-132");
@@ -684,13 +685,13 @@ describe("dokumentasi dan stack lain: kutipan di baris riset, tanggal akses, ver
     harus("Nilainya adalah total waktu yang diizinkan untuk menerapkan WAL sesudah WAL diterima dari primary");
     harus("Dokumentasi juga menulis bahwa query yang lama bisa membuat sesi lain di standby tidak melihat perubahan terbaru bila ia menunda penerapan WAL.");
   });
-  test("tab stack: Prisma 0.5.0 terbit 2025-12-02 butuh Prisma 7.0; Laravel sticky dan dua detik; Django 5.2 menulis tidak menyelesaikan replication lag; Supabase GET dan asinkron; Serverpod tidak terbaca", () => {
+  test("tab stack: Prisma 0.5.0 terbit 2025-12-02 butuh Prisma 7.0; Laravel sticky dan dua detik; Django 5.2 menulis tidak menyelesaikan replication lag; Supabase GET dan asinkron; Serverpod tidak membahas replica", () => {
     const r = barisRiset("R5-133");
     for (const k of [
       "npm @prisma/extension-read-replicas 0.5.0, terbit 2025-12-02", "Requires Prisma 7.0+", "All non-transactional read queries will now be executed against the defined replicas. Write queries and transactions will be executed against the primary server.",
       "kata lag, stale, dan consistency tidak ada di README", "a database host will be randomly chosen for each request", "requests within two seconds of a write will use the write connection for reads on that connection",
       "Django 5.2", "it doesn't provide any solution for handling replication lag", "Replication is asynchronous to ensure that transactions on the Primary aren't blocked",
-      "There is a delay between an update on the Primary and the time that a Read Replica receives the change", "Read Replicas only support GET requests from the REST API", "[perlu verifikasi]",
+      "There is a delay between an update on the Primary and the time that a Read Replica receives the change", "Read Replicas only support GET requests from the REST API", "37 halaman", "tidak membahas read replica",
     ]) expect(r, k).toContain(k);
     harus("(npm 0.5.0, terbit 2025-12-02, butuh Prisma 7.0 ke atas)");
     harus("README menulis bahwa bacaan non-transaksional dijalankan di replica, sedangkan tulisan dan transaction dijalankan di primary. Method `$primary()` memaksa primary. README tidak membahas jeda replica.");
@@ -698,8 +699,9 @@ describe("dokumentasi dan stack lain: kutipan di baris riset, tanggal akses, ver
     harus("middleware `PreventStaleDatabaseReads`, yang memakai sesi dan 2 detik bawaan ([[t5-lag]])");
     harus("Dokumentasi menulis bahwa susunan itu tidak menyediakan penyelesaian untuk replication lag, jadi router contoh itu tidak menangani jeda.");
     harus("Load balancer membagi request antara primary dan replica, dan replica hanya menerima request REST API berjenis GET.");
-    harus("tidak dibaca [perlu verifikasi]. Kode Dart tidak ditulis di tab ini.");
-    harus("*Tidak dijalankan. Halaman [Serverpod: database connection](https://docs.serverpod.dev/concepts/database/connection) tidak terbaca saat dibuka 2026-11-03 [perlu verifikasi].*");
+    harus("*Tidak dijalankan. Dicek ke [Serverpod: database connection](https://docs.serverpod.dev/concepts/data-and-the-database/database/connection), Serverpod 4.1.0, dibuka 2026-11-03. Kode Dart tidak ditulis di tab ini.*");
+    harus("Dokumentasi Serverpod tidak membahas read replica. Di 37 halaman pada peta situsnya yang alamatnya memuat database, kata replica hanya muncul dalam replication, di dua halaman: database tertanam dan query mentah.");
+    expect(badan).not.toContain("[perlu verifikasi]");
   });
 });
 
@@ -759,6 +761,7 @@ describe("tinjauan sendiri: kalimat, bullet, judul Snippet, dan frontmatter ditu
     expect(kalimat.filter((s, i) => kalimat.indexOf(s) !== i)).toEqual([]);
   });
   test("noscript: jawaban tebakan dan susunan A dan B sama dengan rekaman", () => {
+    harus("Tanpa JavaScript tombol tebakan tidak berfungsi dan widget perbandingan tidak tampil.");
     harus(`Jawaban yang tepat: query dihentikan oleh timeout sesudah paling sedikit ${K_C[2]} detik dengan kode ${K_C[1]}, sebelum konflik membatalkannya (konflik.txt bagian C). Tanpa timeout, konflik membatalkannya sesudah paling sedikit ${K_D[2]} detik dengan kode ${K_D[1]} (bagian D).`);
     harus("Di kedua susunan, Bayar atau kirim uang dan Cek batas harian kiriman dibaca dari primary. Di susunan B laporan hari ini dibaca dari replica.");
   });
@@ -843,11 +846,11 @@ describe("penutup celah mutasi putaran kedua: struktur, tautan, judul Snippet, k
     expect(tautan).toEqual([
       ["Label sumber", "/cara-pakai/#label-sumber"], [`PostgreSQL ${pg}, Hot Standby`, H], [`PostgreSQL ${pg}, Replication`, R], [`PostgreSQL ${pg}, Replication`, R],
       ["@prisma/extension-read-replicas", "https://github.com/prisma/extension-read-replicas"], ["Laravel 13.x: Database", "https://laravel.com/docs/13.x/database"],
-      ["Django 5.2: Multiple databases", "https://docs.djangoproject.com/en/5.2/topics/db/multi-db/"], ["Serverpod: database connection", "https://docs.serverpod.dev/concepts/database/connection"],
+      ["Django 5.2: Multiple databases", "https://docs.djangoproject.com/en/5.2/topics/db/multi-db/"], ["Serverpod: database connection", "https://docs.serverpod.dev/concepts/data-and-the-database/database/connection"],
       ["Supabase: Read Replicas", "https://supabase.com/docs/guides/platform/read-replicas"], [`PostgreSQL ${pg}, Replication`, R],
       [`PostgreSQL ${mayor}: Hot Standby`, H], [`PostgreSQL ${mayor}: Replication`, R], ["@prisma/extension-read-replicas", "https://github.com/prisma/extension-read-replicas"],
       ["Laravel 13.x: Database", "https://laravel.com/docs/13.x/database"], ["Django 5.2: Multiple databases", "https://docs.djangoproject.com/en/5.2/topics/db/multi-db/"],
-      ["Supabase: Read Replicas", "https://supabase.com/docs/guides/platform/read-replicas"], ["Serverpod: database connection", "https://docs.serverpod.dev/concepts/database/connection"],
+      ["Supabase: Read Replicas", "https://supabase.com/docs/guides/platform/read-replicas"], ["Serverpod: database connection", "https://docs.serverpod.dev/concepts/data-and-the-database/database/connection"],
     ]);
     expect([...new Set([...badan.matchAll(/PostgreSQL (\d+(?:\.\d+)?)/g)].map((m) => m[1]))].sort()).toEqual([mayor, pg].sort());
     const r133 = barisRiset("R5-133");
@@ -872,7 +875,7 @@ describe("penutup celah mutasi putaran kedua: struktur, tautan, judul Snippet, k
   test("Inti: paragraf pembuka, dua paragraf rekaman, dan tiga pertanyaan memakai kode, saldo, dan nominal rekaman; Coba memakai detik rekaman", () => {
     harus(`Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) \`replika.txt\` bagian ${huruf(replika, RP.nomor((x) => x.startsWith("replika=> UPDATE t5_ledger.buku"), rB0))}, standby menolak UPDATE, DDL, \`SELECT ... FOR UPDATE\`, dan \`PREPARE TRANSACTION\` dengan kode ${TOLAK[0]!.kode}.`);
     harus(`Di \`baca.txt\` bagian ${huruf(bacaTxt, BC.nomor((x) => x.startsWith("primary=> SELECT saldo_cache")))} replay ditahan dengan sengaja, dan saldo tampil di replica ${rp(SALDO_REPLICA)} sedangkan saldo primary ${rp(SALDO_PRIMARY)}. Kiriman ${rp(NOMINAL)} ditolak.`);
-    harus("Replica selalu sedikit tertinggal, jadi ADR 46 membagi bacaan: laporan dari replica, uang dari primary.");
+    harus("Replica bisa tertinggal dari primary, jadi ADR 46 membagi bacaan: laporan dari replica, uang dari primary.");
     harus("Primary adalah database yang menerima semua tulisan.");
     expect([...badan.matchAll(/^(\d)\. (.+)$/gm)].slice(0, 3).map((m) => `${m[1]} ${m[2]}`)).toEqual([
       "1 Pernyataan apa yang ditolak standby, dan dengan kode apa?",
@@ -887,7 +890,7 @@ describe("penutup celah mutasi putaran kedua: struktur, tautan, judul Snippet, k
     harus(`Rekaman hanya membuktikan batas di bawah ${cocok(bagJA, /replay_lag tertinggi di kedua standby di bawah (\d+) detik/)[1]} detik di laptop, bukan di produksi.`);
   });
   test("Kenapa ini ada dan ADR: pemicu, ambang, aturan 2, Status, dan sel tabel opsi memakai angka naskah, rekaman, dan registri", () => {
-    harus(`menunda read replica dengan dua pemicu: laporan merchant real-time diminta, atau L baca mencapai ${AMBANG} koneksi.`);
+    harus(`menunda read replica dengan tiga pemicu, dan halaman ini memakai dua: laporan merchant real-time diminta, atau L baca mencapai ${AMBANG} koneksi.`);
     harus("PRD v5 memenuhi pemicu pertama ([[t5-prd]]).");
     harus(`Aturan ${hal45.match(/^(\d)\. Uang tidak dibaca dari salinan/m)![1]} di ADR itu sudah menulis batasnya: uang tidak dibaca dari salinan di luar primary, dan read replica hanya untuk laporan.`);
     harus(`**Status:** diterima sesudah M${dari("t5-m40").judul.match(/^M(\d+)/)![1]}, dan menjalankan aturan ${hal45.match(/^(\d)\. Uang tidak dibaca dari salinan/m)![1]} ADR ${dari("t4-adr-45").adr![0]} ([[t4-adr-45]]). Dibaca ulang di [[t5-m41]].`);
@@ -907,7 +910,7 @@ describe("penutup celah mutasi putaran kedua: struktur, tautan, judul Snippet, k
     expect(sel(baris("Biaya operasional"), 1)).toBe(`Redis sudah ada ([[t3-cache]]), isi bisa setua ${L_C[1]} detik`);
     expect(sel(baris("Bukti"), 2)).toBe(`Tidak dijalankan: query laporan di bawah ${L_MS} ms pada data kecil (bagian ${huruf(laporan, LP.nomor((x) => x.startsWith("waktu eksekusi query laporan satu warung")))})`);
     expect(sel(baris("Kekurangan"), 4)).toBe("Slot replikasi menahan WAL, dan bawaan `max_slot_wal_keep_size` tanpa batas");
-    harus(`polling satu perangkat per merchant tiap ${L_C[1]} detik tidak punya panggilan kedua dalam umur isi cache.`);
+    harus(`polling satu perangkat per merchant tiap ${L_C[1]} detik hampir tidak punya panggilan kedua dalam umur isi cache (penalaran). Rekaman \`laporan.txt\` bagian C mencatat ${L_C[2]} hit dari ${L_C[6]} pada jarak ${L_JARAK[1]} detik.`);
     harus(`bawaan \`max_slot_wal_keep_size\` ${slotWal}, yaitu slot boleh menahan WAL tanpa batas`);
     harus(`Dengan \`max_slot_wal_keep_size\` bawaan ${slotWal}, dokumentasi menulis slot boleh menahan WAL tanpa batas.`);
     harus(`beban M${dari("t5-m40").judul.match(/^M(\d+)/)![1]} datang dari jumlah query.`);
@@ -917,7 +920,7 @@ describe("penutup celah mutasi putaran kedua: struktur, tautan, judul Snippet, k
     expect(aturan).toHaveLength(6);
     harus("Pencegahannya aturan 6: jeda dipantau, dan tampilan laporan menyebut waktu datanya.");
     expect(badan).toContain("6. Jeda replica dibaca di primary dari `replay_lag`");
-    harus(`dan timeout ${K1} detik di bawah ${K_D[3]} detik.`);
+    harus(`Pencegahannya laporan yang pendek dan laporan periode dari ringkasan. Timeout ${K1} detik tidak mencegahnya, tetapi mempersingkat replay yang tertahan.`);
     harus(`Saat jeda replica melewati ${cocok(barisAdr46, /lebih dari (\d+) detik \(target PRD/)[1]} detik, target PRD v5 (Asumsi produk).`);
     harus(`yang naik dari ${CONFL[0]} ke ${CONFL[2]} di rekaman tanpa timeout.`);
     harus(`Pembandingnya jeda alami di bawah ${cocok(bagJA, /replay_lag tertinggi di kedua standby di bawah (\d+) detik/)[1]} detik pada ${J_RPS[1]} pembayaran per detik di laptop`);

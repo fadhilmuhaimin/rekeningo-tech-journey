@@ -292,8 +292,8 @@
 *[rate limit]: Batas jumlah request per waktu dari satu sumber, mis. lima percobaan login per menit.
 *[RBAC]: Authorization berdasarkan peran, mis. hanya peran admin yang boleh membekukan akun.
 *[Read Committed]: Isolation level bawaan PostgreSQL: setiap perintah membaca data yang sudah COMMIT saat perintah itu mulai, jadi dua perintah bisa membaca keadaan berbeda.
-*[Read replica]: Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.
-*[read replica]: Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.
+*[Read replica]: Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama.
+*[read replica]: Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama.
 *[Read-your-writes]: Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.
 *[read-your-writes]: Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.
 *[Rekonsiliasi]: Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan.

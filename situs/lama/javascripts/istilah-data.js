@@ -1482,7 +1482,7 @@ window.ISTILAH = {
  },
  "Read replica": {
   "b": "t5-read-replica",
-  "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
+  "d": "Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama.",
   "n": "5.5 Read replica dan model baca",
   "s": "istilah-read-replica",
   "t": "Read replica",
@@ -2914,7 +2914,7 @@ window.ISTILAH = {
  },
  "read replica": {
   "b": "t5-read-replica",
-  "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
+  "d": "Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama.",
   "n": "5.5 Read replica dan model baca",
   "s": "istilah-read-replica",
   "t": "Read replica",
