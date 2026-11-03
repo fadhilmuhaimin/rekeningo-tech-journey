@@ -437,7 +437,7 @@ describe("5.15 Hitungan atas angka yang tertulis di halaman", () => {
     expect(hasil("Uang dan pengumuman")).toBe("630,8 per detik, yaitu 6,3 kali 100");
     expect(idn(N / (kuota - 75.2), 0)).toBe("101");
     const t2 = norm(blok.Paham);
-    expect(t2).toContain("650.000 ÷ 86.400 × 10 = 75,2 per detik");
+    expect(t2).toContain("650.000 ÷ 86.400 × 10 = 75,2 per detik pada puncak harian (faktor 10)");
     expect(t2).toContain("75,2 + 555,6 = 630,8 per detik selama 30 menit, dengan 555,6 = 1.000.000 ÷ 1.800 detik");
     expect(t2).toContain("1.000.000 ÷ (10.000 − 75,2) = 101 detik adalah yang tercepat");
     expect(t2).toContain("Hitungan itu mengandaikan uang tetap terlayani 75,2 per detik");
@@ -523,7 +523,7 @@ describe("5.15 Rantai Inti dari rekaman", () => {
   test("kalimat Inti pendek (≤ 150 karakter) dan tanpa angka dan tanpa jawaban tebakan", () => {
     const m = blok.Mulai.match(/## Inti\n\n([^\n]+)\n/)!;
     expect(m[1]!.length).toBeLessThanOrEqual(150);
-    expect(m[1]).toBe("Pengumuman ditulis sebagai satu baris, dipecah per partisi, dan dikirim consumer; uang tetap lewat outbox.");
+    expect(m[1]).toBe("Pengumuman ditulis sebagai satu baris, dipecah per partisi topik, dan dikirim consumer; uang tetap lewat outbox.");
   });
 });
 
@@ -660,9 +660,11 @@ describe("5.15 label sumber, kata, dan klaim berlingkup", () => {
     expect(r180).toContain("Dokumen tidak memakai kata consumer menganggur");
     expect(r180).toContain("A pull-based system has the nicer property that the consumer simply falls behind and catches up when it can.");
     expect(k).toContain("pada sistem tarik consumer cukup tertinggal dan menyusul saat ia sanggup, sedangkan pada sistem dorong consumer cenderung kewalahan");
+    expect(k).toContain("Jarak ketertinggalan itu disebut lag consumer di halaman ini.");
     expect(r180).toContain("the consumer tends to be overwhelmed when its rate of consumption falls below the rate of production");
     expect(r180).toContain("Many systems claim to provide \"exactly-once\" delivery semantics, but it is important to read the fine print");
-    expect(k).toContain("Dokumentasinya menyuruh membaca tulisan kecil klaim \"exactly-once\".");
+    expect(k).toContain("Dokumentasi Kafka menyuruh membaca tulisan kecil klaim \"exactly-once\".");
+    expect(k).toContain("Di lab pengiriman ke penyedia push tidak menjadi tepat satu kali, karena rentang yang mati dikirim ulang.");
     expect(r180).toContain("For example if the key chosen was a user id then all data for a given user would be sent to the same partition.");
     expect(k).toContain("Dokumentasi Kafka memberi contoh kunci id user: semua data satu user dikirim ke partisi yang sama.");
   });

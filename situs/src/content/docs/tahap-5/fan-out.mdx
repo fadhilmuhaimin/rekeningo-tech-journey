@@ -15,7 +15,7 @@ import intiDiagram from "../../../../data/diagram/t5-fanout-inti.json";
 
 ## Inti
 
-Pengumuman ditulis sebagai satu baris, dipecah per partisi, dan dikirim consumer; uang tetap lewat outbox.
+Pengumuman ditulis sebagai satu baris, dipecah per partisi topik, dan dikirim consumer; uang tetap lewat outbox.
 
 <Rantai data={intiDiagram} ringkas />
 
@@ -60,7 +60,7 @@ Catatan di widget menyebut file rekaman dan bagiannya bila berasal dari Rekaman 
 
 [[t5-m45]] menunjukkan dua batas. Notifikasi uang saat makan siang datang 96,3 per detik, yaitu 650.000 × 0,8 ÷ 5.400, sedangkan satu worker dengan 4 pengirim mengirim 4 ÷ 0,3 = 13,33 per detik. Satu pengumuman ke 1.000.000 perangkat di 4 pengirim butuh 1.000.000 × 0,3 ÷ 4 = 75.000 detik, yaitu 20,8 jam (Hitungan atas Asumsi).
 
-[[t4-adr-45]] menunda event streaming dengan dua pemicu: 100 pesan per detik terus-menerus, atau dua consumer atau lebih yang bergantung pada urutan. Uang saja belum memenuhi pemicu pertama: 650.000 ÷ 86.400 × 10 = 75,2 per detik. Pemicu itu terpenuhi hanya selama pengumuman, yaitu 75,2 + 555,6 = 630,8 per detik selama 30 menit, dengan 555,6 = 1.000.000 ÷ 1.800 detik.
+[[t4-adr-45]] menunda event streaming dengan dua pemicu: 100 pesan per detik terus-menerus, atau dua consumer atau lebih yang bergantung pada urutan. Uang saja belum memenuhi pemicu pertama: 650.000 ÷ 86.400 × 10 = 75,2 per detik pada puncak harian (faktor 10). Pemicu itu terpenuhi hanya selama pengumuman, yaitu 75,2 + 555,6 = 630,8 per detik selama 30 menit, dengan 555,6 = 1.000.000 ÷ 1.800 detik.
 
 Itu bukan terus-menerus, dan pemicu kedua belum terbukti. ADR 51 tetap memasang Kafka. Blok Putuskan menulis alasannya dan kapan alasan itu gugur.
 
@@ -104,11 +104,11 @@ Mode rentan `-id-acak` memberi id baru di tiap pengiriman. Perangkat dari rentan
 
 <Snippet file="labs/t5-fanout/output/grup.txt" lines="27:34" title="Rekaman lab: labs/t5-fanout/output/grup.txt, bagian B (mode rentan: id berbeda di tiap pengiriman)" />
 
-Kafka tidak membuat pengiriman ke penyedia push menjadi tepat satu kali. Dokumentasinya menyuruh membaca tulisan kecil klaim "exactly-once". Producer idempoten juga bukan jaminan: franz-go v1.22.1 pernah mengakui rekaman yang tidak ada di log dalam kasus langka (issue 1484 di repositori franz-go), dan v1.22.2 memperbaikinya ([franz-go, CHANGELOG](https://github.com/twmb/franz-go/blob/master/CHANGELOG.md), dibuka 2026-11-04). Lab memakai v1.22.2, dan consumer tetap idempoten. Transaksi Kafka tidak dijalankan.
+Di lab pengiriman ke penyedia push tidak menjadi tepat satu kali, karena rentang yang mati dikirim ulang. Dokumentasi Kafka menyuruh membaca tulisan kecil klaim "exactly-once". Producer idempoten juga bukan jaminan: franz-go v1.22.1 pernah mengakui rekaman yang tidak ada di log dalam kasus langka (issue 1484 di repositori franz-go), dan v1.22.2 memperbaikinya ([franz-go, CHANGELOG](https://github.com/twmb/franz-go/blob/master/CHANGELOG.md), dibuka 2026-11-04). Lab memakai v1.22.2, dan consumer tetap idempoten. Transaksi Kafka tidak dijalankan.
 
-**Backpressure menjaga laju di bawah kuota.** Backpressure berarti pihak yang lebih lambat membatasi laju pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan. Di sini ada dua bentuk. Pertama, consumer Kafka menarik rekaman sendiri. Dokumentasi menulis bahwa pada sistem tarik consumer cukup tertinggal dan menyusul saat ia sanggup, sedangkan pada sistem dorong consumer cenderung kewalahan bila laju konsumsinya turun di bawah laju produksi.
+**Backpressure menjaga laju di bawah kuota.** Backpressure berarti pihak yang lebih lambat membatasi laju pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan. Di sini ada dua bentuk. Pertama, consumer Kafka menarik rekaman sendiri. Dokumentasi menulis bahwa pada sistem tarik consumer cukup tertinggal dan menyusul saat ia sanggup, sedangkan pada sistem dorong consumer cenderung kewalahan bila laju konsumsinya turun di bawah laju produksi. Jarak ketertinggalan itu disebut lag consumer di halaman ini.
 
-Kedua, penyedia push berkuota. Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit per proyek, dan kelebihannya dijawab 429 ([Firebase Cloud Messaging: Throttling and Quotas](https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas), dibuka 2026-11-02). Penyedia tiruan lab menerjemahkannya menjadi 10.000 per detik dalam jendela satu detik, dan rekaman memakai 1.000 per detik. Pengirim menjawab 429 dengan backoff, yaitu jeda yang bertambah dua kali lipat, dan jitter, yaitu acak antara nol dan jeda itu:
+Kedua, penyedia push berkuota. Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit per proyek, dan kelebihannya dijawab 429 ([Firebase Cloud Messaging: Throttling and Quotas](https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas), dibuka 2026-11-02). Penyedia tiruan lab menerjemahkannya menjadi 10.000 per detik dalam jendela satu detik, dan rekaman memakai 1.000 per detik. Pengirim menjawab 429 dengan backoff, yaitu jeda yang dua kali lipat tiap percobaan sampai batas atas, dan jitter, yaitu acak antara nol dan jeda itu:
 
 <Snippet file="labs/api-t5/internal/stream/kirim.go" region="kirim-ulang" lang="go" title="Kode lab: labs/api-t5/internal/stream/kirim.go (backoff eksponensial dengan jitter penuh)" />
 
