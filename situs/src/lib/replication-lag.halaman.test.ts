@@ -184,7 +184,7 @@ describe("naskah Tahap 5: ADR 47 dan M41 yang dibaca halaman, dan selisihnya den
     expect(pemanggil.sort()).toEqual(["labs/api-t5/internal/service/replika.go", "labs/api-t5/internal/service/riwayat.go"]);
     expect(readmeLab).toContain("Bacaan yang dialihkan hanya riwayat dan saldo tampil");
     expect(readmeLab).toContain("Laporan merchant dari replica tidak dikerjakan lab ini");
-    harusAda("Lab mengalihkan dua bacaan ke aturan kelas 2: `GET /akun/{id}` dan `GET /akun/{id}/riwayat`. Status top-up dan laporan merchant ada di naskah, dan tidak ada di lab ini (Tidak dijalankan).");
+    harusAda("Lab mengalihkan dua bacaan ke aturan kelas 2: `GET /akun/{id}` dan `GET /akun/{id}/riwayat`. Status top-up dan laporan merchant ada di naskah, dan `api-t5` membacanya dari primary tanpa aturan sumber tampil (Tidak dijalankan: dibaca dari kode lab).");
   });
 });
 
@@ -219,7 +219,7 @@ describe("rekaman baca.txt: nilai di halaman dan di diagram diturunkan dari reka
     harusAda(`Bacaan saldo tanpa token dijawab replica dengan ${rp(tanpaTokenB)}. Bacaan yang membawa token dijawab primary dengan ${rp(denganTokenB)}.`);
     harusAda(`Sesudah replay dilanjutkan, pertanyaan yang sama dijawab sebaliknya. Query di replica menjawab \`t\`, dan token yang sama kini dilayani replica dengan saldo ${rp(sesudahB)}:`);
     harusAda(`Tanpa token, replica menjawab ${rp(tanpaTokenB)}, saldo lama. Dengan token, server membaca primary dan menjawab ${rp(denganTokenB)}`);
-    harusAda("- Token yang bukan posisi WAL dijawab 422 sebelum menyentuh database (Rekaman lab, `baca.txt` bagian B).");
+    harusAda("- Token yang bukan posisi WAL dijawab 422 (Rekaman lab, `baca.txt` bagian B). Kode lab memeriksa bentuknya sebelum bacaan tampil menyentuh replica atau primary (Tidak dijalankan: dibaca dari kode lab).");
   });
   test("diagram Inti: simpul dan sub diturunkan dari rekaman bagian B, sumber berlabel rekaman, dua baris ringkas", () => {
     const d = DataRantai.parse(rantaiMentah);
@@ -433,14 +433,14 @@ describe("beban dan hitungan: diulang dari angka yang tertulis di halaman", () =
     const tertulis2 = (46.3 / 1388.9) * 100;
     expect([fmt(r3, 1), fmt(r2, 1), fmt(tertulis3, 1), fmt(tertulis2, 1)]).toEqual(["5,0", "3,3", "5,0", "3,3"]);
     expect(t.slice(2)).toEqual([
-      ["Bacaan bertoken paling banyak, satu per transaksi uang", "sama dengan transaksi uang puncak", `${fmt(trx3, 1)} per detik (${fmt(trx2, 1)})`],
+      ["Bacaan bertoken, satu per transaksi uang (Asumsi)", "sama dengan transaksi uang puncak", `${fmt(trx3, 1)} per detik (${fmt(trx2, 1)})`],
       ["Porsi dari semua request", `${fmt(trx3, 1)} ÷ ${fmt(puncak, 1)}`, `${fmt(tertulis3, 1)}% (${fmt(trx2, 1)} ÷ ${fmt(puncak, 1)} = ${fmt(tertulis2, 1)}%)`],
     ]);
     harusAda("Hitungan di bawah adalah hasil rumus dari angka yang tertulis di halaman ini, dan berlabel Asumsi karena masukannya Asumsi.");
     expect(kali(badan, "5,0%")).toBe(6);
     expect(kali(badan, "3,3%")).toBe(2);
-    harusAda("Bila semua bacaan bertoken pergi ke primary, tambahannya hanya 5,0% dari puncak request, dan bacaan lain tetap di replica.");
-    harusAda("Satu bacaan per transaksi adalah Asumsi: token berlaku 30 detik di rancangan, dan app yang membaca berkali-kali dalam jendela itu menambah bacaan bertoken. Jumlahnya tidak diukur.");
+    harusAda("Bila satu bacaan bertoken per transaksi pergi ke primary, tambahannya 5,0% dari puncak request, dan bacaan lain tetap di replica.");
+    harusAda("Satu bacaan per transaksi adalah Asumsi. Token berlaku 30 detik di rancangan, dan app yang membaca berkali-kali dalam jendela itu menambah bacaan bertoken, misalnya saldo dan riwayat. Jumlahnya tidak diukur.");
   });
   test("26,4 koneksi: dari halaman 5.4 (rumus ditulis di sana), diulang di sini; 5 − 1 = 4 detik; ambang 20% dan 30 detik sama dengan naskah", () => {
     expect(m40).toContain(`(${fmt(puncak, 1)} − ${fmt(trx3, 1)}) × 0,02 = 26,4 koneksi`);
@@ -700,7 +700,7 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
       ["3. Laporan dan bacaan lain", "laporan merchant", "replica", "tidak direkam di lab ini"],
     ]);
     sel("| Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |", [
-      ["Lebih dari 20% bacaan bertoken berakhir di primary (Asumsi)", "Porsi `X-Dibaca-Dari: primary`", "Belum diukur. Pembanding: bacaan bertoken paling banyak 5,0% dari 1.388,9 request per detik (3,3% bila 2 transaksi, Hitungan atas Asumsi)", "Metrik per kepala `X-Dibaca-Dari`"],
+      ["Lebih dari 20% bacaan bertoken berakhir di primary (Asumsi)", "Porsi `X-Dibaca-Dari: primary`", "Belum diukur. Pembanding: 5,0% dari 1.388,9 request per detik bila satu bacaan bertoken mengikuti tiap transaksi (3,3% bila 2 transaksi, Hitungan atas Asumsi). Penyebutnya semua request, bukan bacaan bertoken.", "Metrik per kepala `X-Dibaca-Dari`"],
       ["Replica tertinggal lebih dari 30 detik (Asumsi)", "`replay_lag` di `pg_stat_replication`", "Lab: di bawah 1 detik pada 100 pembayaran per detik, batas di laptop", "Pemantauan replica"],
       ["Ada jawaban 201 tulisan tanpa `X-Lsn-Tulis`", "Jumlah jawaban tanpa kepala itu dan log posisi WAL tidak terbaca", "Belum diukur", "Log server dan metrik jawaban"],
       ["Tulisan dengan `synchronous_commit = off` memberi token", "Konfigurasi tulisan yang memberi token", "Kode `api-t5` tidak mengatur nilai itu, dan bawaan PostgreSQL adalah `on`", "Konfigurasi database"],
@@ -725,7 +725,7 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
     harusAda(`[[t4-adr-45]] menulis bahwa read replica hanya untuk laporan, dan keputusan uang tetap dibaca dari primary.`);
     harusAda(`ADR 47 memperluas aturan itu: bacaan milik sendiri sesudah menulis punya aturan sendiri, dan keputusan uang tidak berubah.`);
     harusAda(`**Kebutuhan.** Sesudah ADR ${adr46}, riwayat dan saldo tampil dibaca dari replica yang tertinggal, dan Budi melihat saldo lama sesudah membayar ([[t5-m41]]). ADR ${adr45} menulis replica hanya untuk laporan.`);
-    harusAda(`**Yang akan merevisinya.** [[t5-m42]] menunjukkan primary yang mati, dan [[t5-rpo-rto]] menulis replica sinkron, \`remote_apply\` untuk ledger, dan latihan failover. Keduanya menjawab aturan 8.`);
+    harusAda(`**Yang akan merevisinya.** [[t5-m42]] menunjukkan primary yang mati, dan [[t5-rpo-rto]] menimbang replica sinkron dan \`remote_apply\` untuk ledger, lalu menulis latihan failover. Peta Tahap 5 belum menjadwalkan rekaman token sesudah failover, jadi aturan 8 tetap [perlu verifikasi].`);
     expect(naskah.split("\n").find((b) => b.startsWith("| 48 |")) ?? "").toContain("`remote_apply` untuk ledger");
     harusAda("1. Token tidak sampai ke app, dan bacaan jatuh ke replica. `TokenTulis` mengembalikan kosong bila posisi WAL tidak terbaca, dan jawaban yang diputar ulang tidak membawa token.");
     harusAda("8. Sesudah failover, semua bacaan tampil dibaca dari primary selama jendela token. Token primary lama mungkin tidak bisa dibandingkan dengan replica baru (Asumsi: belum diuji [perlu verifikasi]).");
@@ -748,10 +748,10 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
     harusAda("Beban dasarnya dari [[t5-prd]] (Asumsi): puncak");
     harusAda("Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-03. Kode di tab lain adalah Ilustrasi.");
     harusAda("*Dijalankan: lab api-t5 dan t5-replika, PostgreSQL 17.11, Go 1.27.3, dan pgx v5.11.0 (rekaman `baca.txt`, `jeda.txt`, `sinkron.txt`).*");
-    harusAda("(Tidak dijalankan: dibaca dari kode lab)", 6);
+    harusAda("(Tidak dijalankan: dibaca dari kode lab)", 9);
     harusAda("(Tidak dijalankan), dan kode `api-t5`", 1);
-    harusAda("Satu bacaan per transaksi adalah Asumsi:");
-    harusAda("**Yang belum diukur.** Tiga hal belum ada: jeda replica di produksi, jumlah bacaan per user dalam 30 detik sesudah menulis, dan porsi app yang mengirim token. Angka 5,0% adalah batas atas satu bacaan per transaksi, bukan beban terukur.");
+    harusAda("Satu bacaan per transaksi adalah Asumsi.");
+    harusAda("**Yang belum diukur.** Tiga hal belum ada: jeda replica di produksi, jumlah bacaan per user dalam 30 detik sesudah menulis, dan porsi app yang mengirim token. Angka 5,0% adalah hasil untuk satu bacaan per transaksi, bukan batas atas dan bukan beban terukur.");
     expect(kali(badan, "Tiga hal belum ada")).toBe(1);
     expect(kali(badan, "Tiga penyebab yang paling mungkin")).toBe(1);
     expect(kali(badan, "6 bulan lagi")).toBe(1);
@@ -828,10 +828,10 @@ describe("pertahanan tambahan 2: urutan rujukan, versi dokumentasi, bilangan fak
   test("kalimat berlabel: kebutuhan dengan angka turunan, pre-mortem, Cek diri 2 dan 4, aturan 3, dan ADR C", () => {
     const a = (registry.tahap as unknown as { asumsi: { user: number; aktif: number; req: number; puncak: number } }[])[4]!.asumsi;
     const puncak = (((a.user * a.aktif) / 100 * a.req) / 86400) * a.puncak;
-    harusAda(`Bebannya kecil. Satu bacaan tampil sesudah tiap transaksi paling banyak ${fmt((69.4 / 1388.9) * 100, 1)}% dari ${fmt(puncak, 1)} request per detik di puncak (Hitungan atas Asumsi, rumus di blok Paham).`);
+    harusAda(`Bebannya kecil bila satu bacaan tampil mengikuti tiap transaksi: ${fmt((69.4 / 1388.9) * 100, 1)}% dari ${fmt(puncak, 1)} request per detik di puncak (Hitungan atas Asumsi, rumus di blok Paham).`);
     harusAda("Pencegahannya menghitung jawaban 201 tanpa `X-Lsn-Tulis`, dan memakai jendela waktu sebagai cadangan di app (Asumsi: belum ada).");
-    harusAda("Pencegahannya memantau `replay_lag` dan menerapkan aturan 7 (Asumsi: belum ada di kode).");
-    harusAda("Pencegahannya aturan 6 dan 8, dan latihan failover di [[t5-rpo-rto]].");
+    harusAda("Pencegahannya memantau `replay_lag` dan menerapkan aturan 7, juga untuk replica yang mati (Asumsi: belum ada di kode).");
+    harusAda("Pencegahannya aturan 6 dan 8, dan pemeriksaan token di latihan failover ([[t5-rpo-rto]] menulis latihannya, pemeriksaan token belum dijadwalkan).");
     harusAda(`Saat replica sudah memutar WAL sampai posisi di token: \`pg_last_wal_replay_lsn()\` tidak lebih kecil dari token. Di rekaman, query itu menjawab \`t\`, dan token yang sama dilayani replica dengan saldo ${rp(sesudahB)} (\`baca.txt\` bagian B).`);
     harusAda("Bacaan tanpa token dari primary adalah Asumsi desain yang belum ada di kode lab.");
     harusAda(`Di rekaman, replay ditahan, Budi membayar ${rp(nominalB)}, dan dua bacaan saldo berbeda hasilnya:`);
@@ -852,6 +852,66 @@ describe("pertahanan tambahan 2: urutan rujukan, versi dokumentasi, bilangan fak
       expect(b, s).toContain(s);
     expect(naskah).toContain("app mengirimnya di bacaan berikutnya selama 30 detik");
     expect(naskah).toContain("Jeda replica lebih dari 30 detik: semua bacaan pindah ke primary");
+  });
+});
+
+// --- Tinjauan independen (keputusan 1527): klaim yang diperbaiki peninjau dijaga dari kode, naskah, dan halaman
+describe("tinjauan 1527: status top-up dan laporan dari primary, urutan pemeriksaan token, 5,0% bukan batas atas, janji failover, replica mati", () => {
+  const semuaGo = (dir: string): string[] => {
+    const hasil: string[] = [];
+    for (const e of fs.readdirSync(path.join(akar, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${e.name}`;
+      if (e.isDirectory()) { hasil.push(...semuaGo(rel)); continue; }
+      if (e.name.endsWith(".go") && !e.name.endsWith("_test.go")) hasil.push(rel);
+    }
+    return hasil;
+  };
+  const fungsi = (kode: string, awal: string, akhir: string): string => kode.slice(kode.indexOf(awal), kode.indexOf(akhir));
+  test("status top-up dan laporan memakai primary: s.replika hanya dipakai replika.go (lingkup: semua .go bukan tes di labs/api-t5)", () => {
+    const pemakai = semuaGo("labs/api-t5").filter((f) => /\bs\.replika\b/.test(baca(f)));
+    expect(pemakai).toEqual(["labs/api-t5/internal/service/replika.go"]);
+    expect(baca("labs/api-t5/internal/service/pembayaran.go")).toMatch(/func \(s Service\) LihatTopupBank\([^)]*\)[^{]*\{\s*\n\s*t, err := s\.repo\.TopupBank\(ctx, id\)/);
+    expect(baca("labs/api-t5/internal/service/riwayat.go")).toContain("return s.repo.Laporan(ctx, warung, dari, sampai)");
+    expect(baca("labs/api-t5/internal/service/t5.go")).toContain("h, err := s.repo.LaporanHariIni(ctx, merchant, awal, awal.AddDate(0, 0, 1))");
+    expect(baca("labs/api-t5/internal/handler/handler_pembayaran.go")).toContain('mux.HandleFunc("GET /topup-bank/{id}"');
+    expect(handlerUtama).toContain('mux.HandleFunc("GET /warung/{id}/laporan"');
+    harusAda("Status top-up dan laporan merchant ada di naskah, dan `api-t5` membacanya dari primary tanpa aturan sumber tampil (Tidak dijalankan: dibaca dari kode lab).");
+    expect(badan).not.toContain("tidak ada di lab ini");
+  });
+  test("bentuk token diperiksa sebelum bacaan tampil memanggil replica atau primary, tetapi sesi diperiksa di database lebih dulu", () => {
+    const f = fungsi(serviceReplika, "func (s Service) sumberTampil", "// --8<-- [end:sumber-tampil]");
+    expect(f.indexOf("polaLSN.MatchString(token)")).toBeGreaterThan(-1);
+    expect(f.indexOf("polaLSN.MatchString(token)")).toBeLessThan(f.indexOf("s.replika.SampaiLSN"));
+    expect(baca("labs/api-t5/internal/service/sesi.go")).toContain("s.repo.SesiAktif(ctx, hashToken(token), s.kini())");
+    expect(handlerUtama.slice(handlerUtama.indexOf("func (s Server) wajibLogin"))).toContain("s.svc.Periksa(r.Context(), token)");
+    expect(badan).not.toContain("sebelum menyentuh database");
+    harusAda("- Token yang bukan posisi WAL dijawab 422 (Rekaman lab, `baca.txt` bagian B). Kode lab memeriksa bentuknya sebelum bacaan tampil menyentuh replica atau primary (Tidak dijalankan: dibaca dari kode lab).");
+  });
+  test("5,0% adalah hasil untuk satu bacaan per transaksi dan bukan batas atas: dua endpoint tampil menerima token", () => {
+    expect(kali(badan, "paling banyak")).toBe(0);
+    expect(baris(badan).filter((b) => b.includes("5,0%") && /paling banyak|batas atas/.test(b)).length).toBe(1);
+    harusAda("Angka 5,0% adalah hasil untuk satu bacaan per transaksi, bukan batas atas dan bukan beban terukur.");
+    expect(handlerUtama.match(/r\.Header\.Get\(KepalaLSNTulis\)/g)?.length).toBe(2);
+    harusAda("| Bacaan bertoken, satu per transaksi uang (Asumsi) | sama dengan transaksi uang puncak | 69,4 per detik (46,3) |");
+    harusAda("Penyebutnya semua request, bukan bacaan bertoken.");
+  });
+  test("janji lintas halaman: M42, ADR 48, dan peta 5.8 dan 5.9 di naskah tidak memuat token, jadi aturan 8 tetap terbuka", () => {
+    const naskahBaris = naskah.split("\n");
+    const rujukan = [naskahBaris.find((b) => b.startsWith("| M42 |")) ?? "", naskahBaris.find((b) => b.startsWith("| 48 |")) ?? "", ...naskahBaris.filter((b) => /^\| 5\.(8|9) \|/.test(b))];
+    expect(rujukan.length).toBe(4);
+    for (const b of rujukan) { expect(b.length).toBeGreaterThan(40); expect(b.toLowerCase()).not.toContain("token"); }
+    harusAda("Peta Tahap 5 belum menjadwalkan rekaman token sesudah failover, jadi aturan 8 tetap [perlu verifikasi].");
+    expect(badan).not.toContain("Keduanya menjawab aturan 8");
+    harusAda("[[t5-rpo-rto]] menimbang replica sinkron dan `remote_apply` untuk ledger, lalu menulis latihan failover.", 1);
+  });
+  test("replica mati: bacaan tanpa token memanggil replica tanpa cadangan ke primary, dan galat tak dikenal dijawab 500", () => {
+    const f = fungsi(serviceReplika, "func (s Service) sumberTampil", "// --8<-- [end:sumber-tampil]");
+    expect(f).toMatch(/if s\.rentan == RentanRiwayatReplika \|\| token == "" \{\s*\n\s*return s\.replika, SumberReplika, nil\s*\n\s*\}/);
+    const akun = serviceReplika.slice(serviceReplika.indexOf("func (s Service) LihatAkunTampil"));
+    expect(akun).toMatch(/a, err := p\.Akun\(ctx, id\)\s*\n\s*if errors\.Is\(err, repo\.ErrTidakAda\) \{\s*\n\s*return repo\.Akun\{\}, sumber, ErrTidakDitemukan\s*\n\s*\}\s*\n\s*return a, sumber, err/);
+    expect(handlerUtama).toMatch(/default:\s*\n\s*s\.errorInternal\(w, err\)/);
+    expect(handlerUtama).toContain('Problem{Type: "/problems/internal", Title: "Terjadi kesalahan di server", Status: 500}');
+    harusAda("Replica yang tertinggal menjawab saldo lama, dan replica yang mati membuat bacaan itu gagal dengan galat server (Tidak dijalankan: dibaca dari kode lab).");
   });
 });
 
