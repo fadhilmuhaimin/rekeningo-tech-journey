@@ -37,6 +37,19 @@ func TestMengirimTokenDanJalur(t *testing.T) {
 	}
 }
 
+// Rewrap memanggil jalur rewrap (kebijakan token pembungkus-ulang hanya mengizinkan jalur itu) dan mengembalikan ciphertext baru.
+func TestRewrapJalur(t *testing.T) {
+	var jalur string
+	k := tiruan(t, func(w http.ResponseWriter, r *http.Request) {
+		jalur = r.URL.Path
+		json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"ciphertext": "vault:v2:BBBB"}})
+	})
+	baru, err := k.Rewrap(context.Background(), "vault:v1:AAAA")
+	if err != nil || baru != "vault:v2:BBBB" || jalur != "/v1/transit/rewrap/kek-uji" {
+		t.Fatalf("jalur %q, hasil %q, galat %v", jalur, baru, err)
+	}
+}
+
 func TestStatusBukan2xxMenjadiGalatBao(t *testing.T) {
 	for _, status := range []int{400, 403, 404, 500, 503} {
 		k := tiruan(t, func(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +86,29 @@ func TestJawabanTanpaDataDitolak(t *testing.T) {
 	k := tiruan(t, func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`{}`)) })
 	if _, err := k.Buka(context.Background(), "vault:v1:AAAA"); err == nil {
 		t.Fatal("jawaban 200 tanpa data harus ditolak")
+	}
+}
+
+// Jawaban 200 yang bentuknya rusak tidak boleh lolos: string kosong (data key terbungkus kosong, plaintext kosong) dan
+// base64 yang tidak sah. Tiap panggilan diuji sendiri supaya yang menolak adalah pemeriksaan jawaban, bukan panjang data key.
+func TestJawabanRusakDitolak(t *testing.T) {
+	dek := base64.StdEncoding.EncodeToString(make([]byte, 32))
+	jawab := func(data map[string]any) *Klien {
+		return tiruan(t, func(w http.ResponseWriter, r *http.Request) {
+			json.NewEncoder(w).Encode(map[string]any{"data": data})
+		})
+	}
+	if _, _, err := jawab(map[string]any{"plaintext": dek, "ciphertext": ""}).BuatDataKey(context.Background()); err == nil {
+		t.Error("BuatDataKey: data key terbungkus kosong harus ditolak")
+	}
+	if _, err := jawab(map[string]any{"plaintext": ""}).Buka(context.Background(), "vault:v1:AAAA"); err == nil {
+		t.Error("Buka: plaintext kosong harus ditolak")
+	}
+	if b, err := jawab(map[string]any{"plaintext": "!!bukan-base64!!"}).Buka(context.Background(), "vault:v1:AAAA"); err == nil {
+		t.Errorf("Buka: plaintext yang bukan base64 harus ditolak, dapat %d byte", len(b))
+	}
+	if _, err := jawab(map[string]any{"ciphertext": ""}).Rewrap(context.Background(), "vault:v1:AAAA"); err == nil {
+		t.Error("Rewrap: ciphertext kosong harus ditolak")
 	}
 }
 

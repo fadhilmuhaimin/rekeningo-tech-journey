@@ -8,10 +8,12 @@ $ go vet ./...
 # exit status 0
 $ go test -v -count=1 ./...   # lingkungan: BAO_ADDR, BAO_TOKEN (operator), BAO_KUNCI, TES_KMS_WAJIB=1
 --- PASS: TestMengirimTokenDanJalur
+--- PASS: TestRewrapJalur
 --- PASS: TestStatusBukan2xxMenjadiGalatBao
 --- PASS: TestDataKeyBukan32Byte
 --- PASS: TestRewrapTidakBolehMenjawabPlaintext
 --- PASS: TestJawabanTanpaDataDitolak
+--- PASS: TestJawabanRusakDitolak
 --- PASS: TestOpenBaoBolakBalik
 --- PASS: TestOpenBaoMenolakTokenSalahDanCiphertextRusak
 PASS
@@ -29,6 +31,8 @@ ok    lab/t5kms/bao
 --- PASS: TestBukaTanpaKMS
 --- PASS: TestDuaFileDuaDataKey
 --- PASS: TestBentukSamaDenganGCMStandar
+--- PASS: TestVersiKEKMengikutiPembungkus
+--- PASS: TestChecksumSHA256
 PASS
 ok    lab/t5kms/envelope
 --- PASS: TestHanyaBertambah

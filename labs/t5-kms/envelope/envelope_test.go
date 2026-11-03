@@ -20,6 +20,7 @@ import (
 type pembungkusLokal struct {
 	kek       []byte
 	galatBuka error
+	versi     int // nomor versi KEK pada bentuk terbungkus; 0 berarti 1
 }
 
 func (p *pembungkusLokal) a() cipher.AEAD {
@@ -31,14 +32,18 @@ func (p *pembungkusLokal) a() cipher.AEAD {
 func (p *pembungkusLokal) BuatDataKey(context.Context) ([]byte, string, error) {
 	dek := make([]byte, 32)
 	rand.Read(dek)
-	return dek, "vault:v1:" + base64.StdEncoding.EncodeToString(p.a().Seal(nil, nil, dek, nil)), nil
+	v := p.versi
+	if v == 0 {
+		v = 1
+	}
+	return dek, fmt.Sprintf("vault:v%d:", v) + base64.StdEncoding.EncodeToString(p.a().Seal(nil, nil, dek, nil)), nil
 }
 
 func (p *pembungkusLokal) Buka(_ context.Context, t string) ([]byte, error) {
 	if p.galatBuka != nil {
 		return nil, p.galatBuka
 	}
-	b, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(t, "vault:v1:"))
+	b, err := base64.StdEncoding.DecodeString(strings.SplitN(t, ":", 3)[2])
 	if err != nil {
 		return nil, err
 	}
@@ -250,5 +255,28 @@ func TestBentukSamaDenganGCMStandar(t *testing.T) {
 	balik, err := g.Open(nil, dalam[:12], dalam[12:], []byte("rekeningo-arsip-v1:2026-05-01"))
 	if err != nil || !bytes.Equal(balik, teks) {
 		t.Fatalf("Enkripsi tidak menghasilkan nonce || ciphertext || tag AES-256-GCM: %v", err)
+	}
+}
+
+// Versi KEK pada Hasil datang dari bentuk terbungkus yang dijawab KMS, bukan dari angka tetap.
+func TestVersiKEKMengikutiPembungkus(t *testing.T) {
+	d := t.TempDir()
+	sumber := filepath.Join(d, "a.csv")
+	os.WriteFile(sumber, []byte("isi"), 0o600)
+	p := baru()
+	p.versi = 3
+	h, err := Arsipkan(context.Background(), p, sumber, filepath.Join(d, "a.enc"), "2026-05-01")
+	if err != nil || h.VersiKEK != 3 || !strings.HasPrefix(h.DataKeyTerbungkus, "vault:v3:") {
+		t.Fatalf("versi KEK harus 3: %+v, %v", h, err)
+	}
+}
+
+// Checksum adalah SHA-256 heksadesimal (vektor uji NIST: "abc").
+func TestChecksumSHA256(t *testing.T) {
+	if g := Checksum([]byte("abc")); g != "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" {
+		t.Fatalf("checksum bukan SHA-256: %s", g)
+	}
+	if g := Checksum(nil); g != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
+		t.Fatalf("checksum data kosong: %s", g)
 	}
 }
