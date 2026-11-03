@@ -3760,6 +3760,30 @@
   "jawab": "18 foreign key yang menyeberang schema: 18 sebelum pembagian dan 0 sesudahnya (`skema.txt` bagian E). Lab tidak memisahkan proses, jadi putusnya satu transaction lintas service tidak direkam. Pernyataan itu dibaca dari ADR 12 (Tidak dijalankan)."
  },
  {
+  "id": "t5-m48-1",
+  "halaman": "t5-m48",
+  "judul": "5.20 M48: Angsuran Budi terdebit dua kali",
+  "url": "tahap-5/m48-angsuran-dua-kali/",
+  "tanya": "Batch diulang 23 jam sesudah mati dan hanya ada satu jurnal. Kenapa itu belum berarti aman?",
+  "jawab": "Angsuran itu dilewati, bukan diselesaikan: statusnya tetap `menunggu` (`crash.txt` bagian A). Job membacanya lagi di putaran berikutnya, dan pada 25 jam key sudah habis, jadi jurnal kedua ditulis dan saldo Budi turun dari Rp250.000 ke Rp50.000."
+ },
+ {
+  "id": "t5-m48-2",
+  "halaman": "t5-m48",
+  "judul": "5.20 M48: Angsuran Budi terdebit dua kali",
+  "url": "tahap-5/m48-angsuran-dua-kali/",
+  "tanya": "Kenapa dugaan bug di penagihan gugur?",
+  "jawab": "Di rekaman, penagihan dalam satu putaran tidak menjurnal dua kali. Dua job serentak dalam 24 jam menghasilkan satu jurnal, satu job yang melewati angsuran itu, dan status `dicatat` (`serentak.txt` bagian C). Jurnal kedua baru muncul sesudah job mati dan diulang sesudah key habis (`crash.txt` bagian A)."
+ },
+ {
+  "id": "t5-m48-3",
+  "halaman": "t5-m48",
+  "judul": "5.20 M48: Angsuran Budi terdebit dua kali",
+  "url": "tahap-5/m48-angsuran-dua-kali/",
+  "tanya": "ADR 14 menulis kapan keputusannya salah. Apa kaitannya dengan batch ini?",
+  "jawab": "ADR 14 menulis keputusannya salah saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama. Batch yang tertunda lebih dari 24 jam memenuhi syarat itu. Key tidak rusak: ia memang hanya hidup 24 jam."
+ },
+ {
   "id": "t5-onprem-1",
   "halaman": "t5-onprem",
   "judul": "5.28 On-prem lawan cloud + ADR 59",
