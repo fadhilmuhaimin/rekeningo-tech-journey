@@ -1,6 +1,6 @@
 # Rollout canary dasar: TANPA traffic router. Argo Rollouts hanya mengatur jumlah pod versi baru lewat rasio replika;
 # satu Service dan satu HTTPRoute tanpa bobot membagi permintaan rata ke semua pod di belakangnya (stabil dan canary).
-# Nilai berbentuk dolar-kurung-kurawal (nama, replika, versi, DATABASE_URL) diisi run.py. Image api-t5-rollout:v1 dibangun dari labs/api-t5 dan diimpor ke node (tanpa registry).
+# Nilai berbentuk dolar-kurung-kurawal (nama, replika, versi, maxSurge, DATABASE_URL) diisi run.py; maxSurge hanya ditulis bila bukan bawaan. Image api-t5-rollout:v1 dibangun dari labs/api-t5 dan diimpor ke node (tanpa registry).
 apiVersion: v1
 kind: Service
 metadata:
@@ -39,6 +39,7 @@ spec:
       steps:
         - setWeight: 5
         - pause: {}
+${MAXSURGE_BARIS}
   template:
     metadata:
       labels:

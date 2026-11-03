@@ -423,17 +423,19 @@ def baris_otorisasi():
 def rekam_tanpa_router():
     bersihkan_beban()
     siapkan_data()
-    bagian("A. Argo Rollouts tanpa traffic router: setWeight 5 dengan 3 replika dan dengan 20 replika")
+    bagian("A. Argo Rollouts tanpa traffic router: setWeight 5 dengan 3 replika, dengan 20 replika, dan dengan 3 replika bila maxSurge 0")
     catat("# Rollout canary dasar (manifes/kartu-tanpa-router.yaml): satu langkah setWeight 5, lalu jeda tanpa batas. Tidak ada trafficRouting,")
     catat("# jadi bobot hanya bisa diwujudkan lewat jumlah pod versi baru. Versi baru = template pod berubah (VERSI v1 ke v2).")
+    catat("# maxSurge tidak ditulis di manifes (bawaan v1.10.1: 1), kecuali di bagian ketiga yang menulis maxSurge: 0.")
     hasil = {}
-    for replika in (3, 20):
-        nama = f"kartu-a{replika}"
-        catat(f"\n## {replika} replika")
-        terapkan("kartu-tanpa-router.yaml", NAMA=nama, REPLIKA=replika, VERSI="v1")
+    for replika, surge in ((3, None), (20, None), (3, 0)):
+        nama = f"kartu-a{replika}" + ("" if surge is None else f"s{surge}")
+        baris_surge = "" if surge is None else f"      maxSurge: {surge}"
+        catat(f"\n## {replika} replika" + ("" if surge is None else f", maxSurge {surge} (bukan bawaan)"))
+        terapkan("kartu-tanpa-router.yaml", NAMA=nama, REPLIKA=replika, VERSI="v1", MAXSURGE_BARIS=baris_surge)
         tunggu_rollout(nama, "Healthy", siap=replika)
         catat(f"Rollout {nama} versi v1: phase Healthy, {replika} pod siap")
-        terapkan("kartu-tanpa-router.yaml", NAMA=nama, REPLIKA=replika, VERSI="v2")
+        terapkan("kartu-tanpa-router.yaml", NAMA=nama, REPLIKA=replika, VERSI="v2", MAXSURGE_BARIS=baris_surge)
         tunggu(lambda: rollout(nama).get("status", {}).get("phase") == "Paused", f"{nama} Paused", 240, 2)
         tunggu(lambda: all(pod_siap(p) for p in pod_milik(nama)), "pod stabil", 240, 2)
         alias_hash(nama)
@@ -457,23 +459,24 @@ def rekam_tanpa_router():
         harap(sum(hit.values()), n, "semua permintaan terjawab")
         # Hitungan permintaan per versi bergantung penyeimbang beban Traefik: satu run memberi 10 dari 200 untuk 20 replika, run lain 9
         # dari 200. Hanya batasnya yang direkam; bagian pod versi baru dihitung dari pod, bukan dari permintaan.
-        batas = {3: (35, 65), 20: (3, 17)}[replika]
-        harap(batas[0] <= hit.get("v2", 0) <= batas[1], True, f"{replika} replika: bagian v2 terukur di sekitar bagian pod v2 ({batas[0]} sampai {batas[1]} dari {n}; terukur {hit.get('v2', 0)})")
+        batas = {(3, None): (35, 65), (20, None): (3, 17), (3, 0): (47, 87)}[(replika, surge)]
+        harap(batas[0] <= hit.get("v2", 0) <= batas[1], True, f"{replika} replika, maxSurge {surge}: bagian v2 terukur di sekitar bagian pod v2 ({batas[0]} sampai {batas[1]} dari {n}; terukur {hit.get('v2', 0)})")
         catat(f"{n} permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: semuanya terjawab.")
         catat(f"Bagian pod v2 dari semua pod yang menjawab = {100 * v2 / (v1 + v2):.1f}% (diminta 5%). Bagian permintaan yang dijawab v2 terukur antara {100 * batas[0] / n:.1f}% dan "
               f"{100 * batas[1] / n:.1f}%: ya (batas diperiksa; hitungan permintaan tepat bergantung penyeimbang beban dan tidak direkam).")
-        hasil[replika] = (v1, v2)
+        hasil[(replika, surge)] = (v1, v2)
         bobot = r["status"].get("canary", {}).get("weights")
         catat(f"status.canary.weights di Rollout: {'tidak ada (tanpa traffic router)' if not bobot else json.dumps(bobot)}")
         kc("delete", "httproute,service,rollout", nama, "-n", _ns, "--wait=true", cek=False)
         tunggu(lambda: not pod_milik(nama), f"pod {nama} hilang", 180, 2)
     bagian("Ringkas")
     catat("Hitungan pembulatan 5% dari n pod (tanpa traffic router): jumlah pod terukur di atas, bukan umum untuk semua versi Argo Rollouts.")
-    for replika, (v1, v2) in hasil.items():
-        catat(f"- {replika} replika: {v2} pod canary dan {v1} pod stabil menjawab; bagian pod v2 {100 * v2 / (v1 + v2):.1f}%")
-    harap(hasil[3][:2] in ((3, 1), (2, 1)), True, "3 replika: setWeight 5 harus menghasilkan satu pod canary (rekaman)")
-    harap(hasil[20][:2], (19, 1), "20 replika: 5% harus 1 pod canary (naskah)")
-    tulis("tanpa-router.txt", "setWeight 5 tanpa traffic router (3 dan 20 replika)")
+    for (replika, surge), (v1, v2) in hasil.items():
+        catat(f"- {replika} replika{'' if surge is None else f', maxSurge {surge}'}: {v2} pod canary dan {v1} pod stabil menjawab; bagian pod v2 {100 * v2 / (v1 + v2):.1f}%")
+    harap(hasil[(3, None)], (3, 1), "3 replika, maxSurge bawaan: satu pod canary di samping tiga pod stabil (rekaman)")
+    harap(hasil[(20, None)], (19, 1), "20 replika: 5% harus 1 pod canary (naskah)")
+    harap(hasil[(3, 0)], (2, 1), "3 replika, maxSurge 0: satu pod canary dan dua pod stabil (33,3% naskah)")
+    tulis("tanpa-router.txt", "setWeight 5 tanpa traffic router (3 dan 20 replika, dan 3 replika dengan maxSurge 0)")
 
 
 # ---------- bagian B dan C: bobot lewat Gateway API, analisis yang gagal ----------

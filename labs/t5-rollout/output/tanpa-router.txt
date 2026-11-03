@@ -1,10 +1,11 @@
-# Lab t5-rollout · setWeight 5 tanpa traffic router (3 dan 20 replika)
+# Lab t5-rollout · setWeight 5 tanpa traffic router (3 dan 20 replika, dan 3 replika dengan maxSurge 0)
 # PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · k3s v1.37.1+k3s1 · Argo Rollouts v1.10.1 · plugin Gateway API v0.17.0 · Traefik 3.7.13 · Gateway API v1.6.1 · k3d v5.9.0 · schema tahap5_rollout · api-t5 di cluster, pod ke PostgreSQL lab di host
 # Rekaman dari database bersih dan beban kerja baru: make -C labs/t5-rollout run.
 
-# --- A. Argo Rollouts tanpa traffic router: setWeight 5 dengan 3 replika dan dengan 20 replika ---
+# --- A. Argo Rollouts tanpa traffic router: setWeight 5 dengan 3 replika, dengan 20 replika, dan dengan 3 replika bila maxSurge 0 ---
 # Rollout canary dasar (manifes/kartu-tanpa-router.yaml): satu langkah setWeight 5, lalu jeda tanpa batas. Tidak ada trafficRouting,
 # jadi bobot hanya bisa diwujudkan lewat jumlah pod versi baru. Versi baru = template pod berubah (VERSI v1 ke v2).
+# maxSurge tidak ditulis di manifes (bawaan v1.10.1: 1), kecuali di bagian ketiga yang menulis maxSurge: 0.
 
 ## 3 replika
 Rollout kartu-a3 versi v1: phase Healthy, 3 pod siap
@@ -34,7 +35,22 @@ Pod v1: 19, pod v2: 1; replika yang diminta 20, pod yang menjawab 20.
 Bagian pod v2 dari semua pod yang menjawab = 5.0% (diminta 5%). Bagian permintaan yang dijawab v2 terukur antara 1.5% dan 8.5%: ya (batas diperiksa; hitungan permintaan tepat bergantung penyeimbang beban dan tidak direkam).
 status.canary.weights di Rollout: tidak ada (tanpa traffic router)
 
+## 3 replika, maxSurge 0 (bukan bawaan)
+Rollout kartu-a3s0 versi v1: phase Healthy, 3 pod siap
+Rollout kartu-a3s0 sesudah VERSI diganti ke v2: phase Paused, currentStepIndex 1 (langkah pause tanpa batas)
+$ kubectl get rs  (versi, spec.replicas, siap)
+ versi | spec.replicas | siap
+-------+---------------+------
+ v1    | 2             | 2
+ v2    | 1             | 1
+(2 rows)
+Pod v1: 2, pod v2: 1; replika yang diminta 3, pod yang menjawab 3.
+200 permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: semuanya terjawab.
+Bagian pod v2 dari semua pod yang menjawab = 33.3% (diminta 5%). Bagian permintaan yang dijawab v2 terukur antara 23.5% dan 43.5%: ya (batas diperiksa; hitungan permintaan tepat bergantung penyeimbang beban dan tidak direkam).
+status.canary.weights di Rollout: tidak ada (tanpa traffic router)
+
 # --- Ringkas ---
 Hitungan pembulatan 5% dari n pod (tanpa traffic router): jumlah pod terukur di atas, bukan umum untuk semua versi Argo Rollouts.
 - 3 replika: 1 pod canary dan 3 pod stabil menjawab; bagian pod v2 25.0%
 - 20 replika: 1 pod canary dan 19 pod stabil menjawab; bagian pod v2 5.0%
+- 3 replika, maxSurge 0: 1 pod canary dan 2 pod stabil menjawab; bagian pod v2 33.3%
