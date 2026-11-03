@@ -11,7 +11,7 @@ export const SIDIK = {
   ],
   "diagramInti": "fbba9a6d856fc90d",
   "diagramFailover": "be78e28e5b33d8b3",
-  "tebak": "f721ed5c5374fc38",
+  "tebak": "9d1c98a04d4dfa33",
   "frontmatter": "34899180e0c6efed",
   "snippet": [
     "8ece5510085cf196",

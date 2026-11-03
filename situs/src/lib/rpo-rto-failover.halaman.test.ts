@@ -1048,7 +1048,7 @@ describe("diagram Rantai dan tebakan: nilai diturunkan dari rekaman", () => {
     expect(tebak.pilihan[idx]!.teks).toBe("COMMIT menunggu tanpa galat, dan barisnya belum terlihat oleh sesi lain sebelum daftar standby sinkron diubah.");
     expect(tebak.pilihan[idx]!.alasan).toContain("Rekaman bagian C: sesi menunggu di SyncRep, barisnya tidak terlihat, dan COMMIT selesai sesudah synchronous_standby_names dikosongkan.");
     expect(SC.teks).toMatch(/uji-macet\s+\| IPC\s+\| SyncRep/);
-    expect(tebak.pilihan[3]!.alasan).toContain("Dokumentasi PostgreSQL 17 tidak menyebut batas waktu atau perpindahan itu, dan lab tidak menunggu sampai batas.");
+    expect(tebak.pilihan[3]!.alasan).toContain("Halaman PostgreSQL 17 tentang replikasi sinkron tidak menyebut batas waktu penantian atau perpindahan itu (dicari di teks halaman), dan lab tidak menunggu sampai batas.");
     expect(SC.teks).toContain("tidak menyebut batas waktu penantian; lab tidak menunggunya");
     expect(tebak.pilihan[2]!.alasan).toContain("Dokumentasi menulis bahwa commit seperti ini mungkin tidak pernah selesai, bukan bahwa ia ditolak.");
     expect(tebak.pilihan.map((x) => x.teks)).toEqual([
@@ -1061,7 +1061,7 @@ describe("diagram Rantai dan tebakan: nilai diturunkan dari rekaman", () => {
       "Dengan standby sinkron, COMMIT menunggu standby menyimpan commit-nya. Rekaman bagian C: sesi itu menunggu di SyncRep, dan barisnya belum terlihat oleh sesi lain.",
       "Rekaman bagian C: sesi menunggu di SyncRep, barisnya tidak terlihat, dan COMMIT selesai sesudah synchronous_standby_names dikosongkan. Selama daftar kosong, COMMIT tidak menunggu siapa pun.",
       "Rekaman tidak memuat galat: pg_stat_activity menunjukkan sesi itu menunggu. Dokumentasi menulis bahwa commit seperti ini mungkin tidak pernah selesai, bukan bahwa ia ditolak.",
-      "Dokumentasi PostgreSQL 17 tidak menyebut batas waktu atau perpindahan itu, dan lab tidak menunggu sampai batas. Yang terekam: COMMIT baru selesai sesudah daftar dikosongkan dengan tangan.",
+      "Halaman PostgreSQL 17 tentang replikasi sinkron tidak menyebut batas waktu penantian atau perpindahan itu (dicari di teks halaman), dan lab tidak menunggu sampai batas. Yang terekam: COMMIT baru selesai sesudah daftar dikosongkan dengan tangan.",
     ]);
     // label widget sama dengan label tebakan 5.5 (satu bentuk per widget) kecuali chip sumber
     const labelLain = JSON.parse(baca("situs/data/widget/t5-replica-tebak.json")).label as Record<string, string>;

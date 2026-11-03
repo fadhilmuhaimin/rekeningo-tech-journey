@@ -29,7 +29,7 @@
     {
       "teks": "COMMIT berpindah sendiri ke mode asinkron sesudah batas waktu tertentu, lalu selesai tanpa galat.",
       "benar": false,
-      "alasan": "Dokumentasi PostgreSQL 17 tidak menyebut batas waktu atau perpindahan itu, dan lab tidak menunggu sampai batas. Yang terekam: COMMIT baru selesai sesudah daftar dikosongkan dengan tangan."
+      "alasan": "Halaman PostgreSQL 17 tentang replikasi sinkron tidak menyebut batas waktu penantian atau perpindahan itu (dicari di teks halaman), dan lab tidak menunggu sampai batas. Yang terekam: COMMIT baru selesai sesudah daftar dikosongkan dengan tangan."
     }
   ],
   "penutup": "Standby sinkron yang mati menahan COMMIT tanpa galat. Yang melepasnya adalah menurunkan atau mengosongkan synchronous_standby_names, dan selama itu tidak ada standby yang dijanjikan menyimpan commit.",
