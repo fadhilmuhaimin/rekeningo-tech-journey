@@ -736,6 +736,21 @@ describe("angka di badan: himpunan token angka dan jumlahnya dikunci; tiap token
   test("tiap token angka di badan ada di daftar dengan jumlah yang sama, tidak ada token lain (mutan satu digit mengubah token atau jumlahnya)", () => {
     expect(Object.fromEntries([...token].sort(([a], [b]) => a.localeCompare(b)))).toEqual(Object.fromEntries(ANGKA.map(([t, n]) => [t, n]).sort(([a], [b]) => String(a).localeCompare(String(b)))));
   });
+  test("token pengenal yang memuat angka (v5, M42, p95, r1, r2, id registry, 2xx) dan jumlahnya dikunci", () => {
+    const pengenal = new Map<string, number>();
+    for (const m of bersih.matchAll(/(?<![\w.-])[A-Za-z][A-Za-z-]*\d[\w-]*(?![\w])/g)) pengenal.set(m[0], (pengenal.get(m[0]) ?? 0) + 1);
+    expect(Object.fromEntries([...pengenal].sort(([a], [b]) => a.localeCompare(b)))).toEqual({
+      M42: 3, "api-t5": 1, p95: 1, r1: 4, r2: 4, s1: 2, s2: 2, t0: 1, t1: 1, t2: 1, "t2-race-lock": 1, t3: 1, "t3-adr-33": 2, "t3-pool": 1, t4: 1, "t4-modul": 2, "t4-webhook": 1, t5: 1,
+      "t5-adr-60": 1, "t5-lag": 1, "t5-m42": 7, "t5-m46": 1, "t5-onprem": 4, "t5-pooler": 1, "t5-prd": 3, "t5-read-replica": 2, "t5-tim-infra": 2, v1: 1, v4: 1, v5: 7,
+    });
+    expect([...bersih.matchAll(/(?<![\w.])\d+[A-Za-z]\w*/g)].map((m) => m[0])).toEqual(["2xx", "2xx"]);
+    // aturan 1 ADR 48 memakai nilai persis dari naskah; 2xx webhook dari halaman 4.7
+    const adr48 = naskah.split("\n").find((b) => b.startsWith("| 48 | Ledger memakai replica sinkron kuorum"))!;
+    const nilaiNaskah = cocok(adr48, /`(synchronous_standby_names = 'ANY 1 \(r1, r2\)')`/)[1]!;
+    expect(badan).toContain(`\`${nilaiNaskah}\``);
+    expect(baca("situs/src/content/docs/tahap-4/webhook-masuk.mdx")).toContain("**Balasan 2xx dikirim sesudah COMMIT.**");
+    expect(badan).toContain("Jawaban sukses dikirim hanya sesudah COMMIT selesai, termasuk balasan 2xx untuk webhook ([[t4-webhook]]).");
+  });
   test("token yang punya satu arti diturunkan dari sumber: rekaman, registry, naskah, PRD v5, go.mod, dan halaman tetangga", () => {
     const ada = (t: string) => ANGKA.some(([x]) => x === t);
     expect(String(JURNAL_LIMA_DI_BARU)).toBe("0");
@@ -1047,6 +1062,26 @@ describe("diagram Rantai dan tebakan: nilai diturunkan dari rekaman", () => {
     const labelLain = JSON.parse(baca("situs/data/widget/t5-replica-tebak.json")).label as Record<string, string>;
     expect(tebak.label).toEqual({ ...labelLain, sumber: "Rekaman lab · sinkron.txt" });
     expect(tebak.penutup).toBe("Standby sinkron yang mati menahan COMMIT tanpa galat. Yang melepasnya adalah menurunkan atau mengosongkan synchronous_standby_names, dan selama itu tidak ada standby yang dijanjikan menyimpan commit.");
+  });
+  test("noscript: dua paragraf dikunci dan cocok dengan jawaban tebakan; kode JS Ilustrasi tab Node.js dikunci; atribut lang Snippet; daftar periksa kode AI enam butir", () => {
+    const ns = cocok(badan, /<noscript>\n([\s\S]+?)\n<\/noscript>/)[1]!.split("\n");
+    expect(ns).toEqual([
+      "<p>Tanpa JavaScript tombol tebakan tidak berfungsi. Jawaban yang tepat: COMMIT menunggu tanpa galat, dan barisnya belum terlihat oleh sesi lain sampai jumlah standby sinkron diturunkan (sinkron.txt bagian C).</p>",
+      "<p>Selama `synchronous_standby_names` kosong, COMMIT tidak menunggu siapa pun. Itu satu kandidat sinkron, dan `ANY 1` dari dua kandidat Tidak dijalankan.</p>",
+    ]);
+    expect(ns[0]).toContain("COMMIT menunggu tanpa galat, dan barisnya belum terlihat oleh sesi lain");
+    expect(SC.teks).toContain("COMMIT tidak lagi menunggu siapa pun");
+    expect(cocok(badan, /<Snippet lang="js" code=\{`([\s\S]*?)`\} \/>/)[1]).toBe('const sql = postgres("postgres://a.example:5432,b.example:5432/rekeningo", {\n  target_session_attrs: "primary",\n});');
+    expect(tag.map((x) => x.match(/lang="(\w+)"/)?.[1] ?? null)).toEqual([null, null, null, null, "python", "go", "js"]);
+    const periksa = badan.slice(badan.indexOf("### Saat me-review kode AI")).split("\n").filter((b) => b.startsWith("- [ ] "));
+    expect(periksa).toEqual([
+      "- [ ] `synchronous_standby_names` di produksi berisi paling sedikit dua nama, dengan `FIRST` atau `ANY` yang dipilih dan alasannya tertulis.",
+      "- [ ] Kode transaksi uang tidak memanggil `SET synchronous_commit` ke `local` atau `off`.",
+      "- [ ] Jawaban sukses, termasuk 2xx untuk webhook, dikirim sesudah COMMIT selesai.",
+      "- [ ] Promosi didahului fencing, dan promosi yang jalan dua kali tidak menghasilkan dua primary.",
+      "- [ ] Runbook memuat cara menurunkan atau mengosongkan daftar standby sinkron, dan siapa yang boleh melakukannya.",
+      "- [ ] Latihan failover dicatat dengan waktunya terhadap RTO.",
+    ]);
   });
   test("jawaban tebakan tidak ada di prosa sebelum widget: kata 'macet' dan 'menahan COMMIT' tidak muncul di Mulai maupun di paragraf Coba sebelum <Tebak>; Inti tidak menyebut standby mati", () => {
     // 'aman' di atribut Blok Coba dibaca pembaca hanya sesudah memilih; ia memang memuat jawabannya, jadi tidak dihitung di atas
