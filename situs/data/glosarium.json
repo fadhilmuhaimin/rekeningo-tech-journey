@@ -621,6 +621,15 @@
   "h": "/istilah/explain/"
  },
  {
+  "t": "Failover",
+  "d": "Memindahkan tugas database utama ke salinannya sesudah primary gagal, termasuk mengenali kegagalan, memutuskan promosi, dan mengarahkan app ke node baru.",
+  "b": "t5-rpo-rto",
+  "n": "5.9 RPO, RTO, dan failover",
+  "u": "/tahap-5/rpo-rto-failover/",
+  "s": "istilah-failover",
+  "h": null
+ },
+ {
   "t": "Fan-out",
   "d": "Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.",
   "b": "D4b",
@@ -636,6 +645,15 @@
   "n": "Push dan real-time (versi lama)",
   "u": "/e-mobile/e4-push-real-time/",
   "s": "istilah-fcm",
+  "h": null
+ },
+ {
+  "t": "Fencing",
+  "d": "Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary.",
+  "b": "t5-rpo-rto",
+  "n": "5.9 RPO, RTO, dan failover",
+  "u": "/tahap-5/rpo-rto-failover/",
+  "s": "istilah-fencing",
   "h": null
  },
  {
@@ -1368,6 +1386,15 @@
   "h": null
  },
  {
+  "t": "Promosi",
+  "d": "Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.",
+  "b": "t5-rpo-rto",
+  "n": "5.9 RPO, RTO, dan failover",
+  "u": "/tahap-5/rpo-rto-failover/",
+  "s": "istilah-promosi",
+  "h": null
+ },
+ {
   "t": "Proxy",
   "d": "Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.",
   "b": "B11.2",
@@ -1761,6 +1788,15 @@
   "n": "5.5 Read replica dan model baca",
   "u": "/tahap-5/read-replica/",
   "s": "istilah-standby",
+  "h": null
+ },
+ {
+  "t": "Standby sinkron",
+  "d": "Standby yang ditunggu primary saat COMMIT, jadi jawaban sukses baru dikirim sesudah standby menyimpan commit-nya.",
+  "b": "t5-rpo-rto",
+  "n": "5.9 RPO, RTO, dan failover",
+  "u": "/tahap-5/rpo-rto-failover/",
+  "s": "istilah-standby-sinkron",
   "h": null
  },
  {

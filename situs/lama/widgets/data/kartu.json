@@ -3712,6 +3712,38 @@
   "jawab": "Tidak. Tiga jurnal yang dijawab 201 ada di node baru. Jurnal keempat ter-commit lokal di primary lama (4 lawan 3) dan client tidak menerima 201 untuknya (`promosi.txt` bagian B)."
  },
  {
+  "id": "t5-rpo-rto-1",
+  "halaman": "t5-rpo-rto",
+  "judul": "5.9 RPO, RTO, replica sinkron, dan failover + ADR 48",
+  "url": "tahap-5/rpo-rto-failover/",
+  "tanya": "Di standby sinkron, apa yang ditunggu COMMIT dengan `on`, dan apa dengan `remote_apply`?",
+  "jawab": "Dengan `on`, COMMIT menunggu standby menyimpan rekaman commit ke penyimpanan tahan lama. Dengan `remote_apply`, COMMIT menunggu standby memutar ulang rekaman itu. Selagi replay ditahan, COMMIT `on` selesai dan COMMIT `remote_apply` menunggu di `SyncRep` (`sinkron.txt` bagian B)."
+ },
+ {
+  "id": "t5-rpo-rto-2",
+  "halaman": "t5-rpo-rto",
+  "judul": "5.9 RPO, RTO, replica sinkron, dan failover + ADR 48",
+  "url": "tahap-5/rpo-rto-failover/",
+  "tanya": "Tiga pembayaran dijawab 201 selagi standby sinkron terhubung, lalu koneksinya putus. Pembayaran keempat tidak dijawab dalam 3 detik. Apa yang ada di node baru, dan apakah itu melanggar RPO nol?",
+  "jawab": "Tiga jurnal yang dijawab 201 ada di node baru, dan jurnal keempat tidak ada. Itu tidak melanggar RPO nol untuk transaksi yang sudah dijawab sukses, karena client tidak pernah menerima 201 untuk jurnal keempat. Primary lama mencatat 4 jurnal bayar dan node baru 3 (`promosi.txt` bagian B)."
+ },
+ {
+  "id": "t5-rpo-rto-3",
+  "halaman": "t5-rpo-rto",
+  "judul": "5.9 RPO, RTO, replica sinkron, dan failover + ADR 48",
+  "url": "tahap-5/rpo-rto-failover/",
+  "tanya": "`FIRST 1 (replika_sinkron)` macet saat standby-nya mati. Apakah itu karena `FIRST`?",
+  "jawab": "Bukan. Lab memakai satu nama, jadi tidak ada calon pengganti. Dokumentasi PostgreSQL 17 menulis bahwa `FIRST 1` dengan dua nama langsung mengganti standby yang putus. Dua nama dengan `FIRST` atau `ANY` Tidak dijalankan di lab."
+ },
+ {
+  "id": "t5-rpo-rto-4",
+  "halaman": "t5-rpo-rto",
+  "judul": "5.9 RPO, RTO, replica sinkron, dan failover + ADR 48",
+  "url": "tahap-5/rpo-rto-failover/",
+  "tanya": "Satu gangguan pulih dalam 23 menit. Berapa menit di atas RTO 15 menit, dan berapa persen dari anggaran kegagalan 43,2 menit?",
+  "jawab": "23 − 15 = 8 menit di atas RTO, dan 23 ÷ 43,2 = 53,2% dari anggaran. Hasilnya Hitungan atas Asumsi produk dan Ilustrasi, karena 23 menit berasal dari naskah."
+ },
+ {
   "id": "t5-m43-1",
   "halaman": "t5-m43",
   "judul": "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20",
