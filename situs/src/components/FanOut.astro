@@ -9,7 +9,7 @@
  */
 import FanOutIsland from "../widgets/fan-out/FanOut";
 import { DataFanOut } from "../widgets/fan-out/skema";
-import { hitung, isi, jawabanTebak, namaKelompok, selTeks } from "../widgets/fan-out/logika";
+import { hitung, isi, namaKelompok, selTeks } from "../widgets/fan-out/logika";
 import mentah from "../../data/widget/t5-fanout.json";
 
 const data = DataFanOut.parse(mentah);
@@ -26,7 +26,7 @@ const kondisi = (a: (typeof data.acuan)[number]) =>
 <noscript>
   <p>{L.tanpaJs}</p>
   <p>{data.sumber.teks}</p>
-  <p>{data.tebak.q} {data.tebak.pilihan[data.tebak.jawaban]}. {jawabanTebak(data, data.tebak.jawaban)}</p>
+  <p>{data.tebak.q} {data.tebak.pilihan[data.tebak.jawaban]}. {data.tebak.alasan}</p>
   <table class="tm-tabel">
     <caption>{L.noscriptCaption}</caption>
     <thead>

@@ -9,7 +9,7 @@ import zona from "../../../data/widget/t5-zona.json";
 import lag from "../../../data/widget/t5-lag.json";
 import biaya from "../../../data/widget/t5-onprem-biaya.json";
 import { DataFanOut } from "./skema";
-import { durasiTeks, hitung, penerimaDari, pengirimDari, ribuan } from "./logika";
+import { angka, durasiTeks, hitung, penerimaDari, pengirimDari, ribuan } from "./logika";
 
 const d = DataFanOut.parse(mentah);
 
@@ -119,7 +119,7 @@ describe("teks widget: angka dan label diturunkan dari skenario dan pilihan", ()
   });
   it("catatan sumber dan penggeser memakai nilai skenario: 0,3 detik, kuota 10.000, empat pengirim, satu menit", () => {
     const { detikKirim, kuota, serentak } = d.skenario;
-    expect(d.sumber.teks).toContain(`Lama kirim ${String(detikKirim).replace(".", ",")} detik per pengiriman dan kuota ${ribuan(kuota)} per detik adalah Asumsi naskah`);
+    expect(d.sumber.teks).toContain(`Lama kirim ${String(detikKirim).replace(".", ",")} detik per pengiriman, kuota ${ribuan(kuota)} per detik, dan notifikasi uang ${angka(d.skenario.uang)} per detik pada puncak harian adalah Asumsi naskah`);
     expect(d.label.pengirim.petunjuk).toContain(`Tiap consumer memegang ${serentak} pengirim`);
     // 5.000 pengirim × (1 ÷ 0,3) × 60 detik = 1.000.020 perangkat: satu menit untuk 1.000.000 perangkat
     const lima = d.pengirim.at(-1)!;

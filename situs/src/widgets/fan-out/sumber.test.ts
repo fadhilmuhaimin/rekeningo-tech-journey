@@ -268,7 +268,7 @@ describe("sumber: angka di kalimat acuan dan uang berasal dari bukti, bagian rek
   });
   it("angka yang dipilih satu per satu: 4 ÷ 0,3 = 13,3, tiga consumer di lab, 2 detik batas umur uang, dan kata 429 di rekaman", () => {
     const p4 = d.acuan.find((x) => x.berkas === "pengirim.txt" && x.bagian === "B")!;
-    expect(p4.teks).toContain(`${c} ÷ ${String(t).replace(".", ",")} = ${angka(c / t)} per detik`);
+    expect(p4.teks).toContain(`${angka(c / t)} per detik (${c} ÷ ${String(t).replace(".", ",")})`);
     const konsumenLab = (RUN.match(/mulai_stream\("k\d", "konsumen"/g) ?? []).length;
     const p167 = d.acuan.find((x) => x.pengirim === "p167")!;
     expect(p167.teks).toContain(`Lab memakai ${partisiLab} partisi dan ${konsumenLab} consumer.`);
@@ -294,6 +294,42 @@ describe("sumber: angka di kalimat acuan dan uang berasal dari bukti, bagian rek
     expect(b("Kafka di lab")).toEqual([heap, rf]);
     expect(b("Dokumentasi Kafka")).toEqual([]);
     expect(b("Satu notifikasi per perangkat")).toEqual([]);
-    expect(angkaDari(d.sumber.teks.replace(/t5-fanout/g, ""))).toEqual([String(t), String(d.skenario.kuota), "1000000"]);
+    expect(angkaDari(d.sumber.teks.replace(/t5-fanout/g, ""))).toEqual([String(t), String(d.skenario.kuota), String(d.skenario.uang), "1000000"]);
+  });
+});
+
+// Tinjauan W5-fanout (keputusan 1681): kalimat yang lebih kuat dari kode atau rekaman yang dikutipnya.
+describe("sumber: lingkup kalimat rekaman sama dengan kode lab", () => {
+  const STREAM = baca("labs/api-t5/cmd/stream/main.go");
+  const { detikKirim: t, serentak: c } = d.skenario;
+  it("pengirim.txt B memakai peran uji-pengirim, yang mengirim langsung ke penyedia tanpa Kafka dan tanpa consumer: kalimat acuan tidak menulis 'satu consumer'", () => {
+    // labs/api-t5/cmd/stream/main.go baris 5: "-peran uji-pengirim   mengirim -jumlah pesan langsung ke penyedia push (tanpa Kafka)"
+    expect(STREAM).toContain("-peran uji-pengirim   mengirim -jumlah pesan langsung ke penyedia push (tanpa Kafka)");
+    expect(RUN).toContain('"-peran", "uji-pengirim"');
+    expect(PENGIRIM_B).toContain("$ ./stream -peran uji-pengirim -jumlah 48 -serentak 4");
+    const p4 = d.acuan.find((x) => x.berkas === "pengirim.txt" && x.bagian === "B")!;
+    expect(p4.teks).toContain("dijalankan sendiri tanpa Kafka");
+    expect(p4.teks).not.toMatch(/Satu consumer/);
+    // 13,3 per detik di tabel adalah hitungan 4 ÷ 0,3, bukan angka terukur; rekaman memeriksa rentang 10 sampai 13,4
+    expect(p4.teks).toContain(`Nilai ${angka(c / t)} per detik (${c} ÷ ${String(t).replace(".", ",")}) di tabel ini berada di dalam rentang itu`);
+    expect(10 <= c / t && c / t <= 13.4).toBe(true);
+  });
+  it("grup.txt A dijalankan dengan 10.281 perangkat: kalimat acuan grup menyebut jumlah itu, supaya 'tiap perangkat' tidak terbaca untuk 1.000.000", () => {
+    const g = d.acuan.find((x) => x.berkas === "grup.txt")!;
+    expect(g.teks.startsWith(`Pada lab dengan ${ribuan(d.penerima[0]!.jumlah)} perangkat, tiga consumer`)).toBe(true);
+    expect(GRUP_A).toContain("(satu pengumuman, 10.281 perangkat aktif)");
+    expect(g.teks.match(/10\.281/g)).toHaveLength(1);
+  });
+  it("penyedia tiruan tidak menyaring ulangan: batas tidak menulis bahwa penerima menyaring id, karena README menyebutnya syarat dan lab hanya menghitung id berbeda", () => {
+    expect(README).toContain("Penyedia push tiruan tidak menyaring: ia menerima ulangan, menghitungnya (`panggilan_ganda`), dan menghitung berapa `notifikasi_id` berbeda yang diterima tiap token.");
+    expect(README).toContain("Satu notifikasi per perangkat berlaku bila penerima (app atau sistem operasi) menyaring id yang sama; yang diukur lab adalah jumlah id berbeda per perangkat.");
+    const b = d.batas.find((x) => x.teks.startsWith("Satu notifikasi per perangkat"))!.teks;
+    expect(b).not.toMatch(/penerima menyaring/);
+    expect(b).toContain("Penyedia tiruan di lab hanya menghitung id berbeda per perangkat dan tidak menyaring ulangan.");
+  });
+  it("catatan sumber menyebut asal uang 75,2 per detik (naskah: notifikasi uang pada puncak harian); sel kuota memakai angka yang sama", () => {
+    expect(d.sumber.teks).toContain(`notifikasi uang ${angka(d.skenario.uang)} per detik pada puncak harian adalah Asumsi naskah`);
+    expect(NASKAH).toContain("Notifikasi uang dan worker | (transaksi + top-up) ÷ 86.400 × puncak lawan c ÷ t | 650.000 per hari");
+    expect(d.label.sel.kuota).toContain("termasuk uang {uang} per detik");
   });
 });

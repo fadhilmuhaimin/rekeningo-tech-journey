@@ -2,7 +2,7 @@
   "id": "t5-fanout",
   "judul": "Fan-out pengumuman: satu baris, banyak partisi, satu kuota",
   "sumber": {
-    "teks": "Jumlah perangkat dan jumlah pengirim yang kamu ubah adalah Simulasi. Lama kirim 0,3 detik per pengiriman dan kuota 10.000 per detik adalah Asumsi naskah. Bagian Rekaman lab mengutip keluaran lab t5-fanout, yang tidak menjalankan pengumuman ke 1.000.000 perangkat."
+    "teks": "Jumlah perangkat dan jumlah pengirim yang kamu ubah adalah Simulasi. Lama kirim 0,3 detik per pengiriman, kuota 10.000 per detik, dan notifikasi uang 75,2 per detik pada puncak harian adalah Asumsi naskah. Bagian Rekaman lab mengutip keluaran lab t5-fanout, yang tidak menjalankan pengumuman ke 1.000.000 perangkat."
   },
   "skenario": { "detikKirim": 0.3, "serentak": 4, "kuota": 10000, "uang": 75.2, "batasPersen": 60, "partisiLab": 6 },
   "awal": { "penerima": "n1000000", "pengirim": "p167" },
@@ -47,7 +47,7 @@
       "jenis": "rekaman",
       "berkas": "pengirim.txt",
       "bagian": "B",
-      "teks": "Satu consumer dengan 4 pengirim melawan penyedia tiruan berlatensi 300 ms mengirim antara 10 dan 13,4 pesan per detik. Jadi 4 ÷ 0,3 = 13,3 per detik di tabel ini terukur pada tiruan itu, bukan pada penyedia sungguhan.",
+      "teks": "Kode pengirim yang sama dengan consumer, dijalankan sendiri tanpa Kafka, memakai 4 pengirim serentak melawan penyedia tiruan berlatensi 300 ms. Kapasitas yang terukur berada antara 10 dan 13,4 pesan per detik. Nilai 13,3 per detik (4 ÷ 0,3) di tabel ini berada di dalam rentang itu. Ukuran itu diambil pada tiruan, bukan pada penyedia sungguhan.",
       "bukti": [
         "c terukur: pengirim serentak paling banyak di sisi pengirim = 4, di sisi penyedia = 4",
         "kapasitas terukur (pesan per detik) antara 10 dan 13,4 (c / t naskah = 13,33): ya"
@@ -58,7 +58,7 @@
       "jenis": "rekaman",
       "berkas": "grup.txt",
       "bagian": "A",
-      "teks": "Tiga consumer memegang dua partisi masing-masing. Consumer pertama mati sesudah sekitar 500 pengiriman tanpa mencatat offset, lalu dua consumer yang hidup memegang tiga partisi masing-masing dan menyelesaikan keenam rekaman. Tiap perangkat menerima satu notifikasi berbeda, dan paling banyak 504 panggilan diulang.",
+      "teks": "Pada lab dengan 10.281 perangkat, tiga consumer memegang dua partisi masing-masing. Consumer pertama mati sesudah sekitar 500 pengiriman tanpa mencatat offset, lalu dua consumer yang hidup memegang tiga partisi masing-masing dan menyelesaikan keenam rekaman. Tiap perangkat menerima satu notifikasi berbeda, dan paling banyak 504 panggilan diulang.",
       "bukti": [
         "anggota yang memegang partisi: 3; partisi per anggota: [2, 2, 2]",
         "consumer 1: berhenti mendadak sesudah ±500 pengiriman, tanpa mencatat offset (exit status 3)",
@@ -150,7 +150,7 @@
     { "dasar": "rancangan", "teks": "Batas laju 6.000 per detik adalah 60% dari kuota, pilihan desain yang meniru lab (3 × 200 = 600 dari kuota 1.000). Angka itu bukan batas dari penyedia." },
     { "dasar": "dokumentasi", "teks": "Kuota 10.000 per detik adalah terjemahan lab dari 600.000 per menit milik satu penyedia push. Dokumentasinya menyebut kuota per menit dan tidak menyebut laju per detik, jadi semburan di awal menit tidak dimodelkan." },
     { "dasar": "dokumentasi", "teks": "Dokumentasi Kafka menyebut tiap partisi dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. Consumer di atas jumlah partisi tidak punya yang dibaca; itu penalaran dari kalimat itu dan hanya berlaku untuk consumer group, bukan share group. Lab tidak memasang consumer lebih banyak dari partisi." },
-    { "dasar": "kode", "teks": "Satu notifikasi per perangkat berarti satu notifikasi berbeda. Consumer yang mati tidak mencatat offset, jadi rentangnya dikirim ulang dengan id yang sama dan penerima menyaring id itu. Pengiriman tepat satu kali tidak dijalankan." },
+    { "dasar": "kode", "teks": "Satu notifikasi per perangkat berarti satu notifikasi berbeda. Consumer yang mati tidak mencatat offset, jadi rentangnya dikirim ulang dengan id yang sama. Penyedia tiruan di lab hanya menghitung id berbeda per perangkat dan tidak menyaring ulangan. Pengiriman tepat satu kali tidak dijalankan." },
     { "dasar": "kode", "teks": "Kafka di lab satu broker dengan heap 512 MB dan tanpa batas memori kontainer. Jalur galat consumer dan waktu tunggu relay tidak diperankan, dan tiga broker dengan replication factor 3 tidak dijalankan." }
   ],
   "label": {

@@ -78,7 +78,7 @@ describe("kunci: kalimat dan sel tabel", () => {
   it("judul dan catatan sumber: chip Simulasi, kalimat pertama mendefinisikannya, dan tidak memakai kata penuh", () => {
     expect(d.label.sumber).toBe("Simulasi");
     expect(d.judul).toBe("Fan-out pengumuman: satu baris, banyak partisi, satu kuota");
-    expect(d.sumber.teks).toBe("Jumlah perangkat dan jumlah pengirim yang kamu ubah adalah Simulasi. Lama kirim 0,3 detik per pengiriman dan kuota 10.000 per detik adalah Asumsi naskah. Bagian Rekaman lab mengutip keluaran lab t5-fanout, yang tidak menjalankan pengumuman ke 1.000.000 perangkat.");
+    expect(d.sumber.teks).toBe("Jumlah perangkat dan jumlah pengirim yang kamu ubah adalah Simulasi. Lama kirim 0,3 detik per pengiriman, kuota 10.000 per detik, dan notifikasi uang 75,2 per detik pada puncak harian adalah Asumsi naskah. Bagian Rekaman lab mengutip keluaran lab t5-fanout, yang tidak menjalankan pengumuman ke 1.000.000 perangkat.");
     expect(d.label.acuanJenis).toEqual({ rekaman: "Rekaman lab", asumsi: "Asumsi" });
     expect(d.label.dasar).toEqual({ kode: "Tidak dijalankan, dibaca dari kode lab t5-fanout", dokumentasi: "Dokumentasi, Tidak dijalankan", rancangan: "Asumsi desain" });
   });
@@ -88,10 +88,9 @@ describe("kunci: kalimat dan sel tabel", () => {
     // aliran.txt A: "# 10.281 perangkat, 1 baris pengumuman, 1 baris outbox, 6 rekaman di Kafka (satu per rentang, satu per partisi)"
     expect(a("n10281", undefined, "aliran.txt", "A")).toBe("Satu pengumuman ke 10.281 perangkat aktif menulis satu baris pengumuman dan satu baris outbox. Relay mengubahnya menjadi enam rekaman di Kafka, satu per rentang perangkat dan satu per partisi, tanpa celah.");
     // pengirim.txt B: "kapasitas terukur (pesan per detik) antara 10 dan 13,4 (c / t naskah = 13,33): ya"; penyedia tiruan latensi 300 ms
-    expect(a(undefined, "p4", "pengirim.txt", "B")).toContain("antara 10 dan 13,4 pesan per detik");
-    expect(a(undefined, "p4", "pengirim.txt", "B")).toContain("bukan pada penyedia sungguhan");
+    expect(a(undefined, "p4", "pengirim.txt", "B")).toBe("Kode pengirim yang sama dengan consumer, dijalankan sendiri tanpa Kafka, memakai 4 pengirim serentak melawan penyedia tiruan berlatensi 300 ms. Kapasitas yang terukur berada antara 10 dan 13,4 pesan per detik. Nilai 13,3 per detik (4 ÷ 0,3) di tabel ini berada di dalam rentang itu. Ukuran itu diambil pada tiruan, bukan pada penyedia sungguhan.");
     // grup.txt A: [2, 2, 2] lalu [3, 3]; "paling banyak 504"
-    expect(a(undefined, "p12", "grup.txt", "A")).toBe("Tiga consumer memegang dua partisi masing-masing. Consumer pertama mati sesudah sekitar 500 pengiriman tanpa mencatat offset, lalu dua consumer yang hidup memegang tiga partisi masing-masing dan menyelesaikan keenam rekaman. Tiap perangkat menerima satu notifikasi berbeda, dan paling banyak 504 panggilan diulang.");
+    expect(a(undefined, "p12", "grup.txt", "A")).toBe("Pada lab dengan 10.281 perangkat, tiga consumer memegang dua partisi masing-masing. Consumer pertama mati sesudah sekitar 500 pengiriman tanpa mencatat offset, lalu dua consumer yang hidup memegang tiga partisi masing-masing dan menyelesaikan keenam rekaman. Tiap perangkat menerima satu notifikasi berbeda, dan paling banyak 504 panggilan diulang.");
     // pengirim.txt A: 8 proses x 4 = 32 pengirim; 555,6 x 0,3 = 166,7 -> 167; ceil(167 / 4) = 42; 16.667 per detik = 167% kuota
     expect(a(undefined, "p32", "pengirim.txt", "A")).toBe("Hitungan atas Asumsi dari naskah: 8 consumer dengan 4 pengirim berarti 32 pengirim dan kapasitas 32 ÷ 0,3 = 106,7 per detik. Lab mengulang hitungan ini dan tidak menjalankan delapan consumer.");
     expect(a("n1000000", "p167", "pengirim.txt", "A")).toContain("1.000.000 ÷ 1.800 detik = 555,6 per detik. Dikali 0,3 detik hasilnya 167 pengirim, dan dibagi 4 menjadi 42 consumer dan paling sedikit 42 partisi.");
@@ -121,7 +120,7 @@ describe("kunci: kalimat dan sel tabel", () => {
     // time"; dokumen itu tidak menyebut consumer menganggur, dan share group boleh punya consumer lebih banyak dari partisi: kesimpulan itu penalaran
     expect(b("Dokumentasi Kafka").teks).toBe("Dokumentasi Kafka menyebut tiap partisi dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. Consumer di atas jumlah partisi tidak punya yang dibaca; itu penalaran dari kalimat itu dan hanya berlaku untuk consumer group, bukan share group. Lab tidak memasang consumer lebih banyak dari partisi.");
     // grup.txt A: "bukan pengiriman tepat satu kali"
-    expect(b("Satu notifikasi per perangkat").teks).toContain("Pengiriman tepat satu kali tidak dijalankan.");
+    expect(b("Satu notifikasi per perangkat").teks).toBe("Satu notifikasi per perangkat berarti satu notifikasi berbeda. Consumer yang mati tidak mencatat offset, jadi rentangnya dikirim ulang dengan id yang sama. Penyedia tiruan di lab hanya menghitung id berbeda per perangkat dan tidak menyaring ulangan. Pengiriman tepat satu kali tidak dijalankan.");
     // README: Kafka satu broker; jalur galat consumer dan RecordDeliveryTimeout tidak diperankan; docker-compose tanpa batas memori
     expect(b("Kafka di lab").teks).toBe("Kafka di lab satu broker dengan heap 512 MB dan tanpa batas memori kontainer. Jalur galat consumer dan waktu tunggu relay tidak diperankan, dan tiga broker dengan replication factor 3 tidak dijalankan.");
     expect(b("Widget memodelkan").teks).toBe("Widget memodelkan satu pengumuman dengan 4 pengirim di tiap consumer dan 0,3 detik per pengiriman. Ulangan sesudah 429 tidak dihitung: tanpa backoff ulangan menambah permintaan, dan backoff dengan jitter menyebarkannya.");
