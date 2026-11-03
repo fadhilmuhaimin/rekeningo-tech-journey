@@ -32,9 +32,9 @@ Hendra tidak setuju. Batch harian adalah satu putaran job cicilan, program terja
 Hendra menulis job itu dan yakin batch boleh diulang dari awal kapan saja. Tiap angsuran ditagih dengan Idempotency-Key, dan selama key itu hidup, penagihan ulang tidak menulis jurnal kedua. Key hidup 24 jam ([[t2-idempotency]]).
 
 <details class="question">
-<summary>Tebak dulu: batch mati sesudah ledger menjurnal angsuran Rp100.000 milik Budi, lalu dijalankan lagi 23 jam kemudian. Berapa jurnal angsuran itu, dan apa statusnya?</summary>
+<summary>Tebak dulu: batch mati sesudah ledger menjurnal angsuran Rp100.000 milik Budi, lalu dijalankan lagi 23 jam kemudian. Apa status angsuran itu sesudah putaran kedua: menunggu (belum selesai) atau dicatat (selesai)?</summary>
 
-Satu jurnal, dan angsuran tetap `menunggu` (Rekaman lab, `crash.txt` bagian A). Key masih hidup, jadi batch tidak menjurnal lagi, tetapi ia juga tidak menyelesaikan angsuran itu: ia melewatinya.
+Tetap `menunggu`, dan jurnalnya tetap satu (Rekaman lab, `crash.txt` bagian A). Key masih hidup, jadi batch tidak menjurnal lagi, tetapi ia juga tidak menyelesaikan angsuran itu: ia melewatinya.
 
 Dugaan Hendra benar untuk jumlah jurnal pada 23 jam. Blok berikutnya memuat yang terjadi pada 25 jam, ketika key sudah habis.
 
@@ -44,13 +44,13 @@ Dugaan Hendra benar untuk jumlah jurnal pada 23 jam. Blok berikutnya memuat yang
 
 <Blok nama="Yang sebenarnya">
 
-Batch yang mati sesudah jurnal menagih angsuran yang sama dua kali bila diulang sesudah key 24 jam habis. Diulang dalam 24 jam, ia tidak menagih ganda tetapi angsurannya tetap menunggu.
+Di versi pertama, batch yang mati sesudah jurnal menagih angsuran yang sama dua kali bila diulang sesudah key 24 jam habis. Diulang dalam 24 jam, ia tidak menagih ganda tetapi angsurannya tetap menunggu.
 
 <Rantai data={angsuranDuaJurnal} ringkas />
 
 *Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab t5-cicilan. Job `api-t5` berjalan sebagai proses sendiri dengan mode `-rentan cicilan-satu-job`, versi pertama.
 
-Mode itu adalah kode lab yang ditulis untuk M48, bukan salinan kode yang pernah berjalan di cerita. Jam ledger diperankan lewat `-lab-sekarang`: key bernilai 24 jam dari jam itu, jadi 23 dan 25 jam tidak ditunggu.
+Mode itu adalah kode lab yang ditulis untuk M48, bukan salinan kode yang pernah berjalan di cerita. Jam ledger diperankan lewat `-lab-sekarang`: key bernilai 24 jam dari jam itu, jadi 23 dan 25 jam tidak ditunggu. Baris Versi benar di Rantai memakai referensi, yaitu kolom di `jurnal` yang menyimpan penanda angsuran dan harus unik.
 
 **Yang dilakukan job per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab). Tiap angsuran melewati empat langkah: klaim key `cicilan:<jadwal>:<ke>` dengan umur 24 jam, tulis jurnal, tandai key selesai, lalu tandai angsuran `dicatat`.
 
@@ -76,7 +76,7 @@ Baris `berhenti()` dipasang lab. Dengan `-lab-cicilan-henti 1`, job berhenti di 
 
 <Snippet file="labs/t5-cicilan/output/crash.txt" lines="31:40" title="Rekaman lab: labs/t5-cicilan/output/crash.txt, bagian A (job diulang 23 jam kemudian)" />
 
-Dalam 24 jam tidak ada tagihan ganda. Tetapi angsuran itu dilewati, bukan diselesaikan, jadi job membacanya lagi di putaran berikutnya.
+Di rekaman, ulangan dalam 24 jam tidak menagih ganda. Tetapi angsuran itu dilewati, bukan diselesaikan, jadi job membacanya lagi di putaran berikutnya.
 
 **Diulang 25 jam kemudian: dua jurnal.** Key sudah lewat umurnya, job mengklaimnya lagi, dan jurnal kedua ditulis:
 

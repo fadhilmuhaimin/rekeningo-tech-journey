@@ -208,7 +208,7 @@ describe("rekaman crash.txt, serentak.txt, dan laju.txt: nilai turunan dari berk
     expect(Number(postBody[2])).toBe(3);
     expect(rp(saldoAwal)).toBe("Rp250.000");
     harus("*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab t5-cicilan. Job `api-t5` berjalan sebagai proses sendiri dengan mode `-rentan cicilan-satu-job`, versi pertama.");
-    harus("Mode itu adalah kode lab yang ditulis untuk M48, bukan salinan kode yang pernah berjalan di cerita. Jam ledger diperankan lewat `-lab-sekarang`: key bernilai 24 jam dari jam itu, jadi 23 dan 25 jam tidak ditunggu.");
+    harus("Mode itu adalah kode lab yang ditulis untuk M48, bukan salinan kode yang pernah berjalan di cerita. Jam ledger diperankan lewat `-lab-sekarang`: key bernilai 24 jam dari jam itu, jadi 23 dan 25 jam tidak ditunggu. Baris Versi benar di Rantai memakai referensi, yaitu kolom di `jurnal` yang menyimpan penanda angsuran dan harus unik.");
     expect(readmeLab).toContain("Jam ledger diperankan, 24 jam tidak ditunggu.");
   });
   test("bagian A: sesudah mati satu jurnal, key selesai, angsuran menunggu; 23 jam: satu jurnal, dilewati, tetap menunggu; 25 jam: dua jurnal, dicatat, saldo Rp50.000", () => {
@@ -415,17 +415,25 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     expect(badan.indexOf("Batch harian adalah satu putaran")).toBeGreaterThan(badan.indexOf("Yang Raka kira"));
   });
   test("tebak dulu: 23 jam, satu jurnal dan status menunggu, dari rekaman; dugaan Hendra benar untuk jumlah jurnal", () => {
-    harus(`<summary>Tebak dulu: batch mati sesudah ledger menjurnal angsuran ${rp(perAngsuran)} milik Budi, lalu dijalankan lagi 23 jam kemudian. Berapa jurnal angsuran itu, dan apa statusnya?</summary>`);
-    harus("Satu jurnal, dan angsuran tetap `menunggu` (Rekaman lab, `crash.txt` bagian A). Key masih hidup, jadi batch tidak menjurnal lagi, tetapi ia juga tidak menyelesaikan angsuran itu: ia melewatinya.");
+    harus(`<summary>Tebak dulu: batch mati sesudah ledger menjurnal angsuran ${rp(perAngsuran)} milik Budi, lalu dijalankan lagi 23 jam kemudian. Apa status angsuran itu sesudah putaran kedua: menunggu (belum selesai) atau dicatat (selesai)?</summary>`);
+    harus("Tetap `menunggu`, dan jurnalnya tetap satu (Rekaman lab, `crash.txt` bagian A). Key masih hidup, jadi batch tidak menjurnal lagi, tetapi ia juga tidak menyelesaikan angsuran itu: ia melewatinya.");
     harus("Dugaan Hendra benar untuk jumlah jurnal pada 23 jam. Blok berikutnya memuat yang terjadi pada 25 jam, ketika key sudah habis.");
     expect(baris23[1]).toBe("1");
     expect(baris23[0]).toBe("menunggu");
+    // jawaban tebak tidak boleh sudah tertulis di atas details: status angsuran dan "dilewati" belum muncul sebelum pertanyaan
+    const sebelumTebak = badan.slice(0, badan.indexOf('<details class="question">'));
+    expect(sebelumTebak).not.toMatch(/menunggu|dicatat|dilewati/);
+    expect(sebelumTebak).toContain("Key hidup 24 jam");
+    expect(badan.indexOf("Tebak dulu: batch mati")).toBeGreaterThan(badan.indexOf("Key hidup 24 jam"));
+    // kata kunci asal 'referensi' diberi arti sebelum pemakaian pertama di Rantai dan widget
+    expect(badan.indexOf("memakai referensi, yaitu kolom di `jurnal`")).toBeGreaterThan(badan.indexOf("<Rantai data="));
+    expect(badan.indexOf("memakai referensi, yaitu kolom di `jurnal`")).toBeLessThan(badan.indexOf("<WidgetLama"));
   });
   test("Yang sebenarnya: kalimat pembuka (Inti), rekaman tiga tahap, saldo, Hitungan di pemakaian pertama, dan dua dugaan", () => {
-    harus("Batch yang mati sesudah jurnal menagih angsuran yang sama dua kali bila diulang sesudah key 24 jam habis. Diulang dalam 24 jam, ia tidak menagih ganda tetapi angsurannya tetap menunggu.");
+    harus("Di versi pertama, batch yang mati sesudah jurnal menagih angsuran yang sama dua kali bila diulang sesudah key 24 jam habis. Diulang dalam 24 jam, ia tidak menagih ganda tetapi angsurannya tetap menunggu.");
     harus(`**Mati sesudah jurnal.** Rekaman memakai jadwal 1 Budi: tiga angsuran ${rp(perAngsuran)} ke Warung Ani, angsuran ke-1 jatuh tempo kemarin, saldo Budi ${rp(saldoAwal)}. Job pertama mati tanpa keluaran. Ledger sudah punya satu jurnal angsuran ke-1 dan key-nya selesai, tetapi angsurannya masih \`menunggu\`:`);
     harus("**Diulang 23 jam kemudian: satu jurnal, tetapi dilewati.** Key masih hidup. Job membaca angsuran itu, tidak menjurnal baru, dan tidak menandainya:");
-    harus("Dalam 24 jam tidak ada tagihan ganda. Tetapi angsuran itu dilewati, bukan diselesaikan, jadi job membacanya lagi di putaran berikutnya.");
+    harus("Di rekaman, ulangan dalam 24 jam tidak menagih ganda. Tetapi angsuran itu dilewati, bukan diselesaikan, jadi job membacanya lagi di putaran berikutnya.");
     harus("**Diulang 25 jam kemudian: dua jurnal.** Key sudah lewat umurnya, job mengklaimnya lagi, dan jurnal kedua ditulis:");
     harus(`Saldo Budi turun dari ${rp(saldoAwal)} ke ${rp(angka(saldoA[1]!))}. Itu cocok dengan Hitungan ${angkaId(saldoAwal)} − 2 × ${angkaId(perAngsuran)} = ${angkaId(saldoAwal - 2 * perAngsuran)}. Hitungan adalah angka yang dihitung dari angka lain di halaman ini.`);
     expect(badan.indexOf("Hitungan")).toBeLessThan(badan.indexOf("Hitungan adalah angka"));
