@@ -751,13 +751,15 @@ describe("5.15 label sumber, kata, dan klaim berlingkup", () => {
 });
 
 describe("5.15 baris riset R5-180 sampai R5-184", () => {
-  test("lima baris berurutan sesudah R5-174 dan sebelum R5-195, lima kolom, tanpa ID ganda di berkas", () => {
+  test("lima baris berurutan, sesudah R5-174 dan sebelum ID di atas 184, lima kolom, tanpa ID ganda di berkas", () => {
     const ids = riset5.split("\n").filter((l) => /^\| R5-\d+ \|/.test(l)).map((l) => Number(l.match(/^\| R5-(\d+) \|/)![1]));
     expect(new Set(ids).size).toBe(ids.length);
     const i180 = ids.indexOf(180);
     expect(ids.slice(i180, i180 + 5)).toEqual([180, 181, 182, 183, 184]);
-    expect(ids[i180 - 1]).toBe(174);
-    expect(ids[i180 + 5]).toBe(195);
+    // tetangga baris milik halaman lain tidak dikunci pada nomor: hanya urutan naik di sekitar rentang (sisipan R5-175 sampai R5-179 dan R5-190 aman)
+    expect(ids[i180 - 1]!).toBeLessThan(180);
+    expect(ids[i180 + 5]!).toBeGreaterThan(184);
+    expect(ids[i180 - 1]!).toBeGreaterThanOrEqual(174);
     for (const n of [180, 181, 182, 183, 184]) expect(barisRiset(`R5-${n}`).split("|").length).toBe(7);
     // baris tetangga milik halaman lain tidak dikunci: hanya urutan naik di dalam rentang
     expect(ids.filter((x) => x >= 180 && x <= 184)).toEqual([180, 181, 182, 183, 184]);
