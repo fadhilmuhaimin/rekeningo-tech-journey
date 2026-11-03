@@ -647,6 +647,103 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
   });
 });
 
+// --- tinjauan mutasi tanpa kunci (keputusan 1588): versi, nomor ADR, sel tabel, dan kelas details diturunkan dari sumber atau diikat ke kata kuncinya
+describe("celah mutasi tanpa kunci: nomor versi, nomor ADR, sel tabel per baris dan kolom, dan kelas details", () => {
+  test("setiap nomor versi di halaman ada di kepala rekaman, manifes plugin, atau baris riset R5-220 sampai R5-224, dan himpunannya terkunci", () => {
+    const kepala = [rekB, rekC, rekD, rekE].map((r) => r.split("\n").slice(0, 3).join("\n")).join("\n");
+    const sumber = [kepala, manifesPlugin, ...["R5-220", "R5-221", "R5-222", "R5-223", "R5-224"].map(barisRiset)].join("\n");
+    const dipakai = [...new Set(halaman.match(/\bv?\d+\.\d+\.\d+\b/g) ?? [])].sort();
+    for (const v of dipakai) expect(sumber, `versi ${v} tidak ada di sumber`).toContain(v);
+    expect(dipakai).toEqual(["0.13.0", "0.18.0", "0.3.0", "1.23.0", "1.27.3", "1.5.0", "1.5.1", "3.7.0", "3.7.13", "4.1.0", "5.0.0", "v0.17.0", "v0.9.0", "v1.10.1", "v1.6.1", "v3.5.6"]);
+    expect(hitungKali(halaman, "13.x")).toBe(4);
+    expect(barisRiset("R5-223")).toContain("Laravel 13.x");
+    expect(kepala).toContain("PostgreSQL 17.11");
+    expect(hitungKali(halaman, "PostgreSQL 17.11")).toBe(1);
+    // satu tag per sumber: v1.10.1 dalam URL dokumentasi Argo Rollouts sama dengan versi di kepala rekaman
+    for (const u of halaman.match(/argo-rollouts\/blob\/(v[\d.]+)\//g) ?? []) expect(u).toBe("argo-rollouts/blob/v1.10.1/");
+    for (const u of halaman.match(/argo-cd\/blob\/(v[\d.]+)\//g) ?? []) expect(u).toBe("argo-cd/blob/v3.5.6/");
+    expect(hitungKali(halaman, "v3.5.6")).toBe(10);
+  });
+  test("nomor ADR di halaman: hanya 55 (registry), 42 (4.23), 44 (4.26), 10 (1.33), dan 60 (5.30), dengan jumlah kemunculan terkunci", () => {
+    const judul = (rel: string): number => Number(baca(rel).match(/^title: ".*ADR (\d+)/m)![1]);
+    const sah = new Map<number, string>([
+      [dari("t5-rollout").adr![0]!, "registry t5-rollout"],
+      [judul("situs/src/content/docs/tahap-4/kartu-virtual.mdx"), "4.23"],
+      [judul("situs/src/content/docs/tahap-4/tim-infra.mdx"), "4.26"],
+      [judul("situs/src/content/docs/tahap-1/app-versi-lama.mdx"), "1.33"],
+      [judul("situs/src/content/docs/tahap-5/sengaja-belum.mdx"), "5.30"],
+    ]);
+    const dipakai = [...halaman.matchAll(/ADR (\d+)/g)].map((m) => Number(m[1]));
+    for (const n of dipakai) expect([...sah.keys()], `ADR ${n} tidak ada di sumber`).toContain(n);
+    const hitung = Object.fromEntries([...sah.keys()].map((n) => [n, dipakai.filter((x) => x === n).length]));
+    expect(hitung).toEqual({ 55: 6, 42: 4, 44: 1, 10: 1, 60: 0 });
+    expect(halaman).toContain("ADR 42 ([[t4-kartu]]) butir 7 meminta");
+    expect(halaman).toContain("(ADR 44)");
+    expect(halaman).toContain("butir 4 ADR 10");
+  });
+  test("sel tabel ADR, langkah, dan Sengaja belum: tiap sel memuat kata kuncinya di baris dan kolom yang benar", () => {
+    const sel = (b: string): string[] => b.split("|").slice(1, -1).map((x) => x.trim());
+    const baris = badan.split("\n");
+    const kelompok: string[][][] = [];
+    baris.forEach((b, i) => {
+      if (!b.startsWith("|") || /^\|(---\|)+$/.test(b)) return;
+      if (i > 0 && (baris[i - 1]!.startsWith("|"))) kelompok[kelompok.length - 1]!.push(sel(b));
+      else kelompok.push([sel(b)]);
+    });
+    const harap: string[][][] = [
+      [["Langkah", "Otorisasi per detik di versi baru", "Per jam", "Waktu sampai"], ["1%"], ["5%"], ["25%"]],
+      [
+        ["", "A. Rasio replika saja", "B. 20 replika tetap", "C. Blue/green", "D. Argo Rollouts dengan Gateway API"],
+        ["Cara kerja", "Rollout tanpa `trafficRouting`", "Replika tetap 20", "`previewService`", "Plugin menulis bobot ke HTTPRoute"],
+        ["Kelebihan", "Tanpa router dan plugin", "Tanpa router, 5% terwujud", "diuji sebelum menerima lalu lintas biasa", "95 dan 5 dengan 3 replika"],
+        ["Kekurangan", "25,0% atau 33,3%", "1% butuh 100 replika", "Tidak ada langkah 1%", "Plugin alpha"],
+        ["Biaya operasional", "Paling kecil", "20 pod berjalan terus", "Pod versi baru berjalan penuh", "Controller, plugin dengan sha256"],
+        ["Bukti", "`tanpa-router.txt` bagian A", "(20 replika)", "Tidak dijalankan: dokumentasi", "`gateway.txt` bagian B dan `analisis.txt` bagian C"],
+      ],
+      [
+        ["", "E. Flag di memori (ADR 42)", "F. OpenFeature dan flagd", "G. Sakelar di tabel `sakelar`"],
+        ["Cara kerja", "Penanda boolean di memori", "Penyedia flag dibaca lewat OpenFeature SDK", "Satu baris `kartu_aktif` di primary"],
+        ["Kelebihan", "Tanpa pembacaan dan tanpa cache", "Satu API evaluasi flag", "Satu tempat untuk semua pod"],
+        ["Kekurangan", "Tiap proses punya flag sendiri", "Spesifikasi belum 1.0", "Pod lain tertinggal sampai cache habis"],
+        ["Biaya operasional", "Tidak ada", "Provider dan mesin evaluasi", "Satu tabel dan satu cache per pod"],
+        ["Bukti", "(flag di memori)", "Tidak dijalankan: spesifikasi dan npm", "`testing.txt` bagian A"],
+      ],
+      [
+        ["Yang ditunda", "Kenapa ditunda", "Muncul lagi di"],
+        ["Argo CD v3.5.6", "Butuh repo Git", "[[t5-tim-infra]]"],
+        ["Langkah 1% dan 25%", "Lab merekam langkah 5%", "Belum dijadwalkan"],
+        ["Analisis p95", "Prometheus tidak dipasang", "[[t5-tim-infra]]"],
+        ["Router selain Traefik", "Hanya Traefik 3.7.13", "Belum dijadwalkan"],
+        ["HPA atas Rollout", "HPA di lab menargetkan Deployment", "Belum dijadwalkan"],
+        ["Rollout yang membuat pod", "Pod Rollout di lab memakai flag memori", "Belum dijadwalkan"],
+        ["OpenFeature dan flagd", "Spesifikasi v0.9.0", "[[t5-adr-60]]"],
+      ],
+    ];
+    expect(kelompok.map((k) => k.length)).toEqual(harap.map((k) => k.length));
+    harap.forEach((tab, ti) => tab.forEach((baris2, ri) => {
+      const nyata = kelompok[ti]![ri]!;
+      if (baris2.length === 1) {
+        expect(nyata[0], `tabel ${ti} baris ${ri}`).toBe(baris2[0]);
+        return;
+      }
+      expect(nyata.length, `tabel ${ti} baris ${ri}: jumlah sel`).toBe(baris2.length);
+      baris2.forEach((kata2, ci) => {
+        if (ci === 0 && (ti === 1 || ti === 2 || ri === 0)) expect(nyata[ci], `tabel ${ti} baris ${ri} kolom ${ci}`).toBe(kata2);
+        else expect(nyata[ci], `tabel ${ti} baris ${ri} kolom ${ci}`).toContain(kata2);
+      });
+    }));
+  });
+  test("kelas details: satu pertanyaan (question) di Inti dan empat jawaban (success) di Cek diri, tidak tertukar", () => {
+    const inti = halaman.slice(halaman.indexOf("<Blok nama=\"Mulai\""), halaman.indexOf("<Blok nama=\"Coba\""));
+    expect(hitungKali(inti, '<details class="question">')).toBe(1);
+    expect(hitungKali(inti, '<details class="success">')).toBe(0);
+    const kunci = halaman.slice(halaman.indexOf("<Blok nama=\"Kunci\""));
+    expect(hitungKali(kunci, '<details class="success">')).toBe(4);
+    expect(hitungKali(kunci, '<details class="question">')).toBe(0);
+    expect(hitungKali(halaman, "<details")).toBe(5);
+  });
+});
+
 function huruf1(s: string): string { return s[0]!.toUpperCase() + s.slice(1); }
 void huruf1;
 
