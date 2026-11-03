@@ -1014,7 +1014,7 @@ describe("penutup celah mutasi tanpa kunci baris: tabel ADR dan sengaja belum, k
     const kodeAwal = totalKode["tabel langkah"]!.total;
     expect(baris["Cara kerja"]).toEqual([
       "Job terjadwal menagih angsuran, dan Idempotency-Key 24 jam menjadi satu-satunya penahan ([[t2-job-rekonsiliasi]])",
-      "Tiap langkah menerbitkan event yang memicu langkah berikutnya, tanpa tabel yang mencatat posisi angsuran",
+      "Tiap langkah menerbitkan event yang memicu langkah berikutnya (choreography menurut microservices.io), tanpa tabel yang mencatat posisi angsuran",
       "Satu workflow per angsuran, dan DBOS mencatat tiap langkah di tabel sistemnya di PostgreSQL",
       "`jurnal.referensi` unik menahan jurnal kedua, dan `angsuran.status` mencatat langkah: menunggu, terjurnal, dicatat",
     ]);
@@ -1335,6 +1335,13 @@ describe("penutup celah mutasi peninjau (keputusan 1583): klaim yang tidak punya
     const adr6 = baca("situs/src/content/docs/tahap-2/adr-ledger.mdx");
     expect(adr6).toContain("Jurnal dan posting tidak pernah di-UPDATE atau DELETE. Kesalahan dikoreksi dengan jurnal pembalik");
     harus("Kompensasinya jurnal pembalik atas jurnal angsuran, bukan UPDATE atau DELETE atas posting ([[t2-adr-ledger]]).");
+  });
+  test("opsi B memakai nama choreography dari microservices.io, bukan orchestration, sesuai baris riset", () => {
+    expect(kolomRiset("R5-212")).toContain("choreography (event memicu transaksi lokal di service lain)");
+    expect(kolomRiset("R5-212")).toContain("orchestration (orchestrator)");
+    harus("| Tiap langkah menerbitkan event yang memicu langkah berikutnya (choreography menurut microservices.io), tanpa tabel yang mencatat posisi angsuran |".replace(/^\| | \|$/g, ""));
+    expect(jumlah(badan, "B. Koreografi lewat event")).toBe(1);
+    expect(jumlah(badan, "orkestrasi")).toBe(0);
   });
   test("tiap tautan Bacaan lanjut punya alamat dan teks (tanda baca dinormalkan) yang sama dengan tautan di badan", () => {
     const daftar = badan.slice(badan.indexOf("### Bacaan lanjut"), badan.indexOf("</Blok>", badan.indexOf("### Bacaan lanjut")));
