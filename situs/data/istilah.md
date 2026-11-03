@@ -127,10 +127,14 @@
 *[Expand-migrate-contract]: Urutan mengubah skema tanpa downtime: tambah yang baru, pindahkan data dan kode, baru hapus yang lama.
 *[expand-migrate-contract]: Urutan mengubah skema tanpa downtime: tambah yang baru, pindahkan data dan kode, baru hapus yang lama.
 *[EXPLAIN]: Perintah PostgreSQL yang menampilkan query plan; dengan ANALYZE ia menjalankan query dan mencatat baris dan waktu tiap node.
+*[Failover]: Memindahkan tugas database utama ke salinannya sesudah primary gagal, termasuk mengenali kegagalan, memutuskan promosi, dan mengarahkan app ke node baru.
+*[failover]: Memindahkan tugas database utama ke salinannya sesudah primary gagal, termasuk mengenali kegagalan, memutuskan promosi, dan mengarahkan app ke node baru.
 *[Fan-out]: Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.
 *[fan-out]: Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.
 *[FCM]: Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.
 *[Firebase Cloud Messaging]: Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.
+*[Fencing]: Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary.
+*[fencing]: Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary.
 *[Foreign key]: Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.
 *[foreign key]: Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.
 *[Gateway pembayaran]: Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.
@@ -275,6 +279,8 @@
 *[Primary key]: Kolom yang nilainya unik dan dipakai untuk mengenali satu baris.
 *[primary key]: Kolom yang nilainya unik dan dipakai untuk mengenali satu baris.
 *[Problem Details]: Format error JSON standar dari RFC 9457, dengan field seperti type, title, status, dan detail.
+*[Promosi]: Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.
+*[promosi]: Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.
 *[Proxy]: Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.
 *[proxy]: Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.
 *[Proxy keluar]: Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.
@@ -351,6 +357,8 @@
 *[stale]: Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache.
 *[Standby]: Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby.
 *[standby]: Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby.
+*[Standby sinkron]: Standby yang ditunggu primary saat COMMIT, jadi jawaban sukses baru dikirim sesudah standby menyimpan commit-nya.
+*[standby sinkron]: Standby yang ditunggu primary saat COMMIT, jadi jawaban sukses baru dikirim sesudah standby menyimpan commit-nya.
 *[Stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.
 *[stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.
 *[Tes integrasi]: Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.

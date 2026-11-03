@@ -1,0 +1,20 @@
+{
+  "id": "t5-rpo-failover",
+  "judul": "Enam langkah failover dan yang direkam lab",
+  "sumber": { "jenis": "rekaman", "teks": "Lab t5-replika: promosi.txt dan run.py; dokumentasi PostgreSQL 17, bagian 26.3" },
+  "baris": [
+    {
+      "label": "Failover",
+      "sub": "satu langkah direkam, satu diperankan, empat tidak",
+      "simpul": [
+        { "teks": "Mengenali primary gagal", "sub": "Tidak dijalankan: tak ada perangkat deteksi", "nada": "old" },
+        { "teks": "Memutuskan promosi", "sub": "diperankan: run.py memanggilnya", "nada": "system" },
+        { "teks": "Menghentikan primary lama", "sub": "fencing: tidak ada di lab", "nada": "warn" },
+        { "teks": "Promosi dengan pg_promote()", "sub": "direkam: promosi.txt", "nada": "good" },
+        { "teks": "Mengarahkan app ke node baru", "sub": "Tidak dijalankan", "nada": "old" },
+        { "teks": "Membangun ulang standby", "sub": "pg_rewind: Tidak dijalankan", "nada": "old" }
+      ]
+    }
+  ],
+  "catatan": "Biru: diperankan skrip lab. Hijau: direkam. Oranye: tidak ada di lab, dan berbahaya bila juga tidak ada di produksi. Abu-abu: Tidak dijalankan, dicek ke dokumentasi."
+}

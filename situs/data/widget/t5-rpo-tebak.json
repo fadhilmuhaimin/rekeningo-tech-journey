@@ -1,0 +1,44 @@
+{
+  "id": "t5-rpo-tebak",
+  "judul": "Satu-satunya standby sinkron mati selagi primary hidup",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t5-replika/output/sinkron.txt bagian C; dokumentasi PostgreSQL 17, bagian 26.2.8"
+  },
+  "adegan": [
+    "Dewi memasang satu standby sinkron: synchronous_standby_names berisi satu nama, dan synchronous_commit bernilai on.",
+    "Container standby itu dimatikan. Primary tetap berjalan, dan satu sesi menjalankan INSERT lalu COMMIT."
+  ],
+  "pertanyaan": "Apa yang terjadi pada COMMIT itu?",
+  "pilihan": [
+    {
+      "teks": "COMMIT selesai seperti biasa, karena primary sudah menulis commit ke disknya sendiri.",
+      "benar": false,
+      "alasan": "Dengan standby sinkron, COMMIT menunggu standby menyimpan commit-nya. Rekaman bagian C: sesi itu menunggu di SyncRep, dan barisnya belum terlihat oleh sesi lain."
+    },
+    {
+      "teks": "COMMIT menunggu tanpa galat, dan barisnya belum terlihat oleh sesi lain sampai jumlah standby sinkron diturunkan.",
+      "benar": true,
+      "alasan": "Rekaman bagian C: sesi menunggu di SyncRep, barisnya tidak terlihat, dan COMMIT selesai sesudah synchronous_standby_names dikosongkan. Selama daftar kosong, COMMIT tidak menunggu siapa pun."
+    },
+    {
+      "teks": "COMMIT ditolak segera dengan galat, supaya aplikasi tahu bahwa standby mati.",
+      "benar": false,
+      "alasan": "Rekaman tidak memuat galat: pg_stat_activity menunjukkan sesi itu menunggu. Dokumentasi menulis bahwa commit seperti ini mungkin tidak pernah selesai, bukan bahwa ia ditolak."
+    },
+    {
+      "teks": "COMMIT berpindah sendiri ke mode asinkron sesudah batas waktu, lalu selesai.",
+      "benar": false,
+      "alasan": "Dokumentasi PostgreSQL 17 tidak menyebut batas waktu atau perpindahan itu, dan lab tidak menunggu sampai batas. Yang terekam: COMMIT baru selesai sesudah daftar dikosongkan dengan tangan."
+    }
+  ],
+  "penutup": "Standby sinkron yang mati menahan COMMIT tanpa galat. Yang melepasnya adalah menurunkan atau mengosongkan synchronous_standby_names, dan selama itu tidak ada standby yang dijanjikan menyimpan commit.",
+  "label": {
+    "sumber": "Rekaman lab · sinkron.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

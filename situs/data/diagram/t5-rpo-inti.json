@@ -1,0 +1,27 @@
+{
+  "id": "t5-rpo-inti",
+  "judul": "Jawaban 201 saat primary diganti",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t5-replika · promosi.txt"
+  },
+  "baris": [
+    {
+      "label": "Primary diganti",
+      "sub": "node lain dipromosikan",
+      "simpul": [
+        {
+          "teks": "Replica asinkron: 0 dari 5 jurnal 201 ada",
+          "sub": "promosi.txt bagian A",
+          "nada": "warn"
+        },
+        {
+          "teks": "Standby sinkron: 3 dari 3 jurnal 201 ada",
+          "sub": "promosi.txt bagian B",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Lab merekam pembayaran ke Warung 505, dan primary tidak dimatikan: koneksi WAL diputus lalu satu node dipromosikan. Standby sinkron memakai satu kandidat, jadi `ANY 1` dari dua kandidat tidak ikut terekam."
+}

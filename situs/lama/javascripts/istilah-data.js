@@ -569,6 +569,14 @@ window.ISTILAH = {
   "t": "FCM (Firebase Cloud Messaging)",
   "u": "e-mobile/e4-push-real-time/"
  },
+ "Failover": {
+  "b": "t5-rpo-rto",
+  "d": "Memindahkan tugas database utama ke salinannya sesudah primary gagal, termasuk mengenali kegagalan, memutuskan promosi, dan mengarahkan app ke node baru.",
+  "n": "5.9 RPO, RTO, dan failover",
+  "s": "istilah-failover",
+  "t": "Failover",
+  "u": "tahap-5/rpo-rto-failover/"
+ },
  "Fan-out": {
   "b": "D4b",
   "d": "Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.",
@@ -576,6 +584,14 @@ window.ISTILAH = {
   "s": "istilah-fan-out",
   "t": "Fan-out",
   "u": "d-system-design/d4b-feed-notifikasi/"
+ },
+ "Fencing": {
+  "b": "t5-rpo-rto",
+  "d": "Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary.",
+  "n": "5.9 RPO, RTO, dan failover",
+  "s": "istilah-fencing",
+  "t": "Fencing",
+  "u": "tahap-5/rpo-rto-failover/"
  },
  "Firebase Cloud Messaging": {
   "b": "E4",
@@ -1362,6 +1378,14 @@ window.ISTILAH = {
   "t": "Problem Details",
   "u": "tahap-1/validation-error/"
  },
+ "Promosi": {
+  "b": "t5-rpo-rto",
+  "d": "Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.",
+  "n": "5.9 RPO, RTO, dan failover",
+  "s": "istilah-promosi",
+  "t": "Promosi",
+  "u": "tahap-5/rpo-rto-failover/"
+ },
  "Proxy": {
   "b": "B11.2",
   "d": "Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.",
@@ -1739,6 +1763,14 @@ window.ISTILAH = {
   "s": "istilah-standby",
   "t": "Standby",
   "u": "tahap-5/read-replica/"
+ },
+ "Standby sinkron": {
+  "b": "t5-rpo-rto",
+  "d": "Standby yang ditunggu primary saat COMMIT, jadi jawaban sukses baru dikirim sesudah standby menyimpan commit-nya.",
+  "n": "5.9 RPO, RTO, dan failover",
+  "s": "istilah-standby-sinkron",
+  "t": "Standby sinkron",
+  "u": "tahap-5/rpo-rto-failover/"
  },
  "Stateless": {
   "b": "D2",
@@ -2283,6 +2315,14 @@ window.ISTILAH = {
   "t": "Expand-migrate-contract",
   "u": "tahap-1/app-versi-lama/"
  },
+ "failover": {
+  "b": "t5-rpo-rto",
+  "d": "Memindahkan tugas database utama ke salinannya sesudah primary gagal, termasuk mengenali kegagalan, memutuskan promosi, dan mengarahkan app ke node baru.",
+  "n": "5.9 RPO, RTO, dan failover",
+  "s": "istilah-failover",
+  "t": "Failover",
+  "u": "tahap-5/rpo-rto-failover/"
+ },
  "fan-out": {
   "b": "D4b",
   "d": "Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut.",
@@ -2290,6 +2330,14 @@ window.ISTILAH = {
   "s": "istilah-fan-out",
   "t": "Fan-out",
   "u": "d-system-design/d4b-feed-notifikasi/"
+ },
+ "fencing": {
+  "b": "t5-rpo-rto",
+  "d": "Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary.",
+  "n": "5.9 RPO, RTO, dan failover",
+  "s": "istilah-fencing",
+  "t": "Fencing",
+  "u": "tahap-5/rpo-rto-failover/"
  },
  "foreign key": {
   "b": "B2.1",
@@ -2852,6 +2900,14 @@ window.ISTILAH = {
   "t": "Primary key",
   "u": "tahap-1/data-modeling/"
  },
+ "promosi": {
+  "b": "t5-rpo-rto",
+  "d": "Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.",
+  "n": "5.9 RPO, RTO, dan failover",
+  "s": "istilah-promosi",
+  "t": "Promosi",
+  "u": "tahap-5/rpo-rto-failover/"
+ },
  "proxy": {
   "b": "B11.2",
   "d": "Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.",
@@ -3111,6 +3167,14 @@ window.ISTILAH = {
   "s": "istilah-standby",
   "t": "Standby",
   "u": "tahap-5/read-replica/"
+ },
+ "standby sinkron": {
+  "b": "t5-rpo-rto",
+  "d": "Standby yang ditunggu primary saat COMMIT, jadi jawaban sukses baru dikirim sesudah standby menyimpan commit-nya.",
+  "n": "5.9 RPO, RTO, dan failover",
+  "s": "istilah-standby-sinkron",
+  "t": "Standby sinkron",
+  "u": "tahap-5/rpo-rto-failover/"
  },
  "stateless": {
   "b": "D2",

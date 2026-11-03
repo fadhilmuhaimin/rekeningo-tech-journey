@@ -88,8 +88,10 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Eventual consistency** | Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar. | [[D3]] |
 | **Expand-migrate-contract** | Urutan mengubah skema tanpa downtime: tambah yang baru, pindahkan data dan kode, baru hapus yang lama. | [[E1]], [[t2-skema-tanpa-downtime]] |
 | **EXPLAIN** | Perintah PostgreSQL yang menampilkan query plan; dengan ANALYZE ia menjalankan query dan mencatat baris dan waktu tiap node. | [[t2-index]] |
+| **Failover** | Memindahkan tugas database utama ke salinannya sesudah primary gagal, termasuk mengenali kegagalan, memutuskan promosi, dan mengarahkan app ke node baru. | [[t5-rpo-rto]] |
 | **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]] |
 | **FCM** (Firebase Cloud Messaging) | Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya. | [[E4]] |
+| **Fencing** | Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary. | [[t5-rpo-rto]] |
 | **Foreign key** | Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada. | [[B2.1]] |
 | **Gateway pembayaran** | Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk. | [[t3-jembatan]] |
 | **Golden signals** | Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation. | [[t3-observability]] |
@@ -169,6 +171,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Primary** | Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary. | [[t5-read-replica]] |
 | **Primary key** | Kolom yang nilainya unik dan dipakai untuk mengenali satu baris. | [[B2.1]] |
 | **Problem Details** | Format error JSON standar dari RFC 9457, dengan field seperti `type`, `title`, `status`, dan `detail`. | [[B6]] |
+| **Promosi** | Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan `pg_promote()` atau `pg_ctl promote`. | [[t5-rpo-rto]] |
 | **Proxy** | Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request. | [[B11.2]] |
 | **Proxy keluar** (egress proxy) | Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat. | [[t4-infra-secret]] |
 | **Pull request review** | Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung. | [[t2-tim-infra]] |
@@ -213,6 +216,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Staging** | Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya. | [[t3-tim-infra]] |
 | **Stale** | Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache. | [[B9]] |
 | **Standby** | Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby. | [[t5-read-replica]] |
+| **Standby sinkron** | Standby yang ditunggu primary saat COMMIT, jadi jawaban sukses baru dikirim sesudah standby menyimpan commit-nya. | [[t5-rpo-rto]] |
 | **Stateless** | Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun. | [[D2]] |
 | **Tes integrasi** | Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya. | [[t2-tim-infra]] |
 | **Testcontainers** | Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai. | [[t2-tim-infra]] |
