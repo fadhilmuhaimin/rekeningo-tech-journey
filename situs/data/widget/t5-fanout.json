@@ -1,0 +1,206 @@
+{
+  "id": "t5-fanout",
+  "judul": "Fan-out pengumuman: satu baris, banyak partisi, satu kuota",
+  "sumber": {
+    "teks": "Jumlah perangkat dan jumlah pengirim yang kamu ubah adalah Simulasi. Lama kirim 0,3 detik per pengiriman dan kuota 10.000 per detik adalah Asumsi naskah. Bagian Rekaman lab mengutip keluaran lab t5-fanout, yang tidak menjalankan pengumuman ke 1.000.000 perangkat."
+  },
+  "skenario": { "detikKirim": 0.3, "serentak": 4, "kuota": 10000, "uang": 75.2, "batasPersen": 60, "partisiLab": 6 },
+  "awal": { "penerima": "n1000000", "pengirim": "p167" },
+  "penerima": [
+    { "id": "n10281", "jumlah": 10281, "label": "10.281 (lab)" },
+    { "id": "n100000", "jumlah": 100000, "label": "100.000" },
+    { "id": "n1000000", "jumlah": 1000000, "label": "1.000.000" }
+  ],
+  "pengirim": [
+    { "id": "p4", "jumlah": 4, "label": "4" },
+    { "id": "p12", "jumlah": 12, "label": "12" },
+    { "id": "p32", "jumlah": 32, "label": "32" },
+    { "id": "p167", "jumlah": 167, "label": "167" },
+    { "id": "p5000", "jumlah": 5000, "label": "5.000" }
+  ],
+  "tebak": {
+    "q": "Pengumuman ke 1.000.000 perangkat. Kamu menambah pengirim dari 4 menjadi 167 (42 consumer), tetapi topik tetap punya 6 partisi seperti di lab. Berapa lama pengumuman selesai (Simulasi)?",
+    "pilihan": [
+      "Sekitar 3,5 jam, karena hanya 6 consumer yang memegang partisi",
+      "Sekitar 30 menit, karena 167 pengirim mengirim 556,7 perangkat per detik",
+      "Sekitar 20,8 jam, sama seperti dengan 4 pengirim",
+      "Ditolak penyedia, karena 167 pengirim melewati kuota 10.000 per detik"
+    ],
+    "jawaban": 0,
+    "alasan": "Satu partisi dibaca satu consumer dalam satu grup, jadi 36 dari 42 consumer tidak punya yang dibaca. Enam consumer dengan 4 pengirim berarti 24 pengirim: 1.000.000 × 0,3 ÷ 24 = 12.500 detik, sekitar 3,5 jam."
+  },
+  "acuan": [
+    {
+      "penerima": "n10281",
+      "jenis": "rekaman",
+      "berkas": "aliran.txt",
+      "bagian": "A",
+      "teks": "Satu pengumuman ke 10.281 perangkat aktif menulis satu baris pengumuman dan satu baris outbox. Relay mengubahnya menjadi enam rekaman di Kafka, satu per rentang perangkat dan satu per partisi, tanpa celah.",
+      "bukti": [
+        "# 10.281 perangkat, 1 baris pengumuman, 1 baris outbox, 6 rekaman di Kafka (satu per rentang, satu per partisi)",
+        "Partition:0 Offset:0 kunci:shard-1 rentang perangkat 1 sampai 1714 (1714 nomor)",
+        "Partition:5 Offset:0 kunci:shard-6 rentang perangkat 8569 sampai 10281 (1713 nomor)"
+      ]
+    },
+    {
+      "pengirim": "p4",
+      "jenis": "rekaman",
+      "berkas": "pengirim.txt",
+      "bagian": "B",
+      "teks": "Satu consumer dengan 4 pengirim melawan penyedia tiruan berlatensi 300 ms mengirim antara 10 dan 13,4 pesan per detik. Jadi 4 ÷ 0,3 = 13,3 per detik di tabel ini terukur pada tiruan itu, bukan pada penyedia sungguhan.",
+      "bukti": [
+        "c terukur: pengirim serentak paling banyak di sisi pengirim = 4, di sisi penyedia = 4",
+        "kapasitas terukur (pesan per detik) antara 10 dan 13,4 (c / t naskah = 13,33): ya"
+      ]
+    },
+    {
+      "pengirim": "p12",
+      "jenis": "rekaman",
+      "berkas": "grup.txt",
+      "bagian": "A",
+      "teks": "Tiga consumer memegang dua partisi masing-masing. Consumer pertama mati sesudah sekitar 500 pengiriman tanpa mencatat offset, lalu dua consumer yang hidup memegang tiga partisi masing-masing dan menyelesaikan keenam rekaman. Tiap perangkat menerima satu notifikasi berbeda, dan paling banyak 504 panggilan diulang.",
+      "bukti": [
+        "anggota yang memegang partisi: 3; partisi per anggota: [2, 2, 2]",
+        "consumer 1: berhenti mendadak sesudah ±500 pengiriman, tanpa mencatat offset (exit status 3)",
+        "anggota sesudah consumer 1 mati: 2; partisi per anggota: [3, 3]",
+        "-- rekaman rentang yang diselesaikan consumer yang hidup: 6 dari 6",
+        "-- penyedia push: perangkat dengan tepat satu notifikasi berbeda: 10281",
+        "-- panggilan yang diulang (diterima lebih dari sekali dengan id sama): lebih dari 0 dan paling banyak 504: ya"
+      ]
+    },
+    {
+      "pengirim": "p32",
+      "jenis": "asumsi",
+      "berkas": "pengirim.txt",
+      "bagian": "A",
+      "teks": "Hitungan atas Asumsi dari naskah: 8 consumer dengan 4 pengirim berarti 32 pengirim dan kapasitas 32 ÷ 0,3 = 106,7 per detik. Lab mengulang hitungan ini dan tidak menjalankan delapan consumer.",
+      "bukti": ["8 proses x 4 = 32 pengirim -> kapasitas 32 / 0,3 = 106,7 per detik, terpakai 96,3 / 106,7 = 90,3%"]
+    },
+    {
+      "penerima": "n1000000",
+      "pengirim": "p167",
+      "jenis": "asumsi",
+      "berkas": "pengirim.txt",
+      "bagian": "A",
+      "teks": "Hitungan atas Asumsi dari naskah: 1.000.000 ÷ 1.800 detik = 555,6 per detik. Dikali 0,3 detik hasilnya 167 pengirim, dan dibagi 4 menjadi 42 consumer dan paling sedikit 42 partisi. Tabel memakai 167 ÷ 0,3 = 556,7 per detik, sedikit di atas target itu. Lab memakai 6 partisi dan 3 consumer.",
+      "bukti": [
+        "pengirim = 555,6 x 0,3 = 166,7 -> 167",
+        "consumer = ceil(167 / 4) = 42; partisi paling sedikit = 42 (satu partisi dibaca satu consumer dalam satu grup)"
+      ]
+    },
+    {
+      "penerima": "n1000000",
+      "pengirim": "p5000",
+      "jenis": "asumsi",
+      "berkas": "pengirim.txt",
+      "bagian": "A",
+      "teks": "Hitungan atas Asumsi dari naskah: bila 1.000.000 perangkat dikirim dalam satu menit, lajunya 16.667 per detik, atau 167% dari kuota. Lab tidak menjalankan pengumuman sebesar itu.",
+      "bukti": ["semua dalam semenit: 1.000.000 / 60 = 16.667 per detik = 167% kuota"]
+    },
+    {
+      "kuota": "lewat",
+      "jenis": "rekaman",
+      "berkas": "kuota.txt",
+      "bagian": "A",
+      "teks": "Dengan kuota lab 1.000 per detik, latensi 2 ms, 3.000 perangkat, dan 96 pengirim serentak, ada permintaan yang dijawab 429. Menunggu sesudah percobaan ke-k tidak melebihi min(2000, 100 × 2^(k-1)) ms, dan tiap perangkat menerima satu notifikasi berbeda. Jumlah 429 tidak direkam, karena bergantung mesin.",
+      "bukti": [
+        "-- kuota lab 1.000 per detik, latensi 2 ms; naskah 10.000 per detik (aturan jendela diuji di tes Go dengan 10.000)",
+        "-- ada permintaan yang dijawab 429 karena kuota terlampaui: ya",
+        "-- perangkat dengan tepat satu notifikasi berbeda: 3000",
+        "-- menunggu sesudah percobaan ke-k tidak pernah melebihi min(2000, 100 x 2^(k-1)) ms, di semua consumer dan semua k: ya"
+      ]
+    },
+    {
+      "kuota": "lewat",
+      "jenis": "rekaman",
+      "berkas": "kuota.txt",
+      "bagian": "B",
+      "teks": "Pada skenario yang sama, pengirim yang mengulang segera sesudah 429 (-tanpa-backoff) menghasilkan paling sedikit dua kali lebih banyak 429 daripada pengirim dengan backoff dan jitter. Jumlah pastinya tidak direkam.",
+      "bukti": ["-- jumlah 429 tanpa backoff paling sedikit dua kali jumlah 429 dengan backoff: ya"]
+    }
+  ],
+  "uang": [
+    {
+      "teks": "Kelas antrean mengurutkan uang di depan 3.000 baris promo di outbox: satu putaran worker mengirim empat baris uang. Kelas hanya mengatur urutan di antrean yang sama, sedangkan penyedia push dan kuotanya dipakai bersama.",
+      "berkas": "antrean.txt",
+      "bagian": "A",
+      "bukti": [
+        "=> 3.000 baris outbox promo (kelas 2, tujuan push) ditulis lebih dulu, satu per penerima (cara lama)",
+        "-- versi benar: satu putaran worker mengklaim menurut kelas, lalu nomor",
+        "-- kelas hanya mengatur urutan di antrean yang sama; penyedia push dan kuotanya dipakai bersama (bagian B)"
+      ]
+    },
+    {
+      "teks": "Dengan laju tiap consumer dibatasi (3 × 200 = 600 per detik, di bawah kuota lab 1.000), uang tidak dijawab 429. Umur uang tertua tidak melewati 2 detik. Tanpa batas laju dan tanpa backoff, uang ikut dijawab 429 dan umurnya melewati 2 detik.",
+      "berkas": "antrean.txt",
+      "bagian": "B",
+      "bukti": [
+        "-- versi benar: tiap consumer dibatasi 200 pesan per detik (3 x 200 = 600 per detik, di bawah kuota 1.000), 4 pengirim",
+        "-- notifikasi uang dijawab 429: 0",
+        "-- umur notifikasi uang tertua yang masih menunggu, diukur tiap 100 ms, tidak pernah melebihi 2 detik (batas lab): ya",
+        "-- mode rentan: tiap consumer tanpa batas laju dan tanpa backoff, 32 pengirim (96 pengirim serentak melawan kuota 1.000 per detik)",
+        "-- notifikasi uang dijawab 429 paling sedikit satu kali: ya",
+        "-- umur notifikasi uang tertua melebihi 2 detik (batas lab): ya"
+      ]
+    }
+  ],
+  "batas": [
+    { "dasar": "rancangan", "teks": "Widget memodelkan satu pengumuman dengan 4 pengirim di tiap consumer dan 0,3 detik per pengiriman. Ulangan sesudah 429 tidak dihitung: tanpa backoff ulangan menambah permintaan, dan backoff dengan jitter menyebarkannya." },
+    { "dasar": "rancangan", "teks": "Lab merekam struktur dan 429 pada latensi tiruan 0 sampai 5 ms (300 ms hanya di bagian pengirim). Jadi lama selesai di tabel adalah Simulasi atas Asumsi, bukan ukuran lab." },
+    { "dasar": "dokumentasi", "teks": "Kuota 10.000 per detik adalah terjemahan lab dari 600.000 per menit milik satu penyedia push. Dokumentasinya menyebut kuota per menit dan tidak menyebut laju per detik, jadi semburan di awal menit tidak dimodelkan." },
+    { "dasar": "dokumentasi", "teks": "Dokumentasi Kafka menyebut tiap partisi dibaca satu consumer per consumer group. Consumer di atas jumlah partisi tidak punya yang dibaca; itu penalaran dari kalimat itu, dan lab tidak memasang consumer lebih banyak dari partisi." },
+    { "dasar": "kode", "teks": "Satu notifikasi per perangkat berarti satu notifikasi berbeda. Consumer yang mati tidak mencatat offset, jadi rentangnya dikirim ulang dengan id yang sama dan penerima menyaring id itu. Pengiriman tepat satu kali tidak dijalankan." },
+    { "dasar": "kode", "teks": "Kafka di lab satu broker dengan heap 512 MB dan tanpa batas memori kontainer. Jalur galat consumer dan waktu tunggu relay tidak diperankan, dan tiga broker dengan replication factor 3 tidak dijalankan." }
+  ],
+  "label": {
+    "sumber": "Simulasi",
+    "tebakDulu": "Tebak dulu.",
+    "benar": "Tebakanmu tepat.",
+    "belum": "Tebakanmu belum tepat.",
+    "ubahJudul": "Ubah satu hal: jumlah pengirim atau jumlah perangkat",
+    "pengirim": {
+      "label": "Pengirim serentak",
+      "nilai": "{pengirim} pengirim, {consumer} consumer",
+      "petunjuk": "Tiap consumer memegang 4 pengirim; 12 pengirim sama dengan tiga consumer di lab. Pada 5.000 pengirim, 1.000.000 perangkat selesai dalam satu menit bila kuota tidak membatasi."
+    },
+    "penerimaJudul": "Jumlah perangkat",
+    "ringkas": {
+      "cukup": "{penerima} perangkat, {pengirim} pengirim: dengan {partisi} partisi selesai dalam {durasi}, dengan {partisiLab} partisi dalam {durasiLab}.",
+      "kuota": "{penerima} perangkat, {pengirim} pengirim: {partisi} partisi meminta {laju} per detik, melewati kuota {kuotaAngka}, jadi kelebihannya dijawab 429; dengan {partisiLab} partisi selesai dalam {durasiLab}."
+    },
+    "tabel": {
+      "caption": "Pengumuman yang sama dengan dua jumlah partisi",
+      "kolom": { "consumer": "Consumer bekerja", "antrean": "Antrean tiap partisi", "laju": "Laju pengumuman", "selesai": "Selesai dalam", "kuota": "Kuota terpakai", "akibat": "Akibat" }
+    },
+    "kelompok": { "sebanyak": "{partisi} partisi, sebanyak consumer", "lab": "{partisi} partisi, seperti di lab" },
+    "sel": {
+      "consumer": "{bekerja} dari {consumer}",
+      "antrean": "{perPartisi} perangkat",
+      "laju": "{laju} per detik",
+      "selesai": "{durasi}",
+      "selesaiKuota": "paling cepat {durasi}",
+      "kuota": "{persen} dari kuota {kuotaAngka} per detik, termasuk uang {uang} per detik"
+    },
+    "akibat": {
+      "cukup": "semua consumer mendapat partisi dan kuota tidak terlampaui",
+      "partisi": "{menganggur} consumer menganggur karena partisi kurang",
+      "kuota": "{kelebihan} permintaan per detik di atas kuota dijawab 429; dengan batas laju {batas} per detik selesai dalam {durasiBatas} tanpa melewati kuota"
+    },
+    "acuanJudul": "Rekaman lab dan Asumsi untuk pilihan ini",
+    "acuanJenis": { "rekaman": "Rekaman lab", "asumsi": "Asumsi" },
+    "acuanBerkas": "{berkas}, bagian {bagian}",
+    "tanpaAcuan": "Pilihan ini Simulasi: tidak ada rekaman lab untuk jumlah perangkat dan pengirim ini.",
+    "uangJudul": "Notifikasi uang memakai kuota yang sama",
+    "batasJudul": "Yang tidak dimodelkan dan batas lab",
+    "dasar": {
+      "kode": "Tidak dijalankan, dibaca dari kode lab t5-fanout",
+      "dokumentasi": "Dokumentasi, Tidak dijalankan",
+      "rancangan": "Asumsi desain"
+    },
+    "tanpaJs": "Tanpa JavaScript, widget ini tampil sebagai tabel: lama pengumuman selesai untuk tiap jumlah pengirim dan tiap jumlah perangkat.",
+    "noscriptCaption": "Lama pengumuman selesai menurut jumlah pengirim, jumlah perangkat, dan jumlah partisi",
+    "noscriptPengirim": "Pengirim",
+    "noscriptSemua": "semua pilihan",
+    "noscriptKuota": "kuota terlampaui"
+  }
+}
