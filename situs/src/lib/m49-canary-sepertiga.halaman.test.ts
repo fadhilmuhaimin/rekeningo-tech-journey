@@ -307,6 +307,12 @@ describe("rekaman sakelar.txt bagian D, kode flag, dan rekaman Tahap 4: diturunk
     expect(baca("labs/t5-rollout/manifes/kartu-sakelar.yaml")).toContain("kind: Deployment");
     expect(baca("labs/t5-rollout/manifes/kartu-sakelar.yaml")).not.toContain("kind: Rollout");
     expect(runPy).toContain('terapkan("kartu-sakelar.yaml"');
+    // bagian D1 saja (flag di memori): permintaan matikan ke pod pertama dan pod pertama dihapus; D2 punya panggilan serupa, jadi toContain atas seluruh berkas tidak cukup
+    const d1 = runPy.slice(runPy.indexOf('bagian("D1.'), runPy.indexOf('bagian("D2.'));
+    expect(d1.length).toBeGreaterThan(500);
+    expect(d1).toContain("s, _, teks = flag(pods[0], token, False)");
+    expect(d1).toContain('kc("delete", "pod", pods[0], "-n", _ns, "--wait=true")');
+    expect(d1).toContain('harap([h[1]["keputusan"] for h in hasil], ["tolak", "setuju", "setuju"], "flag memori: hanya pod 1 menolak")');
     expect(dBlok.join("\n")).toContain("Tiga pod otorisasi kartu dari satu image, satu database.");
   });
   test("lab D1 memakai flag memori: tanpa -sakelar-tabel, pod dihapus lalu diganti, dan permintaan matikan dikirim ke pod pertama", () => {
