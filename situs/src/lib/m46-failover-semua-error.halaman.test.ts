@@ -637,7 +637,7 @@ describe("ID registry, tautan, template blok, widget, kartu, tebakan, dan label"
     expect(jawaban).toHaveLength(3);
     k.forEach((x, i) => expect(jawaban[i]).toContain(x.jawab));
     for (const x of k) { expect(x.url).toBe("tahap-5/m46-failover-semua-error/"); expect(x.judul).toBe(`5.16 ${dari("t5-m46").judul}`); }
-    expect(jawaban[0]).toBe(`Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode ${kodeGalat} saat ${diminta} koneksi diminta bersamaan dan batasnya ${tersedia} (\`pooler.txt\` bagian A). Rekaman tidak membuktikan failover, ${nService * nPod} pod, atau jumlah koneksi yang berhasil: rekaman \`pooler.txt\` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka.`);
+    expect(jawaban[0]).toBe(`Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode ${kodeGalat} saat ${diminta} koneksi diminta bersamaan dan batasnya ${tersedia} (\`pooler.txt\` bagian A). Rekaman tidak membuktikan failover, ${nService * nPod} pod, atau jumlah koneksi yang berhasil. Rekaman \`pooler.txt\` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka.`);
     expect(jawaban[1]).toBe(`Diminta ${nService} × ${nPod} × ${nPool} = ${nPotensi} dan tersedia ${maksKoneksi} − ${cadangan} = ${tersedia}, jadi ${nDitolak} tidak bisa dibuka bila tidak ada koneksi lain. Yang sibuk rata-rata ${littleBeban[1]} × ${littleBeban[2]} = ${koma(bulat1(lambdaPuncak * waktuW))}. Semuanya Hitungan atas Asumsi.`);
     expect(jawaban[2]).toBe("`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Di lab, `MaxConns` bernilai 10 dan jitter tidak diatur.");
   });
@@ -791,7 +791,7 @@ const PARAGRAF_UTUH: string[] = [
   "Pool satu pod belum menghitung pod lain: koneksi yang mungkin dipakai bersamaan harus muat di batas database.",
   "### Cek diri",
   "**1.** Lab merekam galat 53300 dari 12 client dengan pool 10. Apa yang dibuktikan rekaman itu, dan apa yang tidak?",
-  "Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil: rekaman `pooler.txt` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka.",
+  "Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil. Rekaman `pooler.txt` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka.",
   "**2.** Enam service punya tiga pod tiap service dengan pool 10. Berapa koneksi yang diminta bila semua pool penuh, berapa yang tersedia, dan berapa yang sibuk rata-rata pada beban puncak?",
   "Diminta 6 × 3 × 10 = 180 dan tersedia 100 − 3 = 97, jadi 83 tidak bisa dibuka bila tidak ada koneksi lain. Yang sibuk rata-rata 1.388,9 × 0,02 = 27,8. Semuanya Hitungan atas Asumsi.",
   "**3.** Berapa nilai bawaan pgxpool v5.11.0 untuk `MaxConns` dan `MaxConnLifetimeJitter`, dan apa yang dipasang lab?",
