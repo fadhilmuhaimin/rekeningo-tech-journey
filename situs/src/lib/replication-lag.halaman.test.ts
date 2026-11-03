@@ -904,6 +904,22 @@ describe("tinjauan 1527: status top-up dan laporan dari primary, urutan pemeriks
     expect(badan).not.toContain("Keduanya menjawab aturan 8");
     harusAda("[[t5-rpo-rto]] menimbang replica sinkron dan `remote_apply` untuk ledger, lalu menulis latihan failover.", 1);
   });
+  test("tebak dulu: jawaban dan alasan tebakan widget belum tertulis sebelum widget, dan kata token dijelaskan sebelum pertanyaan Tebak memakainya", () => {
+    const sebelum = badan.slice(0, badan.indexOf("<JedaReplica />"));
+    expect(sebelum.length).toBeGreaterThan(500);
+    expect(sebelum).not.toContain(W.tebak.alasan);
+    expect(sebelum).not.toContain(W.tebak.pilihan[W.tebak.jawaban]!);
+    expect(sebelum).not.toContain("Replica baru memutar pembayaran itu");
+    expect(sebelum).not.toContain("Anggap replica tertinggal");
+    expect(W.tebak.q).toContain("tanpa token");
+    // kemunculan pertama kata token di halaman adalah kalimat yang menjelaskannya (isi kepala X-Lsn-Tulis)
+    const pertama = badan.indexOf("token");
+    expect(badan.slice(pertama - 6).startsWith("serta token: kepala `X-Lsn-Tulis` berisi posisi primary di WAL")).toBe(true);
+    expect(pertama).toBeLessThan(badan.indexOf("<JedaReplica />"));
+    // hasil jeda ditahan hanya ditulis sesudah widget (kalimat Ubah satu hal)
+    expect(badan.indexOf("Layar Budi menampilkan")).toBeGreaterThan(badan.indexOf("<JedaReplica />"));
+    expect(kali(badan, "Yang Raka kira")).toBe(0);
+  });
   test("replica mati: bacaan tanpa token memanggil replica tanpa cadangan ke primary, dan galat tak dikenal dijawab 500", () => {
     const f = fungsi(serviceReplika, "func (s Service) sumberTampil", "// --8<-- [end:sumber-tampil]");
     expect(f).toMatch(/if s\.rentan == RentanRiwayatReplika \|\| token == "" \{\s*\n\s*return s\.replika, SumberReplika, nil\s*\n\s*\}/);

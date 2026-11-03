@@ -80,7 +80,8 @@ describe("kunci: kalimat dan sel tabel", () => {
   it("catatan sumber dan label sumber memakai kata yang sama dengan /cara-pakai/ dan rekaman jeda.txt bagian A", () => {
     expect(d.label.sumber).toBe("Simulasi");
     expect(d.sumber.teks.startsWith("Jeda yang kamu geser adalah Simulasi.")).toBe(true);
-    expect(d.sumber.teks).toContain("jeda alami selalu di bawah 1 detik pada 100 pembayaran per detik");
+    expect(d.sumber.teks).toContain("pada 100 pembayaran per detik selama 10 detik, jeda alami tertinggi di bawah 1 detik");
+    expect(d.sumber.teks).not.toContain("selalu");
     expect(d.label.acuanJenis).toEqual({ rekaman: "Rekaman lab", ilustrasi: "Ilustrasi" });
     expect(d.label.dasar.kode).toBe("Tidak dijalankan, dibaca dari kode api-t5");
     expect(d.label.dasar.dokumentasi).toBe("Dokumentasi PostgreSQL 17, Tidak dijalankan");
