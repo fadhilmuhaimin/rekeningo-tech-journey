@@ -252,15 +252,6 @@
   "h": "/istilah/backoff/"
  },
  {
-  "t": "Backpressure",
-  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
-  "b": "t5-fanout",
-  "n": "5.15 Fan-out dan event streaming",
-  "u": "/tahap-5/fan-out/",
-  "s": "istilah-backpressure",
-  "h": "/istilah/backpressure/"
- },
- {
   "t": "Backup dan uji pulih",
   "d": "Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.",
   "b": "t4-m33",
@@ -268,6 +259,15 @@
   "u": "/tahap-4/m33-uji-pulih/",
   "s": "istilah-backup-dan-uji-pulih",
   "h": "/istilah/backup-dan-uji-pulih/"
+ },
+ {
+  "t": "Backpressure",
+  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "b": "t5-fanout",
+  "n": "5.15 Fan-out dan event streaming",
+  "u": "/tahap-5/fan-out/",
+  "s": "istilah-backpressure",
+  "h": "/istilah/backpressure/"
  },
  {
   "t": "Batch",

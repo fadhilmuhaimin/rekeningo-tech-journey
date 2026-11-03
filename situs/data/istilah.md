@@ -57,10 +57,10 @@
 *[backfill]: Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.
 *[Backoff]: Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.
 *[backoff]: Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.
-*[Backpressure]: Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.
-*[backpressure]: Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.
 *[Backup dan uji pulih]: Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.
 *[backup dan uji pulih]: Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.
+*[Backpressure]: Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.
+*[backpressure]: Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.
 *[Batch]: Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.
 *[batch]: Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.
 *[BFF]: Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.

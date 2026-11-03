@@ -177,9 +177,10 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 
 *Tidak dijalankan. Dicek ke dokumentasi BullMQ, bagian Rate limiting dan Concurrency (teks mentah dari repositori taskforcesh/bullmq, cabang master), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
 
-<Snippet lang="js" code={`const worker = new Worker("pengumuman", kirim, {
+<Snippet lang="js" code={`const SATU_DETIK = 1000;
+const worker = new Worker("pengumuman", kirim, {
   concurrency: 4,
-  limiter: { max: 600, duration: 1000 },
+  limiter: { max: 600, duration: SATU_DETIK },
 });`} />
 
 **Yang berbeda di stack ini:** dokumentasi menulis bahwa rate limiter bersifat global, jadi dengan 10 worker untuk satu queue batasnya tetap satu angka. Job yang tertahan limiter tetap berstatus waiting. Dua halaman itu tidak membahas partisi atau consumer group.
