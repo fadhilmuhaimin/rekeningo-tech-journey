@@ -61,7 +61,7 @@
       "ke": "pod",
       "judul": "Nadia menekan kill switch",
       "kirim": "POST /bo/flag/kartu {\"aktif\": false} ke pod 1 (Rekaman lab)",
-      "jelas": "Kill switch ADR 42 adalah flag di memori satu proses. Lab mengirim permintaan itu ke pod 1."
+      "jelas": "Kill switch kartu di lab adalah flag di memori satu proses. Lab mengirim permintaan itu ke pod 1."
     },
     {
       "dari": "pod",
