@@ -1616,7 +1616,7 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .fo-sel.is-cukup { background: var(--k-good-fill); color: var(--k-good-ink); }
 .sl-markdown-content :is(.fo-sel.is-partisi, .fo-sel.is-kuota) { background: var(--k-warn-fill); color: var(--k-warn-ink); }
 .sl-markdown-content .fo-batang { display: block; height: 0.5rem; margin-top: 0.3rem; border: 1px solid currentColor; border-radius: 2px; }
-.sl-markdown-content .fo-isi { display: block; height: 100%; background: currentColor; }
+.sl-markdown-content .fo-isi { display: block; height: 0; border-top: 0.5rem solid currentColor; }
 .sl-markdown-content .fo-daftar { margin: 0.2rem 0 0.4rem; padding-left: 1.2rem; }
 .sl-markdown-content .fo-daftar li { margin: 0.35rem 0; overflow-wrap: anywhere; }
 .sl-markdown-content .fo-berkas { display: block; font-size: 0.85em; }
