@@ -17,6 +17,9 @@ $ TES_DB_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema tahap5_tes> go test -tags t5
 --- PASS: TestOtorisasiSakelarTabel (<detik>)
 --- PASS: TestSetKartuAktifBOMenulisSakelarDanAudit (<detik>)
 --- PASS: TestSetKartuAktifBOBukanRiskTidakMengubahSakelar (<detik>)
+--- PASS: TestSakelarKartuTakTerbacaTidakMengantre (<detik>)
+--- PASS: TestSakelarKartuSetelDiTengahPembacaanTidakDitimpa (<detik>)
+--- PASS: TestSakelarKartuPembacaanPanikTidakMenggantung (<detik>)
 PASS
 ok  	lab/apit5/internal/service	<detik>
 --- PASS: TestEndpointOtorisasiMemperlihatkanPencacah (<detik>)

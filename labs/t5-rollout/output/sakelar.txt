@@ -52,4 +52,5 @@ otorisasi Rp1.000 di pod 1, PostgreSQL berhenti: HTTP 200, tolak (sakelar-tak-te
 otorisasi Rp1.000 di pod 2, PostgreSQL berhenti: HTTP 200, tolak (sakelar-tak-terbaca)
 otorisasi Rp1.000 di pod 3, PostgreSQL berhenti: HTTP 200, tolak (sakelar-tak-terbaca)
 Jawaban tolak tiba kurang dari 2 detik (tenggat penerbit, Asumsi dari dokumentasi satu penerbit): ya (batas diperiksa)
+Tiga otorisasi Rp1.000 bersamaan di pod 1, PostgreSQL berhenti: semua HTTP 200, tolak (sakelar-tak-terbaca), semuanya tiba kurang dari 2 detik: ya (batas diperiksa)
 Sesudah PostgreSQL berjalan lagi semua pod menyetujui: ya

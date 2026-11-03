@@ -16,8 +16,8 @@ $ kubectl get rs  (versi, spec.replicas, siap)
  v2    | 1             | 1
 (2 rows)
 Pod v1: 3, pod v2: 1; replika yang diminta 3, pod yang menjawab 4.
-200 permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: v2 menjawab 50, v1 menjawab 150
-Bagian v2 terukur 25.0%; pod v2 dibagi semua pod yang menjawab = 25.0% (diminta 5%).
+200 permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: semuanya terjawab.
+Bagian pod v2 dari semua pod yang menjawab = 25.0% (diminta 5%). Bagian permintaan yang dijawab v2 terukur antara 17.5% dan 32.5%: ya (batas diperiksa; hitungan permintaan tepat bergantung penyeimbang beban dan tidak direkam).
 status.canary.weights di Rollout: tidak ada (tanpa traffic router)
 
 ## 20 replika
@@ -30,11 +30,11 @@ $ kubectl get rs  (versi, spec.replicas, siap)
  v2    | 1             | 1
 (2 rows)
 Pod v1: 19, pod v2: 1; replika yang diminta 20, pod yang menjawab 20.
-200 permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: v2 menjawab 10, v1 menjawab 190
-Bagian v2 terukur 5.0%; pod v2 dibagi semua pod yang menjawab = 5.0% (diminta 5%).
+200 permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: semuanya terjawab.
+Bagian pod v2 dari semua pod yang menjawab = 5.0% (diminta 5%). Bagian permintaan yang dijawab v2 terukur antara 1.5% dan 8.5%: ya (batas diperiksa; hitungan permintaan tepat bergantung penyeimbang beban dan tidak direkam).
 status.canary.weights di Rollout: tidak ada (tanpa traffic router)
 
 # --- Ringkas ---
-Hitungan pembulatan 5% dari n pod (tanpa traffic router): terukur di atas, bukan umum untuk semua versi Argo Rollouts.
-- 3 replika: 1 pod canary dan 3 pod stabil menjawab; bagian v2 terukur 25.0%
-- 20 replika: 1 pod canary dan 19 pod stabil menjawab; bagian v2 terukur 5.0%
+Hitungan pembulatan 5% dari n pod (tanpa traffic router): jumlah pod terukur di atas, bukan umum untuk semua versi Argo Rollouts.
+- 3 replika: 1 pod canary dan 3 pod stabil menjawab; bagian pod v2 25.0%
+- 20 replika: 1 pod canary dan 19 pod stabil menjawab; bagian pod v2 5.0%

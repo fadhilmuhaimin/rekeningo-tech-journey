@@ -9,6 +9,6 @@ HTTPRoute kartu-route, bobot awal: {"kartu-stable": 100, "kartu-canary": 0}
 Rollout kartu sesudah VERSI diganti ke v2: phase Paused, currentStepIndex 1
 Pod v1: 3, pod v2: 1
 HTTPRoute kartu-route, bobot sekarang: {"kartu-stable": 95, "kartu-canary": 5}
-200 permintaan GET /healthz lewat Gateway (127.0.0.1, port Gateway): v2 menjawab 10, v1 menjawab 190
-Bagian v2 terukur: 5.0% (bobot 5, pod v2 hanya 1 dari 4)
+200 permintaan GET /healthz lewat Gateway (127.0.0.1, port Gateway): semuanya terjawab.
+Bagian permintaan yang dijawab v2 terukur antara 1.5% dan 8.5% (bobot 5, pod v2 hanya 1 dari 4): ya (batas diperiksa; hitungan tepat bergantung penyeimbang beban dan tidak direkam).
 AnalysisRun rasio-tolak: phase Running (versi v2 tidak menolak otorisasi)

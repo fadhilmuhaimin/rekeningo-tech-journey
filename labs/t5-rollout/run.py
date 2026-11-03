@@ -136,11 +136,19 @@ def unduh(url, tujuan, sha256):
         gagal(f"sha256 {tujuan.name} {h} tidak sama dengan {sha256}")
 
 
+def periksa_ulang(berkas, sha256):
+    """Berkas yang sudah ada di .alat tidak dipercaya begitu saja: sha256-nya diperiksa lagi tiap lab berjalan."""
+    h = hashlib.sha256(berkas.read_bytes()).hexdigest()
+    if h != sha256:
+        gagal(f"sha256 {berkas.name} di {ALAT} adalah {h}, bukan {sha256}: hapus berkas itu supaya lab mengunduh ulang")
+
+
 def k3d_bin():
     if os.environ.get("K3D"):
         return os.environ["K3D"]
     lokal = ALAT / "k3d-darwin-arm64"
     if lokal.exists():
+        periksa_ulang(lokal, K3D_SHA256)
         return str(lokal)
     if shutil.which("k3d"):
         return shutil.which("k3d")
@@ -155,6 +163,7 @@ def manifes_argo():
     berkas = ALAT / "argo-rollouts-install.yaml"
     if not berkas.exists():
         unduh(ARGO_URL, berkas, ARGO_SHA256)
+    periksa_ulang(berkas, ARGO_SHA256)
     return berkas
 
 
@@ -445,22 +454,25 @@ def rekam_tanpa_router():
         n = 200
         tunggu_versi({"v1", "v2"})
         hit = hitung_versi(n)
-        catat(f"{n} permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: v2 menjawab {hit.get('v2', 0)}, v1 menjawab {hit.get('v1', 0)}")
-        catat(f"Bagian v2 terukur {100 * hit.get('v2', 0) / n:.1f}%; pod v2 dibagi semua pod yang menjawab = {100 * v2 / (v1 + v2):.1f}% (diminta 5%).")
         harap(sum(hit.values()), n, "semua permintaan terjawab")
-        hasil[replika] = (v1, v2, hit.get("v2", 0))
+        # Hitungan permintaan per versi bergantung penyeimbang beban Traefik: satu run memberi 10 dari 200 untuk 20 replika, run lain 9
+        # dari 200. Hanya batasnya yang direkam; bagian pod versi baru dihitung dari pod, bukan dari permintaan.
+        batas = {3: (35, 65), 20: (3, 17)}[replika]
+        harap(batas[0] <= hit.get("v2", 0) <= batas[1], True, f"{replika} replika: bagian v2 terukur di sekitar bagian pod v2 ({batas[0]} sampai {batas[1]} dari {n}; terukur {hit.get('v2', 0)})")
+        catat(f"{n} permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: semuanya terjawab.")
+        catat(f"Bagian pod v2 dari semua pod yang menjawab = {100 * v2 / (v1 + v2):.1f}% (diminta 5%). Bagian permintaan yang dijawab v2 terukur antara {100 * batas[0] / n:.1f}% dan "
+              f"{100 * batas[1] / n:.1f}%: ya (batas diperiksa; hitungan permintaan tepat bergantung penyeimbang beban dan tidak direkam).")
+        hasil[replika] = (v1, v2)
         bobot = r["status"].get("canary", {}).get("weights")
         catat(f"status.canary.weights di Rollout: {'tidak ada (tanpa traffic router)' if not bobot else json.dumps(bobot)}")
         kc("delete", "httproute,service,rollout", nama, "-n", _ns, "--wait=true", cek=False)
         tunggu(lambda: not pod_milik(nama), f"pod {nama} hilang", 180, 2)
     bagian("Ringkas")
-    catat("Hitungan pembulatan 5% dari n pod (tanpa traffic router): terukur di atas, bukan umum untuk semua versi Argo Rollouts.")
-    for replika, (v1, v2, terukur) in hasil.items():
-        catat(f"- {replika} replika: {v2} pod canary dan {v1} pod stabil menjawab; bagian v2 terukur {100 * terukur / 200:.1f}%")
+    catat("Hitungan pembulatan 5% dari n pod (tanpa traffic router): jumlah pod terukur di atas, bukan umum untuk semua versi Argo Rollouts.")
+    for replika, (v1, v2) in hasil.items():
+        catat(f"- {replika} replika: {v2} pod canary dan {v1} pod stabil menjawab; bagian pod v2 {100 * v2 / (v1 + v2):.1f}%")
     harap(hasil[3][:2] in ((3, 1), (2, 1)), True, "3 replika: setWeight 5 harus menghasilkan satu pod canary (rekaman)")
     harap(hasil[20][:2], (19, 1), "20 replika: 5% harus 1 pod canary (naskah)")
-    harap(35 <= hasil[3][2] <= 65, True, "3 replika: bagian v2 terukur di sekitar 25% (35 sampai 65 dari 200)")
-    harap(3 <= hasil[20][2] <= 17, True, "20 replika: bagian v2 terukur di sekitar 5% (3 sampai 17 dari 200)")
     tulis("tanpa-router.txt", "setWeight 5 tanpa traffic router (3 dan 20 replika)")
 
 
@@ -538,10 +550,10 @@ def rekam_gateway():
     n = 200
     tunggu_versi({"v1", "v2"})
     hit = hitung_versi(n)
-    catat(f"{n} permintaan GET /healthz lewat Gateway (127.0.0.1, port Gateway): v2 menjawab {hit.get('v2', 0)}, v1 menjawab {hit.get('v1', 0)}")
-    catat(f"Bagian v2 terukur: {100 * hit.get('v2', 0) / n:.1f}% (bobot 5, pod v2 hanya {v2} dari {v1 + v2})")
     harap(sum(hit.values()), n, "semua permintaan terjawab")
-    harap(3 <= hit.get("v2", 0) <= 17, True, "bagian v2 terukur di sekitar 5% dari 200 (3 sampai 17)")
+    harap(3 <= hit.get("v2", 0) <= 17, True, f"bagian v2 terukur di sekitar 5% dari 200 (3 sampai 17; terukur {hit.get('v2', 0)})")
+    catat(f"{n} permintaan GET /healthz lewat Gateway (127.0.0.1, port Gateway): semuanya terjawab.")
+    catat(f"Bagian permintaan yang dijawab v2 terukur antara 1.5% dan 8.5% (bobot 5, pod v2 hanya {v2} dari {v1 + v2}): ya (batas diperiksa; hitungan tepat bergantung penyeimbang beban dan tidak direkam).")
     # analisis latar untuk versi yang baik: tidak gagal
     tunggu(lambda: kcj("-n", _ns, "get", "analysisrun")["items"], "AnalysisRun ada", 120, 2)
     ar = kcj("-n", _ns, "get", "analysisrun")["items"][0]
@@ -731,6 +743,24 @@ def _sakelar():
             harap((s, jawab), (200, {"keputusan": "tolak", "alasan": "sakelar-tak-terbaca"}), "tolak saat primary berhenti")
             harap(lama < 2.0, True, f"jawaban tolak dalam tenggat penerbit 2 detik (lama {lama:.2f})")
         catat("Jawaban tolak tiba kurang dari 2 detik (tenggat penerbit, Asumsi dari dokumentasi satu penerbit): ya (batas diperiksa)")
+        # Tiga otorisasi sekaligus ke satu pod: pembacaan sakelar yang menggantung dibagi, jadi tidak ada yang menunggu lebih lama
+        # dari satu batas baca (satu per satu di bawah satu mutex, yang ketiga menunggu tiga batas baca dan melewati tenggat).
+        serentak, id_serentak = [], [id_auth() for _ in range(3)]
+
+        def satu(id_):
+            t = time.monotonic()
+            s, _, jawab, _ = otorisasi(lambda p, isi, k: ke_pod(pods[0], "POST", p, isi, None, k), id_=id_)
+            serentak.append((s, jawab.get("keputusan"), jawab.get("alasan"), time.monotonic() - t))
+
+        ts = [threading.Thread(target=satu, args=(i,)) for i in id_serentak]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join(30)
+        harap(len(serentak), 3, "tiga jawaban dari tiga otorisasi bersamaan")
+        harap(sorted((s, k, a) for s, k, a, _ in serentak), [(200, "tolak", "sakelar-tak-terbaca")] * 3, "tiga otorisasi bersamaan ditolak eksplisit")
+        harap(max(lama for *_, lama in serentak) < 2.0, True, f"tiga jawaban bersamaan dalam tenggat 2 detik (terlama {max(lama for *_, lama in serentak):.2f})")
+        catat("Tiga otorisasi Rp1.000 bersamaan di pod 1, PostgreSQL berhenti: semua HTTP 200, tolak (sakelar-tak-terbaca), semuanya tiba kurang dari 2 detik: ya (batas diperiksa)")
     finally:
         jalan(["docker", "unpause", DB_KONTAINER])
     tunggu_pod_siap("kartu-tabel", 3)
