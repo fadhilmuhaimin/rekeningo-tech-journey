@@ -49,9 +49,11 @@ Tebak dulu berapa baris yang dipindai query bulan April di tiap panel, lalu jala
 
 Panel Before menulis `SCAN posting`, dan tabel yang dipindai berisi 120.000 baris. Panel After menulis `SCAN posting_04`, dan tabel yang dipindai berisi 10.000 baris. Sesudah itu Januari dibuang. `DELETE` di Before melaporkan 10000 baris berubah, sedangkan `DROP TABLE` di After tidak melaporkan hitungan baris. Kedua panel menyisakan 110.000 baris.
 
+Tabel di widget tidak dijaga trigger ledger, jadi `DELETE` di Before berjalan. Di ledger sungguhan `DELETE` atas posting ditolak dengan SQLSTATE 23001 (`lepas.txt` bagian B).
+
 **Ubah satu hal:** centang kotak di atas kedua panel, lalu tekan Jalankan ulang. Query April di panel After kini tidak menyebut tabel bulan, jadi ia menggabungkan 12 tabel. Rencananya memuat `SCAN` atas `posting_01` sampai `posting_12`, dan tabel yang dipindai berisi 120.000 baris, sama dengan Before.
 
-Partisi memangkas bacaan hanya bila query memuat kolom kuncinya. Rekaman lab menunjukkan hal yang sama di PostgreSQL: query tanpa `dibuat` membaca 14 dari 14 partisi (`pruning.txt` bagian B).
+Di widget, satu tabel dibaca karena kamu menulis namanya. Di PostgreSQL, satu partisi dibaca bila query punya kondisi pada kolom kunci `dibuat`. Rekaman lab: query tanpa kondisi itu membaca 14 dari 14 partisi (`pruning.txt` bagian B).
 
 <noscript>
 <p>Tanpa JavaScript widget tidak berjalan. Hasilnya: query bulan April memindai tabel berisi 120.000 baris di Before dan tabel berisi 10.000 baris di After. Sesudah Januari dibuang, kedua panel menyisakan 110.000 baris. Bila query April tidak menyebut tabel bulan, panel After memindai 12 tabel berisi 120.000 baris.</p>
@@ -97,7 +99,7 @@ Index tidak menggantikan batas partisi. `id` tidak memuat `dibuat`, jadi batas p
 
 <Snippet file="labs/t5-partisi/output/pruning.txt" lines="122:132" title="Rekaman lab: labs/t5-partisi/output/pruning.txt, bagian C (PRIMARY KEY dan UNIQUE)" />
 
-Akibatnya database tidak lagi menjaga `id` unik lintas partisi. Satu transaction yang dibatalkan menyisipkan dua baris dengan `id` yang sudah ada, dan `id` itu muncul tiga kali:
+Akibatnya database tidak lagi menjaga `id` unik, dan yang unik hanya pasangan `(id, dibuat)`. Satu transaction yang dibatalkan menyisipkan dua baris dengan `id` yang sudah ada, dan `id` itu muncul tiga kali:
 
 <Snippet file="labs/t5-partisi/output/pruning.txt" lines="137:143" title="Rekaman lab: labs/t5-partisi/output/pruning.txt, bagian C (id ganda diterima)" />
 
@@ -111,7 +113,7 @@ Tabel pulih yang dipasang dengan ATTACH dari tabel baru mendapat tiga trigger ba
 
 Aturan append-only hidup dari trigger itu. Pada partisi hasil ATTACH, trigger `posting_tidak_diubah` yang dimatikan membuat UPDATE atas 28.000 baris berhasil (dibatalkan ROLLBACK). Sesudah trigger menyala, UPDATE yang sama ditolak lagi (`pasang.txt` bagian B).
 
-**Partisi bulan depan harus ada sebelum bulannya mulai.** Tabel di lab punya partisi sampai bulan ke-2 sesudah bulan berjalan. INSERT dengan `dibuat` di bulan ke-3 ditolak, dan baris yang sama masuk sesudah fungsi pembuat partisi dipanggil. Jam diperankan dengan `dibuat` yang eksplisit:
+**Partisi bulan depan harus ada sebelum bulannya mulai.** Tabel di lab punya partisi sampai bulan ke-2 sesudah bulan berjalan. INSERT dengan `dibuat` di bulan ke-3 ditolak, dan baris yang sama masuk sesudah fungsi pembuat partisi dipanggil. Lab tidak menunggu bulan berganti: waktunya ditulis eksplisit di kolom `dibuat`:
 
 <Snippet file="labs/t5-partisi/output/pasang.txt" lines="131:133" title="Rekaman lab: labs/t5-partisi/output/pasang.txt, bagian D (bulan tanpa partisi)" />
 
@@ -151,7 +153,7 @@ File itu CSV tanpa enkripsi di folder sementara lab. Enkripsi dan baris `arsip_p
 
 <Snippet file="labs/t5-partisi/output/pasang.txt" lines="7:19" title="Rekaman lab: labs/t5-partisi/output/pasang.txt, bagian A (ATTACH tanpa dan dengan CHECK bawaan)" />
 
-Dokumentasi ALTER TABLE menulis bahwa ATTACH atas tabel biasa memindai penuh untuk memeriksa batas partisi. Pemindaian itu dapat dihindari dengan CHECK valid yang hanya mengizinkan baris sesuai batas ([PostgreSQL 17, ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html), dibuka 2026-11-03). Lab mencoba beberapa bentuk CHECK, dan hanya satu membebaskan pemindaian:
+Dokumentasi ALTER TABLE menulis bahwa ATTACH atas tabel biasa memindai penuh untuk memeriksa batas partisi. Pemindaian itu dapat dihindari dengan CHECK valid yang hanya mengizinkan baris sesuai batas ([PostgreSQL 17, ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html), dibuka 2026-11-03). Lab mencoba beberapa bentuk CHECK, dan hanya satu bentuk membebaskan pemindaian:
 
 | Tabel yang dipasang | Pemindaian batas partisi | Validasi foreign key |
 | --- | --- | --- |
@@ -163,11 +165,11 @@ Dokumentasi ALTER TABLE menulis bahwa ATTACH atas tabel biasa memindai penuh unt
 | CHECK batas atas lebih longgar | memindai | divalidasi |
 | Tabel asal dari `DETACH CONCURRENTLY` | tidak memindai | tidak divalidasi |
 
-Semua baris tabel itu dari `pasang.txt` bagian A dan C. Di bentuk yang dicoba lab, CHECK yang sesuai berarti CHECK dengan literal yang sama dengan batas partisi, bukan ekspresi yang bernilai sama.
+Semua baris tabel itu dari `pasang.txt` bagian A dan C. Di bentuk yang dicoba lab, CHECK yang sesuai berarti CHECK dengan literal yang sama dengan batas partisi, bukan ekspresi yang bernilai sama. Baris terakhir tidak bertentangan: `DETACH CONCURRENTLY` menambahkan CHECK bentuk itu sendiri.
 
 <Snippet file="labs/t5-partisi/output/pasang.txt" lines="74:82" title="Rekaman lab: labs/t5-partisi/output/pasang.txt, bagian C (CHECK literal sama dengan batas partisi)" />
 
-**Jurnal pembalik tidak bisa dibuat untuk bulan yang dilepas.** `Balik` melihat nol posting untuk jurnal yang postingnya sudah dilepas, dan menjawab 409 `posting-diarsipkan` sebelum transaction dibuka:
+**Jurnal pembalik tidak bisa dibuat untuk bulan yang dilepas.** Fungsi `Balik` di service `api-t5` membuat jurnal pembalik. Ia melihat nol posting untuk jurnal yang postingnya sudah dilepas, dan menjawab 409 `posting-diarsipkan` sebelum transaction dibuka:
 
 <Snippet file="labs/t5-partisi/output/lepas.txt" lines="144:153" title="Rekaman lab: labs/t5-partisi/output/lepas.txt, bagian G (jurnal pembalik atas bulan terpasang dan bulan dilepas)" />
 
@@ -234,7 +236,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
     id = models.BigIntegerField()
     dibuat = models.DateTimeField()`} />
 
-**Yang berbeda di stack ini:** Django 5.2 menambah `CompositePrimaryKey` untuk PRIMARY KEY lebih dari satu kolom. Dokumentasi menulis bahwa `ForeignKey` belum bisa menunjuk model dengan composite primary key, dan bahwa Django tidak mendukung migrasi ke atau dari composite primary key. Halaman itu tidak memuat kata partition.
+**Yang berbeda di stack ini:** Django 5.2 menambah `CompositePrimaryKey` untuk PRIMARY KEY lebih dari satu kolom. Dokumentasi menulis bahwa `ForeignKey` belum bisa menunjuk model dengan composite primary key. Dokumentasi yang sama menulis bahwa Django tidak mendukung migrasi ke atau dari composite primary key sesudah tabel dibuat. Halaman itu tidak memuat kata partition.
 
 </Fragment>
 <Fragment slot="t4">
@@ -301,12 +303,12 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 
 - Saat satu primary tidak menampung tulis 69,4 transaksi uang per detik (46,3 dengan dua transaksi; Hitungan atas Asumsi). Partisi tidak menambah kapasitas tulis, dan kapasitas satu primary belum terukur. Pilihan berikutnya sharding ([[t5-adr-60]]).
 - Saat partisi bulan depan belum ada ketika bulan mulai. Pembandingnya dua partisi di depan yang dibuat migration.
-- Saat query yang harus cepat tidak menyebut `dibuat`: ia membaca semua partisi, 14 dari 14 di rekaman. Jumlah partisi naik satu tiap bulan sampai yang lama dilepas, dan dokumentasi menulis terlalu banyak partisi memperpanjang waktu perencanaan query ([PostgreSQL 17, 5.12.6](https://www.postgresql.org/docs/17/ddl-partitioning.html), dibuka 2026-11-03).
+- Saat query yang harus cepat tidak menyebut `dibuat`: ia membaca semua partisi, 14 dari 14 di rekaman. Jumlah partisi naik satu tiap bulan sampai yang lama dilepas. Dokumentasi menulis terlalu banyak partisi dapat memperpanjang waktu perencanaan query ([PostgreSQL 17, 5.12.6](https://www.postgresql.org/docs/17/ddl-partitioning.html), dibuka 2026-11-03).
 - Saat jendela koreksi lebih panjang dari 13 bulan (Asumsi).
 - Saat memasang kembali satu bulan terlalu lama: tanpa CHECK literal, ATTACH memindai tabel. Satu bulan di skala naskah 36,5 juta posting dan 9,1 GB (Hitungan atas Asumsi), dan waktu pindainya Tidak dijalankan.
 - Saat pemeriksaan atas `jurnal` melewati target pukul 06.00. Tabel `jurnal` 219 juta baris per tahun (146 juta dengan dua transaksi; Hitungan atas Asumsi) dipartisi dengan aturan yang sama.
 
-**Yang akan merevisinya.** [[t5-kms]] menambah enkripsi arsip dan membuat pemulihan bergantung pada KMS. [[t5-adr-60]] mencatat pg_partman, partisi `jurnal`, dan sharding sebagai hal yang sengaja belum dilakukan.
+**Yang akan merevisinya.** [[t5-kms]] menambah enkripsi arsip dan membuat pemulihan bergantung pada layanan kunci enkripsi (KMS). [[t5-adr-60]] mencatat pg_partman, partisi `jurnal`, dan sharding sebagai hal yang sengaja belum dilakukan.
 
 ### Sengaja belum dilakukan
 

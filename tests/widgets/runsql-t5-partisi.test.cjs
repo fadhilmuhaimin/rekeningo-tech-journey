@@ -104,7 +104,13 @@ test("5.11 runsql: tebakan menunjuk 120.000 di Before dan 10.000 di After, dan p
 
 test("5.11 runsql: yang dikatakan halaman tentang PostgreSQL berasal dari rekaman, bukan dari widget", () => {
   assert.ok(pruning.includes("# Dibaca: 14 dari 14 partisi: 12 partisi berisi dengan Parallel Seq Scan"));
-  assert.ok(halaman.includes("query tanpa `dibuat` membaca 14 dari 14 partisi (`pruning.txt` bagian B)"));
+  assert.ok(halaman.includes("Rekaman lab: query tanpa kondisi itu membaca 14 dari 14 partisi (`pruning.txt` bagian B)"));
+  // jembatan widget ke PostgreSQL: query ubah-satu-hal di widget tetap memuat kondisi dibuat, jadi yang berubah adalah nama tabel, bukan kolom kunci
+  assert.ok(halaman.includes("Di widget, satu tabel dibaca karena kamu menulis namanya."));
+  let q = s.panels.after.steps[0].sql;
+  for (const [dari, ke] of s.toggles[0].pairs) q = q.split(dari).join(ke);
+  assert.ok(!q.includes("FROM posting_04 WHERE") && (q.match(/UNION ALL/g) || []).length === 11 && q.includes("WHERE dibuat >= '2026-04-01' AND dibuat < '2026-05-01'"));
+  assert.ok(halaman.includes("Tabel di widget tidak dijaga trigger ledger, jadi `DELETE` di Before berjalan."));
   assert.ok(halaman.includes("**Simulasi** di halaman ini berarti SQL dijalankan oleh SQLite (sql.js 1.14.2)"));
   assert.ok(halaman.includes("hasilnya tidak pernah berlabel Rekaman lab"));
   assert.match(s.title, /\(SQLite, Simulasi\)$/);

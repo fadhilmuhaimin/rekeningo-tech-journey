@@ -433,7 +433,7 @@ describe("Hitungan atas Asumsi, label sumber, dan klaim dari dokumentasi", () =>
     expect(r163).toContain("Django 5.2");
     expect(r163).toContain("Laravel 13.x Migrations: 0 kemunculan");
     expect(r163).toContain("kata partition, tanpa membedakan huruf besar, muncul sekali, sebagai `partitionBy` di daftar navigasi Query Builder");
-    expect(r163).toContain("\"Django doesn't support migrating to, or from, a composite primary key\"");
+    expect(r163).toContain("\"Django doesn't support migrating to, or from, a composite primary key after the table is created\"");
     expect(r163).toContain("\"ForeignKey currently cannot reference models with composite primary keys\"");
     expect(r163).toContain("\"Migrations are plain SQL, so you can edit a generated migration.sql\"");
     expect(r163).toContain("primary key (order_date, id)");
