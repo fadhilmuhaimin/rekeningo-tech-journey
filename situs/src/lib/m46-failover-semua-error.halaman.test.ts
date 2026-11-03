@@ -303,8 +303,8 @@ describe("kode lab: cmd/pooler/main.go dan run.py bagian rekam_pooler", () => {
     expect(kodePooler).toContain("for j := 0; j < *pool; j++ {");
     expect(jumlah(kodePooler, "p.Acquire(ctx)")).toBe(1);
     expect([putaranBawaan, jedaMs]).toEqual([20, 50]);
-    expect(kodePooler).toContain("var pe *pgconn.PgError");
-    expect(kodePooler).toContain("errors.As(err, &pe)");
+    expect(jumlah(kodePooler, "var pe *pgconn.PgError")).toBe(2); // dua tempat: galat dari Acquire dan galat dari query
+    expect(jumlah(kodePooler, "errors.As(err, &pe)")).toBe(2);
     expect(kodePooler).toContain("ConnectTimeout = 10 * time.Second");
     expect(kodePooler).not.toMatch(/retry|ulang|backoff|jitter/i);
     expect(kodePooler).not.toContain("MaxConnLifetimeJitter");
