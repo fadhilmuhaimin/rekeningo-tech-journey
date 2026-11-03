@@ -742,6 +742,30 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, dan se
 // Kalimat yang lolos mutasi 'sisip tidak' tanpa kunci baris: dikunci literal di sini, bukan di berkas nilai, supaya membangkitkan
 // ulang berkas nilai dari halaman termutasi tidak melonggarkannya.
 const KUNCI_LITERAL: string[] = [
+  "*Angka cerita (Ilustrasi):* hari, pukul 02.10, 23 menit, dan kedua jumlah rupiah berasal dari naskah, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].",
+  "Raka menduga gateway tidak mengirim webhook untuk kedua top-up itu, dan ia mengusulkan meminta gateway mengirim ulang. Dugaan lain di tim: backup harian bisa memulihkan datanya.",
+  "Dewi mempromosikan replica. Promosi mengubah standby menjadi server yang menerima tulisan, dan rekaman lab menyebut replica yang sudah dipromosikan node baru.",
+  "Webhook adalah kabar dari gateway ke Rekeningo bahwa top-up sudah dibayar ([[t4-webhook]]). Handler-nya membalas 200 hanya sesudah transaction berakhir dengan COMMIT (ADR 34). Kode lab membaca urutan itu:",
+  "`DalamTx` mengembalikan hasil sesudah `tx.Commit()` selesai. `webhookPembayaran` menulis 200 hanya bila `TerimaWebhook` tidak mengembalikan galat (Tidak dijalankan: dibaca dari kode). Bila kedua top-up sudah ter-commit di primary, gateway sudah menerima 200 untuk keduanya.",
+  "Backup harian berjendela sampai 24 jam, sedangkan PRD v5 menulis RPO nol ([[t5-prd]]). Memulihkan dari backup mengembalikan data ke jam pengambilannya, jadi transaksi sesudah jam itu hilang juga.",
+  "Sesudah COMMIT. `webhookPembayaran` menulis 200 hanya bila `TerimaWebhook` tidak mengembalikan galat, dan `TerimaWebhook` memanggil `webhookAman`, yang mengembalikan hasil sesudah `DalamTx` selesai (kode lab, Tidak dijalankan).",
+  "*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, server Go `api-t5`, schema `t5_ledger` dan lima schema service lain. Tiga node berjalan di container lokal: primary, replica asinkron, dan satu standby lagi yang diatur sinkron di bagian B. Lab merekam pembayaran ke Warung 505, bukan top-up. Kejadian Sabtu 02.10 tidak direkam, jadi jam dan rupiah di cerita tetap Ilustrasi.",
+  "**Lab memerankan kegagalan primary tanpa mematikannya.** Koneksi WAL replica diputus di sisi primary (`ALTER ROLE ... NOLOGIN`, lalu `pg_terminate_backend`). Primary tetap hidup dan menerima pembayaran, lalu replica dipromosikan.",
+  "**Replica asinkron bisa tertinggal.** Ia menerima WAL dari primary tanpa membuat COMMIT menunggunya ([[t5-read-replica]]). Bila `synchronous_standby_names` kosong, semua nilai `synchronous_commit` selain `off` hanya menunggu penyimpanan lokal ([PostgreSQL 17: konfigurasi WAL](https://www.postgresql.org/docs/17/runtime-config-wal.html), dibuka 2026-11-03, Tidak dijalankan). Di bagian A lab nilainya kosong.",
+  "Kelima jurnal ada di primary dan nol di replica. Sesudah `pg_promote()`, `pg_is_in_recovery` bernilai `f`, dan node baru masih nol dari kelima jurnal itu (`promosi.txt` bagian A). Lima adalah jumlah pembayaran yang dijawab sesudah koneksi putus, bukan hasil kali jeda dan laju.",
+  "**Node baru lebih tua, bukan rusak.** Invarian ledger memeriksa dua hal: tidak ada buku yang `saldo_cache`-nya berbeda dari jumlah postingnya, dan jumlah semua posting nol ([[t2-ledger]]). Keduanya bernilai 0 di primary lama dan di node baru. Pemeriksaan itu lolos di node baru, jadi ia tidak bisa menemukan pembayaran yang tidak pernah sampai.",
+  "**Primary lama masih menerima tulisan.** Fencing adalah langkah menghentikan primary lama sebelum node baru menerima tulisan. Fencing tidak ada di lab ini.",
+  "Satu pembayaran lagi dijawab 201 sesudah node baru dipromosikan: primary lama punya 9 jurnal bayar dan node baru 3. Dokumentasi PostgreSQL menulis bahwa primary lama harus diberi tahu ia bukan primary lagi. Tanpa itu, kedua server bisa sama-sama merasa primary, dan itu berujung pada kebingungan dan kehilangan data ([PostgreSQL 17: failover](https://www.postgresql.org/docs/17/warm-standby-failover.html), dibuka 2026-11-03, Tidak dijalankan).",
+  "**PostgreSQL tidak mendeteksi kegagalan primary.** Dokumentasi menulis bahwa PostgreSQL tidak menyediakan perangkat lunak yang mengenali kegagalan primary dan memberi tahu standby. Promosi dipicu dengan `pg_ctl promote` atau `pg_promote()`, yang dijalankan administrator atau perangkat lain (sumber yang sama, Tidak dijalankan). Di lab hanya `run.py` yang memanggil `pg_promote()`, dan perangkat yang mendeteksi dan mempromosikan otomatis tidak dijalankan.",
+  "**Standby sinkron menahan jawaban sampai standby menyimpan commit.** Standby sinkron adalah standby yang ditunggu primary sebelum menjawab. Dengan `synchronous_standby_names` berisi `FIRST 1 (replika_sinkron)`, COMMIT menunggu satu standby sinkron mengonfirmasi commit-nya. Tiga pembayaran dijawab 201 selagi standby sinkron terhubung, lalu koneksinya diputus.",
+  "Pembayaran keempat tidak dijawab dalam 3 detik, karena COMMIT berhenti di `SyncRep`. Client pergi, penantian dibatalkan, dan primary lama mencatat bahwa transaksinya sudah ter-commit lokal dan mungkin belum direplikasi. Standby sinkron yang dipromosikan punya ketiga jurnal yang dijawab 201. Primary lama punya empat jurnal bayar dan node baru tiga: jurnal keempat tidak pernah dijawab 201 ke client.",
+  "**Jaminan itu punya syarat.** Dokumentasi PostgreSQL 17 menulis bahwa commit menunggu standby bila `synchronous_standby_names` terisi dan `synchronous_commit` bernilai `on`, `remote_write`, atau `remote_apply`. Nilai `local` tidak menunggu replikasi, dan `off` tidak menunggu apa pun (sumber yang sama). Lab memakai nilai bawaan `on` dan satu kandidat sinkron. `ANY 1` dari dua kandidat tidak dijalankan.",
+  "Untuk primary yang restart selagi commit menunggu, dokumentasi menulis bahwa sebagian transaksi bisa tampak ter-commit di primary tetapi tidak di standby. Jaminannya tetap: aplikasi tidak menerima konfirmasi commit sebelum WAL diterima semua standby sinkron ([PostgreSQL 17: replikasi sinkron](https://www.postgresql.org/docs/17/warm-standby.html#SYNCHRONOUS-REPLICATION), dibuka 2026-11-03, Tidak dijalankan). Jurnal keempat di lab sampai ke keadaan itu lewat pembatalan penantian, bukan restart.",
+  "**Berapa pembayaran yang hilang di skala naskah.** Lab menghitung lima karena hanya lima pembayaran dijawab sesudah koneksi putus. Naskah menghitung jumlah itu dari jeda dan laju puncak. Masukannya dari PRD v5 ([[t5-prd]]):",
+  "**Rekonsiliasi harian menemukan selisihnya.** Rekonsiliasi membandingkan laporan gateway dengan ledger ([[t4-rekonsiliasi]], ADR 35). Order yang ada di laporan tetapi tidak punya top-up `dibayar` di Rekeningo tercatat sebagai insiden `tidak_di_ledger` (rekaman Tahap 4: `labs/t4-webhook/output/rekon.txt`). Lab `t5-replika` tidak menjalankan top-up atau rekonsiliasi atas node baru (Tidak dijalankan), jadi dua top-up di cerita adalah bacaan dari halaman itu.",
+  "**RPO nol tidak dipenuhi replica asinkron.** RPO adalah data terakhir yang boleh hilang, dan RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang ([[t5-prd]]). Di lab, replica asinkron kehilangan lima dari lima pembayaran sesudah koneksi putus. Standby sinkron menjaga tiga dari tiga jurnal yang dijawab 201, dengan syarat di atas.",
+  "Widget ini mengikuti rekaman `promosi.txt` bagian A: koneksi WAL putus, lima pembayaran dijawab 201, replica dipromosikan, dan saldo Warung 505 dibandingkan. Tebak dulu, lalu tekan Berikutnya atau panah kanan.",
+  "Sesudah langkah terakhir, centang **Ubah satu hal: standby sinkron**. Pembayaran keempat tidak dijawab, dan tiga jurnal yang dijawab 201 ada di node baru (`promosi.txt` bagian B). Lab tidak punya app Flutter dan tidak merekam layar.",
   "Lab tidak punya app Flutter dan tidak merekam layar.",
   "Primary tetap hidup dan menerima pembayaran, lalu replica dipromosikan.",
   "Kejadian Sabtu 02.10 tidak direkam, jadi jam dan rupiah di cerita tetap Ilustrasi.",
@@ -852,5 +876,77 @@ describe("tanpa kunci baris: kalimat bermakna dikunci literal dan diturunkan dar
       expect(k).toContain(`[[${id}]]`);
     }
     expect([...badan.matchAll(/\[\[/g)]).toHaveLength(15);
+  });
+});
+
+// ---- tanpa kunci baris dan sidik: identifier, nama akun, kondisi rekaman, teks skenario, dan nomor bagian dokumentasi -------------
+describe("tanpa kunci baris: nama kode, akun, versi, teks skenario dan Rantai, dan nomor bagian dokumentasi diturunkan dari sumber", () => {
+  test("setiap identifier berkode di prosa ada di kode lab, rekaman, atau README (identifier yang diubah sedikit tertangkap)", () => {
+    const sumber = [handlerGo, layananGo, txGo, promosi, runPy, readme, jeda, retry, ["R5-145", "R5-146", "R5-147", "R5-148"].map(barisRiset).join("\n")].join("\n");
+    const prosa = badan.replace(/<Snippet[^>]*\/>/g, "");
+    const kode = [...new Set([...prosa.matchAll(/`([^`]+)`/g)].map((m) => m[1]!))];
+    expect(kode.length).toBeGreaterThan(20);
+    for (const k of kode) {
+      for (const bagian of k.split(/\s*\.\.\.\s*|, | lalu /)) {
+        const inti = bagian.replace(/\(\)$/, "").replace(/^`|`$/g, "");
+        if (/^\d|^[A-Z]+ \d|\d+ \(|^promosi\.txt$|^jeda\.txt$|^retry\.txt$|^run\.py$|^\(|^api-t5$|^FIRST 1 \(replika_sinkron\)$/.test(inti)) continue;
+        if (/^labs\/.+\.[a-z]+$/.test(inti)) {
+          expect(terlacak?.has(inti), `berkas tidak terlacak: ${inti}`).toBe(true);
+          continue;
+        }
+        expect(sumber, `identifier tidak ada di sumber: ${inti}`).toContain(inti);
+      }
+    }
+    expect(sumber).toContain("ALTER ROLE replikator_laporan NOLOGIN");
+    expect(sumber).toContain("SELECT pg_terminate_backend(pid)");
+    expect(sumber).toContain("SELECT pg_promote(wait => true)");
+    expect(badan).toContain("`ALTER ROLE ... NOLOGIN`, lalu `pg_terminate_backend`");
+    expect(badan).toContain("dipicu dengan `pg_ctl promote` atau `pg_promote()`");
+  });
+  test("nomor akun warung di prosa, noscript, dan skenario sama dengan akun di rekaman (505)", () => {
+    const akun = cocok(promosi, /akun_id = (\d+)/)[1]!;
+    for (const t of [badan, skenarioMentah, JSON.stringify(diagramMentah)]) for (const m of t.matchAll(/Warung (\d+)/g)) expect(m[1]).toBe(akun);
+    expect(badan.match(/Warung 505/g)!.length).toBeGreaterThanOrEqual(5);
+  });
+  test("kondisi rekaman sama dengan kepala promosi.txt: PostgreSQL 17.11, go1.27.3, schema t5_ledger dan lima schema service lain, tiga node", () => {
+    const kepala = promosi.split("\n")[1]!;
+    const pg = cocok(kepala, /PostgreSQL (\d+\.\d+) /)[1]!;
+    const go = cocok(kepala, /· (go\d+\.\d+\.\d+) ·/)[1]!;
+    const schema = cocok(kepala, /schema ([a-z0-9_, ]+) ·/)[1]!.split(", ");
+    expect(schema).toHaveLength(6);
+    expect(schema[0]).toBe("t5_ledger");
+    expect(badan).toContain(`*Kondisi rekaman:* PostgreSQL ${pg}, ${go}, server Go \`api-t5\`, schema \`${schema[0]}\` dan ${kata(schema.length - 1)} schema service lain.`);
+    expect(skenario.sumber.catatan).toContain(`PostgreSQL ${pg}`);
+    expect(kepala).toContain("primary, replika asinkron, dan standby sinkron di container lokal");
+    expect(badan).toContain("Tiga node berjalan di container lokal: primary, replica asinkron, dan satu standby lagi yang diatur sinkron di bagian B.");
+  });
+  test("Rantai: label dan sub baris diturunkan dari rekaman dan kode (FIRST 1, koneksi putus, dipromosikan)", () => {
+    expect(diagram.baris.map((b) => [b.label, b.sub])).toEqual([
+      ["Replica asinkron", "koneksi WAL putus, lalu dipromosikan"],
+      ["Standby sinkron", `${cocok(runPy, /SINKRON_SATU = "(FIRST \d)/)[1]}, lalu dipromosikan`],
+    ]);
+    expect(diagram.baris[0]!.sub).toContain("dipromosikan");
+    expect(A.teks).toContain("koneksi WAL ke replika_laporan diputus");
+    expect(B.teks).toContain("Lalu koneksi WAL ke replika_sinkron diputus");
+  });
+  test("skenario: pengantar, label komponen, catatan sumber, pertanyaan, pilihan, penjelasan, dan tiap judul dan penjelasan langkah dikunci literal", () => {
+    expect(skenario.pengantar).toBe("Koneksi WAL replica ke primary putus, tetapi primary terus menerima pembayaran. Tebak dulu apa yang ada di node baru sesudah promosi, lalu ikuti rekamannya. Sesudah langkah terakhir, centang 'Ubah satu hal'.");
+    expect(skenario.komponen.map((k) => k.label)).toEqual(["App Budi (api-t5)", "Primary lama", "Replica asinkron", "Standby sinkron"]);
+    expect(skenario.sumber.catatan).toBe("Server Go api-t5 dan PostgreSQL 17.11 dari database bersih (make -C labs/t5-replika run): jalur utama promosi.txt bagian A, Ubah satu hal bagian B. Primary tidak dimatikan: koneksi WAL replica diputus di sisi primary, lalu replica dipromosikan dengan pg_promote(). Lab merekam pembayaran ke Warung 505, bukan top-up. Jam, hari, dan rupiah di cerita adalah Ilustrasi. Deteksi kegagalan, fencing, dan primary yang restart tidak dijalankan. Lab tidak punya app Flutter dan tidak merekam layar.");
+    expect(skenario.predict.q).toBe("Koneksi WAL replica asinkron ke primary putus, tetapi primary tetap menjawab 201 untuk lima pembayaran. Replica lalu dipromosikan. Berapa dari lima pembayaran itu ada di node baru?");
+    expect(skenario.predict.options).toEqual(["Semua lima: primary menjawab 201 sesudah COMMIT, jadi replica sudah menyalinnya", "Nol: koneksi WAL sudah putus, jadi node baru tidak menerima kelima pembayaran itu", "Sebagian: replica menyalin WAL yang sempat terkirim sebelum primary menjawab", "Tidak bisa diketahui: jumlahnya bergantung pada jeda replay saat promosi dilakukan"]);
+    expect(skenario.predict.explain).toBe("Rekaman promosi.txt bagian A: kelima jurnal ada di primary (5) dan nol di replica, juga sesudah pg_promote(). Replica hanya punya yang diterimanya sebelum koneksi putus.");
+    expect(skenario.langkah.map((l) => l.judul)).toEqual(["Koneksi WAL replica diputus di sisi primary", "Primary menjawab 201 untuk lima pembayaran lagi", "Replica dipromosikan", "Node baru tidak punya lima pembayaran itu, tetapi seimbang", "Saldo Warung 505 berbeda Rp150.000", "Primary lama masih menerima pembayaran"]);
+    expect(skenario.langkah.map((l) => l.jelas)).toEqual(["Tiga pembayaran sudah dijawab 201 dan kedua standby menyusul. Lab memutus koneksi WAL replica di sisi primary. Primary tidak dimatikan, dan penerima WAL di replica tinggal nol.", "Lima pembayaran, Rp10.000 sampai Rp50.000, dijawab 201. Kelima jurnalnya ada di primary dan nol di replica, karena koneksi WAL sudah putus.", "pg_promote() mengubah replica menjadi server yang menerima tulisan: pg_is_in_recovery bernilai f. Di lab hanya run.py yang memanggilnya, dan tidak ada yang mendeteksi kegagalan primary.", "Nol dari lima jurnal ada di node baru. Ledgernya tidak rusak: tidak ada buku yang saldo_cache-nya berbeda dari jumlah postingnya. Node baru lebih tua, bukan salah.", "Saldo Warung 505 Rp156.000 di primary lama dan Rp6.000 di node baru. Selisihnya Rp150.000, sama dengan jumlah lima pembayaran yang dijawab 201.", "Satu pembayaran lagi dijawab 201 oleh primary lama sesudah node baru dipromosikan: 9 jurnal bayar di primary lama, 3 di node baru. Lab tidak punya fencing."]);
+    expect(skenario.varian.langkah.map((l) => l.judul)).toEqual(["Primary menunggu satu standby sinkron sebelum COMMIT selesai", "Pembayaran keempat tidak dijawab", "Penantian dibatalkan sesudah client pergi", "Standby sinkron dipromosikan: tiga jurnal ada", "Primary lama punya satu jurnal yang tidak dijawab"]);
+    expect(skenario.varian.langkah.map((l) => l.jelas)).toEqual(["synchronous_standby_names diisi FIRST 1 (replika_sinkron). Tiga pembayaran dijawab 201 sementara standby sinkron menerima WAL, lalu koneksi WAL ke standby sinkron diputus.", "COMMIT pembayaran Rp4.000 berhenti di SyncRep karena tidak ada standby yang mengonfirmasinya. Client tidak menerima jawaban sampai batas 3 detik.", "PostgreSQL mencatat peringatan: transaksinya sudah ter-commit di primary lama dan mungkin belum direplikasi ke standby. Tidak ada 201 untuknya.", "Ketiga jurnal yang dijawab 201 sebelum koneksi diputus ada di node baru.", "Primary lama memuat 4 jurnal bayar dan node baru 3. Jurnal keempat tidak pernah dijawab 201 ke client."]);
+  });
+  test("nomor bagian dokumentasi di baris riset sama dengan yang dikutip: 26.3 Failover, 19.5.1 Settings, 26.2.8 Synchronous Replication; laju 100 per detik di R5-148", () => {
+    expect(barisRiset("R5-145")).toContain("PostgreSQL 17 bagian 26.3 Failover (postgresql.org/docs/17/warm-standby-failover.html");
+    expect(barisRiset("R5-146")).toContain("PostgreSQL 17 bagian 19.5.1 Settings (postgresql.org/docs/17/runtime-config-wal.html");
+    expect(barisRiset("R5-147")).toContain("PostgreSQL 17 bagian 26.2.8 Synchronous Replication (postgresql.org/docs/17/warm-standby.html#SYNCHRONOUS-REPLICATION");
+    const laju = cocok(jeda, /-rps (\d+) -detik/)[1]!;
+    expect(barisRiset("R5-148")).toContain(`\`jeda.txt\` bagian A (${laju} pembayaran per detik: replay_lag tertinggi di bawah 1 detik sebagai batas)`);
+    expect(badan).toContain(`pada ${laju} pembayaran per detik`);
   });
 });
