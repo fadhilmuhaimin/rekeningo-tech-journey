@@ -1,0 +1,112 @@
+{
+  "versi": 2,
+  "judul": "Pengumuman ke satu juta HP dan notifikasi uang makan siang",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "catatan": "Jalur utama punya enam langkah: satu langkah cerita (Ilustrasi: Kamis 11.30 dan pengumuman ke 1.000.000 HP), tiga langkah rekaman lab t5-fanout (antrean.txt bagian A: kelas queue, dua langkah; bagian B: pengumuman dibatasi laju, satu langkah), dan dua langkah Hitungan atas Asumsi (96,3 per detik, 13,33 per detik, umur uang tertua). Langkah Hitungan kedua juga memuat keputusan Ratih dari cerita (Ilustrasi). Ubah satu hal memakai antrean.txt bagian B tanpa batas laju dan tanpa backoff. Bagian B memakai Kafka satu broker dan penyedia push tiruan dengan kuota 1.000 per detik; jumlah 429 dan umur uang tertua tidak direkam sebagai nilai."
+  },
+  "pengantar": "Tim Merchant mengirim pengumuman saat makan siang, dan notifikasi uang menunggu. Tebakannya tentang satu hal yang kamu ubah: centang 'Ubah satu hal' di bawah, dan jawabannya terbuka di akhir langkah varian.",
+  "komponen": [
+    {
+      "id": "pengumuman",
+      "label": "Pengumuman (tim Merchant)"
+    },
+    {
+      "id": "queue",
+      "label": "Queue notifikasi (outbox)"
+    },
+    {
+      "id": "worker",
+      "label": "Worker uang"
+    },
+    {
+      "id": "push",
+      "label": "Penyedia push tiruan"
+    }
+  ],
+  "perangkat": [],
+  "layarAwal": {},
+  "predict": {
+    "q": "Pengumuman dikirim consumer tanpa batas laju dan tanpa backoff, dengan 96 pengirim serentak melawan kuota 1.000 per detik di penyedia push yang sama dengan notifikasi uang. Apa yang terjadi pada notifikasi uang?",
+    "options": [
+      "Tidak berubah: kelas queue sudah mendahulukan uang di queue outbox",
+      "Uang selesai lebih cepat, karena pengumuman cepat habis dan kuota kosong lagi",
+      "Uang ikut dijawab 429, dan umur uang tertua melewati 2 detik",
+      "Uang menunggu sampai pengumuman selesai, lalu terkirim tanpa 429"
+    ],
+    "answer": 2,
+    "varian": true,
+    "explain": "Rekaman antrean.txt bagian B, mode rentan: notifikasi uang dijawab 429 paling sedikit satu kali, dan umur uang tertua melewati 2 detik (batas lab, Asumsi). Kelas queue hanya mengatur urutan klaim di outbox. Kuota penyedia push dipakai bersama pengumuman dan uang. Jumlah 429 tidak direkam, karena bergantung pada waktu."
+  },
+  "langkah": [
+    {
+      "dari": "pengumuman",
+      "ke": "queue",
+      "judul": "Tim Merchant mengirim pengumuman pukul 11.30",
+      "kirim": "Kamis 11.30: pengumuman diskon makan siang ke 1.000.000 HP\ncara lama: satu baris outbox per penerima, kelas promo (Ilustrasi)",
+      "jelas": "Hari dan jam berasal dari cerita. Cara lama menulis satu baris outbox untuk tiap penerima."
+    },
+    {
+      "dari": "queue",
+      "ke": "worker",
+      "judul": "Dugaan tim: worker mengklaim menurut nomor, jadi uang menunggu",
+      "kirim": "# 3.000 baris promo (kelas 2) menunggu, lalu 4 pembayaran (kelas 0) masuk\n-- mode rentan urut-waktu (M27): satu putaran worker mengklaim empat baris menurut nomor saja\n$ ./api-t5 -peran worker -sekali -satu-putaran -serentak 4 -tujuan push -rentan urut-waktu\nworker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0\n 0     | menunggu | 4\n 2     | menunggu | 2996\n 2     | terkirim | 4",
+      "jelas": "Dengan mode rentan urut-waktu, satu putaran worker mengirim empat promo dan empat uang tetap menunggu. Dugaan tim benar untuk mode itu (antrean.txt bagian A).",
+      "nada": "warn"
+    },
+    {
+      "dari": "queue",
+      "ke": "worker",
+      "judul": "Kelas queue: worker mengklaim uang lebih dulu",
+      "kirim": "-- versi benar: satu putaran worker mengklaim menurut kelas, lalu nomor\n$ ./api-t5 -peran worker -sekali -satu-putaran -serentak 4 -tujuan push\nworker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0\n 0     | terkirim | 4\n 2     | menunggu | 2996\n 2     | terkirim | 4",
+      "jelas": "Dengan kelas queue, putaran berikutnya mengirim empat uang, dan 2.996 promo tetap menunggu (antrean.txt bagian A). Pengumuman tidak lagi berada di depan uang.",
+      "nada": "good"
+    },
+    {
+      "dari": "queue",
+      "ke": "worker",
+      "judul": "Uang makan siang datang lebih cepat daripada yang dikirim worker",
+      "kirim": "uang datang: (600.000 + 50.000) × 0,8 ÷ 5.400 = 96,3 per detik\nworker mengirim: 4 ÷ 0,3 = 13,33 per detik\nqueue uang tumbuh: 96,3 − 13,33 = 83 per detik (Hitungan atas Asumsi)",
+      "jelas": "Jendela makan siang adalah 80% notifikasi sehari dalam 90 menit. Kapasitas worker c ÷ t dengan c = 4 pengirim dan t = 0,3 detik. Lab mengukur c dan t pada tiruan, bukan 96,3 per detik.",
+      "nada": "warn"
+    },
+    {
+      "dari": "pengumuman",
+      "ke": "queue",
+      "judul": "Ratih menghentikan pengumuman, dan queue uang masih tumbuh",
+      "kirim": "12.10 (2.400 detik): 2.400 × (1 − 13,33 ÷ 96,3) = 2.068 detik = 34,5 menit\n12.20 (3.000 detik): 3.000 × (1 − 13,33 ÷ 96,3) = 2.585 detik = 43,1 menit\n(Hitungan atas Asumsi)",
+      "jelas": "Menghentikan pengumuman tidak mengubah 96,3 dan 13,33 per detik, jadi umur uang tertua tetap naik selama kedatangan tetap. Keputusan Ratih berasal dari cerita (Ilustrasi).",
+      "nada": "warn"
+    },
+    {
+      "dari": "pengumuman",
+      "ke": "push",
+      "judul": "Pengumuman lewat consumer dibatasi laju: uang tidak dijawab 429",
+      "kirim": "-- versi benar: tiap consumer dibatasi 200 pesan per detik (3 x 200 = 600 per detik, di bawah kuota 1.000), 4 pengirim\n-- pengumuman diterima: 4000\n-- pengumuman dijawab 429: 0\n-- notifikasi uang dijawab 429: 0\n-- umur notifikasi uang tertua yang masih menunggu, diukur tiap 100 ms, tidak pernah melebihi 2 detik (batas lab): ya",
+      "jelas": "Bagian B memakai jalur lain dari cerita: pengumuman lewat Kafka dan tiga consumer, uang lewat outbox dan worker, keduanya ke penyedia push tiruan dengan kuota 1.000 per detik (Rekaman lab).",
+      "nada": "good"
+    }
+  ],
+  "varian": {
+    "label": "Consumer pengumuman tanpa batas laju dan tanpa backoff",
+    "mulai": 5,
+    "langkah": [
+      {
+        "dari": "pengumuman",
+        "ke": "push",
+        "judul": "Pengumuman memakai 96 pengirim serentak dan melewati kuota",
+        "kirim": "-- mode rentan: tiap consumer tanpa batas laju dan tanpa backoff, 32 pengirim (96 pengirim serentak melawan kuota 1.000 per detik)\n-- pengumuman diterima: 4000\n-- pengumuman dijawab 429: lebih dari 0: ya",
+        "jelas": "Semua 4.000 pengumuman akhirnya diterima, tetapi sebagian dijawab 429 karena kuota habis (antrean.txt bagian B).",
+        "nada": "warn"
+      },
+      {
+        "dari": "worker",
+        "ke": "push",
+        "judul": "Uang ikut dijawab 429 dan menunggu lebih lama",
+        "kirim": "-- notifikasi uang dijawab 429 paling sedikit satu kali: ya\n-- umur notifikasi uang tertua melebihi 2 detik (batas lab): ya",
+        "jelas": "Kuota penyedia dipakai bersama. Kelas queue mengatur urutan klaim di outbox, dan tidak melindungi uang dari kuota yang dihabiskan pengumuman (Rekaman lab).",
+        "nada": "warn"
+      }
+    ]
+  }
+}
