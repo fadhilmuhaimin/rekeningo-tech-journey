@@ -31,7 +31,7 @@ Tim Pembayaran mengira dua hal. Pertama, canary "5%" berarti lima dari seratus u
 
 Rilis memakai Argo Rollouts v1.10.1, yaitu controller Kubernetes untuk rilis bertahap seperti canary ([Argo Rollouts v1.10.1: pengantar](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/index.md), dibuka 2026-11-03, Tidak dijalankan). Kill switch kartu adalah flag di memori satu proses sejak ADR 42 ([[t4-kartu]]).
 
-Argo Rollouts bisa memakai traffic router. Itu ingress controller atau service mesh yang menggeser lalu lintas ke versi baru sedikit demi sedikit (sumber yang sama). Rollout tim Pembayaran tidak memakainya.
+Argo Rollouts bisa memakai traffic router. Itu ingress controller atau service mesh yang menggeser lalu lintas ke versi baru sedikit demi sedikit (sumber yang sama). Rollout tim Pembayaran tidak memakainya, dan langkah pertamanya meminta `setWeight: 5`, yaitu 5% untuk versi baru.
 
 <details class="question">
 <summary>Tebak dulu: Rollout meminta tiga replika, yaitu tiga pod, dengan `setWeight: 5` dan tanpa traffic router. Berapa pod versi baru yang berjalan, dan berapa bagiannya dari semua pod yang menjawab?</summary>
@@ -50,7 +50,7 @@ Tanpa traffic router, `setWeight: 5` mengatur jumlah pod, bukan bagian user. Den
 
 <Rantai data={canaryPod} ringkas />
 
-*Kondisi rekaman:* Argo Rollouts v1.10.1 di k3s v1.37.1+k3s1 yang dijalankan k3d v5.9.0, dengan Traefik 3.7.13 membagi permintaan ke satu Service. Tiap pod menjalankan satu proses `api-t5` (go1.27.3) dengan PostgreSQL 17.11, dari database bersih, di host arm64.
+*Kondisi rekaman:* Argo Rollouts v1.10.1 di k3s v1.37.1+k3s1 yang dijalankan k3d v5.9.0, dengan Traefik 3.7.13 membagi permintaan ke satu Service. Service adalah objek Kubernetes yang menyasar pod lewat selector label ([Kubernetes: Service](https://kubernetes.io/docs/concepts/services-networking/service/), dibuka 2026-11-03, Tidak dijalankan). Tiap pod menjalankan satu proses `api-t5` (go1.27.3) dengan PostgreSQL 17.11, dari database bersih, di host arm64.
 
 *Dua label turunan:* Hitungan adalah angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah. Dibaca dari kode berarti isi kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.
 
@@ -73,7 +73,7 @@ Dengan `maxSurge: 0` controller tidak boleh menambah pod, jadi hanya pasangan pe
 
 Judul halaman memakai "sepertiga" dari naskah. Rekaman memberi 33,3% hanya dengan `maxSurge: 0`. Dokumentasi menulis bawaan `maxSurge` 25% di halaman canary dan 1 di halaman spesifikasi, sedangkan kode v1.10.1 menulis `DefaultMaxSurge = "25"` (Tidak dijalankan, dibaca dari dokumentasi dan kode). Halaman ini tidak menulis angka bawaan: rekaman memberi empat pod, jadi `maxSurge` yang tidak diubah mengizinkan satu pod tambahan untuk tiga replika.
 
-**Permintaan mengikuti pod, dalam batas.** Lab mengirim 200 permintaan `GET /healthz` lewat Gateway ke satu Service tanpa bobot, dan semuanya terjawab. Service memilih pod lewat selector label ([Kubernetes: Service](https://kubernetes.io/docs/concepts/services-networking/service/), dibuka 2026-11-03, Tidak dijalankan).
+**Permintaan mengikuti pod, dalam batas.** Lab mengirim 200 permintaan `GET /healthz` lewat Gateway ke satu Service tanpa bobot, dan semuanya terjawab.
 
 Bagian yang dijawab versi baru terukur antara 17,5% dan 32,5% pada 25,0% pod, dan antara 23,5% dan 43,5% pada 33,3% pod. Itu batas yang diperiksa lab. Hitungan tepat bergantung penyeimbang beban Traefik dan tidak direkam.
 
@@ -107,7 +107,7 @@ Widget ini mengikuti cerita M49. Jalur utama memuat dua langkah cerita (Ilustras
 
 <WidgetLama nama="alur" src="data/skenario/t5-m49.json" />
 
-Sesudah langkah terakhir, centang **Ubah satu hal: Rollout memakai 20 replika, bukan 3**. Dua langkah berikutnya memuat rekaman bagian pod dan batas permintaan, dan langkah terakhir memuat batasnya (Hitungan).
+Sesudah langkah terakhir, centang **Ubah satu hal: Rollout memakai 20 replika, bukan 3**. Dua langkah berikutnya memuat rekaman bagian pod dan batas permintaan, dan langkah terakhir memuat bagian terkecil yang bisa dicapai satu pod (Hitungan).
 
 Widget ini tidak punya layar HP, karena M49 terjadi di antara engineer, bukan di app.
 

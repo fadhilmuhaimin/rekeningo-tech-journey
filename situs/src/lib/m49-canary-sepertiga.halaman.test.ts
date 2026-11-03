@@ -265,9 +265,9 @@ describe("rekaman tanpa-router.txt dan hitungan pasangan pod: diturunkan dari be
   });
   test("kondisi rekaman: versi dari kepala tanpa-router.txt", () => {
     expect(badan).toContain(
-      `*Kondisi rekaman:* Argo Rollouts ${versiA.argo} di k3s ${versiA.k3s} yang dijalankan k3d ${versiA.k3d}, dengan Traefik ${versiA.traefik} membagi permintaan ke satu Service. ` +
-        `Tiap pod menjalankan satu proses \`api-t5\` (go${versiA.go}) dengan PostgreSQL ${versiA.pg}, dari database bersih, di host arm64.`,
+      `*Kondisi rekaman:* Argo Rollouts ${versiA.argo} di k3s ${versiA.k3s} yang dijalankan k3d ${versiA.k3d}, dengan Traefik ${versiA.traefik} membagi permintaan ke satu Service. `,
     );
+    expect(badan).toContain(`Tiap pod menjalankan satu proses \`api-t5\` (go${versiA.go}) dengan PostgreSQL ${versiA.pg}, dari database bersih, di host arm64.`);
     expect(badan).toContain(`Rilis memakai Argo Rollouts ${versiA.argo}, yaitu controller Kubernetes`);
     expect(rekABaris[2]).toContain("Rekaman dari database bersih");
     expect(baca("labs/t5-rollout/README.md")).toContain("hanya diuji di host arm64");
@@ -365,9 +365,9 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-215 sam
       "https://kubernetes.io/docs/concepts/workloads/pods/",
       "https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/index.md",
       "https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md",
+      "https://kubernetes.io/docs/concepts/services-networking/service/",
       "https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md",
       "https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/canary.go",
-      "https://kubernetes.io/docs/concepts/services-networking/service/",
     ]);
     const hapusSkema = (u: string): string => u.replace(/^https:\/\//, "");
     const tujuanRiset: Record<string, string> = {
@@ -422,7 +422,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-215 sam
     expect(r).toContain("Pods are the smallest deployable units of computing that you can create and manage in Kubernetes.");
     expect(r).toContain("The set of Pods targeted by a Service is usually determined by a selector that you define.");
     expect(badan).toContain("Pod adalah unit terkecil yang dijalankan dan dikelola di Kubernetes (");
-    expect(badan).toContain("Service memilih pod lewat selector label (");
+    expect(badan).toContain("Service adalah objek Kubernetes yang menyasar pod lewat selector label (");
     const h = barisRiset("R5-219");
     expect(h).toContain("1 ÷ 4 = 25,0%");
     expect(h).toContain("1 ÷ 3 = 33,3%");
@@ -542,8 +542,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(l3.kirim).toBe("rasio otorisasi ditolak: 2% ke 31% (Ilustrasi)");
     expect(l4.kirim).toBe(`POST /bo/flag/kartu {"aktif": false} ke pod ${podTolak[0]} (Rekaman lab)`);
     expect(l5.kirim).toBe(`pod ${podTolak[0]}: tolak (kill-switch)\npod ${podSetuju[0]}: setuju\npod ${podSetuju[1]}: setuju (Rekaman lab)`);
-    expect(l5.jelas).toContain(`Pod ${podSetuju[0]} dan pod ${podSetuju[1]} punya flag sendiri`);
-    expect(l5.jelas).toContain(`(sakelar.txt, bagian ${bagianDi(rekDBaris, dMulai)}).`);
+    expect(l5.jelas).toBe(`Flag di memori hanya berlaku di proses pod ${podTolak[0]}. Pod ${podSetuju[0]} dan pod ${podSetuju[1]} punya flag sendiri, dan flag itu tetap menyala (sakelar.txt, bagian ${bagianDi(rekDBaris, dMulai)}).`);
     expect(l6.kirim).toBe(`pod ${podUlang[0]} pengganti: setuju (Rekaman lab)`);
     const [v1, v2, v3] = skenario.varian.langkah as [Langkah, Langkah, Langkah];
     expect(v1.kirim).toBe(`pod versi baru: ${A20.v2}\npod versi lama: ${A20.v1}\nbagian pod versi baru: ${pk(A20.persen)}% (Rekaman lab)`);
@@ -570,7 +569,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     ]);
     expect(skenario.predict.explain).toContain("(Hitungan atas kode)");
     expect(skenario.predict.explain).toContain("Rekaman:");
-    expect(skenario.pengantar).toContain("jawabannya terbuka di akhir langkah varian");
+    expect(skenario.pengantar).toBe("Tim Pembayaran merilis versi baru dengan canary 5%, lalu menekan kill switch. Tebakannya tentang satu hal yang kamu ubah: centang 'Ubah satu hal' di bawah, dan jawabannya terbuka di akhir langkah varian.");
   });
   test("diagram Rantai: ringkas, dua baris tiga simpul, sumber rekaman, angka dari rekaman, kata 'bukan' dan 'tidak' berlingkup", () => {
     const d = DataRantai.parse(rantaiMentah);
@@ -730,6 +729,126 @@ describe("penutup celah mutasi tanpa kunci: frontmatter, Gejala, noscript, butir
     // definisi label, tiga sumber Kubernetes dan Argo Rollouts, dua definisi turunan, kode canary, halaman spesifikasi, bagian user, Tahap 4, butir Yang tidak direkam, jawaban Cek diri 2
     expect(hitungKali(badan, "Tidak dijalankan")).toBe(13);
   });
+});
+
+// --- seluruh baris badan halaman, dengan angka dan nama turunan dari rekaman, kode, dan hitungan (bukan dari nilai.ts): menangkap mutasi kalimat tanpa kunci
+const bobot = Number(cari(/\(diminta (\d+)%\)/, rekA, "bobot")[1]);
+const JUMLAH_PERMINTAAN = Number(cari(/^(\d+) permintaan GET \/healthz lewat Gateway ke satu Service tanpa bobot: semuanya terjawab\.$/m, rekA, "jumlah permintaan")[1]);
+const pas = ((): Pilihan[] => {
+  const o = timbang(3, bobot, 1).opsi;
+  return o.filter((x, i) => o.findIndex((z) => z.canary === x.canary && z.total === x.total) === i);
+})();
+const BADAN_DITURUNKAN: string[] = [
+    "<Blok nama=\"Gejala\" buka>",
+    `Minggu ${mingguM49} Tahap 5. Selasa pukul 15.00 tim Pembayaran merilis otorisasi kartu versi baru dengan canary "${bobot}%".`,
+    "Pukul 15.04 rasio otorisasi yang ditolak naik dari 2% ke 31%. Nadia menekan kill switch.",
+    "Satu dari tiga pod berhenti menyetujui, dan dua pod lain tetap menyetujui. Sesudah pod itu dimulai ulang, ia menyetujui lagi.",
+    "*Angka cerita (Ilustrasi):* hari, jam, 2%, 31%, dan tiga pod berasal dari naskah, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].",
+    "*Tiga istilah di cerita:* canary adalah rilis yang lebih dulu memberi versi baru ke sebagian kecil, sebelum semuanya mendapatkannya. Pod adalah unit terkecil yang dijalankan dan dikelola di Kubernetes ([Kubernetes: Pods](https://kubernetes.io/docs/concepts/workloads/pods/), dibuka 2026-11-03, Tidak dijalankan). Kill switch adalah sakelar yang mematikan otorisasi kartu baru tanpa deploy ([[t4-kartu]]).",
+    "</Blok>",
+    "<Blok nama=\"Yang Raka kira\" buka>",
+    `Tim Pembayaran mengira dua hal. Pertama, canary "${bobot}%" berarti lima dari seratus user mencoba versi baru. Kedua, kill switch mematikan otorisasi kartu di semua pod, jadi satu tekanan sudah cukup.`,
+    `Rilis memakai Argo Rollouts ${versiA.argo}, yaitu controller Kubernetes untuk rilis bertahap seperti canary ([Argo Rollouts v1.10.1: pengantar](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/index.md), dibuka 2026-11-03, Tidak dijalankan). Kill switch kartu adalah flag di memori satu proses sejak ADR 42 ([[t4-kartu]]).`,
+    `Argo Rollouts bisa memakai traffic router. Itu ingress controller atau service mesh yang menggeser lalu lintas ke versi baru sedikit demi sedikit (sumber yang sama). Rollout tim Pembayaran tidak memakainya, dan langkah pertamanya meminta \`setWeight: ${bobot}\`, yaitu ${bobot}% untuk versi baru.`,
+    "<details class=\"question\">",
+    "<summary>Tebak dulu: Rollout meminta tiga replika, yaitu tiga pod, dengan `setWeight: 5` dan tanpa traffic router. Berapa pod versi baru yang berjalan, dan berapa bagiannya dari semua pod yang menjawab?</summary>",
+    `Satu pod versi baru. Bila \`maxSurge\` tidak diubah, pod itu berjalan di samping ${kata(A3.v1)} pod versi lama: ${A3.v2} dari ${A3.menjawab} pod, atau ${pk(A3.persen)}%. Bila \`maxSurge\` diatur 0, total tetap ${kata(A3S0.menjawab)} pod dan bagiannya ${pk(A3S0.persen)}% (Rekaman lab, \`tanpa-router.txt\`, bagian A).`,
+    `\`maxSurge\` adalah jumlah pod tambahan yang boleh dibuat controller untuk mencapai rasio itu ([Argo Rollouts v1.10.1: Canary](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md), dibuka 2026-11-03, Tidak dijalankan). Angka ${bobot} tidak muncul sebagai bagian pod mana pun. Blok berikutnya menjelaskan kenapa controller memilih satu pod.`,
+    "</details>",
+    "</Blok>",
+    "<Blok nama=\"Yang sebenarnya\">",
+    `Tanpa traffic router, \`setWeight: ${bobot}\` mengatur jumlah pod, bukan bagian user. Dengan ${kata(A3.diminta)} replika, satu pod versi baru sudah ${pk(A3.persen)}% atau ${pk(A3S0.persen)}% dari pod. Kill switch di memori hanya mengubah pod yang menerima permintaannya.`,
+    "<Rantai data={canaryPod} ringkas />",
+    `*Kondisi rekaman:* Argo Rollouts ${versiA.argo} di k3s ${versiA.k3s} yang dijalankan k3d ${versiA.k3d}, dengan Traefik ${versiA.traefik} membagi permintaan ke satu Service. Service adalah objek Kubernetes yang menyasar pod lewat selector label ([Kubernetes: Service](https://kubernetes.io/docs/concepts/services-networking/service/), dibuka 2026-11-03, Tidak dijalankan). Tiap pod menjalankan satu proses \`api-t5\` (go${versiA.go}) dengan PostgreSQL ${versiA.pg}, dari database bersih, di host arm64.`,
+    "*Dua label turunan:* Hitungan adalah angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah. Dibaca dari kode berarti isi kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.",
+    `Kalau kamu pernah menyalakan fitur untuk ${bobot}% user lewat flag di app, angka itu dihitung dari user. Tanpa traffic router, Argo Rollouts menghitung pod. Dokumentasinya menulis bahwa controller hanya berusaha mendekati persentase \`setWeight\` antara versi baru dan lama. Ia memilih bilangan bulat pod dengan selisih terkecil ([Argo Rollouts v1.10.1: Canary](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md), dibuka 2026-11-03, Tidak dijalankan).`,
+    `**Kenapa satu pod.** ${huruf1(kata(bobot))} persen dari ${kata(A3.diminta)} pod adalah ${koma((A3.diminta * bobot) / 100, 2)} pod, dan pod tidak bisa pecahan.`,
+    "Kode v1.10.1 tidak menghasilkan nol pod versi baru untuk bobot 1 sampai 99 ([utils/replicaset/canary.go](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/canary.go), dibuka 2026-11-03, Tidak dijalankan, dibaca dari kode). Syaratnya dua replika atau lebih, jadi satu pod versi baru wajib ada.",
+    `Controller lalu menimbang dua pasangan. Satu pod dari ${pas[0].total} pod adalah ${pk((100 * pas[0].canary) / pas[0].total)}%, selisih ${pk(pas[0].selisih)} poin persentase dari ${bobot}%. Satu pod dari ${pas[1].total} pod adalah ${pk((100 * pas[1].canary) / pas[1].total)}%, selisih ${pk(pas[1].selisih)} poin. Pasangan kedua lebih dekat ke ${bobot}%, jadi ${kata(pas[1].total)} pod berjalan (Hitungan atas kode).`,
+    "<Snippet file=\"labs/t5-rollout/output/tanpa-router.txt\" lines=\"13:21\" title=\"Rekaman lab: labs/t5-rollout/output/tanpa-router.txt, bagian A (3 replika, maxSurge tidak diubah)\" />",
+    `Dengan \`maxSurge: 0\` controller tidak boleh menambah pod, jadi hanya pasangan pertama yang tersisa. Tabel ini menaruh kedua pengaturan di samping rekamannya, dengan ${kata(A3.diminta)} replika dan \`setWeight: ${bobot}\`.`,
+    "| Pengaturan Rollout | Pod versi baru | Pod versi lama | Bagian pod versi baru |",
+    "|---|---|---|---|",
+    "| `maxSurge` tidak diubah | 1 | 3 | 25,0% (Rekaman lab) |",
+    "| `maxSurge: 0` | 1 | 2 | 33,3% (Rekaman lab) |",
+    `Judul halaman memakai "sepertiga" dari naskah. Rekaman memberi ${pk(A3S0.persen)}% hanya dengan \`maxSurge: 0\`. Dokumentasi menulis bawaan \`maxSurge\` 25% di halaman canary dan 1 di halaman spesifikasi, sedangkan kode v1.10.1 menulis \`DefaultMaxSurge = "25"\` (Tidak dijalankan, dibaca dari dokumentasi dan kode). Halaman ini tidak menulis angka bawaan: rekaman memberi ${kata(A3.menjawab)} pod, jadi \`maxSurge\` yang tidak diubah mengizinkan satu pod tambahan untuk ${kata(A3.diminta)} replika.`,
+    `**Permintaan mengikuti pod, dalam batas.** Lab mengirim ${JUMLAH_PERMINTAAN} permintaan \`GET /healthz\` lewat Gateway ke satu Service tanpa bobot, dan semuanya terjawab.`,
+    `Bagian yang dijawab versi baru terukur antara ${pk(A3.bawah)}% dan ${pk(A3.atas)}% pada ${pk(A3.persen)}% pod, dan antara ${pk(A3S0.bawah)}% dan ${pk(A3S0.atas)}% pada ${pk(A3S0.persen)}% pod. Itu batas yang diperiksa lab. Hitungan tepat bergantung penyeimbang beban Traefik dan tidak direkam.`,
+    "Bagian user tidak direkam, karena permintaan lab tidak membawa identitas user (Tidak dijalankan).",
+    "**Kill switch di memori hanya mengubah satu proses.** Rekaman Tahap 4 hanya punya satu proses: sesudah mulai ulang, kill switch yang dimatikan kembali aktif, dan dua instance Tidak dijalankan (`kill-switch.txt`, bagian B). Rekaman Tahap 5 menjalankan tiga pod dari satu image, dengan flag yang sama dan satu database:",
+    "<Snippet file=\"labs/t5-rollout/output/sakelar.txt\" lines=\"6:16\" title=\"Rekaman lab: labs/t5-rollout/output/sakelar.txt, bagian D (flag di memori, tiga pod)\" />",
+    `Lab mengirim permintaan mematikan ke pod ${podTolak[0]}. Hanya pod ${podTolak[0]} yang menolak, dan pod ${podSetuju[0]} dan pod ${podSetuju[1]} tetap menyetujui otorisasi baru. Pod ${podUlang[0]} dihapus dan diganti pod baru, yang menyetujui lagi tanpa ada yang menyalakannya.`,
+    "Sebabnya ada di kode lab. `KartuAktifSekarang` membaca satu `atomic.Bool` yang dibuat dan dinyalakan di `main` saat proses mulai, jadi tiap proses punya flagnya sendiri:",
+    "<Snippet file=\"labs/api-t5/internal/service/kartu.go\" lines=\"53:54\" lang=\"go\" title=\"Kode lab: labs/api-t5/internal/service/kartu.go, fungsi KartuAktifSekarang\" />",
+    "Rollout yang membuat pod versi baru juga membuat proses baru, dan di proses itu flag menyala lagi. Itu Penalaran, yaitu kesimpulan dari kode dan rekaman tanpa dijalankan. Kill switch yang dimatikan sebelum rilis tidak terbawa ke pod itu.",
+    "**Yang tidak direkam.**",
+    "- Selasa, 15.00, 15.04, 2%, 31%, tiga pod, dan Nadia berasal dari cerita (Ilustrasi). Lab tidak menjalankan versi kartu yang salah.",
+    "- Bagian user, hitungan permintaan tepat per versi, dan jumlah pod di bawah beban nyata tidak direkam.",
+    "- Argo Rollouts selain v1.10.1, `maxSurge` selain bawaan dan 0, dan `maxUnavailable` Tidak dijalankan. Lab hanya diuji di host arm64.",
+    "- Rekaman Tahap 4 tidak punya dua instance. Rekaman Tahap 5 punya tiga pod dengan flag yang sama, dan memakai kode `api-t5`, bukan kode Tahap 4.",
+    "- Cara menghubungkan bobot ke traffic router dan memindahkan kill switch ke tempat yang dibaca semua pod dibahas di [[t5-rollout]].",
+    "</Blok>",
+    "<Blok nama=\"Coba sendiri\">",
+    "Widget ini mengikuti cerita M49. Jalur utama memuat dua langkah cerita (Ilustrasi) dan empat langkah rekaman, dan \"Ubah satu hal\" memakai rekaman `tanpa-router.txt` bagian A. Tebak dulu, lalu tekan Berikutnya atau panah kanan.",
+    "<WidgetLama nama=\"alur\" src=\"data/skenario/t5-m49.json\" />",
+    `Sesudah langkah terakhir, centang **Ubah satu hal: Rollout memakai ${A20.diminta} replika, bukan ${A3.diminta}**. Dua langkah berikutnya memuat rekaman bagian pod dan batas permintaan, dan langkah terakhir memuat bagian terkecil yang bisa dicapai satu pod (Hitungan).`,
+    "Widget ini tidak punya layar HP, karena M49 terjadi di antara engineer, bukan di app.",
+    "<noscript>",
+    `Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: \`setWeight: 5\` dengan ${kata(A3.diminta)} replika menjalankan ${A3.v2} pod versi baru dan ${A3.v1} pod versi lama (${pk(A3.persen)}%). Rasio ditolak naik dari 2% ke 31% (Ilustrasi). Kill switch di pod ${podTolak[0]} membuat pod ${podTolak[0]} menolak, sementara pod ${podSetuju[0]} dan pod ${podSetuju[1]} menyetujui (bagian D).`,
+    `Dengan ${A20.diminta} replika, rekaman memberi ${A20.v2} pod versi baru dan ${A20.v1} pod versi lama: ${pk(A20.persen)}% (bagian A).`,
+    "</noscript>",
+    "</Blok>",
+    "<Blok nama=\"Konsep yang lahir\">",
+    "- [[t5-rollout]]: progressive delivery, canary dengan traffic router, GitOps, dan kill switch yang dibaca semua pod. Keputusannya ADR 55.",
+    "- [[t4-kartu]]: ADR 42, yang menaruh kill switch di memori satu proses dan dibaca ulang di halaman ini.",
+    "- [[t5-service]]: pod dan Kubernetes, yang memecah satu proses menjadi beberapa.",
+    "Canary tanpa traffic router menghitung pod, dan kill switch harus ada di tempat yang dibaca semua pod.",
+    "### Cek diri",
+    "**1.** Rollout dengan tiga replika dan `setWeight: 5` menjalankan satu pod versi baru. Kenapa bagiannya bukan 5%, dan berapa replika yang membuatnya 5,0%?",
+    "<details class=\"success\">",
+    "<summary>Jawaban</summary>",
+    `${huruf1(kata(bobot))} persen dari ${kata(A3.diminta)} pod adalah ${koma((A3.diminta * bobot) / 100, 2)} pod, dan kode v1.10.1 menyisakan satu pod versi baru untuk bobot 1 sampai 99 (dibaca dari kode). Hasilnya ${pk(A3.persen)}% atau ${pk(A3S0.persen)}% menurut \`maxSurge\`. Dengan ${A20.diminta} replika rekaman memberi ${A20.v2} pod versi baru dan ${A20.v1} pod versi lama: ${pk(A20.persen)}% (\`tanpa-router.txt\`, bagian A).`,
+    "</details>",
+    "**2.** Nadia mematikan kill switch lewat satu pod. Apa yang direkam lab untuk dua pod lain dan untuk pod yang diganti?",
+    "<details class=\"success\">",
+    "<summary>Jawaban</summary>",
+    "Dua pod lain tetap menyetujui otorisasi baru, dan pod pengganti menyetujui lagi karena flag di memori hilang bersama prosesnya (`sakelar.txt`, bagian D). Flag dibuat dan dinyalakan di `main` tiap proses (Tidak dijalankan, dibaca dari kode).",
+    "</details>",
+    "**3.** Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur dari canary?",
+    "<details class=\"success\">",
+    "<summary>Jawaban</summary>",
+    "Hari, jam, 2%, dan 31% adalah Ilustrasi. Lab mengukur bagian pod dan memeriksa batas bagian permintaan, tetapi tidak mengukur bagian user dan tidak mencatat hitungan permintaan tepat per versi (`tanpa-router.txt`, bagian A).",
+    "</details>",
+    "</Blok>",
+    "<SkripLama daftar={[\"hp\",\"alur-core\",\"alur\"]} />",
+];
+
+describe("seluruh baris badan: setiap kalimat, judul, dan tabel sama dengan yang diturunkan dari rekaman, kode, dan hitungan", () => {
+  test("daftar baris tak kosong sama persis, dalam urutan yang sama", () => {
+    expect(badan.split("\n").filter((b) => b.trim() !== "")).toEqual(BADAN_DITURUNKAN);
+  });
+  test("tiap angka bobot 5 di halaman berasal dari rekaman: enam kemunculan setWeight, dan 0,15 pod muncul dua kali", () => {
+    expect(hitungKali(badan, "`setWeight: " + bobot + "`")).toBe(6);
+    expect(hitungKali(badan, `${koma((A3.diminta * bobot) / 100, 2)} pod`)).toBe(2);
+    expect(hitungKali(badan, `canary "${bobot}%"`)).toBe(2);
+  });
+});
+
+// --- baris riset yang dibaca ke sumber primer pada 2026-11-03: kutipan, versi, tanggal, dan alamat tidak boleh berubah tanpa membuka sumbernya lagi
+const RISET_TERKUNCI: Record<string, string> = {
+  "R5-215": "| R5-215 | Argo Rollouts: pengantar dan canary tanpa traffic management | `docs/index.md` pada tag v1.10.1 (github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/index.md, dibuka 2026-11-03): \"Argo Rollouts is a Kubernetes controller and set of CRDs which provide advanced deployment capabilities such as blue-green, canary, canary analysis, experimentation, and progressive delivery features to Kubernetes.\"; \"Argo Rollouts (optionally) integrates with ingress controllers and service meshes, leveraging their traffic shaping abilities to gradually shift traffic to the new version during an update.\" `docs/features/canary/index.md` pada tag v1.10.1 (github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md, dibaca dengan `curl` dari raw.githubusercontent.com, dibuka 2026-11-03; salinan di argo-rollouts.readthedocs.io/en/stable tidak bernomor versi): \"If the canary Rollout does not use traffic management, the Rollout makes a best effort attempt to achieve the percentage listed in the last `setWeight` step between the new and old version.\"; \"finding the whole number with the smallest delta, rounding up the calculation if the deltas are equals\"; \"If a user wants to have more fine-grained control of the percentages without a large number of Replicas, that user should use the traffic management functionality.\" Halaman itu menulis persentase antara versi baru dan lama | 5.22 blok Yang Raka kira (controller Kubernetes, traffic router) dan Yang sebenarnya: tanpa traffic router `setWeight` mengatur jumlah pod, dengan selisih terkecil dan pembulatan ke atas bila selisihnya sama | Tidak berubah (sama dengan R5-16 dan R5-104) |",
+  "R5-216": "| R5-216 | Argo Rollouts: `maxSurge` bawaan, dua halaman dokumentasi dan kode | `docs/features/canary/index.md` v1.10.1, bagian maxSurge, dibuka 2026-11-03: \"`maxSurge` controls basic-canary desired replica math when `trafficRouting` is not set\"; \"`maxSurge` defines the maximum number of replicas the rollout can create to move to the correct ratio set by the last `setWeight`\"; \"Defaults to \"25%\".\" `docs/features/specification.md` v1.10.1 (komentar contoh `maxSurge`): \"Absolute number is calculated from percentage by rounding up. By default, a value of 1 is used.\" `utils/defaults/defaults.go` v1.10.1: `DefaultMaxSurge = \"25\"` (string tanpa tanda persen), dipakai `GetMaxSurgeOrDefault` lewat `intstr.FromString(DefaultMaxSurge)`; cara nilai itu dibaca tidak ditelusuri. Dua halaman dokumentasi yang sama bertentangan (25% lawan 1), dan kode menulis \"25\". README `labs/t5-rollout` dan satu baris kepala `tanpa-router.txt` menulis bawaan 1 (dari halaman spesifikasi) | 5.22: halaman menulis ketiga sumber apa adanya dan tidak menulis angka bawaan; rekaman memberi empat pod untuk tiga replika, jadi `maxSurge` yang tidak diubah mengizinkan satu pod tambahan | Baru (selisih dua halaman dokumentasi dicatat di badan PR) |",
+  "R5-217": "| R5-217 | Argo Rollouts: aturan satu pod canary dan pasangan pod yang dipilih | Kode `utils/replicaset/canary.go` pada tag v1.10.1 (github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/canary.go, dibaca dengan `curl`, dibuka 2026-11-03), fungsi `approximateWeightedCanaryStableReplicaCounts(specReplicas, desiredWeight, maxWeight, maxSurge int32)`. Komentar fungsi: \"The canary/stable replica counts might sum to either spec.replicas or spec.replicas + 1 but will not exceed spec.replicas if maxSurge is 0.\" dan \"If the canary weight is between 1-99, and spec.replicas is > 1, we will always return a minimum of 1 for stable and canary as to not return 0.\" Kodenya: `zeroAllowed` hanya benar bila bobot 0 atau maxWeight, atau bila ada satu replika dan `maxSurge` 0 (baris 237), jadi bobot 1 sampai 99 dengan dua replika atau lebih tidak menghasilkan nol pod canary; pasangan (canary, total) dihitung untuk total `specReplicas` dan, bila `maxSurge` lebih dari 0, `specReplicas + 1`; dipilih pasangan dengan selisih bobot terkecil. Dibaca dari kode, bukan dokumentasi | 5.22: tiga replika dan bobot 5 menimbang 1 dari 3 pod (33,3%, selisih 28,3 poin dari 5) dan 1 dari 4 pod (25,0%, selisih 20,0 poin); yang kedua dipilih (Hitungan atas kode; rekaman: empat pod) | Tidak berubah |",
+  "R5-218": "| R5-218 | Kubernetes: pod dan Service memilih pod lewat selector | Dokumentasi Kubernetes, \"Pods\" (kubernetes.io/docs/concepts/workloads/pods/, dibuka 2026-11-03; sumber mentah `content/en/docs/concepts/workloads/pods/_index.md` di kubernetes/website): \"Pods are the smallest deployable units of computing that you can create and manage in Kubernetes.\"; \"Pods are generally not created directly and are created using workload resources.\" Dokumentasi \"Service\" (kubernetes.io/docs/concepts/services-networking/service/, dibuka 2026-11-03; sumber mentah `service.md`): \"The set of Pods targeted by a Service is usually determined by a selector that you define.\" Bagian yang dibaca tidak menulis algoritma pembagian permintaan antar pod; hitungan permintaan per versi di lab dicatat hanya sebagai batas | 5.22: kalimat arti pod di catatan istilah Gejala, dan satu Service di depan pod versi baru dan lama di Kondisi rekaman | Tidak berubah |",
+  "R5-219": "| R5-219 | Hitungan atas angka yang tertulis di halaman 5.22 (Hitungan atas Rekaman lab dan Ilustrasi) dan sumber internal yang dikutip | Dihitung dengan skrip sendiri, dibaca 2026-11-03: 1 ÷ 4 = 25,0% dan 1 ÷ 3 = 33,3% (33,33); selisih dari 5%: 25,0 − 5 = 20,0 poin dan 33,3 − 5 = 28,3 poin (28,33); 5% × 3 = 0,15 pod; 1 ÷ 20 = 5,0%. Sumber internal dibaca di main: `labs/t5-rollout/output/tanpa-router.txt` bagian A (tiga pengaturan: 3 replika bawaan 1 pod baru dan 3 lama, 20 replika 1 dan 19, 3 replika `maxSurge: 0` 1 dan 2; batas permintaan 17,5% sampai 32,5%, 1,5% sampai 8,5%, 23,5% sampai 43,5%), `labs/t5-rollout/output/sakelar.txt` bagian D (tiga pod, flag di memori), `labs/t4-kartu/output/kill-switch.txt` bagian B (satu proses; dua instance Tidak dijalankan), `labs/api-t5/cmd/api/main.go` (`KartuAktif: &atomic.Bool{}` dan `Store(true)` di main) dan `internal/service/kartu.go` (`KartuAktifSekarang`) | Angka dan kalimat rekaman di halaman 5.22; masukan terlemah Ilustrasi atau Asumsi, jadi hasil Hitungan berlabel itu | Tidak berlaku (hitungan atas angka sendiri) |",
+};
+
+describe("baris riset R5-215 sampai R5-219: isi persis (kutipan, versi, tanggal, alamat), tanpa bergantung pada kunci lapis 2", () => {
+  for (const id of Object.keys(RISET_TERKUNCI)) {
+    test(`${id}: sama dengan baris yang dibaca ke sumber`, () => {
+      expect(barisRiset(id)).toBe(RISET_TERKUNCI[id]);
+    });
+  }
 });
 
 function huruf1(s: string): string { return s[0]!.toUpperCase() + s.slice(1); }
