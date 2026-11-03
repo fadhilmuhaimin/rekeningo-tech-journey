@@ -84,7 +84,7 @@ Ledger lab memakai nilai terakhir, dengan TLS 1.3 sebagai versi terendah (piliha
 
 Tanpa sertifikat dijawab `certificate required`. Sertifikat dari CA lain dijawab `unknown certificate authority`, yang kedaluwarsa `expired certificate`, dan yang kegunaannya hanya untuk server `bad certificate`. Kontrol positifnya, sertifikat pembayaran yang sah, diterima.
 
-**"Gagal di handshake" punya lingkup.** Dari sisi server, handler ledger tidak jalan dan jurnal tetap 0. Dari sisi client TLS 1.3, alert baru terbaca pada pembacaan pertama. Client menganggap handshake selesai sebelum server menilai sertifikat client (pengamatan lab di README, bukan kutipan RFC). Client yang langsung mengirim permintaan sesudah handshake tidak direkam, dan server lab hanya menerima TLS 1.3.
+**"Gagal di handshake" punya lingkup.** Dari sisi server, handler ledger tidak jalan dan jurnal tetap 0. Dari sisi client TLS 1.3, alert baru terbaca pada pembacaan pertama. Client menganggap handshake selesai sebelum server menilai sertifikat client (pengamatan lab di README, bukan kutipan RFC). Client yang langsung mengirim permintaan sesudah handshake tidak direkam, dan server lab menuntut TLS 1.3 sebagai versi terendah.
 
 **Identitas dibaca dari SAN yang lolos verifikasi.** SAN (Subject Alternative Name) adalah ekstensi sertifikat X.509 yang mengikat identitas ke subjek sertifikat, termasuk nama DNS ([RFC 5280](https://www.rfc-editor.org/rfc/rfc5280), bagian 4.2.1.6, Mei 2008, dibuka 2026-11-04, Tidak dijalankan). Fungsi `Nama` membaca SAN dari sertifikat daun di `VerifiedChains`, yaitu rantai yang sudah lolos verifikasi server. Ia tidak memakai `PeerCertificates`, CN, atau header, dan menuntut tepat satu SAN DNS berbentuk `<nama>.t5.lab`:
 
@@ -137,7 +137,7 @@ Versi benar di lab ini tidak memasang pemeriksa kunci itu. Pemeriksanya tetap ad
 
 **Idempotency-Key tetap dipakai.** mTLS menjawab siapa yang memanggil, dan Idempotency-Key menjawab permintaan yang mana. Permintaan yang sama dua kali lewat pembayaran menghasilkan satu jurnal: 201, lalu 200 (`idempoten.txt` bagian A). Key baru dari pembayaran yang sah, dengan akun dan jumlah yang sama, menghasilkan jurnal kedua (`idempoten.txt` bagian C). Service sah yang dibajak tetap memegang izin jenis jurnalnya, dan lab tidak membuktikan sebaliknya (README lab).
 
-**Sertifikat punya asal, umur, dan rotasi.** Lab membuat CA saat dijalankan dan menerbitkan semua sertifikat dari CA itu. Kunci privat berizin 0600 disimpan di folder sementara di luar repo, dan kunci CA tidak ditulis (`mtls.txt` bagian A). Rotasi otomatis Tidak dijalankan: tidak ada rekaman yang mengganti sertifikat.
+**Sertifikat punya asal, umur, dan rotasi.** Lab membuat CA saat dijalankan dan menerbitkan sertifikat service dari CA itu, ditambah satu sertifikat uji dari CA lain. Kunci privat berizin 0600 disimpan di folder sementara di luar repo, dan kunci CA tidak ditulis (`mtls.txt` bagian A). Rotasi otomatis Tidak dijalankan: tidak ada rekaman yang mengganti sertifikat.
 
 Naskah memilih cert-manager v1.21.3 untuk menerbitkan dan memutar sertifikat. Rilis itu terbit 2026-10-23 di GitHub (dibuka 2026-11-04, Tidak dijalankan). Dokumentasinya menulis bahwa cert-manager membuat sertifikat TLS untuk workload di cluster dan memperbaruinya sebelum kedaluwarsa. Nilai bawaan `spec.duration` sebuah Certificate adalah 90 hari ([cert-manager: Certificate](https://cert-manager.io/docs/usage/certificate/), dokumen tanpa nomor versi, dibuka 2026-11-04).
 
@@ -238,7 +238,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 
 **Keputusan: opsi E.** Delapan aturan:
 
-1. Panggilan ke ledger memakai mTLS: server menuntut sertifikat client yang valid (`RequireAndVerifyClientCert`) dari CA internal. Server lab hanya menerima TLS 1.3, dan itu pilihan lab.
+1. Panggilan ke ledger memakai mTLS: server menuntut sertifikat client yang valid (`RequireAndVerifyClientCert`) dari CA internal. Server lab menuntut TLS 1.3 sebagai versi terendah, dan itu pilihan lab.
 2. Identitas pemanggil adalah satu-satunya SAN DNS `<nama>.<domain>` pada rantai yang lolos verifikasi. CN dan header diabaikan, dan sertifikat tanpa tepat satu SAN identitas dijawab 401.
 3. Ledger menyimpan daftar jenis jurnal per identitas: `pembayaran` (topup_bank, kartu_tahan, kartu_tangkap), `cicilan` (angsuran, tabungan), dan `merchant` (bayar). `notifikasi` dan `akun` tidak boleh membuat jurnal. Identitas di luar daftar tidak punya izin, dan jenis di luar izin dijawab 403.
 4. Tiap rute ledger yang membuat jurnal dibungkus pemeriksa itu, dan tes yang memindai kode dengan `go/ast` menjaganya. Pengecualiannya `GET /healthz`.
