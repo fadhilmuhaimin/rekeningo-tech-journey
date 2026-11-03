@@ -192,6 +192,8 @@ describe("rekaman baca.txt: nilai di halaman dan di diagram diturunkan dari reka
   test("bagian A: saldo Rp250.000 di replica, Rp215.000 di primary, kiriman Rp240.000 ditolak 422 saldo-kurang", () => {
     // saldo di JSON bagian A berurutan: GET awal, jawaban bayar, GET dengan token (replica ditahan), GET sesudah replica menyusul
     expect(saldoA).toEqual([250000, 215000, 250000, 215000]);
+    // bagian A: tiap bacaan tampilan (enam GET, dua pertama sebelum bayar) dijawab replica, dan itu dasar "saldo tampil di replica"
+    expect(bagianA.filter((b) => b.startsWith("X-Dibaca-Dari:"))).toEqual(Array(6).fill("X-Dibaca-Dari: replika"));
     expect(saldoA[0]! - 35000).toBe(saldoA[1]);
     const kirim = bagianA.join("\n").match(/-d '\{"ke_nomor_karyawan": "K\d+", "nominal": (\d+)\}'/);
     expect(kirim).not.toBeNull();
@@ -321,6 +323,7 @@ describe("klaim tentang kode api-t5, dilingkupi folder dan jenis berkas yang dib
     harusAda("Bila belum, atau bila replica tidak menjawab, server membaca primary.");
   });
   test("TokenTulis kosong bila posisi tidak terbaca, dan token hanya dipasang oleh dua handler tulis (bayar dan kirim)", () => {
+    expect(serviceReplika).toMatch(/func \(s Service\) TokenTulis\(ctx context\.Context\) string \{\s*\n\s*if s\.replika == nil \{\s*\n\s*return ""\s*\n\s*\}/);
     expect(serviceReplika).toMatch(/lsn, err := s\.repo\.LSNTulis\(ctx\)\s*\n\s*if err != nil \{\s*\n\s*log\.Printf\("posisi WAL tulis tidak terbaca: %v", err\)\s*\n\s*return ""/);
     const panggilan = baris(handlerUtama).map((b, i) => [i, b] as const).filter(([, b]) => b.includes("s.tandaiTulis(w, r)")).map(([i]) => i);
     expect(panggilan.length).toBe(2);
