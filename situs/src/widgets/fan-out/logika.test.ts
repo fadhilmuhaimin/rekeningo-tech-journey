@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import mentah from "../../../data/widget/t5-fanout.json";
 import { DataFanOut } from "./skema";
-import { acuanUntuk, angka, bulat, durasiTeks, hitung, indeksPengirim, isi, jawabanTebak, nilaiPengirim, penerimaDari, pengirimDari, persenTeks, ribuan } from "./logika";
+import { acuanUntuk, angka, bulat, durasiTeks, hitung, indeksPengirim, isi, jawabanTebak, nilaiPengirim, penerimaDari, pengirimDari, persenTeks, ribuan, ringkasan, selTeks } from "./logika";
 
 const d = DataFanOut.parse(mentah);
 const N = (id: string) => penerimaDari(d, id);
@@ -127,6 +127,45 @@ describe("model: consumer, partisi, laju, kuota", () => {
   });
   it("hitung deterministik: dua panggilan sama menghasilkan objek sama", () => {
     expect(hitung(d, N("n100000"), P("p32"), "lab")).toEqual(hitung(d, N("n100000"), P("p32"), "lab"));
+  });
+});
+
+describe("model: batas dan urutan kasus (data sintetis)", () => {
+  const dengan = (ubah: (x: any) => void) => {
+    const x = structuredClone(d) as any;
+    ubah(x);
+    return x as typeof d;
+  };
+  it("kuota terlampaui hanya bila laju + uang LEBIH dari kuota: sama persis dengan kuota belum terlampaui", () => {
+    const laju = 167 / d.skenario.detikKirim;
+    const pas = dengan((x) => (x.skenario.kuota = laju + d.skenario.uang));
+    expect(hitung(pas, N("n1000000"), P("p167"), "sebanyak").kasus).toBe("cukup");
+    const kurang = dengan((x) => (x.skenario.kuota = laju + d.skenario.uang - 0.001));
+    expect(hitung(kurang, N("n1000000"), P("p167"), "sebanyak").kasus).toBe("kuota");
+  });
+  it("kuota terlampaui didahulukan dari partisi kurang: kuota 100 per detik, 167 pengirim, 6 partisi (laju 80 + uang 75,2)", () => {
+    const sempit = dengan((x) => (x.skenario.kuota = 100));
+    const h = hitung(sempit, N("n1000000"), P("p167"), "lab");
+    expect([h.bekerja < h.consumer, h.kasus]).toEqual([true, "kuota"]);
+  });
+  it("durasi antara 100 dan 120 menit memakai menit bulat: 6.630 detik = 110,5 menit = 111 menit", () => {
+    expect(durasiTeks(6630)).toBe("111 menit");
+    expect(durasiTeks(5970)).toBe("99,5 menit");
+  });
+  it("sel Selesai dalam memakai 'paling cepat' hanya bila kuota terlampaui; sel Akibat menyebut consumer menganggur hanya bila partisi kurang", () => {
+    const sel = (n: string, p: string, k: "sebanyak" | "lab", b: "selesai" | "akibat") => selTeks(d, hitung(d, N(n), P(p), k), b);
+    expect(sel("n1000000", "p5000", "sebanyak", "selesai")).toBe("paling cepat 101 detik");
+    expect(sel("n1000000", "p167", "lab", "selesai")).toBe("3,5 jam");
+    expect(sel("n1000000", "p167", "sebanyak", "selesai")).toBe("29,9 menit");
+    expect(sel("n1000000", "p167", "lab", "akibat")).toBe("36 consumer menganggur karena partisi kurang");
+    expect(sel("n1000000", "p32", "lab", "akibat")).toBe("2 consumer menganggur karena partisi kurang");
+    expect(sel("n1000000", "p32", "sebanyak", "akibat")).toBe("semua consumer mendapat partisi dan kuota tidak terlampaui");
+  });
+  it("ringkasan memakai templat kuota hanya bila partisi sebanyak consumer melewati kuota, dan menyebut partisi lab dan lamanya", () => {
+    expect(ringkasan(d, N("n1000000"), P("p5000"))).toContain("melewati kuota 10.000");
+    expect(ringkasan(d, N("n1000000"), P("p167"))).not.toContain("melewati kuota");
+    expect(ringkasan(d, N("n1000000"), P("p167"))).toContain("dengan 6 partisi dalam 3,5 jam");
+    expect(ringkasan(d, N("n1000000"), P("p5000"))).toContain("dengan 6 partisi selesai dalam 3,5 jam");
   });
 });
 

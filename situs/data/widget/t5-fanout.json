@@ -147,6 +147,7 @@
   "batas": [
     { "dasar": "rancangan", "teks": "Widget memodelkan satu pengumuman dengan 4 pengirim di tiap consumer dan 0,3 detik per pengiriman. Ulangan sesudah 429 tidak dihitung: tanpa backoff ulangan menambah permintaan, dan backoff dengan jitter menyebarkannya." },
     { "dasar": "rancangan", "teks": "Lab merekam struktur dan 429 pada latensi tiruan 0 sampai 5 ms (300 ms hanya di bagian pengirim). Jadi lama selesai di tabel adalah Simulasi atas Asumsi, bukan ukuran lab." },
+    { "dasar": "rancangan", "teks": "Batas laju 6.000 per detik adalah 60% dari kuota, pilihan desain yang meniru lab (3 × 200 = 600 dari kuota 1.000). Angka itu bukan batas dari penyedia." },
     { "dasar": "dokumentasi", "teks": "Kuota 10.000 per detik adalah terjemahan lab dari 600.000 per menit milik satu penyedia push. Dokumentasinya menyebut kuota per menit dan tidak menyebut laju per detik, jadi semburan di awal menit tidak dimodelkan." },
     { "dasar": "dokumentasi", "teks": "Dokumentasi Kafka menyebut tiap partisi dibaca satu consumer per consumer group. Consumer di atas jumlah partisi tidak punya yang dibaca; itu penalaran dari kalimat itu, dan lab tidak memasang consumer lebih banyak dari partisi." },
     { "dasar": "kode", "teks": "Satu notifikasi per perangkat berarti satu notifikasi berbeda. Consumer yang mati tidak mencatat offset, jadi rentangnya dikirim ulang dengan id yang sama dan penerima menyaring id itu. Pengiriman tepat satu kali tidak dijalankan." },

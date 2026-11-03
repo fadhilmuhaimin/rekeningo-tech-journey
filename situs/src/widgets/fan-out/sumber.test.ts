@@ -132,6 +132,9 @@ describe("sumber: kuota.txt A dan antrean.txt, kuota lab sepersepuluh dari kuota
     expect(RUN).toContain('["-serentak", "32", "-tanpa-backoff", "-maks-percobaan", "100000000"]');
     expect(B).toContain("-- umur notifikasi uang tertua melebihi 2 detik (batas lab): ya");
     expect(d.uang[1]!.teks).toContain("(3 × 200 = 600 per detik, di bawah kuota lab 1.000)");
+    // batas laju di widget = 60% kuota: 600 dari kuota lab 1.000 (antrean.txt B), dan 60% x 10.000 = 6.000
+    expect((3 * 200 * 100) / 1000).toBe(d.skenario.batasPersen);
+    expect((d.skenario.kuota * d.skenario.batasPersen) / 100).toBe(6000);
   });
   it("kelas antrean: empat baris uang kelas 0 terkirim lebih dulu dari 3.000 baris promo; mode urut-waktu mengirim empat promo (M27)", () => {
     const A = bagian(REKAMAN("antrean.txt"), "A");

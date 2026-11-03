@@ -112,7 +112,9 @@ describe("kunci: kalimat dan sel tabel", () => {
   });
   it("batas: kuota terjemahan lab, partisi dan consumer penalaran, satu notifikasi berbeda, Kafka satu broker", () => {
     const b = (awal: string) => d.batas.find((x) => x.teks.startsWith(awal))!;
-    expect(d.batas.map((x) => x.dasar)).toEqual(["rancangan", "rancangan", "dokumentasi", "dokumentasi", "kode", "kode"]);
+    expect(d.batas.map((x) => x.dasar)).toEqual(["rancangan", "rancangan", "rancangan", "dokumentasi", "dokumentasi", "kode", "kode"]);
+    // sumber.test.ts: 3 x 200 = 600 dari kuota 1.000 di antrean.txt B; 60% x 10.000 = 6.000 yang tertulis di sel Akibat
+    expect(b("Batas laju 6.000").teks).toBe("Batas laju 6.000 per detik adalah 60% dari kuota, pilihan desain yang meniru lab (3 × 200 = 600 dari kuota 1.000). Angka itu bukan batas dari penyedia.");
     // README t5-fanout "Kuota dengan jendela satu detik": 600.000 per menit diterjemahkan jadi 10.000 per detik; R5-288
     expect(b("Kuota 10.000 per detik").teks).toBe("Kuota 10.000 per detik adalah terjemahan lab dari 600.000 per menit milik satu penyedia push. Dokumentasinya menyebut kuota per menit dan tidak menyebut laju per detik, jadi semburan di awal menit tidak dimodelkan.");
     // R5-07: tiap partisi dibaca satu consumer per consumer group; kesimpulan consumer menganggur adalah penalaran
