@@ -186,7 +186,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [5.4 M40: Pembayaran melambat saat merchant membuka laporan](/tahap-5/m40-pembayaran-melambat/) | Tahap 5 | Laporan merchant yang dibuka tiap 30 detik memperlambat pembayaran karena memakai primary yang sama |
 | 5.5 Read replica dan model baca untuk laporan + ADR 46 · *segera* | Tahap 5 | Laporan dan bacaan berat dibaca dari replica, sedangkan yang memutuskan uang tetap dibaca dari primary |
 | 5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat · *segera* | Tahap 5 | Budi melihat Berhasil, tetapi riwayat dan saldo belum berubah karena dibaca dari replica yang tertinggal |
-| 5.7 Replication lag dan read-your-writes + ADR 47 · *segera* | Tahap 5 | Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya |
+| [5.7 Replication lag dan read-your-writes + ADR 47](/tahap-5/replication-lag/) | Tahap 5 | Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya |
 | 5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat · *segera* | Tahap 5 | Pengumuman ke satu juta HP dan notifikasi uang makan siang berebut kapasitas worker |
 | 5.15 Fan-out: event streaming, partisi, backpressure + ADR 51 · *segera* | Tahap 5 | Satu kejadian untuk banyak penerima ditulis sekali dan dibagi consumer, dengan backpressure ke penyedia push |
 | 5.16 M46: Latihan failover membuat semua service error · *segera* | Tahap 5 | Latihan failover berhasil, tetapi semua pod menyambung ulang bersamaan dan koneksi database habis |

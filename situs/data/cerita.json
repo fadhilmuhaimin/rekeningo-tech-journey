@@ -4343,8 +4343,9 @@
       "lab": [
         "t5-replika"
       ],
-      "ada": false,
-      "nomor": "5.7"
+      "ada": true,
+      "nomor": "5.7",
+      "menit": 24
     },
     {
       "id": "t5-m42",
