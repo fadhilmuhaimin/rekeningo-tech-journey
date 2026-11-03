@@ -980,3 +980,73 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka
     expect(sidikSekarang.berkas).toEqual(SIDIK.berkas);
   });
 });
+
+// --- tinjauan 5.22 (keputusan 1587): celah yang lolos mutasi tanpa kunci, ditutup dengan nilai turunan dari rekaman, bukan dengan kunci kata
+describe("tinjauan: baris rekaman yang tampil di Snippet, struktur baris kosong, dan jumlah pod di manifes", () => {
+  test("Snippet tanpa-router.txt memuat persis sembilan baris: tabel pod, jumlah pod, 200 permintaan, dan bagian pod, semuanya sama dengan angka yang dibaca", () => {
+    const rapikan = (b: string): string => b.replace(/\s+/g, " ").trim();
+    const tampil = rekABaris.slice(A3.awal - 1, A3.akhir);
+    expect(tampil).toHaveLength(9);
+    expect(tampil.map((b, i) => (i >= 1 && i <= 4 ? rapikan(b) : b))).toEqual([
+      "$ kubectl get rs  (versi, spec.replicas, siap)",
+      "versi | spec.replicas | siap",
+      "-------+---------------+------",
+      `v1 | ${A3.v1} | ${A3.v1}`,
+      `v2 | ${A3.v2} | ${A3.v2}`,
+      "(2 rows)",
+      `Pod v1: ${A3.v1}, pod v2: ${A3.v2}; replika yang diminta ${A3.diminta}, pod yang menjawab ${A3.menjawab}.`,
+      `${JUMLAH_PERMINTAAN} permintaan GET /healthz lewat Gateway ke satu Service tanpa bobot: semuanya terjawab.`,
+      `Bagian pod v2 dari semua pod yang menjawab = ${titik(A3.persen)}% (diminta ${bobot}%). Bagian permintaan yang dijawab v2 terukur antara ${A3.bawah.toFixed(1)}% dan ${A3.atas.toFixed(1)}%: ya (batas diperiksa; hitungan permintaan tepat bergantung penyeimbang beban dan tidak direkam).`,
+    ]);
+    expect(A3.v1 + A3.v2).toBe(A3.menjawab);
+    // tiga pengaturan, tiga kali baris status Rollout tanpa bobot
+    expect(hitungKali(rekA, "status.canary.weights di Rollout: tidak ada (tanpa traffic router)")).toBe(3);
+  });
+  test("Snippet sakelar.txt memuat persis sebelas baris bagian D1: tiga pod sebelum, hanya pod yang diubah menolak, pod pengganti setuju, dan dua komentar rekaman", () => {
+    const tampil = rekDBaris.slice(dMulai - 1, dSelesai);
+    expect(tampil).toHaveLength(11);
+    const pod = (n: number, label: string, hasil: string): string => `otorisasi Rp1.000 di pod ${n} ${label}: HTTP 200, ${hasil}`;
+    expect(tampil).toEqual([
+      `# Tiga pod otorisasi kartu dari satu image, satu database. Kill switch dimatikan lewat pod ${podTolak[0]}.`,
+      pod(1, "sebelum kill switch", "setuju"),
+      pod(2, "sebelum kill switch", "setuju"),
+      pod(3, "sebelum kill switch", "setuju"),
+      `POST /bo/flag/kartu {"aktif": false} di pod ${podTolak[0]}: HTTP 200, {"aktif":false}`,
+      pod(podTolak[0]!, "sesudah kill switch dimatikan", "tolak (kill-switch)"),
+      pod(podSetuju[0]!, "sesudah kill switch dimatikan", "setuju"),
+      pod(podSetuju[1]!, "sesudah kill switch dimatikan", "setuju"),
+      `# Yang menolak hanya pod yang diubah; pod ${podSetuju[0]} dan pod ${podSetuju[1]} tetap menyetujui otorisasi baru.`,
+      pod(podUlang[0]!, "sesudah dimulai ulang", "setuju"),
+      "# Pod yang dimulai ulang kembali menyetujui: flag di memori hilang bersama prosesnya, tanpa ada yang menyalakannya.",
+    ]);
+  });
+  test("manifes bagian D: tiga replika, dan bagian A: satu Rollout dengan satu langkah setWeight dan tanpa trafficRouting", () => {
+    expect(baca("labs/t5-rollout/manifes/kartu-sakelar.yaml")).toMatch(/^ {2}replicas: 3$/m);
+    const m = baca("labs/t5-rollout/manifes/kartu-tanpa-router.yaml");
+    expect(m.match(/- setWeight: \d+/g)).toEqual([`- setWeight: ${bobot}`]);
+    expect(m.match(/^ {2}replicas: \$\{REPLIKA\}$/m)).not.toBeNull();
+    expect(m).not.toContain("trafficRouting:");
+  });
+  test("struktur baris kosong: tiap paragraf prosa berdiri sendiri, dan tabel, Snippet, Rantai, widget, dan daftar didahului dan diikuti baris kosong", () => {
+    const b = badan.split("\n");
+    const prosa = (x: string): boolean => x.trim() !== "" && !/^(\||- |<|###)/.test(x);
+    for (let i = 0; i < b.length; i++) {
+      const x = b[i]!;
+      const sebelum = i > 0 ? b[i - 1]! : "";
+      const sesudah = i < b.length - 1 ? b[i + 1]! : "";
+      if (prosa(x)) {
+        expect(sebelum === "" || /^<(summary|noscript)/.test(sebelum), `baris ${i + 1} didahului baris kosong: ${x.slice(0, 50)}`).toBe(true);
+        expect(sesudah === "" || /^<\/noscript>/.test(sesudah), `baris ${i + 1} diikuti baris kosong: ${x.slice(0, 50)}`).toBe(true);
+      }
+      if (/^(<Snippet|<Rantai|<WidgetLama)/.test(x)) {
+        expect(sebelum, `baris ${i + 1} (${x.slice(0, 20)}) didahului baris kosong`).toBe("");
+        expect(sesudah, `baris ${i + 1} (${x.slice(0, 20)}) diikuti baris kosong`).toBe("");
+      }
+      if (x.startsWith("|") && !sebelum.startsWith("|")) expect(sebelum, `tabel di baris ${i + 1} didahului baris kosong`).toBe("");
+      if (x.startsWith("|") && !sesudah.startsWith("|")) expect(sesudah, `tabel di baris ${i + 1} diikuti baris kosong`).toBe("");
+      if (x.startsWith("- ") && !sebelum.startsWith("- ")) expect(sebelum, `daftar di baris ${i + 1} didahului baris kosong`).toBe("");
+    }
+    // paragraf prosa paling banyak empat kalimat (audit bahasa memberi peringatan, bukan galat)
+    for (const x of b.filter(prosa)) expect(x.split(SPLIT).length, x.slice(0, 50)).toBeLessThanOrEqual(4);
+  });
+});
