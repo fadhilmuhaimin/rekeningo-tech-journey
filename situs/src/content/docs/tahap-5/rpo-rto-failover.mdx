@@ -29,7 +29,7 @@ Replica asinkron tidak menjamin RPO nol, dan standby sinkron menjaganya dengan s
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
 
 1. Di standby sinkron, apa yang ditunggu COMMIT dengan `synchronous_commit = on`, dan apa dengan `remote_apply`?
-2. Kenapa promosi tanpa fencing berbahaya, dan apa buktinya di lab?
+2. Kenapa primary lama yang tidak dihentikan sesudah promosi berbahaya, dan apa buktinya di lab?
 3. Dari RPO dan RTO, mana yang membatasi data yang boleh hilang, dan mana yang membatasi lama pulih?
 
 Yakin dengan ketiganya? Lompat ke [[berikutnya]].
@@ -269,7 +269,7 @@ Primary lama yang masih menerima tulisan tidak menjawab `on`, jadi pemeriksaan i
 - Saat satu buku menerima lebih dari 1 ÷ 0,05 = 20 pembayaran per detik. Lock yang ditahan sampai konfirmasi membatasinya (penalaran, Tidak dijalankan).
 - Saat latihan bulanan pulih lebih dari 15 menit. Pembandingnya M42: 23 menit (Ilustrasi), selisih 8 menit dan 53,2% dari anggaran 43,2 menit.
 - Saat kedua standby sinkron mati bersamaan. Dokumentasi menulis commit mungkin tidak selesai, dan manusia menurunkan daftar. Pemulihan manual 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran.
-- Saat primary dan satu standby gagal bersamaan. Dokumentasi menulis data hanya bisa hilang dalam keadaan itu, dan Patroni menulis node ketiga yang mungkin belum lengkap yang dipromosikan.
+- Saat primary dan satu standby gagal bersamaan. Untuk satu standby sinkron, dokumentasi menulis data hanya bisa hilang dalam keadaan itu. Patroni menulis bahwa node ketiga yang dipromosikan mungkin belum lengkap.
 
 **Yang akan merevisinya.** [[t5-m46]] menunjukkan, menurut naskah (Ilustrasi), latihan failover yang berhasil tetapi membuat semua pod menyambung ulang bersamaan dan menghabiskan koneksi. Jawabannya ADR 52 di [[t5-pooler]]. [[t5-onprem]] menimbang database dijalankan sendiri atau terkelola, dan [[t5-tim-infra]] membawa SLO dan latihan.
 

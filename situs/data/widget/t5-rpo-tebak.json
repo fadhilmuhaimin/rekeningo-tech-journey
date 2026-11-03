@@ -12,22 +12,22 @@
   "pertanyaan": "Apa yang terjadi pada COMMIT itu?",
   "pilihan": [
     {
-      "teks": "COMMIT selesai seperti biasa, karena primary sudah menulis commit ke disknya sendiri.",
+      "teks": "COMMIT selesai seperti biasa, karena primary sudah menulis commit ke disknya sendiri dan tidak butuh standby lagi.",
       "benar": false,
       "alasan": "Dengan standby sinkron, COMMIT menunggu standby menyimpan commit-nya. Rekaman bagian C: sesi itu menunggu di SyncRep, dan barisnya belum terlihat oleh sesi lain."
     },
     {
-      "teks": "COMMIT menunggu tanpa galat, dan barisnya belum terlihat oleh sesi lain sampai jumlah standby sinkron diturunkan.",
+      "teks": "COMMIT menunggu tanpa galat, dan barisnya belum terlihat oleh sesi lain sebelum daftar standby sinkron diubah.",
       "benar": true,
       "alasan": "Rekaman bagian C: sesi menunggu di SyncRep, barisnya tidak terlihat, dan COMMIT selesai sesudah synchronous_standby_names dikosongkan. Selama daftar kosong, COMMIT tidak menunggu siapa pun."
     },
     {
-      "teks": "COMMIT ditolak segera dengan galat, supaya aplikasi tahu bahwa standby mati.",
+      "teks": "COMMIT ditolak segera dengan galat, supaya aplikasi langsung tahu bahwa standby sinkronnya mati.",
       "benar": false,
       "alasan": "Rekaman tidak memuat galat: pg_stat_activity menunjukkan sesi itu menunggu. Dokumentasi menulis bahwa commit seperti ini mungkin tidak pernah selesai, bukan bahwa ia ditolak."
     },
     {
-      "teks": "COMMIT berpindah sendiri ke mode asinkron sesudah batas waktu, lalu selesai.",
+      "teks": "COMMIT berpindah sendiri ke mode asinkron sesudah batas waktu tertentu, lalu selesai tanpa galat.",
       "benar": false,
       "alasan": "Dokumentasi PostgreSQL 17 tidak menyebut batas waktu atau perpindahan itu, dan lab tidak menunggu sampai batas. Yang terekam: COMMIT baru selesai sesudah daftar dikosongkan dengan tangan."
     }
