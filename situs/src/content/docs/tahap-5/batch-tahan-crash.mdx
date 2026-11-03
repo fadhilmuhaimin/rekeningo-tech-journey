@@ -31,7 +31,7 @@ Versi benar memakai referensi itu, sedangkan versi pertama hanya memakai Idempot
 
 1. Apa beda referensi dengan Idempotency-Key, dan kenapa referensi tidak terkena batas 24 jam?
 2. Dua job cicilan sudah membaca daftar yang sama dan berebut kunci buku. Saldo cukup untuk satu angsuran. Apa hasil gabungannya?
-3. Di DBOS Go, langkah jurnal tanpa referensi mati di dalam langkahnya sesudah ledger commit. Berapa jurnal akhirnya, dan kenapa?
+3. Di DBOS Go, langkah jurnal tanpa referensi mati di dalam langkahnya sesudah ledger commit. Berapa jurnal akhirnya, dan apa sebabnya?
 
 Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
@@ -94,7 +94,7 @@ Job dijalankan lagi tanpa memutar jam ledger. Ia menemukan jurnal yang sudah ada
 
 <Snippet file="labs/t5-cicilan/output/crash.txt" lines="67:78" title="Rekaman lab: labs/t5-cicilan/output/crash.txt, bagian B (job diulang: jurnal sudah ada 1, angsuran dicatat)" />
 
-Saldo Citra Rp150.000 sama dengan 250.000 − 100.000 (Hitungan). Rekaman tidak memutar jam +25 jam untuk versi benar (Tidak dijalankan). Kode versi benar tidak membaca jam: `-lab-sekarang` hanya dipakai versi pertama (README lab), dan `CatatJurnalReferensi` tidak punya syarat waktu.
+Saldo Citra Rp150.000 sama dengan 250.000 − 100.000 (Hitungan). Rekaman tidak memutar jam +25 jam untuk versi benar (Tidak dijalankan). Kode versi benar tidak membaca jam: di job cicilan, `-lab-sekarang` hanya dipakai versi pertama (README lab), dan `CatatJurnalReferensi` tidak punya syarat waktu.
 
 **Dua job serentak menghasilkan satu jurnal.** Dua job bisa membaca daftar angsuran yang sama, lalu berebut buku. `jurnalAngsuran` mengunci buku akun dan merchant lebih dulu, baru membaca referensi:
 
@@ -193,7 +193,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
   jobId: "angsuran:7:1",
 });`} />
 
-**Yang berbeda di stack ini:** dokumentasi menulis bahwa job dengan id yang sudah ada diabaikan. Job yang dihapus dari queue, secara manual atau lewat `removeOnComplete` dan `removeOnFail`, tidak dianggap duplikat, sehingga id yang sama bisa ditambahkan lagi. Penahannya berlaku selama job lama masih ada di queue.
+**Yang berbeda di stack ini:** dokumentasi menulis bahwa job dengan id yang sudah ada diabaikan. Job yang dihapus dari queue, secara manual atau lewat pengaturan seperti `removeOnComplete`, tidak dianggap duplikat, sehingga id yang sama bisa ditambahkan lagi. Penahannya berlaku selama job lama masih ada di queue.
 
 </Fragment>
 <Fragment slot="t2">

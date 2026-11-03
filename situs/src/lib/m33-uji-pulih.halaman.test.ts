@@ -604,7 +604,9 @@ describe("halaman istilah dan glosarium: Backup dan uji pulih", () => {
     expect(istilah.istilah).toBe("Backup dan uji pulih");
     expect(sidik(JSON.stringify(JSON.parse(istilahMentah)))).toBe(SIDIK.istilah);
     expect(glosMdx).toContain("| **Backup dan uji pulih** | Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai. | [[t4-m33]] |");
-    expect(glosMdx).toMatch(/\| \*\*Backoff\*\* [^\n]*\n\| \*\*Backup dan uji pulih\*\* [^\n]*\n\| \*\*BFF\*\* /);
+    // Backup dan uji pulih tepat sesudah Backoff dan sebelum BFF; istilah lain yang urut abjad di antara keduanya (Batch, halaman 5.21) boleh menyela.
+    expect(glosMdx).toMatch(/\| \*\*Backoff\*\* [^\n]*\n\| \*\*Backup dan uji pulih\*\* [^\n]*\n/);
+    expect(glosMdx.indexOf("| **BFF** ")).toBeGreaterThan(glosMdx.indexOf("| **Backup dan uji pulih** "));
     expect(istilah.terkait).toEqual(["Staging", "Object storage"]);
     for (const t of istilah.terkait!) expect(glosMdx).toContain(`| **${t}** |`);
     expect(istilah.cerita!.map((c) => c.rujukan)).toEqual(["t3-tim-infra", "t4-m33"]);

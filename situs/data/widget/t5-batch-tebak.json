@@ -12,7 +12,7 @@
   "pertanyaan": "Apa hasil gabungan kedua job untuk angsuran ke-1?",
   "pilihan": [
     {
-      "teks": "Dua jurnal, dan database menolak yang kedua karena saldo karyawan menjadi negatif.",
+      "teks": "Dua jurnal untuk angsuran ke-1, dan database menolak yang kedua karena saldo karyawan menjadi negatif.",
       "benar": false,
       "alasan": "Rekaman bagian B mencatat satu jurnal dengan referensi angsuran:7:1. Job yang kalah tidak menulis jurnal kedua, jadi tidak ada yang ditolak karena saldo."
     },
