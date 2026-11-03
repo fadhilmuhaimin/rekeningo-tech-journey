@@ -14,7 +14,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "import Tebak from \"../../../widgets/tebak/Tebak.tsx\";",
  "import intiDiagram from \"../../../../data/diagram/t5-mtls-inti.json\";",
  "import dataTebak from \"../../../../data/widget/t5-mtls-tebak.json\";",
- "<p class=\"meta\">Baca 22 menit · coba 4 menit · Prasyarat: [[t5-m47]] · Jalur inti</p>",
+ "<p class=\"meta\">Baca 19 menit · coba 4 menit · Prasyarat: [[t5-m47]] · Jalur inti</p>",
  "<Blok nama=\"Mulai\" buka>",
  "## Inti",
  "Ledger menolak pemanggil tanpa sertifikat sah di handshake dan menjawab 403 bila izin jenis jurnalnya tidak ada.",

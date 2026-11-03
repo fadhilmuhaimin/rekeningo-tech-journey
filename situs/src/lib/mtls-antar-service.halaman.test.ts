@@ -184,7 +184,7 @@ describe("naskah, registry, dan halaman tetangga", () => {
     expect(h.masalah).toBe("Idempotency-Key mencegah pemrosesan ganda, bukan pemanggil yang tidak berhak: identitas service lewat mTLS dan daftar jenis jurnal");
     const meta = cari(/<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: (.+) · Jalur inti<\/p>/, halaman, "meta");
     expect(Number(meta[1]) + Number(meta[2])).toBe(h.menit);
-    expect([meta[1], meta[2]]).toEqual(["22", "4"]); // pembagian baca dan coba: perkiraan penulis, jumlahnya dijaga registry
+    expect([meta[1], meta[2]]).toEqual(["19", "4"]); // pembagian baca dan coba: perkiraan penulis, jumlahnya dijaga registry
     expect(meta[3]).toBe("[[t5-m47]]");
     expect(frontmatter).toContain(`title: "5.19 ${h.judul}"`);
     expect(naskah).toContain(`| 5.19 | 4 | ${h.judul} | Keamanan + ADR | ★ | t5-service | banding |`);
@@ -444,7 +444,7 @@ describe("sumber luar: kutipan di baris riset R5-200 sampai R5-204 dan tautan di
       "an application-level mechanism for sender-constraining access and refresh tokens",
       "This document describes a mechanism for sender-constraining OAuth 2.0 tokens via a proof-of-possession mechanism on the application level.",
       "certificate-bound access and refresh tokens using mutual Transport Layer Security (TLS) authentication with X.509 certificates.",
-      "BCP 240, Januari 2025", "RFC 9449 (September 2023)", "Ketiga RFC mengatur token akses OAuth 2.0", `dibuka ${TANGGAL}`,
+      "BCP 240, Januari 2025", "RFC 9449 (September 2023)", "RFC 8705 (mutual TLS, token terikat sertifikat client)", "Ketiga RFC mengatur token akses OAuth 2.0", `dibuka ${TANGGAL}`,
     ]) expect(r, k).toContain(k);
     harus("RFC itu mengatur token akses OAuth 2.0, jadi halaman ini memakainya sebagai rujukan untuk masalah yang sama, bukan sebagai aturan bagi Rekeningo (penalaran).");
     harus("RFC 9700 menulis bahwa authorization server SHOULD memastikan token akses terikat pengirim, dan menyebut akses baca ke log web server sebagai contoh akses sebagian ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), bagian 4.9.3 dan 4.10, Januari 2025, dibuka 2026-11-04).");
@@ -482,7 +482,7 @@ describe("sumber luar: kutipan di baris riset R5-200 sampai R5-204 dan tautan di
       "Django 5.2", "When the web server takes care of authentication it typically provides the authenticated user as REMOTE_USER.",
       "RemoteUserMiddleware must not be deployed in configurations where a client can supply the header.", "This warning applies under ASGI in all configurations",
       "Serverpod 4.1.0", "Serverpod can also terminate TLS itself", "(1.531.926 byte)",
-      "Uses SSL, verifies the CA certificate, and confirms the hostname matches the certificate.",
+      "mode verify-full \"Uses SSL, verifies the CA certificate, and confirms the hostname matches the certificate.\"",
       "Network restrictions apply to Postgres and the database pooler. They don't apply to HTTPS APIs such as PostgREST, Storage, and Auth",
     ]) expect(r, k).toContain(k);
     expect(jumlah(r, `dibuka ${TANGGAL}`)).toBeGreaterThanOrEqual(5);
@@ -495,7 +495,14 @@ describe("sumber luar: kutipan di baris riset R5-200 sampai R5-204 dan tautan di
   });
   test("R5-204: baris internal yang dibaca memuat nama bagian rekaman, region kode, tes, dan celah naskah; tanggal buka dan tautan di halaman terkunci", () => {
     const r = barisRiset("R5-204");
-    for (const k of ["`labs/t5-service/output/mtls.txt` bagian A", "`rentan.txt` A dan B", "`idempoten.txt` A dan C", "`testing.txt`", "region server-tls", "region rute-identitas", "`rute_test.go`", "(PasangLedger dan satu kunci bersama)", "Naskah tidak menulis nasib kunci bersama dan jenis issuer", `Dibaca ${TANGGAL}`]) expect(r, k).toContain(k);
+    // tanggal akses per baris riset: jumlah kemunculan terkunci (toContain puas dengan satu kemunculan)
+    const hitungTanggal = (id: string, k: string): number => jumlah(barisRiset(id), k);
+    expect(["R5-200", "R5-201", "R5-202", "R5-203", "R5-204"].map((id) => hitungTanggal(id, TANGGAL))).toEqual([4, 2, 5, 7, 1]);
+    expect(["R5-200", "R5-201", "R5-202", "R5-203", "R5-204"].map((id) => hitungTanggal(id, `dibuka ${TANGGAL}`))).toEqual([3, 1, 4, 5, 0]);
+    expect(["R5-200", "R5-201", "R5-202", "R5-203", "R5-204"].map((id) => hitungTanggal(id, "2026-10-"))).toEqual([0, 0, 3, 0, 0]);
+    for (const k of [
+      "sembilan sertifikat lab, kunci CA tidak ditulis, healthz dengan sertifikat pembayaran",
+      "B (empat alert, empat baris log handshake, jurnal 0 sebelum dan sesudah)", "jurnal topup akun uji 0", "(pemindai go/ast, pengecualian GET /healthz)","`labs/t5-service/output/mtls.txt` bagian A", "`rentan.txt` A dan B", "`idempoten.txt` A dan C", "`testing.txt`", "region server-tls", "region rute-identitas", "`rute_test.go`", "(PasangLedger dan satu kunci bersama)", "Naskah tidak menulis nasib kunci bersama dan jenis issuer", `Dibaca ${TANGGAL}`]) expect(r, k).toContain(k);
     const tanggal = badan.match(/\b20\d\d-\d\d-\d\d\b/g)!;
     expect(new Set(tanggal)).toEqual(new Set([TANGGAL, "2026-10-23", "2026-10-20"]));
     expect(tanggal.filter((t) => t === "2026-10-23")).toHaveLength(1);
