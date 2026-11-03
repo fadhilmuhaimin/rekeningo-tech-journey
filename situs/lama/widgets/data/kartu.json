@@ -3816,6 +3816,30 @@
   "jawab": "ADR 14 menulis keputusannya salah saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama. Batch yang tertunda lebih dari 24 jam memenuhi syarat itu. Key tidak rusak: ia memang hanya hidup 24 jam."
  },
  {
+  "id": "t5-m49-1",
+  "halaman": "t5-m49",
+  "judul": "5.22 M49: Rilis kartu 5% ternyata sepertiga",
+  "url": "tahap-5/m49-canary-sepertiga/",
+  "tanya": "Rollout dengan tiga replika dan `setWeight: 5` menjalankan satu pod versi baru. Kenapa bagiannya bukan 5%, dan berapa replika yang membuatnya 5,0%?",
+  "jawab": "Lima persen dari tiga pod adalah 0,15 pod. Untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 menyisakan satu pod versi baru (dibaca dari kode). Hasilnya 25,0% atau 33,3% menurut `maxSurge`. Dengan 20 replika rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (`tanpa-router.txt`, bagian A)."
+ },
+ {
+  "id": "t5-m49-2",
+  "halaman": "t5-m49",
+  "judul": "5.22 M49: Rilis kartu 5% ternyata sepertiga",
+  "url": "tahap-5/m49-canary-sepertiga/",
+  "tanya": "Nadia mematikan kill switch lewat satu pod. Apa yang direkam lab untuk dua pod lain dan untuk pod yang diganti?",
+  "jawab": "Dua pod lain tetap menyetujui otorisasi baru, dan pod pengganti menyetujui lagi karena flag di memori hilang bersama prosesnya (`sakelar.txt`, bagian D). Flag dibuat dan dinyalakan di `main` tiap proses (Tidak dijalankan, dibaca dari kode)."
+ },
+ {
+  "id": "t5-m49-3",
+  "halaman": "t5-m49",
+  "judul": "5.22 M49: Rilis kartu 5% ternyata sepertiga",
+  "url": "tahap-5/m49-canary-sepertiga/",
+  "tanya": "Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur dari canary?",
+  "jawab": "Hari, jam, 2%, dan 31% adalah Ilustrasi. Lab mengukur bagian pod dan memeriksa batas bagian permintaan, tetapi tidak mengukur bagian user dan tidak mencatat hitungan permintaan tepat per versi (`tanpa-router.txt`, bagian A)."
+ },
+ {
   "id": "t5-onprem-1",
   "halaman": "t5-onprem",
   "judul": "5.28 On-prem lawan cloud + ADR 59",

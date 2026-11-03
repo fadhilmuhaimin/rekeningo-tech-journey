@@ -1,0 +1,108 @@
+{
+  "versi": 2,
+  "judul": "Rilis kartu 5%: tiga pod, satu kill switch",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "catatan": "Jalur utama memuat dua langkah cerita (Ilustrasi: Selasa 15.00, 2%, 31%, tiga pod) dan empat langkah rekaman lab t5-rollout (tanpa-router.txt bagian A: 3 replika, maxSurge tidak diubah; sakelar.txt bagian D: flag di memori, tiga pod). Ubah satu hal memakai tanpa-router.txt bagian A untuk 20 replika. Argo Rollouts v1.10.1 di k3d, tanpa traffic router; lab hanya diuji di host arm64. Bagian user tidak direkam."
+  },
+  "pengantar": "Tim Pembayaran merilis versi baru dengan canary 5%, lalu menekan kill switch. Tebakannya tentang satu hal yang kamu ubah: centang 'Ubah satu hal' di bawah, dan jawabannya terbuka di akhir langkah varian.",
+  "komponen": [
+    {
+      "id": "tim",
+      "label": "Tim Pembayaran"
+    },
+    {
+      "id": "argo",
+      "label": "Argo Rollouts"
+    },
+    {
+      "id": "pod",
+      "label": "Pod otorisasi kartu"
+    }
+  ],
+  "perangkat": [],
+  "layarAwal": {},
+  "predict": {
+    "q": "Rollout yang sama memakai 20 replika, bukan 3, dengan setWeight: 5 dan tanpa traffic router. Berapa bagian pod versi baru dari semua pod yang menjawab?",
+    "options": [
+      "10,0%: controller membulatkan ke atas menjadi dua pod dari 20",
+      "5,0%: satu pod versi baru dari 20 pod yang menjawab",
+      "25,0%: satu pod ditambahkan di samping pod yang ada, seperti pada tiga replika",
+      "0%: controller tidak membuat pod versi baru tanpa traffic router"
+    ],
+    "answer": 1,
+    "varian": true,
+    "explain": "Lima persen dari 20 pod tepat satu pod, jadi pasangan satu pod dari 20 pod tidak punya selisih dari 5% (Hitungan atas kode). Rekaman: 1 pod versi baru dan 19 pod versi lama, 5,0%. Dengan tiga replika tidak ada pasangan yang sedekat itu."
+  },
+  "langkah": [
+    {
+      "dari": "tim",
+      "ke": "argo",
+      "judul": "Tim Pembayaran merilis versi baru",
+      "kirim": "Selasa 15.00: Rollout 3 replika, setWeight: 5, tanpa traffic router (Ilustrasi)",
+      "jelas": "Rollout memakai Argo Rollouts v1.10.1 tanpa traffic router. Hari dan jam berasal dari cerita."
+    },
+    {
+      "dari": "argo",
+      "ke": "pod",
+      "judul": "Argo Rollouts menjalankan satu pod versi baru",
+      "kirim": "pod versi baru: 1\npod versi lama: 3\nbagian pod versi baru: 25,0% (Rekaman lab, maxSurge tidak diubah)",
+      "jelas": "Lima persen dari tiga pod adalah 0,15 pod, jadi controller memilih satu pod versi baru. Empat pod menjawab (tanpa-router.txt, bagian A). Dengan maxSurge 0 hasilnya 33,3%."
+    },
+    {
+      "dari": "pod",
+      "judul": "Rasio ditolak naik",
+      "kirim": "rasio otorisasi ditolak: 2% ke 31% (Ilustrasi)",
+      "jelas": "Angka ini dari cerita. Lab tidak menjalankan versi kartu yang salah.",
+      "nada": "warn"
+    },
+    {
+      "dari": "tim",
+      "ke": "pod",
+      "judul": "Nadia menekan kill switch",
+      "kirim": "POST /bo/flag/kartu {\"aktif\": false} ke pod 1 (Rekaman lab)",
+      "jelas": "Kill switch kartu di lab adalah flag di memori satu proses. Lab mengirim permintaan itu ke pod 1."
+    },
+    {
+      "dari": "pod",
+      "judul": "Satu pod berhenti menyetujui",
+      "kirim": "pod 1: tolak (kill-switch)\npod 2: setuju\npod 3: setuju (Rekaman lab)",
+      "jelas": "Flag di memori hanya berlaku di proses pod 1. Pod 2 dan pod 3 punya flag sendiri, dan flag itu tetap menyala (sakelar.txt, bagian D).",
+      "nada": "warn"
+    },
+    {
+      "dari": "pod",
+      "judul": "Pod yang dimulai ulang menyetujui lagi",
+      "kirim": "pod 1 pengganti: setuju (Rekaman lab)",
+      "jelas": "Pod 1 dihapus dan diganti pod baru. Flag di memori hilang bersama prosesnya, dan tidak ada yang menyalakannya.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "Rollout memakai 20 replika, bukan 3",
+    "mulai": 1,
+    "langkah": [
+      {
+        "dari": "argo",
+        "ke": "pod",
+        "judul": "Argo Rollouts menjalankan satu pod dari 20",
+        "kirim": "pod versi baru: 1\npod versi lama: 19\nbagian pod versi baru: 5,0% (Rekaman lab)",
+        "jelas": "Lima persen dari 20 pod tepat satu pod, jadi controller tidak menambah pod di samping 20 pod itu. 20 pod menjawab (tanpa-router.txt, bagian A)."
+      },
+      {
+        "dari": "pod",
+        "judul": "Permintaan mengikuti pod dalam batas",
+        "kirim": "200 permintaan GET /healthz: bagian versi baru antara 1,5% dan 8,5% (batas diperiksa; hitungan tepat tidak direkam; Rekaman lab)",
+        "jelas": "Batas ini dari lab. Hitungan tepat bergantung penyeimbang beban dan tidak direkam, dan bagian user tidak direkam."
+      },
+      {
+        "dari": "argo",
+        "ke": "pod",
+        "judul": "Lebih halus dari 5,0% butuh lebih banyak replika",
+        "kirim": "bagian terkecil dengan satu pod: 1 ÷ 20 = 5,0% (Hitungan)\nlebih halus dari itu: lebih banyak replika, atau traffic router",
+        "jelas": "Dokumentasi Argo Rollouts menulis bahwa kontrol persentase yang lebih halus tanpa banyak replika memakai traffic management. Traffic router dibahas di halaman berikutnya.",
+        "nada": "warn"
+      }
+    ]
+  }
+}
