@@ -4531,8 +4531,9 @@
       "lab": [
         "t5-fanout"
       ],
-      "ada": false,
-      "nomor": "5.14"
+      "ada": true,
+      "nomor": "5.14",
+      "menit": 15
     },
     {
       "id": "t5-fanout",

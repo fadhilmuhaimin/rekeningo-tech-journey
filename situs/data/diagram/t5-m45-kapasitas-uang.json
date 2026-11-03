@@ -1,0 +1,46 @@
+{
+  "id": "t5-m45-kapasitas-uang",
+  "judul": "Notifikasi uang makan siang menumpuk karena kapasitas worker, bukan karena pengumuman",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Hitungan atas Asumsi naskah Tahap 5 (650.000 notifikasi uang per hari, 80% dalam 90 menit) dan kapasitas worker 4 ÷ 0,3; kelas queue dari rekaman t5-fanout antrean.txt bagian A"
+  },
+  "baris": [
+    {
+      "label": "Yang dikira tim",
+      "sub": "pengumuman di depan uang",
+      "simpul": [
+        {
+          "teks": "1.000.000 baris pengumuman",
+          "sub": "di queue yang sama"
+        },
+        {
+          "teks": "Uang menunggu di belakangnya"
+        },
+        {
+          "teks": "Hentikan pengumuman",
+          "nada": "old"
+        }
+      ]
+    },
+    {
+      "label": "Yang terhitung",
+      "sub": "makan siang, 4 pengirim",
+      "simpul": [
+        {
+          "teks": "Uang datang 96,3 per detik",
+          "sub": "kelas uang dikirim lebih dulu"
+        },
+        {
+          "teks": "Worker mengirim 13,33 per detik"
+        },
+        {
+          "teks": "Queue uang tumbuh 83 per detik",
+          "sub": "dengan atau tanpa pengumuman",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah akibat yang dilihat Ani. Angka makan siang adalah Hitungan atas Asumsi, dan lab tidak mengisi queue uang selama 90 menit."
+}
