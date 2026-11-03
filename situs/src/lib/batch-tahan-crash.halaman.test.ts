@@ -731,6 +731,7 @@ describe("ADR 54: tabel opsi, enam aturan, pre-mortem, kapan salah, dan sengaja 
     const barisSb = sb.split("\n").filter((b) => b.startsWith("|"));
     expect(barisSb).toHaveLength(2 + 6);
     for (const b of barisSb) expect(pecahBaris(b)).toHaveLength(3);
+    expect(pecahBaris(barisSb[0]!)).toEqual(["Yang ditunda", "Kenapa ditunda", "Muncul lagi di"]);
     expect(barisSb.slice(2).map((b) => pecahBaris(b)[0])).toEqual(["Notifikasi angsuran", "Langkah akhir yang gagal permanen sungguhan", "Klaim per baris dan pembatas laju 20 per detik di job", "Kompensasi atas merchant yang sudah dibekukan", "Retensi tabel DBOS dan gerbang pemindai atas modulnya", "Temporal"]);
     expect(barisSb.slice(2).map((b) => pecahBaris(b)[2])).toEqual(["Belum dijadwalkan", "Belum dijadwalkan", "Belum dijadwalkan", "Belum dijadwalkan", "Belum dijadwalkan", "[[t5-adr-60]]"]);
   });
@@ -865,6 +866,8 @@ describe("registry, tautan, template blok, widget, kartu, istilah, dan label", (
     const barisRekaman = badan.split("\n").filter((b) => b.includes("Rekaman lab"));
     for (const b of barisRekaman) expect(/crash\.txt|serentak\.txt|langkah\.txt|kompensasi\.txt|laju\.txt|Rekaman lab: labs\/|Label sumber|bila berasal dari Rekaman lab/.test(b), b).toBe(true);
     expect(badan).not.toMatch(/\+25 jam[^.\n]*\(Rekaman lab\)/);
+    harus("Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `crash.txt` bagian B, versi benar dimatikan sesudah jurnal ditulis.");
+    harus("Catatan di widget menyebut file rekaman dan bagiannya bila berasal dari Rekaman lab.");
     const coba = badan.slice(badan.indexOf('<Blok nama="Coba"'), badan.indexOf('<Blok nama="Paham"'));
     expect(coba).toContain("Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan Asumsi adalah angka pilihan penulis tanpa rekaman. Penalaran adalah kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.");
     expect(coba).toContain("Tidak dijalankan berarti dicek ke kode atau dokumentasi tanpa menjalankannya.");
@@ -914,6 +917,7 @@ describe("registry, tautan, template blok, widget, kartu, istilah, dan label", (
   test("Rantai Inti: ringkas, dua baris, sumber rekaman crash.txt bagian B dan C, simpul dan sub dari nilai turunan; kalimat Inti pendek", () => {
     const d = DataRantai.parse(rantaiMentah);
     expect(d.id).toBe("t5-batch-inti");
+    expect(d.judul).toBe("Batch yang diulang menemukan jurnal yang sudah ada");
     expect(d.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab: crash.txt bagian B dan C" });
     expect(d.baris).toHaveLength(2);
     expect(d.baris.map((b) => [b.label, b.sub])).toEqual([["Diulang", "bagian B"], ["Referensi sama", "bagian C"]]);
