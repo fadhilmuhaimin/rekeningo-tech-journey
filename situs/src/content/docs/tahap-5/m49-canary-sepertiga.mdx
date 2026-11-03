@@ -136,7 +136,7 @@ Canary tanpa traffic router menghitung pod, dan kill switch harus ada di tempat 
 <details class="success">
 <summary>Jawaban</summary>
 
-Lima persen dari tiga pod adalah 0,15 pod, dan kode v1.10.1 menyisakan satu pod versi baru untuk bobot 5 dengan dua replika atau lebih (dibaca dari kode). Hasilnya 25,0% atau 33,3% menurut `maxSurge`. Dengan 20 replika rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (`tanpa-router.txt`, bagian A).
+Lima persen dari tiga pod adalah 0,15 pod. Untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 menyisakan satu pod versi baru (dibaca dari kode). Hasilnya 25,0% atau 33,3% menurut `maxSurge`. Dengan 20 replika rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (`tanpa-router.txt`, bagian A).
 
 </details>
 

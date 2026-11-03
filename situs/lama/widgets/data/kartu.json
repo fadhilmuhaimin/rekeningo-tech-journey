@@ -3789,7 +3789,7 @@
   "judul": "5.22 M49: Rilis kartu 5% ternyata sepertiga",
   "url": "tahap-5/m49-canary-sepertiga/",
   "tanya": "Rollout dengan tiga replika dan `setWeight: 5` menjalankan satu pod versi baru. Kenapa bagiannya bukan 5%, dan berapa replika yang membuatnya 5,0%?",
-  "jawab": "Lima persen dari tiga pod adalah 0,15 pod, dan kode v1.10.1 menyisakan satu pod versi baru untuk bobot 5 dengan dua replika atau lebih (dibaca dari kode). Hasilnya 25,0% atau 33,3% menurut `maxSurge`. Dengan 20 replika rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (`tanpa-router.txt`, bagian A)."
+  "jawab": "Lima persen dari tiga pod adalah 0,15 pod. Untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 menyisakan satu pod versi baru (dibaca dari kode). Hasilnya 25,0% atau 33,3% menurut `maxSurge`. Dengan 20 replika rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (`tanpa-router.txt`, bagian A)."
  },
  {
   "id": "t5-m49-2",

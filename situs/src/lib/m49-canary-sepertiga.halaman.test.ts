@@ -665,7 +665,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(kartuSemua.filter((x) => x.id.startsWith("t5-m49-"))).toHaveLength(3);
     // soal 1 menulis hasil 20 replika dari rekaman, soal 3 menulis apa yang tidak direkam
     expect(jawaban[0]).toBe(
-      `Lima persen dari tiga pod adalah 0,15 pod, dan kode v1.10.1 menyisakan satu pod versi baru untuk bobot 5 dengan dua replika atau lebih (dibaca dari kode). Hasilnya ${pk(A3.persen)}% atau ${pk(A3S0.persen)}% menurut \`maxSurge\`. ` +
+      `Lima persen dari tiga pod adalah 0,15 pod. Untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 menyisakan satu pod versi baru (dibaca dari kode). Hasilnya ${pk(A3.persen)}% atau ${pk(A3S0.persen)}% menurut \`maxSurge\`. ` +
         `Dengan ${A20.diminta} replika rekaman memberi ${A20.v2} pod versi baru dan ${A20.v1} pod versi lama: ${pk(A20.persen)}% (\`tanpa-router.txt\`, bagian A).`,
     );
     expect(jawaban[1]).toBe(
@@ -864,7 +864,7 @@ const BADAN_DITURUNKAN: string[] = [
     "**1.** Rollout dengan tiga replika dan `setWeight: 5` menjalankan satu pod versi baru. Kenapa bagiannya bukan 5%, dan berapa replika yang membuatnya 5,0%?",
     "<details class=\"success\">",
     "<summary>Jawaban</summary>",
-    `${huruf1(kata(bobot))} persen dari ${kata(A3.diminta)} pod adalah ${koma((A3.diminta * bobot) / 100, 2)} pod, dan kode v1.10.1 menyisakan satu pod versi baru untuk bobot 5 dengan dua replika atau lebih (dibaca dari kode). Hasilnya ${pk(A3.persen)}% atau ${pk(A3S0.persen)}% menurut \`maxSurge\`. Dengan ${A20.diminta} replika rekaman memberi ${A20.v2} pod versi baru dan ${A20.v1} pod versi lama: ${pk(A20.persen)}% (\`tanpa-router.txt\`, bagian A).`,
+    `${huruf1(kata(bobot))} persen dari ${kata(A3.diminta)} pod adalah ${koma((A3.diminta * bobot) / 100, 2)} pod. Untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 menyisakan satu pod versi baru (dibaca dari kode). Hasilnya ${pk(A3.persen)}% atau ${pk(A3S0.persen)}% menurut \`maxSurge\`. Dengan ${A20.diminta} replika rekaman memberi ${A20.v2} pod versi baru dan ${A20.v1} pod versi lama: ${pk(A20.persen)}% (\`tanpa-router.txt\`, bagian A).`,
     "</details>",
     "**2.** Nadia mematikan kill switch lewat satu pod. Apa yang direkam lab untuk dua pod lain dan untuk pod yang diganti?",
     "<details class=\"success\">",
