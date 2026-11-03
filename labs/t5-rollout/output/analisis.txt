@@ -10,7 +10,7 @@ HTTPRoute kartu-route, bobot awal: {"kartu-stable": 100, "kartu-canary": 0}
 HTTPRoute kartu-route, bobot: {"kartu-stable": 95, "kartu-canary": 5}
 AnalysisRun rasio-tolak: phase Failed
 Pesan: Metric "rasio-tolak" assessed Failed due to failed (1) > failureLimit (0)
-Pengukuran: 1 gagal dari 3; yang gagal memuat total >= 10 dan rasio_tolak >= 0,1: ya
+Pengukuran yang gagal: 1 (failureLimit 0: satu kegagalan menghentikan analisis; jumlah pengukuran sebelumnya tidak direkam); yang gagal memuat total >= 10 dan rasio_tolak >= 0,1: ya
 Rollout kartu: phase Degraded, abort True
 Pesan Rollout: RolloutAborted: Rollout aborted update to revision 2: Background analysis phase error/failed: Metric "rasio-tolak" assessed Failed due to failed (1) > failureLimit (0)
 HTTPRoute kartu-route sesudah rollback: {"kartu-stable": 100, "kartu-canary": 0}

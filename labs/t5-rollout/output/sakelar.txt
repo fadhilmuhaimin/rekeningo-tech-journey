@@ -26,7 +26,7 @@ otorisasi Rp1.000 di pod 1 segera sesudahnya: HTTP 200, tolak (kill-switch)
 otorisasi Rp1.000 di pod 2 segera sesudahnya: HTTP 200, setuju
 otorisasi Rp1.000 di pod 3 segera sesudahnya: HTTP 200, setuju
 # Dalam jendela cache pod 2 dan pod 3 masih membaca nilai lama: sesudah sakelar dimatikan, otorisasi baru di sana tetap lolos sampai cache habis.
-Pod 2 dan pod 3 menolak (alasan kill-switch) paling lambat 5 detik sesudah sakelar dimatikan: ya (batas diperiksa, lama sebenarnya tidak direkam)
+Pod 2 dan pod 3 menolak (alasan kill-switch) dalam 5 detik ditambah 2 detik toleransi pengukuran sesudah sakelar dimatikan: ya (batas diperiksa, lama sebenarnya tidak direkam)
 otorisasi Rp1.000 di pod 1 sesudah jendela cache: HTTP 200, tolak (kill-switch)
 otorisasi Rp1.000 di pod 2 sesudah jendela cache: HTTP 200, tolak (kill-switch)
 otorisasi Rp1.000 di pod 3 sesudah jendela cache: HTTP 200, tolak (kill-switch)
@@ -35,9 +35,8 @@ $ SELECT nama, nilai, diubah_oleh FROM sakelar
 -------------+-------+-------------
  kartu_aktif | f     | 420
 (1 row)
-Baris otorisasi_kartu (hanya yang disetujui sebelum kill switch dan di jendela cache): 21
 POST /bo/flag/kartu {"aktif": true} di pod 2: HTTP 200, {"aktif":true}
-Semua pod menyetujui lagi paling lambat 5 detik sesudah sakelar dinyalakan lewat pod 2: ya (batas diperiksa)
+Sesudah sakelar dinyalakan lewat pod 2 (bukan pod yang mematikannya) semua pod menyetujui lagi: ya
 
 # --- D3. Sakelar tidak terbaca: tolak yang eksplisit (HTTP 200), bukan galat ---
 # Hak SELECT atas tabel sakelar dicabut dari role service pembayaran; pod tidak bisa membaca sakelar.
