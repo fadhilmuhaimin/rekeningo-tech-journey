@@ -1,0 +1,19 @@
+# Lab t5-gabung · satu proses mati di versi tiga proses
+# go1.27.3 · tanpa database dan tanpa container · modul lab/t5gabung (pustaka standar) · broker queue tiruan di loopback
+# Skor risiko di lab ini peraga, bukan fitur produk dan bukan model risiko.
+# Rekaman: make -C labs/t5-gabung run. Waktu dan p95 tidak ditulis; yang ditulis hasil pemeriksaan terhadap batas.
+
+# --- A. Semua proses hidup ---
+transaksi T00001 ke tiga proses: 200, 6 panggilan
+
+# --- B. Proses riwayat mati, dua proses lain tetap hidup ---
+$ (proses riwayat dihentikan dengan SIGTERM; masuk, perangkat, dan broker tetap hidup)
+transaksi T00002 ke tiga proses: 504 sesudah menunggu paling sedikit 2 detik (batas tunggu proses masuk), hasil tidak datang
+pesan yang menunggu di queue (topik riwayat): 1
+transaksi T00002 ke satu proses: 200, 0 panggilan (tidak ada proses lain yang bisa mati di tengah jalan)
+
+# --- C. Proses riwayat hidup lagi ---
+pesan T00002 yang tertinggal diproses oleh proses riwayat yang baru; pesan di queue: 0
+hasilnya sampai ke proses masuk, tetapi permintaannya sudah dijawab 504: hasil tanpa penunggu bertambah 1
+transaksi T00003 ke tiga proses: 200, 6 panggilan
+# Queue menahan pesan selama pemrosesnya mati. Pesan itu disimpan di memori broker: broker yang mati membuangnya, dan kasus itu Tidak dijalankan.
