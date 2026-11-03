@@ -228,7 +228,7 @@ describe("sumber: README, compose, dan naskah untuk batas lab", () => {
 
 // Angka di kalimat yang dibaca pembaca harus berasal dari baris rekaman yang dikutip (bukti), dari hitungan yang disebut di kalimatnya, atau
 // dari bagian rekaman yang sama (tercatat di tabel TAMBAHAN beserta alasannya). Mutan yang mengubah satu angka di kalimat lolos tes lain
-// bila tak ada penjaga ini (uji mutasi tanpa kunci baris: 59 dari 208 mutan angka lolos).
+// bila tak ada penjaga ini (uji mutasi tanpa kunci baris: 54 dari 208 mutan angka lolos).
 const angkaDari = (t: string): string[] =>
   [...t.matchAll(/\d+(?:[.,]\d+)*/g)].map((m) => {
     const x = m[0];
