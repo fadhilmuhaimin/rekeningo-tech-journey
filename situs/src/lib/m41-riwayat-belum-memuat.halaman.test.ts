@@ -352,6 +352,10 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     harus("- App Flutter tidak ada di lab. Layar HP di widget digambar dari cerita (Ilustrasi), dan lab hanya menjawab curl.");
     harus("- Primary dan replica berjalan di satu mesin. Jaringan antar host tidak direkam.");
     harus("- Lab tidak mengukur muat ulang otomatis di app, dan tidak mengukur seberapa sering user melihat catatan lama pada jeda alami.");
+    // urutan empat butir: jeda dan cerita, app, mesin, lalu yang tidak diukur
+    const urutan = ["- Jeda ±", "- App Flutter tidak ada di lab.", "- Primary dan replica berjalan di satu mesin.", "- Lab tidak mengukur muat ulang otomatis"].map((k) => badan.indexOf(k));
+    expect(urutan.every((x) => x > 0)).toBe(true);
+    expect([...urutan].sort((x, y) => x - y)).toEqual(urutan);
     expect(fs.existsSync(path.join(akar, "labs/t5-replika/docker-compose.yml"))).toBe(true);
     expect(baca("labs/t5-replika/README.md")).toContain("Semua node adalah container lokal");
     expect(baca("labs/t5-replika/README.md")).toContain("Jeda antar-wilayah, jaringan antar host, dan penyimpanan terkelola **Tidak dijalankan**");
@@ -431,6 +435,16 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-135 sam
     expect(r139).toContain(`${angkaId(kirimA)} ≤ ${angkaId(akunA[1]!)}`);
     expect(r139).toContain(`${angkaId(kirimA)} > ${angkaId(saldoPrimary)}`);
     expect(r139).toContain(`${angkaId(kirimA)} > ${angkaId(maksBayar)}`);
+  });
+});
+
+describe("kalimat berulang di badan halaman", () => {
+  test("tidak ada kalimat (empat kata atau lebih) yang muncul dua kali: toContain dan harus() puas dengan satu kemunculan, jadi kalimat yang digandakan lolos tanpa kunci baris", () => {
+    const kalimat = badan.split("\n").filter((b) => b.trim() && !b.startsWith("<")).flatMap((b) => b.split(/(?<=[.!?])\s+/).map((k) => k.trim())).filter((k) => k.split(/\s+/).length >= 4);
+    expect(kalimat.length).toBeGreaterThan(80);
+    const hitung = new Map<string, number>();
+    for (const k of kalimat) hitung.set(k, (hitung.get(k) ?? 0) + 1);
+    expect([...hitung].filter(([, n]) => n > 1).map(([k]) => k)).toEqual([]);
   });
 });
 
