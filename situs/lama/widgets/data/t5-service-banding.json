@@ -10,7 +10,7 @@
           { "id": "rilis", "label": "Satu rilis", "sub": "satu merge queue" }
         ],
         [
-          { "id": "proses", "label": "Satu proses", "sub": "enam modul" },
+          { "id": "proses", "label": "Modul di satu repo", "sub": "pembayaran sudah service (ADR 37)" },
           { "id": "hop", "label": "Pemanggilan fungsi", "sub": "dalam proses" }
         ],
         [
@@ -25,7 +25,7 @@
       "nama": "B · Enam service (ADR 50)",
       "baris": [
         [
-          { "id": "tim", "label": "Lima tim produk", "sub": "satu tim per service" },
+          { "id": "tim", "label": "Lima tim produk", "sub": "tiap service punya tim pemilik" },
           { "id": "rilis", "label": "Rilis per service", "sub": "pipeline sendiri" }
         ],
         [

@@ -68,6 +68,8 @@ Asumsi adalah angka pilihan penulis tanpa rekaman, dan Ilustrasi adalah adegan c
 
 Pemicunya jadwal rilis, bukan beban. Ukuran tim hanya memeriksa satu hal: apakah pemecahan meninggalkan service yang dipegang terlalu sedikit orang.
 
+Naskah menulis satu artefak deploy, sedangkan modul pembayaran sudah berjalan sebagai service sendiri sejak ADR 37 ([[t4-modul]]). Halaman ini membaca opsi A seperti [[t5-m44]]: satu repo, satu merge queue, dan satu rilis (Asumsi pembacaan).
+
 Hitungannya dibulatkan ke satu desimal. 28 ÷ 6 = 4,7 orang per service untuk semua tim, dan 20 ÷ 6 = 3,3 untuk lima tim produk. Bila ada dua belas service, 28 ÷ 12 = 2,3 (Hitungan atas Asumsi tim 28 orang, [[t5-prd]]).
 
 Di urutan scaling yang diajarkan (PROPOSAL), memecah service ada sesudah read replica dan partisi. [[t5-read-replica]] dan [[t5-partisi]] mendahului halaman ini, dan [[t5-fanout]] menyusul.
@@ -131,9 +133,9 @@ Lab juga memeriksa rasio p95 tiga proses terhadap satu proses: paling kecil 2 pa
 
 Tiga proses menjawab 504 sesudah menunggu paling sedikit 2 detik, yaitu batas tunggu proses masuk, dan satu pesan tertinggal di queue. Satu proses tetap menjawab 200. Sesudah riwayat hidup lagi, pesan yang tertinggal diproses dan hasilnya sampai ke proses masuk tanpa penunggu, karena permintaannya sudah dijawab 504.
 
-Skor di lab tidak punya efek samping. Alur yang menggerakkan uang akan memproses pesan terlambat itu, dan pemanggilnya mengulang permintaan. ADR 12 dan ADR 37 menulis konsistensi lintas service dijaga Idempotency-Key dan rekonsiliasi ([[t1-adr-12]], [[t4-modul]]). Lab ini tidak memperagakannya (Tidak dijalankan).
+Skor di lab tidak punya efek samping. Alur yang menggerakkan uang akan memproses pesan terlambat itu, dan pemanggilnya mengulang permintaan. ADR 12 memperingatkan bahwa satu transaction tidak lagi membungkus dua service ([[t1-adr-12]]), dan ADR 37 menerima itu untuk satu jalur, dengan Idempotency-Key dan rekonsiliasi ([[t4-modul]]). Lab ini tidak memperagakannya (Tidak dijalankan).
 
-**Kubernetes: yang ditambahkan.** Sebuah cluster Kubernetes terdiri dari control plane dan satu atau lebih worker node. Komponen kube-scheduler memasangkan pod yang belum punya node dengan node yang cocok ([Kubernetes: komponen](https://kubernetes.io/docs/concepts/overview/components/), dibuka 2026-11-03).
+**Kubernetes: yang ditambahkan.** Sebuah cluster Kubernetes terdiri dari control plane dan satu atau lebih worker node. Pod adalah satu atau lebih container yang berbagi penyimpanan dan jaringan ([Kubernetes: Pods](https://kubernetes.io/docs/concepts/workloads/pods/), dibuka 2026-11-03). Komponen kube-scheduler memasangkan pod yang belum punya node dengan node yang cocok ([Kubernetes: komponen](https://kubernetes.io/docs/concepts/overview/components/), dibuka 2026-11-03).
 
 k3s adalah distribusi Kubernetes yang menurut dokumentasinya sepenuhnya sesuai, dikemas sebagai satu binary atau image container minimal ([K3s](https://docs.k3s.io/), dibuka 2026-11-03). Lab `t5-rollout` memakai k3s v1.37.1+k3s1 di dalam k3d v5.9.0, jadi cluster berjalan di Docker satu mesin (README lab).
 
@@ -151,13 +153,13 @@ HPA di lab menargetkan Deployment, bukan Rollout, dan Argo CD Tidak dijalankan. 
 
 Ingress NGINX adalah satu controller untuk Ingress API. Pengumuman pada 11 November 2025 menulis bahwa pemeliharaannya dihentikan pada Maret 2026, tanpa rilis, perbaikan bug, atau pembaruan keamanan sesudahnya ([Ingress NGINX Retirement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/), dibuka 2026-11-03). Pengumuman itu datang dari SIG Network dan Security Response Committee.
 
-API GitHub pada tanggal yang sama menulis repositorinya berstatus archived. Lab memakai Gateway Traefik 3.7.13 dengan Gateway API v1.6.1 (README lab t5-rollout). Bobot canary dibahas di [[t5-rollout]].
+API GitHub menulis pada 2026-11-03 bahwa repositorinya berstatus archived. Lab memakai Gateway Traefik 3.7.13 dengan Gateway API v1.6.1 (README lab t5-rollout). Bobot canary dibahas di [[t5-rollout]].
 
 **Yang tidak direkam.**
 
 - Jaringan antar host: semua panggilan lab berjalan di loopback satu mesin, jadi p95 satu lompatan HTTP antar host ke ledger Tidak dijalankan.
 - Beban serentak: penggerak mengirim satu transaksi pada satu waktu, jadi p95 di lab adalah latensi satu transaksi tanpa queue di depan prosesnya.
-- Broker tiruan: pesan hanya di memori, dan broker yang mati membuangnya. Satu topik menampung 1.024 pesan dan penuh dijawab 503, tetapi jumlah topik dan ukuran pesan tidak dibatasi (batas lab).
+- Broker tiruan: pesan hanya di memori, dan broker yang mati membuangnya. Satu topik menampung 1.024 pesan dan penuh dijawab 503. Jumlah topik tidak dibatasi dan satu pesan dibaca sampai 1 MiB, jadi memori broker tidak berbatas (batas lab).
 - Proses mati: hanya proses riwayat yang dihentikan, dengan SIGTERM saat menganggur. Broker produk dengan konfirmasi dan penyimpanan Tidak dijalankan.
 - Pemindai ADR 44 (govulncheck dan grype) Tidak dijalankan atas kedua lab, jadi halaman ini tidak menulis lab lolos pemindaian.
 - Kubernetes: Argo CD, HPA atas Rollout, dan router selain Traefik Tidak dijalankan, dan lab hanya diuji di host arm64.
@@ -180,13 +182,13 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 </Fragment>
 <Fragment slot="t1">
 
-*Tidak dijalankan. Dicek ke [MDN: AbortSignal.timeout()](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static), halaman tanpa nomor versi, dibuka 2026-11-03. Kode di bawah adalah Ilustrasi.*
+*Tidak dijalankan. Dicek ke [MDN: AbortSignal.timeout()](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static), halaman tanpa nomor versi, dibuka 2026-11-03, dan ke [Node.js: globals](https://nodejs.org/api/globals.html), halaman tanpa nomor versi, dibuka 2026-11-03. Kode di bawah adalah Ilustrasi.*
 
 <Snippet lang="js" code={`const jawab = await fetch(urlLedger, {
   signal: AbortSignal.timeout(3000),
 });`} />
 
-**Yang berbeda di stack ini:** `AbortSignal.timeout(ms)` menghasilkan sinyal yang membatalkan dengan `TimeoutError`. MDN menulis bahwa waktunya dihitung dari waktu aktif, bukan waktu berlalu. Contoh di halaman itu memakai `fetch`, dan halaman itu tidak membahas batas waktu bawaannya.
+**Yang berbeda di stack ini:** `AbortSignal.timeout(ms)` menghasilkan sinyal yang dibatalkan sesudah `ms` milidetik, dan dokumentasi Node.js mencatatnya sejak v17.3.0. MDN menulis bahwa sinyal itu dibatalkan dengan `TimeoutError`, dan di browser waktunya dihitung dari waktu aktif, bukan waktu berlalu. Halaman globals Node.js tidak menulis soal waktu aktif. Contoh di MDN memakai `fetch`, dan MDN tidak membahas batas waktu bawaannya.
 
 </Fragment>
 <Fragment slot="t2">
@@ -236,7 +238,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 | | A. Modular monolith, rilis terjadwal | B. Dua belas service | C. Enam service, database per service | D. Enam service tanpa Kubernetes | E. Enam service di Kubernetes, schema dan role per service |
 |---|---|---|---|---|---|
 | Cara kerja | Satu artefak deploy, tiap tim punya hari rilis, perubahan masuk trunk di balik feature flag | Tiap modul dan sub-modul jadi service, misalnya 12 | Tiap service punya database sendiri, bukan hanya schema dan role | Enam service di Docker Compose atau satu VM per service, dirilis dengan skrip | Enam service, tiga instance tiap service, satu cluster PostgreSQL dengan schema dan role per service |
-| Kelebihan | Tanpa panggilan jaringan baru, dan satu COMMIT tetap mencakup semua modul | Rilis paling terpisah | Satu service tidak memperlambat service lain di cluster yang sama (Penalaran) | Tanpa control plane yang harus dijaga | Rilis per service, dan HPA menambah pod menurut CPU |
+| Kelebihan | Tanpa panggilan jaringan baru antar modul, dan satu COMMIT tetap mencakup modul di proses yang sama | Rilis paling terpisah | Satu service tidak memperlambat service lain di cluster yang sama (Penalaran) | Tanpa control plane yang harus dijaga | Rilis per service, dan HPA menambah pod menurut CPU |
 | Kekurangan | Perbaikan siap menunggu hari tim lain, dan lima tim tetap berbagi satu merge queue | 28 ÷ 12 = 2,3 orang per service, di bawah ambang 3 (Hitungan atas Asumsi) | Enam database untuk dijaga, padahal belum ada rekaman dua service saling memperlambat di Tahap 5 | 6 × 3 = 18 proses dijadwalkan, dipulihkan, dan diskalakan dengan skrip (Penalaran) | Tiap perpindahan antar proses jadi panggilan jaringan, dan satu COMMIT tidak lagi mencakup dua service |
 | Biaya operasional | Satu pipeline dan satu rilis, tetapi waktu tunggu rilis tidak turun | 12 pipeline dan 12 × 3 = 36 instance (Hitungan atas Asumsi) | Operasi database bertambah dari satu cluster menjadi enam (Penalaran) | Skrip rilis, pemulihan, dan penskalaan ditulis dan dijaga sendiri | Cluster, pipeline per service, dan orang yang menjaganya: Platform 4 dan SRE 2 (Asumsi naskah, [[t5-tim-infra]]) |
 | Bukti | Adegan [[t5-m44]] (Ilustrasi). Trunk-based dan feature flag Tidak dijalankan | Hitungan di halaman ini. Tidak dijalankan | Tidak dijalankan: ditunda di [[t5-adr-60]] | Tidak dijalankan: Penalaran dari hitungan 6 × 3 | Rekaman lab `t5-gabung` dan `t5-rollout`, dan hitungan di halaman ini |
@@ -244,7 +246,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 **Keputusan: opsi E.** Delapan aturan:
 
 1. Enam service: `ledger`, `akun`, `pembayaran`, `merchant`, `notifikasi`, dan `cicilan`. Tiap service punya pipeline sendiri ([[t5-tim-infra]]), tiga instance (Asumsi desain), dan satu tim pemilik.
-2. Satu cluster PostgreSQL, satu schema dan satu role per service ([[t4-modul]]), tanpa foreign key lintas service. Konsistensi lintas service dijaga Idempotency-Key dan rekonsiliasi ([[t1-adr-12]]).
+2. Satu cluster PostgreSQL, satu schema dan satu role per service ([[t4-modul]]), tanpa foreign key lintas service. Konsistensi lintas service dijaga Idempotency-Key dan rekonsiliasi seperti di ADR 37 ([[t4-modul]]), karena satu transaction tidak lagi mencakup dua service ([[t1-adr-12]]).
 3. Ledger tetap satu-satunya tempat uang bergerak. Service lain membaca lewat API ledger atau meminta jurnal dengan Idempotency-Key.
 4. Panggilan antar service memakai HTTP dan OpenAPI, bukan gRPC. Pemicu gRPC adalah p95 satu lompatan HTTP ke ledger yang melewati 50 ms antar host ([[t5-adr-60]]).
 5. Kubernetes menjalankan service: k3s di lab, versi 1.37.1. HPA mengikuti CPU. Metrik umur notifikasi untuk worker menunggu [[t5-fanout]].
@@ -263,7 +265,9 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 
 Tim itu memindahkan semua komponen ke satu proses dan menulis bahwa biaya infrastruktur turun lebih dari 90%. Mereka menulis bahwa memilih microservices atau serverless lawan monolith harus kasus per kasus ([arsip Wayback Machine 2023-05-04, artikel asli Prime Video Tech](https://web.archive.org/web/20230504223922/https://www.primevideotech.com/video-streaming/scaling-up-the-prime-video-audio-video-monitoring-service-and-reducing-costs-by-90), dibuka 2026-11-03).
 
-Batasnya: satu service pemantau milik satu tim, bukan seluruh Prime Video, dan penulisnya karyawan perusahaan yang menulis tentang sistemnya sendiri. Sesudah pemindahan, penambahan detector hanya bisa diskalakan vertikal di dalam satu instance, jadi tim menggandakan service itu dengan subset detector berbeda. Di Rekeningo, isi pesan lab hanya 620,14 byte per transaksi tiap arah. Lab tidak memperagakan kasus komponen yang bertukar data besar, dan skor risiko hanya padanan Ilustrasi.
+Batasnya: satu service pemantau milik satu tim, bukan seluruh Prime Video, dan penulisnya karyawan perusahaan yang menulis tentang sistemnya sendiri.
+
+Detector adalah algoritma yang mencari cacat pada frame dan audio. Sesudah pemindahan, penambahan detector hanya bisa diskalakan vertikal di dalam satu instance, jadi tim menggandakan service itu dengan subset detector berbeda. Di Rekeningo, isi pesan lab hanya 620,14 byte per transaksi tiap arah. Lab tidak memperagakan kasus komponen yang bertukar data besar, dan skor risiko hanya padanan Ilustrasi.
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
@@ -276,7 +280,7 @@ Batasnya: satu service pemantau milik satu tim, bukan seluruh Prime Video, dan p
 | Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |
 |---|---|---|---|
 | Waktu tunggu rilis satu tim tidak turun sesudah pemecahan | Waktu dari perubahan siap sampai rilis, per tim | Pembanding: merge queue 6 jam di cerita (Ilustrasi). Sesudah pemecahan belum ada ukuran | Pipeline per service |
-| p95 satu lompatan HTTP ke ledger melewati 50 ms antar host (anggaran lompatan ADR 37) | p95 tambahan per lompatan, antar host | Belum diukur antar host (Tidak dijalankan). Di puncak 69,4 transaksi uang per detik × 0,05 detik = 3,5 panggilan serentak, dengan satu panggilan ke ledger per transaksi uang. Dengan 2 transaksi per user aktif per hari: 46,3 × 0,05 = 2,3 (Hitungan atas Asumsi) | Trace per lompatan |
+| p95 satu lompatan HTTP ke ledger melewati 50 ms antar host (anggaran lompatan ADR 37) | p95 tambahan per lompatan, antar host | Belum diukur antar host (Tidak dijalankan). Di puncak 69,4 transaksi uang per detik (Asumsi, dasar 3 transaksi per user aktif per hari, [[t5-prd]]) × 0,05 detik = 3,5 panggilan serentak, dengan satu panggilan ke ledger per transaksi uang. Dengan 2 transaksi per user aktif per hari: 46,3 × 0,05 = 2,3 (Hitungan atas Asumsi) | Trace per lompatan |
 | Komponen yang bertukar data besar dan sering rugi bila dipisah | Byte per panggilan dan jumlah panggilan per transaksi | Lab: 620,14 byte per transaksi tiap arah dan 6 panggilan (Rekaman lab). Prime Video: banyaknya panggilan S3 untuk frame antar komponen menaikkan biaya (kasus industri) | Ukuran pesan antar service |
 | Selisih lintas service tidak tertutup rekonsiliasi dalam satu hari kerja | Selisih rekonsiliasi harian | Target uji coba nasional: Rp0 atau insiden tertutup dalam satu hari kerja selama 14 hari berturut-turut (Asumsi, [[t5-m51]]). Belum diukur di halaman ini | Laporan rekonsiliasi harian |
 | Satu service dipegang kurang dari 3 orang (Asumsi) | Orang per service | 4,7 untuk semua tim dan 3,3 untuk lima tim produk (Hitungan atas Asumsi) | Daftar tim ([[t5-prd]]) |
@@ -359,11 +363,13 @@ ceil(1 × 100 ÷ 50) = 2 pod (Hitungan dari rumus dokumentasi, dengan CPU contoh
 
 - [Prime Video Tech: Scaling up the audio/video monitoring service (arsip Wayback Machine)](https://web.archive.org/web/20230504223922/https://www.primevideotech.com/video-streaming/scaling-up-the-prime-video-audio-video-monitoring-service-and-reducing-costs-by-90)
 - [Kubernetes: komponen cluster](https://kubernetes.io/docs/concepts/overview/components/)
+- [Kubernetes: Pods](https://kubernetes.io/docs/concepts/workloads/pods/)
 - [Kubernetes: Horizontal Pod Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)
 - [Kubernetes: Gateway API](https://kubernetes.io/docs/concepts/services-networking/gateway/)
 - [Kubernetes: Ingress NGINX Retirement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)
 - [K3s: dokumentasi](https://docs.k3s.io/)
 - [MDN: AbortSignal.timeout()](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static)
+- [Node.js: globals](https://nodejs.org/api/globals.html)
 - [Laravel 13.x: HTTP Client](https://laravel.com/docs/13.x/http-client)
 - [requests: Advanced Usage](https://requests.readthedocs.io/en/latest/user/advanced/)
 - [Dart: HttpClient.connectionTimeout](https://api.dart.dev/stable/latest/dart-io/HttpClient/connectionTimeout.html)

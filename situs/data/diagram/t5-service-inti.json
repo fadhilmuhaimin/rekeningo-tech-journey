@@ -3,12 +3,12 @@
   "judul": "Harga satu pemecahan",
   "sumber": {
     "jenis": "rekaman",
-    "teks": "Rekaman lab t5-gabung"
+    "teks": "Rekaman lab (harga)"
   },
   "baris": [
     {
-      "label": "Pilihan",
-      "sub": "ADR 50, dari M44",
+      "label": "Pilihan ADR 50",
+      "sub": "dari M44",
       "simpul": [
         {
           "teks": "5 tim, 1 rilis",
@@ -49,5 +49,5 @@
       ]
     }
   ],
-  "catatan": "Biru: pilihan ADR 50 (naskah). Oranye: pemicu dan harga. Hijau: yang tidak berubah."
+  "catatan": "Biru: pilihan ADR 50. Oranye: pemicu dan harga. Hijau: dasar pembanding dan yang tidak berubah."
 }

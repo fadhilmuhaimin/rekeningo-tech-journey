@@ -263,7 +263,7 @@ describe("angka cerita dan hitungan: diturunkan dari naskah, halaman ADR, rekama
     expect(koma(serentak3)).toBe("3,5");
     expect(serentak2).toBeCloseTo(2.315, 10);
     expect(koma(serentak2)).toBe("2,3");
-    expect(badan).toContain(`Di puncak ${koma(puncak3)} transaksi uang per detik × ${String(detikLompatan).replace(".", ",")} detik = ${koma(serentak3)} panggilan serentak, dengan satu panggilan ke ledger per transaksi uang. Dengan 2 transaksi per user aktif per hari: ${koma(puncak2)} × ${String(detikLompatan).replace(".", ",")} = ${koma(serentak2)} (Hitungan atas Asumsi)`);
+    expect(badan).toContain(`Di puncak ${koma(puncak3)} transaksi uang per detik (Asumsi, dasar 3 transaksi per user aktif per hari, [[t5-prd]]) × ${String(detikLompatan).replace(".", ",")} detik = ${koma(serentak3)} panggilan serentak, dengan satu panggilan ke ledger per transaksi uang. Dengan 2 transaksi per user aktif per hari: ${koma(puncak2)} × ${String(detikLompatan).replace(".", ",")} = ${koma(serentak2)} (Hitungan atas Asumsi)`);
     expect(badan).toContain(`melewati ${anggaranLompatan} ms antar host (anggaran lompatan ADR 37)`);
     expect(adr37).toContain("Satu lompatan HTTP menambah waktu. Anggarannya 50 ms.");
     expect(hal51 + baca("situs/src/content/docs/tahap-5/on-prem-lawan-cloud.mdx")).toContain("69,4 per detik dengan 3 transaksi per user aktif per hari, atau 46,3 bila 2");
@@ -427,6 +427,9 @@ describe("Yang tidak direkam: tiap butir diturunkan dari README dan kode lab, se
     const kapasitas = Number(cari(/const KapasitasTopik = (\d+)/, brokerGo, "KapasitasTopik")[1]);
     expect(kapasitas).toBe(1024);
     expect(brokerGo).toContain("http.StatusServiceUnavailable");
+    const batasPesanMiB = 2 ** Number(cari(/io\.LimitReader\(r\.Body, 1<<(\d+)\)/, brokerGo, "batas isi pesan")[1]) / 2 ** 20;
+    expect(batasPesanMiB).toBe(1);
+    expect(badan).not.toMatch(/ukuran pesan tidak dibatasi/);
     expect(readmeGabung).toContain("penuh dijawab 503; jumlah topik tidak dibatasi dan isi satu pesan sampai 1 MiB, jadi memori broker tidak berbatas");
     expect(readmeGabung).toContain("beban serentak (penggerak mengirim satu transaksi pada satu waktu, jadi p95 di sini adalah latensi satu transaksi tanpa queue di depan pemrosesnya)");
     expect(readmeGabung).toContain("Pesan hidup di memori broker. Pesan yang sudah diambil lalu penerimanya mati sebelum selesai hilang.");
@@ -439,7 +442,7 @@ describe("Yang tidak direkam: tiap butir diturunkan dari README dan kode lab, se
     expect(blok.split("\n").filter((b) => b.startsWith("- "))).toEqual([
       "- Jaringan antar host: semua panggilan lab berjalan di loopback satu mesin, jadi p95 satu lompatan HTTP antar host ke ledger Tidak dijalankan.",
       "- Beban serentak: penggerak mengirim satu transaksi pada satu waktu, jadi p95 di lab adalah latensi satu transaksi tanpa queue di depan prosesnya.",
-      `- Broker tiruan: pesan hanya di memori, dan broker yang mati membuangnya. Satu topik menampung ${ribuan(kapasitas)} pesan dan penuh dijawab 503, tetapi jumlah topik dan ukuran pesan tidak dibatasi (batas lab).`,
+      `- Broker tiruan: pesan hanya di memori, dan broker yang mati membuangnya. Satu topik menampung ${ribuan(kapasitas)} pesan dan penuh dijawab 503. Jumlah topik tidak dibatasi dan satu pesan dibaca sampai ${batasPesanMiB} MiB, jadi memori broker tidak berbatas (batas lab).`,
       "- Proses mati: hanya proses riwayat yang dihentikan, dengan SIGTERM saat menganggur. Broker produk dengan konfirmasi dan penyimpanan Tidak dijalankan.",
       "- Pemindai ADR 44 (govulncheck dan grype) Tidak dijalankan atas kedua lab, jadi halaman ini tidak menulis lab lolos pemindaian.",
       "- Kubernetes: Argo CD, HPA atas Rollout, dan router selain Traefik Tidak dijalankan, dan lab hanya diuji di host arm64.",
@@ -509,6 +512,8 @@ describe("rekaman dan kode lab: rentang Snippet dan huruf bagian diturunkan dari
 describe("kasus industri, Kubernetes, Gateway API, dan stack lain: tautan, tanggal buka, kutipan, dan baris riset R5-170 sampai R5-174", () => {
   const URL = {
     komponen: "https://kubernetes.io/docs/concepts/overview/components/",
+    pods: "https://kubernetes.io/docs/concepts/workloads/pods/",
+    node: "https://nodejs.org/api/globals.html",
     k3s: "https://docs.k3s.io/",
     hpa: "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/",
     gateway: "https://kubernetes.io/docs/concepts/services-networking/gateway/",
@@ -520,20 +525,20 @@ describe("kasus industri, Kubernetes, Gateway API, dan stack lain: tautan, tangg
     dart: "https://api.dart.dev/stable/latest/dart-io/HttpClient/connectionTimeout.html",
     supabase: "https://supabase.com/docs/guides/functions/limits",
   };
-  const risetUntuk = (u: string): string => (u === URL.arsip ? "R5-171" : u === URL.gateway || u === URL.ingress ? "R5-170" : [URL.komponen, URL.k3s, URL.hpa].includes(u) ? "R5-172" : "R5-173");
+  const risetUntuk = (u: string): string => (u === URL.arsip ? "R5-171" : u === URL.gateway || u === URL.ingress ? "R5-170" : [URL.komponen, URL.pods, URL.k3s, URL.hpa].includes(u) ? "R5-172" : "R5-173");
   test("tiap tautan luar tercatat di baris riset yang benar, dengan tanggal buka 2026-11-03, dan jumlah per tautan terkunci", () => {
     const tautan = [...badan.matchAll(/\]\((https?:\/\/[^)]+)\)/g)].map((m) => m[1]!);
     const hitung: Record<string, number> = {};
     for (const u of tautan) hitung[u] = (hitung[u] ?? 0) + 1;
     expect(Object.keys(hitung).sort()).toEqual(Object.values(URL).sort());
-    expect(hitung).toEqual({ [URL.komponen]: 2, [URL.k3s]: 2, [URL.hpa]: 2, [URL.gateway]: 2, [URL.ingress]: 2, [URL.arsip]: 2, [URL.mdn]: 2, [URL.laravel]: 2, [URL.requests]: 2, [URL.dart]: 2, [URL.supabase]: 2 });
+    expect(hitung).toEqual({ [URL.komponen]: 2, [URL.pods]: 2, [URL.node]: 2, [URL.k3s]: 2, [URL.hpa]: 2, [URL.gateway]: 2, [URL.ingress]: 2, [URL.arsip]: 2, [URL.mdn]: 2, [URL.laravel]: 2, [URL.requests]: 2, [URL.dart]: 2, [URL.supabase]: 2 });
     for (const u of Object.values(URL)) {
       const kunci = u === URL.arsip ? "web.archive.org/web/20230504223922/https://www.primevideotech.com/video-streaming/scaling-up-the-prime-video-audio-video-monitoring-service-and-reducing-costs-by-90" : u.replace("https://", "");
       expect(barisRiset(risetUntuk(u)), u).toContain(kunci.replace(/\/$/, ""));
     }
     const tanggal = badan.match(/2026-\d\d-\d\d/g) ?? [];
     expect(new Set(tanggal)).toEqual(new Set(["2026-11-03"]));
-    expect(tanggal.length).toBe(12);
+    expect(tanggal.length).toBe(15);
     for (const r of ["R5-170", "R5-171", "R5-172", "R5-173"]) expect(barisRiset(r)).toContain("dibuka 2026-11-03");
     expect(barisRiset("R5-174")).toContain("dibaca 2026-11-03");
     const bacaan = badan.slice(badan.indexOf("### Bacaan lanjut"));
@@ -549,7 +554,8 @@ describe("kasus industri, Kubernetes, Gateway API, dan stack lain: tautan, tangg
     expect(r).toContain("Ingress NGINX Controller for Kubernetes");
     expect(badan).toContain("Pengumuman pada 11 November 2025 menulis bahwa pemeliharaannya dihentikan pada Maret 2026, tanpa rilis, perbaikan bug, atau pembaruan keamanan sesudahnya");
     expect(badan).toContain("Pengumuman itu datang dari SIG Network dan Security Response Committee.");
-    expect(badan).toContain("API GitHub pada tanggal yang sama menulis repositorinya berstatus archived.");
+    expect(badan).toContain("API GitHub menulis pada 2026-11-03 bahwa repositorinya berstatus archived.");
+    expect(badan).not.toMatch(/tanggal yang sama/);
     expect(badan).toContain("Ingress NGINX adalah satu controller untuk Ingress API.");
     expect(badan).toContain("Gateway API adalah keluarga jenis API untuk routing lalu lintas di Kubernetes, penerus Ingress API, dan tidak memuat jenis Ingress.");
     expect(badan).toContain("**Gateway API menggantikan Ingress API, bukan Ingress NGINX.**");
@@ -588,7 +594,9 @@ describe("kasus industri, Kubernetes, Gateway API, dan stack lain: tautan, tangg
     expect(r).toContain("K3s is a fully compliant Kubernetes distribution with the following enhancements: Distributed as a single binary or minimal container image.");
     expect(r).toContain("desiredReplicas = ceil[currentReplicas × (currentMetricValue / desiredMetricValue)]");
     expect(r).toContain("The control plane skips any scaling action if the ratio is sufficiently close to 1.0 (within a configurable tolerance, 0.1 by default).");
-    expect(badan).toContain("Sebuah cluster Kubernetes terdiri dari control plane dan satu atau lebih worker node. Komponen kube-scheduler memasangkan pod yang belum punya node dengan node yang cocok");
+    expect(r).toContain("A Pod (as in a pod of whales or pea pod) is a group of one or more containers, with shared storage and network resources");
+    expect(badan).toContain("Sebuah cluster Kubernetes terdiri dari control plane dan satu atau lebih worker node. Pod adalah satu atau lebih container yang berbagi penyimpanan dan jaringan");
+    expect(badan).toContain("Komponen kube-scheduler memasangkan pod yang belum punya node dengan node yang cocok");
     expect(badan).toContain("k3s adalah distribusi Kubernetes yang menurut dokumentasinya sepenuhnya sesuai, dikemas sebagai satu binary atau image container minimal");
     expect(badan).toContain("pod yang diinginkan = ceil[pod sekarang × (nilai metrik sekarang ÷ nilai target)]");
     expect(badan).toContain("Metrik umur notifikasi untuk worker dibahas di [[t5-fanout]], dan tidak direkam di halaman ini.");
@@ -621,8 +629,13 @@ describe("kasus industri, Kubernetes, Gateway API, dan stack lain: tautan, tangg
     expect(r).toContain("Request idle timeout: 150s");
     expect(r).toContain("504 Gateway Timeout will be returned");
     expect(r).toContain("Dokumentasi Django dan Serverpod untuk panggilan keluar tidak dibuka [perlu verifikasi]");
-    expect(potong[1]).toContain("`AbortSignal.timeout(ms)` menghasilkan sinyal yang membatalkan dengan `TimeoutError`.");
-    expect(potong[1]).toContain("Contoh di halaman itu memakai `fetch`, dan halaman itu tidak membahas batas waktu bawaannya.");
+    expect(r).toContain("Returns a new AbortSignal which will be aborted in delay milliseconds.");
+    expect(r).toContain("Added in: v17.3.0, v16.14.0");
+    expect(r).toContain("bagian itu tidak menyebut waktu aktif (active time)");
+    expect(potong[1]).toContain("Node.js: globals");
+    expect(potong[1]).toContain("`AbortSignal.timeout(ms)` menghasilkan sinyal yang dibatalkan sesudah `ms` milidetik, dan dokumentasi Node.js mencatatnya sejak v17.3.0.");
+    expect(potong[1]).toContain("MDN menulis bahwa sinyal itu dibatalkan dengan `TimeoutError`, dan di browser waktunya dihitung dari waktu aktif, bukan waktu berlalu. Halaman globals Node.js tidak menulis soal waktu aktif.");
+    expect(potong[1]).toContain("Contoh di MDN memakai `fetch`, dan MDN tidak membahas batas waktu bawaannya.");
     expect(potong[2]).toContain("client menunggu paling lama 30 detik secara bawaan, dan `connectTimeout` bawaannya 10 detik. Bila batasnya lewat, Laravel melempar `ConnectionException`.");
     expect(potong[3]).toContain("secara bawaan permintaan tidak berhenti sendiri kecuali nilai timeout diberikan. Tanpa nilai itu, kode bisa menggantung beberapa menit atau lebih.");
     expect(potong[4]).toContain("`connectionTimeout` bawaannya `null`, yang berarti batas bawaan sistem operasi, dan nilainya hanya berlaku untuk koneksi yang dimulai sesudah nilai itu dipasang.");
@@ -685,7 +698,7 @@ describe("ID registry, tautan, template blok, widget, kartu, dan istilah", () =>
     for (const m of badan.matchAll(/\[\[([^\]]+)\]\]/g)) hitung[m[1]!] = (hitung[m[1]!] ?? 0) + 1;
     for (const id of Object.keys(hitung)) expect(id === "berikutnya" || hal.some((x) => x.id === id), id).toBe(true);
     expect(hitung).toEqual({
-      "t4-modul": 4, "t5-m44": 6, "berikutnya": 1, "t4-tim-infra": 1, "t4-adr-45": 2, "t1-adr-12": 3, "t5-prd": 3, "t5-read-replica": 1, "t5-partisi": 1,
+      "t4-modul": 6, "t5-m44": 7, "berikutnya": 1, "t4-tim-infra": 1, "t4-adr-45": 2, "t1-adr-12": 3, "t5-prd": 4, "t5-read-replica": 1, "t5-partisi": 1,
       "t5-fanout": 3, "t5-rollout": 4, "t5-adr-60": 6, "t5-tim-infra": 4, "t5-m47": 2, "t5-mtls": 2, "t5-m51": 1, "t5-onprem": 1,
     });
     expect(dari("t5-adr-60").nomor).toBe("5.30");
@@ -859,14 +872,15 @@ describe("ID registry, tautan, template blok, widget, kartu, dan istilah", () =>
     const d = DataRantai.parse(rantaiMentah);
     expect(d.id).toBe("t5-service-inti");
     expect(d.judul).toBe("Harga satu pemecahan");
-    expect(d.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab t5-gabung" });
+    expect(d.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab (harga)" });
     expect(d.baris).toHaveLength(2);
-    expect(d.baris.map((b) => [b.label, b.sub])).toEqual([["Pilihan", "ADR 50, dari M44"], ["Harga", `lab t5-gabung, ${nTransaksi} transaksi`]]);
+    expect(d.baris.map((b) => [b.label, b.sub])).toEqual([["Pilihan ADR 50", "dari M44"], ["Harga", `lab t5-gabung, ${nTransaksi} transaksi`]]);
     expect(d.baris.map((b) => b.simpul.map((s) => [s.teks, s.sub, s.nada]))).toEqual([
       [[`${timProduk.length} tim, 1 rilis`, "pemicunya jadwal rilis", "warn"], [`${nService} service`, "di Kubernetes, pipeline per service", "system"], ["Ledger tetap", "uang bergerak di satu tempat", "good"]],
       [[`${pSatu} panggilan`, "satu proses, per transaksi", "good"], [`${pTiga} panggilan`, "tiga proses + queue: 3 kirim dan 3 ambil", "warn"], ["Skor sama", `${samaP[1]} dari ${samaP[2]} transaksi`, "good"]],
     ]);
-    expect(d.catatan).toBe("Biru: pilihan ADR 50 (naskah). Oranye: pemicu dan harga. Hijau: yang tidak berubah.");
+    expect(d.catatan).toBe("Biru: pilihan ADR 50. Oranye: pemicu dan harga. Hijau: dasar pembanding dan yang tidak berubah.");
+    expect(JSON.stringify(rantaiMentah)).not.toMatch(/naskah/i);
     expect(d.baris[0]!.simpul[0]!.teks.length).toBeLessThanOrEqual(16);
     expect(d.baris.flatMap((b) => b.simpul).every((s) => s.teks.length <= 16)).toBe(true);
   });

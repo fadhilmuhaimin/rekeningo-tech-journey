@@ -28,7 +28,13 @@
       "riset": "R5-172",
       "judul": "Kubernetes: Cluster Architecture components dan Pods (dibuka 2026-11-03)",
       "url": "https://kubernetes.io/docs/concepts/overview/components/",
-      "catatan": "Cluster, control plane, worker node, kube-scheduler, dan definisi pod. Halaman tanpa nomor versi sendiri."
+      "catatan": "Cluster, control plane, worker node, dan kube-scheduler. Halaman tanpa nomor versi sendiri."
+    },
+    {
+      "riset": "R5-172",
+      "judul": "Kubernetes: Pods (dibuka 2026-11-03)",
+      "url": "https://kubernetes.io/docs/concepts/workloads/pods/",
+      "catatan": "Definisi pod: satu atau lebih container dengan penyimpanan dan jaringan bersama. Halaman tanpa nomor versi sendiri."
     },
     {
       "riset": "R5-172",
