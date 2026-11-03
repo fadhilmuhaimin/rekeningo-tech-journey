@@ -4712,8 +4712,9 @@
       "lab": [
         "t5-cicilan"
       ],
-      "ada": false,
-      "nomor": "5.21"
+      "ada": true,
+      "nomor": "5.21",
+      "menit": 23
     },
     {
       "id": "t5-m49",

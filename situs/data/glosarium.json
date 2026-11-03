@@ -261,6 +261,15 @@
   "h": "/istilah/backup-dan-uji-pulih/"
  },
  {
+  "t": "Batch",
+  "d": "Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.",
+  "b": "t5-batch",
+  "n": "5.21 Batch harian tahan crash",
+  "u": "/tahap-5/batch-tahan-crash/",
+  "s": "istilah-batch",
+  "h": null
+ },
+ {
   "t": "BFF (Backend for Frontend)",
   "d": "Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.",
   "b": "B11.2",
@@ -520,6 +529,15 @@
   "u": "/tahap-2/ledger/",
   "s": "istilah-double-entry",
   "h": "/istilah/double-entry/"
+ },
+ {
+  "t": "Durable execution",
+  "d": "Cara menjalankan alur panjang dengan mencatat tiap langkah yang selesai, supaya alur dilanjutkan dari titik berhenti sesudah proses mati.",
+  "b": "t5-batch",
+  "n": "5.21 Batch harian tahan crash",
+  "u": "/tahap-5/batch-tahan-crash/",
+  "s": "istilah-durable-execution",
+  "h": null
  },
  {
   "t": "Eager loading",
@@ -837,6 +855,15 @@
   "h": "/istilah/jendela-tetap/"
  },
  {
+  "t": "Job idempoten",
+  "d": "Job yang menghasilkan keadaan akhir yang sama, dijalankan sekali atau berkali-kali dengan input yang sama.",
+  "b": "t2-job-rekonsiliasi",
+  "n": "2.26 Job terjadwal dan rekonsiliasi",
+  "u": "/tahap-2/job-rekonsiliasi/",
+  "s": "istilah-job-idempoten",
+  "h": null
+ },
+ {
   "t": "Job terjadwal",
   "d": "Program di server yang dijalankan jadwal, bukan request user, mis. pencairan warung setiap Jumat 15.00.",
   "b": "t2-pencairan",
@@ -916,6 +943,15 @@
   "u": "/tahap-2/m16-akun-terkunci/",
   "s": "istilah-kunci-akun",
   "h": "/istilah/kunci-akun/"
+ },
+ {
+  "t": "Kunci bisnis",
+  "d": "Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur.",
+  "b": "t5-batch",
+  "n": "5.21 Batch harian tahan crash",
+  "u": "/tahap-5/batch-tahan-crash/",
+  "s": "istilah-kunci-bisnis",
+  "h": null
  },
  {
   "t": "Last-write-wins",
