@@ -3600,6 +3600,86 @@
   "jawab": "Rekaman memakai jarak 30,5 detik, lebih panjang dari TTL 30 detik. Jarak 30 detik atau lebih pendek tidak direkam; di antara 15 dan 30 detik, paling banyak satu dari dua panggilan berurutan mendapat hit (penalaran). Alasan lain: cache membuat laporan bisa setua 30 detik. Penjualan lalu terlihat 30 + 30 = 60 detik sesudah tercatat, lebih lambat dari 35 detik di PRD v5."
  },
  {
+  "id": "t5-read-replica-1",
+  "halaman": "t5-read-replica",
+  "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
+  "url": "tahap-5/read-replica/",
+  "tanya": "Pernyataan apa yang ditolak standby, dan dengan kode apa?",
+  "jawab": "Pernyataan yang menulis atau mengunci baris dijawab 25006: UPDATE, INSERT, DELETE, TRUNCATE, CREATE, ALTER, DROP, `SELECT ... FOR UPDATE`, dan `PREPARE TRANSACTION`. Untuk `SET TRANSACTION READ WRITE` jawabannya 0A000. Sesudahnya jumlah jurnal, posting, dan total saldo di tiga node tidak berubah (`replika.txt` bagian B)."
+ },
+ {
+  "id": "t5-read-replica-2",
+  "halaman": "t5-read-replica",
+  "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
+  "url": "tahap-5/read-replica/",
+  "tanya": "Query 45 detik berjalan di replica dengan `statement_timeout` 20 detik. Berhenti kapan, dengan kode apa, dan apa bedanya dengan tanpa timeout?",
+  "jawab": "Query berhenti sesudah paling sedikit 20 detik dan sebelum 30 detik, dengan 57014. Tanpa timeout, konflik dengan replay membatalkannya sesudah paling sedikit 30 detik, dengan 40001. Timeout tidak mencegah pembatalan: ia menghentikan query lebih awal, dan replay tertahan lebih singkat (`konflik.txt` bagian C dan D)."
+ },
+ {
+  "id": "t5-read-replica-3",
+  "halaman": "t5-read-replica",
+  "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
+  "url": "tahap-5/read-replica/",
+  "tanya": "Saldo tampil di replica Rp250.000, saldo primary Rp215.000. Kiriman Rp240.000 diterima atau ditolak, dan kenapa rekaman memakai kiriman, bukan pembayaran?",
+  "jawab": "Ditolak dengan 422 `saldo-kurang`, karena saldo yang menentukan dibaca dari primary di dalam transaction. Pembayaran tidak bisa dipakai: satu pembayaran dibatasi Rp200.000, jadi Rp240.000 ditolak oleh batas itu tanpa membaca saldo (`baca.txt` bagian A, README lab)."
+ },
+ {
+  "id": "t5-read-replica-4",
+  "halaman": "t5-read-replica",
+  "judul": "5.5 Read replica dan model baca untuk laporan + ADR 46",
+  "url": "tahap-5/read-replica/",
+  "tanya": "Cache 30 detik ditolak sedangkan replica dipilih. Apa beda antara data yang tertinggal di keduanya?",
+  "jawab": "Cache menyimpan jawaban sampai TTL 30 detik habis, jadi laporan bisa setua 30 detik. Rekaman mencatat 0 hit dari 18 untuk satu client per warung. Replica menjawab dari data yang tertinggal sebesar jeda replay, di lab di bawah 1 detik pada 100 pembayaran per detik. Jeda itu batas di laptop, bukan nilai produksi."
+ },
+ {
+  "id": "t5-m41-1",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil masih Rp250.000. Kenapa muat ulang otomatis tidak memperbaikinya?",
+  "jawab": "Muat ulang menanyakan replica yang sama, dan replica itu belum memutar ulang pembayaran. Jawabannya berubah sesudah replica menyusul, bukan sesudah muat ulang (`baca.txt` bagian A). Muat ulang juga tidak membuat app tahu bahwa jawabannya lebih tua dari pembayarannya sendiri (Penalaran)."
+ },
+ {
+  "id": "t5-m41-2",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Saldo tampil Rp250.000, tetapi kiriman Rp240.000 ditolak. Apa artinya untuk uang Budi?",
+  "jawab": "Uang aman: keputusan kiriman dibaca dari saldo di primary, Rp215.000, bukan dari saldo tampil (`baca.txt` bagian A). Yang keliru hanya yang dilihat user, dan hanya sampai replica menyusul."
+ },
+ {
+  "id": "t5-m41-3",
+  "halaman": "t5-m41",
+  "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+  "url": "tahap-5/m41-riwayat-belum-memuat/",
+  "tanya": "Kenapa memindahkan riwayat dan saldo tampil ke replica butuh ADR sendiri, padahal uangnya tetap benar?",
+  "jawab": "ADR 45 menulis read replica hanya untuk laporan, dan riwayat serta saldo tampil bukan laporan. Perpindahan itu melewati aturan 2 tanpa ADR yang mengubahnya. Uang benar karena keputusan uang dibaca dari primary, bukan karena aturannya sudah ditulis ulang."
+ },
+ {
+  "id": "t5-m42-1",
+  "halaman": "t5-m42",
+  "judul": "5.8 M42: Database utama mati, dua top-up hilang",
+  "url": "tahap-5/m42-database-utama-mati/",
+  "tanya": "Raka meminta gateway mengirim ulang kedua top-up. Kenapa gateway tidak mengirim ulang sendiri?",
+  "jawab": "Handler webhook menjawab 200 sesudah COMMIT (kode lab, Tidak dijalankan), dan gateway tiruan di Tahap 4 mengirim satu kali untuk jawaban 2xx (`retry.txt` bagian A). Kehilangannya terjadi sesudah jawaban itu, jadi tidak ada galat yang memicu ulangan."
+ },
+ {
+  "id": "t5-m42-2",
+  "halaman": "t5-m42",
+  "judul": "5.8 M42: Database utama mati, dua top-up hilang",
+  "url": "tahap-5/m42-database-utama-mati/",
+  "tanya": "Lab merekam lima pembayaran yang tidak ada di node baru, sedangkan naskah menghitung 69. Apakah lab membuktikan 69?",
+  "jawab": "Tidak. Lima adalah pembayaran yang dijawab sesudah koneksi putus. 69 adalah 1 detik × 69,4 transaksi uang per detik, Hitungan atas Asumsi, dan dengan 2 transaksi per user aktif hasilnya 46."
+ },
+ {
+  "id": "t5-m42-3",
+  "halaman": "t5-m42",
+  "judul": "5.8 M42: Database utama mati, dua top-up hilang",
+  "url": "tahap-5/m42-database-utama-mati/",
+  "tanya": "Dengan standby sinkron, apakah semua commit di primary lama ada di node baru?",
+  "jawab": "Tidak. Tiga jurnal yang dijawab 201 ada di node baru. Jurnal keempat ter-commit lokal di primary lama (4 lawan 3) dan client tidak menerima 201 untuknya (`promosi.txt` bagian B)."
+ },
+ {
   "id": "t5-m43-1",
   "halaman": "t5-m43",
   "judul": "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20",

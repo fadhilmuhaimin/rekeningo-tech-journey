@@ -1,0 +1,44 @@
+{
+  "id": "t5-replica-tebak",
+  "judul": "Query 45 detik di replica dengan statement_timeout 20 detik",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t5-replika/output/konflik.txt bagian A, C, dan D; dokumentasi PostgreSQL 17, Hot Standby dan max_standby_streaming_delay"
+  },
+  "adegan": [
+    "Wulan memasang read replica dengan pengaturan bawaan, lalu memasang statement_timeout 20 detik di sesi laporan.",
+    "Satu query membaca tabel lalu menunggu 45 detik. Selama itu primary menghapus 1.000 baris yang dibaca query itu dan menjalankan VACUUM."
+  ],
+  "pertanyaan": "Apa yang terjadi pada query itu?",
+  "pilihan": [
+    {
+      "teks": "Query selesai sesudah 45 detik, karena replica selalu menunggu query yang sedang berjalan.",
+      "benar": false,
+      "alasan": "Replica menunggu paling lama 30 detik menurut max_standby_streaming_delay bawaan, bukan sampai query selesai. Tanpa timeout, query 45 detik dibatalkan (konflik.txt bagian D)."
+    },
+    {
+      "teks": "Query dihentikan oleh konflik dengan replay sesudah paling sedikit 30 detik, dengan kode 40001.",
+      "benar": false,
+      "alasan": "Itu hasil tanpa statement_timeout (bagian D). Dengan timeout 20 detik, timeout menghentikan query lebih dulu."
+    },
+    {
+      "teks": "Query dihentikan oleh timeout sesudah paling sedikit 20 detik, dengan kode 57014, sebelum konflik sempat membatalkannya.",
+      "benar": true,
+      "alasan": "Rekaman bagian C: berhenti sesudah paling sedikit 20 detik dan sebelum 30 detik, dengan 57014, dan pencacah konflik tetap 0. Timeout tidak mencegah pembatalan. Ia menggantinya dengan penghentian yang lebih awal."
+    },
+    {
+      "teks": "Query tidak dihentikan, karena hot_standby_feedback membuat primary menahan baris itu.",
+      "benar": false,
+      "alasan": "hot_standby_feedback bernilai off di lab (konflik.txt bagian A), dan dokumentasi menulis bawaannya off. Bila dinyalakan, primary menunda pembersihan baris yang dibaca replica, dan pada beberapa beban tabelnya membengkak."
+    }
+  ],
+  "penutup": "statement_timeout 20 detik tidak mencegah pembatalan query yang lama. Ia menghentikannya lebih awal (57014 sesudah paling sedikit 20 detik, bukan 40001 sesudah paling sedikit 30 detik), sehingga replay tertahan lebih singkat.",
+  "label": {
+    "sumber": "Rekaman lab · konflik.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}

@@ -4292,8 +4292,9 @@
       "lab": [
         "t5-replika"
       ],
-      "ada": false,
-      "nomor": "5.5"
+      "ada": true,
+      "nomor": "5.5",
+      "menit": 20
     },
     {
       "id": "t5-m41",
@@ -4316,8 +4317,9 @@
       "lab": [
         "t5-replika"
       ],
-      "ada": false,
-      "nomor": "5.6"
+      "ada": true,
+      "nomor": "5.6",
+      "menit": 12
     },
     {
       "id": "t5-lag",
@@ -4361,14 +4363,15 @@
       "label": "Masalah 42 · minggu 4",
       "masalah": "Primary mati, replica asinkron belum menerima commit terakhir, dan dua top-up yang sudah dijawab sukses hilang",
       "prasyarat": [
-        "t5-lag",
-        "t4-rekonsiliasi"
+        "t4-rekonsiliasi",
+        "t5-lag"
       ],
       "lab": [
         "t5-replika"
       ],
-      "ada": false,
-      "nomor": "5.8"
+      "ada": true,
+      "nomor": "5.8",
+      "menit": 13
     },
     {
       "id": "t5-rpo-rto",
