@@ -58,7 +58,7 @@ Kalau kamu pernah menyalakan fitur untuk 5% user lewat flag di app, angka itu di
 
 **Kenapa satu pod.** Lima persen dari tiga pod adalah 0,15 pod, dan pod tidak bisa pecahan.
 
-Kode v1.10.1 tidak menghasilkan nol pod versi baru untuk bobot 1 sampai 99 ([utils/replicaset/canary.go](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/canary.go), dibuka 2026-11-03, Tidak dijalankan, dibaca dari kode). Syaratnya dua replika atau lebih, jadi satu pod versi baru wajib ada.
+Untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 tidak menghasilkan nol pod versi baru ([utils/replicaset/canary.go](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/canary.go), dibuka 2026-11-03, Tidak dijalankan, dibaca dari kode). Jadi satu pod versi baru wajib ada.
 
 Controller lalu menimbang dua pasangan jumlah pod versi baru dan total pod. Satu pod dari 3 pod adalah 33,3%, selisih 28,3 poin persentase dari 5%. Satu pod dari 4 pod adalah 25,0%, selisih 20,0 poin. Pasangan kedua lebih dekat ke 5%, jadi empat pod berjalan (Hitungan atas kode).
 
@@ -136,7 +136,7 @@ Canary tanpa traffic router menghitung pod, dan kill switch harus ada di tempat 
 <details class="success">
 <summary>Jawaban</summary>
 
-Lima persen dari tiga pod adalah 0,15 pod, dan kode v1.10.1 menyisakan satu pod versi baru untuk bobot 1 sampai 99 (dibaca dari kode). Hasilnya 25,0% atau 33,3% menurut `maxSurge`. Dengan 20 replika rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (`tanpa-router.txt`, bagian A).
+Lima persen dari tiga pod adalah 0,15 pod, dan kode v1.10.1 menyisakan satu pod versi baru untuk bobot 5 dengan dua replika atau lebih (dibaca dari kode). Hasilnya 25,0% atau 33,3% menurut `maxSurge`. Dengan 20 replika rekaman memberi 1 pod versi baru dan 19 pod versi lama: 5,0% (`tanpa-router.txt`, bagian A).
 
 </details>
 
