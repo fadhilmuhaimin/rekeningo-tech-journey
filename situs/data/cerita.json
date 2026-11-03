@@ -4448,8 +4448,9 @@
       "lab": [
         "t5-partisi"
       ],
-      "ada": false,
-      "nomor": "5.11"
+      "ada": true,
+      "nomor": "5.11",
+      "menit": 20
     },
     {
       "id": "t5-m44",
