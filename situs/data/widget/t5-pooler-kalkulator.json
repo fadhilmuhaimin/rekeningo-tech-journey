@@ -29,10 +29,10 @@
   "tebak": {
     "q": "ADR 52 memasang dua instance PgBouncer dengan default_pool_size 20, dan tiap service menyambung dengan role sendiri, jadi ada enam role. Bila max_db_connections tidak diisi, berapa koneksi paling banyak yang boleh dibuka kedua instance ke PostgreSQL?",
     "pilihan": [
-      "20 koneksi",
+      "20 koneksi, seperti di lab",
       "60 koneksi",
       "240 koneksi",
-      "97 koneksi"
+      "97 koneksi, semua yang tersedia"
     ],
     "jawaban": 2,
     "skenario": 5,

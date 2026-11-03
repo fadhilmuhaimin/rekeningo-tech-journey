@@ -152,7 +152,7 @@ Kolom `cl_waiting` di perintah `SHOW POOLS` menghitung client yang sudah mengiri
 
 Server `api-t5` memakai `database/sql` lewat `stdlib.OpenDB`, bukan `pgxpool`. File `sql.go` di Go 1.27.3 tidak memuat kata jitter (dicari di teks file), jadi `database/sql` tidak punya padanannya. Pengaturan `MaxConnLifetimeJitter` hanya ada di `pgxpool`.
 
-Backoff dengan jitter saat menyambung ulang ([[t2-idempotency]]) tidak ada di lab (Tidak dijalankan).
+Backoff dengan jitter ([[t2-idempotency]]) ada di kode lab untuk pengiriman ke penyedia push dan verifikasi, yaitu di `internal/worker` dan `internal/stream`. Di `labs/api-t5`, kata jitter tidak muncul di `cmd` maupun di file Go lain selain tes. Penyambungan ulang ke database dengan backoff dan jitter Tidak dijalankan.
 
 **Hitungan koneksi.** Tabel memakai angka yang tertulis di halaman ini. Skenario 5 pod, 8 pod, dan pool pod 5 adalah pilihan penulis:
 
@@ -357,7 +357,7 @@ Langsung ke PostgreSQL, sebagian ditolak dengan kode 53300 dan role `t5_app` tid
 - [ ] `max_prepared_statements` bukan 0 selama pgx memakai statement cache, dan mode eksekusi tidak diganti ke `QueryExecModeDescribeExec`.
 - [ ] `max_db_connections` terisi, dan jumlah instance × nilainya tidak melewati `max_connections` dikurangi cadangan.
 - [ ] `max_client_conn` per instance cukup untuk semua pod bila satu instance mati, dan penambahan pod dihitung ulang.
-- [ ] Service `pgxpool` mengisi `MaxConnLifetimeJitter`, dan service `database/sql` tahu tidak ada jitter.
+- [ ] Service `pgxpool` mengisi `MaxConnLifetimeJitter`, dan service `database/sql` tahu bahwa pustaka itu tidak punya jitter.
 - [ ] Versi PgBouncer dikunci, dibandingkan dengan catatan rilis, dan alert `cl_waiting` ada.
 
 ### Bacaan lanjut
