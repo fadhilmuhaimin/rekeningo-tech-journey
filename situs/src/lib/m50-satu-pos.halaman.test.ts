@@ -372,19 +372,19 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-225 sam
 });
 
 describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan kartu", () => {
-  test("registry: halaman 5.24 jenis masalah, ada, prasyarat t3-rate-limit-redis dan t4-webhook, lab t5-waf, menit = baca + coba, judul dan peran dari naskah", () => {
+  test("registry: halaman 5.24 jenis masalah, ada, prasyarat t2-idempotency dan t4-webhook, lab t5-waf, menit = baca + coba, judul dan peran dari naskah", () => {
     const h = dari("t5-m50");
     expect(h.nomor).toBe("5.24");
     expect(h.jenis).toBe("masalah");
     expect(h.ada).toBe(true);
-    expect(h.prasyarat).toEqual(["t3-rate-limit-redis", "t4-webhook"]);
+    expect(h.prasyarat).toEqual(["t2-idempotency", "t4-webhook"]);
     expect(h.lab).toEqual(["t5-waf"]);
     expect(h.peran).toEqual(["security", "backend"]);
     expect(h.path).toBe("tahap-5/m50-satu-pos.md");
     expect(h.label).toBe(`Masalah ${kolomM50[0]!.slice(1)} · minggu ${mingguM50}`);
     const meta = cari(/<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: (.+) · Jalur inti<\/p>/, halaman, "meta");
     expect(Number(meta[1]) + Number(meta[2])).toBe(h.menit);
-    expect(meta[3]).toBe("[[t3-rate-limit-redis]], [[t4-webhook|Webhook masuk dan tanda tangan]]");
+    expect(meta[3]).toBe("[[t2-idempotency]], [[t4-webhook]]");
     expect(frontmatter).toContain(`title: "5.24 ${h.judul}"`);
     expect(naskah).toContain("- **Security** 5.18, 5.19, 5.24, 5.25, 5.26.");
     expect(dari("t5-waf").prasyarat).toEqual(["t5-m50"]);

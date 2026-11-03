@@ -4786,7 +4786,7 @@
       "label": "Masalah 50 · minggu 12",
       "masalah": "Satu POS mengulang permintaan tanpa batas dan membuat merchant lain mendapat 429",
       "prasyarat": [
-        "t3-rate-limit-redis",
+        "t2-idempotency",
         "t4-webhook"
       ],
       "lab": [
