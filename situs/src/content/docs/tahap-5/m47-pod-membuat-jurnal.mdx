@@ -82,7 +82,7 @@ Key baru dengan akun dan jumlah yang sama menghasilkan jurnal kedua. Key yang sa
 
 Ledger menjawab menurut key dan isi permintaan. Key yang belum pernah dipakai adalah permintaan baru, siapa pun pengirimnya, karena service ledger tidak menerima parameter pemanggil (penalaran dari kode lab). Karena itu key tidak menghentikan pod uji di bagian A.
 
-**Jaringan menentukan siapa yang sampai, bukan siapa yang memanggil.** NetworkPolicy mengatur pod, namespace, dan blok IP yang boleh menyambung (Tidak dijalankan: dokumentasi Kubernetes). Bagian "What you can't do with network policies" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API, dan menyarankan service mesh atau ingress controller untuk hal itu.
+**Jaringan menentukan siapa yang sampai, bukan siapa yang memanggil.** NetworkPolicy mengatur pod, namespace, dan blok IP yang boleh menyambung (Tidak dijalankan: dokumentasi Kubernetes). Bagian "What you can't do with network policies" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API.
 
 Bila NetworkPolicy hanya mengizinkan namespace tertentu dan jaringan cluster menegakkannya, pod uji di namespace lain terhalang. Pod lain di namespace yang diizinkan, atau pod yang dibajak di sana, tetap membuat jurnal selama ledger tidak membaca identitas (penalaran).
 

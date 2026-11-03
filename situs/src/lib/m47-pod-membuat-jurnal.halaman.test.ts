@@ -390,7 +390,7 @@ describe("sumber luar: kutipan di baris riset R5-195 sampai R5-199 dan tautan di
     expect(jumlah(badan, `[Kubernetes: Network Policies](${URL_NP}), dibuka ${TANGGAL}, Tidak dijalankan)`)).toBe(1);
     harus("Boleh. Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneksi masuk, dan semua koneksi masuk diizinkan ([Kubernetes: Network Policies](" + URL_NP + "), dibuka " + TANGGAL + ", Tidak dijalankan).");
     harus("NetworkPolicy dijalankan oleh network plugin, yaitu komponen jaringan cluster yang mendukungnya. Dokumentasi yang sama menulis bahwa sumber daya itu tidak berefek bila tidak ada controller yang menegakkannya.");
-    harus("Bagian \"What you can't do with network policies\" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API, dan menyarankan service mesh atau ingress controller untuk hal itu.");
+    harus("Bagian \"What you can't do with network policies\" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API.");
     harus("Namespace adalah mekanisme Kubernetes untuk memisahkan kelompok sumber daya di dalam satu cluster");
   });
   test("R5-196: kutipan NIST SP 800-207, tanggal terbit, dan kalimat halaman yang berlingkup (abstrak tidak menyebut Kubernetes)", () => {
@@ -710,6 +710,131 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
     expect(core.steps(skenario, false).length).toBe(3);
     // tebakan tidak membocorkan jawaban di langkah utama
     for (const l of skenario.langkah) expect(l.kirim + l.jelas + l.judul).not.toMatch(/handshake|certificate required|403|ditolak/i);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Lapis 1b: noscript, kalimat berangka, dan paragraf utuh ditulis di tes ini (bukan di berkas kunci), supaya mutasi tanpa kunci tertangkap.
+const PARAGRAF_UTUH: string[] = [
+  "Minggu 9 Tahap 5. Dalam tinjauan keamanan, Laras memasang satu pod uji di namespace notifikasi. Dari pod itu ia memanggil API ledger dengan Idempotency-Key yang belum pernah dipakai.",
+  "Ledger membuat jurnal top-up Rp1.000 untuk akun uji. Tidak ada yang menolak.",
+  "*Angka cerita (Ilustrasi):* minggu 9, Laras, pod uji, dan namespace notifikasi berasal dari naskah, bukan dari rekaman. Jurnal top-up Rp1.000 untuk akun uji terulang di rekaman lab.",
+  "Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].",
+  "Raka mengira jaringan di dalam cluster itu privat, jadi hanya pod milik Rekeningo yang bisa sampai ke ledger.",
+  "Bayu menambahkan bahwa Kubernetes sudah membatasi lalu lintas antar pod secara bawaan. Menurut dia, pod di namespace notifikasi tidak seharusnya menjangkau ledger.",
+  "Pod adalah satu atau lebih container yang berjalan bersama ([[t5-service]]). Namespace adalah mekanisme Kubernetes untuk memisahkan kelompok sumber daya di dalam satu cluster ([Kubernetes: Namespaces](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/), dibuka 2026-11-04, Tidak dijalankan).",
+  "<summary>Tebak dulu: cluster belum punya satu pun NetworkPolicy. NetworkPolicy adalah sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod. Menurut dokumentasi Kubernetes, apakah pod di namespace notifikasi boleh menyambung ke pod ledger?</summary>",
+  "Boleh. Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneksi masuk, dan semua koneksi masuk diizinkan ([Kubernetes: Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/), dibuka 2026-11-04, Tidak dijalankan).",
+  "NetworkPolicy dijalankan oleh network plugin, yaitu komponen jaringan cluster yang mendukungnya. Dokumentasi yang sama menulis bahwa sumber daya itu tidak berefek bila tidak ada controller yang menegakkannya.",
+  "Pembatasan yang Bayu maksud baru ada bila tim menulis NetworkPolicy dan jaringan cluster menegakkannya. Naskah menulis pembatasan itu sebagai pilihan yang harus ditulis, bukan bawaan, dan jaringan yang menegakkannya belum ditentukan [perlu verifikasi].",
+  "Blok berikutnya menunjukkan hal yang lebih dasar: ledger sendiri tidak bertanya siapa yang sampai.",
+  "Di versi pertama, ledger tidak memeriksa siapa yang memanggil. Satu pemanggil tanpa sertifikat dan tanpa identitas membuat jurnal top-up Rp1.000 dengan Idempotency-Key baru (Rekaman lab, `rentan.txt` bagian A).",
+  "*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab t5-service. Ledger berjalan sebagai proses sendiri dengan mode `-rentan ledger-tanpa-identitas`, versi pertama: HTTP biasa, tanpa sertifikat, dan tanpa daftar jenis jurnal.",
+  "Mode itu adalah kode lab yang ditulis untuk M47, bukan salinan kode yang pernah berjalan di cerita. Pod uji di rekaman adalah perintah `panggil` di mesin yang sama dengan ledger. Lab tidak memakai Kubernetes, jadi rekaman tidak memuat namespace atau NetworkPolicy (Tidak dijalankan).",
+  "**Yang diperiksa ledger.** Mode rentan memasang dua rute ledger tanpa pembungkus apa pun, jadi permintaan langsung sampai ke handler-nya (Tidak dijalankan: dibaca dari kode lab):",
+  "Handler `JurnalTopup` membaca satu header, Idempotency-Key, lalu body dengan `order_id`, `akun_id`, dan `jumlah`. Service yang dipanggilnya menerima key, `order_id`, akun, dan jumlah, tanpa parameter yang menyebut pemanggil:",
+  "**Pod uji lolos.** Rekaman bagian A menjalankan rute itu dari pod uji. Ledger menjawab 201 dan menulis jurnal dengan dua posting, yaitu minus Rp1.000 di buku bank menurut kode lab dan plus Rp1.000 untuk akun uji 100002:",
+  "Saldo akun uji naik Rp1.000 tanpa kiriman dari bank. Itu penalaran: penalaran adalah kesimpulan penulis dari rekaman dan sumber yang disebut, bukan hasil yang direkam. Log ledger di baris terakhir bagian A memuat key, status, dan jurnal, tanpa pemanggil.",
+  "**Idempotency-Key menandai permintaan, bukan pemanggil.** Draf IETF menulis bahwa Idempotency-Key adalah nilai unik buatan client. Server memakainya untuk mengenali percobaan ulang dari permintaan yang sama ([draft-ietf-httpapi-idempotency-key-header-08](https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-08.txt), bagian 2, terbit 22 Oktober 2026, belum RFC, dibuka 2026-11-04, Tidak dijalankan).",
+  "Rekaman idempoten memperlihatkan dua sisinya lewat service pembayaran dengan sertifikat sah. Permintaan yang sama dikirim dua kali menghasilkan satu jurnal:",
+  "Key baru dengan akun dan jumlah yang sama menghasilkan jurnal kedua. Key yang sama dengan jumlah lain dijawab 422:",
+  "Ledger menjawab menurut key dan isi permintaan. Key yang belum pernah dipakai adalah permintaan baru, siapa pun pengirimnya, karena service ledger tidak menerima parameter pemanggil (penalaran dari kode lab). Karena itu key tidak menghentikan pod uji di bagian A.",
+  "**Jaringan menentukan siapa yang sampai, bukan siapa yang memanggil.** NetworkPolicy mengatur pod, namespace, dan blok IP yang boleh menyambung (Tidak dijalankan: dokumentasi Kubernetes). Bagian \"What you can't do with network policies\" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API.",
+  "Bila NetworkPolicy hanya mengizinkan namespace tertentu dan jaringan cluster menegakkannya, pod uji di namespace lain terhalang. Pod lain di namespace yang diizinkan, atau pod yang dibajak di sana, tetap membuat jurnal selama ledger tidak membaca identitas (penalaran).",
+  "Menurut NIST SP 800-207, zero trust mengasumsikan tidak ada kepercayaan implisit bagi aset atau akun hanya karena lokasi fisik atau jaringannya. Sumbernya abstrak [NIST SP 800-207](https://csrc.nist.gov/pubs/sp/800/207/final), terbit Agustus 2020, dibuka 2026-11-04 (Tidak dijalankan). Abstrak itu membahas infrastruktur enterprise secara umum dan tidak menyebut Kubernetes.",
+  "**Kunci bersama dari Tahap 4.** API ledger Tahap 4 sudah menuntut kunci bersama di header `X-Layanan-Kunci`, dan permintaan tanpa kunci dijawab 401 (Rekaman lab Tahap 4, `ledger.txt` bagian A, [[t4-modul]]). Kunci bersama menunjukkan bahwa pemanggil memegang kunci itu, bukan service mana yang memegangnya (penalaran).",
+  "Mode rentan lab ini tidak memasang pemeriksa kunci tersebut, jadi rekaman memerankan ledger tanpa pemeriksa pemanggil apa pun. Naskah tidak menulis apakah pod uji di cerita memegang kunci itu.",
+  "**Yang tidak direkam.**",
+  "- Laras, minggu 9, pod uji, dan namespace notifikasi berasal dari cerita (Ilustrasi). Lab memerankan pod uji dengan perintah `panggil` di mesin yang sama dan tidak memakai Kubernetes.",
+  "- NetworkPolicy dan jaringan yang menegakkannya Tidak dijalankan. Plugin jaringan di cluster Rekeningo belum ditentukan [perlu verifikasi].",
+  "- Rekaman mode rentan memuat satu permintaan dari pod uji. Permintaan berulang dari pod uji tidak direkam, dan bagian A dan C rekaman idempoten memakai service pembayaran dengan sertifikat sah.",
+  "- Rekonsiliasi atas jurnal Rp1.000 itu Tidak dijalankan, dan lab tidak menghitung beban atau kapasitas ledger.",
+  "Widget ini mengikuti cerita M47. Jalur utama memakai rekaman `rentan.txt` bagian A. Tebakannya tentang satu hal yang kamu ubah, jadi jawabannya terbuka di akhir langkah varian.",
+  "Centang **Ubah satu hal: ledger menuntut sertifikat client**. Sertifikat client adalah bukti identitas yang dibawa pemanggil saat membuka koneksi TLS, dan handshake adalah tahap awal koneksi itu ([[t3-tls-pinning]]).",
+  "Jalurnya berganti menjadi dua langkah dari `rentan.txt` bagian B dan satu langkah dari `mtls.txt` bagian C (Rekaman lab). Cara kerjanya dibahas di [[t5-mtls]]. Widget ini hanya menunjukkan bahwa satu hal berbeda mengubah hasilnya.",
+  "Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: ledger versi pertama mendengar HTTP biasa. Pod uji mengirim top-up Rp1.000 dengan key baru dan dijawab 201, lalu saldo akun uji menjadi Rp1.000 (`rentan.txt` bagian A).",
+  "Bila ledger menuntut sertifikat client, pod uji tanpa sertifikat ditolak saat handshake dan jurnal untuk key itu nol (`rentan.txt` bagian B). Service notifikasi dengan sertifikat sah dijawab 403 (`mtls.txt` bagian C).",
+  "- [[t5-mtls]]: identitas antar service lewat mTLS, yaitu TLS dua arah yang membuat server juga meminta sertifikat dari pemanggil, dan daftar jenis jurnal per identitas. Keputusannya ADR 53.",
+  "- [[t2-idempotency]]: Idempotency-Key membedakan permintaan, dan umurnya 24 jam. Keputusannya ADR 14.",
+  "- [[t4-modul]]: kunci bersama antar service dari Tahap 4, dan batasnya yang terlihat di halaman ini.",
+  "- [[t5-service]]: pod dan Kubernetes, dibaca ulang di halaman ini.",
+  "Idempotency-Key tidak menggantikan identitas pemanggil.",
+  "### Cek diri",
+  "**1.** Pod uji memakai Idempotency-Key yang belum pernah dipakai dan ledger membuat jurnal. Kenapa key itu tidak menolak pod uji?",
+  "Menurut draf IETF, key dipakai server untuk mengenali percobaan ulang dari permintaan yang sama. Key yang belum pernah dipakai adalah permintaan baru, dan service ledger tidak menerima parameter pemanggil. Key baru dengan akun dan jumlah yang sama menghasilkan jurnal kedua (`idempoten.txt` bagian C).",
+  "**2.** Bayu menulis bahwa Kubernetes sudah membatasi lalu lintas antar pod. Apa yang ditulis dokumentasi Kubernetes, dan apa yang tidak diketahui dari cluster cerita?",
+  "Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneksi masuk, dan NetworkPolicy tidak berefek tanpa controller yang menegakkannya (Tidak dijalankan). Dari cluster cerita tidak diketahui apakah ada NetworkPolicy dan jaringan yang menegakkannya [perlu verifikasi].",
+  "**3.** Rekaman memakai perintah `panggil` di mesin yang sama dengan ledger, bukan pod di cluster. Apa yang dibuktikan rekaman itu, dan apa yang tidak?",
+  "Rekaman membuktikan bahwa ledger versi pertama membuat jurnal untuk pemanggil tanpa sertifikat dan tanpa identitas (`rentan.txt` bagian A). Rekaman tidak membuktikan cara jaringan cluster memperlakukan pod uji, karena lab tidak memakai Kubernetes.",
+];
+const proseUtuh = badan.split("\n").filter((b) => b.trim() && (!b.startsWith("<") || (b.startsWith("<summary>") && b !== "<summary>Jawaban</summary>")));
+const status422 = cari(/^status (\d+) /, idem[nIdemC2 - 1]!, "422")[1]!;
+const status403 = cari(/^status (\d+) /, mtls[nNotif]!, "403")[1]!;
+
+describe("lapis 1b: noscript diturunkan dari rekaman, kalimat berangka, dan paragraf utuh", () => {
+  test("noscript: dua paragraf, status dan saldo diturunkan dari rentan.txt dan mtls.txt, dan satu penutup", () => {
+    expect(jumlah(badan, "</noscript>")).toBe(1);
+    const ns = cari(/<noscript>\n([\s\S]*?)\n<\/noscript>/, badan, "noscript")[1]!.split("\n\n");
+    expect(ns).toEqual([
+      `Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: ledger versi pertama mendengar HTTP biasa. Pod uji mengirim top-up ${rp(Number(postingAkun[3]))} dengan key baru dan dijawab ${statusA[1]}, lalu saldo akun uji menjadi ${rp(Number(saldoUji[1]))} (\`rentan.txt\` bagian A).`,
+      `Bila ledger menuntut sertifikat client, pod uji tanpa sertifikat ditolak saat handshake dan jurnal untuk key itu ${jurnalKeyKedua === 0 ? "nol" : "?"} (\`rentan.txt\` bagian B). Service notifikasi dengan sertifikat sah dijawab ${status403} (\`mtls.txt\` bagian C).`,
+    ]);
+  });
+  test("kalimat berangka dari rekaman, naskah, kode, dan halaman tetangga: 422, minggu, 24 jam, dan tahap", () => {
+    harus(`Key baru dengan akun dan jumlah yang sama menghasilkan jurnal kedua. Key yang sama dengan jumlah lain dijawab ${status422}:`);
+    harus(`Minggu ${mingguM47} Tahap 5. Dalam tinjauan keamanan,`);
+    harus(`- Laras, minggu ${mingguM47}, pod uji, dan namespace notifikasi berasal dari cerita (Ilustrasi).`);
+    harus(`*Angka cerita (Ilustrasi):* minggu ${mingguM47}, Laras, pod uji,`);
+    expect(kodeService).toContain("const UmurKunciLedger = 24 * time.Hour");
+    expect(baca("situs/src/content/docs/tahap-2/retry-idempotency.mdx")).toContain("server menyimpan hasil 24 jam");
+    harus("- [[t2-idempotency]]: Idempotency-Key membedakan permintaan, dan umurnya 24 jam. Keputusannya ADR 14.");
+    harus(`- [[t4-modul]]: kunci bersama antar service dari Tahap ${dari("t4-modul").tahap}, dan batasnya yang terlihat di halaman ini.`);
+    harus(`(Rekaman lab Tahap ${dari("t4-modul").tahap}, \`ledger.txt\` bagian A, [[t4-modul]])`);
+    expect(dari("t5-m47").tahap).toBe(5);
+    harus(`**Yang diperiksa ledger.** Mode rentan memasang dua rute ledger tanpa pembungkus apa pun`);
+    expect(jumlah(blokRentan, "HandleFunc")).toBe(2);
+  });
+  test("paragraf utuh badan halaman sama dengan daftar di tes ini (setiap kalimat, tanpa tag), dalam urutan yang sama", () => {
+    expect(proseUtuh).toEqual(PARAGRAF_UTUH);
+  });
+  test("halaman istilah NetworkPolicy: seluruh isi sama dengan yang ditulis di tes", () => {
+    expect(istilahMentah).toEqual({
+      istilah: "NetworkPolicy",
+      sehari_hari: "NetworkPolicy adalah sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod. Aturannya hanya berlaku bila jaringan cluster mendukungnya.",
+      cerita: [{ rujukan: "t5-m47", teks: "Bayu mengira Kubernetes sudah membatasi lalu lintas antar pod secara bawaan. Dokumentasi menulis bahwa pod tidak terisolasi untuk koneksi masuk secara bawaan, dan semua koneksi masuk diizinkan sampai ada NetworkPolicy yang memilih pod itu (Tidak dijalankan)." }],
+      mekanisme: [
+        "Secara bawaan sebuah pod tidak terisolasi, baik untuk koneksi masuk maupun keluar: semua koneksi diizinkan.",
+        "Pod menjadi terisolasi untuk satu arah bila ada NetworkPolicy yang memilihnya dan menyebut arah itu di policyTypes.",
+        "Tiap NetworkPolicy memuat daftar yang diizinkan: pod lain, namespace, atau blok IP, dengan port tertentu. Beberapa NetworkPolicy tidak saling bertentangan, karena yang diizinkan adalah gabungan semuanya.",
+        "NetworkPolicy dijalankan oleh network plugin. Tanpa controller yang menegakkannya, sumber daya itu tidak berefek.",
+      ],
+      stack: null,
+      jebakan: [
+        "Mengira NetworkPolicy memberi ledger identitas pemanggil. Ia hanya mengatur pod, namespace, dan blok IP yang boleh menyambung, dan dokumentasi menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API.",
+        "Membuat NetworkPolicy di cluster yang pluginnya tidak mendukungnya. Dokumentasi menulis bahwa sumber daya itu tidak berefek, jadi keadaan bawaan tetap berlaku.",
+      ],
+      terkait: ["Kubernetes", "Handshake TLS"],
+      sumber: [{ riset: "R5-195", judul: `Kubernetes: Network Policies (dibuka ${TANGGAL})`, url: URL_NP, catatan: "Pod tidak terisolasi secara bawaan, NetworkPolicy dijalankan oleh network plugin, dan daftar hal yang belum ada di NetworkPolicy API memuat hal yang berhubungan dengan TLS. Halaman tanpa nomor versi sendiri; bagian terakhirnya menulis Kubernetes 1.37." }],
+    });
+  });
+  test("skenario: judul dan catatan sumber utuh, dengan versi basis data dari kepala rekaman", () => {
+    expect(skenario.judul).toBe("Pod uji tanpa sertifikat membuat jurnal di ledger versi pertama");
+    expect(skenario.sumber.catatan).toBe(`Lab t5-service, PostgreSQL 17.11, dari database bersih (make -C labs/t5-service run). Jalur utama: rentan.txt bagian A, ledger dengan mode rentan ledger-tanpa-identitas (HTTP biasa, tanpa sertifikat, tanpa daftar jenis jurnal). Ubah satu hal: rentan.txt bagian B (ledger yang menuntut sertifikat client, port yang sama) dan satu langkah dari mtls.txt bagian C (service notifikasi dengan sertifikat sah). Pod uji diperankan oleh perintah panggil di mesin yang sama dengan ledger: lab tidak memakai Kubernetes, jadi tidak ada pod, namespace, atau NetworkPolicy. Lab tidak punya app Flutter dan tidak merekam layar HP. Baris diawali tanda pagar adalah baris rekaman, bukan baris log.`);
+  });
+  test("baris riset R5-195 sampai R5-199: jumlah kemunculan tanggal, versi, dan nomor bagian dikunci (toContain puas dengan satu kemunculan)", () => {
+    const hitung = (id: string, k: string): number => jumlah(barisRiset(id), k);
+    expect([hitung("R5-195", TANGGAL), hitung("R5-196", TANGGAL), hitung("R5-197", TANGGAL), hitung("R5-198", TANGGAL), hitung("R5-199", TANGGAL)]).toEqual([3, 2, 3, 1, 1]);
+    expect(hitung("R5-195", "R5-116")).toBe(1);
+    expect(hitung("R5-195", "R5-294")).toBe(1);
+    expect(hitung("R5-197", "-08")).toBe(3);
+    expect(hitung("R5-197", "bagian 2")).toBe(1);
+    expect(hitung("R5-198", "1000")).toBe(4);
+    expect(hitung("R5-198", "100002")).toBe(1);
+    expect(hitung("R5-198", "17.11")).toBe(0);
+    expect(hitung("R5-195", "1.37")).toBe(1);
+    expect(hitung("R5-196", "2020")).toBe(2);
+    expect(hitung("R5-197", "22 Oktober 2026")).toBe(1);
+    expect(hitung("R5-197", "25 April 2027")).toBe(1);
   });
 });
 
