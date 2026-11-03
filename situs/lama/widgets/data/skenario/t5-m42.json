@@ -1,0 +1,129 @@
+{
+  "versi": 2,
+  "judul": "Replica asinkron yang dipromosikan tidak punya lima pembayaran; standby sinkron menahan jawabannya",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t5-replika/output/promosi.txt",
+    "fileVarian": "labs/t5-replika/output/promosi.txt",
+    "catatan": "Server Go api-t5 dan PostgreSQL 17.11 dari database bersih (make -C labs/t5-replika run): jalur utama promosi.txt bagian A, Ubah satu hal bagian B. Primary tidak dimatikan: koneksi WAL replica diputus di sisi primary, lalu replica dipromosikan dengan pg_promote(). Lab merekam pembayaran ke Warung 505, bukan top-up. Jam, hari, dan rupiah di cerita adalah Ilustrasi. Deteksi kegagalan, fencing, dan primary yang restart tidak dijalankan. Lab tidak punya app Flutter dan tidak merekam layar."
+  },
+  "pengantar": "Koneksi WAL replica ke primary putus, tetapi primary terus menerima pembayaran. Tebak dulu apa yang ada di node baru sesudah promosi, lalu ikuti rekamannya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "app",
+      "label": "App Budi (api-t5)"
+    },
+    {
+      "id": "primary",
+      "label": "Primary lama"
+    },
+    {
+      "id": "replika",
+      "label": "Replica asinkron"
+    },
+    {
+      "id": "sinkron",
+      "label": "Standby sinkron"
+    }
+  ],
+  "predict": {
+    "q": "Koneksi WAL replica asinkron ke primary putus, tetapi primary tetap menjawab 201 untuk lima pembayaran. Replica lalu dipromosikan. Berapa dari lima pembayaran itu ada di node baru?",
+    "options": [
+      "Semua lima: primary menjawab 201 sesudah COMMIT, jadi replica sudah menyalinnya",
+      "Nol: koneksi WAL sudah putus, jadi node baru tidak menerima kelima pembayaran itu",
+      "Sebagian: replica menyalin WAL yang sempat terkirim sebelum primary menjawab",
+      "Tidak bisa diketahui: jumlahnya bergantung pada jeda replay saat promosi dilakukan"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Rekaman promosi.txt bagian A: kelima jurnal ada di primary (5) dan nol di replica, juga sesudah pg_promote(). Replica hanya punya yang diterimanya sebelum koneksi putus."
+  },
+  "langkah": [
+    {
+      "dari": "primary",
+      "ke": "replika",
+      "judul": "Koneksi WAL replica diputus di sisi primary",
+      "kirim": "# Tiga pembayaran dijawab 201 dan kedua standby menyusul. Lalu koneksi WAL ke replika_laporan diputus di sisi primary.\nprimary=> ALTER ROLE replikator_laporan NOLOGIN\nALTER ROLE\nreplika=> SELECT count(*) AS penerima_wal FROM pg_stat_wal_receiver\n penerima_wal\n 0",
+      "jelas": "Tiga pembayaran sudah dijawab 201 dan kedua standby menyusul. Lab memutus koneksi WAL replica di sisi primary. Primary tidak dimatikan, dan penerima WAL di replica tinggal nol."
+    },
+    {
+      "dari": "app",
+      "ke": "primary",
+      "judul": "Primary menjawab 201 untuk lima pembayaran lagi",
+      "kirim": "$ POST /transfers lima kali ke Warung 505 (Rp10.000 sampai Rp50.000), semua 201\nprimary=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10204, 10205, 10206, 10207, 10208)\n jurnal_ada\n 5\nreplika=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10204, 10205, 10206, 10207, 10208)\n jurnal_ada\n 0",
+      "jelas": "Lima pembayaran, Rp10.000 sampai Rp50.000, dijawab 201. Kelima jurnalnya ada di primary dan nol di replica, karena koneksi WAL sudah putus.",
+      "nada": "warn"
+    },
+    {
+      "dari": "replika",
+      "judul": "Replica dipromosikan",
+      "kirim": "replika=> SELECT pg_promote(wait => true)\n pg_promote\n t\nreplika=> SELECT pg_is_in_recovery() AS standby\n standby\n f",
+      "jelas": "pg_promote() mengubah replica menjadi server yang menerima tulisan: pg_is_in_recovery bernilai f. Di lab hanya run.py yang memanggilnya, dan tidak ada yang mendeteksi kegagalan primary."
+    },
+    {
+      "dari": "replika",
+      "judul": "Node baru tidak punya lima pembayaran itu, tetapi seimbang",
+      "kirim": "replika=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10204, 10205, 10206, 10207, 10208)\n jurnal_ada\n 0\n buku_selisih | jumlah_semua_posting\n 0            | 0\n# Node baru tidak rusak, hanya lebih tua: tidak ada buku yang saldo_cache-nya berbeda dari jumlah postingnya, dan jumlah semua posting nol.",
+      "jelas": "Nol dari lima jurnal ada di node baru. Ledgernya tidak rusak: tidak ada buku yang saldo_cache-nya berbeda dari jumlah postingnya. Node baru lebih tua, bukan salah.",
+      "nada": "warn"
+    },
+    {
+      "dari": "replika",
+      "ke": "primary",
+      "judul": "Saldo Warung 505 berbeda Rp150.000",
+      "kirim": "primary=> SELECT saldo_cache AS saldo_warung_505 FROM t5_ledger.buku WHERE akun_id = 505\n saldo_warung_505\n 156000\nreplika=> SELECT saldo_cache AS saldo_warung_505 FROM t5_ledger.buku WHERE akun_id = 505\n saldo_warung_505\n 6000\n# Selisih saldo Warung 505 antara primary lama dan node baru: Rp150.000, sama dengan jumlah lima pembayaran yang hilang.",
+      "jelas": "Saldo Warung 505 Rp156.000 di primary lama dan Rp6.000 di node baru. Selisihnya Rp150.000, sama dengan jumlah lima pembayaran yang dijawab 201.",
+      "nada": "warn"
+    },
+    {
+      "dari": "app",
+      "ke": "primary",
+      "judul": "Primary lama masih menerima pembayaran",
+      "kirim": "primary=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'\n jurnal_bayar\n 9\nreplika=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'\n jurnal_bayar\n 3\n# Tidak ada yang menghentikan primary lama: satu pembayaran lagi dijawab 201, dan kedua node kini punya riwayat berbeda.\n# Fencing (menghentikan primary lama sebelum node baru menerima tulisan) tidak ada di lab ini: tidak ada yang menghentikan primary lama.",
+      "jelas": "Satu pembayaran lagi dijawab 201 oleh primary lama sesudah node baru dipromosikan: 9 jurnal bayar di primary lama, 3 di node baru. Lab tidak punya fencing.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "standby sinkron",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "primary",
+        "ke": "sinkron",
+        "judul": "Primary menunggu satu standby sinkron sebelum COMMIT selesai",
+        "kirim": "primary=> ALTER SYSTEM SET synchronous_standby_names = 'FIRST 1 (replika_sinkron)'\nALTER SYSTEM\n# Tiga pembayaran dijawab 201 sementara replika_sinkron sinkron. Lalu koneksi WAL ke replika_sinkron diputus di sisi primary.",
+        "jelas": "synchronous_standby_names diisi FIRST 1 (replika_sinkron). Tiga pembayaran dijawab 201 sementara standby sinkron menerima WAL, lalu koneksi WAL ke standby sinkron diputus."
+      },
+      {
+        "dari": "app",
+        "ke": "primary",
+        "judul": "Pembayaran keempat tidak dijawab",
+        "kirim": "$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{\"ke\": 505, \"nominal\": 4000}'\n(tidak ada jawaban)\n# Selagi client menunggu, COMMIT berhenti di SyncRep. Client tidak menerima jawaban sampai batas 3 detik (curl --max-time 3): tidak ada 201.",
+        "jelas": "COMMIT pembayaran Rp4.000 berhenti di SyncRep karena tidak ada standby yang mengonfirmasinya. Client tidak menerima jawaban sampai batas 3 detik.",
+        "nada": "good"
+      },
+      {
+        "dari": "primary",
+        "judul": "Penantian dibatalkan sesudah client pergi",
+        "kirim": "$ docker compose logs primary   # baris yang memuat pembatalan penantian\nWARNING:  canceling wait for synchronous replication due to user request\nDETAIL:  The transaction has already committed locally, but might not have been replicated to the standby.\n# Penantian dibatalkan sesudah client pergi, dan transaksinya ter-commit di primary lama saja: tidak ada standby yang mengonfirmasinya.",
+        "jelas": "PostgreSQL mencatat peringatan: transaksinya sudah ter-commit di primary lama dan mungkin belum direplikasi ke standby. Tidak ada 201 untuknya."
+      },
+      {
+        "dari": "sinkron",
+        "judul": "Standby sinkron dipromosikan: tiga jurnal ada",
+        "kirim": "sinkron=> SELECT pg_promote(wait => true)\n pg_promote\n t\nsinkron=> SELECT count(*) AS jurnal_ada FROM t5_ledger.jurnal WHERE id IN (10201, 10202, 10203)\n jurnal_ada\n 3\n# Ketiga jurnal yang dijawab 201 sebelum pemutusan ada di node baru: tidak satu pun dari ketiganya hilang.",
+        "jelas": "Ketiga jurnal yang dijawab 201 sebelum koneksi diputus ada di node baru.",
+        "nada": "good"
+      },
+      {
+        "dari": "sinkron",
+        "ke": "primary",
+        "judul": "Primary lama punya satu jurnal yang tidak dijawab",
+        "kirim": "primary=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'\n jurnal_bayar\n 4\nsinkron=> SELECT count(*) AS jurnal_bayar FROM t5_ledger.jurnal WHERE jenis = 'bayar'\n jurnal_bayar\n 3\n# Primary lama memuat satu jurnal lagi (commit lokal sesudah penantian dibatalkan) yang tidak ada di node baru; client tidak pernah menerima 201 untuknya.",
+        "jelas": "Primary lama memuat 4 jurnal bayar dan node baru 3. Jurnal keempat tidak pernah dijawab 201 ke client.",
+        "nada": "good"
+      }
+    ]
+  }
+}
