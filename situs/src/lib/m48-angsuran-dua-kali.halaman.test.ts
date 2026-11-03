@@ -903,6 +903,51 @@ describe("penutup celah mutasi tanpa kunci: lingkup, definisi di pemakaian perta
   });
 });
 
+describe("penutup celah dari tinjauan (keputusan 1579): nomor bagian naskah di baris riset, label tebal, jumlah komponen, dan sumber rekaman", () => {
+  test("R5-207: nomor bagian naskah diturunkan dari judul bagian di naskah, bukan ditulis tangan", () => {
+    const nas = naskah.split("\n");
+    const bagianDari = (cocok: (b: string) => boolean): string => {
+      const i = nas.findIndex(cocok);
+      expect(i, "baris naskah tidak ditemukan").toBeGreaterThanOrEqual(0);
+      for (let k = i; k >= 0; k--) {
+        const m = nas[k]!.match(/^## (\d+)\./);
+        if (m) return m[1]!;
+      }
+      throw new Error("judul bagian tidak ditemukan");
+    };
+    const r207 = barisRiset("R5-207");
+    expect(r207).toContain(`bagian ${bagianDari((b) => b.startsWith("| M48 |"))} (baris M48`);
+    expect(r207).toContain(`bagian ${bagianDari((b) => b.startsWith("| Cicilan | jadwal × bagian jatuh tempo ÷ hari |"))} (angka beban Cicilan`);
+    expect(r207).toContain(`bagian ${bagianDari((b) => b.includes("Hendra menulis cicilan sebagai job malam"))} ("Hendra menulis cicilan sebagai job malam"`);
+  });
+  test("R5-208: baris kode dan rekaman yang dirujuk memuat TandaiAngsuran dan SIGKILL yang ada di kode", () => {
+    const r208 = barisRiset("R5-208");
+    expect(r208).toContain("`TandaiAngsuran` dari `menunggu` atau `terjurnal` ke `dicatat`");
+    expect(r208).toContain("dimatikan SIGKILL sesudah jurnal dan key selesai");
+    expect(badanRentan).toContain('"dicatat"');
+    expect(kodeMain).toContain("syscall.SIGKILL");
+  });
+  test("label tebal dan jumlah komponen: Yang tidak direkam, satu Rantai, satu widget, enam Snippet, lima Blok", () => {
+    harus("**Yang tidak direkam.**");
+    expect(jumlah(badan, "<Rantai ")).toBe(1);
+    expect(jumlah(badan, "<WidgetLama")).toBe(1);
+    expect(jumlah(badan, "<Snippet ")).toBe(6);
+    expect(jumlah(badan, "<Blok ")).toBe(5);
+    expect(jumlah(badan, "<details")).toBe(4);
+    expect(jumlah(badan, "<summary>")).toBe(4);
+  });
+  test("sumber yang dibaca halaman tetapi tidak pernah ditegaskan: hari Senin di naskah, komentar +23 dan +25 jam di rekaman Tahap 4, README, dan argumen job di run.py", () => {
+    expect(gejalaM48).toContain("Senin pagi Budi menerima dua notifikasi");
+    const c = modulMati.slice(modulMati.indexOf("# --- C."));
+    expect(c).toContain("# top-up pertama dikirim ulang pada jam ledger +23 jam (key hidup), top-up kedua pada +25 jam (key habis).");
+    expect(readmeLab).toContain(`Naskah menulis angsuran ${rp(nominalCerita)} dan saldo Budi berkurang ${rp(berkurangCerita)} (Ilustrasi)`);
+    const versiGo = cari(/· go(\d+\.\d+\.\d+) ·/, rek[1]!, "versi Go di kepala rekaman")[1]!;
+    expect(readmeLab).toContain(`| Go | ${versiGo} |`);
+    expect(runLab).toContain('[*args, "-lab-sekarang", rfc(sekarang), "-lab-cicilan-henti", "1"]');
+    expect(runLab).toContain('[*args, "-lab-cicilan-henti", "1"]');
+  });
+});
+
 if (process.env.PERBARUI_KUNCI === "1") {
   const isi = `// Dihasilkan dari file saat ini oleh PERBARUI_KUNCI=1 (lihat m48-angsuran-dua-kali.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.\n` +
     `export const SIDIK = ${JSON.stringify(sidikSekarang)};\n` +
