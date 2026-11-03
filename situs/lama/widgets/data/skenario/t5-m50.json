@@ -3,7 +3,7 @@
   "judul": "Satu POS mengulang tanpa jeda, satu batas bersama",
   "sumber": {
     "jenis": "ilustrasi",
-    "catatan": "Jalur utama memuat satu langkah cerita (Ilustrasi: Rabu 10.15, 3.000 permintaan per detik) dan tiga langkah rekaman lab t5-waf (kuota.txt bagian C: mode kuota-bersama, jam bucket dibekukan, 600 permintaan mitra A dan 20 mitra B dalam satu detik). Ubah satu hal memakai kuota.txt bagian A untuk bucket per mitra dan tes Go lab (testing.txt). Laju sungguhan tidak diukur, dan lab memakai 600 dan 20, bukan 3.000."
+    "catatan": "Jalur utama memuat satu langkah cerita (Ilustrasi: Rabu 10.15, 3.000 permintaan per detik) dan tiga langkah rekaman lab t5-waf (kuota.txt bagian A: pekerjaan 600 permintaan mitra A dan 20 mitra B dengan jam bucket dibekukan; bagian C: mode kuota-bersama). Ubah satu hal memakai kuota.txt bagian A untuk bucket per mitra dan tes Go lab (testing.txt). Laju sungguhan tidak diukur, dan lab memakai 600 dan 20, bukan 3.000."
   },
   "pengantar": "Satu POS mitra mengulang permintaan status tanpa jeda, dan satu batas dipakai semua mitra. Tebakannya tentang satu hal yang kamu ubah: centang 'Ubah satu hal' di bawah, dan jawabannya terbuka di akhir langkah varian.",
   "komponen": [
@@ -39,7 +39,7 @@
       "dari": "pos",
       "ke": "batas",
       "judul": "Kasir mitra A mengulang tanpa jeda",
-      "kirim": "Rabu 10.15: 3.000 permintaan per detik dari satu mitra (Ilustrasi)\n3.000 ÷ 1.388,9 = 216% dari seluruh puncak (Hitungan atas Ilustrasi)",
+      "kirim": "Rabu 10.15: 3.000 permintaan per detik dari satu mitra (Ilustrasi)\n3.000 ÷ 1.388,9 = 2,16, jadi 216% dari seluruh puncak (Hitungan atas Ilustrasi)",
       "jelas": "Pembaruan POS membuat kasir mengulang permintaan status tiap kali jawabannya belum ada. Hari, jam, dan angkanya dari cerita."
     },
     {
@@ -47,14 +47,14 @@
       "ke": "batas",
       "judul": "Lab meniru dua mitra dalam satu detik",
       "kirim": "mitra A: 600 GET status\nmitra B: 20 GET status, diselipkan di antaranya\n620 permintaan dalam satu detik (Rekaman lab)",
-      "jelas": "Lab memakai 600 dan 20, bukan 3.000. Jam bucket dibekukan, jadi laju sungguhan tidak diukur (kuota.txt, bagian C)."
+      "jelas": "Lab memakai 600 dan 20, bukan 3.000. Jam bucket dibekukan, jadi laju sungguhan tidak diukur (kuota.txt, bagian A; kode lab memakai pekerjaan yang sama di bagian C)."
     },
     {
       "dari": "batas",
       "ke": "api",
       "judul": "Satu bucket untuk semua mitra",
       "kirim": "satu bucket 100 per detik untuk semua mitra\n200: 100, 429: 520 dari 620 permintaan (Rekaman lab)",
-      "jelas": "Mode kuota-bersama memakai satu kunci bucket untuk semua mitra. Seratus permintaan pertama lolos ke API, dan sisanya mendapat 429.",
+      "jelas": "Mode kuota-bersama memakai satu kunci bucket untuk semua mitra. Seratus permintaan lolos ke API, dan sisanya mendapat 429.",
       "nada": "warn"
     },
     {
@@ -62,7 +62,7 @@
       "ke": "pos",
       "judul": "Mitra B ikut mendapat 429",
       "kirim": "mitra B mendapat 429: ya (Rekaman lab)",
-      "jelas": "B tidak mengulang apa pun, tetapi bucket yang sama sudah dihabiskan A. Bagian B yang tepat tidak dihitung terpisah di rekaman ini.",
+      "jelas": "B hanya mengirim 20 permintaan, tetapi memakai bucket yang sama dengan A. Bagian B yang tepat tidak dihitung terpisah di rekaman ini.",
       "nada": "warn"
     }
   ],
@@ -88,8 +88,8 @@
       {
         "dari": "batas",
         "judul": "Batas ini dihitung sebelum tanda tangan",
-        "kirim": "100 permintaan dengan rahasia salah: 401, tetapi memakai token mitra pemiliknya\nlalu kasir A yang sah: 429 (Rekaman lab, tes Go)",
-        "jelas": "Urutan di gerbang: kunci API, kuota, lalu tanda tangan. Kunci yang bocor tanpa rahasia penandatangannya masih bisa menghabiskan kuota pemiliknya.",
+        "kirim": "100 permintaan dengan secret penandatangan salah: 401, tetapi memakai token mitra pemiliknya\nlalu kasir A yang sah: 429 (Rekaman lab, tes Go)",
+        "jelas": "Urutan di gerbang: kunci API, kuota, lalu tanda tangan. Kunci yang bocor tanpa secret penandatangannya masih bisa menghabiskan kuota pemiliknya.",
         "nada": "warn"
       }
     ]
