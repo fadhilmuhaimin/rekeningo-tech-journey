@@ -266,6 +266,8 @@ describe("naskah M42: gejala, yang dikira, dan yang sebenarnya", () => {
     expect(m[1]).toBe("Tebak dulu: kedua top-up sudah dijawab 200 sesudah COMMIT di primary. Apakah keduanya pasti ada di replica yang dipromosikan?");
     expect(m[2]).toContain("Tidak pasti.");
     expect(m[2]).toContain("Yang belum terjamin adalah apakah replica sudah menyalinnya.");
+    expect(m[2]).toContain("Blok berikutnya memuat dasarnya dan rekamannya.");
+    expect(badan.indexOf('<Blok nama="Yang sebenarnya">')).toBeGreaterThan(badan.indexOf("Blok berikutnya memuat dasarnya dan rekamannya."));
     const sebelum = badan.slice(0, badan.indexOf('<details class="question">'));
     // jawabannya ("tidak pasti", replica belum tentu menyalin) tidak boleh sudah tertulis sebelum pertanyaan
     expect(sebelum).not.toContain("Tidak pasti.");
@@ -474,7 +476,9 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
       ["PostgreSQL 17: replikasi sinkron", "https://www.postgresql.org/docs/17/warm-standby.html#SYNCHRONOUS-REPLICATION"],
     ]);
     const rujuk: Record<string, string> = { "R5-146": "postgresql.org/docs/17/runtime-config-wal.html", "R5-145": "postgresql.org/docs/17/warm-standby-failover.html", "R5-147": "postgresql.org/docs/17/warm-standby.html#SYNCHRONOUS-REPLICATION" };
-    for (const [id, url] of Object.entries(rujuk)) expect(barisRiset(id), id).toContain(url);
+    // URL utuh: tidak boleh diikuti huruf, angka, atau tanda yang memperpanjangnya (anchor salah ketik tetap memuat URL yang benar sebagai awalan)
+    const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    for (const [id, url] of Object.entries(rujuk)) expect(barisRiset(id), id).toMatch(new RegExp(esc(url) + "(?![\\w#/.-])"));
     expect(badan.match(/\]\(https:/g)).toHaveLength(3);
     const semuaTeks = [badan, JSON.stringify(diagramMentah), skenarioMentah, JSON.stringify(kartuSemua.filter((k) => k.halaman === "t5-m42")), frontmatter].join("\n");
     expect(semuaTeks).not.toMatch(/\bR\d-\d{2,3}\b/);
