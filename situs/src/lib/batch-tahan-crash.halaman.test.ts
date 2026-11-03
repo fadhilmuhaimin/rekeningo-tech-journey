@@ -1314,6 +1314,28 @@ describe("penutup celah mutasi peninjau (keputusan 1583): klaim yang tidak punya
     harus(`Dengan ${m[1]} juta angsuran per tahun (Asumsi: 100.000 jadwal × 12 angsuran, [[t5-skema]])`);
     expect(prosa.join("\n")).toContain(`Dengan ${m[1]} juta angsuran per tahun`);
   });
+  test("kalimat peninjau yang menjelaskan DBOS, gagal, dan keadaan terjurnal punya sumber: godoc di baris riset, tes lab, kompensasi.txt, README, dan ADR 6", () => {
+    // RunAsStep dan RunAsTransaction: arti diturunkan dari kutipan godoc di baris riset
+    expect(kolomRiset("R5-212")).toContain("RunAsStep \"Steps provide at-least-once execution guarantees");
+    expect(kolomRiset("R5-212")).toContain("RunAsTransaction \"DBOS atomically records a durability row");
+    harus("Di DBOS Go, `RunAsStep` menjalankan satu langkah alur, dan `RunAsTransaction` menjalankannya di dalam satu transaction database.");
+    harus("3. Di DBOS Go (pustaka yang mencatat tiap langkah alur di PostgreSQL), langkah jurnal tanpa referensi mati di dalam langkahnya sesudah ledger commit. Berapa jurnal akhirnya, dan apa sebabnya?");
+    // kode lama dihitung gagal 1 oleh tes (hitungan), bukan terbukti menandai status gagal
+    expect(readmeLab).toContain("(jurnal baru 1, jurnal sudah ada 0, gagal 1)");
+    harus("Ia lalu menghitung angsuran yang sudah dibayar sebagai `gagal`.");
+    // keadaan terjurnal dipasang langsung: UPDATE di kompensasi.txt dan README
+    expect(komp.join("\n")).toContain("=> UPDATE angsuran SET status = 'terjurnal', jurnal_id = (SELECT id FROM jurnal WHERE referensi = 'angsuran:1:1')");
+    expect(readmeLab).toContain("Lab ini tidak punya langkah akhir yang bisa gagal permanen: keadaan `terjurnal` dipasang langsung di database");
+    harus("Lab tidak punya langkah akhir yang bisa gagal permanen. Keadaan `terjurnal` dipasang langsung dengan UPDATE, jadi yang direkam adalah mekanisme kompensasinya, bukan kejadiannya.");
+    // jumlah job serentak di Coba: kata bilangan diturunkan dari rekaman bagian B
+    const menunggu = Number(cari(/^koneksi job yang menunggu lock: (\d+)$/, di(serentak, sBMulai + 1), "job menunggu lock")[1]);
+    expect(menunggu).toBe(2);
+    harus("Tebak dulu hasil dua job yang berjalan serentak.");
+    // kompensasi: jurnal pembalik, bukan UPDATE atau DELETE atas posting; aturan ledger dari halaman 2.8
+    const adr6 = baca("situs/src/content/docs/tahap-2/adr-ledger.mdx");
+    expect(adr6).toContain("Jurnal dan posting tidak pernah di-UPDATE atau DELETE. Kesalahan dikoreksi dengan jurnal pembalik");
+    harus("Kompensasinya jurnal pembalik atas jurnal angsuran, bukan UPDATE atau DELETE atas posting ([[t2-adr-ledger]]).");
+  });
   test("tiap tautan Bacaan lanjut punya alamat dan teks (tanda baca dinormalkan) yang sama dengan tautan di badan", () => {
     const daftar = badan.slice(badan.indexOf("### Bacaan lanjut"), badan.indexOf("</Blok>", badan.indexOf("### Bacaan lanjut")));
     const butir = [...daftar.matchAll(/^- \[([^\]]+)\]\(([^)]+)\)$/gm)];
