@@ -3,7 +3,7 @@
   "judul": "Pengumuman ke satu juta HP dan notifikasi uang makan siang",
   "sumber": {
     "jenis": "ilustrasi",
-    "catatan": "Jalur utama memuat dua langkah cerita (Ilustrasi: Kamis 11.30, pengumuman ke 1.000.000 HP, Ratih menghentikannya), dua langkah rekaman lab t5-fanout (antrean.txt bagian A: kelas queue), satu langkah rekaman bagian B (pengumuman dibatasi laju), dan dua langkah Hitungan atas Asumsi (96,3 per detik, 13,33 per detik, umur uang tertua). Ubah satu hal memakai antrean.txt bagian B tanpa batas laju dan tanpa backoff. Bagian B memakai Kafka satu broker dan penyedia push tiruan dengan kuota 1.000 per detik; jumlah 429 dan umur uang tertua tidak direkam sebagai nilai."
+    "catatan": "Jalur utama punya enam langkah: satu langkah cerita (Ilustrasi: Kamis 11.30 dan pengumuman ke 1.000.000 HP), tiga langkah rekaman lab t5-fanout (antrean.txt bagian A: kelas queue, dua langkah; bagian B: pengumuman dibatasi laju, satu langkah), dan dua langkah Hitungan atas Asumsi (96,3 per detik, 13,33 per detik, umur uang tertua). Langkah Hitungan kedua juga memuat keputusan Ratih dari cerita (Ilustrasi). Ubah satu hal memakai antrean.txt bagian B tanpa batas laju dan tanpa backoff. Bagian B memakai Kafka satu broker dan penyedia push tiruan dengan kuota 1.000 per detik; jumlah 429 dan umur uang tertua tidak direkam sebagai nilai."
   },
   "pengantar": "Tim Merchant mengirim pengumuman saat makan siang, dan notifikasi uang menunggu. Tebakannya tentang satu hal yang kamu ubah: centang 'Ubah satu hal' di bawah, dan jawabannya terbuka di akhir langkah varian.",
   "komponen": [

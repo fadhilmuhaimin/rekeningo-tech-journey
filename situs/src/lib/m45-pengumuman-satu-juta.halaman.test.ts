@@ -201,6 +201,12 @@ const P8 = cari(/^(\d+) proses x (\d+) = (\d+) pengirim -> kapasitas \d+ \/ [\d,
 const P11 = cari(/^(11) proses x (\d+) = (\d+) pengirim -> kapasitas \d+ \/ [\d,]+ = ([\d,]+) per detik, terpakai [\d,]+ \/ [\d,]+ = ([\d,]+)%$/m, pengA, "11 proses")!;
 const BREAKER66 = cari(/^breaker per proses: (\d+) kegagalan x (\d+) proses = (\d+) kegagalan/m, pengA, "breaker 66")!;
 const P11TULIS = koma(bulat((M3.lam / angkaKoma(P11[4]!)) * 100, 1), 1);
+// skala lab bagian B (tinjauan, keputusan 1555): latensi penyedia tiruan dari run.py, kuota naskah dari pushkuota, satu menit dari pengirim.txt
+const runPyBersama = (() => { const r = baca("labs/t5-fanout/run.py"); return r.slice(r.indexOf("def skenario_bersama"), r.indexOf("def rekam_antrean")); })();
+const SIAPKAN_B = cari(/siapkan\(kuota=(\d+), latensi=(\d+), aktif=(\d+)/, runPyBersama, "siapkan di skenario_bersama");
+const LAT_B = Number(SIAPKAN_B[2]);
+const KUOTA_NASKAH = Number(cari(/flag\.Int\("kuota", (\d+),/, pushkuotaGo, "kuota bawaan pushkuota")[1]);
+const SEMENIT = { laju: bulat(PENERIMA_PENGUMUMAN / 60, 0), persen: bulat(PENERIMA_PENGUMUMAN / 60 / KUOTA_NASKAH * 100, 0) };
 const iAliranB = barisKe(recAliranBaris, /^# --- B\. Pembanding/);
 const byteBaris = Number(cari(/bertambah (\d+) byte per baris, tanpa index/, recAliran, "byte per baris")[1]);
 const byte300 = Number(cari(/naskah memakai (\d+) byte per baris \(Asumsi\)/, recAliran, "300 byte")[1]);
@@ -683,7 +689,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(badan).toContain("Dibaca dari kode berarti isi kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.");
     expect(badan).toContain("Umur notifikasi uang tertua adalah umur baris uang yang belum terkirim dan paling lama menunggu di queue.");
     expect(pertama("Umur notifikasi uang tertua adalah umur baris uang")).toBeLessThan(pertama('<details class="question">'));
-    expect(badan).toContain("yaitu platform event streaming, dan consumer, yaitu proses yang membaca rekamannya.");
+    expect(badan).toContain("yaitu platform event streaming, dan consumer, yaitu proses yang membaca event dari Kafka.");
     expect(pertama("Hitungan atas Asumsi: dihitung dari angka Asumsi di blok berikutnya")).toBeLessThan(pertama("Hitungan adalah angka yang dihitung"));
     // adegan Gejala tanpa kalimat definisi
     const gejala = badan.slice(0, badan.indexOf("</Blok>"));
@@ -713,7 +719,7 @@ describe("penutup celah mutasi tanpa kunci: frontmatter, Gejala, noscript, butir
   test("frontmatter persis, dan deskripsi memuat tiga fakta halaman", () => {
     expect(frontmatter).toContain('title: "5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat"');
     expect(frontmatter).toContain(`Pengumuman diskon ke 1.000.000 HP berjalan saat makan siang, dan notifikasi uang menunggu ±${koma(M3.umur(2400).menit, 1)} menit.`);
-    expect(frontmatter).toContain("Kelas queue sudah mendahulukan uang, jadi penyebabnya kapasitas worker, dan pengumuman yang dipercepat bisa menghabiskan kuota penyedia push.");
+    expect(frontmatter).toContain("Halaman ini menghitung kapasitas worker, membaca kelas queue dari rekaman, dan menunjukkan batas kelas itu.");
     expect(frontmatter).toContain("Minggu 7.");
   });
   test("adegan Gejala: hari, jam, 1.000.000 HP, Ani, Ratih, dan 34,5 menit sama dengan baris M45 naskah; dua catatan berawalan bintang", () => {
@@ -853,7 +859,7 @@ describe("seluruh baris halaman, skenario, diagram, dan baris riset: kunci lapis
 const KEPALA_DITURUNKAN: string[] = [
   `---`,
   `title: "5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat"`,
-  `description: Minggu 7. Pengumuman diskon ke 1.000.000 HP berjalan saat makan siang, dan notifikasi uang menunggu ±${U1210} menit. Kelas queue sudah mendahulukan uang, jadi penyebabnya kapasitas worker, dan pengumuman yang dipercepat bisa menghabiskan kuota penyedia push.`,
+  `description: Minggu 7. Pengumuman diskon ke 1.000.000 HP berjalan saat makan siang, dan notifikasi uang menunggu ±${U1210} menit. Halaman ini menghitung kapasitas worker, membaca kelas queue dari rekaman, dan menunjukkan batas kelas itu.`,
   `---`,
   `import Blok from "../../../components/Blok.astro";`,
   `import Rantai from "../../../components/Rantai.astro";`,
@@ -884,7 +890,7 @@ const BADAN_DITURUNKAN: string[] = [
   `<Blok nama="Yang sebenarnya">`,
   `Notifikasi uang makan siang datang ${M3.lamT} per detik, dan worker mengirim ${KAPT} per detik. Queue uang tumbuh ${M3.tumbuh} per detik, dengan atau tanpa pengumuman (Hitungan atas Asumsi). Kelas queue sudah mendahulukan uang, jadi menghentikan pengumuman tidak mengubah laju itu.`,
   `<Rantai data={kapasitasUang} ringkas />`,
-  `*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab t5-fanout. Bagian B rekaman \`antrean.txt\` mengirim pengumuman lewat Kafka (apache/kafka 4.3.2, satu broker), yaitu platform event streaming, dan consumer, yaitu proses yang membaca rekamannya. Uang dikirim lewat outbox dan worker, dan penyedia push adalah tiruan lokal dengan kuota. Cerita memakai jalur lama: satu baris outbox per penerima.`,
+  `*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab t5-fanout. Bagian B rekaman \`antrean.txt\` mengirim pengumuman lewat Kafka (apache/kafka 4.3.2, satu broker), yaitu platform event streaming, dan consumer, yaitu proses yang membaca event dari Kafka. Uang dikirim lewat outbox dan worker, dan penyedia push adalah tiruan lokal dengan kuota. Cerita memakai jalur lama: satu baris outbox per penerima.`,
   `*Dua label turunan:* Hitungan adalah angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah. Dibaca dari kode berarti isi kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.`,
   `**Kelas queue mendahulukan uang.** Bagian A rekaman \`antrean.txt\` menaruh 3.000 baris promo (kelas 2), lalu empat pembayaran Rp5.000 (kelas 0). Dengan mode rentan urut-waktu dari M27, satu putaran worker mengirim empat promo dan empat uang tetap menunggu. Dengan versi benar, putaran berikutnya mengirim empat uang, dan ${ribu(A_BENAR["2 menunggu"]!)} promo tetap menunggu.`,
   `<Snippet file="labs/t5-fanout/output/antrean.txt" lines="14:34" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian A (urut nomor lawan urut kelas)" />`,
@@ -929,12 +935,15 @@ const BADAN_DITURUNKAN: string[] = [
   `- Breaker di lajur push dan 66 kegagalan tidak dijalankan. Jalur galat consumer juga tidak diperankan.`,
   `</Blok>`,
   `<Blok nama="Coba sendiri">`,
-  `Widget ini mengikuti cerita M45. Jalur utama memuat dua langkah cerita (Ilustrasi), dua langkah Hitungan atas Asumsi, tiga langkah rekaman, dan "Ubah satu hal" memakai rekaman \`antrean.txt\` bagian B. Tebak dulu, lalu tekan Berikutnya atau panah kanan.`,
+  `Widget ini mengikuti cerita M45. Jalur utama punya enam langkah: satu langkah cerita (Ilustrasi), tiga langkah rekaman, dan dua langkah Hitungan atas Asumsi. Langkah Hitungan kedua juga memuat keputusan Ratih dari cerita (Ilustrasi).`,
+  `"Ubah satu hal" memakai rekaman \`antrean.txt\` bagian B. Tebak dulu, lalu tekan Berikutnya atau panah kanan.`,
   `<WidgetLama nama="alur" src="data/skenario/t5-m45.json" />`,
   `Sesudah langkah terakhir, centang **Ubah satu hal: consumer pengumuman tanpa batas laju dan tanpa backoff**. Dua langkah varian menggantikan langkah terakhir jalur utama, dan jawaban tebakan terbuka di langkah terakhir.`,
   `Rekaman mode rentan memuat lima baris ini. Jumlah 429 tidak direkam, karena bergantung pada waktu:`,
   `<Snippet file="labs/t5-fanout/output/antrean.txt" lines="46:50" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian B, mode rentan (tanpa batas laju dan tanpa backoff)" />`,
   `Kelas queue mengatur urutan klaim di outbox, dan tidak melindungi uang dari kuota yang dihabiskan pengumuman.`,
+  `Hasil mode rentan berlaku pada skala lab. Penyedia tiruan di bagian B menjawab dalam ${LAT_B} ms, bukan t = ${koma(lamaT, 1)} detik, supaya ribuan perangkat selesai dalam beberapa detik (dibaca dari kode lab). Dengan t = ${koma(lamaT, 1)} detik, ${B.serentak} pengirim serentak hanya mengirim ${B.serentak} ÷ ${koma(lamaT, 1)} = ${ribu(bulat(B.serentak / lamaT, 0))} per detik (Hitungan atas Asumsi), di bawah kuota ${ribu(B.kuota)}.`,
+  `Pada angka cerita, kuota ${ribu(KUOTA_NASKAH)} per detik terlampaui bila pengumuman ke ${ribu(PENERIMA_PENGUMUMAN)} HP dikirim dalam satu menit. Itu ${ribu(PENERIMA_PENGUMUMAN)} ÷ 60 = ${ribu(SEMENIT.laju)} per detik, atau ${SEMENIT.persen}% kuota (Hitungan atas Asumsi, \`pengirim.txt\` bagian A).`,
   `Widget ini tidak punya layar HP, karena M45 terlihat di queue dan penyedia push, bukan di satu app.`,
   `<noscript>`,
   `Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: kelas queue mengirim empat uang lebih dulu dari ${ribu(A_BENAR["2 menunggu"]!)} promo (bagian A). Uang datang ${M3.lamT} per detik dan worker mengirim ${KAPT} per detik, jadi queue uang tumbuh ${M3.tumbuh} per detik (Hitungan atas Asumsi). Dengan pengumuman dibatasi laju, uang tidak dijawab 429 (bagian B).`,
@@ -974,7 +983,7 @@ const SKENARIO_DITURUNKAN: string[] = [
   "#jenis",
   `ilustrasi`,
   "#catatan",
-  `Jalur utama memuat dua langkah cerita (Ilustrasi: Kamis 11.30, pengumuman ke 1.000.000 HP, Ratih menghentikannya), dua langkah rekaman lab t5-fanout (antrean.txt bagian A: kelas queue), satu langkah rekaman bagian B (pengumuman dibatasi laju), dan dua langkah Hitungan atas Asumsi (${M3.lamT} per detik, ${KAPT} per detik, umur uang tertua). Ubah satu hal memakai antrean.txt bagian B tanpa batas laju dan tanpa backoff. Bagian B memakai Kafka satu broker dan penyedia push tiruan dengan kuota ${ribu(B.kuota)} per detik; jumlah 429 dan umur uang tertua tidak direkam sebagai nilai.`,
+  `Jalur utama punya enam langkah: satu langkah cerita (Ilustrasi: Kamis 11.30 dan pengumuman ke 1.000.000 HP), tiga langkah rekaman lab t5-fanout (antrean.txt bagian A: kelas queue, dua langkah; bagian B: pengumuman dibatasi laju, satu langkah), dan dua langkah Hitungan atas Asumsi (${M3.lamT} per detik, ${KAPT} per detik, umur uang tertua). Langkah Hitungan kedua juga memuat keputusan Ratih dari cerita (Ilustrasi). Ubah satu hal memakai antrean.txt bagian B tanpa batas laju dan tanpa backoff. Bagian B memakai Kafka satu broker dan penyedia push tiruan dengan kuota ${ribu(B.kuota)} per detik; jumlah 429 dan umur uang tertua tidak direkam sebagai nilai.`,
   "#pengantar",
   `Tim Merchant mengirim pengumuman saat makan siang, dan notifikasi uang menunggu. Tebakannya tentang satu hal yang kamu ubah: centang 'Ubah satu hal' di bawah, dan jawabannya terbuka di akhir langkah varian.`,
   "#komponen",
@@ -1250,5 +1259,41 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka
     expect(sidikSekarang.tabel).toEqual(SIDIK.tabel);
     expect(sidikSekarang.riset).toEqual(SIDIK.riset);
     expect(sidikSekarang.berkas).toEqual(SIDIK.berkas);
+  });
+});
+
+describe("skala lab bagian B dan hitungan langkah jalur utama (tinjauan, keputusan 1555)", () => {
+  test("latensi bagian B dibaca dari run.py: kuota, perangkat, dan pengirim serentak sama dengan rekaman; kuota terlampaui hanya pada latensi lab", () => {
+    expect(Number(SIAPKAN_B[1])).toBe(B.kuota);
+    expect(Number(SIAPKAN_B[3])).toBe(B.perangkat);
+    expect(B.serentak / (LAT_B / 1000)).toBeGreaterThan(B.kuota);
+    expect(B.serentak / lamaT).toBeLessThan(B.kuota);
+    expect(hitungKali(badan, `menjawab dalam ${LAT_B} ms, bukan t = ${koma(lamaT, 1)} detik`)).toBe(1);
+    expect(hitungKali(badan, `${B.serentak} pengirim serentak hanya mengirim ${B.serentak} ÷ ${koma(lamaT, 1)} = ${ribu(bulat(B.serentak / lamaT, 0))} per detik (Hitungan atas Asumsi), di bawah kuota ${ribu(B.kuota)}.`)).toBe(1);
+    expect(hitungKali(badan, "(dibaca dari kode lab)")).toBe(1);
+  });
+  test("satu menit: pengumuman 1.000.000 dalam 60 detik dan persen kuota naskah sama dengan pengirim.txt bagian A", () => {
+    const m = cari(/semua dalam semenit: ([\d.]+) \/ (\d+) = ([\d.]+) per detik = (\d+)% kuota/, pengA, "semua dalam semenit");
+    expect(angkaKoma(m[1]!)).toBe(PENERIMA_PENGUMUMAN);
+    expect(Number(m[2])).toBe(60);
+    expect(angkaKoma(m[3]!)).toBe(SEMENIT.laju);
+    expect(Number(m[4])).toBe(SEMENIT.persen);
+    expect(SEMENIT.persen).toBeGreaterThan(100);
+    expect(hitungKali(badan, `kuota ${ribu(KUOTA_NASKAH)} per detik terlampaui bila pengumuman ke ${ribu(PENERIMA_PENGUMUMAN)} HP dikirim dalam satu menit. Itu ${ribu(PENERIMA_PENGUMUMAN)} ÷ 60 = ${ribu(SEMENIT.laju)} per detik, atau ${SEMENIT.persen}% kuota (Hitungan atas Asumsi, \`pengirim.txt\` bagian A).`.replace(/\\`/g, "`"))).toBe(1);
+  });
+  test("jalur utama: jumlah langkah dihitung dari skenario (cerita, rekaman, Hitungan), keputusan Ratih di langkah Hitungan kedua", () => {
+    const hit = skenario.langkah.filter((l) => l.kirim.includes("(Hitungan atas Asumsi)"));
+    const cerita = skenario.langkah.filter((l) => l.kirim.includes("(Ilustrasi)") && !l.kirim.includes("(Hitungan"));
+    const rekaman = skenario.langkah.length - hit.length - cerita.length;
+    const ratih = hit.filter((l) => l.jelas.includes("(Ilustrasi)"));
+    expect(skenario.langkah.length).toBe(6);
+    expect([cerita.length, rekaman, hit.length]).toEqual([1, 3, 2]);
+    expect(ratih.length).toBe(1);
+    expect(hit.indexOf(ratih[0]!)).toBe(1);
+    expect(hitungKali(badan, `Jalur utama punya ${kata(skenario.langkah.length)} langkah: ${kata(cerita.length)} langkah cerita (Ilustrasi), ${kata(rekaman)} langkah rekaman, dan ${kata(hit.length)} langkah Hitungan atas Asumsi. Langkah Hitungan kedua juga memuat keputusan Ratih dari cerita (Ilustrasi).`)).toBe(1);
+    const c = skenario.sumber.catatan;
+    expect(hitungKali(c, `Jalur utama punya ${kata(skenario.langkah.length)} langkah: ${kata(cerita.length)} langkah cerita (Ilustrasi: `)).toBe(1);
+    expect(hitungKali(c, `${kata(rekaman)} langkah rekaman lab t5-fanout (antrean.txt bagian A: kelas queue, dua langkah; bagian B: pengumuman dibatasi laju, satu langkah), dan ${kata(hit.length)} langkah Hitungan atas Asumsi (`)).toBe(1);
+    expect(hitungKali(c, "Langkah Hitungan kedua juga memuat keputusan Ratih dari cerita (Ilustrasi).")).toBe(1);
   });
 });
