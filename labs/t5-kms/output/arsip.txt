@@ -8,7 +8,11 @@
 $ curl -X POST $BAO/v1/sys/mounts/transit ; curl -X POST $BAO/v1/transit/keys/kek-arsip -d '{"type": "aes256-gcm96"}'   (operator)
 # kunci kek-arsip: versi terbaru 1, min_decryption_version 1, min_encryption_version 0, min_available_version 0, versi yang tampil di daftar kunci [1]
 # Tiga kebijakan, masing-masing satu jalur dengan satu hak (update): pengarsip = datakey/plaintext, pembuka = decrypt, pembungkus-ulang = rewrap.
-# Tiap peran punya token sendiri. KEK tidak punya jalur baca: tidak ada perintah yang menjawab isi kunci.
+# Tiap peran punya token sendiri. KEK dibuat tanpa exportable (bawaan; sesudah dinyalakan tidak bisa dimatikan), jadi operator pun tidak bisa membaca isinya:
+$ curl -X GET $BAO/v1/transit/export/encryption-key/kek-arsip -H 'X-Vault-Token: <token operator>'
+HTTP 400
+{"errors": ["private key material is not exportable"]}
+# backup kek-arsip (operator): ditolak karena kunci tidak exportable. Pembacaan kunci (keys) hanya menjawab waktu pembuatan tiap versi (angka), bukan isinya.
 
 # --- B. Arsipkan: satu data key per file, dibungkus KEK, dan dicatat di arsip_partisi dan jangkar ---
 $ BAO_TOKEN=<token pengarsip> kmsarsip arsipkan -sumber posting_lalu_02.csv -tujuan posting_lalu_02.enc -periode <tanggal> -jangkar jangkar-arsip.jsonl
@@ -48,11 +52,15 @@ $ BAO_TOKEN=<token tidak dikenal> kmsarsip buka -berkas posting_lalu_02.enc -ter
 kmsarsip: openbao menjawab 403: permission denied
 # exit status 2
 # Kedua kali galatnya datang dari OpenBao (403), bukan dari GCM: tanpa hak decrypt data key tidak pernah sampai ke pemanggil.
+# Tiap token hanya bisa satu dari tiga operasi (arsipkan, buka, rewrap). Sel di luar diagonal ditolak OpenBao (403) dan tidak menulis berkas; pengarsip yang membuka sudah tampil di atas:
+#   token pengarsip: rewrap 403
+#   token pembuka: arsipkan 403, rewrap 403
+#   token pembungkus-ulang: arsipkan 403, buka 403
 # Dengan token pembuka dan data key terbungkus yang benar, file terbuka dan isinya sama dengan file asal:
 $ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v1> -periode <tanggal> -keluar pulih.csv
 terbuka: 1282072 byte
 # exit status 0
-# SHA-256 hasil dekripsi sama dengan SHA-256 file asal (diperiksa lab; nilainya tidak direkam).
+# SHA-256 hasil dekripsi sama dengan SHA-256 file asal, dan berkasnya dibuat dengan izin 0600 (diperiksa lab; nilai checksum tidak direkam).
 
 # --- D. Satu byte berubah: dekripsi gagal autentikasi, dari mana pun byte itu ---
 # Berkas terenkripsi 1.282.100 byte: nonce di byte 0-11, ciphertext, tag di 16 byte terakhir. Satu bit diubah di tiap posisi; pembuka sah, data key benar.

@@ -249,7 +249,14 @@ def rekam_arsip():
         catat(f"$ curl -X POST $BAO/v1/sys/mounts/transit ; curl -X POST $BAO/v1/transit/keys/{KEK} -d '{{\"type\": \"aes256-gcm96\"}}'   (operator)")
         catat_versi()
         catat("# Tiga kebijakan, masing-masing satu jalur dengan satu hak (update): pengarsip = datakey/plaintext, pembuka = decrypt, pembungkus-ulang = rewrap.")
-        catat("# Tiap peran punya token sendiri. KEK tidak punya jalur baca: tidak ada perintah yang menjawab isi kunci.")
+        catat("# Tiap peran punya token sendiri. KEK dibuat tanpa exportable (bawaan; sesudah dinyalakan tidak bisa dimatikan), jadi operator pun tidak bisa membaca isinya:")
+        s, j = operator("GET", f"transit/export/encryption-key/{KEK}")
+        harap((s, "not exportable" in "".join(j.get("errors", []))), (400, True), "export KEK ditolak")
+        s, j = bao("GET", f"transit/backup/{KEK}")
+        harap((s, "exporting is disallowed" in "".join(j.get("errors", []))), (500, True), "backup KEK ditolak")
+        s, j = bao("GET", f"transit/keys/{KEK}")
+        harap((s, all(isinstance(v, int) for v in j["data"]["keys"].values())), (200, True), "pembacaan kunci hanya menjawab waktu pembuatan tiap versi")
+        catat(f"# backup {KEK} (operator): ditolak karena kunci tidak exportable. Pembacaan kunci (keys) hanya menjawab waktu pembuatan tiap versi (angka), bukan isinya.")
 
         bagian("B. Arsipkan: satu data key per file, dibungkus KEK, dan dicatat di arsip_partisi dan jangkar")
         for a in arsip:
@@ -287,12 +294,27 @@ def rekam_arsip():
         rc, out = buka("bukan-token", A)
         harap((rc, "openbao menjawab 403" in out), (2, True), "token tidak dikenal")
         catat("# Kedua kali galatnya datang dari OpenBao (403), bukan dari GCM: tanpa hak decrypt data key tidak pernah sampai ke pemanggil.")
+        catat("# Tiap token hanya bisa satu dari tiga operasi (arsipkan, buka, rewrap). Sel di luar diagonal ditolak OpenBao (403) dan tidak menulis berkas; pengarsip yang membuka sudah tampil di atas:")
+        coba = {"pengarsip": (("rewrap", ["rewrap", "-terbungkus", A.terbungkus]),),
+                "pembuka": (("arsipkan", ["arsipkan", "-sumber", str(A.csv), "-tujuan", str(KERJA / "objek" / "tolak.enc"), "-periode", A.periode, "-jangkar", str(JANGKAR)]),
+                            ("rewrap", ["rewrap", "-terbungkus", A.terbungkus])),
+                "pembungkus-ulang": (("arsipkan", ["arsipkan", "-sumber", str(A.csv), "-tujuan", str(KERJA / "objek" / "tolak.enc"), "-periode", A.periode, "-jangkar", str(JANGKAR)]),
+                                     ("buka", ["buka", "-berkas", str(A.enc), "-terbungkus", A.terbungkus, "-periode", A.periode]))}
+        for peran, ops in coba.items():
+            hasil_op = []
+            for nama_op, args in ops:
+                rc, out = kms(peran, *args, tampil_perintah=False)
+                harap((rc, "openbao menjawab 403" in out), (2, True), f"token {peran}: {nama_op} harus ditolak")
+                hasil_op.append(f"{nama_op} 403")
+            catat(f"#   token {peran}: " + ", ".join(hasil_op))
+        harap((KERJA / "objek" / "tolak.enc").exists(), False, "operasi yang ditolak tidak menulis berkas")
         catat("# Dengan token pembuka dan data key terbungkus yang benar, file terbuka dan isinya sama dengan file asal:")
         hasil = KERJA / "pulih.csv"
         rc, out = buka("pembuka", A, ke_berkas=hasil)
         harap(rc, 0, f"buka dengan hak: {out}")
         harap(hashlib.sha256(hasil.read_bytes()).hexdigest(), A.sha_asli, "isi hasil dekripsi sama dengan file asal")
-        catat("# SHA-256 hasil dekripsi sama dengan SHA-256 file asal (diperiksa lab; nilainya tidak direkam).")
+        harap(oct(hasil.stat().st_mode & 0o777), "0o600", "izin berkas hasil dekripsi")
+        catat("# SHA-256 hasil dekripsi sama dengan SHA-256 file asal, dan berkasnya dibuat dengan izin 0600 (diperiksa lab; nilai checksum tidak direkam).")
         hasil.unlink()
 
         bagian("D. Satu byte berubah: dekripsi gagal autentikasi, dari mana pun byte itu")
@@ -506,17 +528,19 @@ def rekam_rotasi():
         bagian("G. Umur KEK: 2^32 pesan per kunci (Hitungan atas Asumsi naskah)")
         batas = 2 ** 32
         ribu = lambda n: f"{n:,}".replace(",", ".")
-        catat(f"# Batas: crypto/cipher.NewGCMWithRandomNonce: sebuah kunci tidak boleh mengenkripsi lebih dari 2^32 pesan = {ribu(batas)}.")
+        catat(f"# Batas: dokumentasi Go (crypto/cipher.NewGCMWithRandomNonce): satu kunci tidak boleh mengenkripsi lebih dari 2^32 pesan = {ribu(batas)}. "
+              "Dokumentasi OpenBao v2.7.2 meminta rotasi sebelum ±2^32 enkripsi oleh satu versi kunci (NIST SP 800-38D), jadi `rotate` memulai hitungan baru.")
         hasil = []
         for trx in (3, 2):
             n = 200_000 * trx * 2 * 365
             tahun = round(batas / n, 1)
             hasil.append(tahun)
             catat(f"# Satu data key per posting, {trx} transaksi per user aktif per hari: 200.000 × {trx} × 2 × 365 = {ribu(n)} posting per tahun; "
-                  f"{ribu(batas)} ÷ {ribu(n)} = {str(tahun).replace('.', ',')} tahun.")
+                  f"{ribu(batas)} ÷ {ribu(n)} = {str(tahun).replace('.', ',')} tahun sampai satu versi KEK mencapai batas.")
         harap(hasil, [9.8, 14.7], "umur KEK")
         catat(f"# Satu data key per file, 12 file per tahun: {ribu(batas)} ÷ 12 = {ribu(batas // 12)} tahun; batas itu tidak relevan.")
-        catat("# Syarat hitungan: satu pembungkusan data key memakai satu nonce acak di KEK. Bahwa mesin transit OpenBao memakai nonce acak 96 bit untuk aes256-gcm96 [perlu verifikasi: dokumentasi tidak terbaca dari mesin ini].")
+        catat("# Syarat hitungan: satu pembungkusan data key memakai satu nonce acak 96 bit di KEK. Kode OpenBao v2.7.2 (sdk/helper/keysutil/policy.go, SymmetricEncryptRaw) memakai "
+              "crypto/cipher.NewGCMWithRandomNonce untuk kunci aes256-gcm96 tanpa convergent encryption: dibaca dari kode di repositori openbao/openbao tag v2.7.2 (2026-11-03), tidak diukur.")
         tulis("rotasi.txt", "rotasi KEK: rotate, rewrap, min_decryption_version, trim, OpenBao tidak tersedia, dan umur KEK")
     finally:
         bersih_bao()

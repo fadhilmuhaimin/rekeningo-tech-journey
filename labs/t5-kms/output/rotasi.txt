@@ -131,8 +131,8 @@ kmsarsip: openbao menjawab 404: no handler for route "transit/decrypt/kek-arsip"
 # KEK ikut hilang, jadi semua arsip yang dibungkus kunci itu tidak bisa dibuka selamanya. Produksi memakai penyimpanan persisten, unseal, dan cadangan KEK: Tidak dijalankan.
 
 # --- G. Umur KEK: 2^32 pesan per kunci (Hitungan atas Asumsi naskah) ---
-# Batas: crypto/cipher.NewGCMWithRandomNonce: sebuah kunci tidak boleh mengenkripsi lebih dari 2^32 pesan = 4.294.967.296.
-# Satu data key per posting, 3 transaksi per user aktif per hari: 200.000 × 3 × 2 × 365 = 438.000.000 posting per tahun; 4.294.967.296 ÷ 438.000.000 = 9,8 tahun.
-# Satu data key per posting, 2 transaksi per user aktif per hari: 200.000 × 2 × 2 × 365 = 292.000.000 posting per tahun; 4.294.967.296 ÷ 292.000.000 = 14,7 tahun.
+# Batas: dokumentasi Go (crypto/cipher.NewGCMWithRandomNonce): satu kunci tidak boleh mengenkripsi lebih dari 2^32 pesan = 4.294.967.296. Dokumentasi OpenBao v2.7.2 meminta rotasi sebelum ±2^32 enkripsi oleh satu versi kunci (NIST SP 800-38D), jadi `rotate` memulai hitungan baru.
+# Satu data key per posting, 3 transaksi per user aktif per hari: 200.000 × 3 × 2 × 365 = 438.000.000 posting per tahun; 4.294.967.296 ÷ 438.000.000 = 9,8 tahun sampai satu versi KEK mencapai batas.
+# Satu data key per posting, 2 transaksi per user aktif per hari: 200.000 × 2 × 2 × 365 = 292.000.000 posting per tahun; 4.294.967.296 ÷ 292.000.000 = 14,7 tahun sampai satu versi KEK mencapai batas.
 # Satu data key per file, 12 file per tahun: 4.294.967.296 ÷ 12 = 357.913.941 tahun; batas itu tidak relevan.
-# Syarat hitungan: satu pembungkusan data key memakai satu nonce acak di KEK. Bahwa mesin transit OpenBao memakai nonce acak 96 bit untuk aes256-gcm96 [perlu verifikasi: dokumentasi tidak terbaca dari mesin ini].
+# Syarat hitungan: satu pembungkusan data key memakai satu nonce acak 96 bit di KEK. Kode OpenBao v2.7.2 (sdk/helper/keysutil/policy.go, SymmetricEncryptRaw) memakai crypto/cipher.NewGCMWithRandomNonce untuk kunci aes256-gcm96 tanpa convergent encryption: dibaca dari kode di repositori openbao/openbao tag v2.7.2 (2026-11-03), tidak diukur.
