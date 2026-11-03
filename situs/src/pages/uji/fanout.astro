@@ -1,0 +1,21 @@
+---
+// Halaman uji widget fan-out notifikasi Tahap 5 (W5-fanout). Bukan halaman cerita: tidak di registry, tidak di sidebar, tidak diindeks.
+// Dipakai situs/tools/ukur-fanout.mjs (tebak dulu, tabel dari hitungan sendiri, ARIA, keyboard, 320 px, axe, tanpa JavaScript, CLS
+// font telat). Halaman 5.15 memasang komponen yang sama.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import FanOut from "../../components/FanOut.astro";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Uji fan-out pengumuman",
+    description: "Halaman uji widget fan-out notifikasi Tahap 5.",
+    pagefind: false,
+    tableOfContents: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>Halaman uji widget fan-out pengumuman. Jumlah perangkat dan pengirim adalah Simulasi; kutipan rekaman dari lab t5-fanout.</p>
+  <FanOut />
+  <p>Teks sesudah widget, supaya halaman cukup panjang untuk diuji geser isi saat hydrate.</p>
+</StarlightPage>
