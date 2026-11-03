@@ -1006,3 +1006,130 @@ describe("kalimat terkunci: setiap baris badan halaman sama dengan nilai yang di
     expect(baris).toEqual(KALIMAT_TERKUNCI);
   });
 });
+
+// ---- tinjauan peninjau (keputusan 1519): kelas kata dan label yang di putaran tanpa kunci baris hanya tertangkap oleh kunci ------
+// Tiap tes menurunkan nilai dari rekaman, README, kode lab, baris riset, naskah, atau data tetangga. Dokumentasi luar yang tidak
+// ada di repo (Laravel 13.x, Django 5.2, README extension-read-replicas, Serverpod 4.1.0) dibaca peninjau pada 2026-11-03 dan
+// ditulis sebagai bentuk kode yang diharapkan di komentar tiap tes.
+describe("tinjauan 1519: label sumber per tab, kode Ilustrasi, ADR per opsi, diagram, dan label widget", () => {
+  const slot = (n: number): string => {
+    const m = badan.match(new RegExp(`<Fragment slot="t${n}">([\\s\\S]*?)</Fragment>`));
+    expect(m, `slot t${n}`).not.toBeNull();
+    return m![1]!.trim();
+  };
+  const barisAdr = (nama: string): string => {
+    const b = badan.split("\n").find((x) => x.startsWith(`| ${nama} |`));
+    expect(b, `baris ADR ${nama}`).toBeDefined();
+    return b!;
+  };
+  test("tab stack: hanya tab Go yang Dijalankan; lima tab lain Tidak dijalankan; kode Ilustrasi hanya di tiga tab yang punya kode; tanpa rujukan 'di atas' yang menunjuk ke bawah", () => {
+    expect(slot(0)).toMatch(/^\*Dijalankan: lab api-t5 dan t5-replika, PostgreSQL /);
+    for (const n of [1, 2, 3, 4, 5]) expect(slot(n), `slot t${n}`).toMatch(/^\*Tidak dijalankan\. Dicek ke /);
+    for (const n of [1, 2, 3]) {
+      expect(slot(n), `slot t${n}`).toContain("Kode di bawah adalah Ilustrasi.*");
+      expect(slot(n), `slot t${n}`).toMatch(/<Snippet lang="(js|php|python)" code=\{`/);
+    }
+    for (const n of [4, 5]) {
+      expect(slot(n), `slot t${n}`).not.toContain("Ilustrasi");
+      expect(slot(n), `slot t${n}`).not.toContain("code={`");
+    }
+    expect(slot(0)).not.toContain("code={`");
+    expect([...badan.matchAll(/\bdi atas (\S+)/g)].map((m) => m[1])).toEqual(["rata-rata"]);
+    // "di bawah" menunjuk kode hanya pada kalimat Ilustrasi di tiga tab (tab Go memakai Snippet berkas, bukan "di bawah")
+    expect(hitung(badan, "Kode di bawah adalah Ilustrasi.")).toBe(3);
+  });
+  test("kode Ilustrasi mengikuti dokumentasi: Laravel read, write, sticky true; Django router acak untuk baca dan primary untuk tulis; Prisma extends readReplicas", () => {
+    // Laravel 13.x Database: kunci read dan write berisi host, 'sticky' => true (sumber: dokumentasi, dibuka peninjau 2026-11-03)
+    expect(barisRiset("R5-133")).toContain("kunci `read`, `write`, `sticky`");
+    expect(slot(2)).toMatch(/'read' => \['host' => \[[^\]]+\]\],\s*'write' => \['host' => \[[^\]]+\]\],\s*'sticky' => true,/);
+    // Django 5.2 multi-db: PrimaryReplicaRouter memilih replica secara acak untuk baca dan primary untuk tulis
+    expect(barisRiset("R5-133")).toContain("contoh PrimaryReplicaRouter");
+    expect(slot(3)).toMatch(/class PrimaryReplicaRouter:\s+def db_for_read\(self, model, \*\*hints\):\s+return random\.choice\(\["replica1", "replica2"\]\)\s+def db_for_write\(self, model, \*\*hints\):\s+return "primary"/);
+    // Prisma 7 extension-read-replicas 0.5.0: $extends(readReplicas({ replicas: [...] })), dan README menulis $primary()
+    expect(barisRiset("R5-133")).toContain("`$primary()`");
+    expect(slot(1)).toContain("new PrismaClient().$extends(\n  readReplicas({ replicas: [replika] }),\n);");
+    expect(slot(1)).toContain("Method `$primary()` memaksa primary.");
+  });
+  test("Serverpod: angka, jumlah blok, dan daftar kunci di halaman sama dengan baris riset (alamat tujuan, 4.1.0, 37 halaman, dua halaman replication)", () => {
+    const r = barisRiset("R5-133");
+    const sp = cocok(r, /Serverpod Framework (\d+\.\d+\.\d+), dibuka 2026-11-03, dibaca dari teks mentah\): 'Each environment configuration contains a database keyword that specifies the connection details' \(([^)]+)\); halaman Connection dan 36 halaman lain pada sitemap docs\.serverpod\.dev yang alamatnya memuat 'database' \((\d+) halaman, dibuka 2026-11-03\) tidak membahas read replica: teks 'replica' hanya muncul dalam 'replication' di (dua) halaman/);
+    expect(Number(sp[3]), "1 halaman Connection + 36 lain").toBe(1 + 36);
+    harus(`Serverpod ${sp[1]}, dibuka 2026-11-03.`);
+    harus(`menulis satu blok \`database\` tiap konfigurasi lingkungan, berisi ${sp[2]!.replace(/, (\w+)$/, ", dan $1")}.`);
+    harus(`Di ${sp[3]} halaman pada peta situsnya yang alamatnya memuat database, kata replica hanya muncul dalam replication, di ${sp[4]} halaman: database tertanam dan query mentah.`);
+  });
+  test("klaim lab untuk replika_laporan dan slot: README menulis bacaan tampilan dan laporan, laporan tidak dikerjakan lab, slot dibuat di init-primary.sh dengan dua nama; riset R5-130 menyebut berkas itu", () => {
+    expect(readme).toContain("standby asinkron untuk bacaan tampilan dan laporan");
+    expect(readme).toContain("Laporan merchant dari replica tidak dikerjakan lab ini.");
+    expect(readme).toContain("Slot dibuat di `init-primary.sh` supaya primary menyimpan WAL dari awal.");
+    expect(initPrimary).toContain("pg_create_physical_replication_slot('slot_laporan'), pg_create_physical_replication_slot('slot_sinkron')");
+    expect(barisRiset("R5-130")).toContain("`init-primary.sh` (slot fisik `slot_laporan` dan `slot_sinkron`");
+    harus("Standby `replika_laporan` disiapkan untuk laporan, tetapi lab membaca riwayat dan saldo tampil darinya, dan `replika_sinkron` dipakai bagian sinkron dan promosi lab");
+  });
+  test("laporan.txt A: batas query laporan di bawah L_MS ms berakhir ya (bukan tidak), dan jeda.txt B memuat keadaan jeda buatan paused", () => {
+    cocok(bagLA, new RegExp(`di bawah ${L_MS} ms \\(EXPLAIN ANALYZE; batas lab, nilai ukur tidak direkam\\): ya\\n`));
+    cocok(bagJB, /pg_get_wal_replay_pause_state\(\)\n[^\n]*\n-+\n paused\n/);
+  });
+  test("ADR 46: tiap opsi A sampai D ditolak dengan butir sendiri; B, C, dan D memakai Tidak dijalankan persis bila sel Bukti-nya Tidak dijalankan; A dan E tidak", () => {
+    const bukti = barisAdr("Bukti").split(" | ");
+    expect(bukti).toHaveLength(6);
+    const lines = badan.split("\n");
+    for (const [i, huruf] of ["A", "B", "C", "D"].entries()) {
+      const butir = lines.find((b) => b.startsWith(`- **${huruf} ditolak`));
+      expect(butir, `butir ${huruf}`).toBeDefined();
+      const tidakDijalankan = /Tidak dijalankan|tidak dijalankan/.test(butir!);
+      expect(tidakDijalankan, `butir ${huruf} lawan sel Bukti`).toBe(/^Tidak dijalankan/.test(bukti[i + 1]!));
+    }
+    expect(bukti[1]).toMatch(/^Rekaman lab `laporan\.txt`/);
+    expect(bukti[5]).toMatch(/^Rekaman lab `replika\.txt`/);
+    expect(lines.filter((b) => /^- \*\*[A-D] ditolak/.test(b))).toHaveLength(4);
+    expect(lines.filter((b) => /^- \*\*[A-D] diterima/.test(b))).toHaveLength(0);
+    // sel Kelebihan opsi E: replica menolak tulisan sesuai replika.txt B (25006), dan opsi E asinkron sesuai bagian A
+    expect(barisAdr("Kelebihan").split(" | ")[5]).toContain("Replica menolak tulisan");
+    expect(TOLAK.every((t) => t.kode === "25006" || t.kode === "0A000")).toBe(true);
+    expect(barisAdr("Cara kerja").split(" | ")[5]).toContain("Satu standby asinkron melayani laporan");
+    expect([...bagRA.matchAll(/ replika_laporan\s+\| streaming\s+\| async/g)]).toHaveLength(1);
+  });
+  test("diagram Rantai: warna mengikuti legenda catatan (abu-abu tertinggal, biru penentu, hijau hasil) dan sub simpul sama dengan rekaman", () => {
+    expect(diagram.catatan).toContain("Abu-abu: yang tertinggal. Biru: sumber yang menentukan. Hijau: hasilnya.");
+    const simpul = diagram.baris.flatMap((b) => b.simpul);
+    const nada = (awal: string): string | undefined => simpul.find((s) => s.teks.startsWith(awal))?.nada;
+    expect(nada("Replica Rp")).toBe("old");
+    expect(nada("Primary Rp")).toBe("system");
+    expect(nada("Kiriman Rp")).toBe("good");
+    expect(nada("Isi sama")).toBe("good");
+    expect(nada("UPDATE dan DDL")).toBe("system");
+    expect(simpul.find((s) => s.teks.startsWith("UPDATE dan DDL"))?.sub).toBe("replica baca-saja");
+    expect(simpul.find((s) => s.teks.startsWith("Replica Rp"))?.sub).toContain("replay ditahan");
+    expect(simpul.find((s) => s.teks.startsWith("Primary Rp"))?.sub).toBe("saldo yang menentukan");
+    expect(diagram.sumber.jenis).toBe("rekaman");
+  });
+  test("widget tebak: label dan nama tokoh sama dengan tetangga dan naskah; alasan tiap pilihan salah menunjuk bagian rekaman yang benar", () => {
+    const t = tebak as unknown as { label: Record<string, string>; adegan: string[]; pilihan: { teks: string; benar: boolean; alasan: string }[]; penutup: string };
+    for (const f of ["t5-adr60-tebak", "t5-skema-tebak"]) {
+      const tetangga = JSON.parse(baca(`situs/data/widget/${f}.json`)) as { label: Record<string, string> };
+      const tanpaSumber = (l: Record<string, string>) => Object.fromEntries(Object.entries(l).filter(([k]) => k !== "sumber"));
+      expect(tanpaSumber(t.label), f).toEqual(tanpaSumber(tetangga.label));
+    }
+    expect(naskah).toContain("Wulan baru merilis laporan real-time");
+    expect(t.adegan[0]).toMatch(/^Wulan memasang read replica/);
+    const hurufTanpa = cocok(konflik, /^# --- (\w)\. Tanpa statement_timeout/m)[1]!;
+    const hurufPengaturan = cocok(konflik, /^# --- (\w)\. Pengaturan replika/m)[1]!;
+    expect(t.pilihan[0]!.alasan).toContain(`(konflik.txt bagian ${hurufTanpa})`);
+    expect(t.pilihan[1]!.alasan).toContain(`(bagian ${hurufTanpa})`);
+    expect(t.pilihan[3]!.alasan).toContain(`(konflik.txt bagian ${hurufPengaturan})`);
+    expect(t.penutup).toContain("sehingga replay tertahan lebih singkat");
+  });
+  test("widget banding: nama opsi memakai nomor ADR dari judul halaman; catatan batas harian sama dengan komentar kirim.go dan aturan ADR 45; catatan Tidak dijalankan untuk laporan dari replica", () => {
+    const nomorAdr = cocok(badan, /^### ADR (\d+): satu read replica/m)[1]!;
+    expect(banding.opsi[1]!.nama).toBe(`B · Laporan dari replica (ADR ${nomorAdr})`);
+    const cek = banding.fitur.find((f) => f.label === "Cek batas harian kiriman")!;
+    expect(cek.catatan.satu).toContain("Kedua buku dikunci di dalam transaction jurnal, lalu batas harian dan saldo dibaca sesudah lock");
+    expect(kirimGo).toContain("Kedua buku dikunci di dalam transaction jurnal (ADR 13), lalu batas harian dan saldo dibaca sesudah lock.");
+    expect(cek.catatan.pisah).toContain("Aturan ADR 45 menulis uang tidak dibaca dari salinan di luar primary, dan replica hanya untuk laporan.");
+    expect(hal45).toContain("Uang tidak dibaca dari salinan di luar primary.");
+    const lap = banding.fitur.find((f) => f.label === "Laporan penjualan hari ini")!;
+    expect(lap.catatan.pisah).toContain("Laporan dari replica belum dijalankan di lab: Tidak dijalankan.");
+    expect(readme).toContain("Laporan merchant dari replica tidak dikerjakan lab ini.");
+  });
+});
