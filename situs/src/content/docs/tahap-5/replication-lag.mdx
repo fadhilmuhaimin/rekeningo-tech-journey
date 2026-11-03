@@ -1,6 +1,6 @@
 ---
 title: "5.7 Replication lag dan read-your-writes + ADR 47"
-description: Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari primary sampai replica menyusul. ADR 47 memilih token posisi WAL dan menimbang empat cara lain, termasuk jendela waktu tetap dan remote_apply.
+description: Replica bisa tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari primary sampai replica menyusul. ADR 47 memilih token posisi WAL dan menimbang empat cara lain, termasuk jendela waktu tetap dan remote_apply.
 ---
 import Blok from "../../../components/Blok.astro";
 import Rantai from "../../../components/Rantai.astro";
@@ -64,7 +64,7 @@ Dua istilah dipakai di halaman ini. Replication lag adalah jeda antara COMMIT di
 
 ### Cara kerjanya
 
-**Replica tertinggal sedikit, dan jedanya bisa membesar.** Streaming replication PostgreSQL bersifat asinkron secara bawaan. Dokumentasi menulis ada jeda kecil antara COMMIT di primary dan terlihat di standby, yaitu server yang menerima WAL dari primary dan memutarnya ulang. Jedanya biasanya di bawah satu detik bila standby sanggup mengikuti beban ([PostgreSQL 17: Log-Shipping Standby Servers](https://www.postgresql.org/docs/17/warm-standby.html), bagian 26.2.5, dibuka 2026-11-03, Tidak dijalankan).
+**Replica bisa tertinggal, dan jedanya bisa membesar.** Streaming replication PostgreSQL bersifat asinkron secara bawaan. Dokumentasi menulis ada jeda kecil antara COMMIT di primary dan terlihat di standby, yaitu server yang menerima WAL dari primary dan memutarnya ulang. Jedanya biasanya di bawah satu detik bila standby sanggup mengikuti beban ([PostgreSQL 17: Log-Shipping Standby Servers](https://www.postgresql.org/docs/17/warm-standby.html), bagian 26.2.5, dibuka 2026-11-03, Tidak dijalankan).
 
 Di lab, pada 100 pembayaran per detik selama 10 detik, jeda replay tertinggi di kedua standby ada di bawah 1 detik. Itu batas yang diperiksa lab di laptop, bukan nilai produksi (Rekaman lab, `jeda.txt` bagian A). Jeda ±2 detik di cerita M41 tidak terjadi sendiri, jadi `jeda.txt` bagian B menahan replay dengan `pg_wal_replay_pause()`. Lima pembayaran di primary belum terlihat di replica yang ditahan.
 
@@ -182,9 +182,9 @@ $middleware->web(append: [
 </Fragment>
 <Fragment slot="t4">
 
-*Tidak dijalankan. Beranda dokumentasi [Serverpod](https://docs.serverpod.dev/) yang dibuka 2026-11-03 tidak menyebut read replica atau replication lag, dan halaman koneksi database tidak terbaca [perlu verifikasi].*
+*Tidak dijalankan. Dicek ke [Serverpod: database connection](https://docs.serverpod.dev/concepts/data-and-the-database/database/connection), Serverpod 4.1.0, dibuka 2026-11-03. Kode Dart tidak ditulis di tab ini.*
 
-**Yang berbeda di stack ini:** cara Serverpod memisahkan koneksi baca dari koneksi tulis, dan penjagaan bacaan sesudah tulis, tidak dibaca [perlu verifikasi]. Tidak menemukan halamannya bukan bukti bahwa fiturnya tidak ada. Kode Dart tidak ditulis di tab ini.
+**Yang berbeda di stack ini:** halaman Connection menulis satu blok `database` tiap konfigurasi lingkungan, dan tidak membahas read replica atau replication lag. Di 37 halaman pada peta situsnya yang alamatnya memuat database, kata replica hanya muncul dalam replication, di dua halaman. Penjagaan bacaan sesudah tulis tidak ada di dokumentasi yang dibaca.
 
 </Fragment>
 <Fragment slot="t5">

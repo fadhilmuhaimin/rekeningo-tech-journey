@@ -4336,7 +4336,7 @@
       "adr": [
         47
       ],
-      "masalah": "Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya",
+      "masalah": "Replica bisa tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya",
       "pendek": "Replication lag dan read-your-writes",
       "prasyarat": [
         "t5-m41"

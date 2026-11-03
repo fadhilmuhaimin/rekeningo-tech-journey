@@ -1,9 +1,9 @@
 // Dihasilkan dari file saat ini oleh PERBARUI_KUNCI=1 (lihat replication-lag.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.
-export const SIDIK = {"halaman":{"tidak":70,"bukan":14,"belum":25,"hanya":18,"paling":6,"asumsi":18,"hitungan":6,"simulasi":1,"tidakDijalankan":19,"perluVerifikasi":6,"penalaran":3,"rekamanLab":11,"tanggal":10},"struktur":"e707a867f8a7aca5b13df4996ba9ab5dbafc784b","riset":["e49622b60e88b98735da345ea2dd2834f477ccb1","ef9dd85c52a260a3385d90778a6183b33d83ef44","5155bb9751d72cfb65ef7650dd04922bb682fbec","4be86b2a9aba4e9d0e838177be97e8bf7331ac70","4577d96b4f4d944854854f5c21966eb70301a6a3"],"glosarium":"f0e55ee41dcc69c351ab67790a71981037e1320e"};
+export const SIDIK = {"halaman":{"tidak":67,"bukan":13,"belum":25,"hanya":19,"paling":6,"asumsi":18,"hitungan":6,"simulasi":1,"tidakDijalankan":19,"perluVerifikasi":4,"penalaran":3,"rekamanLab":11,"tanggal":10},"struktur":"e707a867f8a7aca5b13df4996ba9ab5dbafc784b","riset":["e49622b60e88b98735da345ea2dd2834f477ccb1","ef9dd85c52a260a3385d90778a6183b33d83ef44","5155bb9751d72cfb65ef7650dd04922bb682fbec","4bf33d76be694d57f8613757b4afad675e75c904","d017fe3e95a82f33d302b2b7f63e30da96a132d9"],"glosarium":"f0e55ee41dcc69c351ab67790a71981037e1320e"};
 export const KALIMAT_TERKUNCI: string[] = [
  "---",
  "title: \"5.7 Replication lag dan read-your-writes + ADR 47\"",
- "description: Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari primary sampai replica menyusul. ADR 47 memilih token posisi WAL dan menimbang empat cara lain, termasuk jendela waktu tetap dan remote_apply.",
+ "description: Replica bisa tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari primary sampai replica menyusul. ADR 47 memilih token posisi WAL dan menimbang empat cara lain, termasuk jendela waktu tetap dan remote_apply.",
  "---",
  "import Blok from \"../../../components/Blok.astro\";",
  "import Rantai from \"../../../components/Rantai.astro\";",
@@ -40,7 +40,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "[[t4-adr-45]] menulis bahwa read replica hanya untuk laporan, dan keputusan uang tetap dibaca dari primary. Riwayat dan saldo tampil bukan laporan. ADR 47 memperluas aturan itu: bacaan milik sendiri sesudah menulis punya aturan sendiri, dan keputusan uang tidak berubah.",
  "Dua istilah dipakai di halaman ini. Replication lag adalah jeda antara COMMIT di primary dan saat perubahannya terlihat di replica. Read-your-writes adalah jaminan bahwa proses yang baru memperbarui data tidak melihat nilai yang lebih lama sesudahnya ([Vogels, Eventually Consistent](https://www.allthingsdistributed.com/2008/12/eventually_consistent.html), 23 Desember 2008, dibuka 2026-11-03).",
  "### Cara kerjanya",
- "**Replica tertinggal sedikit, dan jedanya bisa membesar.** Streaming replication PostgreSQL bersifat asinkron secara bawaan. Dokumentasi menulis ada jeda kecil antara COMMIT di primary dan terlihat di standby, yaitu server yang menerima WAL dari primary dan memutarnya ulang. Jedanya biasanya di bawah satu detik bila standby sanggup mengikuti beban ([PostgreSQL 17: Log-Shipping Standby Servers](https://www.postgresql.org/docs/17/warm-standby.html), bagian 26.2.5, dibuka 2026-11-03, Tidak dijalankan).",
+ "**Replica bisa tertinggal, dan jedanya bisa membesar.** Streaming replication PostgreSQL bersifat asinkron secara bawaan. Dokumentasi menulis ada jeda kecil antara COMMIT di primary dan terlihat di standby, yaitu server yang menerima WAL dari primary dan memutarnya ulang. Jedanya biasanya di bawah satu detik bila standby sanggup mengikuti beban ([PostgreSQL 17: Log-Shipping Standby Servers](https://www.postgresql.org/docs/17/warm-standby.html), bagian 26.2.5, dibuka 2026-11-03, Tidak dijalankan).",
  "Di lab, pada 100 pembayaran per detik selama 10 detik, jeda replay tertinggi di kedua standby ada di bawah 1 detik. Itu batas yang diperiksa lab di laptop, bukan nilai produksi (Rekaman lab, `jeda.txt` bagian A). Jeda ±2 detik di cerita M41 tidak terjadi sendiri, jadi `jeda.txt` bagian B menahan replay dengan `pg_wal_replay_pause()`. Lima pembayaran di primary belum terlihat di replica yang ditahan.",
  "**Token membawa posisi WAL.** Sesudah COMMIT, server membaca posisi tulis WAL primary dengan `pg_current_wal_lsn()` dan mengirimnya di `X-Lsn-Tulis`. Replica menjawab apakah ia sudah memutar WAL sampai posisi itu lewat `pg_last_wal_replay_lsn()`:",
  "<Snippet file=\"labs/api-t5/internal/repo/replika.go\" region=\"lsn\" lang=\"go\" title=\"labs/api-t5/internal/repo/replika.go\" />",
@@ -109,8 +109,8 @@ export const KALIMAT_TERKUNCI: string[] = [
  "**Yang berbeda di stack ini:** `using()` mengarahkan satu query ke database bernama. Dokumentasi menulis bahwa router primary dan replica di contohnya tidak menyediakan penyelesaian untuk replication lag, dan contoh itu hanya untuk memperagakan router. Penjagaan bacaan sesudah tulis ditulis sendiri.",
  "</Fragment>",
  "<Fragment slot=\"t4\">",
- "*Tidak dijalankan. Beranda dokumentasi [Serverpod](https://docs.serverpod.dev/) yang dibuka 2026-11-03 tidak menyebut read replica atau replication lag, dan halaman koneksi database tidak terbaca [perlu verifikasi].*",
- "**Yang berbeda di stack ini:** cara Serverpod memisahkan koneksi baca dari koneksi tulis, dan penjagaan bacaan sesudah tulis, tidak dibaca [perlu verifikasi]. Tidak menemukan halamannya bukan bukti bahwa fiturnya tidak ada. Kode Dart tidak ditulis di tab ini.",
+ "*Tidak dijalankan. Dicek ke [Serverpod: database connection](https://docs.serverpod.dev/concepts/data-and-the-database/database/connection), Serverpod 4.1.0, dibuka 2026-11-03. Kode Dart tidak ditulis di tab ini.*",
+ "**Yang berbeda di stack ini:** halaman Connection menulis satu blok `database` tiap konfigurasi lingkungan, dan tidak membahas read replica atau replication lag. Di 37 halaman pada peta situsnya yang alamatnya memuat database, kata replica hanya muncul dalam replication, di dua halaman. Penjagaan bacaan sesudah tulis tidak ada di dokumentasi yang dibaca.",
  "</Fragment>",
  "<Fragment slot=\"t5\">",
  "*Tidak dijalankan. Dicek ke [Supabase: Read Replicas](https://supabase.com/docs/guides/platform/read-replicas), dokumen tanpa nomor versi, dibuka 2026-11-03.*",

@@ -262,17 +262,50 @@ describe("Snippet: berkas, rentang, dan region ada dan memuat yang dikutip halam
   const tag = [...badan.matchAll(/<Snippet\s+([\s\S]*?)\s\/>\n/g)].map((m) => m[1]!);
   const atribut = (s: string, k: string): string | undefined => s.match(new RegExp(`(?:^|\\s)${k}="([^"]*)"`))?.[1];
   const berkas = tag.filter((t) => atribut(t, "file")).map((t) => ({ file: atribut(t, "file")!, lines: atribut(t, "lines"), region: atribut(t, "region") }));
-  test("daftar Snippet berkas: tujuh, urut, dengan rentang atau region yang dikunci", () => {
+  // nomor baris (1-based) dari isi berkas, bukan angka tulisan tangan: rentang bergeser bila lab diubah PR lain (#494 menggeser main.go di 5.5)
+  const baca1 = (f: string) => baris(baca(f));
+  const nomor = (f: string, cocok: (b: string) => boolean, dari = 0): number => {
+    const i = baca1(f).findIndex((b, k) => k >= dari && cocok(b));
+    if (i < 0) throw new Error(`${f}: baris tidak ditemukan`);
+    return i + 1;
+  };
+  const tutup = (f: string, dari: number): number => nomor(f, (b) => b === "}", dari - 1);
+  const BC = "labs/t5-replika/output/baca.txt", SK = "labs/t5-replika/output/sinkron.txt", HT = "labs/api-t5/internal/handler/handler_t5.go", SV = "labs/api-t5/internal/service/replika.go";
+  const bAwalB = nomor(BC, (b) => b.startsWith("# --- B."));
+  const b1 = nomor(BC, (b) => b.startsWith("replika=> SELECT pg_wal_replay_pause()"), bAwalB);
+  const b1Akhir = nomor(BC, (b) => b === "X-Dibaca-Dari: primary", b1) + 2;
+  const b2 = nomor(BC, (b) => b.startsWith("replika=> SELECT pg_last_wal_replay_lsn()"), bAwalB);
+  const b2Akhir = nomor(BC, (b) => b.includes('"saldo":'), b2);
+  const s1 = nomor(SK, (b) => b.startsWith("sinkron=> SELECT pg_wal_replay_pause()"));
+  const s1Akhir = nomor(SK, (b) => b.startsWith("COMMIT remote_apply selesai sesudah replay dilanjutkan"), s1);
+  const h1 = nomor(HT, (b) => b.startsWith("// tandaiTulis dipanggil"));
+  const h1Akhir = tutup(HT, nomor(HT, (b) => b.startsWith("func tandaiSumber")));
+  const t1 = nomor(SV, (b) => b.startsWith("// TokenTulis dipanggil"));
+  const t1Akhir = tutup(SV, nomor(SV, (b) => b.startsWith("func (s Service) TokenTulis")));
+  test("daftar Snippet berkas: tujuh, urut, rentang diturunkan dari isi berkas, region dikunci", () => {
     expect(berkas).toEqual([
       { file: "labs/api-t5/internal/repo/replika.go", lines: undefined, region: "lsn" },
-      { file: "labs/api-t5/internal/service/replika.go", lines: undefined, region: "sumber-tampil" },
-      { file: "labs/t5-replika/output/baca.txt", lines: "77:98", region: undefined },
-      { file: "labs/t5-replika/output/baca.txt", lines: "116:127", region: undefined },
-      { file: "labs/api-t5/internal/handler/handler_t5.go", lines: "20:32", region: undefined },
-      { file: "labs/t5-replika/output/sinkron.txt", lines: "29:38", region: undefined },
-      { file: "labs/api-t5/internal/service/replika.go", lines: "75:87", region: undefined },
+      { file: SV, lines: undefined, region: "sumber-tampil" },
+      { file: BC, lines: `${b1}:${b1Akhir}`, region: undefined },
+      { file: BC, lines: `${b2}:${b2Akhir}`, region: undefined },
+      { file: HT, lines: `${h1}:${h1Akhir}`, region: undefined },
+      { file: SK, lines: `${s1}:${s1Akhir}`, region: undefined },
+      { file: SV, lines: `${t1}:${t1Akhir}`, region: undefined },
     ]);
     expect(tag.filter((t) => t.includes("code={")).length).toBe(3);
+  });
+  test("judul Snippet: rekaman memuat berkas dan huruf bagian yang benar (diturunkan dari kepala # --- X.), kode memuat path-nya", () => {
+    for (const t of tag.filter((x) => atribut(x, "file"))) {
+      const f = atribut(t, "file")!, judul = atribut(t, "title")!, rentang = atribut(t, "lines");
+      if (f.includes("/output/")) {
+        const L = baca1(f);
+        const mulai = Number(rentang!.split(":")[0]);
+        const huruf = [...L.slice(0, mulai).join("\n").matchAll(/^# --- ([A-Z])\./gm)].map((m) => m[1]).pop();
+        expect(judul.startsWith(`Rekaman lab: ${f}, bagian ${huruf} (`), judul).toBe(true);
+      } else {
+        expect(judul).toBe(f);
+      }
+    }
   });
   test("region ada di kode (satu mulai, satu akhir)", () => {
     for (const [f, r] of [["labs/api-t5/internal/repo/replika.go", "lsn"], ["labs/api-t5/internal/service/replika.go", "sumber-tampil"]] as const) {
@@ -488,7 +521,7 @@ describe("sumber luar: tautan, versi, tanggal, dan baris riset R5-140 sampai R5-
       ["https://docs.djangoproject.com/en/6.1/topics/db/multi-db/", "R5-143", "docs.djangoproject.com/en/6.1/topics/db/multi-db/"],
       ["https://github.com/prisma/extension-read-replicas", "R5-143", "github.com/prisma/extension-read-replicas"],
       ["https://supabase.com/docs/guides/platform/read-replicas", "R5-143", "supabase.com/docs/guides/platform/read-replicas"],
-      ["https://docs.serverpod.dev/", "R5-143", "docs.serverpod.dev"],
+      ["https://docs.serverpod.dev/concepts/data-and-the-database/database/connection", "R5-143", "docs.serverpod.dev/concepts/data-and-the-database/database/connection"],
     ];
     for (const [url, id, potong] of peta) {
       expect(urlHalaman, url).toContain(url);
@@ -518,7 +551,7 @@ describe("sumber luar: tautan, versi, tanggal, dan baris riset R5-140 sampai R5-
     expect(r143).toContain("doesn't provide any solution for handling replication lag");
     expect(r143).toContain("npm 0.5.0");
     expect(r143).toContain("butuh Prisma 7.0 ke atas");
-    expect(r143).toContain("[perlu verifikasi]");
+    expect(r143).toContain("Serverpod 4.1.0");
     harusAda("bagian 26.2.5, dibuka 2026-11-03, Tidak dijalankan");
     harusAda("bagian 26.2.8.1, dibuka 2026-11-03");
     harusAda("23 Desember 2008, dibuka 2026-11-03");
@@ -539,7 +572,17 @@ describe("sumber luar: tautan, versi, tanggal, dan baris riset R5-140 sampai R5-
     }
     expect(slot[0]![1]).not.toContain("Tidak dijalankan.");
     expect(slot[5]![1]).toContain("tanpa nomor versi");
-    expect(slot[4]![1]).toContain("[perlu verifikasi]");
+    expect(slot[4]![1]).toContain("Serverpod 4.1.0");
+    expect(slot[4]![1]).toContain("Di 37 halaman pada peta situsnya yang alamatnya memuat database, kata replica hanya muncul dalam replication, di dua halaman.");
+    expect(slot[4]![1]).not.toContain("[perlu verifikasi]");
+    expect(barisRiset("R5-143")).toContain("Serverpod 4.1.0");
+    expect(barisRiset("R5-143")).toContain("37 halaman");
+    expect(barisRiset("R5-133")).toContain("37 halaman");
+    expect(barisRiset("R5-133")).toContain("Serverpod Framework 4.1.0");
+    const vNpm = barisRiset("R5-143").match(/npm (\d+\.\d+\.\d+)/)![1];
+    expect(slot[1]![1]).toContain(`(npm ${vNpm}, versi terbaru di npm saat dibuka ${tanggal}, butuh Prisma 7.0 ke atas)`);
+    expect(barisRiset("R5-143")).toContain("Laravel 13.x Database");
+    expect(barisRiset("R5-143")).toContain("Django 6.1 Multiple databases");
     expect(readmeLab).toContain("| PostgreSQL | 17.11 (`postgres:17`, Debian 17.11-1.pgdg13+2)");
     expect(readmeLab).toContain("| Go | 1.27.3 |");
     expect(readmeLab).toContain("| pgx | v5.11.0 (MIT) |");
@@ -624,6 +667,126 @@ describe("tabel: jumlah kolom sama di header, pemisah, dan tiap baris; isi ADR d
     const mulai = badan.slice(0, badan.indexOf('<Blok nama="Coba"'));
     expect(baris(mulai).filter((b) => /^\d\. /.test(b)).length).toBe(3);
     harusAda("Yakin dengan ketiganya? Lompat ke [[berikutnya]].");
+  });
+});
+
+
+describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian, dan baris riset diturunkan atau dikunci per kolom", () => {
+  const sel = (awalan: string, kunci: string[][]) => {
+    const t = tabelMdx(awalan).slice(2);
+    expect(t.length).toBe(kunci.length);
+    t.forEach((baris, i) => {
+      kunci[i]!.forEach((k, j) => {
+        if (k === "") return;
+        expect(baris[j], `${awalan.slice(0, 20)} baris ${i} kolom ${j}`).toContain(k);
+        // kata kunci milik satu kolom tidak boleh muncul di kolom lain pada baris yang sama (menangkap sel yang ditukar)
+        baris.forEach((s, m) => { if (m !== j && kunci[i]![m] !== "" ) expect(s.includes(k) && !s.includes(kunci[i]![m]!), `${k} di kolom ${m}`).toBe(false); });
+      });
+    });
+  };
+  test("tabel ADR: tiap sel dikunci pada kata kuncinya per baris dan kolom", () => {
+    sel("| | A. `remote_apply` untuk semua commit |", [
+      ["Cara kerja", "COMMIT menunggu standby sinkron memutar WAL", "selama 5 detik tetap", "seperti sebelum ADR 46", "transaksi baru di layarnya sendiri", "posisi WAL, dan server membaca replica hanya bila"],
+      ["Kelebihan", "pasti sudah memuat tulisannya", "tanpa token, dan ada framework", "Tidak ada replica yang tertinggal", "Tidak ada bacaan tambahan di primary", "hanya selama replica belum sampai"],
+      ["Kekurangan", "replica asinkron untuk bacaan tampil tidak ditunggu", "Tidak mengikuti jeda sebenarnya", "Menghapus guna ADR 46", "bukan layar web atau perangkat lain", "menyimpan dan mengirim token"],
+      ["Biaya operasional", "standby sinkron harus tetap hidup", "Satu angka jendela", "26,4 koneksi di primary", "tanpa komponen server", "Satu query ke primary sesudah tiap tulisan"],
+      ["Bukti", "`sinkron.txt` bagian A dan B", "dokumentasi Laravel 13.x", "Hitungan atas Asumsi, tidak dijalankan di lab", "Tidak dijalankan: app Flutter tidak ada di lab", "`baca.txt` bagian B, dan kode `sumberTampil`"],
+    ]);
+  });
+  test("tabel kelas, kapan salah, dan sengaja belum: sel dikunci per baris dan kolom", () => {
+    sel("| Kelas | Contoh | Dibaca dari | Dasar |", [
+      ["1. Menentukan uang", "saldo untuk bayar atau kirim", "primary, di dalam transaction", "`baca.txt` bagian A (kiriman)"],
+      ["2. Milik sendiri sesudah menulis", "riwayat, saldo tampil", "primary sampai replica sampai token", "`baca.txt` bagian B"],
+      ["3. Laporan dan bacaan lain", "laporan merchant", "replica", "tidak direkam di lab ini"],
+    ]);
+    sel("| Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |", [
+      ["Lebih dari 20% bacaan bertoken berakhir di primary (Asumsi)", "Porsi `X-Dibaca-Dari: primary`", "Belum diukur. Pembanding: bacaan bertoken paling banyak 5,0% dari 1.388,9 request per detik (3,3% bila 2 transaksi, Hitungan atas Asumsi)", "Metrik per kepala `X-Dibaca-Dari`"],
+      ["Replica tertinggal lebih dari 30 detik (Asumsi)", "`replay_lag` di `pg_stat_replication`", "Lab: di bawah 1 detik pada 100 pembayaran per detik, batas di laptop", "Pemantauan replica"],
+      ["Ada jawaban 201 tulisan tanpa `X-Lsn-Tulis`", "Jumlah jawaban tanpa kepala itu dan log posisi WAL tidak terbaca", "Belum diukur", "Log server dan metrik jawaban"],
+      ["Tulisan dengan `synchronous_commit = off` memberi token", "Konfigurasi tulisan yang memberi token", "Kode `api-t5` tidak mengatur nilai itu, dan bawaan PostgreSQL adalah `on`", "Konfigurasi database"],
+      ["Token sesudah failover tidak bisa dibandingkan", "Perilaku token pada replica yang baru dipromosikan", "Belum direkam [perlu verifikasi]", "Latihan failover SRE"],
+      ["App yang tidak mengirim token melaporkan saldo lama", "Jumlah laporan CS dan versi app", "App Flutter tidak ada di lab", "Laporan CS per versi app"],
+    ]);
+    sel("| Yang ditunda | Kenapa ditunda | Muncul lagi di |", [
+      ["Token yang ditandatangani atau dibulatkan", "membocorkan laju tulis seluruh database", "Belum dijadwalkan"],
+      ["Bacaan tanpa token dari primary", "Menambah beban primary", "Belum dijadwalkan"],
+      ["Aturan jeda lebih dari 30 detik", "Jeda alami di lab di bawah 1 detik", "Belum dijadwalkan"],
+      ["Jendela waktu sebagai cadangan", "Dua mekanisme untuk satu masalah", "Belum dijadwalkan"],
+    ]);
+  });
+  test("pertanyaan Mulai, Kenapa ini ada, dan Kebutuhan memakai angka dari rekaman, widget, registry, dan hitungan", () => {
+    const kirim = Number(bagianA.join("\n").match(/"ke_nomor_karyawan": "K\d+", "nominal": (\d+)/)![1]);
+    harusAda(`1. Replica ditahan, lalu Budi membayar ${rp(nominalB)}. Saldo apa yang dijawab bacaan tanpa token, dan saldo apa yang dijawab bacaan dengan token?`);
+    harusAda(`3. Saldo tampil masih ${rp(saldoA[0]!)} di replica, tetapi saldo di primary ${rp(saldoA[1]!)}. Kiriman ${rp(kirim)} diterima atau ditolak?`);
+    harusAda("<summary>Sudah tahu? Cek 3 pertanyaan</summary>");
+    harusAda(`**1.** Replica ditahan, lalu Budi membayar ${rp(nominalB)}. Saldo apa yang dijawab bacaan tanpa token, dan saldo apa yang dijawab bacaan dengan token?`);
+    const adr46 = dari("t5-read-replica").adr![0], adr45 = dari("t4-adr-45").adr![0];
+    harusAda(`[[t5-m41]] menunjukkan Budi yang membayar ${rp(W.skenario.bayar)} dan melihat saldo lama. Sesudah ADR ${adr46} ([[t5-read-replica]]), tim Akun memindahkan riwayat dan saldo tampil ke replica.`);
+    harusAda(`[[t4-adr-45]] menulis bahwa read replica hanya untuk laporan, dan keputusan uang tetap dibaca dari primary.`);
+    harusAda(`ADR 47 memperluas aturan itu: bacaan milik sendiri sesudah menulis punya aturan sendiri, dan keputusan uang tidak berubah.`);
+    harusAda(`**Kebutuhan.** Sesudah ADR ${adr46}, riwayat dan saldo tampil dibaca dari replica yang tertinggal, dan Budi melihat saldo lama sesudah membayar ([[t5-m41]]). ADR ${adr45} menulis replica hanya untuk laporan.`);
+    harusAda(`**Yang akan merevisinya.** [[t5-m42]] menunjukkan primary yang mati, dan [[t5-rpo-rto]] menulis replica sinkron, \`remote_apply\` untuk ledger, dan latihan failover. Keduanya menjawab aturan 8.`);
+    expect(naskah.split("\n").find((b) => b.startsWith("| 48 |")) ?? "").toContain("`remote_apply` untuk ledger");
+    harusAda("1. Token tidak sampai ke app, dan bacaan jatuh ke replica. `TokenTulis` mengembalikan kosong bila posisi WAL tidak terbaca, dan jawaban yang diputar ulang tidak membawa token.");
+    harusAda("8. Sesudah failover, semua bacaan tampil dibaca dari primary selama jendela token. Token primary lama mungkin tidak bisa dibandingkan dengan replica baru (Asumsi: belum diuji [perlu verifikasi]).");
+    harusAda("Aturan 5 adalah selisih naskah dengan kode, dan arahnya bisa dibalik. Mengubah cabang `token == \"\"` di `sumberTampil` membuat bacaan tanpa token dibaca dari primary, dengan harga beban primary (Tidak dijalankan).");
+    expect(serviceReplika).toContain('token == ""');
+  });
+  test("rujukan `berkas.txt` bagian X: urutan dan huruf dikunci, dan tiap huruf ada sebagai kepala di rekamannya", () => {
+    const urut = [...badan.matchAll(/(?:`(\w+)\.txt` |\b)bagian ([A-Z])\b/g)].map((m) => m[0]);
+    expect(urut).toEqual(["`baca.txt` bagian B", "bagian A", "`jeda.txt` bagian A", "`jeda.txt` bagian B", "bagian B", "bagian B", "`baca.txt` bagian A", "`baca.txt` bagian B", "bagian A", "bagian B", "`sinkron.txt` bagian A", "`baca.txt` bagian B", "`sinkron.txt` bagian A", "`baca.txt` bagian B", "`baca.txt` bagian B", "`sinkron.txt` bagian A", "`baca.txt` bagian B", "`baca.txt` bagian B", "`sinkron.txt` bagian A", "`baca.txt` bagian B"]);
+    for (const [txt, huruf, topik] of [[bacaTxt, "A", "Versi pertama"], [bacaTxt, "B", "Versi benar"], [jedaTxt, "A", "Jeda alami"], [jedaTxt, "B", "Jeda buatan"], [sinkronTxt, "A", "Standby sinkron"], [sinkronTxt, "B", "on lawan remote_apply"]] as const)
+      expect(txt, `${huruf} ${topik}`).toMatch(new RegExp(`^# --- ${huruf}\\. [^\\n]*${topik}`, "m"));
+    harusAda("(Rekaman lab, `jeda.txt` bagian A)");
+    harusAda("jadi `jeda.txt` bagian B menahan replay");
+    harusAda("| Rekaman lab `baca.txt` bagian B | ".slice(0, 0) + "(`sinkron.txt` bagian A)", 3);
+  });
+  test("label dan kata penjaga di kalimat berangka: Rekaman lab, Asumsi, Hitungan, Tidak dijalankan, Ilustrasi menempel pada sumbernya", () => {
+    harusAda("Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `baca.txt` bagian B, pemutaran ulang di replica ditahan dengan sengaja.");
+    harusAda("Itu batas yang diperiksa lab di laptop, bukan nilai produksi (Rekaman lab, `jeda.txt` bagian A).");
+    harusAda("Arti Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] ada di [Label sumber](/cara-pakai/#label-sumber).");
+    harusAda("Beban dasarnya dari [[t5-prd]] (Asumsi): puncak");
+    harusAda("Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-03. Kode di tab lain adalah Ilustrasi.");
+    harusAda("*Dijalankan: lab api-t5 dan t5-replika, PostgreSQL 17.11, Go 1.27.3, dan pgx v5.11.0 (rekaman `baca.txt`, `jeda.txt`, `sinkron.txt`).*");
+    harusAda("(Tidak dijalankan: dibaca dari kode lab)", 6);
+    harusAda("(Tidak dijalankan), dan kode `api-t5`", 1);
+    harusAda("Satu bacaan per transaksi adalah Asumsi:");
+    harusAda("**Yang belum diukur.** Tiga hal belum ada: jeda replica di produksi, jumlah bacaan per user dalam 30 detik sesudah menulis, dan porsi app yang mengirim token. Angka 5,0% adalah batas atas satu bacaan per transaksi, bukan beban terukur.");
+    expect(kali(badan, "Tiga hal belum ada")).toBe(1);
+    expect(kali(badan, "Tiga penyebab yang paling mungkin")).toBe(1);
+    expect(kali(badan, "6 bulan lagi")).toBe(1);
+  });
+  test("diagram dan kepala: id, judul, sub, dan catatan Rantai; description halaman; kata 'selalu' tidak dipakai untuk jeda replica", () => {
+    const d = DataRantai.parse(rantaiMentah);
+    expect(d.id).toBe("t5-lag-inti");
+    expect(d.judul).toBe("Saldo tampil tanpa token dan dengan token, replica ditahan");
+    expect(d.baris.map((b) => b.sub)).toEqual(["bacaan tampilan", "X-Lsn-Tulis dikirim kembali"]);
+    expect(d.catatan).toBe(`Kotak oranye adalah yang tertinggal dari primary. Pemutaran ulang di replica ditahan dengan sengaja, karena jeda alami di lab di bawah 1 detik. Saldo ${rp(tanpaTokenB)} adalah saldo sesudah pembayaran ${rp(35000)} sebelumnya.`);
+    expect(halaman).toMatch(/^description: Replica bisa tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari primary sampai replica menyusul\. ADR 47 memilih token posisi WAL dan menimbang empat cara lain, termasuk jendela waktu tetap dan remote_apply\.$/m);
+    // naskah menulis 'selalu sedikit tertinggal'; jeda.txt membantahnya (replica menyusul): halaman dan registry menulis 'bisa tertinggal'
+    expect(halaman).not.toMatch(/selalu sedikit tertinggal/);
+    expect(dari("t5-lag") as unknown as { masalah: string }).toMatchObject({ masalah: "Replica bisa tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya" });
+    expect(jedaTxt).toContain("Sesudah beban berhenti kedua standby menyusul");
+    harusAda("**Replica bisa tertinggal, dan jedanya bisa membesar.**");
+  });
+  test("baris riset R5-140 sampai R5-144: semua tanggal sama dengan tanggal akses, dan angka hitungan diturunkan dari angka halaman", () => {
+    for (const id of ["R5-140", "R5-141", "R5-142", "R5-143", "R5-144"]) {
+      const tgl = [...barisRiset(id).matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)].map((m) => m[0]);
+      expect(tgl.length, id).toBeGreaterThanOrEqual(1);
+      expect(new Set(tgl), id).toEqual(new Set(["2026-11-03"]));
+    }
+    expect(kali(barisRiset("R5-143"), "dibuka 2026-11-03")).toBe(5);
+    const a = (registry.tahap as unknown as { asumsi: { user: number; aktif: number; req: number; puncak: number } }[])[4]!.asumsi;
+    const aktif = (a.user * a.aktif) / 100;
+    const puncak = ((aktif * a.req) / 86400) * a.puncak, t3 = ((aktif * 3) / 86400) * a.puncak, t2 = ((aktif * 2) / 86400) * a.puncak;
+    const f3 = (x: number): string => (Math.round(x * 1000) / 1000).toFixed(3).replace(".", ",");
+    const b = barisRiset("R5-144");
+    expect(b).toContain(`dibaca 2026-11-03: ${fmt(t3, 1)} ÷ ${fmt(puncak, 1)} = ${f3((69.4 / 1388.9) * 100)}% (ditulis ${fmt((69.4 / 1388.9) * 100, 1)}%); ${fmt(t2, 1)} ÷ ${fmt(puncak, 1)} = ${f3((46.3 / 1388.9) * 100)}% (ditulis ${fmt((46.3 / 1388.9) * 100, 1)}%); (${fmt(puncak, 1)} − ${fmt(t3, 1)}) × 0,02 = ${f3((1388.9 - 69.4) * 0.02).replace(/0$/, "")} (ditulis ${fmt((1388.9 - 69.4) * 0.02, 1)}, rumus di halaman 5.4); 5 − 1 = 4 detik.`);
+    expect(b).toContain("naskah menulis app versi lama tanpa token membaca primary");
+    expect(b).toContain("kode dan rekaman: tanpa token, replica, jadi app tanpa token bisa melihat saldo lama");
+    expect(b).toContain("`tandaiTulis` hanya di `POST /transfers` dan `POST /kiriman` (`handler.go`)");
+    expect(b).toContain("token bukan posisi WAL dijawab 422");
+    expect(b).toContain("`sumberTampil` tanpa ambang jeda, app Flutter tidak ada di lab");
   });
 });
 
