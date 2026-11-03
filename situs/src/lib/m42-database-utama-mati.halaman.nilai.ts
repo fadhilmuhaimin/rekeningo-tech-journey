@@ -7,7 +7,7 @@ export const SIDIK = {
   skenario: "88136ae1e94beca7",
   frontmatter: "dc4b737dd28073c2",
   snippet: ["59c931afdf94b917","8ff092bc699cc1ab","a1eff94dabaefd15","45d93554a58882ae","76f3cf1797be3c59","ac6959af6384e986"],
-  kata: {"hanya":10,"tidakAda":8,"tidakPernah":2,"semua":4,"setiap":0,"selalu":0,"tiap":1},
+  kata: {"hanya":10,"tidakAda":7,"tidakPernah":2,"semua":4,"setiap":0,"selalu":0,"tiap":1},
   semuaFrasa: ["semua nilai","semua posting","semua standby","semua commit"],
 };
 
@@ -18,11 +18,11 @@ export const KALIMAT_TERKUNCI: string[] = [
   "import WidgetLama from \"../../../components/WidgetLama.astro\";",
   "import SkripLama from \"../../../components/SkripLama.astro\";",
   "import promosi from \"../../../../data/diagram/t5-m42-promosi.json\";",
-  "<p class=\"meta\">Baca 10 menit · coba 3 menit · Prasyarat: [[t5-lag]], [[t4-rekonsiliasi]] · Jalur inti</p>",
+  "<p class=\"meta\">Baca 10 menit · coba 3 menit · Prasyarat: [[t4-rekonsiliasi]], [[t5-lag]] · Jalur inti</p>",
   "<Blok nama=\"Gejala\" buka>",
-  "Minggu 4 Tahap 5. Sabtu pukul 02.10 mesin database utama restart karena pembaruan kernel yang tidak dijadwalkan.",
+  "Minggu 4. Sabtu pukul 02.10 mesin database utama restart karena pembaruan kernel yang tidak dijadwalkan.",
   "Pembayaran gagal selama 23 menit, sampai Dewi mempromosikan replica.",
-  "Senin pagi Pak Hadi menjalankan rekonsiliasi. Ia menemukan dua top-up, Rp200.000 dan Rp75.000, yang gateway tandai dibayar dan yang tidak ada di ledger.",
+  "Senin pagi rekonsiliasi Pak Hadi menemukan dua top-up, Rp200.000 dan Rp75.000, yang gateway tandai dibayar dan ledger tidak punya.",
   "*Angka cerita (Ilustrasi):* hari, pukul 02.10, 23 menit, dan kedua jumlah rupiah berasal dari naskah, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].",
   "</Blok>",
   "<Blok nama=\"Yang Raka kira\" buka>",

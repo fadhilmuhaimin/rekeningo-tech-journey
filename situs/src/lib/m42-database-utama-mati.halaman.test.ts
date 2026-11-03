@@ -182,14 +182,14 @@ const sBAkhir = nomorBaris(promosi, (b) => b.startsWith("# Ketiga jurnal yang di
 
 // ---- registry, meta, susunan blok, dan tautan ---------------------------------------------------------------------------
 describe("registry, meta, susunan blok, dan tautan", () => {
-  test("5.8 ada, masalah, jalur inti, prasyarat 5.7 lalu 4.9 (urutan registry), lab t5-replika, peran backend; judul sama dengan peta naskah; menit = baca + coba", () => {
-    expect(dari("t5-m42")).toMatchObject({ ada: true, nomor: "5.8", jenis: "masalah", inti: true, prasyarat: ["t5-lag", "t4-rekonsiliasi"], lab: ["t5-replika"], tahap: 5, peran: ["backend"] });
+  test("5.8 ada, masalah, jalur inti, prasyarat 4.9 lalu 5.7 (urutan ini menjaga baris meta tidak membungkus berbeda saat font tukar), lab t5-replika, peran backend; judul sama dengan peta naskah; menit = baca + coba", () => {
+    expect(dari("t5-m42")).toMatchObject({ ada: true, nomor: "5.8", jenis: "masalah", inti: true, prasyarat: ["t4-rekonsiliasi", "t5-lag"], lab: ["t5-replika"], tahap: 5, peran: ["backend"] });
     expect(dari("t5-lag").nomor).toBe("5.7");
     expect(dari("t4-rekonsiliasi").nomor).toBe("4.9");
     expect(frontmatter).toContain('title: "5.8 M42: Database utama mati, dua top-up hilang"');
     expect(dari("t5-m42").judul).toBe("M42: Database utama mati, dua top-up hilang");
     expect(naskah).toContain("| 5.8 | 4 | M42: Database utama mati, dua top-up hilang | Masalah | ★ | t5-replika | alur |");
-    const m = cocok(badan, /<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t5-lag\]\], \[\[t4-rekonsiliasi\]\] · Jalur inti<\/p>/);
+    const m = cocok(badan, /<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t4-rekonsiliasi\]\], \[\[t5-lag\]\] · Jalur inti<\/p>/);
     expect(dari("t5-m42").menit).toBe(Number(m[1]) + Number(m[2]));
   });
   test("menit baca masuk akal terhadap jumlah kata (sekitar 200 kata per menit)", () => {
@@ -252,9 +252,9 @@ describe("naskah M42: gejala, yang dikira, dan yang sebenarnya", () => {
   });
   test("Gejala: minggu, jam, lama gangguan, dan kedua jumlah rupiah sama dengan naskah; tanpa kalimat definisi", () => {
     const gejala = badan.slice(badan.indexOf('<Blok nama="Gejala" buka>'), badan.indexOf('<Blok nama="Yang Raka kira" buka>'));
-    expect(gejala).toContain("Minggu 4 Tahap 5. Sabtu pukul 02.10 mesin database utama restart karena pembaruan kernel yang tidak dijadwalkan.");
+    expect(gejala).toContain("Minggu 4. Sabtu pukul 02.10 mesin database utama restart karena pembaruan kernel yang tidak dijadwalkan.");
     expect(gejala).toContain(`Pembayaran gagal selama ${GANGGUAN} menit, sampai Dewi mempromosikan replica.`);
-    expect(gejala).toContain("dua top-up, Rp200.000 dan Rp75.000, yang gateway tandai dibayar dan yang tidak ada di ledger");
+    expect(gejala).toContain("Senin pagi rekonsiliasi Pak Hadi menemukan dua top-up, Rp200.000 dan Rp75.000, yang gateway tandai dibayar dan ledger tidak punya.");
     expect(gejala).toContain(`hari, pukul 02.10, ${GANGGUAN} menit, dan kedua jumlah rupiah berasal dari naskah, bukan dari rekaman`);
     expect(gejala).not.toMatch(/\b(adalah|yaitu|artinya|berarti|merupakan|disebut)\b/i);
   });

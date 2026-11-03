@@ -4362,8 +4362,8 @@
       "label": "Masalah 42 · minggu 4",
       "masalah": "Primary mati, replica asinkron belum menerima commit terakhir, dan dua top-up yang sudah dijawab sukses hilang",
       "prasyarat": [
-        "t5-lag",
-        "t4-rekonsiliasi"
+        "t4-rekonsiliasi",
+        "t5-lag"
       ],
       "lab": [
         "t5-replika"
