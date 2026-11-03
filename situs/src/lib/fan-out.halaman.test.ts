@@ -19,6 +19,7 @@ import { DataRantai } from "./rantai";
 import { daftarBlok, cekTemplat } from "./blok";
 import { HalamanIstilah } from "./istilah";
 import { KALIMAT_TERKUNCI, SIDIK } from "./fan-out.halaman.nilai";
+import { TURUNAN } from "./fan-out.halaman.turunan";
 
 const akar = path.resolve(__dirname, "../../..");
 const baca = (rel: string): string => {
@@ -798,6 +799,96 @@ describe("5.15 halaman istilah dan glosarium", () => {
     expect(glos).toContain("| **Partisi topik** | Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. | [[t5-fanout]] |");
     expect(glos).toContain("| **Backpressure** | Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan. | [[t5-fanout]] |");
     expect(glos).toContain("| **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]], [[t5-fanout]] |");
+  });
+});
+
+// ---- lapis 1b: kunci turunan (selalu menyala, tidak ikut TANPA_KUNCI dan TANPA_SIDIK) ----
+// Kalimat yang memuat angka, kata penentu (tidak, hanya, paling, tepat, ...), atau kata bilangan; semua sel tabel; urutan judul, Snippet, tautan,
+// ADR, berkas dan bagian rekaman; hitungan label per blok; deret angka per blok; teks diagram dan istilah; dan deret angka baris riset.
+// Nilai dibangkitkan dari file saat ini oleh PERBARUI_KUNCI=1 sesudah tiap kalimat dibaca ke sumbernya (rekaman, README, kode, naskah, dokumentasi
+// di baris riset); kalimat penghubung tanpa angka dan tanpa kata penentu tidak dikunci di lapis ini.
+const KLAIM_RE = /\b(tidak|bukan|hanya|belum|tanpa|semua|setiap|selalu|paling|tepat|lebih|kurang|sampai|jadi|karena|boleh|harus|bisa|mungkin|satu|dua|tiga|empat|lima|enam|delapan|sebelum|sesudah|di atas|di bawah|yaitu|adalah|berarti|kecuali|saja|sama)\b|\d/i;
+const kalimatProsa = (): string[] => {
+  const out: string[] = [];
+  let dalamKode = false;
+  for (const b of badan.split("\n")) {
+    if (b.includes("code={")) dalamKode = true;
+    if (dalamKode) {
+      if (b.includes("/>")) dalamKode = false;
+      continue;
+    }
+    if (!b.trim() || /^(<|\||import|#|```)/.test(b)) continue;
+    for (const m of b.matchAll(/[^.;:?!]+[.;:?!]?/g)) {
+      const k = norm(m[0]);
+      if (k.split(" ").length >= 4 && KLAIM_RE.test(k)) out.push(k);
+    }
+  }
+  return out;
+};
+const semuaTabelHalaman = (): string[][][] => {
+  const hasil: string[][][] = [];
+  let cur: string[][] = [];
+  for (const b of badan.split("\n")) {
+    if (b.startsWith("|")) cur.push(b.split("|").slice(1, -1).map((c) => c.trim()));
+    else if (cur.length) {
+      hasil.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length) hasil.push(cur);
+  return hasil;
+};
+const labelHitung = (bagian: string) =>
+  ["Rekaman lab", "Asumsi", "Hitungan", "Tidak dijalankan", "Simulasi", "Ilustrasi", "[perlu verifikasi]"].map((l) => bagian.split(l).length - 1).join(",");
+const angkaDeret = (s: string) =>
+  (s.replace(/\]\(https?:[^)]*\)/g, "]").replace(/\b(?:file|title|region|lines)="[^"]*"/g, "").replace(/\[\[[^\]]*\]\]/g, "").match(/\d+(?:[.,]\d+)*/g) ?? []).join(" ");
+const turunanSekarang = {
+  kalimat: kalimatProsa(),
+  tabel: semuaTabelHalaman(),
+  judul: badan.split("\n").filter((l) => /^#{2,6} /.test(l)),
+  snippet: snippets.map((x) => [x.file ?? "(kode)", x.lines ?? x.region ?? "", x.lang ?? ""].join("|")),
+  tautan: [...badan.matchAll(/\[\[([a-z0-9-]+)\]\]/g)].map((m) => m[1]!),
+  adr: [...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]!),
+  berkas: [...badan.matchAll(/\b(aliran|grup|kuota|pengirim|antrean)\.txt/g)].map((m) => m[1]!),
+  bagian: [...badan.matchAll(/\bbagian ([A-D])\b/g)].map((m) => m[1]!),
+  labelPerBlok: Object.fromEntries(Object.entries(blok).map(([k, v]) => [k, labelHitung(v)])),
+  angkaPerBlok: Object.fromEntries(Object.entries(blok).map(([k, v]) => [k, angkaDeret(v)])),
+  rantai: nilaiString0(rantaiMentah),
+  istilah: ["consumer-group", "backpressure"].map((n) => nilaiString0(JSON.parse(baca(`situs/data/halaman-istilah/${n}.json`)))),
+  riset: [180, 181, 182, 183, 184].map((n) => (barisRiset(`R5-${n}`).match(/\d+(?:\.\d+)*(?:\.x)?|BSL|bagian/g) ?? []).join(" ")),
+};
+function nilaiString0(x: unknown): string[] {
+  return Array.isArray(x) ? x.flatMap(nilaiString0) : x && typeof x === "object" ? Object.entries(x).flatMap(([k, v]) => [k, ...nilaiString0(v)]) : typeof x === "string" ? [x] : typeof x === "number" ? [String(x)] : [];
+}
+if (process.env.PERBARUI_KUNCI === "1") {
+  fs.writeFileSync(
+    path.join(__dirname, "fan-out.halaman.turunan.ts"),
+    `// Dihasilkan dari file saat ini oleh PERBARUI_KUNCI=1 (lihat fan-out.halaman.test.ts, lapis 1b). Selalu menyala, juga tanpa TANPA_KUNCI dan TANPA_SIDIK.\n` +
+      `export const TURUNAN: any = ${JSON.stringify(turunanSekarang, null, 1)};\n`,
+  );
+}
+describe("5.15 kunci turunan: klaim, tabel, urutan, label, angka, diagram, istilah, riset", () => {
+  test("kalimat berklaim: tiap kalimat berangka atau berkata penentu terkunci, tidak ada yang bertambah, berubah, atau hilang", () => {
+    const sekarangK = turunanSekarang.kalimat;
+    const kunci: string[] = TURUNAN.kalimat;
+    expect(sekarangK.filter((k) => !kunci.includes(k)), "kalimat berklaim baru atau berubah").toEqual([]);
+    expect(kunci.filter((k) => !sekarangK.includes(k)), "kalimat berklaim hilang atau berubah").toEqual([]);
+    expect(sekarangK.length).toBe(kunci.length);
+  });
+  test("semua sel tabel (Hitungan, opsi ADR, Sengaja belum) sama per baris dan kolom", () => {
+    expect(turunanSekarang.tabel).toEqual(TURUNAN.tabel);
+  });
+  test("urutan judul, Snippet, tautan, ADR, berkas rekaman, dan bagian rekaman", () => {
+    for (const k of ["judul", "snippet", "tautan", "adr", "berkas", "bagian"] as const) expect(turunanSekarang[k], k).toEqual(TURUNAN[k]);
+  });
+  test("hitungan label sumber dan deret angka per blok", () => {
+    expect(turunanSekarang.labelPerBlok).toEqual(TURUNAN.labelPerBlok);
+    expect(turunanSekarang.angkaPerBlok).toEqual(TURUNAN.angkaPerBlok);
+  });
+  test("teks diagram Rantai, halaman istilah, dan deret angka baris riset", () => {
+    expect(turunanSekarang.rantai).toEqual(TURUNAN.rantai);
+    expect(turunanSekarang.istilah).toEqual(TURUNAN.istilah);
+    expect(turunanSekarang.riset).toEqual(TURUNAN.riset);
   });
 });
 
