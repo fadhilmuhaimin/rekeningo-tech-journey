@@ -99,6 +99,10 @@ test("5.11 runsql: tebakan menunjuk 120.000 di Before dan 10.000 di After, dan p
   assert.ok(p.answer > 0 && p.answer < p.options.length - 1);
   assert.ok(p.q.includes("Query bulan April menyebut posting di Before dan posting_04 di After."));
   assert.ok(p.explain.includes("SCAN posting memindai tabel berisi 120.000 baris"));
+  // rentang satu bulan (April) sama di kedua panel, dan tabel Before tidak punya index pada dibuat: dasar kalimat penjelasan
+  for (const panel of ["before", "after"]) assert.ok(s.panels[panel].steps[0].sql.includes("WHERE dibuat >= '2026-04-01' AND dibuat < '2026-05-01'"), panel);
+  assert.ok(!/CREATE\s+(UNIQUE\s+)?INDEX/i.test(s.setup) && /PRIMARY KEY \(id, dibuat\)/.test(s.setup));
+  assert.ok(p.explain.includes("karena tidak ada index pada dibuat"));
   assert.ok(p.explain.includes("SCAN posting_04 memindai tabel berisi 10.000 baris"));
 });
 

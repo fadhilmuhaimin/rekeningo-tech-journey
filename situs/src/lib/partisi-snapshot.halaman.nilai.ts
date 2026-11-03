@@ -446,7 +446,7 @@ export const KALIMAT_TERKUNCI: string[] = [
   "### Sengaja belum dilakukan",
   "| Yang ditunda | Kenapa ditunda | Muncul lagi di |",
   "|---|---|---|",
-  "| pg_partman | Fungsi 12 baris cukup di lab, dan ekstensi hanya disebut | Belum dijadwalkan |",
+  "| pg_partman | Lab memakai fungsi 12 baris, dan ekstensi hanya disebut | Belum dijadwalkan |",
   "| Partisi `jurnal` | Tidak ada rekaman bahwa pemeriksaan membaca `jurnal` terlalu lama | Belum dijadwalkan |",
   "| Memindahkan baris lama dari satu partisi ke partisi bulanan di database berisi | Lab memuat riwayat langsung ke partisi bulanan | Belum dijadwalkan |",
   "| Penjadwal bulanan untuk partisi baru dan job snapshot | Lab memanggil fungsi dan job dari skrip | Belum dijadwalkan |",

@@ -706,6 +706,50 @@ describe("penjaga tambahan peninjau: tautan, kutipan bagian, paragraf ganda, ang
     expect(kutipan.length).toBe(15);
     for (const k of kutipan) expect(tabel.some(([kal]) => kal.includes(k[0])), `kutipan belum punya bukti: ${k[0]}`).toBe(true);
   });
+  test("kode status di prosa dipasangkan dengan galat yang sama di rekaman (kode dan pesan berurutan)", () => {
+    const tabel: [string, string, RegExp][] = [
+      ["Ledger menolak DELETE atas posting dengan SQLSTATE 23001.", lB.teks, /DELETE FROM posting_lalu_05 WHERE jumlah > 0\nERROR:[^\n]*\n\s+-- SQLSTATE 23001/],
+      ["ledger menolak DELETE (23001)", lB.teks, /DELETE FROM posting_lalu_05[^\n]*\nERROR:[^\n]*\n\s+-- SQLSTATE 23001/],
+      ["role aplikasi `api_t5` ditolak dengan 42501.", lB.teks, /\(api_t5\) => ALTER TABLE posting DETACH PARTITION[^\n]*\nERROR:  must be owner of table posting\n\s+-- SQLSTATE 42501/],
+      ["Di dalam blok transaction dijawab 25001, dan saat ada partisi default dijawab 55000.", lC.teks, /inside a transaction block\n\s+-- SQLSTATE 25001[\s\S]*default partition exists\n\s+-- SQLSTATE 55000/],
+      ["Ditolak dengan SQLSTATE 0A000,", pC.teks, /unique constraint on partitioned table must include all partitioning columns\n\s+-- SQLSTATE 0A000/],
+      ["atau ATTACH ditolak dengan 42804.", aA.teks, /child table is missing constraint "posting_jumlah_check1"\n\s+-- SQLSTATE 42804/],
+      ["INSERT posting ditolak dengan 23514", aD.teks, /no partition of relation "posting" found for row\n\s+-- SQLSTATE 23514/],
+      ["menjawab 409 `posting-diarsipkan` sebelum transaction dibuka", lG.teks, /HTTP 409\n\{"type":"\/problems\/posting-diarsipkan"/],
+      ["Query `WHERE jumlah > 13000` tidak menyebut `dibuat`.", pB.teks, /EXPLAIN \(COSTS OFF\) SELECT sum\(jumlah\) FROM posting WHERE jumlah > 13000/],
+    ];
+    for (const [kalimat, bagian, re] of tabel) {
+      expect(badan.includes(kalimat), `kalimat tidak ada di halaman: ${kalimat}`).toBe(true);
+      expect(bagian, `pasangan tidak ada di rekaman: ${kalimat}`).toMatch(re);
+    }
+  });
+  test("versi dan tanggal di teks tautan sama dengan alamatnya; tiap 'dibuka' punya tanggal utuh; 'N bulan' ada di naskah atau widget", () => {
+    for (const m of badan.matchAll(/\[PostgreSQL (\d+), [^\]]+\]\(https:\/\/www\.postgresql\.org\/docs\/(\d+)\//g)) expect(m[1]).toBe(m[2]);
+    for (const m of badan.matchAll(/\[PostgreSQL (\d+): [^\]]+\]\(https:\/\/www\.postgresql\.org\/docs\/(\d+)\//g)) expect(m[1]).toBe(m[2]);
+    for (const m of badan.matchAll(/\[Django ([\d.]+): [^\]]+\]\(https:\/\/docs\.djangoproject\.com\/en\/([\d.]+)\//g)) expect(m[1]).toBe(m[2]);
+    for (const m of badan.matchAll(/\[Laravel ([\d.x]+): [^\]]+\]\(https:\/\/laravel\.com\/docs\/([\d.x]+)\//g)) expect(m[1]).toBe(m[2]);
+    expect([...badan.matchAll(/\[(?:PostgreSQL|Django|Laravel)[^\]]*\]\(https:[^)]+\)/g)].length).toBeGreaterThanOrEqual(9);
+    expect(pruning).toContain("PostgreSQL 17.11");
+    expect(hitung(badan, /\bdibuka\b(?!:)/g)).toBe(hitung(badan, /\bdibuka \d{4}-\d{2}-\d{2}\b/g)); // "transaction dibuka:" (jurnal pembalik) bukan tanggal akses
+    for (const m of badan.replace("gagal 6 bulan lagi", "gagal").matchAll(/\b(\d+) bulan\b/g)) { // kerangka pre-mortem skill analisis-kritis (6 bulan) bukan angka lab
+      const n = m[1]!;
+      expect(barisAdr49.includes(`${n} bulan`) || widget.title.includes(`${n} bulan`) || readme.includes(`${n} bulan`), `${n} bulan tidak ada di naskah, widget, atau README`).toBe(true);
+    }
+  });
+  test("diagram Rantai: label baris dan hitungan baris Rantai sama dengan kalimat Inti (Dibaca, Dibuang)", () => {
+    expect(diagram.baris.map((b) => b.label)).toEqual(["Dibaca", "Dibuang"]);
+    expect(cocok(badan, /Posting dipartisi per bulan, jadi query satu bulan membaca satu partisi dan bulan lama dilepas, bukan dihapus\./)).not.toBeNull();
+  });
+  test("baris riset 164: hitungan diulang dari angka halaman, pembulatan setengah ke atas", () => {
+    const r = barisRiset("R5-164");
+    const g = (x: number, d: number): string => x.toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d });
+    expect(r).toContain(`${fmt(POSTING_TAHUN)} ÷ 12 = ${fmt(POSTING_BULAN)}`);
+    expect(r).toContain(`${g(POSTING_BULAN / 1e6, 1)} juta × ${BYTE} byte = ${g(GB_BULAN, 3)} GB (ditulis ${g(bulat(GB_BULAN, 1), 1)})`);
+    expect(r).toContain(`${fmt(POSTING_TAHUN_2)} ÷ 12 = ${g(POSTING_BULAN_2 / 1e6, 2)} juta (${g(bulat(POSTING_BULAN_2 / 1e6, 1), 1)})`);
+    expect(r).toContain(`${g(POSTING_BULAN_2 / 1e6, 2)} juta × ${BYTE} byte = ${g(GB_BULAN_2, 2)} GB (${g(bulat(GB_BULAN_2, 1), 1)})`);
+    expect(r).toContain(`${fmt(AKTIF)} × ${TRX} × 365 = ${fmt(JURNAL_TAHUN)}`);
+    expect(r).toContain(`${fmt(AKTIF)} × ${TRX_REG} × 365 = ${fmt(JURNAL_TAHUN_2)}`);
+  });
   test("snapshot.txt memuat 150.000 dari 1.800.000 dan 8,3%, sama dengan kalimat halaman dan hitungan dari 12 bulan", () => {
     expect(snap).toContain("# Baris posting dibaca: 150.000 dari 1.800.000, yaitu 8,3% (satu bulan dari 12).");
     expect(badan).toContain("150.000 dari 1.800.000 posting di lab, yaitu 8,3%");
