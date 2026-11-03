@@ -3864,6 +3864,30 @@
   "jawab": "ceil(1 × 100 ÷ 50) = 2 pod (Hitungan dari rumus dokumentasi, dengan CPU contoh yang Ilustrasi). Di lab jumlah pod naik di atas 1 dan tidak melewati maksimal 4, tanpa jumlah tepat (`hpa.txt` bagian E)."
  },
  {
+  "id": "t5-m47-1",
+  "halaman": "t5-m47",
+  "judul": "5.18 M47: Pod notifikasi membuat jurnal",
+  "url": "tahap-5/m47-pod-membuat-jurnal/",
+  "tanya": "Pod uji memakai Idempotency-Key yang belum pernah dipakai dan ledger membuat jurnal. Kenapa key itu tidak menolak pod uji?",
+  "jawab": "Menurut draf IETF, key dipakai server untuk mengenali percobaan ulang dari permintaan yang sama. Key yang belum pernah dipakai adalah permintaan baru, dan service ledger tidak menerima parameter pemanggil. Key baru dengan akun dan jumlah yang sama menghasilkan jurnal kedua (`idempoten.txt` bagian C)."
+ },
+ {
+  "id": "t5-m47-2",
+  "halaman": "t5-m47",
+  "judul": "5.18 M47: Pod notifikasi membuat jurnal",
+  "url": "tahap-5/m47-pod-membuat-jurnal/",
+  "tanya": "Bayu menulis bahwa Kubernetes sudah membatasi lalu lintas antar pod. Apa yang ditulis dokumentasi Kubernetes, dan apa yang tidak diketahui dari cluster cerita?",
+  "jawab": "Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneksi masuk, dan NetworkPolicy tidak berefek tanpa controller yang menegakkannya (Tidak dijalankan). Dari cluster cerita tidak diketahui apakah ada NetworkPolicy dan jaringan yang menegakkannya [perlu verifikasi]."
+ },
+ {
+  "id": "t5-m47-3",
+  "halaman": "t5-m47",
+  "judul": "5.18 M47: Pod notifikasi membuat jurnal",
+  "url": "tahap-5/m47-pod-membuat-jurnal/",
+  "tanya": "Rekaman memakai perintah `panggil` di mesin yang sama dengan ledger, bukan pod di cluster. Apa yang dibuktikan rekaman itu, dan apa yang tidak?",
+  "jawab": "Rekaman membuktikan bahwa ledger versi pertama membuat jurnal untuk pemanggil tanpa sertifikat dan tanpa identitas (`rentan.txt` bagian A). Rekaman tidak membuktikan cara jaringan cluster memperlakukan pod uji, karena lab tidak memakai Kubernetes."
+ },
+ {
   "id": "t5-m48-1",
   "halaman": "t5-m48",
   "judul": "5.20 M48: Angsuran Budi terdebit dua kali",
@@ -3942,6 +3966,38 @@
   "url": "tahap-5/m49-canary-sepertiga/",
   "tanya": "Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur dari canary?",
   "jawab": "Hari, jam, 2%, dan 31% adalah Ilustrasi. Lab mengukur bagian pod dan memeriksa batas bagian permintaan, tetapi tidak mengukur bagian user dan tidak mencatat hitungan permintaan tepat per versi (`tanpa-router.txt`, bagian A)."
+ },
+ {
+  "id": "t5-rollout-1",
+  "halaman": "t5-rollout",
+  "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
+  "url": "tahap-5/progressive-delivery/",
+  "tanya": "Rollout tiga replika memakai plugin Gateway API dan `setWeight: 5`. Berapa bobot di HTTPRoute dan berapa pod versi baru, dan apa bedanya dengan rollout tanpa router?",
+  "jawab": "Bobot 95 dan 5, dengan 1 pod versi baru dan 3 pod versi lama (`gateway.txt` bagian B). Tanpa router, bagian ditentukan jumlah pod: 25,0% atau 33,3% menurut `maxSurge` (`tanpa-router.txt` bagian A)."
+ },
+ {
+  "id": "t5-rollout-2",
+  "halaman": "t5-rollout",
+  "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
+  "url": "tahap-5/progressive-delivery/",
+  "tanya": "Versi baru menolak 31% otorisasi (Ilustrasi). Apa yang terjadi, dan apa yang tidak direkam?",
+  "jawab": "Analisis Failed karena satu pengukuran gagal melewati `failureLimit` 0. Rollout menjadi Degraded, bobot kembali 100 dan 0, dan 100 dari 100 permintaan berikutnya dijawab versi lama (`analisis.txt` bagian C). Metrik p95 dan selisih rekonsiliasi tidak direkam."
+ },
+ {
+  "id": "t5-rollout-3",
+  "halaman": "t5-rollout",
+  "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
+  "url": "tahap-5/progressive-delivery/",
+  "tanya": "Sakelar dimatikan lewat pod 1 dan pod 2 serta pod 3 masih punya cache. Apa jawaban ketiga pod, dan berapa otorisasi yang lolos di puncak?",
+  "jawab": "Pod 1 menolak seketika. Pod 2 dan pod 3 masih menyetujui sampai cache mereka habis, paling lama 5 detik ditambah toleransi ukur (`sakelar.txt` bagian D). Di puncak paling banyak 5 × 1,16 = 5,8 otorisasi lolos (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t5-rollout-4",
+  "halaman": "t5-rollout",
+  "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
+  "url": "tahap-5/progressive-delivery/",
+  "tanya": "Sakelar tidak terbaca. Kenapa jawabannya 200 dengan tolak, bukan 503?",
+  "jawab": "Penerbit tiruan membaca semua jawaban yang bukan 200 sebagai tidak ada jawaban dan menyetujui (`otorisasi.txt` bagian D, lab t4-kartu). Karena itu pod menjawab 200 dengan keputusan tolak dalam kurang dari 2 detik (`sakelar.txt` bagian D)."
  },
  {
   "id": "t5-m50-1",
