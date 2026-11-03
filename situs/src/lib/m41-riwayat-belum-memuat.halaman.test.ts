@@ -294,7 +294,7 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     expect(detikCerita).toBe(2);
     expect(gejalaM41).toContain("dua kali, lalu menghubungi CS (Ilustrasi)");
     harus(`Minggu ${mingguM41} Tahap 5. Budi membayar ${rp(bayarNominalA)} di warung. Layar app menulis "Berhasil".`);
-    harus(`Riwayat dan saldo di app masih seperti sebelum membayar selama ±${detikCerita} detik. Budi membuka riwayat dua kali, lalu menghubungi CS.`);
+    harus(`Riwayat dan saldo di app masih seperti sebelum membayar selama ±${detikCerita} detik. Budi membuka riwayat dua kali, lalu menghubungi customer service (CS).`);
     harus(`*Angka cerita (Ilustrasi):* ${rp(bayarNominalA)}, ±${detikCerita} detik, dua kali membuka riwayat, dan CS berasal dari naskah, bukan dari rekaman. Rekaman lab memakai pembayaran ${rp(bayarNominalA)} yang sama, tetapi jeda ±${detikCerita} detik tidak terjadi sendiri di lab, dan alasannya ada di blok Yang sebenarnya. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].`);
   });
   test("dugaan Raka sama dengan kolom 'Yang dikira' naskah; replica dan primary didefinisikan di pemakaian pertama", () => {
@@ -414,6 +414,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-135 sam
     expect(barisRiset("R5-138")).toContain("Dibaca 2026-11-03 di main:");
     expect(barisRiset("R5-139")).toContain("dibaca 2026-11-03:");
     expect(r137).toContain("Read replica, bila nanti dipasang, hanya untuk laporan");
+    expect(r137).toContain('aturan 2: "Uang tidak dibaca dari salinan di luar primary.');
     expect(r137).toContain("memperluas aturan 2 ADR 45");
     expect(r137).toContain("laporan merchant dan bacaan berat");
     const r138 = barisRiset("R5-138");

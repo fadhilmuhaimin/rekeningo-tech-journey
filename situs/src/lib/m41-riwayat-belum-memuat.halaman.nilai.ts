@@ -14,7 +14,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "<p class=\"meta\">Baca 9 menit · coba 3 menit · Prasyarat: [[t5-read-replica]] · Jalur inti</p>",
  "<Blok nama=\"Gejala\" buka>",
  "Minggu 3 Tahap 5. Budi membayar Rp35.000 di warung. Layar app menulis \"Berhasil\".",
- "Riwayat dan saldo di app masih seperti sebelum membayar selama ±2 detik. Budi membuka riwayat dua kali, lalu menghubungi CS.",
+ "Riwayat dan saldo di app masih seperti sebelum membayar selama ±2 detik. Budi membuka riwayat dua kali, lalu menghubungi customer service (CS).",
  "*Angka cerita (Ilustrasi):* Rp35.000, ±2 detik, dua kali membuka riwayat, dan CS berasal dari naskah, bukan dari rekaman. Rekaman lab memakai pembayaran Rp35.000 yang sama, tetapi jeda ±2 detik tidak terjadi sendiri di lab, dan alasannya ada di blok Yang sebenarnya. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].",
  "</Blok>",
  "<Blok nama=\"Yang Raka kira\" buka>",
