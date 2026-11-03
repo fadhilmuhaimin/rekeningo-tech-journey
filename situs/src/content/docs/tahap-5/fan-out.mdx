@@ -1,0 +1,94 @@
+---
+title: "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51"
+description: Satu pengumuman ke banyak perangkat ditulis sekali dan dibagi consumer per partisi, sedangkan notifikasi uang tetap lewat outbox. ADR 51 menimbang lima cara lain dan menulis kapan Kafka tidak diperlukan.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import FanOut from "../../../components/FanOut.astro";
+import intiDiagram from "../../../../data/diagram/t5-fanout-inti.json";
+
+<p class="meta">Baca 20 menit · coba 4 menit · Prasyarat: [[t5-m45]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Pengumuman ditulis sebagai satu baris, dipecah per partisi, dan dikirim consumer; uang tetap lewat outbox.
+
+<Rantai data={intiDiagram} ringkas />
+
+Fan-out berarti satu kejadian menghasilkan pekerjaan untuk banyak penerima. Kejadiannya satu pengumuman, dan penerimanya perangkat: satu baris tabel `perangkat` untuk tiap HP yang menerima notifikasi.
+
+Kafka adalah platform event streaming. Ia menyimpan rekaman (record) di topik, dan tiap topik dibagi menjadi partisi, yaitu log berurutan. Consumer adalah proses yang membaca rekaman. Consumer group adalah kumpulan consumer yang membaca satu topik bersama dan membagi partisinya.
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `aliran.txt` bagian A, satu pengumuman ke 10.281 perangkat menulis satu baris `pengumuman`, satu baris outbox, dan enam rekaman Kafka, satu per partisi. Di `grup.txt` bagian A tiga consumer memegang dua partisi tiap consumer. Consumer pertama mati di tengah rentangnya, dua consumer lain memegang tiga partisi tiap consumer, dan tiap perangkat menerima satu notifikasi berbeda.
+
+Satu notifikasi berbeda bukan satu pengiriman: rentang consumer yang mati dikirim ulang dengan id yang sama, jadi penerima harus menyaring id itu ([[t3-at-least-once]]). Notifikasi uang tidak lewat Kafka, karena ia tetap di outbox ([[t3-outbox]]).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Satu pengumuman ke 10.281 perangkat menulis berapa baris outbox dan berapa rekaman Kafka?
+2. Satu consumer mati di tengah rentangnya. Apa yang terjadi pada rentang itu, dan kenapa tiap perangkat tetap melihat satu notifikasi berbeda?
+3. Pengumuman lewat Kafka dan notifikasi uang lewat outbox. Apa yang masih mereka pakai bersama?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka>
+
+(menyusul)
+
+<FanOut />
+
+</Blok>
+
+<Blok nama="Paham">
+
+(menyusul)
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+(menyusul)
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Soal satu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jawaban satu.
+
+</details>
+
+**2.** Soal dua?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jawaban dua.
+
+</details>
+
+**3.** Soal tiga?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jawaban tiga.
+
+</details>
+
+</Blok>

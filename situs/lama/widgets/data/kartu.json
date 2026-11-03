@@ -3864,6 +3864,30 @@
   "jawab": "ceil(1 × 100 ÷ 50) = 2 pod (Hitungan dari rumus dokumentasi, dengan CPU contoh yang Ilustrasi). Di lab jumlah pod naik di atas 1 dan tidak melewati maksimal 4, tanpa jumlah tepat (`hpa.txt` bagian E)."
  },
  {
+  "id": "t5-fanout-1",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Soal satu?",
+  "jawab": "Jawaban satu."
+ },
+ {
+  "id": "t5-fanout-2",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Soal dua?",
+  "jawab": "Jawaban dua."
+ },
+ {
+  "id": "t5-fanout-3",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Soal tiga?",
+  "jawab": "Jawaban tiga."
+ },
+ {
   "id": "t5-m47-1",
   "halaman": "t5-m47",
   "judul": "5.18 M47: Pod notifikasi membuat jurnal",

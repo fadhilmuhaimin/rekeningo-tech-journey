@@ -1,0 +1,48 @@
+{
+  "id": "t5-fanout-inti",
+  "judul": "Satu pengumuman, enam partisi, tiga consumer",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab: aliran.txt dan grup.txt"
+  },
+  "baris": [
+    {
+      "label": "Ditulis",
+      "sub": "aliran.txt bagian A",
+      "simpul": [
+        {
+          "teks": "1 baris pengumuman",
+          "sub": "dan 1 baris outbox",
+          "nada": "system"
+        },
+        {
+          "teks": "6 rekaman di 6 partisi",
+          "sub": "satu per rentang perangkat",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Dikirim",
+      "sub": "grup.txt bagian A",
+      "simpul": [
+        {
+          "teks": "3 consumer, 2 partisi tiap consumer",
+          "sub": "satu consumer mati di tengah",
+          "nada": "old"
+        },
+        {
+          "teks": "2 consumer, 3 partisi tiap consumer",
+          "sub": "rentang yang mati dikirim ulang",
+          "nada": "system"
+        },
+        {
+          "teks": "Satu notifikasi berbeda tiap perangkat",
+          "sub": "10.281 perangkat",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Biru: yang bekerja. Abu-abu: consumer yang mati. Hijau: hasilnya. Notifikasi uang tidak lewat Kafka: ia tetap di outbox. Satu notifikasi berbeda bukan satu pengiriman: rentang yang mati dikirim ulang dengan id yang sama."
+}
