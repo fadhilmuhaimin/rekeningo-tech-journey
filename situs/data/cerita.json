@@ -4628,14 +4628,15 @@
       "label": "Masalah 47 · minggu 9",
       "masalah": "Pod di jaringan dalam membuat jurnal baru di ledger karena ledger mempercayai setiap pemanggil",
       "prasyarat": [
-        "t5-service",
-        "t2-idempotency"
+        "t2-idempotency",
+        "t5-service"
       ],
       "lab": [
         "t5-service"
       ],
-      "ada": false,
-      "nomor": "5.18"
+      "ada": true,
+      "nomor": "5.18",
+      "menit": 11
     },
     {
       "id": "t5-mtls",

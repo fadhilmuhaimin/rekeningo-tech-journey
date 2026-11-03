@@ -242,6 +242,7 @@
 *[N+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[n+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[N+1]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
+*[NetworkPolicy]: Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya.
 *[Nonrepeatable read]: Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.
 *[nonrepeatable read]: Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.
 *[OAuth 2.0]: Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password.

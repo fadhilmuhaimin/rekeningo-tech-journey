@@ -1170,6 +1170,15 @@
   "h": "/istilah/n-1-query/"
  },
  {
+  "t": "NetworkPolicy",
+  "d": "Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya.",
+  "b": "t5-m47",
+  "n": "5.18 M47",
+  "u": "/tahap-5/m47-pod-membuat-jurnal/",
+  "s": "istilah-networkpolicy",
+  "h": "/istilah/networkpolicy/"
+ },
+ {
   "t": "Nonrepeatable read",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
   "b": "t2-isolation-level",

@@ -3864,6 +3864,30 @@
   "jawab": "ceil(1 × 100 ÷ 50) = 2 pod (Hitungan dari rumus dokumentasi, dengan CPU contoh yang Ilustrasi). Di lab jumlah pod naik di atas 1 dan tidak melewati maksimal 4, tanpa jumlah tepat (`hpa.txt` bagian E)."
  },
  {
+  "id": "t5-m47-1",
+  "halaman": "t5-m47",
+  "judul": "5.18 M47: Pod notifikasi membuat jurnal",
+  "url": "tahap-5/m47-pod-membuat-jurnal/",
+  "tanya": "Pod uji memakai Idempotency-Key yang belum pernah dipakai dan ledger membuat jurnal. Kenapa key itu tidak menolak pod uji?",
+  "jawab": "Menurut draf IETF, key dipakai server untuk mengenali percobaan ulang dari permintaan yang sama. Key yang belum pernah dipakai adalah permintaan baru, dan service ledger tidak menerima parameter pemanggil. Key baru dengan akun dan jumlah yang sama menghasilkan jurnal kedua (`idempoten.txt` bagian C)."
+ },
+ {
+  "id": "t5-m47-2",
+  "halaman": "t5-m47",
+  "judul": "5.18 M47: Pod notifikasi membuat jurnal",
+  "url": "tahap-5/m47-pod-membuat-jurnal/",
+  "tanya": "Bayu menulis bahwa Kubernetes sudah membatasi lalu lintas antar pod. Apa yang ditulis dokumentasi Kubernetes, dan apa yang tidak diketahui dari cluster cerita?",
+  "jawab": "Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneksi masuk, dan NetworkPolicy tidak berefek tanpa controller yang menegakkannya (Tidak dijalankan). Dari cluster cerita tidak diketahui apakah ada NetworkPolicy dan jaringan yang menegakkannya [perlu verifikasi]."
+ },
+ {
+  "id": "t5-m47-3",
+  "halaman": "t5-m47",
+  "judul": "5.18 M47: Pod notifikasi membuat jurnal",
+  "url": "tahap-5/m47-pod-membuat-jurnal/",
+  "tanya": "Rekaman memakai perintah `panggil` di mesin yang sama dengan ledger, bukan pod di cluster. Apa yang dibuktikan rekaman itu, dan apa yang tidak?",
+  "jawab": "Rekaman membuktikan bahwa ledger versi pertama membuat jurnal untuk pemanggil tanpa sertifikat dan tanpa identitas (`rentan.txt` bagian A). Rekaman tidak membuktikan cara jaringan cluster memperlakukan pod uji, karena lab tidak memakai Kubernetes."
+ },
+ {
   "id": "t5-m48-1",
   "halaman": "t5-m48",
   "judul": "5.20 M48: Angsuran Budi terdebit dua kali",
