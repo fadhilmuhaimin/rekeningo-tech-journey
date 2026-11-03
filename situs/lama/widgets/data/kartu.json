@@ -3784,6 +3784,38 @@
   "jawab": "ADR 14 menulis keputusannya salah saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama. Batch yang tertunda lebih dari 24 jam memenuhi syarat itu. Key tidak rusak: ia memang hanya hidup 24 jam."
  },
  {
+  "id": "t5-batch-1",
+  "halaman": "t5-batch",
+  "judul": "5.21 Batch harian tahan crash, saga + ADR 54",
+  "url": "tahap-5/batch-tahan-crash/",
+  "tanya": "Apa beda referensi dengan Idempotency-Key, dan kenapa referensi tidak terkena batas 24 jam?",
+  "jawab": "Idempotency-Key tersimpan di `kunci_idempotensi` dengan kolom `kedaluwarsa`, dan versi pertama memberinya umur 24 jam. Referensi adalah kolom UNIQUE di `jurnal` tanpa kolom waktu, dan kode versi benar tidak membaca jam. Rekaman `crash.txt` bagian B mengulang job tanpa memutar jam, dan +25 jam untuk versi benar Tidak dijalankan."
+ },
+ {
+  "id": "t5-batch-2",
+  "halaman": "t5-batch",
+  "judul": "5.21 Batch harian tahan crash, saga + ADR 54",
+  "url": "tahap-5/batch-tahan-crash/",
+  "tanya": "Dua job sudah membaca daftar yang sama dan berebut kunci buku, dan saldo cukup untuk satu angsuran. Apa hasil gabungannya, dan kenapa referensi dibaca sesudah kunci?",
+  "jawab": "Satu jurnal: jurnal baru 1, jurnal sudah ada 1, gagal 0, dan angsuran dicatat (`serentak.txt` bagian B). Bila referensi dibaca sebelum kunci, job yang kalah menyebut saldo kurang dan menandai angsuran yang sudah dibayar sebagai `gagal` (README lab)."
+ },
+ {
+  "id": "t5-batch-3",
+  "halaman": "t5-batch",
+  "judul": "5.21 Batch harian tahan crash, saga + ADR 54",
+  "url": "tahap-5/batch-tahan-crash/",
+  "tanya": "Di DBOS Go, `RunAsStep` tanpa referensi mati di dalam langkah jurnal sesudah ledger commit. Berapa jurnal akhirnya, dan kenapa?",
+  "jawab": "Dua jurnal, dan saldo berkurang Rp200.000 (`langkah.txt` bagian A). Langkah baru dicatat sesudah fungsinya kembali, dan godoc menyebut langkah itu berjalan setidaknya sekali. Dengan referensi unik atau `RunAsTransaction`, jurnal akhirnya 1."
+ },
+ {
+  "id": "t5-batch-4",
+  "halaman": "t5-batch",
+  "judul": "5.21 Batch harian tahan crash, saga + ADR 54",
+  "url": "tahap-5/batch-tahan-crash/",
+  "tanya": "Angsuran `terjurnal` tidak bisa diselesaikan. Apa kompensasinya, dan apa yang tidak direkam lab?",
+  "jawab": "Admin membuat jurnal pembalik atas jurnal angsuran dan status angsuran menjadi `gagal`, dalam satu transaction. Saldo Budi kembali ke Rp250.000 dan saldo Warung Ani ke Rp0 (`kompensasi.txt` bagian A). Lab tidak punya langkah akhir yang gagal permanen: keadaan `terjurnal` dipasang dengan UPDATE."
+ },
+ {
   "id": "t5-onprem-1",
   "halaman": "t5-onprem",
   "judul": "5.28 On-prem lawan cloud + ADR 59",

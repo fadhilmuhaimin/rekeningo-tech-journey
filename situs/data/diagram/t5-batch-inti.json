@@ -1,0 +1,44 @@
+{
+  "id": "t5-batch-inti",
+  "judul": "Batch yang diulang menemukan jurnal yang sudah ada",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab: crash.txt bagian B dan C"
+  },
+  "baris": [
+    {
+      "label": "Diulang",
+      "sub": "bagian B",
+      "simpul": [
+        {
+          "teks": "Mati sesudah jurnal",
+          "sub": "1 jurnal, angsuran menunggu"
+        },
+        {
+          "teks": "Diulang",
+          "sub": "jam tidak diperankan"
+        },
+        {
+          "teks": "Dicatat, 1 jurnal",
+          "sub": "saldo Citra Rp150.000",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Referensi sama",
+      "sub": "bagian C",
+      "simpul": [
+        {
+          "teks": "INSERT kedua"
+        },
+        {
+          "teks": "Ditolak database",
+          "sub": "jurnal_referensi_key",
+          "nada": "system"
+        }
+      ]
+    }
+  ],
+  "catatan": "Hijau: hasil yang benar. Biru: aturan database. Di bagian B jam ledger tidak diperankan, karena versi benar tidak membaca jam (dibaca dari kode lab)."
+}
