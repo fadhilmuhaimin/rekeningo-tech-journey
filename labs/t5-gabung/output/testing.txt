@@ -1,0 +1,42 @@
+# Lab t5-gabung · tes Go untuk skor, antrean, dan alur tiga proses
+# go1.27.3 · tanpa database dan tanpa container · modul lab/t5gabung (pustaka standar) · broker queue tiruan di loopback
+# Skor risiko di lab ini peraga, bukan fitur produk dan bukan model risiko.
+# Rekaman: make -C labs/t5-gabung run. Waktu dan p95 tidak ditulis; yang ditulis hasil pemeriksaan terhadap batas.
+
+# --- A. go vet dan tes Go ---
+$ go vet ./...
+(tanpa temuan)
+# exit status 0
+$ go test -v -count=1 ./...
+--- PASS: TestUrutanPerTopikDanMetrik
+--- PASS: TestAmbilKosongBukanPanggilanBerisi
+--- PASS: TestJedaBuatanMenundaPublikasiDanAmbil
+--- PASS: TestAturMengosongkanHitunganDanMenolakNilaiTakSah
+--- PASS: TestAturLewatHTTPMenerapkanJeda
+--- PASS: TestTopikPenuhDijawab503
+PASS
+ok    lab/t5gabung/antrean
+--- PASS: TestPersentilNearestRank
+--- PASS: TestKirimUlangDialTidakMengulangSesudahSambunganJadi
+--- PASS: TestKirimUlangDialMengulangSambunganYangGagalDibuat
+--- PASS: TestRingkasLatensiMelaporkanP50P95DanMaks
+PASS
+ok    lab/t5gabung/cmd/gabung
+--- PASS: TestTigaProsesSamaDenganSatuProsesDanEnamPanggilan
+--- PASS: TestProsesRiwayatMatiMembuatPermintaanHabisWaktuDanPesanTertinggal
+--- PASS: TestIDDiLuarDataDijawab422DiKeduaVersi
+--- PASS: TestPermintaanTanpaIDDitolak
+--- PASS: TestGalatPerangkatBerhentiDiHasilDenganEmpatPanggilan
+--- PASS: TestIDKembarYangSedangDiprosesDijawab409
+PASS
+ok    lab/t5gabung/layanan
+--- PASS: TestHitungAturanSatuPerSatu
+--- PASS: TestHitungDibatasiSeratusDanAmbangKeputusan
+--- PASS: TestDataMenghasilkanSemuaKeputusanDanSemuaAturan
+--- PASS: TestDataDeterministik
+--- PASS: TestIDDiLuarDataDitolak
+--- PASS: TestRingkasRiwayatMenghitungDariBaris
+--- PASS: TestUkuranDataSamaDenganTeksRekaman
+PASS
+ok    lab/t5gabung/skor
+# exit status 0

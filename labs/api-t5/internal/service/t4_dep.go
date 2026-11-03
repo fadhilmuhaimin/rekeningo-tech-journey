@@ -38,6 +38,13 @@ type Dep struct {
 	KunciPenerbit string
 	// Kill switch kartu (ADR 42): false menolak otorisasi baru tanpa deploy. Nil dianggap menyala.
 	KartuAktif *atomic.Bool
+	// Kill switch kartu dari tabel sakelar yang dibaca semua pod (M49, ADR 55, lab t5-rollout). Bila diisi, ia
+	// menggantikan KartuAktif: sakelar yang tidak terbaca menolak otorisasi baru. Nil = flag memori ADR 42.
+	SakelarKartu *SakelarKartu
+	// Lab saja (t5-rollout): menolak sebagian otorisasi untuk memerankan versi baru yang salah, dan pencacah keputusan
+	// yang dibaca analisis rollout. Nil = tidak ada.
+	LabTolak        *LabTolak
+	HitungOtorisasi *HitungOtorisasi
 	// lock_timeout otorisasi kartu di ledger (ADR 42); 0 = bawaan 1 detik.
 	LockTimeoutKartu time.Duration
 }

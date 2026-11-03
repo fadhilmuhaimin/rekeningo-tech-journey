@@ -992,9 +992,9 @@
  {
   "t": "LSN (Log Sequence Number)",
   "d": "Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.",
-  "b": "D3",
-  "n": "Replica dan consistency (versi lama)",
-  "u": "/d-system-design/d3-consistency/",
+  "b": "t5-lag",
+  "n": "5.7 Replication lag dan read-your-writes",
+  "u": "/tahap-5/replication-lag/",
   "s": "istilah-lsn",
   "h": null
  },
@@ -1460,9 +1460,9 @@
  {
   "t": "Read-your-writes",
   "d": "Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.",
-  "b": "D3",
-  "n": "Replica dan consistency (versi lama)",
-  "u": "/d-system-design/d3-consistency/",
+  "b": "t5-lag",
+  "n": "5.7 Replication lag dan read-your-writes",
+  "u": "/tahap-5/replication-lag/",
   "s": "istilah-read-your-writes",
   "h": null
  },
@@ -1487,9 +1487,9 @@
  {
   "t": "Replication lag",
   "d": "Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.",
-  "b": "D3",
-  "n": "Replica dan consistency (versi lama)",
-  "u": "/d-system-design/d3-consistency/",
+  "b": "t5-lag",
+  "n": "5.7 Replication lag dan read-your-writes",
+  "u": "/tahap-5/replication-lag/",
   "s": "istilah-replication-lag",
   "h": null
  },

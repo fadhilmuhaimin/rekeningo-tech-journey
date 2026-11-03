@@ -1,0 +1,107 @@
+# Rollout canary dengan traffic router: bobot canary ditulis plugin Gateway API ke HTTPRoute, jadi 5% tidak bergantung
+# pada jumlah pod. Analisis latar membaca rasio tolak dari pod canary lewat Service kartu-canary; bila rasio tolak
+# sampai 10% (dari paling sedikit 10 keputusan), rollout dibatalkan dan bobot kembali ke 0.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kartu-stable
+spec:
+  selector:
+    app: kartu
+  ports:
+    - {port: 8080, targetPort: 8080}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kartu-canary
+spec:
+  selector:
+    app: kartu
+  ports:
+    - {port: 8080, targetPort: 8080}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kartu-route
+spec:
+  parentRefs:
+    - {name: traefik-gateway, namespace: kube-system}
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: kartu-stable, port: 8080, weight: 100}
+        - {name: kartu-canary, port: 8080, weight: 0}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: rasio-tolak
+spec:
+  metrics:
+    - name: rasio-tolak
+      interval: 5s
+      failureLimit: 0
+      failureCondition: "result.total >= 10 && result.rasio_tolak >= 0.10"
+      provider:
+        web:
+          url: http://kartu-canary.default.svc.cluster.local:8080/lab/otorisasi
+          timeoutSeconds: 3
+          # Satu koneksi baru tiap pengukuran. Di mesin yang sangat sibuk, 40 pengukuran berturut-turut membaca satu pod
+          # stabil lewat Service canary (jumlah otorisasi 973 sampai 1.177, tanpa penolakan) sementara pod canary sudah
+          # menolak; koneksi keep-alive yang tersambung sebelum endpoint Service diperbarui adalah dugaan, belum dibuktikan.
+          headers:
+            - {key: Connection, value: close}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: kartu
+spec:
+  replicas: 3
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: kartu
+  strategy:
+    canary:
+      stableService: kartu-stable
+      canaryService: kartu-canary
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: kartu-route
+            namespace: default
+      analysis:
+        templates:
+          - templateName: rasio-tolak
+        startingStep: 1
+      steps:
+        - setWeight: 5
+        - pause: {}
+  template:
+    metadata:
+      labels:
+        app: kartu
+    spec:
+      containers:
+        - name: api
+          image: api-t5-rollout:v1
+          imagePullPolicy: Never
+          args: ["-addr", ":8080", "-lab", "-pool", "2", "-instance", "$(VERSI)-$(POD_NAME)", "-penerbit-kunci", "kunci-penerbit-lab", "-lab-tolak-persen", "$(TOLAK)"]
+          env:
+            - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+            - {name: VERSI, value: "${VERSI}"}
+            - {name: TOLAK, value: "${TOLAK}"}
+            - {name: DATABASE_URL, value: "${DATABASE_URL}"}
+            - {name: TZ, value: Asia/Jakarta}
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 2
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 128Mi}

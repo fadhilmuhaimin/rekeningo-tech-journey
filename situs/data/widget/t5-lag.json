@@ -2,7 +2,7 @@
   "id": "t5-lag",
   "judul": "Replica tertinggal: apa yang dibaca layar Budi",
   "sumber": {
-    "teks": "Jeda yang kamu geser adalah Simulasi. Di lab t5-replika jeda alami selalu di bawah 1 detik pada 100 pembayaran per detik, jadi jeda yang lebih panjang diperankan dengan menahan replay. Satu bacaan 1 detik sesudah jawaban 201 adalah Asumsi desain. Bagian Rekaman lab mengutip keluaran lab."
+    "teks": "Jeda yang kamu geser adalah Simulasi. Di lab t5-replika, pada 100 pembayaran per detik selama 10 detik, jeda alami tertinggi di bawah 1 detik, jadi jeda panjang diperankan dengan menahan replay. Satu bacaan 1 detik sesudah jawaban 201 adalah Asumsi desain. Bagian Rekaman lab mengutip keluaran lab."
   },
   "skenario": { "saldoAwal": 250000, "bayar": 35000, "barisAwal": 1, "bacaDetik": 1 },
   "awal": { "jeda": "naskah", "aturan": "replica" },

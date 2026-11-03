@@ -1,0 +1,17 @@
+# k3s v1.37.1+k3s1 membawa Traefik (chart 41.4.2) dan CRD Gateway API v1.6.1 (kanal standard); provider Gateway
+# dimatikan secara bawaan. HelmChartConfig ini menyalakannya supaya HTTPRoute bisa dipakai plugin Argo Rollouts.
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    providers:
+      kubernetesGateway:
+        enabled: true
+    gateway:
+      listeners:
+        web:
+          namespacePolicy:
+            from: All

@@ -186,6 +186,18 @@ func main() {
 		Penerbit: penerbit.Baru(*penerbitURL, klien.BatasBawaan), KunciPenerbit: *penerbitKunci, JedaCekTulis: *jedaCekTulis,
 		LockTimeoutKartu: *kartuLockTimeout, KartuAktif: &atomic.Bool{}, TanpaLapis: map[string]bool{}}
 	dep.KartuAktif.Store(true)
+	if *labTolakPersen < 0 || *labTolakPersen > 100 {
+		log.Fatal("-lab-tolak-persen harus 0 sampai 100")
+	}
+	if *sakelarTabel {
+		dep.SakelarKartu = service.BaruSakelarKartu(r, *sakelarTTL)
+	}
+	if *labTolakPersen > 0 {
+		dep.LabTolak = &service.LabTolak{Persen: *labTolakPersen}
+	}
+	if *lab {
+		dep.HitungOtorisasi = &service.HitungOtorisasi{}
+	}
 	if *objekDir == "" {
 		*objekDir = os.TempDir() + "/api-t5-objek"
 	}
@@ -326,6 +338,7 @@ func main() {
 	handler.PasangLedger(rute, svc, *ledgerKunci, *lab)
 	if *lab {
 		pasangEndpointLab(rute, db, r)
+		pasangEndpointOtorisasi(rute, dep.HitungOtorisasi)
 		pasangEndpointCache(rute, kc)
 		pasangStatCache(rute, "/lab/cache-laporan", kl)
 		pasangEndpointLabInstance(rute, db, svc, batasIP, batasAkun)

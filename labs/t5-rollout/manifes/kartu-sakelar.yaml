@@ -1,0 +1,33 @@
+# Tiga pod otorisasi kartu dengan kill switch: flag memori satu proses (ADR 42, versi pertama M49) atau sakelar dari
+# tabel (ADR 55), menurut ${SAKELAR_TABEL}. Tiga pod = tiga replika dari image yang sama; semuanya satu database.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${NAMA}
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ${NAMA}
+  template:
+    metadata:
+      labels:
+        app: ${NAMA}
+    spec:
+      containers:
+        - name: api
+          image: api-t5-rollout:v1
+          imagePullPolicy: Never
+          args: ["-addr", ":8080", "-lab", "-pool", "2", "-instance", "$(POD_NAME)", "-penerbit-kunci", "kunci-penerbit-lab", "-sakelar-tabel=${SAKELAR_TABEL}", "-sakelar-ttl", "5s"]
+          env:
+            - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+            - {name: DATABASE_URL, value: "${DATABASE_URL}"}
+            - {name: TZ, value: Asia/Jakarta}
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 2
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 128Mi}

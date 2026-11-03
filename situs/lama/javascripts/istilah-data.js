@@ -892,12 +892,12 @@ window.ISTILAH = {
   "u": "tahap-2/m16-akun-terkunci/"
  },
  "LSN": {
-  "b": "D3",
+  "b": "t5-lag",
   "d": "Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.7 Replication lag dan read-your-writes",
   "s": "istilah-lsn",
   "t": "LSN (Log Sequence Number)",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/replication-lag/"
  },
  "Last-write-wins": {
   "b": "t3-offline",
@@ -968,12 +968,12 @@ window.ISTILAH = {
   "u": "tahap-3/observability/"
  },
  "Log Sequence Number": {
-  "b": "D3",
+  "b": "t5-lag",
   "d": "Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.7 Replication lag dan read-your-writes",
   "s": "istilah-lsn",
   "t": "LSN (Log Sequence Number)",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/replication-lag/"
  },
  "Lost update": {
   "b": "t2-race-lock",
@@ -1513,12 +1513,12 @@ window.ISTILAH = {
   "u": "tahap-5/read-replica/"
  },
  "Read-your-writes": {
-  "b": "D3",
+  "b": "t5-lag",
   "d": "Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.7 Replication lag dan read-your-writes",
   "s": "istilah-read-your-writes",
   "t": "Read-your-writes",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/replication-lag/"
  },
  "Rekonsiliasi": {
   "b": "t4-rekonsiliasi",
@@ -1539,12 +1539,12 @@ window.ISTILAH = {
   "u": "tahap-2/isolation-level/"
  },
  "Replication lag": {
-  "b": "D3",
+  "b": "t5-lag",
   "d": "Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.7 Replication lag dan read-your-writes",
   "s": "istilah-replication-lag",
   "t": "Replication lag",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/replication-lag/"
  },
  "Retry": {
   "b": "t2-idempotency",
@@ -2977,12 +2977,12 @@ window.ISTILAH = {
   "u": "tahap-5/read-replica/"
  },
  "read-your-writes": {
-  "b": "D3",
+  "b": "t5-lag",
   "d": "Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.7 Replication lag dan read-your-writes",
   "s": "istilah-read-your-writes",
   "t": "Read-your-writes",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/replication-lag/"
  },
  "rekonsiliasi": {
   "b": "t4-rekonsiliasi",
@@ -2994,12 +2994,12 @@ window.ISTILAH = {
   "u": "tahap-4/rekonsiliasi-gateway/"
  },
  "replication lag": {
-  "b": "D3",
+  "b": "t5-lag",
   "d": "Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.7 Replication lag dan read-your-writes",
   "s": "istilah-replication-lag",
   "t": "Replication lag",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/replication-lag/"
  },
  "retry": {
   "b": "t2-idempotency",

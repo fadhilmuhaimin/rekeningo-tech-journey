@@ -1,0 +1,40 @@
+# Lab t5-rollout · tes Go untuk sakelar kartu dari tabel
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · schema tahap5_tes (tes Go, tanpa cluster)
+# Rekaman dari database bersih dan beban kerja baru: make -C labs/t5-rollout run.
+
+# --- A. go vet dan tes bertag t5rollout (sakelar dari tabel, cache, versi baru yang salah, pencacah) ---
+$ go vet -tags t5rollout ./...   (di labs/api-t5)
+(tanpa temuan)
+# exit status 0
+$ TES_DB_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema tahap5_tes> go test -tags t5rollout -count=1 -p 1 -v -run 'Sakelar|LabTolak|HitungOtorisasi|SetKartuAktifBO|EndpointOtorisasi' ./internal/service/ ./cmd/api/   (di labs/api-t5)
+--- PASS: TestSakelarKartuCacheSampaiTTL (<detik>)
+--- PASS: TestSakelarKartuGagalBacaTidakMemperpanjangNilaiLama (<detik>)
+--- PASS: TestSakelarKartuBarisTidakAdaTidakTerbaca (<detik>)
+--- PASS: TestSakelarKartuSetelHanyaPodSendiri (<detik>)
+--- PASS: TestLabTolakTepatPersen (<detik>)
+--- PASS: TestLabTolakTersebarRata (<detik>)
+--- PASS: TestHitungOtorisasi (<detik>)
+--- PASS: TestOtorisasiSakelarTabel (<detik>)
+--- PASS: TestSetKartuAktifBOMenulisSakelarDanAudit (<detik>)
+--- PASS: TestSetKartuAktifBOBukanRiskTidakMengubahSakelar (<detik>)
+--- PASS: TestSakelarKartuTakTerbacaTidakMengantre (<detik>)
+--- PASS: TestSakelarKartuSetelDiTengahPembacaanTidakDitimpa (<detik>)
+--- PASS: TestSakelarKartuPembacaanPanikTidakMenggantung (<detik>)
+--- PASS: TestSakelarKartuPenungguBerhentiBilaKonteksSelesai (<detik>)
+--- PASS: TestOtorisasiMencatatPencacahDanLabTolak (<detik>)
+--- PASS: TestSakelarKartuPembacaanBersamaTidakDibatalkanPemanggilPertama (<detik>)
+--- PASS: TestSakelarKartuTTLBawaanLimaDetik (<detik>)
+PASS
+ok  	lab/apit5/internal/service	<detik>
+--- PASS: TestEndpointOtorisasiMemperlihatkanPencacah (<detik>)
+PASS
+ok  	lab/apit5/cmd/api	<detik>
+# exit status 0
+
+# --- B. Tes kill switch yang sudah ada (flag memori, ADR 42) tetap lolos ---
+$ TES_DB_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema tahap5_tes> go test -count=1 -p 1 -v -run KillSwitch ./internal/service/   (di labs/api-t5)
+--- PASS: TestBOKillSwitchKartuMenulisAuditDanMengubahFlag (<detik>)
+--- PASS: TestKillSwitchMenolakTanpaBaris (<detik>)
+PASS
+ok  	lab/apit5/internal/service	<detik>
+# exit status 0
