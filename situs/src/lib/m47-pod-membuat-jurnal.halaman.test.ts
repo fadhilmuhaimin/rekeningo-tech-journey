@@ -180,6 +180,7 @@ describe("naskah, registry, dan halaman tetangga", () => {
     expect(mingguM47).toBe(9);
     const meta = cari(/<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: (.+) · Jalur inti<\/p>/, halaman, "meta");
     expect(Number(meta[1]) + Number(meta[2])).toBe(h.menit);
+    expect([meta[1], meta[2]]).toEqual(["8", "3"]); // pembagian baca dan coba: perkiraan penulis, jumlahnya dijaga registry
     expect(meta[3]).toBe("[[t2-idempotency]], [[t5-service]]");
     expect(frontmatter).toContain(`title: "5.18 ${h.judul}"`);
     expect(naskah).toContain(`| 5.18 | 4 | ${h.judul} | Masalah | ★ | t5-service | alur |`);
