@@ -1,0 +1,30 @@
+{
+  "istilah": "NetworkPolicy",
+  "sehari_hari": "NetworkPolicy adalah sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod. Aturannya hanya berlaku bila jaringan cluster mendukungnya.",
+  "cerita": [
+    {
+      "rujukan": "t5-m47",
+      "teks": "Bayu mengira Kubernetes sudah membatasi lalu lintas antar pod secara bawaan. Dokumentasi menulis bahwa pod tidak terisolasi untuk koneksi masuk secara bawaan, dan semua koneksi masuk diizinkan sampai ada NetworkPolicy yang memilih pod itu (Tidak dijalankan)."
+    }
+  ],
+  "mekanisme": [
+    "Secara bawaan sebuah pod tidak terisolasi, baik untuk koneksi masuk maupun keluar: semua koneksi diizinkan.",
+    "Pod menjadi terisolasi untuk satu arah bila ada NetworkPolicy yang memilihnya dan menyebut arah itu di policyTypes.",
+    "Tiap NetworkPolicy memuat daftar yang diizinkan: pod lain, namespace, atau blok IP, dengan port tertentu. Beberapa NetworkPolicy tidak saling bertentangan, karena yang diizinkan adalah gabungan semuanya.",
+    "NetworkPolicy dijalankan oleh network plugin. Tanpa controller yang menegakkannya, sumber daya itu tidak berefek."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira NetworkPolicy memberi ledger identitas pemanggil. Ia hanya mengatur pod, namespace, dan blok IP yang boleh menyambung, dan dokumentasi menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API.",
+    "Membuat NetworkPolicy di cluster yang pluginnya tidak mendukungnya. Dokumentasi menulis bahwa sumber daya itu tidak berefek, jadi keadaan bawaan tetap berlaku."
+  ],
+  "terkait": ["Kubernetes", "Handshake TLS"],
+  "sumber": [
+    {
+      "riset": "R5-195",
+      "judul": "Kubernetes: Network Policies (dibuka 2026-11-04)",
+      "url": "https://kubernetes.io/docs/concepts/services-networking/network-policies/",
+      "catatan": "Pod tidak terisolasi secara bawaan, NetworkPolicy dijalankan oleh network plugin, dan daftar hal yang belum ada di NetworkPolicy API memuat hal yang berhubungan dengan TLS. Halaman tanpa nomor versi sendiri; bagian terakhirnya menulis Kubernetes 1.37."
+    }
+  ]
+}

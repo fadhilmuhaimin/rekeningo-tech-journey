@@ -1146,6 +1146,15 @@ window.ISTILAH = {
   "t": "N+1 query",
   "u": "tahap-2/n-plus-1/"
  },
+ "NetworkPolicy": {
+  "b": "t5-m47",
+  "d": "Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya.",
+  "h": "istilah/networkpolicy/",
+  "n": "5.18 M47",
+  "s": "istilah-networkpolicy",
+  "t": "NetworkPolicy",
+  "u": "tahap-5/m47-pod-membuat-jurnal/"
+ },
  "Nonrepeatable read": {
   "b": "t2-isolation-level",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
