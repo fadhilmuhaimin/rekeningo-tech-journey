@@ -301,8 +301,12 @@ describe("rekaman sakelar.txt bagian D, kode flag, dan rekaman Tahap 4: diturunk
       `Lab mengirim permintaan mematikan ke pod ${podTolak[0]}. Hanya pod ${podTolak[0]} yang menolak, dan pod ${podSetuju[0]} dan pod ${podSetuju[1]} tetap menyetujui otorisasi baru. ` +
         `Pod ${podUlang[0]} dihapus dan diganti pod baru, yang menyetujui lagi tanpa ada yang menyalakannya.`,
     );
-    expect(badan).toContain("Rekaman Tahap 5 menjalankan tiga pod dari satu image dan satu database:");
+    expect(badan).toContain("Rekaman Tahap 5 menjalankan tiga pod dari satu image dan satu database, tanpa Rollout:");
     expect(badan).not.toContain("flag yang sama");
+    // bagian D memakai Deployment tiga replika, bukan Rollout: kalimat 'Rollout yang membuat pod' di halaman adalah Penalaran
+    expect(baca("labs/t5-rollout/manifes/kartu-sakelar.yaml")).toContain("kind: Deployment");
+    expect(baca("labs/t5-rollout/manifes/kartu-sakelar.yaml")).not.toContain("kind: Rollout");
+    expect(runPy).toContain('terapkan("kartu-sakelar.yaml"');
     expect(dBlok.join("\n")).toContain("Tiga pod otorisasi kartu dari satu image, satu database.");
   });
   test("lab D1 memakai flag memori: tanpa -sakelar-tabel, pod dihapus lalu diganti, dan permintaan matikan dikirim ke pod pertama", () => {
@@ -812,7 +816,7 @@ const BADAN_DITURUNKAN: string[] = [
     `**Permintaan mengikuti pod, dalam batas.** Lab mengirim ${JUMLAH_PERMINTAAN} permintaan \`GET /healthz\` lewat Gateway ke satu Service tanpa bobot, dan semuanya terjawab.`,
     `Bagian yang dijawab versi baru terukur antara ${pk(A3.bawah)}% dan ${pk(A3.atas)}% pada ${pk(A3.persen)}% pod, dan antara ${pk(A3S0.bawah)}% dan ${pk(A3S0.atas)}% pada ${pk(A3S0.persen)}% pod. Itu batas yang diperiksa lab. Hitungan tepat bergantung penyeimbang beban Traefik dan tidak direkam.`,
     "Bagian user tidak direkam, karena permintaan lab tidak membawa identitas user (Tidak dijalankan).",
-    "**Kill switch di memori hanya mengubah satu proses.** Rekaman Tahap 4 hanya punya satu proses: sesudah mulai ulang, kill switch yang dimatikan kembali aktif, dan dua instance Tidak dijalankan (`kill-switch.txt`, bagian B). Rekaman Tahap 5 menjalankan tiga pod dari satu image dan satu database:",
+    "**Kill switch di memori hanya mengubah satu proses.** Rekaman Tahap 4 hanya punya satu proses: sesudah mulai ulang, kill switch yang dimatikan kembali aktif, dan dua instance Tidak dijalankan (`kill-switch.txt`, bagian B). Rekaman Tahap 5 menjalankan tiga pod dari satu image dan satu database, tanpa Rollout:",
     "<Snippet file=\"labs/t5-rollout/output/sakelar.txt\" lines=\"6:16\" title=\"Rekaman lab: labs/t5-rollout/output/sakelar.txt, bagian D (flag di memori, tiga pod)\" />",
     `Lab mengirim permintaan mematikan ke pod ${podTolak[0]}. Hanya pod ${podTolak[0]} yang menolak, dan pod ${podSetuju[0]} dan pod ${podSetuju[1]} tetap menyetujui otorisasi baru. Pod ${podUlang[0]} dihapus dan diganti pod baru, yang menyetujui lagi tanpa ada yang menyalakannya.`,
     "Sebabnya ada di kode lab. `KartuAktifSekarang` membaca satu `atomic.Bool` yang dibuat dan dinyalakan di `main` saat proses mulai, jadi tiap proses punya flagnya sendiri:",

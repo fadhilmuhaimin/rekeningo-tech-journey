@@ -81,7 +81,7 @@ Bagian yang dijawab versi baru terukur antara 17,5% dan 32,5% pada 25,0% pod, da
 
 Bagian user tidak direkam, karena permintaan lab tidak membawa identitas user (Tidak dijalankan).
 
-**Kill switch di memori hanya mengubah satu proses.** Rekaman Tahap 4 hanya punya satu proses: sesudah mulai ulang, kill switch yang dimatikan kembali aktif, dan dua instance Tidak dijalankan (`kill-switch.txt`, bagian B). Rekaman Tahap 5 menjalankan tiga pod dari satu image dan satu database:
+**Kill switch di memori hanya mengubah satu proses.** Rekaman Tahap 4 hanya punya satu proses: sesudah mulai ulang, kill switch yang dimatikan kembali aktif, dan dua instance Tidak dijalankan (`kill-switch.txt`, bagian B). Rekaman Tahap 5 menjalankan tiga pod dari satu image dan satu database, tanpa Rollout:
 
 <Snippet file="labs/t5-rollout/output/sakelar.txt" lines="6:16" title="Rekaman lab: labs/t5-rollout/output/sakelar.txt, bagian D (flag di memori, tiga pod)" />
 
