@@ -281,7 +281,7 @@ describe("kode lab: tagihRentan, KlaimKunci, titik mati, status, urutan, outbox,
     expect(kt[nDijurnal + 3]).toBe("\tif berhenti() {");
     expect(kt[nDijurnal + 6]).toBe('\tok, err := s.repo.TandaiAngsuran(ctx, a.JadwalID, a.Ke, []string{"menunggu", "terjurnal"}, "dicatat", &jurnal)');
     expect(kt[nReturnAkhir - 1]).toBe("\treturn false, err");
-    harus("**Yang job lakukan per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab). Tiap angsuran melewati empat langkah: klaim key `cicilan:<jadwal>:<ke>` dengan umur 24 jam, tulis jurnal, tandai key selesai, lalu tandai angsuran `dicatat`.");
+    harus("**Yang dilakukan job per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab). Tiap angsuran melewati empat langkah: klaim key `cicilan:<jadwal>:<ke>` dengan umur 24 jam, tulis jurnal, tandai key selesai, lalu tandai angsuran `dicatat`.");
     harus("Langkah pertama memanggil `KlaimKunci` langsung, tanpa HTTP. Bila key sudah ada dan umurnya belum lewat, hasilnya bukan `KlaimBaru`: job menghitung angsuran itu sebagai dilewati dan tidak mengubahnya.");
     harus("Di antara kedua potongan, job menulis jurnal dalam satu transaction, lalu commit (Tidak dijalankan: dibaca dari kode lab). Potongan berikut memuat dua langkah terakhir:");
     // tanpa HTTP: job dijalankan dari main.go lewat service dan repo, tanpa klien atau server HTTP
@@ -339,7 +339,13 @@ describe("kode lab: tagihRentan, KlaimKunci, titik mati, status, urutan, outbox,
     expect(kodeMain).toContain("Dengan -lab-sekarang, waktu Idempotency-Key mode rentan diperankan (24 jam tidak ditunggu).");
     expect(readmeLab).toContain("Hanya versi pertama (`cicilan-satu-job`) membaca jam, lewat `-lab-sekarang`");
     expect(readmeLab).toContain("Versi benar tidak membaca jam.");
-    harus("Baris `berhenti()` dipasang lab. Dengan `-lab-cicilan-henti 1`, prosesnya mengirim sinyal 9 (SIGKILL) ke dirinya sendiri di sana, dan kode sesudahnya tidak berjalan (Tidak dijalankan: dibaca dari kode lab).");
+    // berhenti() menghentikan job dan mengembalikan Dihentikan; baru main.go mengirim sinyal 9, sebelum angsuran ditandai
+    expect(kt[nDijurnal + 4]).toBe("\t\treturn true, nil");
+    expect(kodeT5).toContain("h.Dihentikan = stop // rentan");
+    const fJob2 = kodeMain.slice(kodeMain.indexOf("func jalankanCicilan("), kodeMain.indexOf("// jalankanKompensasi:"));
+    expect(fJob2.indexOf("if h.Dihentikan {")).toBeGreaterThan(fJob2.indexOf("svc.JalankanCicilan("));
+    expect(fJob2.indexOf("syscall.SIGKILL")).toBeGreaterThan(fJob2.indexOf("if h.Dihentikan {"));
+    harus("Baris `berhenti()` dipasang lab. Dengan `-lab-cicilan-henti 1`, job berhenti di sana, lalu `main.go` mengirim sinyal 9 (SIGKILL) ke prosesnya sendiri sebelum angsuran ditandai (Tidak dijalankan: dibaca dari kode lab).");
   });
   test("versi pertama tidak punya status antara: tagihRentan hanya menandai dicatat atau gagal, dan 'terjurnal' hanya sebagai status asal", () => {
     expect(jumlah(badanRentan, '"terjurnal"')).toBe(1);
@@ -483,6 +489,7 @@ describe("sumber luar: dua tautan Kubernetes, tanggal buka, kutipan, dan baris r
     expect(b).toContain('bagian "Handling Pod and container failures"');
     expect(b).toContain("terakhir diubah 2026-10-12");
     expect(b).toContain("naskah tidak menyebut jenis workload batch");
+    expect(b).toContain('kalimat "programnya kadang dimulai dua kali"');
     expect(badan).toContain("kadang dimulai dua kali");
     expect(badan).not.toMatch(/Kubernetes (selalu|menjamin|memulai)/);
   });
@@ -507,7 +514,7 @@ describe("sumber luar: dua tautan Kubernetes, tanggal buka, kutipan, dan baris r
     for (const k of ['"312 angsuran dengan dua jurnal"', '"Angsuran Rp200.000 dibayar"', '"Bug di penagihan"', '"batch selalu bisa diulang dari awal"', "48 jam", "100.000 jadwal aktif", "40% jatuh tempo di tiga hari gajian", "13.333 angsuran per hari puncak", "667 detik = 11,1 menit", "proses-mati.txt", "Saat satu niat bisa dikirim ulang lebih dari 24 jam sesudah percobaan pertama"]) expect(r207, k).toContain(k);
     const r208 = barisRiset("R5-208");
     expect(r208).toContain("Dibaca 2026-11-03 di main:");
-    for (const k of ["crash.txt", "serentak.txt", "run.py", "t5.go", "idempoten.go", "repo/t5.go", "main.go", "000026_nilai_baru_tahap5.up.sql", "README.md", `baris ${nMati} sampai ${nTabelMati + 3}`, `${n23} sampai ${nKomen23}`, `${n25} sampai ${nSaldoA}`, `baris ${nCitra} sampai ${nSaldoB}`, `baris ${nC} sampai ${nError}`, `baris ${nFungsi} sampai ${nFungsiAkhir}`, "`jurnal_referensi_key`", "ORDER BY a.jadwal_id, a.ke"]) expect(r208, k).toContain(k);
+    for (const k of ["crash.txt", "serentak.txt", "run.py", "`labs/api-t5/internal/service/t5.go`", "`repo/idempoten.go`", "`repo/t5.go`", "`cmd/api/main.go`", "000026_nilai_baru_tahap5.up.sql", "README.md", `baris ${nMati} sampai ${nTabelMati + 3}`, `${n23} sampai ${nKomen23}`, `${n25} sampai ${nSaldoA}`, `baris ${nCitra} sampai ${nSaldoB}`, `baris ${nC} sampai ${nError}`, `baris ${nFungsi} sampai ${nFungsiAkhir}`, "`jurnal_referensi_key`", "ORDER BY a.jadwal_id, a.ke"]) expect(r208, k).toContain(k);
     const r209 = barisRiset("R5-209");
     expect(r209).toContain("dibaca 2026-11-03");
     for (const k of [`${angkaId(saldoAwal)} − ${angkaId(perAngsuran)} = ${angkaId(saldoAwal - perAngsuran)}`, `${angkaId(saldoAwal)} − 2 × ${angkaId(perAngsuran)} = ${angkaId(saldoAwal - 2 * perAngsuran)}`, `2 × ${angkaId(nominalCerita)} = ${angkaId(berkurangCerita)} > ${angkaId(saldoAwal)}`, `${angkaId(jadwalAktif)} × ${persenTempo}% ÷ ${hariGajian} = ${angkaId(puncakNaskah)}`, `${angkaId(puncakNaskah)} ÷ ${lajuNaskah} = 666,65, dibulatkan ${detikNaskah} detik`, `${detikNaskah} ÷ 60 = ${menitNaskah} menit`]) expect(r209, k).toContain(k);
@@ -843,7 +850,7 @@ describe("penutup celah mutasi tanpa kunci: lingkup, definisi di pemakaian perta
     expect(semua.map((s) => s.trim())).toEqual(["Batch harian adalah satu putaran job cicilan, program terjadwal yang menagih semua angsuran jatuh tempo."]);
     const hanya = kalimat.filter((s) => /\bhanya\b/i.test(s)).map((s) => s.trim().replace(/\s+/g, " "));
     expect(hanya).toEqual([
-      "**Yang job lakukan per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab).",
+      "**Yang dilakukan job per angsuran.** Di versi pertama, penahan jurnal kedua hanya Idempotency-Key (Tidak dijalankan: dibaca dari kode lab).",
       "Batch versi pertama tidak bisa diulang kapan saja dengan hasil yang sama, karena key hanya hidup 24 jam.",
       "**Versi pertama tidak punya status antara.** Angsuran yang berhasil hanya berstatus `menunggu` lalu `dicatat`.",
       "Angka 667 detik hanya Hitungan atas Asumsi.",
