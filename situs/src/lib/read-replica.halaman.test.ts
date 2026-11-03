@@ -1132,4 +1132,31 @@ describe("tinjauan 1519: label sumber per tab, kode Ilustrasi, ADR per opsi, dia
     expect(lap.catatan.pisah).toContain("Laporan dari replica belum dijalankan di lab: Tidak dijalankan.");
     expect(readme).toContain("Laporan merchant dari replica tidak dikerjakan lab ini.");
   });
+
+  test("tanggal akses di baris riset: SETIAP kemunculan dibuka sama dengan 2026-11-03 (toContain puas dengan satu kemunculan)", () => {
+    for (const id of ["R5-132", "R5-133"]) {
+      const r = barisRiset(id);
+      expect(hitung(r, "dibuka"), id).toBeGreaterThan(0);
+      expect(hitung(r, "dibuka 2026-11-03"), id).toBe(hitung(r, "dibuka"));
+    }
+  });
+  test("klaim negatif berlingkup: tutup buku resmi tidak ada di rekaman dan kode lab t5-replika; ringkasan dan COMMIT asinkron memakai kalimat naskah dan rekaman", () => {
+    const berkasLab = [...berkasDi("labs/t5-replika/output/"), "labs/t5-replika/README.md", "labs/t5-replika/run.py"];
+    expect(berkasLab.length).toBeGreaterThan(5);
+    for (const f of berkasLab) expect(/tutup buku/i.test(baca(f)), f).toBe(false);
+    harus("sedangkan tutup buku resmi Tidak dijalankan di lab ini.");
+    const kalimatRingkasan = "Laporan periode dibaca dari `ringkasan_merchant_harian`, yang diisi job idempoten dari posting yang sudah lewat.";
+    expect(sel(barisAdr46, 1)).toContain(kalimatRingkasan);
+    harus(`3. Laporan hari ini menjumlah posting di replica. ${kalimatRingkasan} Bagian ini desain, belum ada di lab (Tidak dijalankan).`);
+    harus("**Laporan periode dibaca dari ringkasan.**");
+    expect(replika).toContain("COMMIT di primary tidak menunggu standby mana pun");
+    harus("Asinkron berarti COMMIT di primary tidak menunggu standby.");
+  });
+  test("pelunak sumber ikut ke halaman: 'can cause database bloat' menjadi bisa; tanpa pasti; Supabase tanpa nomor versi sama dengan baris riset", () => {
+    expect(barisRiset("R5-132")).toContain("can cause database bloat on the primary for some workloads");
+    expect(badan.match(/bisa (menggembungkan|membengkak)/g)).toHaveLength(3);
+    expect(badan.match(/\bpasti\b/g)).toBeNull();
+    expect(barisRiset("R5-133")).toContain("supabase.com/docs/guides/platform/read-replicas (tanpa nomor versi, dibuka 2026-11-03)");
+    harus("*Tidak dijalankan. Dicek ke [Supabase: Read Replicas](https://supabase.com/docs/guides/platform/read-replicas), dokumen tanpa nomor versi, dibuka 2026-11-03.*");
+  });
 });
