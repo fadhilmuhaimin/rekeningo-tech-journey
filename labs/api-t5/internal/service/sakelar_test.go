@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -253,5 +254,87 @@ func TestSetKartuAktifBOBukanRiskTidakMengubahSakelar(t *testing.T) {
 	var nilai bool
 	if err := db.QueryRow(`SELECT nilai FROM sakelar WHERE nama = $1`, NamaSakelarKartu).Scan(&nilai); err != nil || !nilai {
 		t.Fatalf("penolakan mengubah tabel: %v %v", nilai, err)
+	}
+}
+
+// Pembacaan tabel yang menggantung (PostgreSQL berhenti menjawab) dibagi semua pemanggil yang tiba selama pembacaan
+// itu berjalan: tiap pemanggil menunggu paling lama BatasBacaSakelar, bukan sebanyak antrean di depannya. Bila
+// pembacaan dikerjakan satu per satu di bawah satu mutex, pemanggil ke-n menunggu n x BatasBacaSakelar dan melewati
+// tenggat 2 detik penerbit, yang membaca keterlambatan sebagai setuju (ADR 42).
+func TestSakelarKartuTakTerbacaTidakMengantre(t *testing.T) {
+	var dibaca atomic.Int32
+	k := &SakelarKartu{ttl: 5 * time.Second, kini: time.Now, baca: func(ctx context.Context, nama string) (bool, error) {
+		dibaca.Add(1)
+		<-ctx.Done() // PostgreSQL berhenti menjawab: pembacaan hanya selesai oleh batas waktu
+		return false, ctx.Err()
+	}}
+	const pemanggil = 5
+	lama := make([]time.Duration, pemanggil)
+	hasil := make([][2]bool, pemanggil)
+	var wg sync.WaitGroup
+	mulai := time.Now()
+	for i := range pemanggil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			a, ok := k.Aktif(context.Background())
+			lama[i], hasil[i] = time.Since(mulai), [2]bool{a, ok}
+		}()
+	}
+	wg.Wait()
+	for i := range pemanggil {
+		if hasil[i] != [2]bool{false, false} {
+			t.Errorf("pemanggil %d: %v, ingin tidak menyala dan tidak terbaca", i, hasil[i])
+		}
+		if lama[i] > BatasBacaSakelar+750*time.Millisecond {
+			t.Errorf("pemanggil %d menunggu %v, ingin paling lama %v", i, lama[i], BatasBacaSakelar)
+		}
+	}
+	if n := dibaca.Load(); n > 2 {
+		t.Errorf("tabel dibaca %d kali oleh %d pemanggil yang tiba bersamaan, ingin dibagi", n, pemanggil)
+	}
+}
+
+// Setel di tengah pembacaan yang sudah berjalan tidak ditimpa hasil pembacaan itu: pembacaan memulai sebelum perubahan
+// di-COMMIT, jadi nilainya bisa sudah lama.
+func TestSakelarKartuSetelDiTengahPembacaanTidakDitimpa(t *testing.T) {
+	mulaiBaca, lepas := make(chan struct{}), make(chan struct{})
+	k := &SakelarKartu{ttl: time.Hour, kini: time.Now, baca: func(ctx context.Context, nama string) (bool, error) {
+		close(mulaiBaca)
+		<-lepas
+		return true, nil // tabel masih menyala saat dibaca
+	}}
+	selesai := make(chan [2]bool)
+	go func() {
+		a, ok := k.Aktif(context.Background())
+		selesai <- [2]bool{a, ok}
+	}()
+	<-mulaiBaca
+	k.Setel(false) // pod ini mematikan sakelar selagi pembacaan lama masih berjalan
+	close(lepas)
+	<-selesai
+	if a, ok := k.Aktif(context.Background()); a || !ok {
+		t.Fatalf("sesudah Setel(false): %v %v, ingin mati dan terbaca", a, ok)
+	}
+}
+
+// Pembacaan yang panik tidak menggantungkan pemanggil berikutnya.
+func TestSakelarKartuPembacaanPanikTidakMenggantung(t *testing.T) {
+	panik := true
+	k := &SakelarKartu{ttl: time.Hour, kini: time.Now, baca: func(ctx context.Context, nama string) (bool, error) {
+		if panik {
+			panic("pembacaan sakelar panik")
+		}
+		return true, nil
+	}}
+	func() {
+		defer func() { _ = recover() }()
+		k.Aktif(context.Background())
+	}()
+	panik = false
+	ctx, batal := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer batal()
+	if a, ok := k.Aktif(ctx); !a || !ok {
+		t.Fatalf("sesudah panik: %v %v, ingin menyala dan terbaca", a, ok)
 	}
 }

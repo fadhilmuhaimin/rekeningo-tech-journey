@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,7 +32,15 @@ type SakelarKartu struct {
 
 	mu     sync.Mutex
 	nilai  bool
-	sampai time.Time // nilai di atas berlaku sampai waktu ini; nol = belum pernah terbaca
+	sampai time.Time    // nilai di atas berlaku sampai waktu ini; nol = belum pernah terbaca
+	versi  uint64       // naik tiap Setel: pembacaan yang mulai sebelum Setel tidak menimpa nilai Setel
+	lagi   *bacaanTabel // pembacaan tabel yang sedang berjalan; pemanggil lain menunggu hasilnya
+}
+
+// bacaanTabel: satu pembacaan tabel yang dipakai bersama semua pemanggil yang tiba selama pembacaan itu berjalan.
+type bacaanTabel struct {
+	selesai        chan struct{}
+	aktif, terbaca bool
 }
 
 // BaruSakelarKartu: ttl 0 = membaca database di setiap pemanggilan.
@@ -41,29 +50,60 @@ func BaruSakelarKartu(r repo.Repo, ttl time.Duration) *SakelarKartu {
 
 // Aktif mengembalikan nilai sakelar dan apakah nilai itu terbaca. Cache dipakai selama ttl sejak pembacaan yang
 // berhasil; sesudahnya sakelar dibaca ulang dengan batas BatasBacaSakelar. Pembacaan yang gagal tidak memperpanjang
-// nilai lama.
+// nilai lama. Hanya satu pemanggil yang membaca tabel pada satu waktu: pemanggil lain yang tiba selama pembacaan itu
+// menunggu hasilnya, jadi tiap pemanggil menunggu paling lama BatasBacaSakelar, bukan sebanyak antrean di depannya.
 func (k *SakelarKartu) Aktif(ctx context.Context) (aktif, terbaca bool) {
 	k.mu.Lock()
-	defer k.mu.Unlock()
 	if !k.sampai.IsZero() && k.kini().Before(k.sampai) {
-		return k.nilai, true
+		nilai := k.nilai
+		k.mu.Unlock()
+		return nilai, true
 	}
-	ctx, batal := context.WithTimeout(ctx, BatasBacaSakelar)
+	if b := k.lagi; b != nil {
+		k.mu.Unlock()
+		select {
+		case <-b.selesai:
+			return b.aktif, b.terbaca
+		case <-ctx.Done():
+			return false, false
+		}
+	}
+	b, versi := &bacaanTabel{selesai: make(chan struct{})}, k.versi
+	k.lagi = b
+	k.mu.Unlock()
+
+	// Hasil dicatat dan pemanggil lain dilepas walau pembacaan panik: err awal berlaku bila baca tidak kembali.
+	nilai, err := false, errBacaanTerhenti
+	defer func() {
+		k.mu.Lock()
+		b.aktif, b.terbaca = nilai && err == nil, err == nil
+		if k.versi == versi {
+			if err != nil {
+				k.sampai = time.Time{}
+			} else {
+				k.nilai, k.sampai = nilai, k.kini().Add(k.ttl)
+			}
+		}
+		k.lagi = nil
+		k.mu.Unlock()
+		close(b.selesai)
+		aktif, terbaca = b.aktif, b.terbaca
+	}()
+	// Pembacaan berjalan sampai selesai atau batas habis walau pemanggil pertama berhenti menunggu: pemanggil lain memakainya.
+	rctx, batal := context.WithTimeout(context.WithoutCancel(ctx), BatasBacaSakelar)
 	defer batal()
-	nilai, err := k.baca(ctx, NamaSakelarKartu)
-	if err != nil {
-		k.sampai = time.Time{}
-		return false, false
-	}
-	k.nilai, k.sampai = nilai, k.kini().Add(k.ttl)
-	return nilai, true
+	nilai, err = k.baca(rctx, NamaSakelarKartu)
+	return
 }
+
+var errBacaanTerhenti = errors.New("pembacaan sakelar tidak kembali")
 
 // Setel memperbarui cache pod ini sesudah COMMIT perubahan sakelar oleh pod ini. Pod lain baru melihatnya sesudah
 // cache mereka habis.
 func (k *SakelarKartu) Setel(aktif bool) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
+	k.versi++
 	k.nilai, k.sampai = aktif, k.kini().Add(k.ttl)
 }
 
