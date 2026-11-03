@@ -12,7 +12,7 @@
   "pertanyaan": "Apa jawaban ledger?",
   "pilihan": [
     {
-      "teks": "Ledger menjawab 201: CN berisi pembayaran, jadi ledger memperlakukannya sebagai pembayaran dan membuat jurnal.",
+      "teks": "Ledger menjawab 201: CN berisi pembayaran, jadi ledger memperlakukannya sebagai pembayaran dan membuat jurnal topup_bank.",
       "benar": false,
       "alasan": "Ledger tidak membaca CN. Di rekaman bagian D, sertifikat ini dijawab 403 atas nama notifikasi, dan jumlah jurnal topup_bank untuk akun uji tetap 0."
     },
