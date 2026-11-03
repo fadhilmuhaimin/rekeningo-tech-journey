@@ -137,6 +137,19 @@ const makan = (harian: number): Makan => {
 };
 const M3 = makan(harian3);
 const M2 = makan(harian2);
+const jam = (s: string): number => { const [h, m] = s.split(".").map(Number); return h! * 60 + m!; };
+const jamStr = (menit: number): string => `${Math.floor(menit / 60)}.${String(menit % 60).padStart(2, "0")}`;
+const baris45 = naskah.split("\n").find((b) => b.startsWith("| M45 | 7 |")) ?? "";
+const JAM_MULAI = jam(cari(/Kamis (\d+\.\d+) tim Merchant/, baris45, "jam mulai")[1]!);
+const JAM_TANYA = jam(cari(/Pukul (\d+\.\d+) Ani masih menunggu/, baris45, "jam Ani")[1]!);
+const MENIT_LAGI = 10; // kalimat tebak: "Sepuluh menit kemudian"
+const DETIK1210 = (JAM_TANYA - JAM_MULAI) * 60;
+const DETIK1220 = DETIK1210 + MENIT_LAGI * 60;
+const KAPT = koma(KAP, 2);
+const U1210 = koma(M3.umur(DETIK1210).menit, 1);
+const U1220 = koma(M3.umur(DETIK1220).menit, 1);
+const PENERIMA_PENGUMUMAN = angkaKoma(cari(/ke ([\d.]+) HP/, baris45, "penerima pengumuman")[1]!);
+const DETIK_PENGUMUMAN = (PENERIMA_PENGUMUMAN * lamaT) / pengirimC;
 
 // --- rekaman antrean.txt
 const barisKe = (baris: string[], pola: RegExp, dari0 = 0): number => {
@@ -187,6 +200,7 @@ const L = cari(/^L = lambda x t = ([\d,]+) x ([\d,]+) = ([\d,]+) -> (\d+) pengir
 const P8 = cari(/^(\d+) proses x (\d+) = (\d+) pengirim -> kapasitas \d+ \/ [\d,]+ = ([\d,]+) per detik, terpakai [\d,]+ \/ [\d,]+ = ([\d,]+)%$/m, pengA, "8 proses")!;
 const P11 = cari(/^(11) proses x (\d+) = (\d+) pengirim -> kapasitas \d+ \/ [\d,]+ = ([\d,]+) per detik, terpakai [\d,]+ \/ [\d,]+ = ([\d,]+)%$/m, pengA, "11 proses")!;
 const BREAKER66 = cari(/^breaker per proses: (\d+) kegagalan x (\d+) proses = (\d+) kegagalan/m, pengA, "breaker 66")!;
+const P11TULIS = koma(bulat((M3.lam / angkaKoma(P11[4]!)) * 100, 1), 1);
 const iAliranB = barisKe(recAliranBaris, /^# --- B\. Pembanding/);
 const byteBaris = Number(cari(/bertambah (\d+) byte per baris, tanpa index/, recAliran, "byte per baris")[1]);
 const byte300 = Number(cari(/naskah memakai (\d+) byte per baris \(Asumsi\)/, recAliran, "300 byte")[1]);
@@ -670,7 +684,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(tampil).not.toMatch(/\d+ B\b/);
   });
   test("label: 'Rekaman lab' hanya di judul Snippet dan di dua langkah skenario yang memang rekaman; angka cerita dan hitungan tidak berlabel rekaman", () => {
-    for (const b of badan.split("\n")) if (b.includes("Rekaman lab")) expect(b.startsWith("<Snippet") || b.startsWith("*Angka cerita (Ilustrasi):*"), b).toBe(true);
+    for (const b of badan.split("\n")) if (b.includes("Rekaman lab")) expect(b.startsWith("<Snippet") || b.startsWith("Arti Ilustrasi, Rekaman lab"), b).toBe(true);
     expect(hitungKali(badan, "Rekaman lab")).toBe(1 + 5);
     expect(hitungKali(badan, "Rekaman lab:")).toBe(5);
     expect(halaman.match(/\[perlu verifikasi\]/g)).toBeNull();
@@ -741,6 +755,400 @@ describe("penutup celah mutasi tanpa kunci: frontmatter, Gejala, noscript, butir
     expect(butir[4]).toBe("- Breaker di lajur push dan 66 kegagalan tidak dijalankan. Jalur galat consumer juga tidak diperankan.");
   });
 });
+
+describe("jam, versi, c terukur, dan ADR: diturunkan dari naskah, kepala rekaman, kode, dan registry", () => {
+  test("jam dari naskah: Kamis 11.30, Ani 12.10, sepuluh menit kemudian 12.20, dan 13.00 sesudah jendela 5.400 detik; tebak, Gejala, dan label tabel memakai jam yang sama", () => {
+    expect(baris45).toContain("Kamis 11.30 tim Merchant mengirim pengumuman diskon makan siang ke 1.000.000 HP");
+    expect([JAM_MULAI, JAM_TANYA]).toEqual([11 * 60 + 30, 12 * 60 + 10]);
+    expect(DETIK1210).toBe(2400);
+    expect(umurNaskah[0]).toContain(`${ribu(DETIK1210)} × (1`);
+    expect(DETIK1220).toBe(3000);
+    expect(JAM_MULAI * 60 + detikSiang).toBe(13 * 3600);
+    expect(badan).toContain(`Kamis pukul ${jamStr(JAM_MULAI)} tim Merchant`);
+    expect(badan).toContain(`Pukul ${jamStr(JAM_TANYA)} Ani masih menunggu`);
+    expect(badan).toContain(`Tebak dulu: pukul ${jamStr(JAM_TANYA)} pengumuman dihentikan`);
+    expect(badan).toContain("Sepuluh menit kemudian, umur notifikasi uang tertua turun, tetap, atau naik?");
+    expect(badan).toContain(`| Umur uang tertua pukul ${jamStr(JAM_TANYA)} | ${ribu(DETIK1210)} × (1`);
+    expect(badan).toContain(`| Umur uang tertua pukul ${jamStr(JAM_TANYA + MENIT_LAGI)} | ${ribu(DETIK1220)} × (1`);
+    expect(badan).toContain(`| Isi queue uang pukul ${jamStr(JAM_MULAI + detikSiang / 60)} |`);
+    expect(PENERIMA_PENGUMUMAN).toBe(1000000);
+  });
+  test("kondisi rekaman: PostgreSQL, Go, pgx, dan Kafka dari kepala rekaman; c = 4 terukur di sisi pengirim dan penyedia; latensi tiruan 300 ms", () => {
+    const kepala = recAntreanBaris[1]!;
+    const pg = cari(/PostgreSQL ([\d.]+) /, kepala, "versi PostgreSQL")[1];
+    const go = cari(/· (go[\d.]+) ·/, kepala, "versi Go")[1];
+    const pgx = cari(/· (pgx v[\d.]+) ·/, kepala, "versi pgx")[1];
+    const kafka = cari(/Kafka apache\/kafka:([\d.]+) /, recAliran, "versi Kafka")[1];
+    expect([pg, go, pgx, kafka]).toEqual(["17.11", "go1.27.3", "pgx v5.11.0", "4.3.2"]);
+    expect(badan).toContain(`*Kondisi rekaman:* PostgreSQL ${pg}, ${go}, dan ${pgx}, dari database bersih, di lab t5-fanout. Bagian B rekaman \`antrean.txt\` mengirim pengumuman lewat Kafka (apache/kafka ${kafka}, satu broker),`);
+    expect(recAliran).toContain("(KRaft, satu broker, replication factor 1)");
+    const c = cari(/^c terukur: pengirim serentak paling banyak di sisi pengirim = (\d+), di sisi penyedia = (\d+)$/m, recPengirim, "c terukur");
+    expect([Number(c[1]), Number(c[2])]).toEqual([pengirimC, pengirimC]);
+    const lat = Number(cari(/latensi (\d+) ms/, recPengirimBaris[iPengB]!, "latensi")[1]);
+    expect(lat / 1000).toBe(lamaT);
+    expect(badan).toContain(`pada penyedia tiruan berlatensi ${lat} ms:`);
+    expect(badan).toContain(`Ia hanya mengukur c = ${pengirimC} dan t pada tiruan ${lat} ms.`);
+    expect(readmeFanout()).toContain("apache/kafka:4.3.2");
+  });
+  test("ADR yang dirujuk: 32 di 3.27, 36 di 4.11, 51 di 5.15; tiap nomor ditulis sebanyak kemunculannya, dan nomor lain tidak muncul", () => {
+    expect(dari("t3-tim-infra").adr).toEqual([32]);
+    expect(dari("t4-breaker").adr).toEqual([36]);
+    expect(dari("t5-fanout").adr).toEqual([51]);
+    expect(hitungKali(badan, "ADR 32")).toBe(2);
+    expect(hitungKali(badan, "ADR 36")).toBe(2);
+    expect(hitungKali(badan, "ADR 51")).toBe(1);
+    expect([...badan.matchAll(/\bADR (\d+)\b/g)].map((m) => m[1]).sort()).toEqual(["32", "32", "36", "36", "51"]);
+    expect(badan).toContain(`breaker dari ADR ${dari("t4-breaker").adr![0]} ([[t4-breaker]])`);
+  });
+  test("lab hanya direkam di t5-fanout dan api-t5 (b3 tidak dipakai): rujukan lab di halaman sama dengan registry", () => {
+    expect(dari("t5-m45").lab).toEqual(["t5-fanout"]);
+    expect(badan).toContain("di lab t5-fanout.");
+    for (const s of badan.matchAll(/labs\/([\w-]+)\//g)) expect(["t5-fanout", "api-t5"], s[1]).toContain(s[1]);
+  });
+});
+function readmeFanout(): string {
+  return baca("labs/t5-fanout/README.md");
+}
+
+describe("seluruh baris halaman, skenario, diagram, dan baris riset: kunci lapis 1 dengan angka turunan, tanpa bergantung pada kunci lapis 2", () => {
+  test("kepala halaman (frontmatter, impor, meta) dan badan: daftar baris tak kosong sama persis, dalam urutan yang sama", () => {
+    expect(halaman.slice(0, halaman.indexOf("<Blok")).split("\n").filter((b) => b.trim() !== "")).toEqual(KEPALA_DITURUNKAN);
+    expect(badan.split("\n").filter((b) => b.trim() !== "")).toEqual(BADAN_DITURUNKAN);
+  });
+  test("skenario dan diagram: setiap kunci, string, dan angka sama persis dengan yang diturunkan", () => {
+    expect(tekstual(skenario)).toEqual(SKENARIO_DITURUNKAN);
+    expect(tekstual(rantaiMentah)).toEqual(RANTAI_DITURUNKAN);
+  });
+  for (const id of IDS) {
+    test(`${id}: baris riset sama persis dengan yang dibaca ke sumber`, () => {
+      expect(barisRiset(id)).toBe(RISET_TERKUNCI[id]);
+    });
+  }
+  test("versi gobreaker di baris riset sama dengan go.mod lab; kuota 600k dan 'per-minute' di baris riset sama dengan kalimat halaman", () => {
+    const gomod = baca("labs/api-t5/go.mod");
+    const v = cari(/github\.com\/sony\/gobreaker\/v2 (v[\d.]+)/, gomod, "gobreaker di go.mod")[1]!;
+    expect(barisRiset("R5-177")).toContain(`gobreaker/v2\` ${v}`);
+    expect(barisRiset("R5-175")).toContain("per-project, per-minute quotas");
+    expect(badan).toContain("600 ribu pesan per menit");
+  });
+});
+
+// <<KUNCI (dihasilkan tmp/gen_kunci45.py dari berkas saat ini; angka turunan memakai ekspresi, sisanya literal)
+const KEPALA_DITURUNKAN: string[] = [
+  `---`,
+  `title: "5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat"`,
+  `description: Minggu 7. Pengumuman diskon ke 1.000.000 HP berjalan saat makan siang, dan notifikasi uang menunggu ±${U1210} menit. Kelas queue sudah mendahulukan uang, jadi penyebabnya kapasitas worker, dan pengumuman yang dipercepat bisa menghabiskan kuota penyedia push.`,
+  `---`,
+  `import Blok from "../../../components/Blok.astro";`,
+  `import Rantai from "../../../components/Rantai.astro";`,
+  `import Snippet from "../../../components/Snippet.astro";`,
+  `import WidgetLama from "../../../components/WidgetLama.astro";`,
+  `import SkripLama from "../../../components/SkripLama.astro";`,
+  `import kapasitasUang from "../../../../data/diagram/t5-m45-kapasitas-uang.json";`,
+  `<p class="meta">Baca 12 menit · coba 3 menit · Prasyarat: [[t3-tim-infra]], [[t4-breaker]] · Jalur inti</p>`,
+];
+const BADAN_DITURUNKAN: string[] = [
+  `<Blok nama="Gejala" buka>`,
+  `Minggu 7 Tahap 5. Kamis pukul 11.30 tim Merchant mengirim pengumuman diskon makan siang ke 1.000.000 HP.`,
+  `Pukul 12.10 Ani masih menunggu notifikasi pembayaran dari pembeli. Notifikasi uang yang paling lama menunggu sudah berumur ${U1210} menit. Ratih menghentikan pengumuman.`,
+  `PRD v3 menjanjikan 95% notifikasi bayar dan transfer dalam kurang dari 30 detik ([[t3-prd]]).`,
+  `*Angka cerita (Ilustrasi):* Kamis, 11.30, 12.10, dan Ani yang menunggu berasal dari naskah, bukan dari rekaman. Angka ${U1210} menit dihitung di blok Yang sebenarnya.`,
+  `Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].`,
+  `</Blok>`,
+  `<Blok nama="Yang Raka kira" buka>`,
+  `Tim Merchant dan Raka mengira satu hal: satu juta pesan pengumuman berada di queue yang sama dengan notifikasi uang, jadi uang menunggu di belakangnya. Karena itu Ratih menghentikan pengumuman.`,
+  `Dugaan itu pernah benar. Di [[t3-m27]], 10.000 promo membuat notifikasi uang menunggu, karena worker mengklaim baris menurut nomor. ADR 32 menutupnya dengan kelas queue: worker mengklaim baris kelas uang lebih dulu ([[t3-tim-infra]]).`,
+  `Umur notifikasi uang tertua adalah umur baris uang yang belum terkirim dan paling lama menunggu di queue. Ukuran ini sama dengan janji 30 detik tadi, yang berhenti saat pesan diserahkan ke penyedia push.`,
+  `<details class="question">`,
+  `<summary>Tebak dulu: pukul 12.10 pengumuman dihentikan, dan uang makan siang masih datang seperti sebelumnya. Sepuluh menit kemudian, umur notifikasi uang tertua turun, tetap, atau naik?</summary>`,
+  `Naik, dari ${U1210} menit ke ${U1220} menit (Hitungan atas Asumsi: dihitung dari angka Asumsi di blok berikutnya). Menghentikan pengumuman tidak mengurangi queue uang.`,
+  `Notifikasi uang datang ${M3.lamT} per detik, sedangkan worker mengirim ${KAPT} per detik. Selisihnya, ${M3.tumbuh} baris per detik, menumpuk selama jendela makan siang berjalan. Blok berikutnya menghitungnya dan menunjukkan rekaman kelas queue.`,
+  `</details>`,
+  `</Blok>`,
+  `<Blok nama="Yang sebenarnya">`,
+  `Notifikasi uang makan siang datang ${M3.lamT} per detik, dan worker mengirim ${KAPT} per detik. Queue uang tumbuh ${M3.tumbuh} per detik, dengan atau tanpa pengumuman (Hitungan atas Asumsi). Kelas queue sudah mendahulukan uang, jadi menghentikan pengumuman tidak mengubah laju itu.`,
+  `<Rantai data={kapasitasUang} ringkas />`,
+  `*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab t5-fanout. Bagian B rekaman \`antrean.txt\` mengirim pengumuman lewat Kafka (apache/kafka 4.3.2, satu broker), yaitu platform event streaming, dan consumer, yaitu proses yang membaca rekamannya. Uang dikirim lewat outbox dan worker, dan penyedia push adalah tiruan lokal dengan kuota. Cerita memakai jalur lama: satu baris outbox per penerima.`,
+  `*Dua label turunan:* Hitungan adalah angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah. Dibaca dari kode berarti isi kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.`,
+  `**Kelas queue mendahulukan uang.** Bagian A rekaman \`antrean.txt\` menaruh 3.000 baris promo (kelas 2), lalu empat pembayaran Rp5.000 (kelas 0). Dengan mode rentan urut-waktu dari M27, satu putaran worker mengirim empat promo dan empat uang tetap menunggu. Dengan versi benar, putaran berikutnya mengirim empat uang, dan ${ribu(A_BENAR["2 menunggu"]!)} promo tetap menunggu.`,
+  `<Snippet file="labs/t5-fanout/output/antrean.txt" lines="14:34" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian A (urut nomor lawan urut kelas)" />`,
+  `Urutannya dipilih di satu baris SQL. Dengan kelas, \`ORDER BY\` memakai \`kelas, id\`, dan tanpa kelas hanya \`id\`:`,
+  `<Snippet file="labs/api-t5/internal/repo/outbox.go" lines="95:106" lang="go" title="Kode lab: labs/api-t5/internal/repo/outbox.go baris 95 sampai 106 (urutan klaim dan ORDER BY)" />`,
+  `Dengan satu worker, klaim berurutan kelas mengambil uang lebih dulu selama queue uang masih punya baris yang siap diklaim. Itu dibaca dari kode, dan Tidak dijalankan untuk queue uang yang terus terisi. Jadi pengumuman tidak berada di depan uang.`,
+  `**Yang membatasi uang adalah kapasitas.** Tabel di bawah menghitung jendela makan siang: 80% notifikasi sehari terjadi dalam 90 menit, yaitu 5.400 detik (Asumsi naskah).`,
+  `Notifikasi uang sehari adalah 600.000 transaksi uang ditambah 50.000 top-up bank, seperti di [[t5-prd]]. Naskah memakai 3 transaksi uang per user aktif per hari, dan registry memuat 2, jadi kolom kedua ditulis di sebelahnya.`,
+  `| Besaran | Rumus | 3 transaksi | 2 transaksi |`,
+  `|---|---|---|---|`,
+  `| λ, uang datang per detik | (transaksi + top-up) × 0,8 ÷ 5.400 | ${M3.lamT} | ${M2.lamT} |`,
+  `| Kapasitas worker per detik | c ÷ t = 4 ÷ 0,3 | ${KAPT} | ${KAPT} |`,
+  `| Pemakaian worker | λ ÷ ${KAPT} | ${M3.pakai}% | ${M2.pakai}% |`,
+  `| Queue uang tumbuh per detik | λ − ${KAPT} | ${M3.tumbuh} | ${M2.tumbuh} |`,
+  `| Umur uang tertua pukul 12.10 | 2.400 × (1 − ${KAPT} ÷ λ) | ${ribu(M3.umur(DETIK1210).detik)} detik (${U1210} menit) | ${ribu(M2.umur(DETIK1210).detik)} detik (${koma(M2.umur(DETIK1210).menit, 1)} menit) |`,
+  `| Umur uang tertua pukul 12.20 | 3.000 × (1 − ${KAPT} ÷ λ) | ${ribu(M3.umur(DETIK1220).detik)} detik (${U1220} menit) | 2.400 detik (${koma(M2.umur(DETIK1220).menit, 1)} menit) |`,
+  `| Isi queue uang pukul 13.00 | (λ − ${KAPT}) × 5.400 | ±${ribu(M3.isi)} baris | ±${ribu(M2.isi)} baris |`,
+  `Semua sel tabel adalah Hitungan atas Asumsi. Tabel beban [[t5-prd]] memakai puncak 75,2 per detik, yaitu 564% kapasitas. Jendela makan siang lebih padat, jadi λ naik ke ${M3.lamT}.`,
+  `Kapasitas ${KAPT} per detik datang dari c = 4 pengirim serentak dan t = 0,3 detik per pengiriman, dua Asumsi dari [[t3-estimasi]]. Lab mengukur c dan t pada penyedia tiruan berlatensi 300 ms:`,
+  `<Snippet file="labs/t5-fanout/output/pengirim.txt" lines="20:26" title="Rekaman lab: labs/t5-fanout/output/pengirim.txt, bagian B (c dan t terukur)" />`,
+  `Rekaman itu memeriksa rumus c ÷ t dan kode pengirim, bukan t penyedia sungguhan. Jadi ${M3.lamT} per detik dan ${M3.pakai}% tetap Hitungan atas Asumsi.`,
+  `**Pengumuman satu baris per penerima.** Cara lama menulis satu baris outbox untuk tiap penerima, yaitu 1.000.000 INSERT di primary untuk satu pengumuman. Naskah memakai ${byte300} byte per baris, jadi ±${MB300} MB (Asumsi). Lab mengukur ${byteBaris} byte per baris di tumpukan tabel, tanpa index, jadi ±${byteBaris} MB (Hitungan atas rekaman):`,
+  `<Snippet file="labs/t5-fanout/output/aliran.txt" lines="${M2.tumbuh}:59" title="Rekaman lab: labs/t5-fanout/output/aliran.txt, bagian B (satu baris outbox per penerima)" />`,
+  `Pengirimnya juga habis dipakai uang. Satu pengumuman ke 1.000.000 HP butuh 1.000.000 × 0,3 ÷ 4 = ${ribu(DETIK_PENGUMUMAN)} detik di 4 pengirim. Itu ${koma(DETIK_PENGUMUMAN / 3600, 1)} jam (Hitungan atas Asumsi, sama dengan [[t5-prd]]). Saat makan siang, kedatangan uang melebihi kapasitas, jadi promo tidak mendapat giliran selama queue uang masih punya baris yang siap diklaim (dibaca dari kode).`,
+  `**Menambah kapasitas membuka dua hal lain.** Pengirim serentak yang dibutuhkan adalah L = λ × t = ${M3.lamT} × 0,3 = ${L[3]}, dibulatkan ke 29. Delapan proses × 4 pengirim = 32 pengirim, dengan kapasitas ${P8[4]} per detik dan pemakaian ${P8[5]}%. Sebelas proses = 44 pengirim, dengan kapasitas ${P11[4]} per detik dan pemakaian ${P11[5]}% (Hitungan atas Asumsi; \`pengirim.txt\` bagian A mengulang hitungannya).`,
+  `Pemakaian dihitung dari nilai tepat, bukan dari angka yang sudah dibulatkan. Dari ${M3.lamT} ÷ ${P11[4]} hasilnya ${P11TULIS}%.`,
+  `Hal pertama adalah kuota penyedia push. Dokumentasi satu penyedia push menulis kuota bawaan 600 ribu pesan per menit. Di atas kuota, jawabannya 429 RESOURCE_EXHAUSTED sampai kuota terisi lagi di menit berikutnya ([Firebase Cloud Messaging: Throttling and Quotas](https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas), dibuka 2026-11-04, Tidak dijalankan). Penyedia tiruan di lab menerjemahkannya menjadi jendela satu detik, dan rekaman \`antrean.txt\` memakai ${ribu(B.kuota)} pesan per detik, sepersepuluh dari 10.000 (Asumsi lab, bukan angka penyedia).`,
+  `<Snippet file="labs/t5-fanout/output/antrean.txt" lines="37:45" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian B, versi benar (pengumuman dan uang memakai satu kuota)" />`,
+  `Pada versi benar, tiap consumer dibatasi ${B.laju} pesan per detik, dan ${B.konsumen} × ${B.laju} = ${B.total} per detik masih di bawah kuota 1.000. Pengumuman ${ribu(B.diterima)} pesan diterima, tidak ada 429 untuk pengumuman maupun uang, dan umur uang tertua tidak melewati 2 detik (batas lab, Asumsi).`,
+  `Bagian B yang sama memuat mode rentan, dengan consumer tanpa batas laju dan tanpa backoff. Hasilnya kamu tebak di blok Coba sendiri.`,
+  `Penyedia tiruan memanggil \`Coba\` satu kali per pesan, untuk pengumuman dan uang sama saja. Kelas pesan hanya dipakai untuk menghitung (dibaca dari kode):`,
+  `<Snippet file="labs/api-t5/cmd/pushkuota/main.go" region="jendela" lang="go" title="Kode lab: labs/api-t5/cmd/pushkuota/main.go, fungsi Coba (satu jendela kuota)" />`,
+  `Hal kedua adalah breaker dari ADR 36 ([[t4-breaker]]). Breaker itu dibuat dengan \`lajur.Baru\` di dalam proses worker, jadi tiap proses punya hitungan gagalnya sendiri dan dua proses tidak berbagi hitungan:`,
+  `<Snippet file="labs/api-t5/cmd/api/breaker.go" lines="11:19" lang="go" title="Kode lab: labs/api-t5/cmd/api/breaker.go, fungsi breakerLajur (satu peta breaker per proses)" />`,
+  `Breaker membuka sesudah gagal berturut-turut keenam. Dengan 11 proses, semua breaker baru terbuka sesudah paling sedikit ${BREAKER66[1]} × ${BREAKER66[2]} = ${BREAKER66[3]} kegagalan (Hitungan atas kode). Lab menyambungkan breaker hanya ke lajur verifikasi lewat bendera \`-breaker\`, bukan ke lajur push. Jadi kalimat ini pembacaan kode (Tidak dijalankan), bukan rekaman.`,
+  `**Yang tidak direkam.**`,
+  `- Kamis, 11.30, 12.10, Ani yang menunggu, dan keputusan Ratih berasal dari cerita (Ilustrasi).`,
+  `- ${M3.lamT} per detik, ${M3.pakai}%, ${M3.tumbuh} per detik, ${U1210} dan ${U1220} menit, ±${ribu(M3.isi)} baris, dan ${koma(DETIK_PENGUMUMAN / 3600, 1)} jam adalah Hitungan atas Asumsi. Lab tidak mengisi queue uang selama 90 menit dan tidak mengirim pengumuman ke 1.000.000 HP. Ia hanya mengukur c = 4 dan t pada tiruan 300 ms.`,
+  `- Bagian B memakai satu broker Kafka (replication factor 3 Tidak dijalankan), ${ribu(B.diterima)} perangkat, dan kuota ${ribu(B.kuota)} per detik. Jumlah 429 dan umur uang tertua tidak direkam sebagai nilai, hanya batasnya.`,
+  `- Lab menulis satu pengumuman sebagai satu baris outbox, tetapi enam rekaman Kafka, satu per rentang perangkat (\`aliran.txt\`, bagian A). Rancangan itu dan keputusannya dibahas di [[t5-fanout]].`,
+  `- Breaker di lajur push dan 66 kegagalan tidak dijalankan. Jalur galat consumer juga tidak diperankan.`,
+  `</Blok>`,
+  `<Blok nama="Coba sendiri">`,
+  `Widget ini mengikuti cerita M45. Jalur utama memuat dua langkah cerita (Ilustrasi), dua langkah Hitungan atas Asumsi, tiga langkah rekaman, dan "Ubah satu hal" memakai rekaman \`antrean.txt\` bagian B. Tebak dulu, lalu tekan Berikutnya atau panah kanan.`,
+  `<WidgetLama nama="alur" src="data/skenario/t5-m45.json" />`,
+  `Sesudah langkah terakhir, centang **Ubah satu hal: consumer pengumuman tanpa batas laju dan tanpa backoff**. Dua langkah varian menggantikan langkah terakhir jalur utama, dan jawaban tebakan terbuka di langkah terakhir.`,
+  `Rekaman mode rentan memuat lima baris ini. Jumlah 429 tidak direkam, karena bergantung pada waktu:`,
+  `<Snippet file="labs/t5-fanout/output/antrean.txt" lines="46:50" title="Rekaman lab: labs/t5-fanout/output/antrean.txt, bagian B, mode rentan (tanpa batas laju dan tanpa backoff)" />`,
+  `Kelas queue mengatur urutan klaim di outbox, dan tidak melindungi uang dari kuota yang dihabiskan pengumuman.`,
+  `Widget ini tidak punya layar HP, karena M45 terlihat di queue dan penyedia push, bukan di satu app.`,
+  `<noscript>`,
+  `Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: kelas queue mengirim empat uang lebih dulu dari ${ribu(A_BENAR["2 menunggu"]!)} promo (bagian A). Uang datang ${M3.lamT} per detik dan worker mengirim ${KAPT} per detik, jadi queue uang tumbuh ${M3.tumbuh} per detik (Hitungan atas Asumsi). Dengan pengumuman dibatasi laju, uang tidak dijawab 429 (bagian B).`,
+  `Bila consumer pengumuman tanpa batas laju dan tanpa backoff, uang ikut dijawab 429 paling sedikit satu kali. Umur uang tertua juga melewati 2 detik (bagian B).`,
+  `</noscript>`,
+  `</Blok>`,
+  `<Blok nama="Konsep yang lahir">`,
+  `- [[t5-fanout]]: fan-out, yaitu satu kejadian untuk banyak penerima, dengan backpressure ke penyedia push, consumer group, dan event streaming. Keputusannya ADR 51.`,
+  `- [[t3-tim-infra]]: ADR 32, yang memilih kelas queue. Halaman ini membaca batasnya: kelas mengatur urutan klaim, bukan kapasitas worker dan bukan kuota penyedia push.`,
+  `- [[t4-breaker]]: ADR 36, yang menaruh breaker per vendor. Halaman ini membaca satu akibatnya: tiap proses worker punya breaker sendiri.`,
+  `Kelas queue mengatur urutan, bukan kapasitas. Kapasitas dihitung dari kedatangan λ, pengirim serentak c, dan lama kirim t.`,
+  `### Cek diri`,
+  `**1.** Pukul 12.10 Ratih menghentikan pengumuman. Kenapa umur notifikasi uang tertua tetap naik?`,
+  `<details class="success">`,
+  `<summary>Jawaban</summary>`,
+  `Uang datang ${M3.lamT} per detik, dan worker mengirim ${KAPT} per detik, jadi queue uang tumbuh ${M3.tumbuh} per detik. Kelas queue sudah mendahulukan uang, sehingga pengumuman tidak mengubah laju itu. Umur tertua naik dari ${U1210} ke ${U1220} menit dalam sepuluh menit (Hitungan atas Asumsi).`,
+  `</details>`,
+  `**2.** Apa yang dipisahkan kelas queue menurut rekaman, dan apa yang tidak dilindunginya?`,
+  `<details class="success">`,
+  `<summary>Jawaban</summary>`,
+  `Kelas queue memisahkan urutan klaim: empat uang terkirim lebih dulu dari ${ribu(A_BENAR["2 menunggu"]!)} promo (\`antrean.txt\`, bagian A). Ia tidak melindungi uang dari kuota penyedia push yang dihabiskan pengumuman tanpa batas laju dan tanpa backoff: uang ikut dijawab 429 (\`antrean.txt\`, bagian B).`,
+  `</details>`,
+  `**3.** Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur?`,
+  `<details class="success">`,
+  `<summary>Jawaban</summary>`,
+  `Kamis, 11.30, dan 12.10 adalah Ilustrasi. Angka ${M3.lamT}, ${M3.pakai}%, 83, ${U1210} menit, dan ${koma(DETIK_PENGUMUMAN / 3600, 1)} jam adalah Hitungan atas Asumsi. Lab mengukur c dan t pada tiruan. Ia tidak mengukur queue uang 90 menit, pengumuman ke 1.000.000 HP, atau jumlah 429 sebagai nilai (\`pengirim.txt\`, bagian B, dan \`antrean.txt\`, bagian B).`,
+  `</details>`,
+  `</Blok>`,
+  `<SkripLama daftar={["hp","alur-core","alur"]} />`,
+];
+const SKENARIO_DITURUNKAN: string[] = [
+  "#versi",
+  "=2",
+  "#judul",
+  `Pengumuman ke satu juta HP dan notifikasi uang makan siang`,
+  "#sumber",
+  "#jenis",
+  `ilustrasi`,
+  "#catatan",
+  `Jalur utama memuat dua langkah cerita (Ilustrasi: Kamis 11.30, pengumuman ke 1.000.000 HP, Ratih menghentikannya), dua langkah rekaman lab t5-fanout (antrean.txt bagian A: kelas queue), satu langkah rekaman bagian B (pengumuman dibatasi laju), dan dua langkah Hitungan atas Asumsi (${M3.lamT} per detik, ${KAPT} per detik, umur uang tertua). Ubah satu hal memakai antrean.txt bagian B tanpa batas laju dan tanpa backoff. Bagian B memakai Kafka satu broker dan penyedia push tiruan dengan kuota ${ribu(B.kuota)} per detik; jumlah 429 dan umur uang tertua tidak direkam sebagai nilai.`,
+  "#pengantar",
+  `Tim Merchant mengirim pengumuman saat makan siang, dan notifikasi uang menunggu. Tebakannya tentang satu hal yang kamu ubah: centang 'Ubah satu hal' di bawah, dan jawabannya terbuka di akhir langkah varian.`,
+  "#komponen",
+  "#id",
+  `pengumuman`,
+  "#label",
+  `Pengumuman (tim Merchant)`,
+  "#id",
+  `queue`,
+  "#label",
+  `Queue notifikasi (outbox)`,
+  "#id",
+  `worker`,
+  "#label",
+  `Worker uang`,
+  "#id",
+  `push`,
+  "#label",
+  `Penyedia push tiruan`,
+  "#perangkat",
+  "#layarAwal",
+  "#predict",
+  "#q",
+  `Pengumuman dikirim consumer tanpa batas laju dan tanpa backoff, dengan ${B.serentak} pengirim serentak melawan kuota ${ribu(B.kuota)} per detik di penyedia push yang sama dengan notifikasi uang. Apa yang terjadi pada notifikasi uang?`,
+  "#options",
+  `Tidak berubah: kelas queue sudah mendahulukan uang di antrean outbox`,
+  `Uang selesai lebih cepat, karena pengumuman cepat habis dan kuota kosong lagi`,
+  `Uang ikut dijawab 429, dan umur uang tertua melewati 2 detik`,
+  `Uang menunggu sampai pengumuman selesai, lalu terkirim tanpa 429`,
+  "#answer",
+  "=2",
+  "#varian",
+  "=true",
+  "#explain",
+  `Rekaman antrean.txt bagian B, mode rentan: notifikasi uang dijawab 429 paling sedikit satu kali, dan umur uang tertua melewati 2 detik (batas lab, Asumsi). Kelas queue hanya mengatur urutan klaim di outbox. Kuota penyedia push dipakai bersama pengumuman dan uang. Jumlah 429 tidak direkam, karena bergantung pada waktu.`,
+  "#langkah",
+  "#dari",
+  `pengumuman`,
+  "#ke",
+  `queue`,
+  "#judul",
+  `Tim Merchant mengirim pengumuman pukul 11.30`,
+  "#kirim",
+  `Kamis 11.30: pengumuman diskon makan siang ke 1.000.000 HP\ncara lama: satu baris outbox per penerima, kelas promo (Ilustrasi)`,
+  "#jelas",
+  `Hari dan jam berasal dari cerita. Cara lama menulis satu baris outbox untuk tiap penerima.`,
+  "#dari",
+  `queue`,
+  "#ke",
+  `worker`,
+  "#judul",
+  `Dugaan tim: worker mengklaim menurut nomor, jadi uang menunggu`,
+  "#kirim",
+  "# 3.000 baris promo (kelas 2) menunggu, lalu 4 pembayaran (kelas 0) masuk\n-- mode rentan urut-waktu (M27): satu putaran worker mengklaim empat baris menurut nomor saja\n$ ./api-t5 -peran worker -sekali -satu-putaran -serentak 4 -tujuan push -rentan urut-waktu\nworker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0\n 0     | menunggu | 4\n 2     | menunggu | 2996\n 2     | terkirim | 4",
+  "#jelas",
+  `Dengan mode rentan urut-waktu, satu putaran worker mengirim empat promo dan empat uang tetap menunggu. Dugaan tim benar untuk mode itu (antrean.txt bagian A).`,
+  "#nada",
+  `warn`,
+  "#dari",
+  `queue`,
+  "#ke",
+  `worker`,
+  "#judul",
+  `Kelas queue: worker mengklaim uang lebih dulu`,
+  "#kirim",
+  `-- versi benar: satu putaran worker mengklaim menurut kelas, lalu nomor\n$ ./api-t5 -peran worker -sekali -satu-putaran -serentak 4 -tujuan push\nworker: diklaim 4, terkirim 4, dilewati 0, ditunda 0, mati 0\n 0     | terkirim | 4\n 2     | menunggu | 2996\n 2     | terkirim | 4`,
+  "#jelas",
+  `Dengan kelas queue, putaran berikutnya mengirim empat uang, dan ${ribu(A_BENAR["2 menunggu"]!)} promo tetap menunggu (antrean.txt bagian A). Pengumuman tidak lagi berada di depan uang.`,
+  "#nada",
+  `good`,
+  "#dari",
+  `queue`,
+  "#ke",
+  `worker`,
+  "#judul",
+  `Uang makan siang datang lebih cepat daripada yang dikirim worker`,
+  "#kirim",
+  `uang datang: (600.000 + 50.000) × 0,8 ÷ 5.400 = ${M3.lamT} per detik\nworker mengirim: 4 ÷ 0,3 = ${KAPT} per detik\nqueue uang tumbuh: ${M3.lamT} − ${KAPT} = ${M3.tumbuh} per detik (Hitungan atas Asumsi)`,
+  "#jelas",
+  `Jendela makan siang adalah 80% notifikasi sehari dalam 90 menit. Kapasitas worker c ÷ t dengan c = 4 pengirim dan t = 0,3 detik. Lab mengukur c dan t pada tiruan, bukan ${M3.lamT} per detik.`,
+  "#nada",
+  `warn`,
+  "#dari",
+  `pengumuman`,
+  "#ke",
+  `queue`,
+  "#judul",
+  `Ratih menghentikan pengumuman, dan queue uang masih tumbuh`,
+  "#kirim",
+  `12.10 (2.400 detik): 2.400 × (1 − ${KAPT} ÷ ${M3.lamT}) = ${ribu(M3.umur(DETIK1210).detik)} detik = ${U1210} menit\n12.20 (3.000 detik): 3.000 × (1 − ${KAPT} ÷ ${M3.lamT}) = ${ribu(M3.umur(DETIK1220).detik)} detik = ${U1220} menit\n(Hitungan atas Asumsi)`,
+  "#jelas",
+  `Menghentikan pengumuman tidak mengubah ${M3.lamT} dan ${KAPT} per detik, jadi umur uang tertua tetap naik selama kedatangan tetap. Keputusan Ratih berasal dari cerita (Ilustrasi).`,
+  "#nada",
+  `warn`,
+  "#dari",
+  `pengumuman`,
+  "#ke",
+  `push`,
+  "#judul",
+  `Pengumuman lewat consumer dibatasi laju: uang tidak dijawab 429`,
+  "#kirim",
+  `-- versi benar: tiap consumer dibatasi ${B.laju} pesan per detik (3 x 200 = 600 per detik, di bawah kuota ${ribu(B.kuota)}), 4 pengirim\n-- pengumuman diterima: 4000\n-- pengumuman dijawab 429: 0\n-- notifikasi uang dijawab 429: 0\n-- umur notifikasi uang tertua yang masih menunggu, diukur tiap 100 ms, tidak pernah melebihi 2 detik (batas lab): ya`,
+  "#jelas",
+  `Bagian B memakai jalur lain dari cerita: pengumuman lewat Kafka dan tiga consumer, uang lewat outbox dan worker, keduanya ke penyedia push tiruan dengan kuota ${ribu(B.kuota)} per detik (Rekaman lab).`,
+  "#nada",
+  `good`,
+  "#varian",
+  "#label",
+  `Consumer pengumuman tanpa batas laju dan tanpa backoff`,
+  "#mulai",
+  "=5",
+  "#langkah",
+  "#dari",
+  `pengumuman`,
+  "#ke",
+  `push`,
+  "#judul",
+  `Pengumuman memakai ${B.serentak} pengirim serentak dan melewati kuota`,
+  "#kirim",
+  `-- mode rentan: tiap consumer tanpa batas laju dan tanpa backoff, 32 pengirim (${B.serentak} pengirim serentak melawan kuota ${ribu(B.kuota)} per detik)\n-- pengumuman diterima: 4000\n-- pengumuman dijawab 429: lebih dari 0: ya`,
+  "#jelas",
+  `Semua ${ribu(B.diterima)} pengumuman akhirnya diterima, tetapi sebagian dijawab 429 karena kuota habis (antrean.txt bagian B).`,
+  "#nada",
+  `warn`,
+  "#dari",
+  `worker`,
+  "#ke",
+  `push`,
+  "#judul",
+  `Uang ikut dijawab 429 dan menunggu lebih lama`,
+  "#kirim",
+  `-- notifikasi uang dijawab 429 paling sedikit satu kali: ya\n-- umur notifikasi uang tertua melebihi 2 detik (batas lab): ya`,
+  "#jelas",
+  `Kuota penyedia dipakai bersama. Kelas queue mengatur urutan klaim di outbox, dan tidak melindungi uang dari kuota yang dihabiskan pengumuman (Rekaman lab).`,
+  "#nada",
+  `warn`,
+];
+const RANTAI_DITURUNKAN: string[] = [
+  "#id",
+  `t5-m45-kapasitas-uang`,
+  "#judul",
+  `Notifikasi uang makan siang menumpuk karena kapasitas worker, bukan karena pengumuman`,
+  "#sumber",
+  "#jenis",
+  `asumsi`,
+  "#teks",
+  `Hitungan atas Asumsi naskah Tahap 5 (650.000 notifikasi uang per hari, 80% dalam 90 menit) dan kapasitas worker 4 ÷ 0,3; kelas queue dari rekaman t5-fanout antrean.txt bagian A`,
+  "#baris",
+  "#label",
+  `Yang dikira tim`,
+  "#sub",
+  `pengumuman di depan uang`,
+  "#simpul",
+  "#teks",
+  `1.000.000 baris pengumuman`,
+  "#sub",
+  `di queue yang sama`,
+  "#teks",
+  `Uang menunggu di belakangnya`,
+  "#teks",
+  `Hentikan pengumuman`,
+  "#nada",
+  `old`,
+  "#label",
+  `Yang terhitung`,
+  "#sub",
+  `makan siang, 4 pengirim`,
+  "#simpul",
+  "#teks",
+  `Uang datang ${M3.lamT} per detik`,
+  "#sub",
+  `kelas uang dikirim lebih dulu`,
+  "#teks",
+  `Worker mengirim ${KAPT} per detik`,
+  "#teks",
+  `Queue uang tumbuh ${M3.tumbuh} per detik`,
+  "#sub",
+  `dengan atau tanpa pengumuman`,
+  "#nada",
+  `warn`,
+  "#catatan",
+  `Kotak oranye adalah akibat yang dilihat Ani. Angka makan siang adalah Hitungan atas Asumsi, dan lab tidak mengisi queue uang selama 90 menit.`,
+];
+const RISET_TERKUNCI: Record<string, string> = {
+  "R5-175": "| R5-175 | Kuota penyedia push dihitung per menit dan kelebihannya dijawab 429 (halaman 5.14) | Firebase Cloud Messaging, \"Throttling and Quotas\" (firebase.google.com/docs/cloud-messaging/throttling-and-quotas, dibuka 2026-11-04, teks dibaca dari HTML mentah dengan `curl`, tanpa nomor versi sendiri): \"The HTTP v1 API introduced per-project, per-minute quotas for downstream messaging. The default quota of 600k messages per minute covers over 99% of FCM developers\"; \"In an over quota scenario, the system serves HTTP status code 429 RESOURCE_EXHAUSTED (\"QUOTA_EXCEEDED\") until the quota is refilled in the following minute.\"; \"Quotas are per-minute, but these minutes are not aligned to the clock.\" Halaman tidak menyebut laju per detik | 5.14: kuota 600 ribu per menit di dokumentasi satu penyedia push, 429 di atas kuota; 10.000 dan 1.000 per detik adalah terjemahan lab (Asumsi lab) | Tidak berubah dari R5-288 (dibuka 2026-11-02); dibuka ulang 2026-11-04 untuk halaman ini |",
+  "R5-176": "| R5-176 | Klaim outbox berurutan kelas, dan satu jendela kuota untuk semua pesan di penyedia tiruan (halaman 5.14, dibaca dari kode) | Dibaca 2026-11-04 di main: `labs/api-t5/internal/repo/outbox.go` fungsi `KlaimOutboxTujuan`: `urut := \"id\"`, lalu `urut = \"kelas, id\"` bila `urutKelas`; kueri `ORDER BY` memakai `urut`, `LIMIT $1`, `FOR UPDATE SKIP LOCKED`. `labs/api-t5/cmd/pushkuota/main.go`: penangan `POST /v1/pesan` memanggil `l.jendela.Coba(time.Now())` satu kali per pesan sesudah token `mati-` disaring, tanpa memeriksa kelas; `kelas` (`notifid.Kelas`) hanya memilih penghitung `h.Permintaan`, `h.Diterima`, `h.Ditolak429`. Rekaman `labs/t5-fanout/output/antrean.txt` bagian A dan B sesuai dengan keduanya | 5.14: urutan klaim, kuota bersama, dan \"dibaca dari kode\" | Tidak berlaku (kode lab, bukan dokumentasi) |",
+  "R5-177": "| R5-177 | Breaker per vendor hidup di memori tiap proses worker (halaman 5.14, dibaca dari kode) | Dibaca 2026-11-04 di main: `labs/api-t5/cmd/api/breaker.go` fungsi `breakerLajur` membuat `lajur.Baru` untuk tujuan verifikasi saja dan mengembalikan `nil` bila bendera `-breaker` mati; `labs/api-t5/cmd/api/main.go` memanggilnya satu kali per proses; `labs/api-t5/internal/lajur/lajur.go` membungkus `sony/gobreaker/v2` v2.4.0 dengan `ReadyToTrip` bawaan (lebih dari 5 gagal berturut-turut) dan Timeout 60 detik; tidak ada penyimpanan bersama antar proses. Lajur push tidak punya breaker di lab. Dokumentasi gobreaker v2.4.0 dikutip di baris riset Tahap 4 untuk halaman 4.11 | 5.14: 6 × 11 = 66 kegagalan paling sedikit sebelum semua breaker terbuka (Hitungan atas kode, Tidak dijalankan) | Tidak berubah dari halaman 4.11 |",
+  "R5-178": "| R5-178 | Rekaman t5-fanout yang dikutip halaman 5.14 dan batasnya | Dibaca 2026-11-04 di main: `labs/t5-fanout/output/antrean.txt` bagian A (kelas lawan urut-waktu) dan B (kuota bersama, versi benar dan mode rentan), `pengirim.txt` bagian A dan B (c, t, L), `aliran.txt` bagian A dan B (satu baris outbox, enam rekaman Kafka, 166 byte per baris), README bagian \"Selisih dengan naskah\" dan \"Tidak dijalankan\", dan badan PR lab bagian SETELAH-TAHAP-5 dan USULAN-CERITA. Rekaman memuat batas yang diperiksa (\"ya\") dan tidak memuat jumlah 429 atau umur uang tertua sebagai nilai | 5.14: tiga rekaman dan batasnya; jumlah 429 tidak ditulis sebagai angka | Tidak berubah sejak lab di main (PR #484) |",
+  "R5-179": "| R5-179 | Hitungan atas angka yang tertulis di halaman 5.14 (Hitungan atas Asumsi) | Dihitung dengan skrip sendiri, dibaca 2026-11-04, pembulatan setengah ke atas: (600.000 + 50.000) × 0,8 ÷ 5.400 = 96,296 (ditulis 96,3); (400.000 + 50.000) × 0,8 ÷ 5.400 = 66,667 (66,7); 4 ÷ 0,3 = 13,333 (13,33); 96,3 ÷ 13,33 = 7,224 (722%); 66,7 ÷ 13,33 = 5,004 (500%); 96,3 − 13,33 = 82,97 (83); 66,7 − 13,33 = 53,37 (53); 2.400 × (1 − 13,33 ÷ 96,3) = 2.067,8 detik (34,5 menit); 3.000 × (1 − 13,33 ÷ 96,3) = 2.584,7 detik (43,1 menit); trx 2: 2.400 × (1 − 13,33 ÷ 66,7) = 1.920,4 (32,0 menit) dan 3.000 × (...) = 2.400,4 (40,0 menit); 82,97 × 5.400 = 448.038 (±448.000); 53,37 × 5.400 = 288.198 (±288.000); 1.000.000 × 0,3 ÷ 4 = 75.000 detik (20,8 jam); 96,3 × 0,3 = 28,89 (29); 32 ÷ 0,3 = 106,7 dan 96,3 ÷ 106,7 = 90,3%; 44 ÷ 0,3 = 146,7 dan 96,3 ÷ 146,7 = 65,7%; 3 × 200 = 600; 1.000 ÷ 10.000 = 0,1; 6 × 11 = 66; 1.000.000 × 166 byte = 166 MB, × 300 byte = 300 MB | 5.14: semua angka Hitungan | Tidak berlaku |",
+};
+// KUNCI>>
 
 // --- lapis 2: kunci per baris dan sidik
 function sidikKata(teks: string, kata2: string[]): Record<string, number> {
