@@ -1048,3 +1048,98 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka
     expect(sidikSekarang.berkas).toEqual(SIDIK.berkas);
   });
 });
+
+describe("celah mutasi tanpa kunci yang ditutup peninjau (keputusan 1551): kalimat naratif diturunkan dari sumbernya", () => {
+  test("Prime Video: orkestrator, penulis, detector, dan skala vertikal dari baris R5-171", () => {
+    const r = barisRiset("R5-171");
+    expect(r).toContain("orchestrated by AWS Step Functions");
+    expect(badan).toContain("diorkestrasi AWS Step Functions");
+    expect(badan).not.toMatch(/diorkestrasi AWS Lambda/);
+    expect(r).toContain("Marcin Kolny (Senior SDE, Prime Video)");
+    expect(r).toContain("Defect detectors execute algorithms that analyze frames and audio buffers in real-time looking for defects");
+    expect(badan).toContain("Detector adalah algoritma yang mencari cacat pada frame dan audio. Sesudah pemindahan, penambahan detector hanya bisa diskalakan vertikal");
+    expect(r).toContain("the number of detectors only scale vertically");
+    expect(badan).toContain("hanya bisa diskalakan vertikal di dalam satu instance");
+    expect(badan).not.toMatch(/diskalakan horizontal/);
+  });
+  test("foreign key lintas schema: sebelum dan sesudah dibaca dari skema.txt, bukan dari angka Tahap 4", () => {
+    const sebelum = Number(cari(/SEBELUM dihapus, dibaca dari katalog PostgreSQL: (\d+)/, skema, "fk sebelum")[1]);
+    const sesudah = Number(cari(/fk_lintas_schema\n-+\n (\d+)\n/, skema, "fk sesudah")[1]);
+    expect(badan).toContain(`menghitung ${sebelum} foreign key lintas schema sebelum dihapus dan ${sesudah} sesudahnya`);
+    expect(sebelum).not.toBe(21);
+  });
+  test("syarat ADR 37, ADR 44, dan butir 1 dan 2 ADR 45: nomor dari baris M44 naskah dan judul halaman ADR", () => {
+    const n37 = Number(cari(/ADR (\d+) menulis keputusannya salah/, barisM44, "ADR modular monolith")[1]);
+    const n44 = Number(cari(/ADR (\d+) menulis pipeline lebih dari/, barisM44, "ADR pipeline")[1]);
+    const butir = cari(/ADR (\d+) butir (\d+) dan (\d+) terpenuhi/, barisM44, "butir ADR 45");
+    const cocok = [...badan.matchAll(/Syarat (?:di )?ADR (\d+), ADR (\d+), (?:serta|dan) butir (\d+) dan (\d+) ADR (\d+) terpenuhi/g)].map((m) => m.slice(1).map(Number));
+    expect(cocok).toHaveLength(2);
+    for (const c of cocok) expect(c).toEqual([n37, n44, Number(butir[2]), Number(butir[3]), Number(butir[1])]);
+    expect(badan).toContain(`mengerjakan butir ${butir[2]} dan ${butir[3]} ADR ${butir[1]} ([[t4-adr-45]])`);
+    expect(dari("t4-modul").judul).toContain(`ADR ${n37}`);
+    expect(dari("t4-tim-infra").judul).toContain(`ADR ${n44}`);
+    expect(dari("t4-adr-45").judul).toContain(`ADR ${butir[1]}`);
+  });
+  test("ADR 50: HTTP dan OpenAPI bukan gRPC, ledger satu-satunya tempat uang bergerak, dan opsi terpilih sama dengan keputusan naskah", () => {
+    expect(barisM44).toContain("HTTP dan OpenAPI, bukan gRPC");
+    expect(adr50).toContain("pindah ke HTTP dan OpenAPI");
+    expect(badan).toContain("Panggilan antar service memakai HTTP dan OpenAPI, bukan gRPC.");
+    expect(badan).not.toMatch(/memakai gRPC, bukan HTTP/);
+    expect(adr50).toContain("Ledger tetap satu-satunya tempat uang bergerak");
+    expect(badan).not.toMatch(/Ledger bukan satu-satunya|ledger bukan satu-satunya/);
+    expect((badan.match(/Ledger tetap satu-satunya tempat uang bergerak\./g) ?? []).length).toBe(2);
+    const pilih = cari(/\*\*Keputusan: opsi ([A-E])\.\*\*/, badan, "opsi terpilih")[1]!;
+    const kolom = pecahBaris(badan.split("\n").find((b) => b.startsWith("| | A. "))!);
+    const header = kolom.find((c) => c.startsWith(`${pilih}.`))!;
+    expect(header).toContain("Kubernetes");
+    expect(header).toContain("schema dan role per service");
+    expect(header).not.toContain("tanpa Kubernetes");
+    expect(adr50Kolom[1]).toContain("Kubernetes");
+    expect(adr50Kolom[1]).toContain("schema dan role per service");
+    expect(badan.match(/\*\*Keputusan: opsi/g)).toHaveLength(1);
+  });
+  test("pemicu rilis: M44 menulis jadwal rilis, bukan ukuran, dan halaman tidak membaliknya menjadi beban", () => {
+    expect(barisM44).toContain("Pemicunya jadwal rilis, bukan ukuran");
+    expect(badan).toContain("Pemicunya jadwal rilis, bukan beban.");
+    expect(badan).not.toMatch(/Pemicunya beban/);
+    expect(badan).toContain("Bebannya bukan alasan memecah");
+  });
+  test("tab Go dijalankan, lima tab lain tidak, dan ringkasan pembuka menyebut jumlah pertanyaan yang sama dengan daftarnya", () => {
+    expect(badan).toContain("Tab Go dijalankan di lab. Tab lain tidak dijalankan");
+    expect(badan).not.toMatch(/Tab Go tidak dijalankan/);
+    expect(badan.match(/\*Dijalankan:/g)).toHaveLength(1);
+    const buka = badan.slice(badan.indexOf('<details class="question">'), badan.indexOf("</details>"));
+    const nPertanyaan = (buka.match(/^\d+\. /gm) ?? []).length;
+    expect(buka).toContain(`<summary>Sudah tahu? Cek ${nPertanyaan} pertanyaan</summary>`);
+    expect(nPertanyaan).toBe(3);
+  });
+  test("frontmatter description dan ringkasan aman blok Coba memakai panggilan dan batas bawah dari rekaman", () => {
+    expect(frontmatter).toContain(`${pTiga} panggilan jaringan per transaksi alih-alih ${pSatu}`);
+    const aman = cari(/<Blok nama="Coba" buka aman="([^"]+)">/, badan, "aman Coba")[1]!;
+    expect(aman).toContain(`memecah proses menambah ${pTiga} panggilan per transaksi di lab dan batas bawah ${lewat[2]} ms pada jeda ${lewat[1]} ms`);
+  });
+  test("halaman istilah: ambang HPA dari baris R5-172, Maret 2026 dari R5-170, dan k3s sesuai penuh dari R5-172", () => {
+    const r172 = barisRiset("R5-172");
+    const tol = cari(/tolerance, (\d\.\d) by default/, r172, "toleransi HPA")[1]!.replace(".", ",");
+    const detik = cari(/the default interval is (\d+) seconds/, r172, "interval HPA")[1]!;
+    const hpa = istilahBerkas["hpa"]!;
+    expect(hpa.mekanisme.join("\n")).toContain(`dalam toleransi ${tol} secara bawaan`);
+    expect(hpa.mekanisme.join("\n")).toContain(`tiap ${detik} detik secara bawaan`);
+    expect(hpa.jebakan.join("\n")).toContain(`interval bawaan ${detik} detik`);
+    expect(barisRiset("R5-170")).toContain("until March 2026");
+    expect(JSON.stringify(istilahBerkas["gateway-api"])).toContain("dihentikan pada Maret 2026");
+    expect(JSON.stringify(istilahBerkas["gateway-api"])).not.toMatch(/(Januari|Februari|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember) 2026/);
+    expect(r172).toContain("K3s is a fully compliant Kubernetes distribution");
+    expect(JSON.stringify(istilahBerkas["kubernetes"])).toContain("sepenuhnya sesuai");
+    expect(JSON.stringify(istilahBerkas["kubernetes"])).not.toMatch(/sebagian sesuai/);
+  });
+  test("baris riset R5-170 sampai R5-173: semua tanggal buka sama, dan nama penulis dan jabatan tidak diganti", () => {
+    for (const id of ["R5-170", "R5-171", "R5-172", "R5-173"]) {
+      const tgl = [...barisRiset(id).matchAll(/dibuka (\d{4}-\d\d-\d\d)/g)].map((m) => m[1]);
+      expect(tgl.length, id).toBeGreaterThan(0);
+      expect(new Set(tgl), id).toEqual(new Set(["2026-11-03"]));
+    }
+    expect([...barisRiset("R5-173").matchAll(/dibuka 2026-11-03/g)]).toHaveLength(6);
+    expect(barisRiset("R5-170")).toContain("Tabitha Sable (Kubernetes SRC)");
+  });
+});
