@@ -13,7 +13,7 @@ jeda ms  batas bawah p95 tiga (6 x jeda)  p95 tiga >= batas bawah  rasio p95 tig
       2        12 ms                    ya                     ya (batas 10)
       4        24 ms                    ya                     ya (batas 10)
      10        60 ms                    ya                     ya (batas 10)
-# Pada jeda 0 ms jeda buatan tidak ada: rasionya hanya dari enam panggilan HTTP di loopback, serialisasi JSON, dan perpindahan goroutine.
+# Pada jeda 0 ms jeda buatan tidak ada: rasionya datang dari kerja tambahan tiga proses (enam panggilan HTTP di loopback, serialisasi JSON, perpindahan goroutine); lab tidak memprofil bagian terbesarnya.
 # Pada jeda lain rasio didominasi jeda buatan: ia menunjukkan jumlah panggilan dikali jeda, bukan kecepatan jaringan nyata.
 
 # --- B. Anggaran 50 ms ---

@@ -221,6 +221,12 @@ def rekam_panggilan():
         catat("# tiga service sekaligus tanpa queue, Tidak dijalankan.")
 
         sebelum = foto()
+        # Pekerja yang menunggu pesan menjawab kosong sesudah 500 ms. Tunggu kejadian itu (bukan jeda tetap) di jendela hitungan, supaya
+        # terbukti bahwa ambil kosong tidak ikut dihitung: penghitung client dan broker di bawah harus tetap tepat.
+        batas = time.time() + 5
+        while get("antrean", "/metrik")["ambil_kosong"] == 0 and time.time() < batas:
+            time.sleep(0.05)
+        harap(get("antrean", "/metrik")["ambil_kosong"] > 0, True, "ambil yang habis waktu tanpa pesan terjadi sebelum beban")
         s = beban("satu", N_PANGGILAN)
         tiga = beban("masuk", N_PANGGILAN)
         sesudah = foto()
@@ -260,7 +266,8 @@ def rekam_panggilan():
         catat(f"# Penghitung broker (sisi penerima, berdiri sendiri dari client): publikasi {b['publikasi']}, ambil berisi {b['ambil_berisi']}, pesan tertinggal {b['tertinggal']}.")
         catat("# Tiga penghitung sama (hitungan dalam pesan, client tiap proses, broker): ya. Penghitung yang tidak cocok menggagalkan lab.")
         catat(f"# Satu proses: metrik prosesnya menulis {N_PANGGILAN} transaksi diproses dan tidak punya client queue, jadi 0 panggilan antar proses.")
-        catat("# Ambil yang habis waktu tanpa pesan tidak dihitung per transaksi (jumlahnya bergantung waktu tunggu dan tidak ditulis).")
+        catat("# Ambil yang habis waktu tanpa pesan terjadi di jendela hitungan ini (broker mencatat lebih dari 0 kali; jumlahnya bergantung waktu dan tidak ditulis)")
+        catat("# dan tidak ikut dihitung: penghitung client dan broker di atas tetap tepat.")
 
         bagian("C. Hasil skor sama persis di kedua versi")
         harap(len(s["hasil"]), len(tiga["hasil"]), "jumlah hasil")
@@ -325,7 +332,7 @@ def rekam_latensi():
             harap(min(p_tiga) >= bawah, True, f"p95 tiga proses pada jeda {hop} ms harus >= {bawah} ms: {p_tiga}")
             harap(mt / ms >= BATAS_RASIO[hop], True, f"rasio p95 pada jeda {hop} ms harus >= {BATAS_RASIO[hop]}: {mt / ms:.2f}")
             catat(f"{hop:>7}  {bawah:>8} ms                    ya                     ya (batas {BATAS_RASIO[hop]})")
-        catat("# Pada jeda 0 ms jeda buatan tidak ada: rasionya hanya dari enam panggilan HTTP di loopback, serialisasi JSON, dan perpindahan goroutine.")
+        catat("# Pada jeda 0 ms jeda buatan tidak ada: rasionya datang dari kerja tambahan tiga proses (enam panggilan HTTP di loopback, serialisasi JSON, perpindahan goroutine); lab tidak memprofil bagian terbesarnya.")
         catat("# Pada jeda lain rasio didominasi jeda buatan: ia menunjukkan jumlah panggilan dikali jeda, bukan kecepatan jaringan nyata.")
 
         bagian("B. Anggaran 50 ms")

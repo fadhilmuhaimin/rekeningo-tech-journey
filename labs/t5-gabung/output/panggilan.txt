@@ -30,7 +30,8 @@ jumlah       1200   1200   => 2400 = 6 x 400
 # Penghitung broker (sisi penerima, berdiri sendiri dari client): publikasi 1200, ambil berisi 1200, pesan tertinggal 0.
 # Tiga penghitung sama (hitungan dalam pesan, client tiap proses, broker): ya. Penghitung yang tidak cocok menggagalkan lab.
 # Satu proses: metrik prosesnya menulis 400 transaksi diproses dan tidak punya client queue, jadi 0 panggilan antar proses.
-# Ambil yang habis waktu tanpa pesan tidak dihitung per transaksi (jumlahnya bergantung waktu tunggu dan tidak ditulis).
+# Ambil yang habis waktu tanpa pesan terjadi di jendela hitungan ini (broker mencatat lebih dari 0 kali; jumlahnya bergantung waktu dan tidak ditulis)
+# dan tidak ikut dihitung: penghitung client dan broker di atas tetap tepat.
 
 # --- C. Hasil skor sama persis di kedua versi ---
 # 400 transaksi: id, skor, keputusan, dan kode alasan sama di kedua versi: 400 dari 400.
