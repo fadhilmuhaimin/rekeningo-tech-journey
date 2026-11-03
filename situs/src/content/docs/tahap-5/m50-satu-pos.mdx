@@ -70,11 +70,11 @@ Dengan satu bucket 100 per detik, 620 permintaan menghasilkan 100 jawaban 200 da
 
 <Snippet file="labs/t5-waf/output/kuota.txt" lines="29:30" title="Rekaman lab: labs/t5-waf/output/kuota.txt, bagian C (mode kuota-bersama)" />
 
-Mitra B ikut mendapat 429, walau ia hanya mengirim 20 permintaan. Mode ini memerankan satu batas yang dipakai semua mitra. Ia tidak menghitung per alamat.
+Mitra B ikut mendapat 429, walau ia hanya mengirim 20 permintaan. Mode ini memerankan satu batas yang dipakai semua mitra, sesuai tulisan naskah (Penalaran). Ia tidak menghitung per alamat.
 
 NAT adalah penerjemahan alamat jaringan. Salah satu jenisnya, NAPT, menerjemahkan banyak alamat dan port menjadi satu alamat ([RFC 3022](https://www.rfc-editor.org/rfc/rfc3022), Informational, dibuka 2026-11-04, Tidak dijalankan). Naskah menulis bahwa batas per alamat dari ADR 27 memberi satu hitungan untuk satu alamat. Bila banyak kasir berbagi satu alamat NAT, hitungannya satu untuk semuanya (Penalaran, dari mekanismenya; lab tidak merekamnya).
 
-Karena itu memblokir alamat mitra bukan jawabannya. Semua kasir di belakang alamat itu ikut berhenti, termasuk kasir yang tidak mengulang apa pun (Penalaran). Menambah replica menambah ruang untuk pengulangan yang sama, dan kapasitas satu server belum pernah diukur di lab ini (Tidak dijalankan).
+Karena itu memblokir alamat mitra bukan jawabannya. Semua kasir di belakang alamat itu ikut berhenti, termasuk kasir yang tidak mengulang apa pun (Penalaran). Menambah replica menambah ruang untuk pengulangan yang sama (Penalaran). Kapasitas satu server belum pernah diukur di lab ini (Tidak dijalankan).
 
 **Pengulangan POST tanpa Idempotency-Key membuat dua QR.** Idempotency-Key adalah kepala permintaan yang membuat pengulangan POST menghasilkan satu hasil ([[t2-idempotency]]). Di `api-t5`, `idempoten` meneruskan permintaan tanpa kepala itu apa adanya, termasuk di rute POS untuk membuat QR (Tidak dijalankan, dibaca dari kode).
 

@@ -576,7 +576,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(badan).not.toMatch(/\brahasia\b/);
     expect(badan).not.toMatch(/\blayanan\b/);
     expect(JSON.stringify(skenario)).not.toMatch(/\brahasia\b/);
-    expect(hitungKali(badan, "Penalaran")).toBe(4);
+    expect(hitungKali(badan, "Penalaran")).toBe(6);
   });
   test("ID riset, nomor keputusan, dan nomor PR tidak tampil di halaman, rantai, skenario, dan kartu; 'bagian C' dan 'bagian A' dipakai", () => {
     const semua = [halaman.replace("[[A0]]", ""), JSON.stringify(rantaiMentah), JSON.stringify(skenario), JSON.stringify(kartuSemua.filter((x) => x.halaman === "t5-m50"))].join("\n");
