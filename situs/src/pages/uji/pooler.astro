@@ -1,0 +1,22 @@
+---
+// Halaman uji widget kalkulator koneksi dan pooler (ADR 52). Bukan halaman cerita: tidak di registry, tidak di sidebar, tidak diindeks.
+// Dipakai situs/tools/ukur-pooler.mjs (tebak dulu, angka dari hitungan sendiri, ARIA, 320 px, axe, tanpa JavaScript).
+// Halaman 5.17 memasang komponen yang sama.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import KoneksiPooler from "../../widgets/koneksi-pooler/KoneksiPooler.tsx";
+import data from "../../../data/widget/t5-pooler-kalkulator.json";
+---
+
+<StarlightPage
+  frontmatter={{
+    title: "Uji kalkulator koneksi dan pooler",
+    description: "Halaman uji widget kalkulator koneksi dan pooler.",
+    pagefind: false,
+    tableOfContents: false,
+    head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }],
+  }}
+>
+  <p>Halaman uji widget kalkulator koneksi dan pooler. Semua masukan Asumsi.</p>
+  <KoneksiPooler client:load data={data} />
+  <p>Teks sesudah widget, supaya halaman cukup panjang untuk diuji geser isi saat hydrate.</p>
+</StarlightPage>
