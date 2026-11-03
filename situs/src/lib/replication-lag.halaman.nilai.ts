@@ -57,7 +57,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "| Kelas | Contoh | Dibaca dari | Dasar |",
  "|---|---|---|---|",
  "| 1. Menentukan uang | saldo untuk bayar atau kirim, batas harian, status top-up yang akan dikredit | primary, di dalam transaction | Rekaman lab `baca.txt` bagian A (kiriman) |",
- "| 2. Milik sendiri sesudah menulis | riwayat, saldo tampil | primary sampai replica sampai token, sesudah itu replica | Rekaman lab `baca.txt` bagian B |",
+ "| 2. Milik sendiri sesudah menulis | riwayat, saldo tampil | primary sampai replica sampai token, sesudah itu replica | Rekaman lab `baca.txt` bagian B (token) |",
  "| 3. Laporan dan bacaan lain | laporan merchant | replica | ADR 46 ([[t5-read-replica]]), tidak direkam di lab ini |",
  "Lab mengalihkan dua bacaan ke aturan kelas 2: `GET /akun/{id}` dan `GET /akun/{id}/riwayat`. Status top-up dan laporan merchant ada di naskah, dan tidak ada di lab ini (Tidak dijalankan). Bayar, kirim, dan pemeriksaan saldo memakai primary di dalam transaction (kode lab).",
  "Di bagian A, saldo tampil Rp250.000 dan saldo di primary Rp215.000. Kiriman Rp240.000 ke rekan dijawab 422 `saldo-kurang`. Pembayaran tidak dipakai untuk bukti ini, karena satu pembayaran dibatasi Rp200.000 dan Rp240.000 ditolak oleh batas itu tanpa membaca saldo.",

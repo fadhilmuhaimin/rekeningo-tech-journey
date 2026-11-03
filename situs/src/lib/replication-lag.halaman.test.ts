@@ -696,7 +696,7 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
   test("tabel kelas, kapan salah, dan sengaja belum: sel dikunci per baris dan kolom", () => {
     sel("| Kelas | Contoh | Dibaca dari | Dasar |", [
       ["1. Menentukan uang", "saldo untuk bayar atau kirim", "primary, di dalam transaction", "Rekaman lab `baca.txt` bagian A (kiriman)"],
-      ["2. Milik sendiri sesudah menulis", "riwayat, saldo tampil", "primary sampai replica sampai token", "Rekaman lab `baca.txt` bagian B"],
+      ["2. Milik sendiri sesudah menulis", "riwayat, saldo tampil", "primary sampai replica sampai token", "Rekaman lab `baca.txt` bagian B (token)"],
       ["3. Laporan dan bacaan lain", "laporan merchant", "replica", "tidak direkam di lab ini"],
     ]);
     sel("| Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |", [
