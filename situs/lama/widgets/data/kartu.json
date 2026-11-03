@@ -3861,7 +3861,7 @@
   "judul": "5.23 Progressive delivery, GitOps, kill switch + ADR 55",
   "url": "tahap-5/progressive-delivery/",
   "tanya": "Sakelar dimatikan lewat pod 1 dan pod 2 serta pod 3 masih punya cache. Apa jawaban ketiga pod, dan berapa otorisasi yang lolos di puncak?",
-  "jawab": "Pod 1 menolak seketika. Pod 2 dan pod 3 masih menyetujui sampai cache mereka habis, paling lama 5 detik ditambah toleransi ukur (`sakelar.txt` bagian D). Di puncak 5 × 1,16 = 5,8 otorisasi lolos (Hitungan atas Asumsi)."
+  "jawab": "Pod 1 menolak seketika. Pod 2 dan pod 3 masih menyetujui sampai cache mereka habis, paling lama 5 detik ditambah toleransi ukur (`sakelar.txt` bagian D). Di puncak paling banyak 5 × 1,16 = 5,8 otorisasi lolos (Hitungan atas Asumsi)."
  },
  {
   "id": "t5-rollout-4",

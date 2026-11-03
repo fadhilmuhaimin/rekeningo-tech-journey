@@ -362,8 +362,8 @@ describe("hitungan beban dan langkah rilis dari 1,16 yang tertulis di halaman (H
     const lolos = koma(bulat(TTL * puncak, 1));
     expect(halaman).toContain(`Di puncak, ${TTL} detik × ${koma(puncak)} otorisasi per detik = ${lolos} otorisasi yang masih lolos sesudah sakelar dimatikan (Hitungan atas Asumsi).`);
     expect(halaman).toContain(`Itu ${koma(puncak)} × ${TTL} di puncak (Hitungan atas Asumsi).`);
-    expect(halaman).toContain(`Di puncak ${TTL} × ${koma(puncak)} = ${lolos} otorisasi lolos (Hitungan atas Asumsi).`);
-    expect(halaman).toContain(`Saat ${lolos} otorisasi yang lolos sesudah sakelar dimatikan terlalu banyak.`);
+    expect(halaman).toContain(`Di puncak paling banyak ${TTL} × ${koma(puncak)} = ${lolos} otorisasi lolos (Hitungan atas Asumsi).`);
+    expect(halaman).toContain(`Saat batas atas ${lolos} otorisasi yang lolos sesudah sakelar dimatikan terlalu banyak.`);
     expect(hitungKali(halaman, `= ${lolos} otorisasi`)).toBe(2);
     expect(halaman).toContain(`${rtoMenit * 60} detik × ${koma(puncak)} = ${ribuan(bulat(rtoMenit * 60 * puncak, 0))} otorisasi baru ditolak`);
     expect(halaman).toContain(`Dalam RTO ${rtoMenit} menit (Asumsi produk, [[t5-rpo-rto]])`);
@@ -395,6 +395,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-220 sam
     "https://github.com/kubernetes-sigs/gateway-api/blob/v1.6.1/apis/v1/shared_types.go": { id: "R5-220", potongan: ["apis/v1/shared_types.go", "v1.6.1", "the proportion of requests forwarded to the referenced backend"] },
     "https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/traffic-management/plugins.md": { id: "R5-220", potongan: ["traffic-management/plugins.md", "Alpha Feature (Since 1.5.0)", "will not start if it can not download or find the plugin executable"] },
     "https://github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi/blob/v0.17.0/docs/provider-status.md": { id: "R5-220", potongan: ["docs/provider-status.md", "v0.17.0", "Traefik 3.7.0", "Gateway API 1.5.1", "plugin 0.13.0", "should work out of the box"] },
+    "https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/bluegreen.md": { id: "R5-220", potongan: ["docs/features/bluegreen.md", "v1.10.1", "allows the preview stack to be reachable without serving production traffic", "updating the `activeService` to point to it", "previewReplicaCount"] },
     "https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/analysis.md": { id: "R5-221", potongan: ["docs/features/analysis.md", "v1.10.1", "setting the canary weight back to zero", "Degraded"] },
     "https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/evaluate/evaluate.go": { id: "R5-221", potongan: ["utils/evaluate/evaluate.go", "Without a success condition, a measurement is considered a successful if the measurement's failure condition is not true"] },
     "https://github.com/argoproj/argo-cd/blob/v3.5.6/docs/user-guide/auto_sync.md": { id: "R5-222", potongan: ["docs/user-guide/auto_sync.md", "v3.5.6", "automatically sync an application when it detects differences", "By default, changes that are made to the live cluster will not trigger automated sync"] },
@@ -832,5 +833,64 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka
     expect(sidikSekarang.tabel).toEqual(SIDIK.tabel);
     expect(sidikSekarang.riset).toEqual(SIDIK.riset);
     expect(sidikSekarang.berkas).toEqual(SIDIK.berkas);
+  });
+});
+
+// --- tinjauan independen (keputusan 1591): klaim yang melampaui sumber dan istilah tanpa arti di pemakaian pertama
+describe("tinjauan 5.23: batas atas 5,8, pencacah kumulatif, bawaan pod stabil, HPA, django-waffle, blue/green, dan panjang pilihan Tebak", () => {
+  const kalimatDi = (potong: string): string => halaman.split("\n").find((b) => b.includes(potong)) ?? "";
+  test("5,8 adalah batas atas: kalimatnya ada tepat sekali, ada di paragraf yang sama dengan hitungannya, dan kode: pod yang menulis memperbarui cache sendiri (Setel)", () => {
+    expect(hitungKali(halaman, "Angka itu adalah batas atas. Ia mengandaikan semua otorisasi tiba di pod yang cache-nya masih terisi selama 5 detik penuh. Pod yang mematikan sakelar langsung menolak.")).toBe(1);
+    const para = halaman.split("\n");
+    expect(para[para.findIndex((b) => b.includes("= 5,8 otorisasi yang masih lolos")) + 2]).toMatch(/^Angka itu adalah batas atas\./);
+    expect(sakelarGo).toContain("Setel memperbarui cache pod ini sesudah COMMIT perubahan sakelar oleh pod ini. Pod lain baru melihatnya sesudah");
+    expect(hitungKali(halaman, "paling banyak 5,8 lolos")).toBe(1);
+    expect(hitungKali(halaman, "batas atas 5,8")).toBe(1);
+    expect(hitungKali(halaman, "paling banyak 5 × 1,16")).toBe(1);
+    // setiap '5,8' di halaman memakai kata batas atas atau paling banyak, atau berada di paragraf perhitungannya
+    const tanpa = halaman.split("\n").filter((b) => b.includes("5,8") && !/paling banyak|batas atas/.test(b));
+    // satu-satunya baris tanpa kata itu adalah paragraf perhitungannya, yang diikuti paragraf batas atas (diperiksa di atas)
+    expect(tanpa.map((x) => x.slice(0, 51))).toEqual(["Waktu sampai pod 2 dan pod 3 menolak tidak direkam."]);
+  });
+  test("pencacah lab kumulatif sejak pod mulai (kode) dan halaman menulis tabel langkah sebagai batas atas untuk langkah 5% dan 25%", () => {
+    expect(sakelarGo).toContain("jumlah keputusan sejak proses mulai");
+    expect(sakelarGo).toContain("atomic.Int64");
+    expect(halaman).toContain("Jeda langkah pertama yang lebih pendek dari kolom terakhir membiarkan analisis lolos karena sampelnya kecil, bukan karena versinya baik.");
+    expect(halaman).not.toContain("Jeda per langkah yang lebih pendek");
+    expect(hitungKali(halaman, "Pencacah lab menghitung keputusan sejak pod mulai. Bila pod canary yang sama melayani langkah berikutnya, sampel langkah sebelumnya ikut terhitung. Waktu di tabel untuk langkah 5% dan 25% adalah batas atas (Penalaran, dibaca dari kode `HitungOtorisasi`).")).toBe(1);
+    expect(kalimatDi("Pencacah lab menghitung")).toMatch(/^Pencacah lab/);
+  });
+  test("pod stabil dibiarkan berjalan penuh hanya sebagai bawaan (dokumentasi: by default; dynamicStableScale mengubahnya), dan blue/green: previewReplicaCount mengubah jumlah pod versi baru", () => {
+    expect(barisRiset("R5-220")).toContain("by default the stable ReplicaSet is left scaled to 100%");
+    expect(halaman).toContain("menulis bahwa secara bawaan pod stabil dibiarkan berjalan penuh selama rilis.");
+    expect(halaman).not.toContain("bahwa pod stabil tetap berjalan penuh");
+    const b220 = barisRiset("R5-220");
+    expect(b220).toContain("docs/features/bluegreen.md");
+    expect(b220).toContain("`spec.replicas` atau `previewReplicaCount` bila diisi");
+    expect(halaman).toContain("Pod versi baru berjalan penuh selama pengujian, kecuali `previewReplicaCount` diisi (Penalaran dari dokumentasi)");
+    expect(halaman).toContain("([Blue-Green](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/bluegreen.md), dibuka 2026-11-04)");
+    expect(hitungKali(halaman, "docs/features/bluegreen.md")).toBe(2);
+  });
+  test("HPA diberi arti di pemakaian pertama: kemunculan pertama ada di kalimat definisinya, sebelum rekaman dan sebelum ADR", () => {
+    const awal = halaman.indexOf("HPA");
+    expect(halaman.slice(awal, awal + 250)).toContain("HPA adalah Horizontal Pod Autoscaler, komponen Kubernetes yang menambah atau mengurangi jumlah replika menurut metrik.");
+    expect(hitungKali(halaman, "Horizontal Pod Autoscaler")).toBe(1);
+    expect(awal).toBeLessThan(halaman.indexOf("Di rekaman bagian E"));
+    expect(awal).toBeLessThan(halaman.indexOf('<Blok nama="Putuskan"'));
+  });
+  test("django-waffle: dua pengaturan (cache dan WAFFLE_READ_FROM_WRITE_DB) tidak disambung dengan 'sehingga'; kalimat memuat lingkup lalu lintas tinggi dan 'mungkin'", () => {
+    const b = barisRiset("R5-223");
+    expect(b).toContain("WAFFLE_READ_FROM_WRITE_DB");
+    expect(halaman).not.toMatch(/secara agresif|agresif, sehingga/);
+    expect(halaman).toContain("Dokumentasi menulis bahwa `*_is_active` mencoba membaca versi objek dari cache lebih dulu. Pada lalu lintas tinggi dengan beberapa database, misalnya primary yang direplikasi ke pool baca, versi lama mungkin tersimpan di cache bila dipanggil segera sesudah update.");
+    expect(halaman).toContain("tetapi halaman Configuring yang dibaca tidak menyebut umur cache.");
+  });
+  test("Tebak: jawaban benar bukan pilihan terpanjang dan bukan terpendek (panjang tidak membocorkan, selain posisi)", () => {
+    const d = DataTebak.parse(tebakMentah);
+    const panjang = d.pilihan.map((p) => p.teks.length);
+    const i = d.pilihan.findIndex((p) => p.benar);
+    expect(panjang[i]).toBeLessThan(Math.max(...panjang));
+    expect(panjang[i]).toBeGreaterThan(Math.min(...panjang));
+    expect(d.pilihan[2]!.teks).toBe("Setuju, memakai nilai terakhir yang diingat pod karena sakelar tidak pernah diubah oleh siapa pun.");
   });
 });

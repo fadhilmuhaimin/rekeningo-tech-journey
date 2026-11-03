@@ -89,7 +89,7 @@ Rekaman bagian B memulai dari bobot 100 dan 0. Sesudah versi diganti, Rollout be
 
 Satu pod dari empat adalah 25,0% (Hitungan atas rekaman), tetapi bobotnya 5. Bagian permintaan yang dijawab versi baru terukur antara 1,5% dan 8,5%. Itu batas yang diperiksa lab, dan hitungan tepat tidak direkam karena bergantung penyeimbang beban.
 
-Dengan traffic router, dokumentasi Argo Rollouts menulis bahwa pod stabil tetap berjalan penuh. Karena itu lalu lintas bisa kembali seketika bila rilis dibatalkan (dokumentasi canary yang sama).
+Dengan traffic router, dokumentasi Argo Rollouts menulis bahwa secara bawaan pod stabil dibiarkan berjalan penuh selama rilis. Karena itu lalu lintas bisa kembali seketika bila rilis dibatalkan (dokumentasi canary yang sama).
 
 **Plugin ini masih alpha.** Dokumentasi menandai sistem plugin traffic router sebagai fitur alpha sejak versi 1.5.0. Controller tidak mulai bila ia tidak bisa mengunduh atau menemukan biner plugin ([Argo Rollouts v1.10.1: Traffic Router Plugins](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/traffic-management/plugins.md), dibuka 2026-11-04, Tidak dijalankan).
 
@@ -115,7 +115,9 @@ Tabel ini membagi 1,16 otorisasi per detik di puncak menurut bobot langkah, dan 
 | 5% | 0,058 | ±209 | 172 detik (±3 menit) |
 | 25% | 0,29 | ±1.044 | 34 detik |
 
-Semua baris adalah Hitungan atas Asumsi. Langkah 1% menerima 1,16 × 0,01 = 0,0116 otorisasi per detik, yaitu ±42 per jam. Jeda per langkah yang lebih pendek dari kolom terakhir membiarkan analisis lolos karena sampelnya kecil, bukan karena versinya baik.
+Semua baris adalah Hitungan atas Asumsi. Langkah 1% menerima 1,16 × 0,01 = 0,0116 otorisasi per detik, yaitu ±42 per jam. Jeda langkah pertama yang lebih pendek dari kolom terakhir membiarkan analisis lolos karena sampelnya kecil, bukan karena versinya baik.
+
+Pencacah lab menghitung keputusan sejak pod mulai. Bila pod canary yang sama melayani langkah berikutnya, sampel langkah sebelumnya ikut terhitung. Waktu di tabel untuk langkah 5% dan 25% adalah batas atas (Penalaran, dibaca dari kode `HitungOtorisasi`).
 
 **Kill switch di satu tabel.** Sakelar `kartu_aktif` adalah satu baris di tabel `sakelar`. Risk mematikannya lewat `POST /bo/flag/kartu` dengan alasan wajib, dan baris sakelar ditulis di transaction yang sama dengan baris audit (dibaca dari kode `SetKartuAktifBO`). Dua konstanta menentukan TTL bawaan cache dan batas satu pembacaan:
 
@@ -126,6 +128,8 @@ Rekaman bagian D memakai tiga pod dari satu image dan satu database, tanpa Rollo
 <Snippet file="labs/t5-rollout/output/sakelar.txt" lines="21:32" title="Rekaman lab: labs/t5-rollout/output/sakelar.txt, bagian D (sakelar dari tabel, jendela cache)" />
 
 Waktu sampai pod 2 dan pod 3 menolak tidak direkam. Lab hanya memeriksa batasnya: paling lama 5 detik ditambah 2 detik toleransi pengukuran. Di puncak, 5 detik × 1,16 otorisasi per detik = 5,8 otorisasi yang masih lolos sesudah sakelar dimatikan (Hitungan atas Asumsi).
+
+Angka itu adalah batas atas. Ia mengandaikan semua otorisasi tiba di pod yang cache-nya masih terisi selama 5 detik penuh. Pod yang mematikan sakelar langsung menolak.
 
 Dinyalakan lagi lewat pod 2, yang bukan pod yang mematikannya, semua pod menyetujui lagi (sakelar.txt bagian D). Tiga pod di bagian D adalah Deployment, bukan Rollout, dan pod Rollout di bagian B dan C tidak membaca sakelar. Rollout yang membuat pod baru dengan sakelar tabel Tidak dijalankan. Menurut kode, pod baru yang cache-nya kosong membaca tabel, jadi ia tidak menyala sendiri (Penalaran, dibaca dari kode).
 
@@ -145,7 +149,9 @@ Jawabannya 200, bukan galat, karena penerbit tiruan di lab Tahap 4 membaca semua
 
 Lab tidak menjalankan Argo CD, karena ia butuh repo Git yang terjangkau dari dalam cluster (README lab). Kill switch sengaja berada di tabel, bukan di repo konfigurasi. Mengubah repo berarti commit, sync, dan pod baru, yaitu urutan yang sama dengan deploy, dan kill switch ada supaya tidak menunggu itu (Penalaran).
 
-**HPA dan jumlah replika.** Di rekaman bagian E, HPA menaikkan replika dari 1 di bawah beban CPU, dan tidak melebihi `maxReplicas` 4. Peristiwanya menulis alasan CPU di atas target 50%. Jumlah tepat tidak direkam, dan HPA di lab menargetkan Deployment, bukan Rollout (`hpa.txt`).
+**HPA dan jumlah replika.** HPA adalah Horizontal Pod Autoscaler, komponen Kubernetes yang menambah atau mengurangi jumlah replika menurut metrik.
+
+Di rekaman bagian E, HPA menaikkan replika dari 1 di bawah beban CPU, dan tidak melebihi `maxReplicas` 4. Peristiwanya menulis alasan CPU di atas target 50%. Jumlah tepat tidak direkam, dan HPA di lab menargetkan Deployment, bukan Rollout (`hpa.txt`).
 
 Dokumentasi Argo Rollouts menulis bahwa HPA bisa menargetkan Rollout lewat subresource scale dan menulis `spec.replicas` Rollout ([Argo Rollouts v1.10.1: HPA support](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/hpa-support.md), dibuka 2026-11-04, Tidak dijalankan). Dokumentasi Argo CD menyarankan tidak menulis `replicas` di manifes yang dilacak Git bila HPA yang mengaturnya ([Argo CD v3.5.6: Best Practices](https://github.com/argoproj/argo-cd/blob/v3.5.6/docs/user-guide/best_practices.md), dibuka 2026-11-04, Tidak dijalankan). Bentrok HPA dan Argo CD atas Rollout tidak dicoba dan tetap [perlu verifikasi].
 
@@ -192,7 +198,7 @@ Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokument
 <Snippet lang="python" code={`if not waffle.switch_is_active("kartu_aktif"):
     return tolak("kill-switch")`} />
 
-**Yang berbeda di stack ini:** switch adalah boolean yang menyala atau mati untuk semua, tanpa persentase. Dokumentasi menulis bahwa Waffle menyimpan objek di cache secara agresif, sehingga pada primary yang direplikasi versi lama bisa tersimpan sesudah update. Pengaturan `WAFFLE_READ_FROM_WRITE_DB` membaca dari database tulis saat cache kosong. Halaman Configuring yang dibaca tidak menyebut umur cache.
+**Yang berbeda di stack ini:** switch adalah boolean yang menyala atau mati untuk semua, tanpa persentase. Dokumentasi menulis bahwa `*_is_active` mencoba membaca versi objek dari cache lebih dulu. Pada lalu lintas tinggi dengan beberapa database, misalnya primary yang direplikasi ke pool baca, versi lama mungkin tersimpan di cache bila dipanggil segera sesudah update. Pengaturan `WAFFLE_READ_FROM_WRITE_DB` membaca dari database tulis saat cache kosong, tetapi halaman Configuring yang dibaca tidak menyebut umur cache.
 
 </Fragment>
 <Fragment slot="t4">
@@ -228,8 +234,8 @@ Ada dua keputusan, jadi ada dua tabel. Tabel pertama membandingkan cara merilis:
 | Cara kerja | Rollout tanpa `trafficRouting`: `setWeight` diwujudkan lewat jumlah pod di belakang satu Service | Replika tetap 20, supaya satu pod versi baru adalah 5,0% | Versi baru berjalan penuh di `previewService`, lalu `activeService` dialihkan ke sana (ADR 44) | Plugin menulis bobot ke HTTPRoute, dan analisis latar membatalkan rilis yang gagal |
 | Kelebihan | Tanpa router dan plugin | Tanpa router, 5% terwujud | Versi baru bisa diuji sebelum menerima lalu lintas biasa (dokumentasi) | Bobot lepas dari jumlah pod: 95 dan 5 dengan 3 replika |
 | Kekurangan | 3 replika memberi 25,0% atau 33,3%, bukan 5% | 1% butuh 100 replika, karena langkah terkecil adalah 1 ÷ replika (Hitungan) | Tidak ada langkah 1%: promosi mengalihkan `activeService` sekaligus (Penalaran dari dokumentasi) | Plugin alpha, dan controller butuh biner plugin saat mulai |
-| Biaya operasional | Paling kecil, tetapi bobot yang diminta tidak tercapai | 20 pod berjalan terus untuk beban 1,16 per detik (Hitungan atas Asumsi) | Pod versi baru berjalan penuh selama pengujian (Penalaran) | Controller, plugin dengan sha256, router Gateway, dan metrik penjaga |
-| Bukti | Rekaman lab `tanpa-router.txt` bagian A | Rekaman lab `tanpa-router.txt` bagian A (20 replika) | Tidak dijalankan: dokumentasi Argo Rollouts v1.10.1 | Rekaman lab `gateway.txt` bagian B dan `analisis.txt` bagian C |
+| Biaya operasional | Paling kecil, tetapi bobot yang diminta tidak tercapai | 20 pod berjalan terus untuk beban 1,16 per detik (Hitungan atas Asumsi) | Pod versi baru berjalan penuh selama pengujian, kecuali `previewReplicaCount` diisi (Penalaran dari dokumentasi) | Controller, plugin dengan sha256, router Gateway, dan metrik penjaga |
+| Bukti | Rekaman lab `tanpa-router.txt` bagian A | Rekaman lab `tanpa-router.txt` bagian A (20 replika) | Tidak dijalankan: dokumentasi Argo Rollouts v1.10.1 ([Blue-Green](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/bluegreen.md), dibuka 2026-11-04) | Rekaman lab `gateway.txt` bagian B dan `analisis.txt` bagian C |
 
 Tabel kedua membandingkan tempat kill switch:
 
@@ -237,7 +243,7 @@ Tabel kedua membandingkan tempat kill switch:
 |---|---|---|---|
 | Cara kerja | Penanda boolean di memori tiap proses | Penyedia flag dibaca lewat OpenFeature SDK, dengan flagd sebagai mesin evaluasi | Satu baris `kartu_aktif` di primary, dibaca tiap pod dengan cache 5 detik (Asumsi) |
 | Kelebihan | Tanpa pembacaan dan tanpa cache | Satu API evaluasi flag dengan nilai default per pemanggilan (spesifikasi v0.9.0) | Satu tempat untuk semua pod, tanpa komponen baru, dan ditulis bersama audit |
-| Kekurangan | Tiap proses punya flag sendiri, dan hilang saat mulai ulang | Spesifikasi belum 1.0, dan flag aktif hanya satu | Pod lain tertinggal sampai cache habis (5,8 lolos), dan tabel yang tidak terbaca menolak semua otorisasi baru |
+| Kekurangan | Tiap proses punya flag sendiri, dan hilang saat mulai ulang | Spesifikasi belum 1.0, dan flag aktif hanya satu | Pod lain tertinggal sampai cache habis (paling banyak 5,8 lolos), dan tabel yang tidak terbaca menolak semua otorisasi baru |
 | Biaya operasional | Tidak ada | Provider dan mesin evaluasi yang dijalankan dan dipantau | Satu tabel dan satu cache per pod, paling banyak satu pembacaan per 5 detik per pod selama pembacaan berhasil (dibaca dari kode) |
 | Bukti | Rekaman lab `sakelar.txt` bagian D (flag di memori) | Tidak dijalankan: spesifikasi dan npm, dibuka 2026-11-04 | Rekaman lab `sakelar.txt` bagian D dan `testing.txt` bagian A |
 
@@ -267,7 +273,7 @@ Tabel kedua membandingkan tempat kill switch:
 
 **Kapan keputusan ini salah.**
 
-- Saat 5,8 otorisasi yang lolos sesudah sakelar dimatikan terlalu banyak. Itu 1,16 × 5 di puncak (Hitungan atas Asumsi). Menurunkan TTL mengurangi angkanya, dan TTL 0 membaca tabel di setiap otorisasi (kode `BaruSakelarKartu`).
+- Saat batas atas 5,8 otorisasi yang lolos sesudah sakelar dimatikan terlalu banyak. Itu 1,16 × 5 di puncak (Hitungan atas Asumsi). Menurunkan TTL mengurangi angkanya, dan TTL 0 membaca tabel di setiap otorisasi (kode `BaruSakelarKartu`).
 - Saat jeda satu langkah lebih pendek dari waktu sampel. Langkah 1% butuh 862 detik di puncak untuk 10 keputusan, dan 0,0116 otorisasi per detik hanya ±42 per jam (Hitungan atas Asumsi).
 - Saat router yang dipilih tidak mengikuti Gateway API atau plugin tidak mendukung versi API-nya. Dokumentasi plugin menulis bahwa plugin 0.3.0 ke atas butuh implementasi Gateway API v1.0 atau lebih. Lab hanya menjalankan Traefik 3.7.13.
 - Saat primary mati lebih lama dari yang diterima produk. Dalam RTO 15 menit (Asumsi produk, [[t5-rpo-rto]]) 900 detik × 1,16 = 1.044 otorisasi baru ditolak (Hitungan atas Asumsi). Otorisasi baru menahan dana di ledger di primary (ADR 42), jadi tanpa primary ia tidak bisa disetujui juga (Penalaran).
@@ -317,7 +323,7 @@ Analisis Failed karena satu pengukuran gagal melewati `failureLimit` 0. Rollout 
 <details class="success">
 <summary>Jawaban</summary>
 
-Pod 1 menolak seketika. Pod 2 dan pod 3 masih menyetujui sampai cache mereka habis, paling lama 5 detik ditambah toleransi ukur (`sakelar.txt` bagian D). Di puncak 5 × 1,16 = 5,8 otorisasi lolos (Hitungan atas Asumsi).
+Pod 1 menolak seketika. Pod 2 dan pod 3 masih menyetujui sampai cache mereka habis, paling lama 5 detik ditambah toleransi ukur (`sakelar.txt` bagian D). Di puncak paling banyak 5 × 1,16 = 5,8 otorisasi lolos (Hitungan atas Asumsi).
 
 </details>
 
@@ -343,6 +349,7 @@ Penerbit tiruan membaca semua jawaban yang bukan 200 sebagai tidak ada jawaban d
 
 - [Argo Rollouts v1.10.1: Canary](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/canary/index.md)
 - [Argo Rollouts v1.10.1: Analysis](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/analysis.md)
+- [Argo Rollouts v1.10.1: Blue-Green](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/bluegreen.md)
 - [Argo Rollouts v1.10.1: Traffic Router Plugins](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/traffic-management/plugins.md)
 - [Argo Rollouts v1.10.1: HPA support](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/features/hpa-support.md)
 - [Plugin Gateway API v0.17.0: provider status](https://github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi/blob/v0.17.0/docs/provider-status.md)

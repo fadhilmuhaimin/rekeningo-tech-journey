@@ -22,7 +22,7 @@
       "alasan": "Penerbit tiruan membaca semua jawaban yang bukan 200 sebagai tidak ada jawaban, lalu memutuskan menurut setelan timeout, yaitu setuju (otorisasi.txt bagian D, lab t4-kartu). Galat 503 berujung persetujuan."
     },
     {
-      "teks": "Setuju, memakai nilai terakhir yang diingat pod karena sakelar tidak pernah diubah.",
+      "teks": "Setuju, memakai nilai terakhir yang diingat pod karena sakelar tidak pernah diubah oleh siapa pun.",
       "benar": false,
       "alasan": "Cache sudah habis. Menurut kode SakelarKartu, pembacaan yang gagal tidak memperpanjang nilai lama, dan rekaman bagian D mencatat tolak."
     },
