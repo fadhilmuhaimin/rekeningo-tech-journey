@@ -210,6 +210,7 @@ describe("naskah, registry, dan halaman tetangga", () => {
     harus("Ledger membuat jurnal top-up Rp1.000 untuk akun uji. Tidak ada yang menolak.");
     harus("Raka mengira jaringan di dalam cluster itu privat, jadi hanya pod milik Rekeningo yang bisa sampai ke ledger.");
     harus("Bayu menambahkan bahwa Kubernetes sudah membatasi lalu lintas antar pod secara bawaan.");
+    harus("Pembatasan yang Bayu maksud baru ada bila tim menulis NetworkPolicy dan jaringan cluster menegakkannya.");
   });
   test("naskah menyebut NetworkPolicy hanya di baris M47 dan baris ADR 53, dan tidak menulis kunci layanan bersama: klaim 'naskah tidak menulis' di halaman", () => {
     const baris = naskah.split("\n").filter((b) => b.includes("NetworkPolicy"));
@@ -300,12 +301,12 @@ describe("kode lab: rute mode rentan, handler JurnalTopup, service ledger, dan p
     expect(kodeMain).toContain('const rentanTanpaIdentitas = "ledger-tanpa-identitas"');
     expect(kodeMain).toContain("tanpa TLS, tanpa identitas, tanpa daftar jenis jurnal");
   });
-  test("Snippet: rentang baris diturunkan dari kode dan rekaman (main.go blok rentan, handler sampai panggilan service, rentan.txt bagian A sampai baris sebelum peringatan, idempoten.txt bagian A dan C)", () => {
+  test("Snippet: rentang baris diturunkan dari kode dan rekaman (main.go blok rentan, handler sampai panggilan service, rentan.txt bagian A sampai baris log ledger, idempoten.txt bagian A dan C)", () => {
     const snip = [...badan.matchAll(/<Snippet file="([^"]+)"(?: lines="(\d+):(\d+)")?(?: lang="(\w+)")? title="([^"]+)" \/>/g)].map((m) => ({ file: m[1]!, a: Number(m[2]), b: Number(m[3]), lang: m[4], title: m[5]! }));
     expect(snip.map((s) => `${s.file}:${s.a}:${s.b}`)).toEqual([
       `labs/api-t5/cmd/ledger/main.go:${nRentanBlok}:${nRentanBlokAkhir}`,
       `labs/api-t5/internal/handler/ledger_layanan.go:${nJurnalTopup}:${nPanggilService}`,
-      `labs/t5-service/output/rentan.txt:${nRentanA}:${nPeringatan - 1}`,
+      `labs/t5-service/output/rentan.txt:${nRentanA}:${nLogA}`,
       `labs/t5-service/output/idempoten.txt:${nIdemA}:${nIdemA2}`,
       `labs/t5-service/output/idempoten.txt:${nIdemC}:${nIdemC2}`,
     ]);
@@ -322,7 +323,8 @@ describe("kode lab: rute mode rentan, handler JurnalTopup, service ledger, dan p
     expect(idem[nIdemC - 1]).toMatch(/^# --- C\./);
     expect(nIdemA2).toBe(nIdemA + 4);
     expect(nIdemC2).toBe(nIdemC + 4);
-    expect(nPeringatan - 1).toBe(24);
+    expect(nLogA).toBe(26);
+    expect(rentan[nLogA]).toBe("");
   });
   test("handler JurnalTopup: satu pembacaan header (Idempotency-Key), tanpa sertifikat, alamat, atau header lain milik pemanggil; panggilan service tanpa parameter pemanggil", () => {
     expect(jumlah(badanJurnalTopup, "r.Header.Get(")).toBe(1);
@@ -388,7 +390,7 @@ describe("sumber luar: kutipan di baris riset R5-195 sampai R5-199 dan tautan di
     expect(jumlah(badan, `[Kubernetes: Network Policies](${URL_NP}), dibuka ${TANGGAL}, Tidak dijalankan)`)).toBe(1);
     harus("Boleh. Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneksi masuk, dan semua koneksi masuk diizinkan ([Kubernetes: Network Policies](" + URL_NP + "), dibuka " + TANGGAL + ", Tidak dijalankan).");
     harus("NetworkPolicy dijalankan oleh network plugin, yaitu komponen jaringan cluster yang mendukungnya. Dokumentasi yang sama menulis bahwa sumber daya itu tidak berefek bila tidak ada controller yang menegakkannya.");
-    harus("Bagian \"What you can't do with network policies\" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API, dan menyebut service mesh atau ingress controller sebagai gantinya.");
+    harus("Bagian \"What you can't do with network policies\" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API, dan menyarankan service mesh atau ingress controller untuk hal itu.");
     harus("Namespace adalah mekanisme Kubernetes untuk memisahkan kelompok sumber daya di dalam satu cluster");
   });
   test("R5-196: kutipan NIST SP 800-207, tanggal terbit, dan kalimat halaman yang berlingkup (abstrak tidak menyebut Kubernetes)", () => {
@@ -569,7 +571,7 @@ describe("ID registry, tautan, template blok, widget, kartu, tebakan, dan label"
     const hanya = kalimat.filter((s) => /\bhanya\b/i.test(s)).map((s) => s.trim().replace(/\s+/g, " "));
     expect(hanya).toHaveLength(4);
     expect(hanya[0]).toContain("Raka mengira jaringan di dalam cluster itu privat, jadi hanya pod milik Rekeningo yang bisa sampai ke ledger.");
-    expect(hanya[1]).toContain("Bila NetworkPolicy hanya mengizinkan namespace tertentu, pod uji di namespace lain terhalang.");
+    expect(hanya[1]).toContain("Bila NetworkPolicy hanya mengizinkan namespace tertentu dan jaringan cluster menegakkannya, pod uji di namespace lain terhalang.");
     expect(hanya[2]).toContain("tidak ada kepercayaan implisit bagi aset atau akun hanya karena lokasi fisik atau jaringannya.");
     expect(hanya[3]).toContain("Widget ini hanya menunjukkan bahwa satu hal berbeda mengubah hasilnya.");
   });

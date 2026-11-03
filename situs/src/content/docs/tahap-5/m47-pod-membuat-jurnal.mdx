@@ -38,7 +38,7 @@ Boleh. Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneks
 
 NetworkPolicy dijalankan oleh network plugin, yaitu komponen jaringan cluster yang mendukungnya. Dokumentasi yang sama menulis bahwa sumber daya itu tidak berefek bila tidak ada controller yang menegakkannya.
 
-Dugaan Bayu berlaku bila tim menulis NetworkPolicy dan jaringan cluster menegakkannya. Naskah menulis pembatasan itu sebagai pilihan yang harus ditulis, bukan bawaan, dan jaringan yang menegakkannya belum ditentukan [perlu verifikasi].
+Pembatasan yang Bayu maksud baru ada bila tim menulis NetworkPolicy dan jaringan cluster menegakkannya. Naskah menulis pembatasan itu sebagai pilihan yang harus ditulis, bukan bawaan, dan jaringan yang menegakkannya belum ditentukan [perlu verifikasi].
 
 Blok berikutnya menunjukkan hal yang lebih dasar: ledger sendiri tidak bertanya siapa yang sampai.
 
@@ -66,7 +66,7 @@ Handler `JurnalTopup` membaca satu header, Idempotency-Key, lalu body dengan `or
 
 **Pod uji lolos.** Rekaman bagian A menjalankan rute itu dari pod uji. Ledger menjawab 201 dan menulis jurnal dengan dua posting, yaitu minus Rp1.000 di buku bank menurut kode lab dan plus Rp1.000 untuk akun uji 100002:
 
-<Snippet file="labs/t5-service/output/rentan.txt" lines="5:24" title="Rekaman lab: labs/t5-service/output/rentan.txt, bagian A (pod uji tanpa sertifikat membuat jurnal)" />
+<Snippet file="labs/t5-service/output/rentan.txt" lines="5:26" title="Rekaman lab: labs/t5-service/output/rentan.txt, bagian A (pod uji tanpa sertifikat membuat jurnal)" />
 
 Saldo akun uji naik Rp1.000 tanpa kiriman dari bank. Itu penalaran: penalaran adalah kesimpulan penulis dari rekaman dan sumber yang disebut, bukan hasil yang direkam. Log ledger di baris terakhir bagian A memuat key, status, dan jurnal, tanpa pemanggil.
 
@@ -82,9 +82,9 @@ Key baru dengan akun dan jumlah yang sama menghasilkan jurnal kedua. Key yang sa
 
 Ledger menjawab menurut key dan isi permintaan. Key yang belum pernah dipakai adalah permintaan baru, siapa pun pengirimnya, karena service ledger tidak menerima parameter pemanggil (penalaran dari kode lab). Karena itu key tidak menghentikan pod uji di bagian A.
 
-**Jaringan menentukan siapa yang sampai, bukan siapa yang memanggil.** NetworkPolicy mengatur pod, namespace, dan blok IP yang boleh menyambung (Tidak dijalankan: dokumentasi Kubernetes). Bagian "What you can't do with network policies" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API, dan menyebut service mesh atau ingress controller sebagai gantinya.
+**Jaringan menentukan siapa yang sampai, bukan siapa yang memanggil.** NetworkPolicy mengatur pod, namespace, dan blok IP yang boleh menyambung (Tidak dijalankan: dokumentasi Kubernetes). Bagian "What you can't do with network policies" di dokumentasi itu berlaku untuk Kubernetes 1.37. Bagian itu menulis bahwa hal yang berhubungan dengan TLS tidak ada di NetworkPolicy API, dan menyarankan service mesh atau ingress controller untuk hal itu.
 
-Bila NetworkPolicy hanya mengizinkan namespace tertentu, pod uji di namespace lain terhalang. Pod lain di namespace yang diizinkan, atau pod yang dibajak di sana, tetap membuat jurnal selama ledger tidak membaca identitas (penalaran).
+Bila NetworkPolicy hanya mengizinkan namespace tertentu dan jaringan cluster menegakkannya, pod uji di namespace lain terhalang. Pod lain di namespace yang diizinkan, atau pod yang dibajak di sana, tetap membuat jurnal selama ledger tidak membaca identitas (penalaran).
 
 Menurut NIST SP 800-207, zero trust mengasumsikan tidak ada kepercayaan implisit bagi aset atau akun hanya karena lokasi fisik atau jaringannya. Sumbernya abstrak [NIST SP 800-207](https://csrc.nist.gov/pubs/sp/800/207/final), terbit Agustus 2020, dibuka 2026-11-04 (Tidak dijalankan). Abstrak itu membahas infrastruktur enterprise secara umum dan tidak menyebut Kubernetes.
 
@@ -96,7 +96,7 @@ Mode rentan lab ini tidak memasang pemeriksa kunci tersebut, jadi rekaman memera
 
 - Laras, minggu 9, pod uji, dan namespace notifikasi berasal dari cerita (Ilustrasi). Lab memerankan pod uji dengan perintah `panggil` di mesin yang sama dan tidak memakai Kubernetes.
 - NetworkPolicy dan jaringan yang menegakkannya Tidak dijalankan. Plugin jaringan di cluster Rekeningo belum ditentukan [perlu verifikasi].
-- Rekaman mode rentan memuat satu permintaan dari pod uji. Permintaan berulang dari pod uji tidak direkam, dan dua rekaman key memakai service pembayaran dengan sertifikat sah.
+- Rekaman mode rentan memuat satu permintaan dari pod uji. Permintaan berulang dari pod uji tidak direkam, dan bagian A dan C rekaman idempoten memakai service pembayaran dengan sertifikat sah.
 - Rekonsiliasi atas jurnal Rp1.000 itu Tidak dijalankan, dan lab tidak menghitung beban atau kapasitas ledger.
 
 </Blok>
