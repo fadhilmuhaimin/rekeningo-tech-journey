@@ -1,6 +1,6 @@
 {
   "istilah": "HPA (Horizontal Pod Autoscaler)",
-  "sehari_hari": "HPA adalah pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti satu metrik, misalnya CPU. Ia memperbarui sebuah workload resource, misalnya Deployment.",
+  "sehari_hari": "HPA adalah pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU. Ia memperbarui sebuah workload resource, misalnya Deployment.",
   "cerita": [
     {
       "rujukan": "t5-service",

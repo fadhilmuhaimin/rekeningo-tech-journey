@@ -712,7 +712,7 @@
  },
  {
   "t": "HPA (Horizontal Pod Autoscaler)",
-  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti satu metrik, misalnya CPU.",
+  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.",
   "b": "t5-service",
   "n": "5.13 Dari modul ke service",
   "u": "/tahap-5/modul-ke-service/",

@@ -646,7 +646,7 @@ window.ISTILAH = {
  },
  "HPA": {
   "b": "t5-service",
-  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti satu metrik, misalnya CPU.",
+  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.",
   "h": "istilah/hpa/",
   "n": "5.13 Dari modul ke service",
   "s": "istilah-hpa",
@@ -723,7 +723,7 @@ window.ISTILAH = {
  },
  "Horizontal Pod Autoscaler": {
   "b": "t5-service",
-  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti satu metrik, misalnya CPU.",
+  "d": "Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.",
   "h": "istilah/hpa/",
   "n": "5.13 Dari modul ke service",
   "s": "istilah-hpa",

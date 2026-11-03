@@ -12,7 +12,7 @@ import Tebak from "../../../widgets/tebak/Tebak.tsx";
 import intiDiagram from "../../../../data/diagram/t5-service-inti.json";
 import dataTebak from "../../../../data/widget/t5-service-tebak.json";
 
-<p class="meta">Baca 23 menit · coba 5 menit · Prasyarat: [[t5-m44]] · Jalur inti</p>
+<p class="meta">Baca 24 menit · coba 5 menit · Prasyarat: [[t5-m44]] · Jalur inti</p>
 
 <Blok nama="Mulai" buka>
 
@@ -137,7 +137,7 @@ Skor di lab tidak punya efek samping. Alur yang menggerakkan uang akan memproses
 
 k3s adalah distribusi Kubernetes yang menurut dokumentasinya sepenuhnya sesuai, dikemas sebagai satu binary atau image container minimal ([K3s](https://docs.k3s.io/), dibuka 2026-11-03). Lab `t5-rollout` memakai k3s v1.37.1+k3s1 di dalam k3d v5.9.0, jadi cluster berjalan di Docker satu mesin (README lab).
 
-HorizontalPodAutoscaler (HPA) menambah atau mengurangi jumlah pod mengikuti satu metrik. Dokumentasi menulis rumusnya: pod yang diinginkan = ceil[pod sekarang × (nilai metrik sekarang ÷ nilai target)]. Kontrolnya berjalan tiap 15 detik secara bawaan, dan selisih di dalam toleransi 0,1 dilewati ([Kubernetes: Horizontal Pod Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/), dibuka 2026-11-03). Contoh Ilustrasi: 1 pod, CPU rata-rata 100% dari requests, target 50%, jadi ceil(1 × 100 ÷ 50) = 2 pod (Hitungan).
+HorizontalPodAutoscaler (HPA) menambah atau mengurangi jumlah pod mengikuti metrik. Dokumentasi menulis rumusnya: pod yang diinginkan = ceil[pod sekarang × (nilai metrik sekarang ÷ nilai target)]. Kontrolnya berjalan tiap 15 detik secara bawaan, dan selisih di dalam toleransi 0,1 dilewati ([Kubernetes: Horizontal Pod Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/), dibuka 2026-11-03). Contoh Ilustrasi: 1 pod, CPU rata-rata 100% dari requests, target 50%, jadi ceil(1 × 100 ÷ 50) = 2 pod (Hitungan).
 
 Di lab, satu Deployment dengan satu pod menerima beban lewat Gateway:
 
@@ -149,9 +149,18 @@ HPA di lab menargetkan Deployment, bukan Rollout, dan Argo CD Tidak dijalankan. 
 
 **Gateway API menggantikan Ingress API, bukan Ingress NGINX.** Gateway API adalah keluarga jenis API untuk routing lalu lintas di Kubernetes, penerus Ingress API, dan tidak memuat jenis Ingress. Resource Ingress lama karena itu perlu dikonversi satu kali ([Kubernetes: Gateway API](https://kubernetes.io/docs/concepts/services-networking/gateway/), dibuka 2026-11-03).
 
-Ingress NGINX adalah satu controller untuk Ingress API. Pengumuman pada 11 November 2025 menulis bahwa pemeliharaannya dihentikan pada Maret 2026, tanpa rilis, perbaikan bug, atau pembaruan keamanan sesudahnya ([Ingress NGINX Retirement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/), dibuka 2026-11-03). Penulisnya SIG Network dan Security Response Committee.
+Ingress NGINX adalah satu controller untuk Ingress API. Pengumuman pada 11 November 2025 menulis bahwa pemeliharaannya dihentikan pada Maret 2026, tanpa rilis, perbaikan bug, atau pembaruan keamanan sesudahnya ([Ingress NGINX Retirement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/), dibuka 2026-11-03). Pengumuman itu datang dari SIG Network dan Security Response Committee.
 
 API GitHub pada tanggal yang sama menulis repositorinya berstatus archived. Lab memakai Gateway Traefik 3.7.13 dengan Gateway API v1.6.1 (README lab t5-rollout). Bobot canary dibahas di [[t5-rollout]].
+
+**Yang tidak direkam.**
+
+- Jaringan antar host: semua panggilan lab berjalan di loopback satu mesin, jadi p95 satu lompatan HTTP antar host ke ledger Tidak dijalankan.
+- Beban serentak: penggerak mengirim satu transaksi pada satu waktu, jadi p95 di lab adalah latensi satu transaksi tanpa queue di depan prosesnya.
+- Broker tiruan: pesan hanya di memori, dan broker yang mati membuangnya. Satu topik menampung 1.024 pesan dan penuh dijawab 503, tetapi jumlah topik dan ukuran pesan tidak dibatasi (batas lab).
+- Proses mati: hanya proses riwayat yang dihentikan, dengan SIGTERM saat menganggur. Broker produk dengan konfirmasi dan penyimpanan Tidak dijalankan.
+- Pemindai ADR 44 (govulncheck dan grype) Tidak dijalankan atas kedua lab, jadi halaman ini tidak menulis lab lolos pemindaian.
+- Kubernetes: Argo CD, HPA atas Rollout, dan router selain Traefik Tidak dijalankan, dan lab hanya diuji di host arm64.
 
 ### Di stack lain
 
@@ -267,7 +276,7 @@ Batasnya: satu service pemantau milik satu tim, bukan seluruh Prime Video, dan p
 | Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |
 |---|---|---|---|
 | Waktu tunggu rilis satu tim tidak turun sesudah pemecahan | Waktu dari perubahan siap sampai rilis, per tim | Pembanding: merge queue 6 jam di cerita (Ilustrasi). Sesudah pemecahan belum ada ukuran | Pipeline per service |
-| p95 satu lompatan HTTP ke ledger melewati 50 ms antar host (anggaran lompatan ADR 37) | p95 tambahan per lompatan, antar host | Belum diukur antar host (Tidak dijalankan). Di puncak 69,4 transaksi uang per detik × 0,05 detik = 3,5 panggilan serentak, dan 46,3 × 0,05 = 2,3 dengan 2 transaksi per user aktif per hari (Hitungan atas Asumsi) | Trace per lompatan |
+| p95 satu lompatan HTTP ke ledger melewati 50 ms antar host (anggaran lompatan ADR 37) | p95 tambahan per lompatan, antar host | Belum diukur antar host (Tidak dijalankan). Di puncak 69,4 transaksi uang per detik × 0,05 detik = 3,5 panggilan serentak, dengan satu panggilan ke ledger per transaksi uang. Dengan 2 transaksi per user aktif per hari: 46,3 × 0,05 = 2,3 (Hitungan atas Asumsi) | Trace per lompatan |
 | Komponen yang bertukar data besar dan sering rugi bila dipisah | Byte per panggilan dan jumlah panggilan per transaksi | Lab: 620,14 byte per transaksi tiap arah dan 6 panggilan (Rekaman lab). Prime Video: banyaknya panggilan S3 untuk frame antar komponen menaikkan biaya (kasus industri) | Ukuran pesan antar service |
 | Selisih lintas service tidak tertutup rekonsiliasi dalam satu hari kerja | Selisih rekonsiliasi harian | Target uji coba nasional: Rp0 atau insiden tertutup dalam satu hari kerja selama 14 hari berturut-turut (Asumsi, [[t5-m51]]). Belum diukur di halaman ini | Laporan rekonsiliasi harian |
 | Satu service dipegang kurang dari 3 orang (Asumsi) | Orang per service | 4,7 untuk semua tim dan 3,3 untuk lima tim produk (Hitungan atas Asumsi) | Daftar tim ([[t5-prd]]) |

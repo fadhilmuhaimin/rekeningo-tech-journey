@@ -147,8 +147,8 @@
 *[HMAC]: Nilai yang dihitung dari isi pesan dan rahasia bersama, supaya penerima bisa memeriksa bahwa pesan tidak diubah dan berasal dari pemegang rahasia.
 *[Hold]: Dana yang dipisahkan sementara dari saldo untuk satu otorisasi kartu, dicatat sebagai jurnal ke buku sistem dan dilepas saat ditagih, dibatalkan, atau kedaluwarsa.
 *[hold]: Dana yang dipisahkan sementara dari saldo untuk satu otorisasi kartu, dicatat sebagai jurnal ke buku sistem dan dilepas saat ditagih, dibatalkan, atau kedaluwarsa.
-*[HPA]: Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti satu metrik, misalnya CPU.
-*[Horizontal Pod Autoscaler]: Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti satu metrik, misalnya CPU.
+*[HPA]: Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.
+*[Horizontal Pod Autoscaler]: Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.
 *[HSTS]: Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.
 *[HTTP Strict Transport Security]: Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.
 *[IaC]: Infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang di-review seperti kode, lalu dibuat oleh sebuah alat.
