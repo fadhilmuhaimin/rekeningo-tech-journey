@@ -222,3 +222,33 @@ func TestDuaFileDuaDataKey(t *testing.T) {
 		t.Fatalf("data key file lain harus ErrAutentikasi, dapat %v", err)
 	}
 }
+
+// Bentuk berkas = nonce (12 byte) || ciphertext || tag (16 byte) dari AES-256-GCM standar dengan data tambahan periode.
+// Blob dibuat dan dibuka langsung dengan crypto/cipher.NewGCM (nonce eksplisit), tanpa kode paket ini: panjang kunci 32 byte
+// (AES-256, bukan AES-128) dan urutan byte terkunci.
+func TestBentukSamaDenganGCMStandar(t *testing.T) {
+	dek := bytes.Repeat([]byte{0x2a}, 32)
+	teks := []byte("id,jurnal_id,buku_id,jumlah\n1,1,2,1000\n")
+	blokStandar, err := aes.NewCipher(dek)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := cipher.NewGCM(blokStandar)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nonce := bytes.Repeat([]byte{0x07}, 12)
+	luar := g.Seal(bytes.Clone(nonce), nonce, teks, []byte("rekeningo-arsip-v1:2026-05-01"))
+	hasil, err := Dekripsi(luar, dek, "2026-05-01")
+	if err != nil || !bytes.Equal(hasil, teks) {
+		t.Fatalf("blob GCM standar tidak terbuka: %v", err)
+	}
+	dalam, err := Enkripsi(teks, dek, "2026-05-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	balik, err := g.Open(nil, dalam[:12], dalam[12:], []byte("rekeningo-arsip-v1:2026-05-01"))
+	if err != nil || !bytes.Equal(balik, teks) {
+		t.Fatalf("Enkripsi tidak menghasilkan nonce || ciphertext || tag AES-256-GCM: %v", err)
+	}
+}

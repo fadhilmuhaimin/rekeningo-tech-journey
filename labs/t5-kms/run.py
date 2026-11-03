@@ -545,7 +545,7 @@ def rekam_testing():
         harap(rc, 0, "go vet")
         rc, t = go("test", "-v", "-count=1", "./...", env=env)
         t = "\n".join(l for l in t.splitlines() if not l.startswith(("=== RUN", "=== PAUSE", "=== CONT")))
-        catat("$ BAO_ADDR=<alamat> BAO_TOKEN=<token operator> BAO_KUNCI=kek-arsip TES_KMS_WAJIB=1 go test -v -count=1 ./...")
+        catat("$ go test -v -count=1 ./...   # lingkungan: BAO_ADDR, BAO_TOKEN (operator), BAO_KUNCI, TES_KMS_WAJIB=1")
         catat(d.samarkan(t))
         catat(f"# exit status {rc}")
         if rc != 0:
