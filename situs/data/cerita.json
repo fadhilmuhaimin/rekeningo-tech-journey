@@ -4792,8 +4792,9 @@
       "lab": [
         "t5-waf"
       ],
-      "ada": false,
-      "nomor": "5.24"
+      "ada": true,
+      "nomor": "5.24",
+      "menit": 12
     },
     {
       "id": "t5-waf",
