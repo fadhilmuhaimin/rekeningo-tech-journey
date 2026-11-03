@@ -68,7 +68,8 @@ func (k *SakelarKartu) Setel(aktif bool) {
 }
 
 // LabTolak (lab saja): menolak sebagian otorisasi dengan alasan "versi-baru", untuk memerankan versi baru yang
-// salah (M49). Dari setiap 100 pemanggilan, Persen yang pertama ditolak; hitungannya tepat, tidak acak.
+// salah (M49). Penolakan tersebar rata: sesudah k pemanggilan, tepat k x Persen / 100 (dibulatkan ke bawah) yang
+// ditolak, jadi rasio tolak mendekati Persen sejak pemanggilan pertama. Hitungannya tepat, tidak acak.
 type LabTolak struct {
 	Persen int
 	n      atomic.Uint64
@@ -79,7 +80,8 @@ func (l *LabTolak) Tolak() bool {
 	if l == nil || l.Persen <= 0 {
 		return false
 	}
-	return int((l.n.Add(1)-1)%100) < l.Persen
+	k, p := l.n.Add(1)-1, uint64(l.Persen)
+	return (k+1)*p/100 > k*p/100
 }
 
 // HitungOtorisasi (lab saja): pencacah keputusan otorisasi di satu pod, dibaca analisis rollout lewat

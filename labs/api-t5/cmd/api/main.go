@@ -115,10 +115,6 @@ func main() {
 	kompensasi := flag.String("kompensasi-angsuran", "", "job: kompensasi satu angsuran terjurnal yang tidak bisa diselesaikan, bentuk <jadwal>:<ke>: jurnal pembalik dan status gagal, lalu keluar (ADR 54, lab t5-cicilan)")
 	kompensasiOleh := flag.Int64("kompensasi-oleh", 0, "dengan -kompensasi-angsuran: nomor akun admin yang meminta kompensasi")
 	kompensasiAlasan := flag.String("kompensasi-alasan", "", "dengan -kompensasi-angsuran: alasan, minimal 20 karakter")
-	// Tahap 5 (lab t5-rollout, M49, ADR 55): kill switch kartu lintas pod dan versi baru yang salah.
-	sakelarTabel := flag.Bool("sakelar-tabel", false, "kill switch kartu dari tabel sakelar yang dibaca semua pod; nilai tidak terbaca = tolak (ADR 55, lab t5-rollout); mati = flag memori satu proses (ADR 42, versi pertama M49)")
-	sakelarTTL := flag.Duration("sakelar-ttl", service.TTLSakelar, "dengan -sakelar-tabel: lama nilai sakelar dipakai ulang sebelum dibaca lagi (Asumsi naskah: 5 detik)")
-	labTolak := flag.Int("lab-tolak-persen", 0, "lab saja: dari setiap 100 otorisasi kartu, sekian yang pertama ditolak dengan alasan versi-baru (memerankan versi baru yang salah, M49)")
 	flag.Parse()
 
 	// Mode rentan push-dalam-tx adalah versi pertama minggu 1: client tanpa batas waktu dan tanpa pengaman
@@ -190,14 +186,14 @@ func main() {
 		Penerbit: penerbit.Baru(*penerbitURL, klien.BatasBawaan), KunciPenerbit: *penerbitKunci, JedaCekTulis: *jedaCekTulis,
 		LockTimeoutKartu: *kartuLockTimeout, KartuAktif: &atomic.Bool{}, TanpaLapis: map[string]bool{}}
 	dep.KartuAktif.Store(true)
-	if *labTolak < 0 || *labTolak > 100 {
+	if *labTolakPersen < 0 || *labTolakPersen > 100 {
 		log.Fatal("-lab-tolak-persen harus 0 sampai 100")
 	}
 	if *sakelarTabel {
 		dep.SakelarKartu = service.BaruSakelarKartu(r, *sakelarTTL)
 	}
-	if *labTolak > 0 {
-		dep.LabTolak = &service.LabTolak{Persen: *labTolak}
+	if *labTolakPersen > 0 {
+		dep.LabTolak = &service.LabTolak{Persen: *labTolakPersen}
 	}
 	if *lab {
 		dep.HitungOtorisasi = &service.HitungOtorisasi{}

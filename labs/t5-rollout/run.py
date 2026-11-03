@@ -4,7 +4,7 @@ Cluster k3d bernama <lajur>-t5-rollout (satu server, tanpa agent, hanya localhos
 Gateway API, Traefik, dan metrics-server bawaan k3s. Pod otorisasi kartu adalah proses `api-t5` yang sama dengan lab lain
 (image api-t5-rollout:v1, dibangun dari labs/api-t5 dan diimpor ke node: tanpa registry). Semua pod memakai satu
 PostgreSQL lab di mesin ini (host.k3d.internal). Yang baru di api-t5: flag -sakelar-tabel (sakelar dari tabel, nilai tak
-terbaca = tolak), -sakelar-ttl, -lab-tolak-persen (memerankan versi baru yang salah) dan GET /lab/otorisasi (pencacah
+terbaca = tolak), -sakelar-ttl, -lab-tolak-persen (memerankan versi baru yang salah, tersebar rata) dan GET /lab/otorisasi (pencacah
 keputusan, hanya dengan -lab). Pihak ketiga tiruan: penerbit kartu tidak ada; permintaan otorisasi dikirim langsung ke
 POST /penerbit/otorisasi oleh run.py.
 
@@ -561,7 +561,7 @@ def rekam_analisis():
     bersihkan_beban()
     siapkan_data()
     bagian("C. Analisis yang gagal membalik rollout: versi baru menolak 31% otorisasi")
-    catat("# Versi v3 dijalankan dengan -lab-tolak-persen 31: dari setiap 100 otorisasi, 31 pertama ditolak dengan alasan versi-baru.")
+    catat("# Versi v3 dijalankan dengan -lab-tolak-persen 31: 31 persen otorisasi ditolak dengan alasan versi-baru, tersebar rata (sesudah k panggilan tepat k x 31 / 100, dibulatkan ke bawah).")
     catat("# Angka 31% memerankan naskah M49 (Ilustrasi); kode versi baru yang salah tidak ada. Analisis: rasio tolak >= 10% dari paling sedikit 10 keputusan = gagal.")
     siapkan_gateway("v3", "31")
     catat(f"HTTPRoute kartu-route, bobot: {json.dumps(bobot_route())}")

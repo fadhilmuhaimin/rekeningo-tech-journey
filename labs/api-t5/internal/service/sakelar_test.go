@@ -130,6 +130,21 @@ func TestLabTolakTepatPersen(t *testing.T) {
 	}
 }
 
+// Penolakan tersebar rata: di setiap awalan pemanggilan, jumlah yang ditolak tepat k x persen / 100 (dibulatkan ke
+// bawah). Versi yang menolak N pertama dari tiap 100 memberi rasio 100% di awal dan meloloskan ambang analisis yang salah.
+func TestLabTolakTersebarRata(t *testing.T) {
+	l := &LabTolak{Persen: 31}
+	n := 0
+	for k := 1; k <= 300; k++ {
+		if l.Tolak() {
+			n++
+		}
+		if n != k*31/100 {
+			t.Fatalf("setelah %d pemanggilan %d ditolak, ingin %d", k, n, k*31/100)
+		}
+	}
+}
+
 func TestHitungOtorisasi(t *testing.T) {
 	var kosong *HitungOtorisasi
 	kosong.Catat(Keputusan{Keputusan: "setuju"}) // tidak panik

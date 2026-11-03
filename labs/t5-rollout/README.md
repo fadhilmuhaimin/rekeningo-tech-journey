@@ -39,7 +39,7 @@ Tanpa flag baru, `api-t5` tidak berubah. Detailnya ada di `labs/api-t5/README.md
 | --- | --- |
 | `-sakelar-tabel` | kill switch kartu dibaca dari baris `kartu_aktif` di tabel `sakelar`, dengan cache; nilai tidak terbaca = tolak (ADR 55). Tanpa flag: flag memori satu proses (ADR 42), versi pertama M49 |
 | `-sakelar-ttl` | lama nilai sakelar dipakai ulang; bawaan 5 detik (Asumsi naskah) |
-| `-lab-tolak-persen N` | lab saja: dari setiap 100 otorisasi, N yang pertama ditolak dengan alasan `versi-baru`. Hitungannya tepat, bukan acak |
+| `-lab-tolak-persen N` | lab saja: N persen otorisasi ditolak dengan alasan `versi-baru`, tersebar rata: sesudah k panggilan tepat k × N ÷ 100 (dibulatkan ke bawah) yang ditolak. Hitungannya tepat, bukan acak |
 | `GET /lab/otorisasi` | dengan `-lab`: jumlah keputusan, setuju, tolak, dan rasio tolak di satu pod |
 
 `POST /bo/flag/kartu` dengan `-sakelar-tabel` menulis baris `sakelar` di transaction yang sama dengan baris audit; tanpa flag, perilakunya sama dengan Tahap 4. Kode: `internal/service/sakelar.go`, `internal/repo/sakelar.go`, `internal/service/bo.go`, dan pemanggilnya di `internal/service/kartu.go`.
