@@ -261,15 +261,6 @@
   "h": "/istilah/backup-dan-uji-pulih/"
  },
  {
-  "t": "Backpressure",
-  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
-  "b": "t5-fanout",
-  "n": "5.15 Fan-out dan event streaming",
-  "u": "/tahap-5/fan-out/",
-  "s": "istilah-backpressure",
-  "h": "/istilah/backpressure/"
- },
- {
   "t": "Batch",
   "d": "Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.",
   "b": "t5-batch",
@@ -277,6 +268,15 @@
   "u": "/tahap-5/batch-tahan-crash/",
   "s": "istilah-batch",
   "h": null
+ },
+ {
+  "t": "Backpressure",
+  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "b": "t5-fanout",
+  "n": "5.15 Fan-out dan event streaming",
+  "u": "/tahap-5/fan-out/",
+  "s": "istilah-backpressure",
+  "h": "/istilah/backpressure/"
  },
  {
   "t": "BFF (Backend for Frontend)",
