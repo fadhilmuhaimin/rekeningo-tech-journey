@@ -1,0 +1,285 @@
+{
+  "versi": 2,
+  "judul": "Riwayat dan saldo dari replica yang tertinggal: bayar Rp35.000, layar masih lama",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t5-replika/output/baca.txt",
+    "fileVarian": "labs/t5-replika/output/baca.txt",
+    "catatan": "Lab t5-replika, PostgreSQL 17.11, dari database bersih (make -C labs/t5-replika run BAGIAN=baca). Jalur utama: baca.txt bagian A, server dengan mode rentan riwayat-replika dan pemutaran ulang di replica ditahan dengan sengaja (jeda buatan, bukan jeda alami). Ubah satu hal: bagian B, server tanpa mode rentan dan app yang mengirim header X-Lsn-Tulis; bagian B memakai pembayaran kedua Budi, Rp12.000 dari saldo Rp215.000, jadi angkanya berbeda dari jalur utama. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter, dan jam di layar berasal dari cerita. Tiap langkah menampilkan baris terpilih dari rekaman yang sama dalam urutan aslinya; baris yang tidak dibutuhkan langkah itu dilewati. Baris diawali tanda pagar adalah baris rekaman, bukan baris log."
+  },
+  "pengantar": "Budi membayar Rp35.000, dan server membaca saldo serta riwayat dari replica yang ditahan. Tebak dulu apa yang app terima, lalu ikuti langkahnya sampai HP. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "srv",
+      "label": "Server api-t5"
+    },
+    {
+      "id": "pri",
+      "label": "Primary"
+    },
+    {
+      "id": "rep",
+      "label": "Replica"
+    }
+  ],
+  "perangkat": [
+    {
+      "id": "hp",
+      "label": "HP Budi"
+    }
+  ],
+  "layarAwal": {
+    "hp": {
+      "judul": "Rekeningo",
+      "waktu": "12.05",
+      "sinyal": 4,
+      "saldo": 250000,
+      "isi": [
+        {
+          "jenis": "baris",
+          "kiri": "Tunjangan makan",
+          "kanan": "+Rp250.000"
+        },
+        {
+          "jenis": "tombol",
+          "teks": "Bayar Warung 505"
+        }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Budi membayar Rp35.000, dan jawaban bayar memuat saldo Rp215.000. Replica sedang ditahan. Apa yang app terima saat meminta saldo dan riwayat?",
+    "options": [
+      "Saldo Rp215.000 dan dua baris riwayat: server membaca primary yang sudah memuat pembayaran",
+      "Saldo Rp250.000 dan satu baris riwayat: server membaca replica yang belum memutar ulang pembayaran",
+      "Galat 5xx: replica yang ditahan tidak menjawab bacaan sampai pemutaran ulang dilanjutkan",
+      "Saldo Rp215.000 tetapi riwayat tetap satu baris: saldo dibaca dari primary, sedangkan riwayat dibaca dari replica"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Replica yang ditahan tetap menjawab, dengan data lama: saldo Rp250.000 dan satu baris riwayat, keduanya dengan X-Dibaca-Dari: replika. Saldo dan riwayat sama-sama dibaca dari replica di versi pertama. Rekaman baca.txt bagian A."
+  },
+  "langkah": [
+    {
+      "dari": "srv",
+      "ke": "pri",
+      "judul": "Budi membayar Rp35.000 ke Warung 505, dan server menulis di primary",
+      "kirim": "replika=> SELECT pg_wal_replay_pause()   # jeda buatan\n$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{\"ke\": 505, \"nominal\": 35000}'\nHTTP/1.1 201 Created\nContent-Type: application/json\nLocation: /transfers/10201\nX-Lsn-Tulis: <LSN tulis 1>\n\n{\"id\":10201,\"saldo\":215000}",
+      "jelas": "Pemutaran ulang di replica ditahan dengan sengaja sebelum bayar (jeda buatan). Jawaban bayar 201 memuat saldo Rp215.000, yaitu 250.000 − 35.000 (Hitungan). Header X-Lsn-Tulis dipakai varian.",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "12.05",
+          "sinyal": 4,
+          "saldo": 250000,
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Tunjangan makan",
+              "kanan": "+Rp250.000"
+            },
+            {
+              "jenis": "toast",
+              "teks": "Berhasil",
+              "nada": "good"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "srv",
+      "ke": "rep",
+      "judul": "App meminta saldo dan riwayat, dan server membaca replica",
+      "kirim": "$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>' -H 'X-Lsn-Tulis: <LSN tulis 1>'\nHTTP/1.1 200 OK\nX-Dibaca-Dari: replika\n{\"id\":419,\"jenis\":\"karyawan\",\"nama\":\"Budi\",\"saldo\":250000,\"nomor_karyawan\":\"K00419\",\"kota_id\":1,\"tingkat\":\"terverifikasi\",\"status\":\"aktif\"}\n$ curl -i -X GET '/akun/419/riwayat' -H 'Authorization: Bearer <token sesi Budi>' -H 'X-Lsn-Tulis: <LSN tulis 1>'\nHTTP/1.1 200 OK\nX-Dibaca-Dari: replika\n{\"berikutnya\":null,\"riwayat\":[{\"id\":2,\"jenis\":\"topup\",\"arah\":\"masuk\",\"lawan\":\"Tunjangan makan\",\"jumlah\":250000,\"nominal\":250000,\"waktu\":\"<waktu>\"}]}",
+      "jelas": "Server menjawab dari replica: saldo Rp250.000 dan satu baris riwayat, tanpa pembayaran Rp35.000. HP menampilkan jawaban itu apa adanya (Ilustrasi).",
+      "nada": "warn",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "12.05",
+          "sinyal": 4,
+          "saldo": 250000,
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Tunjangan makan",
+              "kanan": "+Rp250.000"
+            },
+            {
+              "jenis": "toast",
+              "teks": "Berhasil",
+              "nada": "good"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "pri",
+      "judul": "Primary sudah memuat pembayaran, replica belum",
+      "kirim": "primary=> SELECT saldo_cache FROM t5_ledger.buku WHERE akun_id = 419\n saldo_cache\n-------------\n 215000\n(1 row)\nreplika=> SELECT saldo_cache FROM t5_ledger.buku WHERE akun_id = 419\n saldo_cache\n-------------\n 250000\n(1 row)",
+      "jelas": "Saldo di buku primary Rp215.000, di replica Rp250.000. Pembayaran sudah tercatat, jadi dugaan pertama Raka gugur. Replica belum memutar ulang pembayaran itu."
+    },
+    {
+      "dari": "srv",
+      "ke": "pri",
+      "judul": "Kiriman Rp240.000 ke rekan ditolak dari saldo di primary",
+      "kirim": "$ curl -i -X POST '/kiriman' -H 'Authorization: Bearer <token sesi Budi>' -d '{\"ke_nomor_karyawan\": \"K00504\", \"nominal\": 240000}'\nHTTP/1.1 422 Unprocessable Entity\nContent-Type: application/problem+json\n\n{\"type\":\"/problems/saldo-kurang\",\"title\":\"Saldo tidak cukup\",\"status\":422}",
+      "jelas": "Saldo tampil Rp250.000 cukup untuk Rp240.000, tetapi server memutuskan dari saldo primary Rp215.000 dan menjawab 422 saldo-kurang. Uang tidak ikut keliru. Di layar, penolakan itu bertentangan dengan saldo yang tampil (Ilustrasi). Memakai kiriman, bukan pembayaran, karena satu pembayaran dibatasi Rp200.000.",
+      "nada": "good",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "12.05",
+          "sinyal": 4,
+          "saldo": 250000,
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Tunjangan makan",
+              "kanan": "+Rp250.000"
+            },
+            {
+              "jenis": "toast",
+              "teks": "Saldo tidak cukup",
+              "nada": "warn"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "srv",
+      "ke": "rep",
+      "judul": "Replica menyusul, dan saldo serta riwayat jadi benar",
+      "kirim": "$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>'\nHTTP/1.1 200 OK\nX-Dibaca-Dari: replika\n{\"id\":419,\"jenis\":\"karyawan\",\"nama\":\"Budi\",\"saldo\":215000,\"nomor_karyawan\":\"K00419\",\"kota_id\":1,\"tingkat\":\"terverifikasi\",\"status\":\"aktif\"}\n$ curl -i -X GET '/akun/419/riwayat' -H 'Authorization: Bearer <token sesi Budi>'\nHTTP/1.1 200 OK\nX-Dibaca-Dari: replika\n{\"berikutnya\":null,\"riwayat\":[{\"id\":10201,\"jenis\":\"bayar\",\"arah\":\"keluar\",\"lawan\":\"Warung 505\",\"jumlah\":35000,\"nominal\":35000,\"waktu\":\"<waktu>\"},{\"id\":2,\"jenis\":\"topup\",\"arah\":\"masuk\",\"lawan\":\"Tunjangan makan\",\"jumlah\":250000,\"nominal\":250000,\"waktu\":\"<waktu>\"}]}",
+      "jelas": "Sesudah pemutaran ulang dilanjutkan dan replica menyusul, saldo tampil Rp215.000 dan riwayat dua baris. Rekaman tidak menulis perintah pelanjutan; kode lab memanggil pg_wal_replay_resume().",
+      "nada": "good",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "12.05",
+          "sinyal": 4,
+          "saldo": 215000,
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Warung 505",
+              "kanan": "−Rp35.000"
+            },
+            {
+              "jenis": "baris",
+              "kiri": "Tunjangan makan",
+              "kanan": "+Rp250.000"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "app mengirim X-Lsn-Tulis dari jawaban bayar, dan server memeriksanya",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "srv",
+        "ke": "pri",
+        "judul": "Budi membayar lagi Rp12.000, dan jawaban membawa token",
+        "kirim": "replika=> SELECT pg_wal_replay_pause()   # jeda buatan\n$ curl -i -X POST '/transfers' -H 'Authorization: Bearer <token sesi Budi>' -d '{\"ke\": 505, \"nominal\": 12000}'\nHTTP/1.1 201 Created\nContent-Type: application/json\nLocation: /transfers/10202\nX-Lsn-Tulis: <LSN tulis 2>\n\n{\"id\":10202,\"saldo\":203000}",
+        "jelas": "Bagian B memakai pembayaran kedua Budi: saldo awal Rp215.000, bayar Rp12.000, saldo Rp203.000 (215.000 − 12.000, Hitungan). Pemutaran ulang di replica ditahan lagi dengan sengaja.",
+        "layar": {
+          "hp": {
+            "judul": "Rekeningo",
+            "waktu": "12.05",
+            "sinyal": 4,
+            "saldo": 215000,
+            "isi": [
+              {
+                "jenis": "baris",
+                "kiri": "Warung 505",
+                "kanan": "−Rp35.000"
+              },
+              {
+                "jenis": "baris",
+                "kiri": "Tunjangan makan",
+                "kanan": "+Rp250.000"
+              },
+              {
+                "jenis": "toast",
+                "teks": "Berhasil",
+                "nada": "good"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "srv",
+        "ke": "pri",
+        "judul": "App mengirim token, replica belum sampai, dan server membaca primary",
+        "kirim": "$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>' -H 'X-Lsn-Tulis: <LSN tulis 2>'\nX-Dibaca-Dari: primary\n{\"id\":419,\"jenis\":\"karyawan\",\"nama\":\"Budi\",\"saldo\":203000,\"nomor_karyawan\":\"K00419\",\"kota_id\":1,\"tingkat\":\"terverifikasi\",\"status\":\"aktif\"}\nX-Dibaca-Dari: primary\n{\"berikutnya\":null,\"riwayat\":[{\"id\":10202,\"jenis\":\"bayar\",\"arah\":\"keluar\",\"lawan\":\"Warung 505\",\"jumlah\":12000,\"nominal\":12000,\"waktu\":\"<waktu>\"},{\"id\":10201,\"jenis\":\"bayar\",\"arah\":\"keluar\",\"lawan\":\"Warung 505\",\"jumlah\":35000,\"nominal\":35000,\"waktu\":\"<waktu>\"},{\"id\":2,\"jenis\":\"topup\",\"arah\":\"masuk\",\"lawan\":\"Tunjangan makan\",\"jumlah\":250000,\"nominal\":250000,\"waktu\":\"<waktu>\"}]}",
+        "jelas": "Server bertanya ke replica apakah ia sudah sampai posisi token. Belum, jadi ia membaca primary: saldo Rp203.000 dan tiga baris riwayat.",
+        "nada": "good",
+        "layar": {
+          "hp": {
+            "judul": "Rekeningo",
+            "waktu": "12.05",
+            "sinyal": 4,
+            "saldo": 203000,
+            "isi": [
+              {
+                "jenis": "baris",
+                "kiri": "Warung 505",
+                "kanan": "−Rp12.000"
+              },
+              {
+                "jenis": "baris",
+                "kiri": "Warung 505",
+                "kanan": "−Rp35.000"
+              },
+              {
+                "jenis": "baris",
+                "kiri": "Tunjangan makan",
+                "kanan": "+Rp250.000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "srv",
+        "ke": "rep",
+        "judul": "Replica menyusul, dan token yang sama kini dilayani replica",
+        "kirim": "replika=> SELECT pg_last_wal_replay_lsn() >= '<LSN tulis 2>'::pg_lsn AS replika_sampai_posisi_tulis\n t\n$ curl -i -X GET '/akun/419' -H 'Authorization: Bearer <token sesi Budi>' -H 'X-Lsn-Tulis: <LSN tulis 2>'\nHTTP/1.1 200 OK\nX-Dibaca-Dari: replika\n{\"id\":419,\"jenis\":\"karyawan\",\"nama\":\"Budi\",\"saldo\":203000,\"nomor_karyawan\":\"K00419\",\"kota_id\":1,\"tingkat\":\"terverifikasi\",\"status\":\"aktif\"}",
+        "jelas": "Biayanya: selama replica tertinggal, bacaan dengan token kembali ke primary. Bacaan tanpa token tetap dilayani replica (bagian B).",
+        "nada": "good",
+        "layar": {
+          "hp": {
+            "judul": "Rekeningo",
+            "waktu": "12.05",
+            "sinyal": 4,
+            "saldo": 203000,
+            "isi": [
+              {
+                "jenis": "baris",
+                "kiri": "Warung 505",
+                "kanan": "−Rp12.000"
+              },
+              {
+                "jenis": "baris",
+                "kiri": "Warung 505",
+                "kanan": "−Rp35.000"
+              },
+              {
+                "jenis": "baris",
+                "kiri": "Tunjangan makan",
+                "kanan": "+Rp250.000"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

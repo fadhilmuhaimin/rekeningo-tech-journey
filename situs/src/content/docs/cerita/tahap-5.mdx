@@ -41,7 +41,7 @@ Angka ini tidak menjawab "butuh berapa server". Jawaban itu hanya datang dari lo
 | Tabel mana yang lahir, berubah, dan dibagi per service saat laporan, cicilan, pengumuman, dan mitra POS masuk? | [5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya](/tahap-5/skema-data/) |
 | Laporan merchant yang dibuka tiap 30 detik memperlambat pembayaran karena memakai primary yang sama | [5.4 M40: Pembayaran melambat saat merchant membuka laporan](/tahap-5/m40-pembayaran-melambat/) |
 | Laporan dan bacaan berat dibaca dari replica, sedangkan yang memutuskan uang tetap dibaca dari primary | [5.5 Read replica dan model baca untuk laporan + ADR 46](/tahap-5/read-replica/) |
-| Budi melihat Berhasil, tetapi riwayat dan saldo belum berubah karena dibaca dari replica yang tertinggal | 5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat · *segera* |
+| Budi melihat Berhasil, tetapi riwayat dan saldo belum berubah karena dibaca dari replica yang tertinggal | [5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat](/tahap-5/m41-riwayat-belum-memuat/) |
 | Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya | 5.7 Replication lag dan read-your-writes + ADR 47 · *segera* |
 | Primary mati, replica asinkron belum menerima commit terakhir, dan dua top-up yang sudah dijawab sukses hilang | [5.8 M42: Database utama mati, dua top-up hilang](/tahap-5/m42-database-utama-mati/) |
 | Batas transaksi yang boleh hilang dan waktu pulih ditulis lebih dulu, lalu dibuktikan dengan replica sinkron dan latihan failover | 5.9 RPO, RTO, replica sinkron, dan failover + ADR 48 · *segera* |
