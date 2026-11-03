@@ -420,3 +420,45 @@ func TestOtorisasiMencatatPencacahDanLabTolak(t *testing.T) {
 		t.Fatalf("pencacah versi salah: total %d tolak %d rasio %v, ingin 2, 2, 1", total, tl, rasio)
 	}
 }
+
+// Pembacaan bersama tidak ikut dibatalkan oleh pemanggil pertama yang berhenti menunggu: pemanggil lain yang menunggu
+// hasilnya tetap mendapat nilai tabel.
+func TestSakelarKartuPembacaanBersamaTidakDibatalkanPemanggilPertama(t *testing.T) {
+	mulaiBaca, lepas := make(chan struct{}), make(chan struct{})
+	k := &SakelarKartu{ttl: time.Hour, kini: time.Now, baca: func(ctx context.Context, nama string) (bool, error) {
+		close(mulaiBaca)
+		select {
+		case <-lepas:
+			return true, nil
+		case <-ctx.Done():
+			return false, ctx.Err()
+		}
+	}}
+	ctxPertama, batalPertama := context.WithCancel(context.Background())
+	pertama := make(chan [2]bool, 1)
+	go func() {
+		a, ok := k.Aktif(ctxPertama)
+		pertama <- [2]bool{a, ok}
+	}()
+	<-mulaiBaca
+	kedua := make(chan [2]bool, 1)
+	go func() {
+		a, ok := k.Aktif(context.Background())
+		kedua <- [2]bool{a, ok}
+	}()
+	time.Sleep(100 * time.Millisecond) // pemanggil kedua sudah menunggu hasil pembacaan pertama
+	batalPertama()
+	time.Sleep(100 * time.Millisecond)
+	close(lepas)
+	if h := <-kedua; h != [2]bool{true, true} {
+		t.Fatalf("pemanggil kedua: %v, ingin menyala dan terbaca walau pemanggil pertama berhenti", h)
+	}
+	<-pertama
+}
+
+// Bawaan TTL sama dengan Asumsi naskah ADR 55 (5 detik): manifes lab menulisnya tegas, jadi hanya tes ini yang menjaganya.
+func TestSakelarKartuTTLBawaanLimaDetik(t *testing.T) {
+	if TTLSakelar != 5*time.Second {
+		t.Fatalf("TTLSakelar %v, ingin 5s (Asumsi naskah ADR 55)", TTLSakelar)
+	}
+}

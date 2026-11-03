@@ -29,7 +29,7 @@ Argo CD v3.5.6 dan Flux **Tidak dijalankan**: Argo CD butuh repositori Git yang 
 | `argo-rollouts-install.yaml` | github.com/argoproj/argo-rollouts, rilis v1.10.1, `install.yaml` | 3.048.424 byte | `149148429a6f8258b789003ffb9bc6698a526d611ecb1b185624217cf51bae7f` |
 | `gatewayapi-plugin-linux-arm64` | github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi, rilis v0.17.0 | 73.576.483 byte | `5221279f7bf2c9b2c0ff6ed7ff12718ecce1d4892f1ff5e5224bb723cfd0fd92` (ditulis di `manifes/argo-rollouts-gateway.yaml`, diperiksa controller) |
 
-Di platform selain macOS arm64, pasang k3d v5.9.0 dari rilis resmi sendiri (cocokkan sha256 dengan `checksums.txt` rilisnya) lalu jalankan dengan `K3D=<path>`. Tidak ada perintah `curl | sh`, `sudo`, atau Homebrew. Docker Desktop memberi 7,6 GiB RAM; cluster dibatasi 3 GiB.
+Di platform selain macOS arm64, pasang k3d v5.9.0 dari rilis resmi sendiri (cocokkan sha256 dengan `checksums.txt` rilisnya) lalu jalankan dengan `K3D=<path>`. Biner plugin Gateway API di `manifes/argo-rollouts-gateway.yaml` adalah linux/arm64 (URL dan sha256 untuk arm64), jadi lab ini hanya diuji di host arm64. Di host amd64 URL dan sha256-nya harus diganti ke biner amd64 dari rilis plugin: Tidak dijalankan. Tidak ada perintah `curl | sh`, `sudo`, atau Homebrew. Docker Desktop memberi 7,6 GiB RAM; cluster dibatasi 3 GiB.
 
 ## Yang baru di api-t5
 
