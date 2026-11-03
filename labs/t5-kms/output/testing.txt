@@ -6,7 +6,7 @@
 $ go vet ./...
 (tanpa temuan)
 # exit status 0
-$ BAO_ADDR=<alamat> BAO_TOKEN=<token operator> BAO_KUNCI=kek-arsip TES_KMS_WAJIB=1 go test -v -count=1 ./...
+$ go test -v -count=1 ./...   # lingkungan: BAO_ADDR, BAO_TOKEN (operator), BAO_KUNCI, TES_KMS_WAJIB=1
 --- PASS: TestMengirimTokenDanJalur
 --- PASS: TestStatusBukan2xxMenjadiGalatBao
 --- PASS: TestDataKeyBukan32Byte
@@ -28,6 +28,7 @@ ok    lab/t5kms/bao
 --- PASS: TestArsipkanDanBuka
 --- PASS: TestBukaTanpaKMS
 --- PASS: TestDuaFileDuaDataKey
+--- PASS: TestBentukSamaDenganGCMStandar
 PASS
 ok    lab/t5kms/envelope
 --- PASS: TestHanyaBertambah
