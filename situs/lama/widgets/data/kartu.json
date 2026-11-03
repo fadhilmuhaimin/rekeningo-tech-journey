@@ -3885,7 +3885,7 @@
   "judul": "5.16 M46: Latihan failover membuat semua service error",
   "url": "tahap-5/m46-failover-semua-error/",
   "tanya": "Berapa nilai bawaan pgxpool v5.11.0 untuk `MaxConns` dan `MaxConnLifetimeJitter`, dan apa yang dipasang lab?",
-  "jawab": "`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Lab memasang `MaxConns` 10 dan tidak mengatur jitter."
+  "jawab": "`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Di lab, `MaxConns` bernilai 10 dan jitter tidak diatur."
  },
  {
   "id": "t5-m47-1",

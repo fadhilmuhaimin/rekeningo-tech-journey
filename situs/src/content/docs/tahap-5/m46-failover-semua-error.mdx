@@ -52,7 +52,7 @@ Pool yang meminta koneksi bersamaan melewati batas database, dan sebagian ditola
 
 *Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab api-t5. Satu proses `pooler` membuka 12 pool dengan 10 koneksi per pool, langsung ke PostgreSQL. Rekaman ini bukan latihan failover: tidak ada primary yang dimatikan, replica yang dipromosikan, atau pod.
 
-**Kode yang direkam.** Tiap client memakai satu pool dengan `MaxConns` 10, lalu meminta sepuluh koneksi sekaligus. Tiap koneksi yang berhasil dibuka dipakai untuk 20 query dengan jeda 50 milidetik di antaranya (Tidak dijalankan: dibaca dari kode lab):
+**Kode yang direkam.** Tiap client memakai satu pool dengan `MaxConns` 10, lalu meminta sepuluh koneksi sekaligus. Tiap koneksi yang berhasil dibuka dipakai untuk 20 query, dengan jeda 50 milidetik sesudah tiap query (Tidak dijalankan: dibaca dari kode lab):
 
 <Snippet file="labs/api-t5/cmd/pooler/main.go" lines="45:61" lang="go" title="Kode lab: labs/api-t5/cmd/pooler/main.go baris 45 sampai 61 (tiap client memakai satu pool dan meminta seluruh koneksinya sekaligus)" />
 
@@ -60,7 +60,7 @@ Rekaman bagian A menjalankan kode itu langsung ke PostgreSQL:
 
 <Snippet file="labs/api-t5/output/pooler.txt" lines="5:13" title="Rekaman lab: labs/api-t5/output/pooler.txt, bagian A (12 client × pool 10, langsung ke PostgreSQL)" />
 
-Semua galat yang tercatat berkode 53300. Galat itu dikirim oleh server PostgreSQL yang hidup, karena kode lab membacanya dari `pgconn.PgError`. Jadi satu database yang sehat bisa menolak koneksi.
+Semua galat yang tercatat berkode 53300. Galat itu dikirim oleh server PostgreSQL yang hidup, karena kode lab membacanya dari `pgconn.PgError`. Jadi database yang hidup dan menjawab bisa menolak koneksi.
 
 Jumlah koneksi yang berhasil tidak direkam sebagai angka, karena bergantung pada koneksi lain di database. Lab memeriksa bahwa jumlah itu di bawah 120, dan koneksi role itu paling banyak 97 pada sampel tiap 100 milidetik.
 
@@ -156,7 +156,7 @@ Diminta 6 × 3 × 10 = 180 dan tersedia 100 − 3 = 97, jadi 83 tidak bisa dibuk
 <details class="success">
 <summary>Jawaban</summary>
 
-`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Lab memasang `MaxConns` 10 dan tidak mengatur jitter.
+`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Di lab, `MaxConns` bernilai 10 dan jitter tidak diatur.
 
 </details>
 
