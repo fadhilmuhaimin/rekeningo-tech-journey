@@ -1,5 +1,5 @@
 # Lab t5-gabung · tes Go untuk skor, antrean, dan alur tiga proses
-# go1.27.3 · tanpa database dan tanpa container · modul lab/t5gabung (pustaka standar) · broker antrean tiruan di loopback
+# go1.27.3 · tanpa database dan tanpa container · modul lab/t5gabung (pustaka standar) · broker queue tiruan di loopback
 # Skor risiko di lab ini peraga, bukan fitur produk dan bukan model risiko.
 # Rekaman: make -C labs/t5-gabung run. Waktu dan p95 tidak ditulis; yang ditulis hasil pemeriksaan terhadap batas.
 

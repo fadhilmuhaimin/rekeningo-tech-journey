@@ -77,7 +77,7 @@ def versi_go():
 
 def tulis(nama, judul):
     kepala = [f"# Lab {LAB} · {judul}",
-              f"# {versi_go()} · tanpa database dan tanpa container · modul lab/t5gabung (pustaka standar) · broker antrean tiruan di loopback",
+              f"# {versi_go()} · tanpa database dan tanpa container · modul lab/t5gabung (pustaka standar) · broker queue tiruan di loopback",
               "# Skor risiko di lab ini peraga, bukan fitur produk dan bukan model risiko.",
               f"# Rekaman: make -C labs/{LAB} run. Waktu dan p95 tidak ditulis; yang ditulis hasil pemeriksaan terhadap batas."]
     OUT.mkdir(exist_ok=True)
@@ -211,14 +211,14 @@ def rekam_panggilan():
         atur_hop(0)
         bagian("A. Yang dijalankan")
         catat("$ gabung satu -alamat <satu>                                   # satu proses: tiga pembacaan data lewat pemanggilan fungsi")
-        catat("$ gabung antrean -alamat <antrean>                             # broker antrean tiruan")
+        catat("$ gabung antrean -alamat <antrean>                             # broker queue tiruan")
         catat("$ gabung masuk|perangkat|riwayat -alamat <...> -antrean <antrean>   # tiga proses layanan, satu data tiap proses")
-        catat("# Satu proses berjalan: 1. Tiga proses berjalan: 3 layanan (masuk, perangkat, riwayat) dan 1 broker antrean, jadi 4 proses.")
+        catat("# Satu proses berjalan: 1. Tiga proses berjalan: 3 layanan (masuk, perangkat, riwayat) dan 1 broker queue, jadi 4 proses.")
         catat("# Data (memori, benih tetap): 2000 akun di proses masuk, 1500 perangkat di proses perangkat, 60 baris riwayat per akun di proses riwayat.")
         catat("# Versi satu proses memegang ketiganya. Jeda buatan per panggilan: 0 ms.")
         catat("# Panggilan dari client ke pintu masuk (satu POST per transaksi) sama di kedua versi dan tidak ikut dihitung di bawah.")
-        catat("# Lingkup: satu bentuk pembagian (rantai tiga proses lewat antrean, urut) dan satu skor. Bentuk lain, mis. satu pemanggil yang memanggil")
-        catat("# tiga service sekaligus tanpa antrean, Tidak dijalankan.")
+        catat("# Lingkup: satu bentuk pembagian (rantai tiga proses lewat queue, urut) dan satu skor. Bentuk lain, mis. satu pemanggil yang memanggil")
+        catat("# tiga service sekaligus tanpa queue, Tidak dijalankan.")
 
         sebelum = foto()
         s = beban("satu", N_PANGGILAN)
@@ -239,7 +239,7 @@ def rekam_panggilan():
         catat(f"transaksi {tiga['n']}, gagal 0")
         catat(f"panggilan per transaksi (dibawa pesan): {HOP_PER_TRANSAKSI} pada {len(pan_t)} dari {len(pan_t)} transaksi")
 
-        catat(f"# Penghitung klien tiap proses (selisih selama {N_PANGGILAN} transaksi tiga proses): panggilan yang membawa pesan")
+        catat(f"# Penghitung client tiap proses (selisih selama {N_PANGGILAN} transaksi tiga proses): panggilan yang membawa pesan")
         catat("proses      kirim  ambil")
         jumlah_kirim = jumlah_ambil = 0
         for n in tiga_proses():
@@ -257,9 +257,9 @@ def rekam_panggilan():
         harap(b["publikasi"], 3 * N_PANGGILAN, "publikasi di broker")
         harap(b["ambil_berisi"], 3 * N_PANGGILAN, "ambil berisi di broker")
         harap(b["tertinggal"], 0, "pesan tertinggal di broker")
-        catat(f"# Penghitung broker (sisi penerima, berdiri sendiri dari klien): publikasi {b['publikasi']}, ambil berisi {b['ambil_berisi']}, pesan tertinggal {b['tertinggal']}.")
-        catat("# Tiga penghitung sama (hitungan dalam pesan, klien tiap proses, broker): ya. Penghitung yang tidak cocok menggagalkan lab.")
-        catat(f"# Satu proses: metrik prosesnya menulis {N_PANGGILAN} transaksi diproses dan tidak punya klien antrean, jadi 0 panggilan antar proses.")
+        catat(f"# Penghitung broker (sisi penerima, berdiri sendiri dari client): publikasi {b['publikasi']}, ambil berisi {b['ambil_berisi']}, pesan tertinggal {b['tertinggal']}.")
+        catat("# Tiga penghitung sama (hitungan dalam pesan, client tiap proses, broker): ya. Penghitung yang tidak cocok menggagalkan lab.")
+        catat(f"# Satu proses: metrik prosesnya menulis {N_PANGGILAN} transaksi diproses dan tidak punya client queue, jadi 0 panggilan antar proses.")
         catat("# Ambil yang habis waktu tanpa pesan tidak dihitung per transaksi (jumlahnya bergantung waktu tunggu dan tidak ditulis).")
 
         bagian("C. Hasil skor sama persis di kedua versi")
@@ -287,7 +287,7 @@ def rekam_panggilan():
         catat(f"tiga proses: dikirim ke broker {masuk_b} byte, diterima dari broker {keluar_b} byte, jumlah {masuk_b + keluar_b} byte untuk {N_PANGGILAN} transaksi")
         catat(f"per transaksi: {f1(masuk_b / N_PANGGILAN)} byte dikirim dan {f1(keluar_b / N_PANGGILAN)} byte diterima ({HOP_PER_TRANSAKSI} panggilan)")
         catat("satu proses: 0 byte (tidak ada pesan antar proses)")
-        catat("# Byte klien tiap proses dijumlahkan sama dengan byte broker: ya.")
+        catat("# Byte client tiap proses dijumlahkan sama dengan byte broker: ya.")
         tulis("panggilan.txt", "panggilan jaringan per transaksi: satu proses lawan tiga proses dengan antrean")
     finally:
         hentikan_semua()
@@ -371,7 +371,7 @@ def rekam_mati():
         catat(f"transaksi T00002 ke tiga proses: 504 sesudah menunggu paling sedikit {BATAS_MASUK:g} detik (batas tunggu proses masuk), hasil tidak datang")
         tertinggal = get("antrean", "/metrik")["tertinggal"]
         harap(tertinggal, 1, "pesan tertinggal di antrean riwayat")
-        catat(f"pesan yang menunggu di antrean (topik riwayat): {tertinggal}")
+        catat(f"pesan yang menunggu di queue (topik riwayat): {tertinggal}")
         s = beban("satu", 1, mulai_dari=2)
         harap((s["gagal"], s["hasil"][0]["panggilan"]), (0, 0), "satu proses menjawab transaksi yang sama")
         catat("transaksi T00002 ke satu proses: 200, 0 panggilan (tidak ada proses lain yang bisa mati di tengah jalan)")
@@ -386,12 +386,12 @@ def rekam_mati():
             time.sleep(0.05)
         harap(get("antrean", "/metrik")["tertinggal"], 0, "pesan lama diproses setelah riwayat hidup")
         harap(get("masuk", "/metrik")["hasil_tanpa_penunggu"], tanpa_sebelum + 1, "hasil pesan lama tanpa penunggu")
-        catat("pesan T00002 yang tertinggal diproses oleh proses riwayat yang baru; pesan di antrean: 0")
+        catat("pesan T00002 yang tertinggal diproses oleh proses riwayat yang baru; pesan di queue: 0")
         catat("hasilnya sampai ke proses masuk, tetapi permintaannya sudah dijawab 504: hasil tanpa penunggu bertambah 1")
         t = beban("masuk", 1, mulai_dari=3)
         harap((t["gagal"], t["hasil"][0]["panggilan"]), (0, HOP_PER_TRANSAKSI), "transaksi sesudah riwayat hidup lagi")
         catat(f"transaksi T00003 ke tiga proses: 200, {HOP_PER_TRANSAKSI} panggilan")
-        catat("# Antrean menahan pesan selama pemrosesnya mati. Pesan itu disimpan di memori broker: broker yang mati membuangnya, dan kasus itu Tidak dijalankan.")
+        catat("# Queue menahan pesan selama pemrosesnya mati. Pesan itu disimpan di memori broker: broker yang mati membuangnya, dan kasus itu Tidak dijalankan.")
         tulis("mati.txt", "satu proses mati di versi tiga proses")
     finally:
         hentikan_semua()
