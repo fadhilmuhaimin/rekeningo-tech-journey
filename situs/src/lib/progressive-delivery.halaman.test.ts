@@ -174,7 +174,8 @@ describe("rekaman gateway.txt dan analisis.txt: diturunkan dari berkas rekaman d
     expect(persenTolak).toBe(31);
     expect(rekC).toContain("Angka 31% memerankan naskah M49 (Ilustrasi); kode versi baru yang salah tidak ada.");
     expect(rekC).toContain("AnalysisRun rasio-tolak: phase Failed");
-    expect(rekC).toContain('failed (1) > failureLimit (0)');
+    expect(hitungKali(rekC, "failed (1) > failureLimit (0)")).toBe(2); // pesan AnalysisRun dan pesan Rollout
+    expect(rekC).toContain("Pengukuran yang gagal: 1 (failureLimit 0:");
     expect(rekC).toContain("Rollout kartu: phase Degraded, abort True");
     expect(bobotRollback).toEqual({ "kartu-stable": 100, "kartu-canary": 0 });
     expect(podRollback).toEqual({ v1: 3, v3: 0 });
@@ -284,6 +285,7 @@ describe("rekaman sakelar.txt, hpa.txt, kode sakelar.go dan bo.go, dan rekaman T
     const tx = fungsi.slice(fungsi.indexOf("s.repo.DalamTx"));
     expect(fungsi.indexOf("s.petugasRisk(ctx, pelaku)")).toBeLessThan(fungsi.indexOf("periksaAlasan(alasan)"));
     expect(tx.indexOf("tx.SakelarSet(")).toBeGreaterThan(-1);
+    expect(tx).toContain("tx.SakelarSet(ctx, NamaSakelarKartu, aktif, pelaku)");
     expect(tx.indexOf("tx.SakelarSet(")).toBeLessThan(tx.indexOf("s.Audit(ctx, tx,"));
     expect(tx.indexOf("s.Audit(ctx, tx,")).toBeLessThan(tx.indexOf("s.t4.SakelarKartu.Setel(aktif)"));
     expect(halaman).toContain("baris sakelar ditulis di transaction yang sama dengan baris audit (dibaca dari kode `SetKartuAktifBO`)");
