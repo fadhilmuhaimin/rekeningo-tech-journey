@@ -3,7 +3,7 @@
   "judul": "Rilis kartu 5%: tiga pod, satu kill switch",
   "sumber": {
     "jenis": "ilustrasi",
-    "catatan": "Jalur utama memuat langkah cerita (Ilustrasi: Selasa 15.00, 2%, 31%, tiga pod) dan dua langkah rekaman lab t5-rollout (tanpa-router.txt bagian A: 3 replika, maxSurge tidak diubah; sakelar.txt bagian D: flag di memori, tiga pod). Ubah satu hal memakai tanpa-router.txt bagian A untuk 20 replika. Argo Rollouts v1.10.1 di k3d, tanpa traffic router; lab hanya diuji di host arm64. Bagian user tidak direkam."
+    "catatan": "Jalur utama memuat dua langkah cerita (Ilustrasi: Selasa 15.00, 2%, 31%, tiga pod) dan empat langkah rekaman lab t5-rollout (tanpa-router.txt bagian A: 3 replika, maxSurge tidak diubah; sakelar.txt bagian D: flag di memori, tiga pod). Ubah satu hal memakai tanpa-router.txt bagian A untuk 20 replika. Argo Rollouts v1.10.1 di k3d, tanpa traffic router; lab hanya diuji di host arm64. Bagian user tidak direkam."
   },
   "pengantar": "Tim Pembayaran merilis versi baru dengan canary 5%, lalu menekan kill switch. Tebakannya tentang satu hal yang kamu ubah: centang 'Ubah satu hal' di bawah, dan jawabannya terbuka di akhir langkah varian.",
   "komponen": [

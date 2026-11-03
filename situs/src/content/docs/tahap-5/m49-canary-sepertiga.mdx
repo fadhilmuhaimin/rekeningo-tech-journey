@@ -31,7 +31,7 @@ Tim Pembayaran mengira dua hal. Pertama, canary "5%" berarti lima dari seratus u
 
 Rilis memakai Argo Rollouts v1.10.1, yaitu controller Kubernetes untuk rilis bertahap seperti canary ([Argo Rollouts v1.10.1: pengantar](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/docs/index.md), dibuka 2026-11-03, Tidak dijalankan). Kill switch kartu adalah flag di memori satu proses sejak ADR 42 ([[t4-kartu]]).
 
-Argo Rollouts bisa memakai traffic router. Itu ingress controller atau service mesh yang membagi lalu lintas menurut bobot (sumber yang sama). Rollout tim Pembayaran tidak memakainya.
+Argo Rollouts bisa memakai traffic router. Itu ingress controller atau service mesh yang menggeser lalu lintas ke versi baru sedikit demi sedikit (sumber yang sama). Rollout tim Pembayaran tidak memakainya.
 
 <details class="question">
 <summary>Tebak dulu: Rollout meminta tiga replika, yaitu tiga pod, dengan `setWeight: 5` dan tanpa traffic router. Berapa pod versi baru yang berjalan, dan berapa bagiannya dari semua pod yang menjawab?</summary>
@@ -103,7 +103,7 @@ Rollout yang membuat pod versi baru juga membuat proses baru, dan di proses itu 
 
 <Blok nama="Coba sendiri">
 
-Widget ini mengikuti cerita M49. Jalur utama memuat langkah cerita (Ilustrasi) dan dua langkah rekaman, dan "Ubah satu hal" memakai rekaman `tanpa-router.txt` bagian A. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
+Widget ini mengikuti cerita M49. Jalur utama memuat dua langkah cerita (Ilustrasi) dan empat langkah rekaman, dan "Ubah satu hal" memakai rekaman `tanpa-router.txt` bagian A. Tebak dulu, lalu tekan Berikutnya atau panah kanan.
 
 <WidgetLama nama="alur" src="data/skenario/t5-m49.json" />
 
