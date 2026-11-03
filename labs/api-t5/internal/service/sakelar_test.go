@@ -338,3 +338,85 @@ func TestSakelarKartuPembacaanPanikTidakMenggantung(t *testing.T) {
 		t.Fatalf("sesudah panik: %v %v, ingin menyala dan terbaca", a, ok)
 	}
 }
+
+// Pemanggil yang menunggu pembacaan orang lain berhenti menunggu begitu konteksnya selesai, dan mendapat jawaban tak terbaca:
+// nilai yang tidak terbaca tidak pernah menyala.
+func TestSakelarKartuPenungguBerhentiBilaKonteksSelesai(t *testing.T) {
+	mulaiBaca, lepas := make(chan struct{}), make(chan struct{})
+	k := &SakelarKartu{ttl: time.Hour, kini: time.Now, baca: func(ctx context.Context, nama string) (bool, error) {
+		close(mulaiBaca)
+		<-lepas
+		return true, nil
+	}}
+	pertama := make(chan [2]bool)
+	go func() {
+		a, ok := k.Aktif(context.Background())
+		pertama <- [2]bool{a, ok}
+	}()
+	<-mulaiBaca
+	ctx, batal := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer batal()
+	mulai := time.Now()
+	if a, ok := k.Aktif(ctx); a || ok {
+		t.Fatalf("penunggu yang konteksnya selesai: %v %v, ingin tidak menyala dan tidak terbaca", a, ok)
+	}
+	if lama := time.Since(mulai); lama > 750*time.Millisecond {
+		t.Fatalf("penunggu menunggu %v, ingin berhenti bersama konteksnya", lama)
+	}
+	close(lepas)
+	if h := <-pertama; h != [2]bool{true, true} {
+		t.Fatalf("pembaca pertama: %v, ingin menyala dan terbaca", h)
+	}
+}
+
+// Dengan database: keputusan otorisasi dicatat di pencacah lab (permintaan tidak sah tidak dihitung), dan versi baru yang
+// salah (LabTolak) menolak tanpa baris otorisasi, sesudah sakelar: sakelar mati tetap dijawab kill-switch.
+func TestOtorisasiMencatatPencacahDanLabTolak(t *testing.T) {
+	svc, db := svcKartu(t, Dep{})
+	ctx := context.Background()
+	akun := pemakaiBaru(t, db, "terverifikasi", 100_000)
+	token := kartuTes(t, db, akun, "aktif", 500_000)
+	tulis := func(nilai bool) {
+		t.Helper()
+		if _, err := db.Exec(`INSERT INTO sakelar (nama, nilai) VALUES ($1, $2) ON CONFLICT (nama) DO UPDATE SET nilai = EXCLUDED.nilai`, NamaSakelarKartu, nilai); err != nil {
+			t.Fatal(err)
+		}
+	}
+	otorisasi := func(s Service) (Keputusan, error) {
+		return s.Otorisasi(ctx, PermintaanOtorisasi{IDPenerbit: idOtorisasi(), Token: token, Jumlah: 10_000})
+	}
+	sakelar := BaruSakelarKartu(repo.Baru(db), 0)
+	hitung := &HitungOtorisasi{}
+	biasa := svc.DenganT4(Dep{SakelarKartu: sakelar, HitungOtorisasi: hitung, KunciPenerbit: "kunci-tes"})
+	tulis(true)
+	k, err := otorisasi(biasa)
+	harapSetuju(t, k, err)
+	if _, err := biasa.Otorisasi(ctx, PermintaanOtorisasi{IDPenerbit: idOtorisasi(), Token: token, Jumlah: 0}); err == nil {
+		t.Fatal("jumlah 0 diterima")
+	}
+	tulis(false)
+	if k, err := otorisasi(biasa); err != nil || k.Alasan != "kill-switch" {
+		t.Fatalf("sakelar mati: %+v, %v", k, err)
+	}
+	if total, s, tl, _ := hitung.Ringkas(); total != 2 || s != 1 || tl != 1 {
+		t.Fatalf("pencacah: total %d setuju %d tolak %d, ingin 2, 1, 1 (permintaan tidak sah tidak dihitung)", total, s, tl)
+	}
+
+	salah := &HitungOtorisasi{}
+	versiSalah := svc.DenganT4(Dep{SakelarKartu: sakelar, HitungOtorisasi: salah, LabTolak: &LabTolak{Persen: 100}, KunciPenerbit: "kunci-tes"})
+	if k, err := otorisasi(versiSalah); err != nil || k.Alasan != "kill-switch" {
+		t.Fatalf("sakelar mati dan LabTolak: %+v, %v, ingin kill-switch lebih dulu", k, err)
+	}
+	tulis(true)
+	id := idOtorisasi()
+	k, err = versiSalah.Otorisasi(ctx, PermintaanOtorisasi{IDPenerbit: id, Token: token, Jumlah: 10_000})
+	if err != nil || k.Keputusan != "tolak" || k.Alasan != "versi-baru" {
+		t.Fatalf("LabTolak 100: %+v, %v, ingin tolak versi-baru", k, err)
+	}
+	if n := hitungKartu(t, db, `SELECT count(*) FROM otorisasi_kartu WHERE id_penerbit = $1`, id); n != 0 {
+		t.Fatalf("penolakan versi-baru meninggalkan %d baris otorisasi", n)
+	}
+	if total, _, tl, rasio := salah.Ringkas(); total != 2 || tl != 2 || rasio != 1 {
+		t.Fatalf("pencacah versi salah: total %d tolak %d rasio %v, ingin 2, 2, 1", total, tl, rasio)
+	}
+}
