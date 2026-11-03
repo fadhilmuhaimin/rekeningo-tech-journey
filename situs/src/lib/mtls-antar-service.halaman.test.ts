@@ -393,7 +393,8 @@ describe("kode lab: ServerTLS, Nama, Wajib, rute, pemindai rute, tes nama mirip,
   });
   test("pencabutan sertifikat: kata OCSP tidak ada di kode dan README lab, dan CRL hanya sebagai bit kegunaan kunci CA di pki.go", () => {
     const folder = ["labs/t5-service", "labs/api-t5/internal/identitas", "labs/api-t5/internal/pki", "labs/api-t5/cmd/ledger", "labs/api-t5/cmd/pki", "labs/api-t5/cmd/panggil", "labs/api-t5/cmd/layanan"];
-    const berkas = folder.flatMap((f) => execSync(`git ls-files ${f}`, { cwd: akar }).toString().split("\n").filter((x) => x && !x.includes("/output/") && !x.endsWith(".png")));
+    const jalan = (d: string): string[] => fs.readdirSync(path.join(akar, d), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? (e.name === "output" ? [] : jalan(`${d}/${e.name}`)) : /\.(go|py|md|yml|yaml|sql|mod)$|^Makefile$/.test(e.name) ? [`${d}/${e.name}`] : []));
+    const berkas = folder.flatMap(jalan);
     expect(berkas.length).toBeGreaterThan(15);
     const ada = berkas.filter((x) => /OCSP|CRL|revok|cabut/i.test(fs.readFileSync(path.join(akar, x), "utf8")));
     expect(ada).toEqual(["labs/api-t5/internal/pki/pki.go"]);
