@@ -401,7 +401,8 @@ describe("angka cerita dan kalimat berangka: diturunkan dari naskah, rekaman, da
     expect(jamBatch.slice(1)).toEqual(["02.00", "02.00", "48"]);
     harus(`Minggu ${mingguM48} Tahap 5. Senin pagi Budi membuka app dan melihat dua notifikasi "Angsuran ${rp(nominalCerita)} dibayar". Saldonya berkurang ${rp(berkurangCerita)}, bukan ${rp(nominalCerita)}.`);
     harus(`Hendra memeriksa ledger. Ia menemukan ${jumlahCerita} angsuran yang punya dua jurnal sesudah batch hari Sabtu.`);
-    harus(`*Angka cerita (Ilustrasi):* ${rp(nominalCerita)}, ${rp(berkurangCerita)}, dua notifikasi, ${jumlahCerita} angsuran, serta Sabtu dan Senin berasal dari naskah, bukan dari rekaman. Rekaman lab memakai angsuran ${rp(perAngsuran)} dan saldo ${rp(saldoAwal)}, dan alasannya ada di blok Yang sebenarnya. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].`);
+    harus(`*Angka cerita (Ilustrasi):* ${rp(nominalCerita)}, ${rp(berkurangCerita)}, dua notifikasi, ${jumlahCerita} angsuran, serta Sabtu dan Senin berasal dari naskah, bukan dari rekaman.`);
+    harus(`Rekaman lab memakai angsuran ${rp(perAngsuran)} dan saldo ${rp(saldoAwal)}, dan alasannya ada di blok Yang sebenarnya. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].`);
   });
   test("dugaan Raka dan Hendra sama dengan kolom 'Yang dikira' naskah; batch, job, dan angsuran didefinisikan di pemakaian pertama", () => {
     expect(dikiraM48).toBe("Bug di penagihan. Hendra: batch selalu bisa diulang dari awal");
@@ -607,12 +608,14 @@ describe("ID registry, tautan, template blok, widget, kartu, dan label", () => {
     }
     expect(baris.filter((b) => b.startsWith("|")).length).toBe(0);
   });
-  test("adegan Gejala tanpa kalimat definisi: dua paragraf adegan dan satu catatan berawalan bintang", () => {
+  test("adegan Gejala tanpa kalimat definisi: dua paragraf adegan dan dua paragraf catatan (dipecah supaya baris tidak berpindah saat font diganti)", () => {
     const gejala = badan.slice(badan.indexOf('<Blok nama="Gejala"'), badan.indexOf("</Blok>"));
     const paragraf = gejala.split("\n").filter((b) => b.trim() !== "" && !b.startsWith("<"));
-    expect(paragraf).toHaveLength(3);
-    const adegan = paragraf.filter((b) => !b.startsWith("*"));
-    expect(adegan).toHaveLength(2);
+    expect(paragraf).toHaveLength(4);
+    const adegan = paragraf.slice(0, 2);
+    expect(adegan.some((b) => b.startsWith("*"))).toBe(false);
+    expect(paragraf[2]!.startsWith("*Angka cerita (Ilustrasi):*")).toBe(true);
+    expect(paragraf[3]!.startsWith("Rekaman lab memakai angsuran")).toBe(true);
     for (const b of paragraf) expect(b).not.toMatch(/\b(adalah|yaitu|artinya|berarti|merupakan|disebut)\b/i);
   });
   test("satu kata per konsep: angsuran (bukan cicilan untuk satu pembayaran), tanpa pembeli, pelanggan, layanan, secret, rahasia, replica", () => {
