@@ -61,6 +61,14 @@ describe("teks widget: gaya bahasa", () => {
     expect(SEMUA.filter((t) => /!|\b(kita|Anda|pengguna)\b/i.test(t))).toEqual([]);
     expect(SEMUA.filter((t) => /\p{Extended_Pictographic}/u.test(t))).toEqual([]);
   });
+  it("tak ada kalimat yang sama dua kali dalam satu teks, dan tak ada dua teks pembaca yang persis sama (kecuali label nama)", () => {
+    for (const t of SEMUA) {
+      const kal = kalimatDari(t).map((k) => k.trim());
+      expect(new Set(kal).size, t.slice(0, 50)).toBe(kal.length);
+    }
+    const ganda = SEMUA.filter((t, i) => SEMUA.indexOf(t) !== i && kata(t) > 3);
+    expect(ganda).toEqual([]);
+  });
   it("paragraf paling banyak empat kalimat, dan sapaan 'kamu' dipakai di catatan sumber dan pertanyaan tebakan", () => {
     expect(SEMUA.filter((t) => kalimatDari(t).length > 4)).toEqual([]);
     expect(d.sumber.teks).toContain("yang kamu ubah");
@@ -103,6 +111,9 @@ describe("teks widget: angka dan label diturunkan dari skenario dan pilihan", ()
     expect(d.tebak.pilihan[1]).toContain(`${p.jumlah} pengirim mengirim ${String(Math.round(sebanyak.laju * 10) / 10).replace(".", ",")} perangkat per detik`);
     expect(d.tebak.pilihan[2]).toContain(durasiTeks(empat.detik));
     expect(d.tebak.pilihan[2]).toContain(`dengan ${d.pengirim[0]!.jumlah} pengirim`);
+    expect(d.tebak.pilihan[1]).toContain(`Sekitar ${Math.round(sebanyak.detik / 60)} menit, karena`);
+    expect(d.label.ringkas.kuota).toContain("jadi kelebihannya dijawab 429;");
+    expect(d.label.akibat.kuota).toContain("permintaan per detik di atas kuota dijawab 429;");
     expect(d.tebak.pilihan[3]).toContain(`kuota ${ribuan(d.skenario.kuota)} per detik`);
     expect(d.tebak.pilihan[3]).toContain(`${p.jumlah} pengirim melewati`);
   });

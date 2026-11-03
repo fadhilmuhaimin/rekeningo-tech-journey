@@ -225,3 +225,75 @@ describe("sumber: README, compose, dan naskah untuk batas lab", () => {
     expect(d.label.uangJudul).toBe("Notifikasi uang memakai kuota yang sama");
   });
 });
+
+// Angka di kalimat yang dibaca pembaca harus berasal dari baris rekaman yang dikutip (bukti), dari hitungan yang disebut di kalimatnya, atau
+// dari bagian rekaman yang sama (tercatat di tabel TAMBAHAN beserta alasannya). Mutan yang mengubah satu angka di kalimat lolos tes lain
+// bila tak ada penjaga ini (uji mutasi tanpa kunci baris: 59 dari 208 mutan angka lolos).
+const angkaDari = (t: string): string[] =>
+  [...t.matchAll(/\d+(?:[.,]\d+)*/g)].map((m) => {
+    const x = m[0];
+    return /^\d{1,3}(\.\d{3})+$/.test(x) ? x.replace(/\./g, "") : x.replace(",", ".");
+  });
+const himpunan = (t: string) => new Set(angkaDari(t));
+
+describe("sumber: angka di kalimat acuan dan uang berasal dari bukti, bagian rekaman, atau hitungan yang disebut", () => {
+  const { detikKirim: t, serentak: c, partisiLab } = d.skenario;
+  const cet = (x: number) => angka(x).replace(",", ".");
+  // alasan tiap angka tambahan: bagian rekaman (judul bagian atau baris di luar bukti) atau hitungan dari skenario
+  const TAMBAHAN: Record<string, { angka: string[]; alasan: string }> = {
+    "pengirim.txt B p4": { angka: ["300", String(t), cet(c / t)], alasan: "judul bagian B memuat latensi 300 ms; 0,3 dari skenario; 4 ÷ 0,3 = 13,3" },
+    "pengirim.txt A p167": { angka: ["1000000", "1800", cet(167 / t), String(partisiLab), "3"], alasan: "baris laju di bagian A; 167 ÷ 0,3 = 556,7; 6 partisi dan 3 consumer lab (README)" },
+    "kuota.txt A -": { angka: ["96"], alasan: "judul bagian A memuat 96 pengirim serentak" },
+  };
+  it("tiap angka kalimat acuan Rekaman lab ada di bukti, atau di tabel tambahan yang alasannya terbaca", () => {
+    for (const a of d.acuan.filter((x) => x.jenis === "rekaman")) {
+      const kunci = a.berkas === "pengirim.txt" ? `pengirim.txt ${a.bagian} ${a.pengirim}` : `${a.berkas} ${a.bagian} -`;
+      const izin = new Set([...himpunan(a.bukti.join(" ")), ...(TAMBAHAN[kunci]?.angka ?? [])]);
+      const sisa = angkaDari(a.teks).filter((x) => !izin.has(x));
+      expect(sisa, `${kunci}: ${a.teks.slice(0, 40)}`).toEqual([]);
+    }
+  });
+  it("tiap angka kalimat acuan Asumsi ada di bukti atau di tabel tambahan, dan tiap angka tambahan ada di bagian rekaman atau hitungan skenario", () => {
+    for (const a of d.acuan.filter((x) => x.jenis === "asumsi")) {
+      const kunci = `pengirim.txt ${a.bagian} ${a.pengirim}`;
+      const izin = new Set([...himpunan(a.bukti.join(" ")), ...(TAMBAHAN[kunci]?.angka ?? [])]);
+      expect(angkaDari(a.teks).filter((x) => !izin.has(x)), kunci).toEqual([]);
+    }
+    const turunan = new Set([String(t), cet(c / t), cet(167 / t), String(partisiLab), "3"]);
+    for (const [kunci, v] of Object.entries(TAMBAHAN)) {
+      const bagianIsi = kunci.startsWith("pengirim.txt A") ? PENGIRIM_A : kunci.startsWith("pengirim.txt B") ? PENGIRIM_B : KUOTA_A;
+      for (const x of v.angka) expect(himpunan(bagianIsi).has(x) || turunan.has(x), `${kunci}: ${x} (${v.alasan})`).toBe(true);
+    }
+    expect(README).toContain("Lab memakai 6 partisi dan 3 consumer");
+  });
+  it("angka yang dipilih satu per satu: 4 ÷ 0,3 = 13,3, tiga consumer di lab, 2 detik batas umur uang, dan kata 429 di rekaman", () => {
+    const p4 = d.acuan.find((x) => x.berkas === "pengirim.txt" && x.bagian === "B")!;
+    expect(p4.teks).toContain(`${c} ÷ ${String(t).replace(".", ",")} = ${angka(c / t)} per detik`);
+    const konsumenLab = (RUN.match(/mulai_stream\("k\d", "konsumen"/g) ?? []).length;
+    const p167 = d.acuan.find((x) => x.pengirim === "p167")!;
+    expect(p167.teks).toContain(`Lab memakai ${partisiLab} partisi dan ${konsumenLab} consumer.`);
+    const umur = /BATAS_UMUR_UANG = (\d)\.0/.exec(RUN)![1]!;
+    expect(d.uang[1]!.teks.match(new RegExp(`melewati ${umur} detik`, "g"))).toHaveLength(2);
+    expect(d.uang[1]!.teks).toContain(`tidak melewati ${umur} detik`);
+    expect(KUOTA_A + bagian(REKAMAN("antrean.txt"), "B")).toContain("429");
+  });
+  it("tiap angka kalimat uang ada di bukti", () => {
+    for (const u of d.uang) expect(angkaDari(u.teks).filter((x) => !himpunan(u.bukti.join(" ")).has(x)), `${u.berkas} ${u.bagian}`).toEqual([]);
+  });
+  it("angka di kalimat batas dan catatan sumber sama dengan daftar yang diturunkan dari skenario, README, compose, dan antrean.txt", () => {
+    const b = (awal: string) => angkaDari(d.batas.find((x) => x.teks.startsWith(awal))!.teks);
+    const latensi = /latensi tiruan (\d+) sampai (\d+) ms di bagian lain \(supaya ribuan perangkat selesai dalam detik\) dan (\d+) ms hanya di bagian/.exec(README)!;
+    expect(b("Widget memodelkan")).toEqual([String(c), String(t), "429"]);
+    expect(b("Lab merekam")).toEqual(["429", latensi[1], latensi[2], latensi[3]]);
+    expect(b("Batas laju 6.000")).toEqual([String((d.skenario.kuota * d.skenario.batasPersen) / 100), String(d.skenario.batasPersen), "3", "200", String(3 * 200), String(d.skenario.kuota / 10)]);
+    expect(RUN).toContain('"-laju", "200"');
+    expect(b("Kuota 10.000")).toEqual([String(d.skenario.kuota), "600000"]);
+    expect(README).toContain("kuota per menit (600.000)");
+    const heap = /-Xmx(\d+)m/.exec(baca("labs/t5-fanout/docker-compose.yml"))![1]!;
+    const rf = /replication factor (\d) \*\*Tidak dijalankan/.exec(README)![1]!;
+    expect(b("Kafka di lab")).toEqual([heap, rf]);
+    expect(b("Dokumentasi Kafka")).toEqual([]);
+    expect(b("Satu notifikasi per perangkat")).toEqual([]);
+    expect(angkaDari(d.sumber.teks.replace(/t5-fanout/g, ""))).toEqual([String(t), String(d.skenario.kuota), "1000000"]);
+  });
+});

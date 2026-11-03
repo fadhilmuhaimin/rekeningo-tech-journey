@@ -279,6 +279,12 @@ for (const path of HAL) {
       await page.addScriptTag({ path: AXE_PATH });
       const v = await page.evaluate(async (tag) => { const r = await window.axe.run(document.querySelector(".fo"), { runOnly: { type: "tag", values: tag }, resultTypes: ["violations"] }); return r.violations.map((x) => `${x.id}(${x.nodes.length})`); }, TAG_WCAG);
       lapor(v.length === 0, `${path} axe ${tema} (${D.penerima[ni].id}, ${D.pengirim[ki].id}): ${v.length ? v.join(", ") : "0 pelanggaran"}`);
+      // kontras teks sel tabel dihitung sendiri (>= 4,5:1): teks yang warnanya sama dengan latarnya lolos axe di Chrome sistem bila sel dianggap tak terbaca
+      const kontras = await page.evaluate(() => {
+        const lum = (c) => { const [r, g, b] = c.match(/\d+(?:\.\d+)?/g).slice(0, 3).map(Number).map((v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        return [...document.querySelectorAll(".fo-sel")].map((td) => { const cs = getComputedStyle(td); const x = lum(cs.color); const y = lum(cs.backgroundColor); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); });
+      });
+      lapor(kontras.length === 12 && kontras.every((r) => r >= 4.5), `${path} kontras teks sel ${tema} (${D.penerima[ni].id}, ${D.pengirim[ki].id}): terendah ${Math.min(...kontras).toFixed(1)}:1 dari ${kontras.length} sel (>= 4,5)`);
     }
   }
   await page.close();
