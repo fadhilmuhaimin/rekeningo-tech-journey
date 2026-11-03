@@ -105,6 +105,7 @@ func main() {
 	laporanCache := flag.String("laporan-cache", "", "cache laporan merchant: kosong (tanpa cache) atau redis (mode laporan-primary, M40)")
 	laporanRedis := flag.String("laporan-redis", "", "alamat Redis untuk -laporan-cache redis (tiruan lokal di container)")
 	laporanTTL := flag.Duration("laporan-ttl", service.TTLLaporan, "TTL entri cache laporan (naskah M40: 30 detik, Asumsi)")
+	posRahasia := flag.String("pos-rahasia", "", "lab t5-waf: membuka /pos/v1 untuk mitra POS; nilainya harus dibawa gerbang di kepala X-Gerbang-Rahasia (mode rentan pos-tanpa-cakupan = tanpa cakupan mitra)")
 	cicilanSampai := flag.String("cicilan-sampai", "", "job: tagih angsuran jatuh tempo sampai tanggal YYYY-MM-DD, lalu keluar (ADR 54; mode rentan cicilan-satu-job = versi pertama)")
 	buatSnapshot := flag.String("buat-snapshot", "", "job: tulis snapshot saldo akhir bulan YYYY-MM-DD (tanggal 1, bulan sudah selesai) untuk semua buku, lalu keluar (lab t5-partisi)")
 	dariSnapshot := flag.Bool("dari-snapshot", false, "dengan -cek-cache: baca snapshot saldo terakhir dan posting sesudahnya, bukan semua posting (lab t5-partisi)")
@@ -133,7 +134,7 @@ func main() {
 	case "", service.RentanPushDalamTx, service.RentanEksporPanic, service.RentanStokTimpa, rentanTanpaShutdown, "kursor", "urut-waktu",
 		service.RentanWebhookV1, service.RentanWebhookCekTulis, service.RentanKartuTanpaHold, service.RentanUnduhRentan, service.RentanTanpaAudit,
 		service.RentanVerifikasiTanpaKey, service.RentanBerkasBytea, service.RentanLogBiasa, service.RentanLaporanPrimary, service.RentanCicilanSatuJob,
-		service.RentanRiwayatReplika:
+		service.RentanRiwayatReplika, service.RentanPosTanpaCakupan:
 	default:
 		log.Fatalf("mode rentan tidak dikenal: %s", *rentan)
 	}
@@ -290,7 +291,7 @@ func main() {
 	if *jamLab {
 		svc = svc.DenganJam(jam)
 	}
-	srvHandler := handler.Baru(svc).DenganRentan(*rentan)
+	srvHandler := handler.Baru(svc).DenganRentan(*rentan).DenganPOS(*posRahasia)
 	if batasIP != nil {
 		srvHandler = srvHandler.DenganBatasLoginIP(batasIP)
 	}

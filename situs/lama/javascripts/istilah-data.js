@@ -1339,12 +1339,12 @@ window.ISTILAH = {
   "u": "tahap-4/object-storage-presigned/"
  },
  "Primary": {
-  "b": "D3",
+  "b": "t5-read-replica",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.5 Read replica dan model baca",
   "s": "istilah-primary",
   "t": "Primary",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/read-replica/"
  },
  "Primary key": {
   "b": "B2.1",
@@ -1481,12 +1481,12 @@ window.ISTILAH = {
   "u": "tahap-2/isolation-level/"
  },
  "Read replica": {
-  "b": "D2",
-  "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
-  "n": "Scaling (versi lama)",
+  "b": "t5-read-replica",
+  "d": "Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama.",
+  "n": "5.5 Read replica dan model baca",
   "s": "istilah-read-replica",
   "t": "Read replica",
-  "u": "d-system-design/d2-scaling/"
+  "u": "tahap-5/read-replica/"
  },
  "Read-your-writes": {
   "b": "t5-lag",
@@ -1732,6 +1732,14 @@ window.ISTILAH = {
   "t": "Stale",
   "u": "b-fondasi/b9-caching/"
  },
+ "Standby": {
+  "b": "t5-read-replica",
+  "d": "Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby.",
+  "n": "5.5 Read replica dan model baca",
+  "s": "istilah-standby",
+  "t": "Standby",
+  "u": "tahap-5/read-replica/"
+ },
  "Stateless": {
   "b": "D2",
   "d": "Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.",
@@ -1873,12 +1881,12 @@ window.ISTILAH = {
   "u": "tahap-3/m27-hari-promo/"
  },
  "WAL": {
-  "b": "D3",
+  "b": "t5-read-replica",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.5 Read replica dan model baca",
   "s": "istilah-wal",
   "t": "WAL (Write-Ahead Log)",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/read-replica/"
  },
  "WebAuthn": {
   "b": "t3-xss-csrf",
@@ -2829,12 +2837,12 @@ window.ISTILAH = {
   "u": "tahap-2/ledger/"
  },
  "primary": {
-  "b": "D3",
+  "b": "t5-read-replica",
   "d": "Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary.",
-  "n": "Replica dan consistency (versi lama)",
+  "n": "5.5 Read replica dan model baca",
   "s": "istilah-primary",
   "t": "Primary",
-  "u": "d-system-design/d3-consistency/"
+  "u": "tahap-5/read-replica/"
  },
  "primary key": {
   "b": "B2.1",
@@ -2905,12 +2913,12 @@ window.ISTILAH = {
   "u": "c-operasional/c4-security-dasar/"
  },
  "read replica": {
-  "b": "D2",
-  "d": "Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama.",
-  "n": "Scaling (versi lama)",
+  "b": "t5-read-replica",
+  "d": "Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama.",
+  "n": "5.5 Read replica dan model baca",
   "s": "istilah-read-replica",
   "t": "Read replica",
-  "u": "d-system-design/d2-scaling/"
+  "u": "tahap-5/read-replica/"
  },
  "read-your-writes": {
   "b": "t5-lag",
@@ -3095,6 +3103,14 @@ window.ISTILAH = {
   "s": "istilah-stale",
   "t": "Stale",
   "u": "b-fondasi/b9-caching/"
+ },
+ "standby": {
+  "b": "t5-read-replica",
+  "d": "Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby.",
+  "n": "5.5 Read replica dan model baca",
+  "s": "istilah-standby",
+  "t": "Standby",
+  "u": "tahap-5/read-replica/"
  },
  "stateless": {
   "b": "D2",

@@ -166,7 +166,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Polling** | App menanyakan status ke server berulang kali dengan jeda tetap. | [[E4]] |
 | **Posting** | Satu baris uang di dalam jurnal untuk satu buku: negatif bila uang keluar, positif bila masuk; saldo buku adalah jumlah posting-nya. | [[t2-ledger]] |
 | **Presigned URL** | URL ke satu objek di penyimpanan yang sudah ditandatangani pemilik kredensial, sehingga pemegangnya bisa memakainya sampai umurnya habis. | [[t4-storage]] |
-| **Primary** | Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary. | [[D3]] |
+| **Primary** | Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary. | [[t5-read-replica]] |
 | **Primary key** | Kolom yang nilainya unik dan dipakai untuk mengenali satu baris. | [[B2.1]] |
 | **Problem Details** | Format error JSON standar dari RFC 9457, dengan field seperti `type`, `title`, `status`, dan `detail`. | [[B6]] |
 | **Proxy** | Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request. | [[B11.2]] |
@@ -179,7 +179,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Rate limit** | Batas jumlah request per waktu dari satu sumber, mis. lima percobaan login per menit. | [[C4]] |
 | **RBAC** (Role-Based Access Control) | Authorization berdasarkan peran, mis. hanya peran admin yang boleh membekukan akun. | [[B5.3]] |
 | **Read Committed** | Isolation level bawaan PostgreSQL: setiap perintah membaca data yang sudah `COMMIT` saat perintah itu mulai, jadi dua perintah bisa membaca keadaan berbeda. | [[t2-isolation-level]] |
-| **Read replica** | Salinan database yang hanya melayani baca dan selalu sedikit tertinggal dari database utama. | [[D2]] |
+| **Read replica** | Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama. | [[t5-read-replica]] |
 | **Read-your-writes** | Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal. | [[t5-lag]] |
 | **Rekonsiliasi** | Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan. | [[t4-rekonsiliasi]] |
 | **Repeatable Read** | Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001. | [[t2-isolation-level]] |
@@ -212,6 +212,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **SSRF** (server-side request forgery) | Serangan yang membuat server mengirim permintaan ke alamat pilihan pihak lain, dengan hak jaringan server. | [[t4-ssrf]] |
 | **Staging** | Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya. | [[t3-tim-infra]] |
 | **Stale** | Data yang sudah tidak terbaru, mis. harga lama yang masih tersimpan di cache. | [[B9]] |
+| **Standby** | Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby. | [[t5-read-replica]] |
 | **Stateless** | Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun. | [[D2]] |
 | **Tes integrasi** | Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya. | [[t2-tim-infra]] |
 | **Testcontainers** | Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai. | [[t2-tim-infra]] |
@@ -226,7 +227,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **TTL** (Time To Live) | Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa. | [[B9]] |
 | **Tutup buku** | Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang. | [[t2-tutup-buku]] |
 | **Umur notifikasi tertua** | Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu. | [[t3-m27]] |
-| **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[D3]] |
+| **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[t5-read-replica]] |
 | **Webhook** | HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil. | [[t4-webhook]] |
 | **WebSocket** | Koneksi dua arah yang tetap terbuka antara app dan server. | [[E4]] |
 | **Worker** | Proses terpisah yang mengambil pekerjaan dari queue dan mengerjakannya di luar jalur request. Di server web seperti WSGI, worker juga berarti satu proses yang melayani request. | [[t3-outbox]] |

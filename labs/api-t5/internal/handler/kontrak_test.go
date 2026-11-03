@@ -16,6 +16,9 @@ import (
 var tanpaKontrak = map[string]string{
 	// Endpoint yang sengaja tidak ada di kontrak app: hanya ada di mode rentan lab (ADR 29), dan dicatat di README.
 	"PUT /produk/{}/stok": "mode rentan stok-timpa (M24)",
+	// Rute mitra POS di belakang gerbang (lab t5-waf): hanya terdaftar dengan -pos-rahasia; naskah belum mendefinisikan kontraknya.
+	"POST /pos/v1/merchant/{}/qr":   "mitra POS, lab t5-waf (M50)",
+	"GET /pos/v1/merchant/{}/qr/{}": "mitra POS, lab t5-waf (M50)",
 }
 
 func ruteKode(t *testing.T) map[string]bool {

@@ -1,0 +1,48 @@
+{
+  "id": "t5-replica-inti",
+  "judul": "Replica baca-saja, uang di primary",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab: replika.txt dan baca.txt"
+  },
+  "baris": [
+    {
+      "label": "Replica",
+      "sub": "replika.txt bagian A dan B",
+      "simpul": [
+        {
+          "teks": "Isi sama di tiga node",
+          "sub": "10.200 jurnal",
+          "nada": "good"
+        },
+        {
+          "teks": "UPDATE dan DDL ditolak: 25006",
+          "sub": "replica baca-saja",
+          "nada": "system"
+        }
+      ]
+    },
+    {
+      "label": "Uang",
+      "sub": "baca.txt bagian A",
+      "simpul": [
+        {
+          "teks": "Replica Rp250.000",
+          "sub": "saldo tampil, replay ditahan",
+          "nada": "old"
+        },
+        {
+          "teks": "Primary Rp215.000",
+          "sub": "saldo yang menentukan",
+          "nada": "system"
+        },
+        {
+          "teks": "Kiriman Rp240.000 ditolak: saldo kurang",
+          "sub": "422",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Abu-abu: yang tertinggal. Biru: sumber yang menentukan. Hijau: hasilnya. Replay di replica ditahan dengan sengaja di baris bawah, jadi selisih Rp35.000 adalah jeda buatan, bukan jeda alami."
+}
