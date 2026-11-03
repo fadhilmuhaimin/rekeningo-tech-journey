@@ -564,6 +564,14 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
   test("janji PRD v3: bayar dan transfer 95% dalam kurang dari 30 detik, diukur sampai pesan diserahkan ke layanan push", () => {
     expect(prdV3).toContain("Bayar dan transfer: 95% dalam kurang dari 30 detik.");
     expect(prdV3).toContain("Pengukurannya berhenti saat pesan diserahkan ke layanan push");
+    // tinjauan (keputusan 1555): PRD v3 menulis janji 95% dua kali (tabel dan daftar ukuran); keduanya harus 30 detik
+    const janji = prdV3.split("\n").filter((x) => /95%/.test(x) && /[Bb]ayar dan transfer/.test(x));
+    expect(janji.length).toBeGreaterThanOrEqual(3);
+    for (const x of janji) {
+      const detik = [...x.matchAll(/(\d+) detik/g)].map((mm) => mm[1]);
+      expect(detik.length, x).toBeGreaterThan(0);
+      for (const d of detik) expect(d, x).toBe("30");
+    }
     expect(badan).toContain("PRD v3 menjanjikan 95% notifikasi bayar dan transfer dalam kurang dari 30 detik ([[t3-prd]]).");
     expect(badan).toContain("Janji 30 detik tadi dihitung sampai pesan diserahkan ke penyedia push, jadi baris yang masih menunggu belum memenuhinya.");
   });
