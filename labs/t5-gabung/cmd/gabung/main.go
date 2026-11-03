@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -163,6 +164,23 @@ func persentil(terurut []int64, p float64) int64 {
 	return terurut[idx]
 }
 
+// kirimUlangDial mengirim POST dan mengulang hanya bila sambungan gagal dibuat (misalnya "can't assign requested address"
+// saat port sementara host habis oleh TIME_WAIT dari proses lain). Permintaan belum terkirim pada kegagalan itu, jadi
+// mengulang tidak menggandakan transaksi. Kegagalan sesudah sambungan jadi tidak diulang.
+func kirimUlangDial(klien *http.Client, url string, isi []byte) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+	for percobaan := 0; percobaan < 6; percobaan++ {
+		resp, err = klien.Post(url, "application/json", bytes.NewReader(isi))
+		var oe *net.OpError
+		if err == nil || !errors.As(err, &oe) || oe.Op != "dial" {
+			return resp, err
+		}
+		time.Sleep(time.Second)
+	}
+	return resp, err
+}
+
 func jalankanBeban(args []string) error {
 	fs := flag.NewFlagSet("beban", flag.ExitOnError)
 	url := fs.String("url", "", "URL lengkap POST /skor")
@@ -178,7 +196,7 @@ func jalankanBeban(args []string) error {
 	kirimSatu := func(i int) (layanan.Jawaban, time.Duration, error) {
 		isi, _ := json.Marshal(skor.Transaksi(i))
 		t0 := time.Now()
-		resp, err := klien.Post(*url, "application/json", bytes.NewReader(isi))
+		resp, err := kirimUlangDial(klien, *url, isi)
 		if err != nil {
 			return layanan.Jawaban{}, 0, err
 		}

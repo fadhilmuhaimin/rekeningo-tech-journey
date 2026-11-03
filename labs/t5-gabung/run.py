@@ -14,6 +14,7 @@ buatan (Asumsi), bukan hasil ukur jaringan antar host. Lab gagal keras bila hasi
     make -C labs/t5-gabung run                    (butuh: Go; tanpa Docker)
     make -C labs/t5-gabung run BAGIAN=panggilan   (satu bagian: panggilan latensi mati testing)
 """
+import errno
 import json
 import os
 import pathlib
@@ -161,8 +162,14 @@ def hentikan_semua():
 
 
 def get(nama, jalur):
-    with urllib.request.urlopen(f"http://127.0.0.1:{PORT[nama]}{jalur}", timeout=5) as r:
-        return json.loads(r.read())
+    for percobaan in range(6):  # port sementara host bisa habis oleh TIME_WAIT proses lain (EADDRNOTAVAIL): ulangi
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{PORT[nama]}{jalur}", timeout=5) as r:
+                return json.loads(r.read())
+        except urllib.error.URLError as e:
+            if getattr(e.reason, "errno", None) != errno.EADDRNOTAVAIL or percobaan == 5:
+                raise
+            time.sleep(1)
 
 
 def atur_hop(ms):
