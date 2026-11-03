@@ -610,11 +610,15 @@ export const KUNCI_LITERAL: [string, number][] = [
     1
   ],
   [
-    "**Yang berbeda di stack ini:** halaman Database tidak memuat kata failover, `target_session_attrs`, maupun beberapa host (dicari di teks halaman).",
+    "**Yang berbeda di stack ini:** halaman Database tidak memuat kata failover maupun `target_session_attrs` (dicari di teks halaman).",
     1
   ],
   [
-    "Konfigurasi `read` dan `write` memilih host untuk bacaan dan tulisan ([[t5-read-replica]]), bukan primary yang baru sesudah promosi.",
+    "Konfigurasi `read` dan `write` menulis daftar host untuk bacaan dan tulisan ([[t5-read-replica]]).",
+    1
+  ],
+  [
+    "Menurut halaman itu, daftar yang berisi beberapa host dipilih acak untuk tiap request, jadi pemilihan itu tidak membedakan primary dari standby (penalaran).",
     1
   ],
   [
@@ -902,7 +906,7 @@ export const KUNCI_LITERAL: [string, number][] = [
     1
   ],
   [
-    "- Saat p95 COMMIT pembayaran melewati 50 ms, anggaran satu lompatan di [[t4-modul]] (Asumsi).",
+    "- Saat tambahan p95 COMMIT pembayaran akibat standby sinkron melewati 50 ms, anggaran satu lompatan di [[t4-modul]] (Asumsi).",
     1
   ],
   [
@@ -938,7 +942,7 @@ export const KUNCI_LITERAL: [string, number][] = [
     1
   ],
   [
-    "Pemulihan manual 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran.",
+    "Pemulihan manual sepanjang RTO 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran.",
     1
   ],
   [

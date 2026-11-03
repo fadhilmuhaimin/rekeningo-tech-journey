@@ -459,7 +459,8 @@ const TOKEN_RISET: Record<string, { angka: string[]; kutipan: string[]; url: str
       "ParseConfig supports specifying multiple hosts in similar manner to libpq. Host and port may include comma separated values that will be tried in order.",
       "zero downtime failovers",
       "Extra parameters to use when connecting to the database.",
-      "Replication is asynchronous to ensure that transactions on the Primary aren't blocked."
+      "Replication is asynchronous to ensure that transactions on the Primary aren't blocked.",
+      "When multiple values exist in the host configuration array, a database host will be randomly chosen for each request."
     ],
     "url": [
       "raw.githubusercontent.com/jackc/pgx/v5.11.0/pgconn/config.go",
@@ -691,7 +692,7 @@ describe("hitungan: tabel Hitungan dihitung ulang dari angka yang tertulis di ha
       `| Pembayaran per detik pada satu buku bila lock ditahan ${LOMPATAN_MS} ms | 1 ÷ 0,05 | ${fmt(1 / 0.05)} |`,
       `| Gangguan ${GANGGUAN} menit melewati RTO | ${GANGGUAN} − ${RTO} | ${GANGGUAN - RTO} menit |`,
       `| Gangguan ${GANGGUAN} menit terhadap anggaran ${fmt(ANGGARAN, 1)} menit | ${GANGGUAN} ÷ ${fmt(ANGGARAN, 1)} | ${fmt(bulat((GANGGUAN / ANGGARAN) * 100, 1), 1)}% |`,
-      `| Pemulihan manual ${RTO} menit terhadap anggaran ${fmt(ANGGARAN, 1)} menit | ${RTO} ÷ ${fmt(ANGGARAN, 1)} | ${fmt(bulat((RTO / ANGGARAN) * 100, 1), 1)}% |`,
+      `| Pemulihan manual sepanjang RTO ${RTO} menit terhadap anggaran ${fmt(ANGGARAN, 1)} menit | ${RTO} ÷ ${fmt(ANGGARAN, 1)} | ${fmt(bulat((RTO / ANGGARAN) * 100, 1), 1)}% |`,
     ];
     expect(tabel).toEqual(harapan);
     expect(bulat(p2 * 0.05, 2)).toBe(2.32); // 2,315 dibulatkan setengah ke atas, bukan toFixed (2,31 atau 2,32 bergantung biner)
@@ -940,7 +941,11 @@ describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
     // klaim negatif tab: tiap tab non-Go menyebut lingkup 'dicari di teks halaman' dan kata yang dicari
     for (const i of [2, 3, 4, 5]) expect(tab[i], `tab ${i}`).toMatch(/dicari di teks halaman/);
     expect(tab[1]).toMatch(/dicari di teks halaman/);
-    expect(tab[2]).toContain("tidak memuat kata failover, `target_session_attrs`, maupun beberapa host");
+    // Laravel 13.x memuat daftar host read dan write (dibaca ulang 2026-11-03): klaim 'tidak memuat beberapa host' salah dan tidak boleh kembali
+    expect(tab[2]).toContain("tidak memuat kata failover maupun `target_session_attrs` (dicari di teks halaman)");
+    expect(tab[2]).not.toContain("beberapa host (dicari");
+    expect(tab[2]).toContain("Menurut halaman itu, daftar yang berisi beberapa host dipilih acak untuk tiap request");
+    expect(barisRiset("R5-154")).toContain("a database host will be randomly chosen for each request");
     expect(tab[3]).toContain("kedua halaman tidak memuat kata failover, `target_session_attrs`, maupun beberapa host");
     expect(tab[4]).toContain("tidak memuat kata failover, replica, maupun beberapa host");
     expect(tab[5]).toContain("tidak memuat kata failover maupun promote");

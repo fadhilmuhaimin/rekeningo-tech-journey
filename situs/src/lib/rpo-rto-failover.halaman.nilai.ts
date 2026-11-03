@@ -7,7 +7,7 @@ export const SIDIK = {
     "0addf94f6a22d216",
     "4b2f598a095f11b5",
     "a27fec0209ba9c5e",
-    "e38fd3ebe4c0464c"
+    "0733dd33f2550371"
   ],
   "diagramInti": "fbba9a6d856fc90d",
   "diagramFailover": "be78e28e5b33d8b3",
@@ -29,7 +29,7 @@ export const SIDIK = {
     "semua": 6,
     "setiap": 0,
     "selalu": 0,
-    "tiap": 3
+    "tiap": 4
   }
 };
 
@@ -122,7 +122,7 @@ export const KALIMAT_TERKUNCI: string[] = [
   "| Pembayaran per detik pada satu buku bila lock ditahan 50 ms | 1 ÷ 0,05 | 20 |",
   "| Gangguan 23 menit melewati RTO | 23 − 15 | 8 menit |",
   "| Gangguan 23 menit terhadap anggaran 43,2 menit | 23 ÷ 43,2 | 53,2% |",
-  "| Pemulihan manual 15 menit terhadap anggaran 43,2 menit | 15 ÷ 43,2 | 34,7% |",
+  "| Pemulihan manual sepanjang RTO 15 menit terhadap anggaran 43,2 menit | 15 ÷ 43,2 | 34,7% |",
   "Koneksi tambahan memakai L = λ × W dari [[t3-pool]].",
   "Baris buku memakai penalaran. Tiap pembayaran ke satu merchant mengunci buku merchant itu sampai commit ([[t2-race-lock]]). Lock yang ditahan 50 ms membatasi satu buku paling banyak 20 pembayaran per detik. Rekaman tidak mengukurnya (Tidak dijalankan).",
   "Tiap hasil di tabel adalah Hitungan atas Asumsi atau Ilustrasi.",
@@ -145,7 +145,7 @@ export const KALIMAT_TERKUNCI: string[] = [
   "</Fragment>",
   "<Fragment slot=\"t2\">",
   "*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database), dibuka 2026-11-03.*",
-  "**Yang berbeda di stack ini:** halaman Database tidak memuat kata failover, `target_session_attrs`, maupun beberapa host (dicari di teks halaman). Konfigurasi `read` dan `write` memilih host untuk bacaan dan tulisan ([[t5-read-replica]]), bukan primary yang baru sesudah promosi. Alamat primary baru harus datang dari luar app, misalnya dari alamat yang dialihkan oleh perangkat failover (penalaran).",
+  "**Yang berbeda di stack ini:** halaman Database tidak memuat kata failover maupun `target_session_attrs` (dicari di teks halaman). Konfigurasi `read` dan `write` menulis daftar host untuk bacaan dan tulisan ([[t5-read-replica]]). Menurut halaman itu, daftar yang berisi beberapa host dipilih acak untuk tiap request, jadi pemilihan itu tidak membedakan primary dari standby (penalaran). Alamat primary baru harus datang dari luar app, misalnya dari alamat yang dialihkan oleh perangkat failover (penalaran).",
   "</Fragment>",
   "<Fragment slot=\"t3\">",
   "*Tidak dijalankan. Dicek ke [Django 5.2: Databases](https://docs.djangoproject.com/en/5.2/ref/databases/) dan [Django 5.2: Settings](https://docs.djangoproject.com/en/5.2/ref/settings/), dibuka 2026-11-03.*",
@@ -192,10 +192,10 @@ export const KALIMAT_TERKUNCI: string[] = [
   "2. Sesi aplikasi atau job menurunkan `synchronous_commit` ke `local` atau `off`. Jawaban sukses lalu terkirim tanpa menunggu standby, dan RPO nol hilang tanpa galat. Pencegahannya aturan 6 dan tinjauan kode.",
   "3. Promosi tanpa fencing menghasilkan dua primary: pada `promosi.txt` bagian A primary lama masih menerima pembayaran sesudah promosi. Pencegahannya alat dengan fencing dan latihan bulanan. Latihan yang tidak dijalankan membuat RTO tidak pernah terukur.",
   "**Kapan keputusan ini salah.**",
-  "- Saat p95 COMMIT pembayaran melewati 50 ms, anggaran satu lompatan di [[t4-modul]] (Asumsi). Pembandingnya koneksi tambahan 69,4 × 0,05 = 3,47. Rekaman hanya memuat bahwa COMMIT tercepat dengan standby sinkron lebih lambat dari `local`.",
+  "- Saat tambahan p95 COMMIT pembayaran akibat standby sinkron melewati 50 ms, anggaran satu lompatan di [[t4-modul]] (Asumsi). Pembandingnya koneksi tambahan 69,4 × 0,05 = 3,47. Rekaman hanya memuat bahwa COMMIT tercepat dengan standby sinkron lebih lambat dari `local`.",
   "- Saat satu buku menerima lebih dari 1 ÷ 0,05 = 20 pembayaran per detik. Lock yang ditahan sampai konfirmasi membatasinya (penalaran, Tidak dijalankan).",
   "- Saat latihan bulanan pulih lebih dari 15 menit. Pembandingnya M42: 23 menit (Ilustrasi), selisih 8 menit dan 53,2% dari anggaran 43,2 menit.",
-  "- Saat kedua standby sinkron mati bersamaan. Dokumentasi menulis commit mungkin tidak selesai, dan manusia menurunkan daftar. Pemulihan manual 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran.",
+  "- Saat kedua standby sinkron mati bersamaan. Dokumentasi menulis commit mungkin tidak selesai, dan manusia menurunkan daftar. Pemulihan manual sepanjang RTO 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran.",
   "- Saat primary dan satu standby gagal bersamaan. Untuk satu standby sinkron, dokumentasi menulis data hanya bisa hilang dalam keadaan itu. Patroni menulis bahwa node ketiga yang dipromosikan mungkin belum lengkap.",
   "**Yang akan merevisinya.** [[t5-m46]] menunjukkan, menurut naskah (Ilustrasi), latihan failover yang berhasil tetapi membuat semua pod menyambung ulang bersamaan dan menghabiskan koneksi. Jawabannya ADR 52 di [[t5-pooler]]. [[t5-onprem]] menimbang database dijalankan sendiri atau terkelola, dan [[t5-tim-infra]] membawa SLO dan latihan.",
   "### Sengaja belum dilakukan",
