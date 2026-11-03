@@ -1,0 +1,65 @@
+# Rollout canary dasar: TANPA traffic router. Argo Rollouts hanya mengatur jumlah pod versi baru lewat rasio replika;
+# satu Service dan satu HTTPRoute tanpa bobot membagi permintaan rata ke semua pod di belakangnya (stabil dan canary).
+# Nilai berbentuk dolar-kurung-kurawal (nama, replika, versi, maxSurge, DATABASE_URL) diisi run.py; maxSurge hanya ditulis bila bukan bawaan. Image api-t5-rollout:v1 dibangun dari labs/api-t5 dan diimpor ke node (tanpa registry).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${NAMA}
+spec:
+  selector:
+    app: ${NAMA}
+  ports:
+    - {port: 8080, targetPort: 8080}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ${NAMA}
+spec:
+  parentRefs:
+    - {name: traefik-gateway, namespace: kube-system}
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - {name: ${NAMA}, port: 8080}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: ${NAMA}
+spec:
+  replicas: ${REPLIKA}
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: ${NAMA}
+  strategy:
+    canary:
+      steps:
+        - setWeight: 5
+        - pause: {}
+${MAXSURGE_BARIS}
+  template:
+    metadata:
+      labels:
+        app: ${NAMA}
+    spec:
+      containers:
+        - name: api
+          image: api-t5-rollout:v1
+          imagePullPolicy: Never
+          args: ["-addr", ":8080", "-lab", "-pool", "2", "-instance", "$(VERSI)-$(POD_NAME)", "-penerbit-kunci", "kunci-penerbit-lab"]
+          env:
+            - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+            - {name: VERSI, value: "${VERSI}"}
+            - {name: DATABASE_URL, value: "${DATABASE_URL}"}
+            - {name: TZ, value: Asia/Jakarta}
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 2
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 128Mi}

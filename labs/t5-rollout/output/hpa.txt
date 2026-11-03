@@ -1,0 +1,13 @@
+# Lab t5-rollout · HPA menambah replika menurut metrik CPU
+# PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) · go1.27.3 · k3s v1.37.1+k3s1 · Argo Rollouts v1.10.1 · plugin Gateway API v0.17.0 · Traefik 3.7.13 · Gateway API v1.6.1 · k3d v5.9.0 · schema tahap5_rollout · api-t5 di cluster, pod ke PostgreSQL lab di host
+# Rekaman dari database bersih dan beban kerja baru: make -C labs/t5-rollout run.
+
+# --- E. HPA menambah replika menurut metrik CPU ---
+# Deployment kartu-hpa (1 replika, requests.cpu 20m, tolak semua otorisasi: -lab-tolak-persen 100, tanpa tulis database) di belakang Gateway.
+# HPA: minReplicas 1, maxReplicas 4, target CPU 50%. Beban: otorisasi lewat Gateway dari beberapa thread di mesin ini.
+HPA kartu-hpa awal: replika 1 (min 1, maks 4), target CPU 50%
+HPA sesudah beban: replika bertambah dari 1: ya; tidak melebihi maxReplicas (4): ya
+Pod kartu-hpa siap lebih dari 1: ya (jumlah tepat bergantung beban mesin, tidak direkam)
+CPU rata-rata pod (persen dari requests) saat HPA menaikkan replika di atas target 50%: ya (nilainya bergantung mesin, tidak direkam)
+Peristiwa SuccessfulRescale dari HPA, alasan: cpu resource utilization (percentage of request) above target
+# Argo CD v3.5.6 Tidak dijalankan: bentrok HPA dan Argo CD soal spec.replicas tetap [perlu verifikasi] (butuh repositori Git yang terjangkau dari cluster).

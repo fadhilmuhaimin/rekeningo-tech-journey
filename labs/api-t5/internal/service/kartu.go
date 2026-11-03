@@ -194,16 +194,16 @@ func jawabUlang(o repo.Otorisasi, kartu repo.Kartu, in PermintaanOtorisasi) (Kep
 }
 
 // --8<-- [start:otorisasi]
-// Otorisasi menjawab penerbit (ADR 42). Versi benar: satu transaction dengan lock_timeout, buku pemilik dikunci
+// otorisasiKartu menjawab penerbit (ADR 42). Versi benar: satu transaction dengan lock_timeout, buku pemilik dikunci
 // (ORDER BY id FOR UPDATE, ADR 13), saldo dan batas harian diperiksa SESUDAH lock, lalu dana ditahan lewat jurnal
 // kartu_tahan dan barisnya ditulis. Persetujuan hanya diberikan sesudah hold tercatat, karena persetujuan tidak
 // bisa ditarik. Lock yang tidak didapat dalam lock_timeout dijawab tolak (alasan sibuk) dalam tenggat penerbit.
-func (s Service) Otorisasi(ctx context.Context, in PermintaanOtorisasi) (Keputusan, error) {
+func (s Service) otorisasiKartu(ctx context.Context, in PermintaanOtorisasi) (Keputusan, error) {
 	if err := periksaOtorisasi(in); err != nil {
 		return Keputusan{}, err
 	}
-	if !s.KartuAktifSekarang() {
-		return tolak("kill-switch"), nil
+	if k, ditolak := s.tolakSebelumDatabase(ctx); ditolak {
+		return k, nil
 	}
 	if s.rentan == RentanKartuTanpaHold {
 		return s.otorisasiTanpaHold(ctx, in)

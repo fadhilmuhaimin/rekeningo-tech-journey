@@ -368,7 +368,8 @@ func (s Service) putuskanMerchant(ctx context.Context, pelaku, akun int64, alasa
 
 // SetKartuAktifBO menyalakan atau mematikan kill switch kartu (ADR 42) tanpa deploy. Audit ditulis di transaction;
 // flag baru diubah sesudah COMMIT, jadi audit yang gagal tidak meninggalkan flag yang berubah tanpa catatan.
-// Flag hidup di memori satu proses: lintas instance butuh penyimpanan bersama (Tidak dijalankan di lab ini).
+// Tanpa sakelar tabel flag hidup di memori satu proses, jadi tidak lintas instance (lab t5-rollout merekamnya);
+// dengan Dep.SakelarKartu nilainya ditulis ke tabel sakelar dan dibaca semua pod (ADR 55).
 func (s Service) SetKartuAktifBO(ctx context.Context, pelaku int64, aktif bool, alasan string) error {
 	if err := s.petugasRisk(ctx, pelaku); err != nil {
 		return err
@@ -377,7 +378,7 @@ func (s Service) SetKartuAktifBO(ctx context.Context, pelaku int64, aktif bool, 
 	if err != nil {
 		return err
 	}
-	if s.t4.KartuAktif == nil {
+	if s.t4.KartuAktif == nil && s.t4.SakelarKartu == nil {
 		return ErrFlagTidakDipasang
 	}
 	keadaan := "mati"
@@ -385,10 +386,20 @@ func (s Service) SetKartuAktifBO(ctx context.Context, pelaku int64, aktif bool, 
 		keadaan = "aktif"
 	}
 	err = s.repo.DalamTx(ctx, func(tx repo.Tx) error {
+		// Sakelar tabel (ADR 55): nilai ditulis di transaction yang sama dengan audit, jadi pod lain membacanya.
+		if s.t4.SakelarKartu != nil {
+			if err := tx.SakelarSet(ctx, NamaSakelarKartu, aktif, pelaku); err != nil {
+				return err
+			}
+		}
 		return s.Audit(ctx, tx, pelaku, "risk", "flag_kartu", "flag:kartu="+keadaan, alasan, nil)
 	})
 	if err != nil {
 		return err
+	}
+	if s.t4.SakelarKartu != nil {
+		s.t4.SakelarKartu.Setel(aktif)
+		return nil
 	}
 	s.t4.KartuAktif.Store(aktif)
 	return nil
