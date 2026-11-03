@@ -23,7 +23,7 @@
   "perangkat": [],
   "layarAwal": {},
   "predict": {
-    "q": "Rollout yang sama memakai 20 replika, bukan 3, dengan `setWeight: 5` dan tanpa traffic router. Berapa bagian pod versi baru dari semua pod yang menjawab?",
+    "q": "Rollout yang sama memakai 20 replika, bukan 3, dengan setWeight: 5 dan tanpa traffic router. Berapa bagian pod versi baru dari semua pod yang menjawab?",
     "options": [
       "10,0%: controller membulatkan ke atas menjadi dua pod dari 20",
       "5,0%: satu pod versi baru dari 20 pod yang menjawab",
