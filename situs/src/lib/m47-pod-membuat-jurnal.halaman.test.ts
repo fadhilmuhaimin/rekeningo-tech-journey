@@ -165,13 +165,13 @@ const badanRute = kodeMainBaris.slice(nRute - 1, nRuteAkhir).join("\n");
 const blokRentan = kodeMainBaris.slice(nRentanBlok - 1, nRentanBlokAkhir).join("\n");
 
 describe("naskah, registry, dan halaman tetangga", () => {
-  test("registry: halaman 5.18 jenis masalah, ada, prasyarat t5-service dan t2-idempotency, lab t5-service, menit = baca + coba, judul dan peran dari naskah", () => {
+  test("registry: halaman 5.18 jenis masalah, ada, prasyarat t2-idempotency dan t5-service (urutan membuat meta tidak berpindah baris saat font diganti), lab t5-service, menit = baca + coba, judul dan peran dari naskah", () => {
     const h = dari("t5-m47");
     expect(h.nomor).toBe("5.18");
     expect(h.jenis).toBe("masalah");
     expect(h.ada).toBe(true);
     expect(h.inti).toBe(true);
-    expect(h.prasyarat).toEqual(["t5-service", "t2-idempotency"]);
+    expect(h.prasyarat).toEqual(["t2-idempotency", "t5-service"]);
     expect(h.lab).toEqual(["t5-service"]);
     expect(h.peran).toEqual(["security", "backend"]);
     expect(h.path).toBe("tahap-5/m47-pod-membuat-jurnal.md");
@@ -179,7 +179,7 @@ describe("naskah, registry, dan halaman tetangga", () => {
     expect(mingguM47).toBe(9);
     const meta = cari(/<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: (.+) · Jalur inti<\/p>/, halaman, "meta");
     expect(Number(meta[1]) + Number(meta[2])).toBe(h.menit);
-    expect(meta[3]).toBe("[[t5-service]], [[t2-idempotency]]");
+    expect(meta[3]).toBe("[[t2-idempotency]], [[t5-service]]");
     expect(frontmatter).toContain(`title: "5.18 ${h.judul}"`);
     expect(naskah).toContain(`| 5.18 | 4 | ${h.judul} | Masalah | ★ | t5-service | alur |`);
     expect(h.masalah).toBe("Pod di jaringan dalam membuat jurnal baru di ledger karena ledger mempercayai setiap pemanggil");

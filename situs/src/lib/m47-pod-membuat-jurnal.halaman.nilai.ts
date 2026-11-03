@@ -11,7 +11,7 @@ export const KALIMAT_TERKUNCI: string[] = [
  "import WidgetLama from \"../../../components/WidgetLama.astro\";",
  "import SkripLama from \"../../../components/SkripLama.astro\";",
  "import podJurnal from \"../../../../data/diagram/t5-m47-pod-membuat-jurnal.json\";",
- "<p class=\"meta\">Baca 8 menit · coba 3 menit · Prasyarat: [[t5-service]], [[t2-idempotency]] · Jalur inti</p>",
+ "<p class=\"meta\">Baca 8 menit · coba 3 menit · Prasyarat: [[t2-idempotency]], [[t5-service]] · Jalur inti</p>",
  "<Blok nama=\"Gejala\" buka>",
  "Minggu 9 Tahap 5. Dalam tinjauan keamanan, Laras memasang satu pod uji di namespace notifikasi. Dari pod itu ia memanggil API ledger dengan Idempotency-Key yang belum pernah dipakai.",
  "Ledger membuat jurnal top-up Rp1.000 untuk akun uji. Tidak ada yang menolak.",
