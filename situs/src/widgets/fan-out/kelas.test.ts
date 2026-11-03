@@ -67,6 +67,14 @@ describe("kelas CSS widget fan-out", () => {
     expect(blok).toMatch(/\.fo-sel\.is-kuota(?![A-Za-z0-9_-])/);
     expect(fs.readFileSync(KOMPONEN, "utf8")).toContain("className={`fo-sel is-${h.kasus}`}");
   });
+  it("pengaman 320 px dikunci di CSS: table-layout fixed, overflow-wrap anywhere di sel dan daftar, dan warna keadaan sel dari token good dan warn (mutasi peninjau S02, S09, S10, S12)", () => {
+    const blok = CSS.slice(CSS.indexOf(AWAL_BLOK));
+    expect(blok).toContain(".sl-markdown-content .fo-tabel { table-layout: fixed; }");
+    expect(blok).toMatch(/\.fo-tabel :is\(th, td\) \{[^}]*overflow-wrap: anywhere;/);
+    expect(blok).toMatch(/\.fo-daftar li \{[^}]*overflow-wrap: anywhere;/);
+    expect(blok).toContain(".sl-markdown-content .fo-sel.is-cukup { background: var(--k-good-fill); color: var(--k-good-ink); }");
+    expect(blok).toContain(":is(.fo-sel.is-partisi, .fo-sel.is-kuota) { background: var(--k-warn-fill); color: var(--k-warn-ink); }");
+  });
   it("widget disembunyikan tanpa JavaScript lewat @media (scripting: none) di blok ini", () => {
     expect(CSS.slice(CSS.indexOf(AWAL_BLOK))).toMatch(/@media \(scripting: none\) \{ \.sl-markdown-content \.fo \{ display: none; \} \}/);
   });

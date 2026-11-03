@@ -7,7 +7,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import mentah from "../../../data/widget/t5-fanout.json";
 import { DataFanOut } from "./skema";
-import { angka, durasiTeks, hitung, penerimaDari, pengirimDari, ribuan } from "./logika";
+import { angka, durasiTeks, hitung, namaKelompok, penerimaDari, pengirimDari, ribuan } from "./logika";
 
 const d = DataFanOut.parse(mentah);
 const AKAR = path.resolve(__dirname, "../../../..");
@@ -331,5 +331,59 @@ describe("sumber: lingkup kalimat rekaman sama dengan kode lab", () => {
     expect(d.sumber.teks).toContain(`notifikasi uang ${angka(d.skenario.uang)} per detik pada puncak harian adalah Asumsi naskah`);
     expect(NASKAH).toContain("Notifikasi uang dan worker | (transaksi + top-up) ÷ 86.400 × puncak lawan c ÷ t | 650.000 per hari");
     expect(d.label.sel.kuota).toContain("termasuk uang {uang} per detik");
+  });
+});
+
+// Tinjauan W5-fanout (keputusan 1681), putaran mutasi TANPA kunci.test.ts dan sidik.test.ts: delapan mutan teks lolos (D06, D08, D09, D10, D12, D13, D22, D23).
+describe("sumber: kalimat turunan yang lolos mutasi tanpa kunci baris", () => {
+  const ANTREAN_B = bagian(REKAMAN("antrean.txt"), "B");
+  const KUOTA_B = bagian(REKAMAN("kuota.txt"), "B");
+  const jumlah = (teks: string, kata: string) => teks.split(kata).length - 1;
+  it("uang: 'tidak dijawab 429' hanya untuk versi dengan batas laju (antrean.txt B: 'notifikasi uang dijawab 429: 0'), 'ikut dijawab 429' hanya untuk mode rentan", () => {
+    expect(ANTREAN_B).toContain("-- notifikasi uang dijawab 429: 0");
+    expect(ANTREAN_B).toContain("-- notifikasi uang dijawab 429 paling sedikit satu kali: ya");
+    const u = d.uang[1]!.teks;
+    expect(u).toContain("uang tidak dijawab 429. Umur uang tertua tidak melewati");
+    expect(u).toContain("Tanpa batas laju dan tanpa backoff, uang ikut dijawab 429");
+    expect(jumlah(u, "dijawab 429")).toBe(2);
+  });
+  it("batas laju: tanpa backoff ulangan menambah permintaan (kuota.txt B: 'jumlah 429 tanpa backoff paling sedikit dua kali jumlah 429 dengan backoff: ya')", () => {
+    expect(KUOTA_B).toContain("-- jumlah 429 tanpa backoff paling sedikit dua kali jumlah 429 dengan backoff: ya");
+    const b = d.batas.find((x) => x.teks.startsWith("Widget memodelkan"))!.teks;
+    expect(b).toContain("tanpa backoff ulangan menambah permintaan, dan backoff dengan jitter menyebarkannya");
+    expect(b).not.toMatch(/mengurangi/);
+  });
+  it("kuota 10.000 per detik: milik SATU penyedia push (README: 'kuota satu penyedia push diukur per menit')", () => {
+    expect(README).toContain("kuota satu penyedia push diukur per menit");
+    const b = d.batas.find((x) => x.teks.startsWith("Kuota 10.000"))!.teks;
+    expect(b).toContain("600.000 per menit milik satu penyedia push");
+    expect(b).not.toMatch(/semua penyedia|setiap penyedia/);
+  });
+  it("Kafka: consumer group dan share group dibedakan (docs/design/design.md cabang 4.3 baris 255, dibuka 2026-11-04: 'The number of consumers in a share group can exceed the number of partitions in a topic.')", () => {
+    const b = d.batas.find((x) => x.teks.startsWith("Dokumentasi Kafka"))!.teks;
+    expect(b).toContain("itu penalaran dari kalimat itu dan hanya berlaku untuk consumer group, bukan share group.");
+    expect(b).not.toMatch(/juga (?:untuk )?share group/);
+    expect(jumlah(b, "share group")).toBe(1);
+  });
+  it("alasan tebakan: satu partisi dibaca satu consumer dalam satu grup, sama dengan pengirim.txt A ('(satu partisi dibaca satu consumer dalam satu grup)')", () => {
+    const kalimat = /\((satu partisi dibaca satu consumer dalam satu grup)\)/.exec(PENGIRIM_A)![1]!;
+    expect(d.tebak.alasan.startsWith(kalimat.charAt(0).toUpperCase() + kalimat.slice(1) + ", jadi")).toBe(true);
+    expect(d.tebak.alasan).not.toMatch(/banyak partisi/);
+  });
+  it("label sumber: 'Rekaman lab' dan 'Asumsi' dipakai sesuai arti di /cara-pakai/ (Rekaman lab = output asli program, Asumsi = angka beban di cerita)", () => {
+    const carapakai = norm(baca("situs/src/content/docs/cara-pakai.mdx"));
+    expect(carapakai).toContain(`**${d.label.acuanJenis.rekaman}**: output asli dari program yang dijalankan di`);
+    expect(carapakai).toContain(`**${d.label.acuanJenis.asumsi}**: angka beban di cerita`);
+    expect(d.label.acuanJenis).toEqual({ rekaman: "Rekaman lab", asumsi: "Asumsi" });
+  });
+  it("nama kelompok tabel: 'sebanyak consumer' memakai jumlah consumer, 'seperti di lab' memakai partisi lab; kolom Antrean disebut per partisi karena nilainya perangkat ÷ partisi", () => {
+    const n = penerimaDari(d, "n1000000");
+    const p = pengirimDari(d, "p167");
+    const a = hitung(d, n, p, "sebanyak");
+    const b = hitung(d, n, p, "lab");
+    expect(namaKelompok(d, a)).toBe(`${a.consumer} partisi, sebanyak consumer`);
+    expect(namaKelompok(d, b)).toBe(`${d.skenario.partisiLab} partisi, seperti di lab`);
+    expect(d.label.tabel.kolom.antrean).toBe("Antrean tiap partisi");
+    expect(a.perPartisi).toBeCloseTo(n.jumlah / a.consumer, 6);
   });
 });

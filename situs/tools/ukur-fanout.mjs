@@ -261,8 +261,8 @@ for (const path of HAL) {
   });
   lapor(huruf.kecil.length === 0, `${path} teks widget >= 12 px di 375 px: terkecil ${huruf.terkecil.toFixed(1)} px${huruf.kecil.length ? `, terlalu kecil: ${huruf.kecil.slice(0, 3).join("; ")}` : ""}`);
   // batang consumer dan kuota hanya hiasan tetapi harus terlihat: tinggi >= 4 px, isi (garis atas tebal, tanpa background supaya contrast.py bisa membaca) berwarna, aria-hidden
-  const batang = await page.evaluate(() => [...document.querySelectorAll(".fo .fo-batang")].map((b) => { const i = b.querySelector(".fo-isi"); const cs = getComputedStyle(i); return { tinggi: b.getBoundingClientRect().height, isi: i.getBoundingClientRect().height, warna: cs.borderTopColor, isiGaris: cs.borderTopWidth, garis: getComputedStyle(b).borderTopWidth, aria: b.getAttribute("aria-hidden") }; }));
-  lapor(batang.length === 4 && batang.every((b) => b.tinggi >= 4 && b.isi >= 3 && parseFloat(b.isiGaris) >= 3 && b.warna !== "rgba(0, 0, 0, 0)" && parseFloat(b.garis) >= 1 && b.aria === "true"), `${path} batang consumer dan kuota: ${batang.length} batang (4 diharapkan), tinggi ${batang.map((b) => b.tinggi.toFixed(0)).join(",")} px, berwarna dan berbingkai, aria-hidden`);
+  const batang = await page.evaluate(() => [...document.querySelectorAll(".fo .fo-batang")].map((b) => { const i = b.querySelector(".fo-isi"); const cs = getComputedStyle(i); return { tinggi: b.getBoundingClientRect().height, isi: i.getBoundingClientRect().height, warna: cs.borderTopColor, isiGaris: cs.borderTopWidth, garis: getComputedStyle(b).borderTopWidth, aria: b.getAttribute("aria-hidden"), tampak: [b, i].every((e) => { const c = getComputedStyle(e); return c.visibility === "visible" && c.display !== "none" && parseFloat(c.opacity) > 0; }) }; }));
+  lapor(batang.length === 4 && batang.every((b) => b.tinggi >= 4 && b.isi >= 3 && parseFloat(b.isiGaris) >= 3 && b.warna !== "rgba(0, 0, 0, 0)" && parseFloat(b.garis) >= 1 && b.aria === "true" && b.tampak), `${path} batang consumer dan kuota: ${batang.length} batang (4 diharapkan), tinggi ${batang.map((b) => b.tinggi.toFixed(0)).join(",")} px, berwarna dan berbingkai, terlihat (visibility, display, opacity), aria-hidden`);
   await pilih(page, 2, NK - 1);
   const kode = await page.evaluate(() => ({ kode: [...document.querySelectorAll(".fo code")].length, tanpa: [...document.querySelectorAll(".fo code")].filter((c) => c.getAttribute("translate") !== "no").length, teks: [...document.querySelectorAll(".fo code")].map((c) => c.textContent) }));
   lapor(kode.kode === 1 && kode.tanpa === 0 && kode.teks[0] === "-tanpa-backoff", `${path} bendera lab di <code translate=no>: ${kode.kode} elemen (${kode.teks.join(",")}), ${kode.tanpa} tanpa tanda`);
@@ -285,6 +285,15 @@ for (const path of HAL) {
         return [...document.querySelectorAll(".fo-sel")].map((td) => { const cs = getComputedStyle(td); const x = lum(cs.color); const y = lum(cs.backgroundColor); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); });
       });
       lapor(kontras.length === 12 && kontras.every((r) => r >= 4.5), `${path} kontras teks sel ${tema} (${D.penerima[ni].id}, ${D.pengirim[ki].id}): terendah ${Math.min(...kontras).toFixed(1)}:1 dari ${kontras.length} sel (>= 4,5)`);
+      // warna keadaan sel: cukup memakai token good, partisi dan kuota memakai token warn (kontras saja tidak menangkap warna yang tertukar)
+      const peta = await page.evaluate(() => {
+        const token = (v) => { const e = document.createElement("i"); e.style.background = `var(${v})`; document.body.append(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; };
+        const per = {};
+        for (const td of document.querySelectorAll(".fo-sel")) (per[td.className.split("is-")[1]] ??= new Set()).add(getComputedStyle(td).backgroundColor);
+        return { per: Object.fromEntries(Object.entries(per).map(([k, v]) => [k, [...v]])), good: token("--k-good-fill"), warn: token("--k-warn-fill") };
+      });
+      const kunciPeta = Object.keys(peta.per);
+      lapor(peta.good !== peta.warn && kunciPeta.every((k) => peta.per[k].length === 1 && peta.per[k][0] === (k === "cukup" ? peta.good : peta.warn)), `${path} warna keadaan sel ${tema} (${D.penerima[ni].id}, ${D.pengirim[ki].id}): ${kunciPeta.map((k) => `${k} ${k === "cukup" ? "good" : "warn"}`).join(", ")} sama dengan token`);
     }
   }
   await page.close();
