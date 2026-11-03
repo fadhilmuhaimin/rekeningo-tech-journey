@@ -380,8 +380,33 @@ def otorisasi(kirim, jumlah=1000, id_=None):
     return s, id_, jawab, k
 
 
-def lewat_gateway(path, isi, kepala):
-    return http_(PORT_GATEWAY, "POST", path, isi, None, kepala)
+class KoneksiGateway:
+    """Satu koneksi HTTP ke Gateway yang dipakai berulang (keep-alive) oleh satu thread beban, dibuka ulang bila putus. Koneksi baru tiap
+    permintaan menumpuk soket TIME_WAIT di host sampai port sementara habis ("Can't assign requested address"), yang ikut memutus koneksi
+    ke PostgreSQL lab dan mematikan lab lain di mesin yang sama (HPA: 16 thread)."""
+
+    def __init__(self):
+        self.c = None
+
+    def kirim(self, path, isi, kepala):
+        galat = None
+        for _ in range(2):
+            try:
+                if self.c is None:
+                    self.c = http.client.HTTPConnection("127.0.0.1", PORT_GATEWAY, timeout=BATAS_HTTP)
+                self.c.request("POST", path, body=json.dumps(isi), headers=dict(kepala or {}, **{"Content-Type": "application/json"}))
+                r = self.c.getresponse()
+                teks = r.read().decode("utf-8", "replace")
+                return r.status, {k.lower(): v for k, v in r.getheaders()}, teks
+            except Exception as e:  # noqa: BLE001 - galat jaringan dilaporkan sebagai status 0, seperti http_
+                galat = e
+                self.tutup()
+        return 0, {}, repr(galat)
+
+    def tutup(self):
+        if self.c is not None:
+            self.c.close()
+            self.c = None
 
 
 # ---------- database ----------
@@ -567,9 +592,11 @@ def rekam_gateway():
 
 def generator(berhenti, hasil):
     """Kirim otorisasi lewat Gateway tanpa henti sampai `berhenti` menyala."""
+    k = KoneksiGateway()
     while not berhenti.is_set():
-        s, _, jawab, _ = otorisasi(lewat_gateway)
+        s, _, jawab, _ = otorisasi(k.kirim)
         hasil.append((s, jawab.get("keputusan"), jawab.get("alasan")))
+    k.tutup()
 
 
 def rekam_analisis():
@@ -801,8 +828,10 @@ def rekam_hpa():
     berhenti = threading.Event()
 
     def beban():
+        k = KoneksiGateway()
         while not berhenti.is_set():
-            otorisasi(lewat_gateway)
+            otorisasi(k.kirim)
+        k.tutup()
 
     ts = [threading.Thread(target=beban, daemon=True) for _ in range(16)]
     for t in ts:
