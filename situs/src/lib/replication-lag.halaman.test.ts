@@ -688,9 +688,9 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
     sel("| | A. `remote_apply` untuk semua commit |", [
       ["Cara kerja", "COMMIT menunggu standby sinkron memutar WAL", "selama 5 detik tetap", "seperti sebelum ADR 46", "transaksi baru di layarnya sendiri", "posisi WAL, dan server membaca replica hanya bila"],
       ["Kelebihan", "pasti sudah memuat tulisannya", "tanpa token, dan ada framework", "Tidak ada replica yang tertinggal", "Tidak ada bacaan tambahan di primary", "hanya selama replica belum sampai"],
-      ["Kekurangan", "replica asinkron untuk bacaan tampil tidak ditunggu", "Tidak mengikuti jeda sebenarnya", "Menghapus guna ADR 46", "bukan layar web atau perangkat lain", "menyimpan dan mengirim token"],
+      ["Kekurangan", "replica asinkron untuk bacaan tampil tidak ditunggu", "Tidak mengikuti jeda sebenarnya", "Menghapus guna ADR 46", "Hanya menolong satu app, bukan layar web atau perangkat lain", "menyimpan dan mengirim token"],
       ["Biaya operasional", "standby sinkron harus tetap hidup", "Satu angka jendela", "26,4 koneksi di primary", "tanpa komponen server", "Satu query ke primary sesudah tiap tulisan"],
-      ["Bukti", "Rekaman lab `sinkron.txt` bagian A dan B, dan dokumentasi PostgreSQL 17 untuk jeda commit (Tidak dijalankan)", "dokumentasi Laravel 13.x", "Hitungan atas Asumsi, tidak dijalankan di lab", "Tidak dijalankan: app Flutter tidak ada di lab", "`baca.txt` bagian B, dan kode `sumberTampil`"],
+      ["Bukti", "Rekaman lab `sinkron.txt` bagian A dan B, dan dokumentasi PostgreSQL 17 untuk jeda commit (Tidak dijalankan)", "Tidak dijalankan: dokumentasi Laravel 13.x", "Hitungan atas Asumsi, tidak dijalankan di lab", "Tidak dijalankan: app Flutter tidak ada di lab", "Rekaman lab `baca.txt` bagian B, dan kode `sumberTampil`"],
     ]);
   });
   test("tabel kelas, kapan salah, dan sengaja belum: sel dikunci per baris dan kolom", () => {
@@ -709,7 +709,7 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
     ]);
     sel("| Yang ditunda | Kenapa ditunda | Muncul lagi di |", [
       ["Token yang ditandatangani atau dibulatkan", "membocorkan laju tulis seluruh database", "Belum dijadwalkan"],
-      ["Bacaan tanpa token dari primary", "Menambah beban primary", "Belum dijadwalkan"],
+      ["Bacaan tanpa token dari primary", "Menambah beban primary. Keputusannya milik pemilik, karena arahnya satu cabang di `sumberTampil`", "Belum dijadwalkan"],
       ["Aturan jeda lebih dari 30 detik", "Jeda alami di lab di bawah 1 detik", "Belum dijadwalkan"],
       ["Jendela waktu sebagai cadangan", "Dua mekanisme untuk satu masalah", "Belum dijadwalkan"],
     ]);
@@ -834,6 +834,9 @@ describe("pertahanan tambahan 2: urutan rujukan, versi dokumentasi, bilangan fak
     harusAda("Pencegahannya aturan 6 dan 8, dan latihan failover di [[t5-rpo-rto]].");
     harusAda(`Saat replica sudah memutar WAL sampai posisi di token: \`pg_last_wal_replay_lsn()\` tidak lebih kecil dari token. Di rekaman, query itu menjawab \`t\`, dan token yang sama dilayani replica dengan saldo ${rp(sesudahB)} (\`baca.txt\` bagian B).`);
     harusAda("Bacaan tanpa token dari primary adalah Asumsi desain yang belum ada di kode lab.");
+    harusAda(`Di rekaman, replay ditahan, Budi membayar ${rp(nominalB)}, dan dua bacaan saldo berbeda hasilnya:`);
+    expect([...badan.matchAll(/^\*\*(\d)\.\*\* /gm)].map((m) => m[1]).join("")).toBe("1234");
+    expect([...badan.matchAll(/^(\d)\. (?=Replica ditahan|Token itu|Saldo tampil masih)/gm)].map((m) => m[1]).join("")).toBe("123");
     harusAda("3. App mengirim token itu di bacaan milik sendiri berikutnya, yaitu riwayat dan saldo tampil. Server membaca replica hanya bila replica sudah memutar WAL sampai token. Selain itu, atau bila replica tidak menjawab, server membaca primary. Token yang bukan posisi WAL dijawab 422.");
     harusAda("- **C ditolak** karena menghapus ADR 46 untuk bacaan tampil, dan 26,4 koneksi bacaan selain uang kembali ke primary.");
     harusAda("- **B ditolak** karena jendela tidak mengikuti jeda sebenarnya. Bila replica ditahan lebih lama dari 5 detik, saldo lama muncul lagi sesudah jendela habis (penalaran).");
