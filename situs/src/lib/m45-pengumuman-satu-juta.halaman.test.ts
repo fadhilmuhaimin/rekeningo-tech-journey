@@ -557,7 +557,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(prdV3).toContain("Bayar dan transfer: 95% dalam kurang dari 30 detik.");
     expect(prdV3).toContain("Pengukurannya berhenti saat pesan diserahkan ke layanan push");
     expect(badan).toContain("PRD v3 menjanjikan 95% notifikasi bayar dan transfer dalam kurang dari 30 detik ([[t3-prd]]).");
-    expect(badan).toContain("Ukuran ini sama dengan janji 30 detik tadi, yang berhenti saat pesan diserahkan ke penyedia push.");
+    expect(badan).toContain("Janji 30 detik tadi dihitung sampai pesan diserahkan ke penyedia push, jadi baris yang masih menunggu belum memenuhinya.");
   });
   test("template masalah: lima blok dalam urutan, dua pertama terbuka; Cek diri tiga soal; satu tebak details.question; noscript; SkripLama di akhir", () => {
     const b = daftarBlok(badan);
@@ -786,6 +786,7 @@ describe("jam, versi, c terukur, dan ADR: diturunkan dari naskah, kepala rekaman
     expect(badan).toContain(`| Umur uang tertua pukul ${jamStr(JAM_TANYA)} | ${ribu(DETIK1210)} × (1`);
     expect(badan).toContain(`| Umur uang tertua pukul ${jamStr(JAM_TANYA + MENIT_LAGI)} | ${ribu(DETIK1220)} × (1`);
     expect(badan).toContain(`| Isi queue uang pukul ${jamStr(JAM_MULAI + detikSiang / 60)} |`);
+    expect(badan).toContain(`dengan queue uang kosong pukul ${jamStr(JAM_MULAI)} dan kedatangan tetap sampai ${jamStr(JAM_MULAI + detikSiang / 60)}.`);
     expect(PENERIMA_PENGUMUMAN).toBe(1000000);
   });
   test("kondisi rekaman: PostgreSQL, Go, pgx, dan Kafka dari kepala rekaman; c = 4 terukur di sisi pengirim dan penyedia; latensi tiruan 300 ms", () => {
@@ -873,7 +874,7 @@ const BADAN_DITURUNKAN: string[] = [
   `<Blok nama="Yang Raka kira" buka>`,
   `Tim Merchant dan Raka mengira satu hal: satu juta pesan pengumuman berada di queue yang sama dengan notifikasi uang, jadi uang menunggu di belakangnya. Karena itu Ratih menghentikan pengumuman.`,
   `Dugaan itu pernah benar. Di [[t3-m27]], 10.000 promo membuat notifikasi uang menunggu, karena worker mengklaim baris menurut nomor. ADR 32 menutupnya dengan kelas queue: worker mengklaim baris kelas uang lebih dulu ([[t3-tim-infra]]).`,
-  `Umur notifikasi uang tertua adalah umur baris uang yang belum terkirim dan paling lama menunggu di queue. Ukuran ini sama dengan janji 30 detik tadi, yang berhenti saat pesan diserahkan ke penyedia push.`,
+  `Umur notifikasi uang tertua adalah umur baris uang yang belum terkirim dan paling lama menunggu di queue. Janji 30 detik tadi dihitung sampai pesan diserahkan ke penyedia push, jadi baris yang masih menunggu belum memenuhinya.`,
   `<details class="question">`,
   `<summary>Tebak dulu: pukul 12.10 pengumuman dihentikan, dan uang makan siang masih datang seperti sebelumnya. Sepuluh menit kemudian, umur notifikasi uang tertua turun, tetap, atau naik?</summary>`,
   `Naik, dari ${U1210} menit ke ${U1220} menit (Hitungan atas Asumsi: dihitung dari angka Asumsi di blok berikutnya). Menghentikan pengumuman tidak mengurangi queue uang.`,
@@ -901,7 +902,7 @@ const BADAN_DITURUNKAN: string[] = [
   `| Umur uang tertua pukul 12.10 | 2.400 × (1 − ${KAPT} ÷ λ) | ${ribu(M3.umur(DETIK1210).detik)} detik (${U1210} menit) | ${ribu(M2.umur(DETIK1210).detik)} detik (${koma(M2.umur(DETIK1210).menit, 1)} menit) |`,
   `| Umur uang tertua pukul 12.20 | 3.000 × (1 − ${KAPT} ÷ λ) | ${ribu(M3.umur(DETIK1220).detik)} detik (${U1220} menit) | 2.400 detik (${koma(M2.umur(DETIK1220).menit, 1)} menit) |`,
   `| Isi queue uang pukul 13.00 | (λ − ${KAPT}) × 5.400 | ±${ribu(M3.isi)} baris | ±${ribu(M2.isi)} baris |`,
-  `Semua sel tabel adalah Hitungan atas Asumsi. Tabel beban [[t5-prd]] memakai puncak 75,2 per detik, yaitu 564% kapasitas. Jendela makan siang lebih padat, jadi λ naik ke ${M3.lamT}.`,
+  `Semua sel tabel adalah Hitungan atas Asumsi, dengan queue uang kosong pukul 11.30 dan kedatangan tetap sampai 13.00. Tabel beban [[t5-prd]] memakai puncak 75,2 per detik, yaitu 564% kapasitas. Jendela makan siang lebih padat, jadi λ naik ke ${M3.lamT}.`,
   `Kapasitas ${KAPT} per detik datang dari c = 4 pengirim serentak dan t = 0,3 detik per pengiriman, dua Asumsi dari [[t3-estimasi]]. Lab mengukur c dan t pada penyedia tiruan berlatensi 300 ms:`,
   `<Snippet file="labs/t5-fanout/output/pengirim.txt" lines="20:26" title="Rekaman lab: labs/t5-fanout/output/pengirim.txt, bagian B (c dan t terukur)" />`,
   `Rekaman itu memeriksa rumus c ÷ t dan kode pengirim, bukan t penyedia sungguhan. Jadi ${M3.lamT} per detik dan ${M3.pakai}% tetap Hitungan atas Asumsi.`,

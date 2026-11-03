@@ -31,7 +31,7 @@ Tim Merchant dan Raka mengira satu hal: satu juta pesan pengumuman berada di que
 
 Dugaan itu pernah benar. Di [[t3-m27]], 10.000 promo membuat notifikasi uang menunggu, karena worker mengklaim baris menurut nomor. ADR 32 menutupnya dengan kelas queue: worker mengklaim baris kelas uang lebih dulu ([[t3-tim-infra]]).
 
-Umur notifikasi uang tertua adalah umur baris uang yang belum terkirim dan paling lama menunggu di queue. Ukuran ini sama dengan janji 30 detik tadi, yang berhenti saat pesan diserahkan ke penyedia push.
+Umur notifikasi uang tertua adalah umur baris uang yang belum terkirim dan paling lama menunggu di queue. Janji 30 detik tadi dihitung sampai pesan diserahkan ke penyedia push, jadi baris yang masih menunggu belum memenuhinya.
 
 <details class="question">
 <summary>Tebak dulu: pukul 12.10 pengumuman dihentikan, dan uang makan siang masih datang seperti sebelumnya. Sepuluh menit kemudian, umur notifikasi uang tertua turun, tetap, atau naik?</summary>
@@ -78,7 +78,7 @@ Notifikasi uang sehari adalah 600.000 transaksi uang ditambah 50.000 top-up bank
 | Umur uang tertua pukul 12.20 | 3.000 × (1 − 13,33 ÷ λ) | 2.585 detik (43,1 menit) | 2.400 detik (40,0 menit) |
 | Isi queue uang pukul 13.00 | (λ − 13,33) × 5.400 | ±448.000 baris | ±288.000 baris |
 
-Semua sel tabel adalah Hitungan atas Asumsi. Tabel beban [[t5-prd]] memakai puncak 75,2 per detik, yaitu 564% kapasitas. Jendela makan siang lebih padat, jadi λ naik ke 96,3.
+Semua sel tabel adalah Hitungan atas Asumsi, dengan queue uang kosong pukul 11.30 dan kedatangan tetap sampai 13.00. Tabel beban [[t5-prd]] memakai puncak 75,2 per detik, yaitu 564% kapasitas. Jendela makan siang lebih padat, jadi λ naik ke 96,3.
 
 Kapasitas 13,33 per detik datang dari c = 4 pengirim serentak dan t = 0,3 detik per pengiriman, dua Asumsi dari [[t3-estimasi]]. Lab mengukur c dan t pada penyedia tiruan berlatensi 300 ms:
 
