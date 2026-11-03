@@ -1,0 +1,26 @@
+{
+  "id": "t5-lag-inti",
+  "judul": "Saldo tampil tanpa token dan dengan token, replica ditahan",
+  "sumber": { "jenis": "rekaman", "teks": "Rekaman lab t5-replika · baca.txt bagian B (pemutaran ulang di replica ditahan dengan sengaja)" },
+  "baris": [
+    {
+      "label": "Tanpa token",
+      "sub": "bacaan tampilan",
+      "simpul": [
+        { "teks": "Bayar: 201", "sub": "saldo di jawaban Rp203.000" },
+        { "teks": "baca replica", "sub": "X-Dibaca-Dari: replika" },
+        { "teks": "saldo lama Rp215.000", "nada": "warn" }
+      ]
+    },
+    {
+      "label": "Dengan token",
+      "sub": "X-Lsn-Tulis dikirim kembali",
+      "simpul": [
+        { "teks": "replica belum sampai", "sub": "posisi replay di bawah token" },
+        { "teks": "baca primary", "sub": "X-Dibaca-Dari: primary" },
+        { "teks": "saldo Rp203.000", "nada": "good" }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah yang tertinggal dari primary. Pemutaran ulang di replica ditahan dengan sengaja, karena jeda alami di lab di bawah 1 detik. Saldo Rp215.000 adalah saldo sesudah pembayaran Rp35.000 sebelumnya."
+}

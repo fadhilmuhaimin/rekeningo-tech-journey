@@ -349,12 +349,15 @@ describe("rekaman sakelar.txt bagian D, kode flag, dan rekaman Tahap 4: diturunk
 describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-215 sampai R5-219", () => {
   const ids = ["R5-215", "R5-216", "R5-217", "R5-218", "R5-219"];
   const baris = ids.map(barisRiset);
-  test("lima baris berurutan di RISET-TAHAP-5, lima kolom, tanpa ID ganda, dan diselipkan sesudah R5-169", () => {
+  test("lima baris berurutan di RISET-TAHAP-5, lima kolom, tanpa ID ganda, dan diselipkan sesudah R5-169 dengan tetangga di rentang", () => {
     const semua = riset5.split("\n").filter((b) => /^\| R5-\d+ \|/.test(b)).map((b) => b.match(/^\| (R5-\d+) \|/)![1]!);
     for (const id of ids) expect(semua.filter((x) => x === id), id).toHaveLength(1);
     const i = semua.indexOf("R5-215");
     expect(semua.slice(i, i + 5)).toEqual(ids);
-    expect(semua[i - 1]).toBe("R5-169");
+    // tetangga dikunci dengan rentang, bukan dengan ID tertentu: PR halaman lain menyisipkan baris riset di antaranya
+    expect(Number(semua[i - 1]!.slice(3))).toBeGreaterThanOrEqual(169);
+    expect(Number(semua[i - 1]!.slice(3))).toBeLessThan(215);
+    expect(Number(semua[i + 5]!.slice(3))).toBeGreaterThan(219);
     const angkaId = semua.map((x) => Number(x.slice(3)));
     for (let k = 1; k < angkaId.length; k++) if (angkaId[k]! < angkaId[k - 1]!) expect(angkaId[k - 1]!, "hanya sesudah R5-314 urutan boleh turun").toBeGreaterThan(300);
     for (const b of baris) { expect(b).not.toBe(""); expect(pecahBaris(b)).toHaveLength(5); }

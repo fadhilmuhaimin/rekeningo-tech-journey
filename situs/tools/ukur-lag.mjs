@@ -130,6 +130,7 @@ for (const path of HAL) {
   const aturanTombol = page.locator(".lg .lg-aturan button");
   const slider = page.locator(".lg input[type=range]");
   let salahState = 0;
+  let salahTerjemah = 0; // teks istilah kode di luar translate=no, di semua kombinasi (keputusan 1527: keadaan awal tidak memuat remote_apply di teks)
   for (let ji = 0; ji < NJ; ji++) {
     await slider.focus();
     await page.keyboard.press("Home");
@@ -150,6 +151,13 @@ for (const path of HAL) {
         k.slider.nilai === ji && k.slider.keluar === j.label && k.slider.text === isi(L.jeda.nilai, { jeda: j.label }) && k.slider.label === `${L.jeda.label}: ${j.label}` &&
         samaJson(k.aturan.map((x) => x.pressed), D.aturan.map((_, x) => String(x === ai))) &&
         s2[1].teks === h.ringkas && samaJson(k.tabel, tabelHarap) && k.tabelMeta.caption === L.tabel.caption && k.tabelMeta.kepala === 0 && k.tabelMeta.kolom === 2 && acuanOk;
+      salahTerjemah += (await page.evaluate(() => {
+        const pola = /remote_apply|X-Lsn-Tulis|pg_current_wal_lsn\(\)|synchronous_commit|Idempotency-Key|Content-Type|SyncRep/;
+        const walk = document.createTreeWalker(document.querySelector(".lg"), NodeFilter.SHOW_TEXT);
+        let salah = 0;
+        for (let n = walk.nextNode(); n; n = walk.nextNode()) if (pola.test(n.textContent) && !n.parentElement.closest('[translate="no"]')) salah++;
+        return salah;
+      }));
       if (!ok) {
         salahState++;
         console.log(`  detail ${j.id}/${D.aturan[ai].id}: slider ${JSON.stringify(k.slider)}; ringkasan sama ${s2[1].teks === h.ringkas}; tabel sama ${samaJson(k.tabel, tabelHarap)}; meta ${JSON.stringify(k.tabelMeta)}; acuan sama ${acuanOk}; pressed ${k.aturan.map((x) => x.pressed)}`);
@@ -157,6 +165,7 @@ for (const path of HAL) {
     }
   }
   lapor(salahState === 0, `${path} ${NJ * NA} kombinasi jeda dan aturan: ringkasan, tabel kelompok baris per aturan, baris terpilih, kelas sel, aria-pressed, valuetext, dan rekaman sama dengan hitungan alat (${salahState} salah)`);
+  lapor(salahTerjemah === 0, `${path} istilah kode bertanda translate=no di ${NJ * NA} kombinasi jeda dan aturan (${salahTerjemah} teks tanpa tanda)`);
   const peta = D.jeda.flatMap((_, ji) => D.aturan.map((__, ai) => harap(ji, ai).kasus));
   lapor(["lama", "sama", "keprimary", "tunda", "macet"].every((x) => peta.includes(x)), `${path} kelima kasus muncul di antara ${peta.length} kombinasi: ${[...new Set(peta)].join(", ")}`);
 

@@ -1,0 +1,52 @@
+# Lab t5-gabung · panggilan jaringan per transaksi: satu proses lawan tiga proses dengan antrean
+# go1.27.3 · tanpa database dan tanpa container · modul lab/t5gabung (pustaka standar) · broker queue tiruan di loopback
+# Skor risiko di lab ini peraga, bukan fitur produk dan bukan model risiko.
+# Rekaman: make -C labs/t5-gabung run. Waktu dan p95 tidak ditulis; yang ditulis hasil pemeriksaan terhadap batas.
+
+# --- A. Yang dijalankan ---
+$ gabung satu -alamat <satu>                                   # satu proses: tiga pembacaan data lewat pemanggilan fungsi
+$ gabung antrean -alamat <antrean>                             # broker queue tiruan
+$ gabung masuk|perangkat|riwayat -alamat <...> -antrean <antrean>   # tiga proses layanan, satu data tiap proses
+# Satu proses berjalan: 1. Tiga proses berjalan: 3 layanan (masuk, perangkat, riwayat) dan 1 broker queue, jadi 4 proses.
+# Data (memori, benih tetap): 2000 akun di proses masuk, 1500 perangkat di proses perangkat, 60 baris riwayat per akun di proses riwayat.
+# Versi satu proses memegang ketiganya. Jeda buatan per panggilan: 0 ms.
+# Panggilan dari client ke pintu masuk (satu POST per transaksi) sama di kedua versi dan tidak ikut dihitung di bawah.
+# Lingkup: satu bentuk pembagian (rantai tiga proses lewat queue, urut) dan satu skor. Bentuk lain, mis. satu pemanggil yang memanggil
+# tiga service sekaligus tanpa queue, Tidak dijalankan.
+
+# --- B. Panggilan jaringan antar proses per transaksi, dihitung ---
+$ gabung beban -url <satu>/skor -n 400 -pemanasan 0
+transaksi 400, gagal 0
+panggilan per transaksi (dibawa pesan): 0 pada 400 dari 400 transaksi
+$ gabung beban -url <masuk>/skor -n 400 -pemanasan 0
+transaksi 400, gagal 0
+panggilan per transaksi (dibawa pesan): 6 pada 400 dari 400 transaksi
+# Penghitung client tiap proses (selisih selama 400 transaksi tiga proses): panggilan yang membawa pesan
+proses      kirim  ambil
+masuk         400    400
+perangkat     400    400
+riwayat       400    400
+jumlah       1200   1200   => 2400 = 6 x 400
+# Penghitung broker (sisi penerima, berdiri sendiri dari client): publikasi 1200, ambil berisi 1200, pesan tertinggal 0.
+# Tiga penghitung sama (hitungan dalam pesan, client tiap proses, broker): ya. Penghitung yang tidak cocok menggagalkan lab.
+# Satu proses: metrik prosesnya menulis 400 transaksi diproses dan tidak punya client queue, jadi 0 panggilan antar proses.
+# Ambil yang habis waktu tanpa pesan terjadi di jendela hitungan ini (broker mencatat lebih dari 0 kali; jumlahnya bergantung waktu dan tidak ditulis)
+# dan tidak ikut dihitung: penghitung client dan broker di atas tetap tepat.
+
+# --- C. Hasil skor sama persis di kedua versi ---
+# 400 transaksi: id, skor, keputusan, dan kode alasan sama di kedua versi: 400 dari 400.
+# Keputusan: setuju 336, tinjau 56, tolak 8. (Perbandingan waktu tidak berarti bila hasilnya beda.)
+id      skor  keputusan  alasan
+T00000     0  setuju     -
+T00001    20  setuju     nominal-besar
+T00002    20  setuju     nominal-besar
+T00003    20  setuju     nominal-besar
+T00004     0  setuju     -
+T00005    45  tinjau     perangkat-banyak-akun,nominal-besar
+
+# --- D. Byte isi pesan yang lewat jaringan ---
+# Isi pesan JSON (tanpa header HTTP dan tanpa isi POST dari client). Pesan membawa permintaan, fitur akun, fitur perangkat, dan hasil.
+tiga proses: dikirim ke broker 248056 byte, diterima dari broker 248056 byte, jumlah 496112 byte untuk 400 transaksi
+per transaksi: 620,14 byte dikirim dan 620,14 byte diterima (6 panggilan)
+satu proses: 0 byte (tidak ada pesan antar proses)
+# Byte client tiap proses dijumlahkan sama dengan byte broker: ya.

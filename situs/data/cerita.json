@@ -4337,7 +4337,7 @@
       "adr": [
         47
       ],
-      "masalah": "Replica selalu sedikit tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya",
+      "masalah": "Replica bisa tertinggal, jadi bacaan milik sendiri sesudah menulis dibaca dari tempat yang pasti sudah memilikinya",
       "pendek": "Replication lag dan read-your-writes",
       "prasyarat": [
         "t5-m41"
@@ -4345,8 +4345,9 @@
       "lab": [
         "t5-replika"
       ],
-      "ada": false,
-      "nomor": "5.7"
+      "ada": true,
+      "nomor": "5.7",
+      "menit": 24
     },
     {
       "id": "t5-m42",
@@ -4681,8 +4682,9 @@
       "lab": [
         "t5-cicilan"
       ],
-      "ada": false,
-      "nomor": "5.20"
+      "ada": true,
+      "nomor": "5.20",
+      "menit": 12
     },
     {
       "id": "t5-batch",

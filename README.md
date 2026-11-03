@@ -217,6 +217,7 @@ Lab yang punya `Makefile` dijalankan dengan `make -C labs/<nama> run`. Sisanya d
 | `t5-replika` | 5.2 | `make -C labs/t5-replika run`, lalu `make -C labs/t5-replika down` (primary + replica di compose sendiri, port 54340–54341) |
 | `t5-partisi` | 5.10, 5.11 (rencana) | `make -C labs/t5-partisi run` (±1 menit; satu bagian: `BAGIAN=skala`, `lepas`, atau `testing`); `make -C labs/t5-partisi cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit |
 | `t5-kms` | 5.26 (rencana) | `make -C labs/t5-kms run` (beberapa menit; satu bagian: `BAGIAN=arsip`, `rotasi`, atau `testing`; OpenBao v2.7.2 mode dev di container sendiri); `make -C labs/t5-kms cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit |
+| `t5-gabung` | 5.13 (rencana) | `make -C labs/t5-gabung run` (±80 detik, tanpa Docker; satu bagian: `BAGIAN=panggilan`, `latensi`, `mati`, atau `testing`); `make -C labs/t5-gabung cek` merekam ulang dan gagal bila rekaman berbeda dari yang di-commit |
 
 Lab server memakai port tetap di rentang 18080–18142. Lab sejak halaman 3.7 sengaja gagal kalau port sudah terpakai, supaya rekaman tidak diam-diam diambil dari server lama. Lab yang lebih lama belum semuanya diperiksa untuk pola ini, jadi pastikan proses lab sebelumnya sudah mati sebelum kamu menjalankan lab berikutnya.
 

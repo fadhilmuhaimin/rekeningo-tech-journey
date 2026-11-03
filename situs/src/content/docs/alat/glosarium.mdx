@@ -129,7 +129,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **lock_timeout** | Batas waktu menunggu lock di PostgreSQL; bila lewat, perintah menyerah dengan galat 55P03, bukan antre tanpa batas. | [[t2-skema-tanpa-downtime]] |
 | **Log** | Catatan kejadian per request atau per peristiwa, ditulis aplikasi untuk dibaca saat menyelidiki masalah. | [[t3-observability]] |
 | **Lost update** | Perubahan yang hilang karena dua transaction membaca nilai lama yang sama lalu saling menimpa. | [[t2-race-lock]] |
-| **LSN** (Log Sequence Number) | Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu. | [[D3]] |
+| **LSN** (Log Sequence Number) | Posisi di WAL. Membandingkan LSN primary dan replica menunjukkan apakah replica sudah menerapkan perubahan tertentu. | [[t5-lag]] |
 | **MCP** (Model Context Protocol) | Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server. | [[t4-audit]] |
 | **Merchant** | Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung. | [[t3-jembatan]] |
 | **Merge queue** | Queue di GitHub yang menggabungkan pull request ke branch yang ramai sesudah pemeriksaannya lolos, dengan memeriksa tiap perubahan bersama perubahan di depannya. | [[t5-m44]] |
@@ -180,10 +180,10 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **RBAC** (Role-Based Access Control) | Authorization berdasarkan peran, mis. hanya peran admin yang boleh membekukan akun. | [[B5.3]] |
 | **Read Committed** | Isolation level bawaan PostgreSQL: setiap perintah membaca data yang sudah `COMMIT` saat perintah itu mulai, jadi dua perintah bisa membaca keadaan berbeda. | [[t2-isolation-level]] |
 | **Read replica** | Salinan database yang hanya melayani baca dan bisa tertinggal dari database utama. | [[t5-read-replica]] |
-| **Read-your-writes** | Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal. | [[D3]] |
+| **Read-your-writes** | Jaminan bahwa user langsung melihat perubahan yang baru ditulisnya, walau bacaan biasa dilayani replica yang tertinggal. | [[t5-lag]] |
 | **Rekonsiliasi** | Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan. | [[t4-rekonsiliasi]] |
 | **Repeatable Read** | Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001. | [[t2-isolation-level]] |
-| **Replication lag** | Jeda antara perubahan di database utama dan munculnya perubahan itu di replica. | [[D3]] |
+| **Replication lag** | Jeda antara perubahan di database utama dan munculnya perubahan itu di replica. | [[t5-lag]] |
 | **Retry** | Mengirim ulang request yang gagal atau tidak dijawab. | [[t2-idempotency]] |
 | **Reverse proxy** | Server di depan aplikasi yang menerima request dari internet lalu meneruskannya, sambil mengurus hal bersama seperti TLS dan kompresi. | [[B11.2]] |
 | **RLS** (Row Level Security) | Fitur PostgreSQL yang menyaring baris berdasarkan aturan per user, dijalankan di dalam database. | [[B5.3]] |

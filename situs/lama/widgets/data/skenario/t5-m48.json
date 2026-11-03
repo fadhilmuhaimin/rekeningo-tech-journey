@@ -1,0 +1,185 @@
+{
+  "versi": 2,
+  "judul": "Angsuran Budi dijurnal dua kali: batch mati sesudah jurnal, lalu diulang 23 dan 25 jam kemudian",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t5-cicilan/output/crash.txt",
+    "fileVarian": "labs/t5-cicilan/output/crash.txt",
+    "catatan": "Lab t5-cicilan, PostgreSQL 17.11, dari database bersih (make -C labs/t5-cicilan run BAGIAN=crash). Jalur utama: crash.txt bagian A, versi pertama (mode rentan cicilan-satu-job), dengan jam ledger diperankan lewat -lab-sekarang. Ubah satu hal: bagian B dan C, versi benar dengan referensi unik, yang memakai karyawan lain (Citra) supaya datanya terpisah; angkanya sama dengan jalur utama (saldo Rp250.000, angsuran Rp100.000) dan hasilnya satu jurnal. Layar HP digambar dari cerita (Ilustrasi): lab tidak punya app Flutter, jam di layar berasal dari cerita, dan notifikasi angsuran tidak dibangun. Tiap langkah menampilkan baris terpilih dari rekaman yang sama dalam urutan aslinya; baris yang tidak dibutuhkan langkah itu dilewati. Baris diawali tanda pagar adalah baris rekaman, bukan baris log."
+  },
+  "pengantar": "Batch cicilan Budi mati sesudah ledger menjurnal angsuran ke-1, lalu dijalankan lagi. Tebak dulu apa yang terjadi di putaran kedua, lalu ikuti langkahnya sampai HP. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    {
+      "id": "job",
+      "label": "Job cicilan"
+    },
+    {
+      "id": "db",
+      "label": "Ledger (PostgreSQL)"
+    }
+  ],
+  "perangkat": [
+    {
+      "id": "hp",
+      "label": "HP user"
+    }
+  ],
+  "layarAwal": {
+    "hp": {
+      "judul": "Rekeningo",
+      "waktu": "07.10",
+      "sinyal": 4,
+      "saldo": 250000,
+      "isi": [
+        {
+          "jenis": "tombol",
+          "teks": "Lihat angsuran"
+        }
+      ]
+    }
+  },
+  "predict": {
+    "q": "Budi bersaldo Rp250.000. Batch mati sesudah ledger menjurnal angsuran ke-1 Rp100.000, lalu dijalankan lagi 25 jam kemudian. Berapa saldo Budi sesudah putaran kedua?",
+    "options": [
+      "Rp50.000: key 24 jam sudah habis, jadi angsuran ke-1 ditagih untuk kedua kalinya",
+      "Rp150.000: key yang sama menahan jurnal kedua, berapa pun umur batch sebelumnya",
+      "Rp250.000: job yang mati membatalkan jurnalnya, lalu putaran kedua menagih dari awal",
+      "Rp0: putaran kedua menagih angsuran ke-1 sampai ke-3 sekaligus"
+    ],
+    "answer": 0,
+    "varian": false,
+    "explain": "Pada 25 jam key sudah lewat umurnya, jadi job mengklaimnya lagi dan menulis jurnal kedua: 250.000 − 2 × 100.000 = 50.000 (Hitungan, cocok dengan rekaman). Pada 23 jam saldonya Rp150.000, karena key masih hidup. Rekaman crash.txt bagian A."
+  },
+  "langkah": [
+    {
+      "dari": "job",
+      "ke": "db",
+      "judul": "Batch menagih angsuran ke-1 Budi, dan prosesnya mati sesudah jurnal",
+      "kirim": "$ api-t5 -rentan cicilan-satu-job -cicilan-sampai <tanggal> -lab-sekarang <waktu> -lab-cicilan-henti 1\n# job pertama: keluar dengan sinyal 9 (SIGKILL), tanpa keluaran\n# sesudah mati: ledger sudah menjurnal, angsuran belum ditandai\n ke | status   | jurnal_di_ledger | kunci_selesai\n----+----------+------------------+---------------\n 1  | menunggu | 1                | 1",
+      "jelas": "Job dimatikan sinyal 9 sesudah jurnal angsuran ke-1 Rp100.000 di-commit dan key ditandai selesai, sebelum angsurannya ditandai. Di cerita proses mati karena node dikosongkan (Ilustrasi); lab mematikan prosesnya sendiri. Saldo Budi Rp150.000 (250.000 − 100.000, Hitungan).",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "07.10",
+          "sinyal": 4,
+          "saldo": 150000,
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Warung Ani",
+              "kanan": "−Rp100.000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "job",
+      "ke": "db",
+      "judul": "Batch dijalankan lagi 23 jam kemudian, dan angsuran itu dilewati",
+      "kirim": "$ api-t5 -rentan cicilan-satu-job -cicilan-sampai <tanggal> -lab-sekarang <waktu +23 jam>\nhasil: dibaca 1, jurnal baru 0, dilewati 1, dicatat 0\n status_angsuran_ke_1 | jurnal_di_ledger\n----------------------+------------------\n menunggu             | 1",
+      "jelas": "Key masih hidup (23 jam dari 24), jadi job tidak menjurnal lagi. Ia juga tidak menandai angsuran itu: job membacanya (dibaca 1), melewatinya, dan statusnya tetap menunggu.",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "07.10",
+          "sinyal": 4,
+          "saldo": 150000,
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Warung Ani",
+              "kanan": "−Rp100.000"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "dari": "job",
+      "ke": "db",
+      "judul": "Batch dijalankan lagi 25 jam kemudian, dan jurnal kedua ditulis",
+      "kirim": "$ api-t5 -rentan cicilan-satu-job -cicilan-sampai <tanggal> -lab-sekarang <waktu +25 jam>\nhasil: dibaca 1, jurnal baru 1, dilewati 0, dicatat 1\n ke | status  | jurnal_di_ledger\n----+---------+------------------\n 1  | dicatat | 2\n# saldo Budi dari jumlah posting: Rp50.000 (awal Rp250.000; satu angsuran Rp100.000 ditagih dua kali)",
+      "jelas": "Key sudah lewat umurnya, jadi job mengklaimnya lagi dan menjurnal angsuran ke-1 untuk kedua kalinya. Saldo Budi Rp50.000 (250.000 − 2 × 100.000, Hitungan). Notifikasi dan nominal Rp200.000 di cerita adalah Ilustrasi.",
+      "nada": "warn",
+      "layar": {
+        "hp": {
+          "judul": "Rekeningo",
+          "waktu": "07.10",
+          "sinyal": 4,
+          "saldo": 50000,
+          "isi": [
+            {
+              "jenis": "baris",
+              "kiri": "Warung Ani",
+              "kanan": "−Rp100.000"
+            },
+            {
+              "jenis": "baris",
+              "kiri": "Warung Ani",
+              "kanan": "−Rp100.000"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "varian": {
+    "label": "jurnal angsuran membawa referensi unik, dan job tidak bergantung pada jam",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "job",
+        "ke": "db",
+        "judul": "Versi benar: angsuran ke-1 Citra, dan prosesnya mati sesudah jurnal",
+        "kirim": "# Citra (akun 504), jadwal 2: tiga angsuran Rp100.000 ke Warung Ani, angsuran ke-1 jatuh tempo kemarin\n$ api-t5 -cicilan-sampai <tanggal> -lab-cicilan-henti 1\n# job pertama: keluar dengan sinyal 9 (SIGKILL), tanpa keluaran\n ke | status   | jurnal_dengan_referensi\n----+----------+-------------------------\n 1  | menunggu | 1",
+        "jelas": "Citra memakai data yang sama dengan Budi: saldo Rp250.000 dan angsuran Rp100.000. Job mati di titik yang sama. Jurnalnya sudah ada dengan referensi unik, dan angsurannya masih menunggu.",
+        "layar": {
+          "hp": {
+            "judul": "Rekeningo",
+            "waktu": "07.10",
+            "sinyal": 4,
+            "saldo": 150000,
+            "isi": [
+              {
+                "jenis": "baris",
+                "kiri": "Warung Ani",
+                "kanan": "−Rp100.000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "job",
+        "ke": "db",
+        "judul": "Job diulang kapan saja, dan jurnalnya tetap satu",
+        "kirim": "# job diulang kapan saja; jam tidak berperan (tanpa -lab-sekarang)\n$ api-t5 -cicilan-sampai <tanggal>\nhasil: dibaca 1, jurnal baru 0, jurnal sudah ada 1, dicatat 1\n ke | status  | terikat_jurnal | jurnal_dengan_referensi\n----+---------+----------------+-------------------------\n 1  | dicatat | t              | 1\n# saldo Citra dari jumlah posting: Rp150.000 (awal Rp250.000; satu angsuran Rp100.000 ditagih satu kali)",
+        "jelas": "Jam tidak berperan: job tidak memakai -lab-sekarang. Ia menemukan jurnal yang sudah ada dan hanya menandai angsurannya dicatat. Saldo Citra Rp150.000 (250.000 − 100.000, Hitungan).",
+        "nada": "good",
+        "layar": {
+          "hp": {
+            "judul": "Rekeningo",
+            "waktu": "07.10",
+            "sinyal": 4,
+            "saldo": 150000,
+            "isi": [
+              {
+                "jenis": "baris",
+                "kiri": "Warung Ani",
+                "kanan": "−Rp100.000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "dari": "db",
+        "judul": "Referensi yang sama ditolak database",
+        "kirim": "# job dijalankan sekali lagi: dibaca 0, jurnal baru 0\n# --- C. Referensi menahan jurnal kedua walau key sudah tidak ada: INSERT langsung dengan referensi yang sama ditolak database ---\nERROR: duplicate key value violates unique constraint \"jurnal_referensi_key\"",
+        "jelas": "INSERT langsung ke jurnal dengan referensi yang sama ditolak constraint unik, tanpa job dan tanpa key. Referensi tidak punya umur seperti key 24 jam. Cara kerjanya dibahas di halaman berikutnya.",
+        "nada": "good"
+      }
+    ]
+  }
+}
