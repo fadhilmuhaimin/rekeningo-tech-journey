@@ -4582,8 +4582,9 @@
       "lab": [
         "api-t5"
       ],
-      "ada": false,
-      "nomor": "5.16"
+      "ada": true,
+      "nomor": "5.16",
+      "menit": 12
     },
     {
       "id": "t5-pooler",
