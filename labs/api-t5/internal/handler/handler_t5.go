@@ -32,8 +32,8 @@ func tandaiSumber(w http.ResponseWriter, sumber string) {
 }
 
 // Endpoint Tahap 5 (lab-api-t5): laporan merchant dari primary (hanya mode laporan-primary, M40), pengumuman (M45), dan
-// cicilan (M48). API untuk mitra POS (M50) belum ada di lab ini: tabel `mitra_pos` ada, kontraknya ada di openapi.yaml,
-// dan implementasinya milik lab t5-waf.
+// cicilan (M48). API untuk mitra POS (M50) ada di handler_pos.go (lab t5-waf), hanya dengan -pos-rahasia; kontraknya
+// belum ditulis di openapi.yaml.
 func (s Server) pasangTahap5(mux *http.ServeMux) {
 	if s.rentan == service.RentanLaporanPrimary { // M40: tanpa mode ini rutenya tidak ada
 		mux.HandleFunc("GET /merchant/{id}/laporan/hari-ini", s.wajibLogin(s.laporanHariIni))

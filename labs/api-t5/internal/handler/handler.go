@@ -20,6 +20,8 @@ import (
 type Server struct {
 	svc    service.Service
 	rentan string // mode rentan lab (flag -rentan); kosong = versi benar
+	// Rahasia yang dibawa gerbang mitra POS (flag -pos-rahasia, lab t5-waf); kosong = rute /pos/v1 tidak ada.
+	posRahasia string
 	// Lapis per IP rate limit (lab-api-t2a, keputusan 645). Lapis per akun ada di service.
 	loginIP service.Batas     // /login dan /ganti-password: keduanya memeriksa password
 	kirimIP *service.Pembatas // /kiriman
@@ -78,6 +80,7 @@ func (s Server) Rute() *http.ServeMux {
 	s.pasangKartu(mux)      // kartu virtual dan panggilan dari penerbit
 	s.pasangBackOffice(mux) // back office tim risk, audit log, impor katalog merchant
 	s.pasangTahap5(mux)     // laporan merchant dari primary (M40), pengumuman, cicilan
+	s.pasangPOS(mux)        // API untuk mitra POS di belakang gerbang (lab t5-waf, M50)
 	return mux
 }
 

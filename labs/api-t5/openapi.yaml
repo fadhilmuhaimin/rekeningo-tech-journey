@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Rekeningo API v5 (fiktif)
   version: 5.0.0
-  description: Kontrak server labs/api-t5 (Tahap 5, satu negara). Semua endpoint Tahap 4 tetap dengan kontrak yang sama. Yang baru adalah laporan merchant hari ini, pengumuman, dan jadwal cicilan atau tabungan. API untuk mitra POS belum ada di lab ini (tabel mitra_pos ada; endpoint dan kontraknya milik lab t5-waf). Gateway, layanan verifikasi, dan penerbit adalah tiruan lokal. Lab, bukan layanan sungguhan.
+  description: Kontrak server labs/api-t5 (Tahap 5, satu negara). Semua endpoint Tahap 4 tetap dengan kontrak yang sama. Yang baru adalah laporan merchant hari ini, pengumuman, dan jadwal cicilan atau tabungan. API untuk mitra POS (/pos/v1, lab t5-waf) ada di server hanya dengan -pos-rahasia dan belum ditulis di kontrak ini. Gateway, layanan verifikasi, dan penerbit adalah tiruan lokal. Lab, bukan layanan sungguhan.
   license: { name: MIT, identifier: MIT }
 servers:
   - url: http://127.0.0.1:{port}
