@@ -16,7 +16,7 @@ keputusan direkam persis. Lab gagal keras bila hasilnya meleset.
     make -C labs/t5-rollout run BAGIAN=tanpa-router      (tanpa-router gateway analisis sakelar hpa testing)
     T5R_PERTAHANKAN=1 make -C labs/t5-rollout run        (cluster tidak dihapus sesudah rekaman)
 """
-import hashlib, http.client, json, os, pathlib, platform, re, shutil, subprocess, sys, tempfile, threading, time, urllib.request
+import hashlib, http.client, json, os, pathlib, platform, re, shutil, subprocess, sys, tempfile, threading, time
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "api-t5"))
@@ -49,6 +49,7 @@ IRA = 40308               # pemilik kartu lab: saldo besar supaya ratusan otoris
 TOKEN_KARTU = "tok_lab_rollout_ira"
 RATIH = "ratih@rekeningo.example"   # petugas risk dari data awal
 TTL_SAKELAR = 5.0         # detik; sama dengan -sakelar-ttl di manifes (Asumsi naskah)
+TOLERANSI = 2.0           # detik; selisih pengukuran (permintaan lewat port-forward, mesin ramai) yang masih diterima
 BATAS_HTTP = 10
 
 alias = {}                # nama pod atau hash acak -> label tetap di rekaman
@@ -127,8 +128,8 @@ def versi_k3d():
 def unduh(url, tujuan, sha256):
     """Unduh satu berkas dari rilis resmi dan periksa sha256-nya; berkas yang tidak cocok dihapus dan lab berhenti."""
     tujuan.parent.mkdir(exist_ok=True)
-    with urllib.request.urlopen(url, timeout=120) as r, open(tujuan, "wb") as f:
-        shutil.copyfileobj(r, f)
+    # curl memakai penyimpanan sertifikat sistem; urllib dari Python yang dipasang terpisah sering tidak punya sertifikat akar.
+    jalan(["curl", "-fsSL", "--max-time", "300", "-o", str(tujuan), url])
     h = hashlib.sha256(tujuan.read_bytes()).hexdigest()
     if h != sha256:
         tujuan.unlink()
@@ -188,11 +189,14 @@ def siapkan_cluster():
                "-p", f"{PORT_GATEWAY}:80@server:0:direct", "--api-port", f"127.0.0.1:{PORT_API}", "--servers-memory", "3g",
                "--wait", "--timeout", "420s"], batas=600)
         tunggu(lambda: "Ready" in kc("get", "nodes", cek=False), "node siap", 120, 2)
-        kc("create", "namespace", "argo-rollouts")
+    if jalan(["docker", "exec", NODE, "kubectl", "-n", "argo-rollouts", "get", "deploy", "argo-rollouts"], cek=False).returncode != 0:
+        # cluster baru, atau pemasangan yang terhenti di tengah
+        kc("create", "namespace", "argo-rollouts", cek=False)
         kc("apply", "-n", "argo-rollouts", "--server-side", "-f", "-", masuk=manifes_argo().read_text())
         kc("apply", "-f", "-", masuk=(MANIFES / "traefik-gateway.yaml").read_text())
         kc("apply", "--server-side", "--force-conflicts", "-f", "-", masuk=(MANIFES / "argo-rollouts-gateway.yaml").read_text())
         kc("-n", "argo-rollouts", "rollout", "restart", "deploy/argo-rollouts")
+        kc("-n", "argo-rollouts", "rollout", "status", "deploy/argo-rollouts", "--timeout=300s")
     # Tunggu: controller berjalan dan sudah mengunduh plugin, Gateway terprogram, metrics-server menjawab.
     tunggu(lambda: kcj("-n", "argo-rollouts", "get", "deploy", "argo-rollouts")["status"].get("readyReplicas") == 1, "controller Argo Rollouts", 300, 3)
     tunggu(lambda: "Download complete" in kc("-n", "argo-rollouts", "logs", "deploy/argo-rollouts", cek=False), "plugin Gateway API terunduh", 300, 3)
@@ -291,8 +295,8 @@ def alias_hash(label):
 
 
 # ---------- akses ke pod dari host (kubectl port-forward) ----------
-# kubectl proxy membuang kepala Authorization milik client (diganti kredensialnya sendiri), jadi sesi Bearer tidak sampai ke
-# pod. port-forward menyambung langsung ke port pod dan tidak mengubah isi permintaan.
+# Lewat kubectl proxy, POST /bo/flag/kartu dengan token Bearer dijawab 401 padahal login berhasil (diduga kepala Authorization
+# client tidak diteruskan; belum dibuktikan). port-forward menyambung langsung ke port pod dan tidak mengubah permintaan.
 
 def siapkan_kubeconfig():
     """Kubeconfig sementara untuk port-forward."""
@@ -652,7 +656,7 @@ def _sakelar():
         awal = []
         for i, p in enumerate(pods, 1):
             awal.append(auth_pod(p, f"otorisasi Rp1.000 di pod {i} segera sesudahnya")[1]["keputusan"])
-        if time.monotonic() - t0 < TTL_SAKELAR - 1.5:
+        if time.monotonic() - t0 < TTL_SAKELAR - TOLERANSI:
             break
         catat("# (pengulangan: jendela cache terlewat karena mesin lambat)")
         harap(tahap < 2, True, "jendela cache teramati dalam tiga percobaan")
@@ -661,7 +665,7 @@ def _sakelar():
     harap(awal, ["tolak", "setuju", "setuju"], "pod yang mengubah menolak, pod lain masih dari cache")
     catat("# Dalam jendela cache pod 2 dan pod 3 masih membaca nilai lama: sesudah sakelar dimatikan, otorisasi baru di sana tetap lolos sampai cache habis.")
     tunggu_semua_tolak(pods[1:], t0)
-    catat(f"Pod 2 dan pod 3 menolak (alasan kill-switch) dalam {TTL_SAKELAR:.0f} detik ditambah satu detik toleransi pengukuran sesudah sakelar dimatikan: ya (batas diperiksa, lama sebenarnya tidak direkam)")
+    catat(f"Pod 2 dan pod 3 menolak (alasan kill-switch) dalam {TTL_SAKELAR:.0f} detik ditambah {TOLERANSI:.0f} detik toleransi pengukuran sesudah sakelar dimatikan: ya (batas diperiksa, lama sebenarnya tidak direkam)")
     for i, p in enumerate(pods, 1):
         harap(auth_pod(p, f"otorisasi Rp1.000 di pod {i} sesudah jendela cache")[1].get("alasan"), "kill-switch", "tolak kill-switch")
     catat("$ SELECT nama, nilai, diubah_oleh FROM sakelar")
@@ -707,8 +711,8 @@ def _sakelar():
 def tunggu_semua_tolak(pods, t0):
     def semua():
         return all(otorisasi(lambda p, isi, k, pod=p: ke_pod(pod, "POST", p, isi, None, k))[2].get("keputusan") == "tolak" for p in pods)
-    tunggu(semua, "pod lain menolak sesudah cache habis", TTL_SAKELAR + 1, 0.25)
-    harap(time.monotonic() - t0 <= TTL_SAKELAR + 1, True, "batas jendela cache")
+    tunggu(semua, "pod lain menolak sesudah cache habis", TTL_SAKELAR + TOLERANSI, 0.25)
+    harap(time.monotonic() - t0 <= TTL_SAKELAR + TOLERANSI, True, "batas jendela cache")
 
 
 def tunggu_semua_setuju(pods):
@@ -792,8 +796,8 @@ def rekam_testing():
     catat(teks or "(tanpa temuan)")
     catat(f"# exit status {rc}")
     harap(rc, 0, "go vet")
-    rc, teks = go_test("test", "-tags", "t5rollout", "-count=1", "-p", "1", "-v", "-run", "Sakelar|LabTolak|HitungOtorisasi|SetKartuAktifBO", "./internal/service/", cwd=d.HERE, env=env)
-    catat(f"$ TES_DB_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema {d.TES}> go test -tags t5rollout -count=1 -p 1 -v -run 'Sakelar|LabTolak|HitungOtorisasi|SetKartuAktifBO' ./internal/service/   (di labs/api-t5)")
+    rc, teks = go_test("test", "-tags", "t5rollout", "-count=1", "-p", "1", "-v", "-run", "Sakelar|LabTolak|HitungOtorisasi|SetKartuAktifBO|EndpointOtorisasi", "./internal/service/", "./cmd/api/", cwd=d.HERE, env=env)
+    catat(f"$ TES_DB_WAJIB=1 TEST_DATABASE_URL=<pemilik, schema {d.TES}> go test -tags t5rollout -count=1 -p 1 -v -run 'Sakelar|LabTolak|HitungOtorisasi|SetKartuAktifBO|EndpointOtorisasi' ./internal/service/ ./cmd/api/   (di labs/api-t5)")
     catat("\n".join(l for l in teks.splitlines() if not l.startswith("=== ")))
     catat(f"# exit status {rc}")
     harap(rc, 0, "tes sakelar")
