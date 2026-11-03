@@ -809,6 +809,23 @@ describe("angka di badan: himpunan token angka dan jumlahnya dikunci; tiap token
 
 // ---- sumber luar -----------------------------------------------------------------------------------------------------------------
 describe("sumber luar: baris riset, tanggal akses, tautan, dan kutipan", () => {
+  test("Bacaan lanjut memuat tiap halaman NIST, Patroni, dan CloudNativePG yang dibuka baris riset, dan teks tautan cocok dengan alamatnya; kalimat pembatas baris riset ada", () => {
+    const lanjut = badan.slice(badan.indexOf("### Bacaan lanjut"));
+    for (const id of ["R5-152", "R5-153"]) {
+      const alamat = barisRiset(id).match(/(?:csrc\.nist\.gov|patroni\.readthedocs\.io|cloudnative-pg\.io)\/[^\s;,)"]*/g) ?? [];
+      expect(alamat.length, id).toBeGreaterThan(0);
+      for (const u of alamat) expect(lanjut, `${id}: ${u}`).toContain(`https://${u}`);
+    }
+    // teks tautan dan alamatnya berpasangan (satu alamat benar di riset tetap salah bila dipasang di teks lain)
+    for (const [teks, tujuan] of [
+      ["Patroni 4.1.5: watchdog", "patroni.readthedocs.io/en/latest/watchdog.html"], ["Patroni 4.1.5: replication modes", "patroni.readthedocs.io/en/latest/replication_modes.html"],
+      ["NIST CSRC: recovery point objective", "csrc.nist.gov/glossary/term/recovery_point_objective"], ["NIST CSRC: recovery time objective", "csrc.nist.gov/glossary/term/recovery_time_objective"],
+      ["CloudNativePG 1.30: replication", "cloudnative-pg.io/docs/1.30/replication/"], ["Supabase: Read Replicas", "supabase.com/docs/guides/platform/read-replicas"],
+    ] as const) expect(badan, teks).toContain(`[${teks}](https://${tujuan})`);
+    // kalimat pembatas di baris riset yang tidak masuk token angka, kutipan, atau URL
+    expect(barisRiset("R5-153")).toContain("(klaim dokumen CloudNativePG)");
+    expect(barisRiset("R5-154")).toContain("Supabase Read Replicas (supabase.com/docs/guides/platform/read-replicas");
+  });
   test("lima baris riset R5-150 sampai R5-154 ada, naik berurutan (rentang, bukan tetangga), tanpa ganda; tanggal akses sama dengan tanggal di halaman", () => {
     const nomor = [...riset.matchAll(/^\| R5-(\d+) \|/gm)].map((m) => Number(m[1]));
     expect(new Set(nomor).size).toBe(nomor.length);
