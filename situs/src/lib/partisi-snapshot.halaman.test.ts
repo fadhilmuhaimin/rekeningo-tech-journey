@@ -575,6 +575,43 @@ describe("diagram Rantai, widget, ADR 49, dan kartu Cek diri", () => {
   });
 });
 
+describe("struktur: judul bagian dan sel kunci tabel ADR", () => {
+  test("daftar judul bagian dan tingkatnya: satu Inti, lima judul Paham dan Putuskan, tiga judul Kunci", () => {
+    const judul = [...badan.matchAll(/^(#{2,6}) (.+)$/gm)].map((m) => `${m[1]!.length} ${m[2]}`);
+    expect(judul).toEqual([
+      "2 Inti", "3 Kenapa ini ada", "3 Cara kerjanya", "3 Di stack lain", "3 ADR 49: `posting` dipartisi per bulan, bulan lama dilepas dan diarsipkan",
+      "3 Sengaja belum dilakukan", "3 Cek diri", "3 Saat me-review kode AI, cek ini", "3 Bacaan lanjut",
+    ]);
+    expect(badan.match(/^\*\*[^*\n]+\*\*/gm)!.length).toBeGreaterThanOrEqual(20);
+  });
+  test("sel kunci tabel ADR: tiap opsi memuat kata dari sumbernya (rekaman, dokumentasi, atau label penalaran)", () => {
+    const adr = badan.slice(badan.indexOf("### ADR 49"), badan.indexOf("### Sengaja belum dilakukan"));
+    const t = adr.split("\n").filter((b) => b.startsWith("|")).map(sel);
+    const kolom = (baris: string): string[] => t.find((r) => r[0] === baris)!.slice(1);
+    const [a, b, c, d, e] = kolom("Cara kerja");
+    expect(a).toContain("tetap satu tabel");
+    expect(b).toContain("beberapa instance");
+    expect(c).toContain("TigerBeetle");
+    expect(d).toContain("hash `buku_id`");
+    expect(e).toContain("per bulan menurut `dibuat`");
+    const kurang = kolom("Kekurangan");
+    expect(kurang[0]).toContain("Ledger menolak DELETE");
+    expect(kurang[1]).toContain("(penalaran)");
+    expect(kurang[3]).toContain("Tiap partisi berisi semua bulan");
+    expect(kurang[4]).toContain("PRIMARY KEY memuat `dibuat`");
+    const bukti = kolom("Bukti");
+    expect(bukti[0]).toBe("Rekaman lab `snapshot.txt` bagian A dan `lepas.txt` bagian B");
+    expect(bukti[1]).toBe("Tidak dijalankan: dibahas di [[t5-adr-60]]");
+    expect(bukti[2]).toBe("Tidak dijalankan: TigerBeetle hanya disebut");
+    expect(bukti[3]).toBe("Tidak dijalankan: definisi di dokumentasi PostgreSQL 17");
+    expect(bukti[4]).toBe("Rekaman lab `pruning.txt`, `lepas.txt`, `pasang.txt`, `snapshot.txt`");
+    expect(kolom("Biaya operasional")[0]).toBe("Pemeriksaan membaca 1.800.000 dari 1.800.000 posting di lab");
+    expect(readme).toContain("Tanpa snapshot: 1.800.000 baris dari 1.800.000.");
+    expect(snap).toContain("# Baris posting dibaca: 1.800.000 dari 1.800.000 posting di tabel.");
+    for (const f of ["pruning.txt", "lepas.txt", "pasang.txt", "snapshot.txt"]) expect(readme).toContain(`output/${f}`);
+  });
+});
+
 describe("rentang Snippet diturunkan dari struktur rekaman dan kode", () => {
   test("enam belas Snippet berkas: berkas, rentang, dan judul sama dengan penanda di sumber; tiga kode inline", () => {
     expect(tag).toHaveLength(16);
