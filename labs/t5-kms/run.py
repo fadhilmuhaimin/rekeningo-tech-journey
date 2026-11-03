@@ -29,7 +29,7 @@ S = "tahap5_kms"
 TES = "tahap5_kms_tes"
 VERSI_BAO = "2.7.2"
 IMG = f"ghcr.io/openbao/openbao:{VERSI_BAO}@sha256:5046911075e137e154ce49ab051502f4ec7cf367d484ae4a4dce665d9b90561f"
-DASAR_BAO = 18330   # OpenBao mode dev (api-t5: 18310-18316; t5-fanout 18317; t5-service 18320-18324)
+DASAR_BAO = 18331   # OpenBao mode dev (api-t5: 18310-18316; t5-fanout 18317; t5-service 18320-18324; t5-waf 18330)
 PORT_BAO = d.port_lab(DASAR_BAO)
 NAMA = f"t5kms-{d.DB_PORT}-bao"
 LABEL = f"rjt.lab=t5-kms-{d.DB_PORT}"
