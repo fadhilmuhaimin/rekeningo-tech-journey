@@ -678,6 +678,119 @@ describe("penutup celah mutasi tanpa kunci: frontmatter, Gejala, noscript, butir
   });
 });
 
+// --- seluruh baris badan: tiap kalimat, judul, dan tabel sama dengan yang diturunkan dari rekaman, kode, registry, dan baris riset (lapis 1b, tanpa bergantung pada kunci lapis 2)
+const T5 = String(registry.tahap[4]!.no);
+const PERSEN = `${bulat((100 * POS_RPS) / angka(puncakTulis), 0)}%`;
+const RASIO = koma(POS_RPS / angka(puncakTulis), 2);
+const KODE = cari(/-> (\d{3}) kuota-terlampaui/, kA.join("\n"), "kode 429")[1]!;
+const r225 = barisRiset("R5-225");
+const r227 = barisRiset("R5-227");
+const ISU = cari(/golang\/go#(\d+)/, r225, "nomor isu")[1]!;
+const isuBuka = cari(/dibuka (\d{4}-\d{2}-\d{2})T/, r225, "tanggal buka isu")[1]!;
+const isuTutup = cari(/ditutup (\d{4}-\d{2}-\d{2})T/, r225, "tanggal tutup isu")[1]!;
+const RFC429 = cari(/rfc-editor\.org\/rfc\/rfc(\d+), April 2012/, r227, "RFC 429")[1]!;
+const RFC_NAT = cari(/rfc-editor\.org\/rfc\/rfc(\d+), Januari 2001/, r227, "RFC NAT")[1]!;
+const TGL = cari(/dibaca di main (\d{4}-\d{2}-\d{2})/, barisRiset("R5-228"), "tanggal buka sumber")[1]!;
+const ADR56 = String(dari("t5-waf").adr![0]);
+const ADR27 = cari(/ADR (\d+)/, dari("t3-rate-limit-redis").judul, "ADR 27")[1]!;
+const ADR34 = cari(/ADR (\d+)/, dari("t4-webhook").judul, "ADR 34")[1]!;
+/*BADAN*/
+const BADAN_DITURUNKAN: string[] = [
+  `<Blok nama="Gejala" buka>`,
+  `Minggu ${mingguM50} Tahap ${T5}. Rabu pukul ${hariJam[1]} Tomi memasang pembaruan POS di kasir milik mitranya.`,
+  `Kasir menunggu jawaban status pembayaran. Jawaban itu belum datang, dan kasir mengulang permintaannya tanpa jeda.`,
+  `Satu mitra kini mengirim ${ribu(POS_RPS)} permintaan per detik. Angka itu ${PERSEN} dari seluruh puncak.`,
+  `Bu Marni dan merchant lain yang memakai POS mitra lain mendapat ${KODE} dan jawaban yang lambat.`,
+  `*Angka cerita (Ilustrasi dan Hitungan):* hari, jam, ${ribu(POS_RPS)} permintaan per detik, dan "lambat" berasal dari naskah, bukan dari rekaman. Hitungan berarti angka yang dihitung dari angka lain di halaman ini, dan labelnya ikut masukan yang paling lemah. Jadi ${PERSEN} adalah Hitungan atas Ilustrasi: ${ribu(POS_RPS)} ÷ ${puncakTulis} = ${RASIO}, dengan puncak ${puncakTulis} permintaan per detik dari Asumsi beban Tahap ${T5} ([[t5-prd]]). Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].`,
+  `*Dua istilah di cerita:* POS adalah kasir elektronik di toko, dan mitra POS adalah penyedia POS pihak ketiga yang memanggil API Rekeningo ([[t5-prd]]). ${KODE} adalah kode status HTTP yang menjawab bahwa client mengirim terlalu banyak permintaan dalam waktu tertentu ([RFC ${RFC429} bagian 4](https://www.rfc-editor.org/rfc/rfc${RFC429}#section-4), dibuka ${TGL}, Tidak dijalankan).`,
+  `</Blok>`,
+  `<Blok nama="Yang Raka kira" buka>`,
+  `Tim mengira tiga hal. Pertama, ini serangan DDoS, yaitu banjir permintaan dari banyak sumber supaya API tidak terjangkau. Kedua, alamat jaringan mitra itu perlu diblokir. Ketiga, seperti usul Nadia, API perlu lebih banyak replica.`,
+  `Lab t5-waf memerankan pintu API untuk mitra POS. Satu mitra mengirim banyak permintaan status, dan mitra lain mengirim sedikit. Batasnya token bucket: tiap permintaan memakai satu token, dan token terisi ulang dengan laju tetap ([[t3-rate-limit-redis]]).`,
+  `Jam bucket dibekukan di lab. Jadi lab menghitung token tepat tanpa mengukur laju sungguhan.`,
+  `<details class="question">`,
+  `<summary>Tebak dulu: Lab mengirim ${A.n} permintaan status dari mitra A dan ${B.n} dari mitra B dalam satu detik. Hanya ada satu bucket ${kuota} token per detik, dan semua mitra memakainya. Berapa permintaan yang mendapat ${KODE}, dan apakah mitra B ikut?</summary>`,
+  `${C.tolak} dari ${C.total} permintaan mendapat ${KODE}, dan ${C.ok} lainnya lolos dengan 200. Mitra B ikut mendapat ${KODE} (Rekaman lab, \`kuota.txt\`, bagian C).`,
+  `Rekaman itu tidak menghitung bagian B terpisah, jadi berapa dari ${B.n} permintaan B yang tertolak tidak terukur. Blok berikutnya menunjukkan kodenya dan menjelaskan kenapa satu pengulangan cukup.`,
+  `</details>`,
+  `</Blok>`,
+  `<Blok nama="Yang sebenarnya">`,
+  `Pengirimnya mitra yang sah. Kasirnya mengulang permintaan karena jawaban belum datang, dan satu batas bersama membuat mitra lain ikut mendapat ${KODE}.`,
+  `<Rantai data={satuPos} ringkas />`,
+  `*Tiga label turunan:* Penalaran adalah kesimpulan dari kode atau rekaman yang tidak diukur langsung, jadi labelnya Tidak dijalankan. Dibaca dari kode berarti isi kode sumber dibaca tanpa dijalankan. Tes Go adalah tes otomatis di folder gerbang: \`testing.txt\` mencatat nama dan hasil PASS-nya, dan isinya dibaca dari kode tes.`,
+  `*Kondisi rekaman:* gerbang Go di depan \`api-t5\`, keduanya di localhost, dengan PostgreSQL ${versi.pg}, go${versi.go}, dan Redis ${versi.redis}, dari database bersih. Jam bucket dimajukan lewat \`POST /lab/jam\`, jadi ${A.n} permintaan dihitung dalam satu detik tanpa menunggu waktu sungguhan. Bagian C memakai pekerjaan yang sama dengan bagian A: ${A.n} permintaan mitra A dan ${B.n} mitra B (dibaca dari kode lab, Tidak dijalankan). POS tiruan adalah client Python dengan kunci API dan tanda tangan yang sah.`,
+  `**Pengulangan ini bukan serangan dari luar.** Kalau kamu pernah memasang retry di app, kamu tahu pola kasir ini: ia mencoba lagi sampai jawaban datang. Pada pembaruan Tomi jawaban status belum datang, jadi pengulangannya tidak berhenti (cerita; Penalaran).`,
+  `OWASP API Security Top 10 edisi 2023 menamai risiko ini API4, konsumsi sumber daya tanpa batas ([OWASP API4:2023](https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption), dibuka ${TGL}, Tidak dijalankan). Menurut halaman itu, melayani permintaan membutuhkan bandwidth jaringan, CPU, memori, dan penyimpanan. Salah satu pencegahannya membatasi seberapa sering client boleh memanggil API dalam jangka waktu tertentu.`,
+  `**Serangan lapisan 7 yang sungguhan ada, tetapi bentuknya lain.** Isu golang/go#${ISU} (dibuka ${isuBuka}, ditutup ${isuTutup}) menggambarkan client HTTP/2 berniat jahat yang membuat permintaan lalu segera me-reset-nya, sehingga server menjalankan kerja berlebih. Perbaikannya membatasi jumlah goroutine handler yang berjalan bersamaan sebesar batas stream ([golang/go#${ISU}](https://github.com/golang/go/issues/${ISU}), dibuka ${TGL}, Tidak dijalankan). Gerbang lab melayani HTTP tanpa TLS di localhost, jadi isu itu tidak direkam.`,
+  `**Satu batas bersama menghabiskan jatah mitra lain.** Gerbang memilih kunci bucket dari mitra yang kunci API-nya sah. Mode rentan \`kuota-bersama\` memakai satu kunci untuk semua mitra:`,
+  `<Snippet file="labs/t5-waf/gerbang/gerbang.go" lines="163:166" lang="go" title="Kode lab: labs/t5-waf/gerbang/gerbang.go, pemilihan kunci bucket di ServeHTTP" />`,
+  `Dengan satu bucket ${kuota} per detik, ${C.total} permintaan menghasilkan ${C.ok} jawaban 200 dan ${C.tolak} jawaban ${KODE}:`,
+  `<Snippet file="labs/t5-waf/output/kuota.txt" lines="29:30" title="Rekaman lab: labs/t5-waf/output/kuota.txt, bagian C (mode kuota-bersama)" />`,
+  `Mitra B ikut mendapat ${KODE}, walau ia hanya mengirim ${B.n} permintaan. Mode ini memerankan satu batas yang dipakai semua mitra, sesuai tulisan naskah (Penalaran). Ia tidak menghitung per alamat.`,
+  `NAT adalah penerjemahan alamat jaringan. Salah satu jenisnya, NAPT, menerjemahkan banyak alamat dan port menjadi satu alamat ([RFC ${RFC_NAT}](https://www.rfc-editor.org/rfc/rfc${RFC_NAT}), Informational, dibuka ${TGL}, Tidak dijalankan). Naskah menulis bahwa batas per alamat dari ADR ${ADR27} memberi satu hitungan untuk satu alamat. Bila banyak kasir berbagi satu alamat NAT, hitungannya satu untuk semuanya (Penalaran, dari mekanismenya; lab tidak merekamnya).`,
+  `Karena itu memblokir alamat mitra bukan jawabannya. Semua kasir di belakang alamat itu ikut berhenti, termasuk kasir yang tidak mengulang apa pun (Penalaran). Menambah replica menambah ruang untuk pengulangan yang sama (Penalaran). Kapasitas satu server belum pernah diukur di lab ini (Tidak dijalankan).`,
+  `**Pengulangan POST tanpa Idempotency-Key membuat dua QR.** Idempotency-Key adalah kepala permintaan yang membuat pengulangan POST menghasilkan satu hasil ([[t2-idempotency]]). Di \`api-t5\`, \`idempoten\` meneruskan permintaan tanpa kepala itu apa adanya, termasuk di rute POS untuk membuat QR (Tidak dijalankan, dibaca dari kode).`,
+  `Dua POST yang sama dikirim ke satu merchant. Tabel ini menaruh kedua kasus dari rekaman:`,
+  `| Dua POST yang sama | Jawaban | Baris \`qr\` milik merchant |`,
+  `|---|---|---|`,
+  `| Tanpa Idempotency-Key, mode \`tanpa-idempoten-wajib\` | ${mTanpa[1]} dan ${mTanpa[2]} | ${mTanpa[4]} (Rekaman lab) |`,
+  `| Dengan Idempotency-Key yang sama | ${mKey[1]} dan ${mKey[2]}, id QR sama | ${mKey[5]} (Rekaman lab) |`,
+  `Naskah menulis bahwa pembeli bisa membayar kedua QR. Lab hanya merekam jumlah baris \`qr\` (\`tandatangan.txt\`, bagian A) dan tidak membayar QR itu.`,
+  `**Yang tidak direkam.**`,
+  `- Rabu, ${hariJam[1]}, ${ribu(POS_RPS)} permintaan per detik, dan jawaban yang lambat berasal dari cerita (Ilustrasi). ${PERSEN} adalah Hitungan atas Ilustrasi.`,
+  `- Lab memakai ${A.n} dan ${B.n} permintaan dalam satu detik beku. Laju sungguhan, jawaban lambat, dan kapasitas server tidak diukur.`,
+  `- Jumlah permintaan mitra B yang tertolak di mode \`kuota-bersama\` tidak dihitung terpisah.`,
+  `- Penghitungan per alamat NAT tidak direkam: untuk rute POS semua permintaan tiba dari alamat gerbang.`,
+  `- Serangan volumetrik lapisan 3 dan 4 dan reset stream HTTP/2 Tidak dijalankan.`,
+  `- Pembelaannya, yaitu kuota per mitra, tanda tangan bertimestamp, WAF, dan cakupan kunci, dibahas di [[t5-waf]].`,
+  `</Blok>`,
+  `<Blok nama="Coba sendiri">`,
+  `Widget ini mengikuti cerita M50. Jalur utama memuat satu langkah cerita (Ilustrasi) dan tiga langkah rekaman, dan "Ubah satu hal" memakai rekaman \`kuota.txt\` bagian A dan tes Go. Tebak dulu, lalu tekan Berikutnya atau panah kanan.`,
+  `<WidgetLama nama="alur" src="data/skenario/t5-m50.json" />`,
+  `Sesudah langkah terakhir, centang **Ubah satu hal: Tiap mitra punya bucket ${kuota} per detik sendiri**. Tiga langkah berikutnya memuat rekaman bucket per mitra, kepala \`Retry-After\`, dan urutan kuota sebelum tanda tangan.`,
+  `Widget ini tidak punya layar HP, karena M50 terjadi di antara API dan kasir mitra, bukan di app.`,
+  `<noscript>`,
+  `Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: satu bucket ${kuota} per detik untuk ${C.total} permintaan menghasilkan ${C.ok} jawaban 200 dan ${C.tolak} jawaban ${KODE}. Mitra B ikut mendapat ${KODE} (bagian C).`,
+  `Dengan bucket per mitra, mitra A mendapat ${A.ok} jawaban 200 dan ${A.tolak} jawaban ${KODE}, sedangkan mitra B ${B.ok} dari ${B.n} tetap 200 (bagian A).`,
+  `</noscript>`,
+  `</Blok>`,
+  `<Blok nama="Konsep yang lahir">`,
+  `- [[t5-waf]]: kuota per mitra, tanda tangan bertimestamp, WAF, dan cakupan kunci di pintu untuk pihak luar. Keputusannya ADR ${ADR56}.`,
+  `- [[t3-rate-limit-redis]]: ADR ${ADR27}, yang menghitung batas per alamat dan per akun. Halaman ini membaca batas itu untuk pihak luar.`,
+  `- [[t4-webhook]]: HMAC bertimestamp di ADR ${ADR34} untuk pesan masuk. Pintu mitra memakai pola yang sama, dengan method dan alamat ikut ditandatangani.`,
+  `Satu mitra yang mengulang tanpa jeda cukup untuk menghabiskan batas yang dipakai bersama, jadi batas dihitung per mitra.`,
+  `### Cek diri`,
+  `**1.** Satu bucket ${kuota} per detik dipakai semua mitra. Mitra A mengirim ${A.n} permintaan dan mitra B ${B.n} dalam satu detik. Berapa permintaan yang mendapat ${KODE}, dan apa yang berubah bila bucket dihitung per mitra?`,
+  `<details class="success">`,
+  `<summary>Jawaban</summary>`,
+  `${C.tolak} dari ${C.total} permintaan mendapat ${KODE} dan ${C.ok} lolos, dan mitra B ikut mendapat ${KODE} (\`kuota.txt\`, bagian C). Dengan bucket per mitra, A mendapat ${A.ok} jawaban 200 dan ${A.tolak} jawaban ${KODE}, sedangkan B ${B.ok} dari ${B.n} tetap 200 (bagian A). Jam bucket dibekukan, jadi ini hitungan token, bukan laju sungguhan.`,
+  `</details>`,
+  `**2.** Kasir mengulang POST untuk membuat QR tanpa Idempotency-Key. Berapa baris \`qr\` terbentuk dari dua POST yang sama, dan apa yang terjadi dengan key yang sama?`,
+  `<details class="success">`,
+  `<summary>Jawaban</summary>`,
+  `Tanpa key ada dua baris \`qr\` (gerbang di mode \`tanpa-idempoten-wajib\`). Dengan key yang sama ada satu baris: ${mKey[1]} dua kali dengan id QR yang sama (\`tandatangan.txt\`, bagian A). Lab tidak membayar QR itu, jadi pembeli membayar keduanya hanya dari naskah.`,
+  `</details>`,
+  `**3.** Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur?`,
+  `<details class="success">`,
+  `<summary>Jawaban</summary>`,
+  `Rabu, ${hariJam[1]}, ${ribu(POS_RPS)} permintaan per detik, dan jawaban yang lambat berasal dari cerita (Ilustrasi), dan ${PERSEN} adalah Hitungan atas Ilustrasi. Lab memakai ${A.n} dan ${B.n} permintaan dengan jam bucket dibekukan, jadi laju sungguhan, jawaban lambat, dan kapasitas server tidak diukur (\`kuota.txt\`, bagian C).`,
+  `</details>`,
+  `</Blok>`,
+  `<SkripLama daftar={["hp","alur-core","alur"]} />`,
+];
+/*AKHIR-BADAN*/
+
+describe("seluruh baris badan: setiap kalimat, judul, dan tabel sama dengan yang diturunkan dari rekaman, kode, registry, dan baris riset", () => {
+  test("daftar baris tak kosong sama persis, dalam urutan yang sama", () => {
+    expect(badan.split("\n").filter((b) => b.trim() !== "")).toEqual(BADAN_DITURUNKAN);
+  });
+  test("pertanyaan tebakan skenario persis, dengan angka dari rekaman", () => {
+    expect(skenario.predict.q).toBe(
+      `Tiap mitra sekarang punya bucket ${kuota} per detik sendiri. Mitra A tetap mengirim ${A.n} permintaan status dan mitra B ${B.n}, semuanya dalam satu detik. Berapa dari ${B.n} permintaan mitra B yang mendapat 200?`,
+    );
+  });
+});
+
 // --- baris riset yang dibaca ke sumber primer pada 2026-11-04: kutipan, versi, tanggal, dan alamat tidak boleh berubah tanpa membuka sumbernya lagi
 const RISET_TERKUNCI: Record<string, string> = {
   "R5-225": "| R5-225 | Isu golang/go#63417: reset stream HTTP/2 beruntun (halaman 5.24) | golang/go#63417, judul \"net/http, x/net/http2: rapid stream resets can cause excessive work (CVE-2023-39325)\", dibaca dari JSON mentah `gh api repos/golang/go/issues/63417`, dibuka 2026-11-04: dibuka 2023-10-06T15:52:23Z, ditutup 2023-10-10T16:33:30Z, label Security. Teks isu: \"A malicious HTTP/2 client which rapidly creates requests and immediately resets them can cause excessive server resource consumption.\" dan \"HTTP/2 servers now bound the number of simultaneously executing handler goroutines to the stream concurrency limit.\" Perbaikan juga ada di golang.org/x/net/http2 v0.17.0, dan batas bawaan 250 stream per koneksi HTTP/2 | Satu paragraf \"Serangan lapisan 7 yang sungguhan ada, tetapi bentuknya lain\": tanggal buka dan tutup, client HTTP/2 berniat jahat, perbaikan membatasi goroutine handler setara batas stream; Tidak dijalankan (gerbang lab melayani HTTP tanpa TLS di localhost) | Tidak berubah (isu ditutup 2023-10-10, dicek 2026-11-04) |",
