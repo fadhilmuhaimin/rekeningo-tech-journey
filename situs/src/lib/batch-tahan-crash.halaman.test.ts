@@ -1002,6 +1002,122 @@ describe("registry, tautan, template blok, widget, kartu, istilah, dan label", (
   });
 });
 
+describe("penutup celah mutasi tanpa kunci baris: tabel ADR dan sengaja belum, kode Ilustrasi tab, nama tokoh, UNIQUE, dan admin", () => {
+  const totalKode = Object.fromEntries(barisKode.map((r) => [r[0]!, { alur: Number(r[1]), total: Number(r[3]) }])) as Record<string, { alur: number; total: number }>;
+  test("tabel opsi ADR 54: tiap sel (kecuali bukti) cocok dengan nilai turunan, kolom dan baris tidak bertukar", () => {
+    const bagian = badan.slice(badan.indexOf("### ADR 54:"), badan.indexOf("**Keputusan: opsi D.**"));
+    const baris = Object.fromEntries(bagian.split("\n").filter((b) => b.startsWith("| ") && !b.startsWith("| |") && !b.startsWith("|---")).map((b) => { const p = pecahBaris(b); return [p[0]!, p.slice(1)]; })) as Record<string, string[]>;
+    const kodeAwal = totalKode["tabel langkah"]!.total;
+    expect(baris["Cara kerja"]).toEqual([
+      "Job terjadwal menagih angsuran, dan Idempotency-Key 24 jam menjadi satu-satunya penahan ([[t2-job-rekonsiliasi]])",
+      "Tiap langkah menerbitkan event yang memicu langkah berikutnya, tanpa tabel yang mencatat posisi angsuran",
+      "Satu workflow per angsuran, dan DBOS mencatat tiap langkah di tabel sistemnya di PostgreSQL",
+      "`jurnal.referensi` unik menahan jurnal kedua, dan `angsuran.status` mencatat langkah: menunggu, terjurnal, dicatat",
+    ]);
+    expect(baris["Kelebihan"]).toEqual([
+      "Tidak ada tabel atau komponen baru",
+      "Tidak ada job pusat yang memegang urutan (penalaran)",
+      "Pencatatan dan pemulihan langkah ditulis sekali untuk semua alur (godoc v1.8.0)",
+      `Tanpa dependency baru: satu kolom, satu tabel, dan ${kodeAwal} baris alur dan penanda di lab`,
+    ]);
+    expect(baris["Kekurangan"]).toEqual([
+      `Sesudah 25 jam jurnal kedua ditulis, dan saldo Budi menjadi ${rp(saldoBudiAkhir)} (\`crash.txt\` bagian A)`,
+      "Posisi angsuran tersebar di banyak event, dan naskah menulisnya sulit ditelusuri sampai angsuran terakhir",
+      `\`RunAsStep\` tanpa referensi menulis 2 jurnal bila proses mati di dalam langkah jurnal (\`langkah.txt\` bagian A); ${totalKode["DBOS RunAsStep"]!.total} dan ${totalKode["DBOS RunAsTransaction"]!.total} baris dengan inisialisasi lawan ${kodeAwal}`,
+      "Status dan pemulihan ditulis tangan untuk tiap jenis alur (penalaran)",
+    ]);
+    expect(baris["Biaya operasional"]).toEqual([
+      "Nol tambahan, dengan harga tagihan ganda sesudah 24 jam",
+      "Event streaming dan relay yang harus dipantau ([[t5-fanout]])",
+      `Satu modul dan ${Object.keys(sistem).length} tabel sistem di schema sendiri, 5 baris sistem per angsuran`,
+      "Angsuran yang tinggal `terjurnal` terlalu lama harus dipantau (desain, Tidak dijalankan)",
+    ]);
+    expect(totalKode["DBOS RunAsStep"]!.alur).toBe(59);
+    expect(totalKode["DBOS RunAsTransaction"]!.alur).toBe(54);
+    expect(kodeT5.join("\n")).toContain("24*time.Hour");
+  });
+  test("teks widget banding dan tebakan lengkap: simpul, judul baris, label, adegan, pilihan, dan alasan; angka dari rekaman", () => {
+    const sub = (o: number): string[] => bandingMentah.opsi[o]!.baris.flat().map((x) => `${x.id}|${x.label}|${x.sub ?? ""}`);
+    expect(sub(0)).toEqual(["job|Job cicilan|api-t5, satu proses", "ledger|Ledger|jurnal.referensi unik", "status|angsuran.status|menunggu, terjurnal, dicatat", `kode|Kode alur dan penanda|${totalKode["tabel langkah"]!.alur} baris`, "simpan|Tabel tambahan|tidak ada"]);
+    expect(sub(1)).toEqual(["job|Workflow per angsuran|program Go terpisah", "ledger|Ledger|fungsi SQL milik lab", `status|Tabel sistem DBOS|${Object.keys(sistem).length} tabel, schema sendiri`, `kode|Kode alur dan penanda|${totalKode["DBOS RunAsStep"]!.alur} atau ${totalKode["DBOS RunAsTransaction"]!.alur} baris, plus inisialisasi`, "simpan|Baris sistem|5 per angsuran"]);
+    for (const o of bandingMentah.opsi) expect(o.judulBaris).toEqual(["", "Tempat status langkah", "Yang ditulis dan disimpan"]);
+    expect(bandingMentah.opsi.map((o) => o.baris.map((b) => b.length))).toEqual([[2, 1, 2], [2, 1, 2]]);
+    expect(bandingMentah.fitur[0]!.catatan.tabel).toBe(`Ledger sudah menulis satu jurnal dan angsuran masih menunggu. Proses kedua menemukan jurnal lewat referensi: jurnal akhir 1, saldo berkurang ${rp(perAngsuran)}, status dicatat (langkah.txt bagian A).`);
+    expect(bandingMentah.fitur[0]!.catatan.dbos).toBe(`RunAsStep tanpa referensi: jurnal akhir 2 dan saldo berkurang ${rp(2 * perAngsuran)}, karena langkah baru tercatat sesudah fungsinya kembali. RunAsStep dengan referensi unik dan RunAsTransaction: jurnal akhir 1 (langkah.txt bagian A).`);
+    expect(bandingMentah.fitur[1]!.catatan.tabel).toBe(`Status angsuran sudah terjurnal. Proses kedua melanjutkan ke dicatat: jurnal akhir 1, saldo berkurang ${rp(perAngsuran)} (langkah.txt bagian A).`);
+    expect(bandingMentah.fitur[1]!.catatan.dbos).toBe(`Langkah jurnal sudah tercatat di tabel sistem, jadi tidak dijalankan lagi: jurnal akhir 1 di ketiga cara DBOS, saldo berkurang ${rp(perAngsuran)} (langkah.txt bagian A).`);
+    expect(bandingMentah.fitur[2]!.catatan.tabel).toBe(`${totalKode["tabel langkah"]!.alur} baris untuk alur dan penanda, tanpa inisialisasi (langkah.txt bagian B, dihitung dari wilayah bertanda di kode).`);
+    expect(bandingMentah.fitur[2]!.catatan.dbos).toBe(`RunAsStep ${totalKode["DBOS RunAsStep"]!.alur} baris dan RunAsTransaction ${totalKode["DBOS RunAsTransaction"]!.alur}, ditambah inisialisasi 12 dan 15 baris: jumlahnya ${totalKode["DBOS RunAsStep"]!.total} dan ${totalKode["DBOS RunAsTransaction"]!.total} (langkah.txt bagian B, dihitung dari wilayah bertanda).`);
+    expect(bandingMentah.fitur[3]!.catatan.tabel).toBe("Tidak ada tabel atau baris tambahan: status ada di kolom angsuran.status dan referensi ada di jurnal (langkah.txt bagian B).");
+    expect(bandingMentah.fitur[3]!.catatan.dbos).toBe(`5 baris sistem per angsuran di ${Object.keys(sistem).length} tabel, ditambah satu baris transaction_completion per langkah RunAsTransaction. Dengan 1,2 juta angsuran per tahun (Asumsi), 6 juta baris per tahun (Hitungan; retensi tidak dibaca).`);
+    const t = tebakMentah;
+    expect(t.judul).toBe("Dua job cicilan serentak, saldo cukup untuk satu angsuran");
+    expect(t.adegan).toEqual([
+      `Saldo satu karyawan ${rp(saldoAwal)}, dan jadwalnya punya dua angsuran sebesar saldo itu. Hanya angsuran ke-1 yang jatuh tempo.`,
+      "Lab menahan kunci buku supaya dua job cicilan sudah membaca daftar yang sama sebelum salah satunya menulis. Lalu kunci dilepas.",
+    ]);
+    expect(t.pilihan.map((x) => x.benar)).toEqual([false, false, false, true]);
+    expect(t.pilihan.map((x) => x.teks)).toEqual([
+      "Dua jurnal untuk angsuran ke-1, dan database menolak yang kedua karena saldo karyawan menjadi negatif.",
+      "Satu jurnal, dan job yang kalah menandai angsuran gagal karena saldo sudah Rp0.",
+      "Satu jurnal, dan satu job melewati angsuran itu karena Idempotency-Key masih hidup.",
+      "Satu jurnal: satu job menulisnya, job lain menemukannya lewat referensi, dan angsuran ke-1 dicatat.",
+    ]);
+    expect(t.pilihan[0]!.alasan).toBe("Rekaman bagian B mencatat satu jurnal dengan referensi angsuran:7:1. Job yang kalah tidak menulis jurnal kedua, jadi tidak ada yang ditolak karena saldo.");
+    expect(t.pilihan[1]!.alasan).toBe("Itu hasil kode lama yang membaca referensi sebelum mengunci buku: jurnal baru 1, jurnal sudah ada 0, gagal 1 (README lab, tes Go). Rekaman bagian B mencatat gagal 0, dan angsuran ke-1 berstatus dicatat.");
+    expect(t.pilihan[2]!.alasan).toBe("Itu pola versi pertama (serentak.txt bagian C, dilewati 1). Versi benar tidak memakai key: job yang kalah menemukan jurnal lewat referensi, dan hitungannya jurnal sudah ada 1, bukan dilewati.");
+    expect(t.label).toEqual({ sumber: "Rekaman lab · serentak.txt", tebakDulu: "Tebak dulu:", benar: "Tepat", belum: "Belum tepat", ulang: "Coba pilihan lain", jawaban: "Jawaban yang tepat" });
+    expect(t.id).toBe("t5-batch-tebak");
+  });
+  test("tabel Sengaja belum dilakukan: tiap sel dan urutan baris; notifikasi angsuran tidak ada di outbox_jenis_check migrasi lab", () => {
+    const sb = badan.slice(badan.indexOf("### Sengaja belum dilakukan"), badan.indexOf("</Blok>", badan.indexOf("### Sengaja belum dilakukan")));
+    const baris = sb.split("\n").filter((b) => b.startsWith("|")).slice(2).map(pecahBaris);
+    expect(baris).toEqual([
+      ["Notifikasi angsuran", "Kolom `jenis` di `outbox` tidak punya nilai angsuran, jadi \"dua notifikasi\" di [[t5-m48]] tetap Ilustrasi", "Belum dijadwalkan"],
+      ["Langkah akhir yang gagal permanen sungguhan", "Lab memasang keadaan `terjurnal` dengan UPDATE dan merekam kompensasinya", "Belum dijadwalkan"],
+      ["Klaim per baris dan pembatas laju 20 per detik di job", "Job lab membaca daftar lalu mengunci buku per angsuran, tanpa `klaim_sampai` dan tanpa pembatas laju", "Belum dijadwalkan"],
+      ["Kompensasi atas merchant yang sudah dibekukan", "Lab tidak menjalankannya (README lab)", "Belum dijadwalkan"],
+      ["Retensi tabel DBOS dan gerbang pemindai atas modulnya", "Lab tidak membaca pengaturan retensi, dan govulncheck dan grype Tidak dijalankan atas modul itu", "Belum dijadwalkan"],
+      ["Temporal", "Dokumentasinya tidak dibuka", "[[t5-adr-60]]"],
+    ]);
+    const cek = cari(/outbox_jenis_check CHECK \(jenis = ANY \(ARRAY\[([^\]]+)\]\)\)/, migrasi26.join("\n"), "outbox_jenis_check")[1]!;
+    expect(cek).not.toContain("angsuran");
+    expect(cek).toBe("'bayar', 'transfer', 'topup', 'promo', 'verifikasi', 'pengumuman'");
+  });
+  test("kode Ilustrasi tab Node.js, Laravel, dan Django: jadwal 7 ke-1 dari serentak.txt, referensi angsuran:<jadwal>:<ke>", () => {
+    const jadwal = Number(cari(/jadwal (\d+): dua angsuran sebesar saldo itu/, di(serentak, sB + 1), "jadwal serentak")[1]);
+    expect(jadwal).toBe(7);
+    const kode = [...badan.matchAll(/<Snippet lang="(\w+)" code=\{`([\s\S]*?)`\} \/>/g)].map((m) => [m[1]!, m[2]!] as const);
+    expect(kode.map((k) => k[0])).toEqual(["js", "php", "python"]);
+    expect(kode[0]![1]).toBe(`await queue.add("tagih", { jadwal: ${jadwal}, ke: 1 }, {\n  jobId: "angsuran:${jadwal}:1",\n});`);
+    expect(kode[1]![1]).toBe('class TagihAngsuran implements ShouldQueue, ShouldBeUnique\n{\n    public function uniqueId(): string\n    {\n        return "angsuran:{$this->jadwal}:{$this->ke}";\n    }\n}');
+    expect(kode[2]![1]).toBe(`Jurnal.objects.bulk_create(\n    [Jurnal(referensi="angsuran:${jadwal}:1", jenis="angsuran")],\n    ignore_conflicts=True,\n)`);
+  });
+  test("UNIQUE dan admin: tiap kalimat memakai kata itu di tempat yang diturunkan dari migrasi dan kode; nama tokoh Citra dan Budi hanya di kalimat dengan saldonya", () => {
+    expect(migrasi26).toContain("ALTER TABLE jurnal ADD COLUMN referensi text UNIQUE;");
+    harus("Referensi adalah kolom di `jurnal` dengan constraint UNIQUE dan tanpa kolom waktu.");
+    const tab = [...badan.matchAll(/<Fragment slot="t0">\n\n([\s\S]*?)\n<\/Fragment>/g)][0]![1]!;
+    expect(tab).toContain("**Yang berbeda di stack ini:** penahannya constraint UNIQUE di database, dan kodenya `INSERT ... ON CONFLICT (referensi) DO NOTHING` yang ditulis tangan.");
+    const jawaban = [...badan.matchAll(/<summary>Jawaban<\/summary>\n\n([\s\S]*?)\n\n<\/details>/g)].map((m) => m[1]!);
+    expect(jawaban[0]).toContain("Referensi adalah kolom UNIQUE di `jurnal` tanpa kolom waktu, dan kode versi benar tidak membaca jam.");
+    expect(badan).toContain("- [ ] Pekerjaan berulang punya kunci bisnis UNIQUE di database, bukan hanya Idempotency-Key yang kedaluwarsa.");
+    expect(jumlah(badan, "UNIQUE")).toBe(4);
+    // admin: kode dan rekaman
+    expect(kodeT5.join("\n")).toContain('if admin.Jenis != "admin" {');
+    expect(komp).toContain("exit 2: kompensasi angsuran 1:1: dilarang");
+    harus("Kode memeriksa peminta: hanya admin, dan alasan minimal 20 karakter. Rekaman `kompensasi.txt` menunjukkan karyawan ditolak, admin berhasil, dan saldo kembali:");
+    // Citra: jadwal 2, saldo Rp150.000; Budi: saldo Rp50.000 dan Rp250.000 (versi pertama dan kompensasi)
+    const barisCitra = badan.split("\n").filter((b) => /\bCitra\b/.test(b));
+    expect(barisCitra).toHaveLength(2);
+    expect(barisCitra[0]).toContain("Saldo Citra turun satu kali, dan putaran ketiga tidak mengerjakan apa pun:");
+    expect(barisCitra[1]).toContain(`Saldo Citra ${rp(saldoCitra)} sama dengan`);
+    expect(di(crash, nB + 1)).toContain("Citra");
+    const barisBudi = badan.split("\n").filter((b) => /\bBudi\b/.test(b) && !b.startsWith("<Snippet"));
+    for (const b of barisBudi) expect(/Rp50\.000|Rp250\.000/.test(b), b).toBe(true);
+    expect(barisBudi).toHaveLength(5);
+  });
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Lapis 2: kunci kalimat dan sidik (dibangkitkan dari berkas saat ini oleh PERBARUI_KUNCI=1)
 const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "atau", "dan", "kecuali", "saja", "baru", "masih", "kurang", "cukup", "ya", "karena", "jadi", "bila", "saat", "bisa", "boleh", "harus", "mungkin", "terbukti", "membantu", "menunggu", "dibaca", "diukur", "direkam", "dijalankan", "ditolak", "berhasil", "naik", "turun", "di atas", "di bawah", "tepat", "lama", "lebih", "dilewati", "habis", "kedaluwarsa", "referensi", "jurnal", "key", "sebaiknya", "kadang", "kalah", "gagal", "dicatat", "terjurnal", "setidaknya", "kapan saja", "kapan pun"];
