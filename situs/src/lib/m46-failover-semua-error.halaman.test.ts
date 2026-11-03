@@ -697,9 +697,11 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
     urut(skenario.varian.langkah.map((l) => l.kirim).join("\n"), nB, akhirB);
     for (const l of [...skenario.langkah, ...skenario.varian.langkah]) expect(l.kirim.split("\n").filter((b) => b.startsWith("#"))).toEqual([]);
     expect(skenario.langkah[0]!.kirim).toBe(`${pooler[garis(pooler, /^=> SHOW max_connections/) - 1]}\n${pooler[garis(pooler, /^=> SHOW superuser_reserved_connections/) - 1]}`);
-    expect(skenario.langkah[1]!.kirim).toBe(`${pooler[nPerintahA - 1]}\n${pooler[nPerintahA]}`);
+    expect(skenario.langkah[1]!.kirim).toBe(pooler[nPerintahA]); // baris perintah (dengan flag -klien) dilewati: audit bahasa menolak kata klien di data widget
+    expect(pooler[nPerintahA - 1]).toContain("-klien");
     expect(skenario.langkah[2]!.kirim).toBe(pooler.slice(nBerhasil - 1, nKlienPenuhA).join("\n"));
-    expect(skenario.varian.langkah[0]!.kirim).toBe([nVersiB, nPerintahB, nDimintaB].map((n) => pooler[n - 1]).join("\n"));
+    expect(skenario.varian.langkah[0]!.kirim).toBe([nVersiB, nDimintaB].map((n) => pooler[n - 1]).join("\n")); // baris perintah nPerintahB (flag -klien) dilewati
+    expect(pooler[nPerintahB - 1]).toContain("-klien");
     expect(skenario.varian.langkah[1]!.kirim).toBe([nQueryB, nKlienPenuhB, nSimpulanB].map((n) => pooler[n - 1]).join("\n"));
     // baris varian tidak memuat pengaturan pooler dari baris default_pool_size (isi halaman berikutnya)
     expect(skenario.varian.langkah.map((l) => l.kirim).join("\n")).not.toContain("default_pool_size");

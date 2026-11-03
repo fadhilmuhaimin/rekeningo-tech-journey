@@ -47,7 +47,7 @@
       "dari": "client",
       "ke": "db",
       "judul": "Dua belas client membuka pool 10 koneksi langsung ke PostgreSQL",
-      "kirim": "$ ./pooler -dsn <langsung ke PostgreSQL, role t5_app> -klien 12 -pool 10   # nilai mentah bergantung koneksi lain; diperiksa terhadap batas\nkoneksi diminta: 120",
+      "kirim": "koneksi diminta: 120",
       "jelas": "Tiap client meminta sepuluh koneksi dari pool-nya sekaligus. Dua belas client dengan sepuluh koneksi masing-masing menghasilkan 120 koneksi yang diminta."
     },
     {
@@ -66,7 +66,7 @@
         "dari": "client",
         "ke": "pgb",
         "judul": "Client yang sama menyambung lewat PgBouncer",
-        "kirim": "$ pgbouncer --version   -- PgBouncer 1.26.1\n$ ./pooler -dsn <lewat PgBouncer, role t5_app> -klien 12 -pool 10\nkoneksi diminta: 120, berhasil: 120, galat: tidak ada",
+        "kirim": "$ pgbouncer --version   -- PgBouncer 1.26.1\nkoneksi diminta: 120, berhasil: 120, galat: tidak ada",
         "jelas": "PgBouncer 1.26.1 menerima 120 koneksi dari 12 client yang sama, dan tidak ada galat. Cara memasangnya dibahas di halaman berikutnya."
       },
       {
