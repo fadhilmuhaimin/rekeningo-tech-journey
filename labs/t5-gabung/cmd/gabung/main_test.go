@@ -46,6 +46,10 @@ func TestKirimUlangDialTidakMengulangSesudahSambunganJadi(t *testing.T) {
 				return
 			}
 			diterima.Add(1)
+			// Baca permintaan dulu: http.Transport mengulang sendiri permintaan yang belum tertulis sama sekali saat sambungan putus,
+			// dan itu membuat hitungan sambungan bergantung pada waktu. Sesudah permintaan terbaca, putusnya sambungan tidak diulang.
+			_ = c.SetReadDeadline(time.Now().Add(2 * time.Second))
+			_, _ = c.Read(make([]byte, 4096))
 			if tc, ok := c.(*net.TCPConn); ok {
 				_ = tc.SetLinger(0) // tutup dengan RST: client membaca "connection reset by peer", bukan kegagalan dial
 			}
