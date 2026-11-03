@@ -8,7 +8,7 @@
   "baris": [
     {
       "label": "Ditulis",
-      "sub": "aliran.txt bagian A",
+      "sub": "rekaman aliran.txt (bagian A)",
       "simpul": [
         {
           "teks": "1 baris pengumuman",
@@ -24,7 +24,7 @@
     },
     {
       "label": "Dikirim",
-      "sub": "grup.txt bagian A",
+      "sub": "rekaman grup.txt (bagian A)",
       "simpul": [
         {
           "teks": "3 consumer, 2 partisi tiap consumer",

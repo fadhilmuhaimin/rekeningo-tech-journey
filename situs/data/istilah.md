@@ -57,6 +57,8 @@
 *[backfill]: Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch.
 *[Backoff]: Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.
 *[backoff]: Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama.
+*[Backpressure]: Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.
+*[backpressure]: Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.
 *[Backup dan uji pulih]: Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.
 *[backup dan uji pulih]: Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.
 *[Batch]: Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.
@@ -94,6 +96,8 @@
 *[connection pool]: Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.
 *[Container]: Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server.
 *[container]: Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server.
+*[Consumer group]: Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.
+*[consumer group]: Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.
 *[CRC]: Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.
 *[CRDT]: Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis.
 *[Credential stuffing]: Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama.
@@ -272,6 +276,8 @@
 *[pagination]: Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.
 *[Pagination kursor]: Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.
 *[pagination kursor]: Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.
+*[Partisi topik]: Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.
+*[partisi topik]: Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.
 *[Partitioning]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
 *[partitioning]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
 *[partisi]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
