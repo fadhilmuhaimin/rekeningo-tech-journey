@@ -690,13 +690,13 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
       ["Kelebihan", "pasti sudah memuat tulisannya", "tanpa token, dan ada framework", "Tidak ada replica yang tertinggal", "Tidak ada bacaan tambahan di primary", "hanya selama replica belum sampai"],
       ["Kekurangan", "replica asinkron untuk bacaan tampil tidak ditunggu", "Tidak mengikuti jeda sebenarnya", "Menghapus guna ADR 46", "bukan layar web atau perangkat lain", "menyimpan dan mengirim token"],
       ["Biaya operasional", "standby sinkron harus tetap hidup", "Satu angka jendela", "26,4 koneksi di primary", "tanpa komponen server", "Satu query ke primary sesudah tiap tulisan"],
-      ["Bukti", "`sinkron.txt` bagian A dan B", "dokumentasi Laravel 13.x", "Hitungan atas Asumsi, tidak dijalankan di lab", "Tidak dijalankan: app Flutter tidak ada di lab", "`baca.txt` bagian B, dan kode `sumberTampil`"],
+      ["Bukti", "Rekaman lab `sinkron.txt` bagian A dan B, dan dokumentasi PostgreSQL 17 untuk jeda commit (Tidak dijalankan)", "dokumentasi Laravel 13.x", "Hitungan atas Asumsi, tidak dijalankan di lab", "Tidak dijalankan: app Flutter tidak ada di lab", "`baca.txt` bagian B, dan kode `sumberTampil`"],
     ]);
   });
   test("tabel kelas, kapan salah, dan sengaja belum: sel dikunci per baris dan kolom", () => {
     sel("| Kelas | Contoh | Dibaca dari | Dasar |", [
-      ["1. Menentukan uang", "saldo untuk bayar atau kirim", "primary, di dalam transaction", "`baca.txt` bagian A (kiriman)"],
-      ["2. Milik sendiri sesudah menulis", "riwayat, saldo tampil", "primary sampai replica sampai token", "`baca.txt` bagian B"],
+      ["1. Menentukan uang", "saldo untuk bayar atau kirim", "primary, di dalam transaction", "Rekaman lab `baca.txt` bagian A (kiriman)"],
+      ["2. Milik sendiri sesudah menulis", "riwayat, saldo tampil", "primary sampai replica sampai token", "Rekaman lab `baca.txt` bagian B"],
       ["3. Laporan dan bacaan lain", "laporan merchant", "replica", "tidak direkam di lab ini"],
     ]);
     sel("| Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |", [
@@ -787,6 +787,68 @@ describe("pertahanan tambahan: sel tabel, angka di prosa, label, rujukan bagian,
     expect(b).toContain("`tandaiTulis` hanya di `POST /transfers` dan `POST /kiriman` (`handler.go`)");
     expect(b).toContain("token bukan posisi WAL dijawab 422");
     expect(b).toContain("`sumberTampil` tanpa ambang jeda, app Flutter tidak ada di lab");
+  });
+});
+
+describe("pertahanan tambahan 2: urutan rujukan, versi dokumentasi, bilangan faktual, dan label kalimat penting", () => {
+  test("urutan nomor ADR dan [[ID]] di badan halaman dikunci; versi dokumentasi seragam (PostgreSQL 17, Laravel 13.x, Django 6.1)", () => {
+    // urutan di badan halaman; tiap nomor dicocokkan ke registry di tes lain (ADR 46 = t5-read-replica, 45 = t4-adr-45, 47 = halaman ini)
+    expect([...badan.matchAll(/ADR (\d+)/g)].map((m) => Number(m[1]))).toEqual([46, 47, 46, 47, 47, 46, 45, 45, 46, 46, 46, 46]);
+    expect([...badan.matchAll(/\[\[([A-Za-z0-9.\-]+)\]\]/g)].map((m) => m[1])).toEqual(["berikutnya", "t5-m41", "t5-read-replica", "t4-adr-45", "t5-read-replica", "t5-prd", "t5-m42", "t5-m41", "t5-m40", "t4-adr-45", "E1", "t5-rpo-rto", "t5-m42", "t5-rpo-rto"]);
+    expect(new Set([...halaman.matchAll(/PostgreSQL (\d+)(?!\d|\.\d)/g)].map((m) => m[1]))).toEqual(new Set(["17"]));
+    expect(new Set([...halaman.matchAll(/Laravel (\d+)\.x/g)].map((m) => m[1]))).toEqual(new Set(["13"]));
+    expect(new Set([...halaman.matchAll(/Django (\d+\.\d+)/g)].map((m) => m[1]))).toEqual(new Set(["6.1"]));
+    expect(new Set([...halaman.matchAll(/PostgreSQL (17\.\d+)/g)].map((m) => m[1]))).toEqual(new Set(["17.11"]));
+    expect(readmeLab).toContain("17.11");
+    expect(kali(halaman, "docs/17/")).toBe(kali(halaman, "postgresql.org/docs/"));
+  });
+  test("bilangan faktual di prosa: dua lapis, satu request, satu query, satu blok, satu framework, satu app", () => {
+    for (const s of [
+      "Dokumentasi Laravel 13.x menulis dua lapis: opsi `sticky` untuk satu request, dan middleware `PreventStaleDatabaseReads` untuk request berikutnya dalam sesi yang sama.",
+      "Itu opsi B yang dipakai satu framework.",
+      "Ia memakai satu query ke primary sesudah tulisan dan satu query ke replica di tiap bacaan bertoken.",
+      "halaman Connection menulis satu blok `database` tiap konfigurasi lingkungan",
+      "- **D ditolak** karena hanya menolong satu app.",
+      "`using()` mengarahkan satu query ke database bernama.",
+      "Method `$primary()` memaksa satu bacaan ke primary.",
+      "opsi `sticky` hanya berlaku dalam satu request",
+      "dua bacaan saldo berbeda hasilnya",
+      "**Skenario:** satu app menulis, lalu membaca lagi lewat replica.",
+      "| Satu query ke primary sesudah tiap tulisan, dan satu query ke replica di tiap bacaan bertoken |",
+      "| Satu angka jendela yang harus dipilih dan dipantau |",
+      "Satu user hanya memindahkan bacaan tampil miliknya",
+      "Lab mengalihkan dua bacaan ke aturan kelas 2",
+      "Dua istilah dipakai di halaman ini.",
+      "Replica dipakai lagi sesudah posisinya melewati token.",
+      "Delapan aturan:",
+    ]) expect(kali(badan, s), s).toBe(1);
+    expect(kali(badan, "Kode di bawah adalah Ilustrasi.")).toBe(3);
+    expect(kali(badan, "*Tidak dijalankan.")).toBe(5);
+  });
+  test("kalimat berlabel: kebutuhan dengan angka turunan, pre-mortem, Cek diri 2 dan 4, aturan 3, dan ADR C", () => {
+    const a = (registry.tahap as unknown as { asumsi: { user: number; aktif: number; req: number; puncak: number } }[])[4]!.asumsi;
+    const puncak = (((a.user * a.aktif) / 100 * a.req) / 86400) * a.puncak;
+    harusAda(`Bebannya kecil. Satu bacaan tampil sesudah tiap transaksi paling banyak ${fmt((69.4 / 1388.9) * 100, 1)}% dari ${fmt(puncak, 1)} request per detik di puncak (Hitungan atas Asumsi, rumus di blok Paham).`);
+    harusAda("Pencegahannya menghitung jawaban 201 tanpa `X-Lsn-Tulis`, dan memakai jendela waktu sebagai cadangan di app (Asumsi: belum ada).");
+    harusAda("Pencegahannya memantau `replay_lag` dan menerapkan aturan 7 (Asumsi: belum ada di kode).");
+    harusAda("Pencegahannya aturan 6 dan 8, dan latihan failover di [[t5-rpo-rto]].");
+    harusAda(`Saat replica sudah memutar WAL sampai posisi di token: \`pg_last_wal_replay_lsn()\` tidak lebih kecil dari token. Di rekaman, query itu menjawab \`t\`, dan token yang sama dilayani replica dengan saldo ${rp(sesudahB)} (\`baca.txt\` bagian B).`);
+    harusAda("Bacaan tanpa token dari primary adalah Asumsi desain yang belum ada di kode lab.");
+    harusAda("3. App mengirim token itu di bacaan milik sendiri berikutnya, yaitu riwayat dan saldo tampil. Server membaca replica hanya bila replica sudah memutar WAL sampai token. Selain itu, atau bila replica tidak menjawab, server membaca primary. Token yang bukan posisi WAL dijawab 422.");
+    harusAda("- **C ditolak** karena menghapus ADR 46 untuk bacaan tampil, dan 26,4 koneksi bacaan selain uang kembali ke primary.");
+    harusAda("- **B ditolak** karena jendela tidak mengikuti jeda sebenarnya. Bila replica ditahan lebih lama dari 5 detik, saldo lama muncul lagi sesudah jendela habis (penalaran).");
+    harusAda("**Yang belum terjawab: failover.** Token adalah posisi di WAL primary yang menulis, dan sesudah promosi posisi replica bisa berbeda dari primary lama. Apakah token lama masih bisa dibandingkan dengan replica baru tidak diuji [perlu verifikasi]. [[t5-m42]] membahas primary yang mati.");
+    harusAda("Itu opsi B yang dipakai satu framework. Batasnya: dokumentasi framework tanpa angka beban atau kejadian galat, dan middleware itu tidak memengaruhi sesi lain dan koneksi lain. Halaman yang dibuka tidak menyebut dasar angka 2 detik itu.");
+    harusAda("2. Replica tertinggal jauh atau mati.");
+    harusAda("3. Token tidak lagi bisa dibandingkan sesudah failover, atau sah tetapi salah arti untuk `synchronous_commit = off`.");
+    expect(kali(badan, "[perlu verifikasi]")).toBe(sidikTeks(badan).perluVerifikasi);
+  });
+  test("baris riset R5-144 memuat frasa berangka yang dipakai halaman: 30 detik naskah, ADR 47 dan M41, jawaban 422", () => {
+    const b = barisRiset("R5-144");
+    for (const s of ["Selisih naskah ADR 47 dan M41 dengan kode dan rekaman", "Naskah \"token dikirim app selama 30 detik\" dan \"jeda lebih dari 30 detik: semua bacaan pindah ke primary\" tidak ada di kode", "Hitungan 5.7 atas angka yang tertulis di halaman", "5.7 (blok Paham dan Putuskan; usulan ke badan PR)", "naskah Tahap 5 dan halaman", "`POST /transfers` dan `POST /kiriman`"])
+      expect(b, s).toContain(s);
+    expect(naskah).toContain("app mengirimnya di bacaan berikutnya selama 30 detik");
+    expect(naskah).toContain("Jeda replica lebih dari 30 detik: semua bacaan pindah ke primary");
   });
 });
 
