@@ -2,7 +2,7 @@
 // "hanya", diagram Rantai t5-m47-pod-membuat-jurnal.json, skenario alur t5-m47.json, kartu Cek diri, halaman istilah NetworkPolicy, dan baris
 // riset R5-195 sampai R5-199 di m47-pod-membuat-jurnal.mdx. Nilai diturunkan dari rekaman labs/t5-service/output/rentan.txt, idempoten.txt,
 // dan mtls.txt, rekaman Tahap 4 labs/t4-modul/output/ledger.txt, kode labs/api-t5 (cmd/ledger/main.go, internal/handler/ledger_layanan.go,
-// internal/service/ledger_api.go, cmd/panggil/main.go), README lab, naskah Tahap 5 (baris M47 dan ADR 53), halaman tetangga, registry, dan baris
+// internal/service/ledger_api.go, cmd/panggil/main.go), labs/t5-service/run.py (bagian rekam_rentan), README lab, naskah Tahap 5 (baris M47 dan ADR 53), halaman tetangga, registry, dan baris
 // riset, bukan dari daftar yang ditulis sendiri. Dua lapis: (1) nilai turunan dan kalimat berangka diperiksa terhadap sumbernya; (2) kata-kata
 // halaman, JSON, dan kartu dikunci per baris di m47-pod-membuat-jurnal.halaman.nilai.ts. Lapis 2 bisa dimatikan (TANPA_KUNCI=1, TANPA_SIDIK=1)
 // untuk mutasi tanpa kunci, dan dibuat ulang sesudah teks sengaja diubah: PERBARUI_KUNCI=1 vitest run src/lib/m47-pod-membuat-jurnal.halaman.test.ts.
@@ -55,6 +55,7 @@ const kodeHandler = baca("labs/api-t5/internal/handler/ledger_layanan.go");
 const kodeService = baca("labs/api-t5/internal/service/ledger_api.go");
 const kodePanggil = baca("labs/api-t5/cmd/panggil/main.go");
 const readmeLab = baca("labs/t5-service/README.md");
+const kodeRun = baca("labs/t5-service/run.py");
 const modul4 = baca("situs/src/content/docs/tahap-4/modular-monolith.mdx");
 const glosarium = baca("situs/src/content/docs/alat/glosarium.mdx");
 const kartuSemua = JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as { id: string; halaman: string; judul: string; url: string; tanya: string; jawab: string }[];
@@ -300,6 +301,18 @@ describe("kode lab: rute mode rentan, handler JurnalTopup, service ledger, dan p
     expect(kodeMain).toContain("// Mode rentan (rentan=true): rute yang sama tanpa pembungkus, jadi siapa pun yang sampai ke port ini membuat jurnal.");
     expect(kodeMain).toContain('const rentanTanpaIdentitas = "ledger-tanpa-identitas"');
     expect(kodeMain).toContain("tanpa TLS, tanpa identitas, tanpa daftar jenis jurnal");
+    // pemasangan di main(): flag mode rentan sampai ke rute() (tanpa ini cabang rentan tak pernah dipakai), dan mux hanya dibungkus
+    // instrumentasi OpenTelemetry bila -otlp menyala (rekaman rentan.txt tanpa -otlp): klaim "tanpa pembungkus apa pun" untuk rekaman itu
+    expect(kodeMain).toContain("mux := rute(svc, *rentan == rentanTanpaIdentitas, identitas.IzinNaskah,");
+    const penetap = kodeMainBaris.filter((b) => b.includes("srv.Handler =")).map((b) => b.trim());
+    expect(penetap).toHaveLength(2);
+    expect(penetap[0]).toBe("srv.Handler = mux");
+    expect(penetap[1]).toMatch(/^srv\.Handler = otelhttp\.NewHandler\(mux, "ledger", /);
+    expect(kodeMain).toContain('if *otlp != "" {\n\t\tsrv.Handler = otelhttp.NewHandler(');
+    // kode yang merekam rentan.txt: bagian A memulai ledger dalam mode rentan tanpa -otlp
+    const rekamRentan = kodeRun.slice(kodeRun.indexOf("def rekam_rentan():"), kodeRun.indexOf("# ---------- bagian C"));
+    expect(rekamRentan).toContain("mulai_ledger(rentan=True)");
+    expect(rekamRentan).not.toContain("otlp");
   });
   test("Snippet: rentang baris diturunkan dari kode dan rekaman (main.go blok rentan, handler sampai panggilan service, rentan.txt bagian A sampai baris log ledger, idempoten.txt bagian A dan C)", () => {
     const snip = [...badan.matchAll(/<Snippet file="([^"]+)"(?: lines="(\d+):(\d+)")?(?: lang="(\w+)")? title="([^"]+)" \/>/g)].map((m) => ({ file: m[1]!, a: Number(m[2]), b: Number(m[3]), lang: m[4], title: m[5]! }));
@@ -620,7 +633,7 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
           { teks: "Key baru: jurnal kedua", sub: "akun dan jumlah sama", nada: "warn", kode: false },
         ] },
       ],
-      catatan: "Kotak oranye menandai hasil yang bukan niat tim: jurnal untuk pemanggil tanpa identitas, dan jurnal kedua untuk key baru. Baris kedua memakai service pembayaran dengan sertifikat sah. Pod uji di rekaman adalah perintah panggil di mesin yang sama, bukan pod.",
+      catatan: "Kotak oranye menandai hasil yang Idempotency-Key tidak mencegah: saldo akun uji yang naik, dan jurnal kedua untuk key baru. Baris kedua memakai service pembayaran dengan sertifikat sah. Pod uji di rekaman adalah perintah panggil di mesin yang sama, bukan pod.",
     });
     expect(rp(Number(postingAkun[3]))).toBe("Rp1.000");
     expect(Number(postingAkun[3])).toBe(-Number(postingBank[3]));
@@ -723,7 +736,7 @@ const PARAGRAF_UTUH: string[] = [
   "Raka mengira jaringan di dalam cluster itu privat, jadi hanya pod milik Rekeningo yang bisa sampai ke ledger.",
   "Bayu menambahkan bahwa Kubernetes sudah membatasi lalu lintas antar pod secara bawaan. Menurut dia, pod di namespace notifikasi tidak seharusnya menjangkau ledger.",
   "Pod adalah satu atau lebih container yang berjalan bersama ([[t5-service]]). Namespace adalah mekanisme Kubernetes untuk memisahkan kelompok sumber daya di dalam satu cluster ([Kubernetes: Namespaces](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/), dibuka 2026-11-04, Tidak dijalankan).",
-  "<summary>Tebak dulu: cluster belum punya satu pun NetworkPolicy. NetworkPolicy adalah sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod. Menurut dokumentasi Kubernetes, apakah pod di namespace notifikasi boleh menyambung ke pod ledger?</summary>",
+  "<summary>Tebak dulu: andaikan cluster belum punya satu pun NetworkPolicy. NetworkPolicy adalah sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod. Menurut dokumentasi Kubernetes, apakah pod di namespace notifikasi boleh menyambung ke pod ledger?</summary>",
   "Boleh. Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneksi masuk, dan semua koneksi masuk diizinkan ([Kubernetes: Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/), dibuka 2026-11-04, Tidak dijalankan).",
   "NetworkPolicy dijalankan oleh network plugin, yaitu komponen jaringan cluster yang mendukungnya. Dokumentasi yang sama menulis bahwa sumber daya itu tidak berefek bila tidak ada controller yang menegakkannya.",
   "Pembatasan yang Bayu maksud baru ada bila tim menulis NetworkPolicy dan jaringan cluster menegakkannya. Naskah menulis pembatasan itu sebagai pilihan yang harus ditulis, bukan bawaan, dan jaringan yang menegakkannya belum ditentukan [perlu verifikasi].",

@@ -32,7 +32,7 @@ Bayu menambahkan bahwa Kubernetes sudah membatasi lalu lintas antar pod secara b
 Pod adalah satu atau lebih container yang berjalan bersama ([[t5-service]]). Namespace adalah mekanisme Kubernetes untuk memisahkan kelompok sumber daya di dalam satu cluster ([Kubernetes: Namespaces](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/), dibuka 2026-11-04, Tidak dijalankan).
 
 <details class="question">
-<summary>Tebak dulu: cluster belum punya satu pun NetworkPolicy. NetworkPolicy adalah sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod. Menurut dokumentasi Kubernetes, apakah pod di namespace notifikasi boleh menyambung ke pod ledger?</summary>
+<summary>Tebak dulu: andaikan cluster belum punya satu pun NetworkPolicy. NetworkPolicy adalah sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod. Menurut dokumentasi Kubernetes, apakah pod di namespace notifikasi boleh menyambung ke pod ledger?</summary>
 
 Boleh. Dokumentasi menulis bahwa secara bawaan pod tidak terisolasi untuk koneksi masuk, dan semua koneksi masuk diizinkan ([Kubernetes: Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/), dibuka 2026-11-04, Tidak dijalankan).
 

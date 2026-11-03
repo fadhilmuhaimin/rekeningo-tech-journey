@@ -21,5 +21,5 @@
       ]
     }
   ],
-  "catatan": "Kotak oranye menandai hasil yang bukan niat tim: jurnal untuk pemanggil tanpa identitas, dan jurnal kedua untuk key baru. Baris kedua memakai service pembayaran dengan sertifikat sah. Pod uji di rekaman adalah perintah panggil di mesin yang sama, bukan pod."
+  "catatan": "Kotak oranye menandai hasil yang Idempotency-Key tidak mencegah: saldo akun uji yang naik, dan jurnal kedua untuk key baru. Baris kedua memakai service pembayaran dengan sertifikat sah. Pod uji di rekaman adalah perintah panggil di mesin yang sama, bukan pod."
 }
