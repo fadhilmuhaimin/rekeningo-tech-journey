@@ -172,7 +172,7 @@ Tab Go dijalankan sebagian di lab. Tab lain tidak dijalankan, dan hanya dicek ke
 
 *Dijalankan sebagian: server lab `api-t5` membaca satu `DATABASE_URL`. Beberapa host dibaca dari kode sumber pgx v5.11.0, versi lab, dan tidak dijalankan.*
 
-<Snippet files={["labs/api-t5/cmd/api/main.go:148:154", "labs/api-t5/cmd/api/main.go:380:384"]} lang="go" title="Kode lab: labs/api-t5/cmd/api/main.go (DATABASE_URL dan pgx.ParseConfig)" />
+<Snippet files={["labs/api-t5/cmd/api/main.go:148:154", "labs/api-t5/cmd/api/main.go:393:397"]} lang="go" title="Kode lab: labs/api-t5/cmd/api/main.go (DATABASE_URL dan pgx.ParseConfig)" />
 
 **Yang berbeda di stack ini:** `pgx.ParseConfig` meneruskan penguraian ke paket `pgconn`. Paket itu menerima beberapa host dipisah koma dan mencobanya berurutan. `target_session_attrs` menerima `read-write`, `read-only`, `primary`, `standby`, `prefer-standby`, dan `any`. Untuk `read-write`, pgx menjalankan `show transaction_read_only` dan menolak koneksi yang menjawab `on`.
 
