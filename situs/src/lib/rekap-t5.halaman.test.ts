@@ -237,15 +237,15 @@ const FAKTA: [number, string, string, string, RegExp][] = [
   [3, "nol dari lima ada di replica yang dipromosikan", "t5-replika/promosi.txt", "A", /lima pembayaran/i],
   [3, "Jurnal keempat tidak dijawab dalam 3 detik", "t5-replika/promosi.txt", "B", /Primary lama memuat satu jurnal lagi[\s\S]*client tidak pernah menerima 201/],
   [4, "1.800.000 dari 1.800.000", "t5-partisi/snapshot.txt", "A", /1\.800\.000 dari 1\.800\.000 posting/],
-  [4, "150.000, yaitu 8,3%", "t5-partisi/snapshot.txt", "C", /150\.000 dari 1\.800\.000, yaitu 8,3%/],
-  [4, "SQLSTATE 23001", "t5-partisi/lepas.txt", "B", /SQLSTATE 23001/],
-  [4, "menandai 10.061 dari 10.288 buku", "t5-partisi/lepas.txt", "F", /10288 buku diperiksa, 10061 tidak cocok/],
+  [4, "150.000, yaitu 8,3% (bagian C)", "t5-partisi/snapshot.txt", "C", /150\.000 dari 1\.800\.000, yaitu 8,3%/],
+  [4, "SQLSTATE 23001 (`lepas.txt` bagian B)", "t5-partisi/lepas.txt", "B", /SQLSTATE 23001/],
+  [4, "menandai 10.061 dari 10.288 buku, dan pemeriksaan dari snapshot menandai 0 (bagian F)", "t5-partisi/lepas.txt", "F", /10288 buku diperiksa, 10061 tidak cocok/],
   [4, "pemeriksaan dari snapshot menandai 0", "t5-partisi/lepas.txt", "F", /dari snapshot[^\n]*10288 buku diperiksa, 0 tidak cocok/],
   [5, "kode 42501", "api-t5/skema.txt", "F", /42501/],
   [6, "0 panggilan antar proses per transaksi", "t5-gabung/panggilan.txt", "B", /0 panggilan antar proses/],
   [6, "620,14 byte per transaksi tiap arah", "t5-gabung/panggilan.txt", "D", /620,14/],
   [6, "500 dari 500 transaksi tiga proses", "t5-gabung/latensi.txt", "B", /500 dari 500/],
-  [7, "enam rekaman Kafka", "t5-fanout/aliran.txt", "A", /10281/],
+  [7, "Satu pengumuman ke 10.281 perangkat menulis satu baris outbox dan enam rekaman Kafka", "t5-fanout/aliran.txt", "A", /10281/],
   [7, "504 panggilan diulang", "t5-fanout/grup.txt", "A", /504/],
   [7, "jumlah 429 tidak direkam sebagai nilai", "t5-fanout/antrean.txt", "B", /429/],
   [8, "kode 53300 pada batas 97", "api-t5/pooler.txt", "A", /53300[\s\S]*97|97[\s\S]*53300/],
@@ -266,7 +266,7 @@ const FAKTA: [number, string, string, string, RegExp][] = [
   [12, "B tetap 20 dari 20", "t5-waf/kuota.txt", "A", /mitra B: 20 permintaan -> 200: 20, 429: 0/],
   [12, "dua baris `qr`", "t5-waf/tandatangan.txt", "A", /qr/],
   [12, "(`testing.txt` bagian A)", "t5-waf/testing.txt", "A", /./],
-  [13, "token tanpa hak `decrypt` dijawab 403", "t5-kms/arsip.txt", "C", /403/],
+  [13, "Pada arsip 28.000 baris, token tanpa hak `decrypt` dijawab 403", "t5-kms/arsip.txt", "C", /403/],
   [13, "pemeriksaan keaslian AES-GCM gagal", "t5-kms/arsip.txt", "D", /GCM/],
   [14, "satu trace dengan tiga span di dua service", "t5-service/jejak.txt", "A", /403/],
   [14, "211 trace dan menyimpan 16", "t5-service/jejak.txt", "B", /211[\s\S]*16|16[\s\S]*211/],
@@ -332,6 +332,8 @@ describe("angka dan batas di enam belas kalimat: dari rekaman lab dan halaman as
       expect(t, s).toContain(s);
     }
     expect(Math.round((1388.9 * 10 * 10) / 10) / 10).toBeCloseTo(1388.9, 1);
+    expect(butir(8).teks).toContain("1.388,9 × 0,02 = 27,8 (Hitungan atas Asumsi)");
+    expect(butir(8).teks).toContain("sedangkan tersedia 100 − 3 = 97");
     expect(butir(16).teks).toContain("Puncak 1.388,9 request per detik menjadi 13.888,9");
     expect(butir(16).teks).toContain("69,4 menjadi 694,4");
     expect(butir(16).teks).toContain("46,3 dan 463,0");
@@ -391,6 +393,8 @@ describe("angka dan batas di enam belas kalimat: dari rekaman lab dan halaman as
     expect(butir(5).teks).toContain("`api-t5` adalah satu proses dengan satu role");
     expect(butir(6).teks).toContain("data besar tidak diperagakan");
     expect(butir(7).teks).toContain("Lab tidak mengirim pengumuman ke 1.000.000 HP");
+    expect(butir(7).teks).toContain("Tiap perangkat melihat satu notifikasi berbeda, tetapi pengiriman tepat satu kali tidak dijamin.");
+    expect(fileHalaman("t5-fanout")).toContain("Pengiriman tepat satu kali tidak dijamin.");
     expect(butir(9).teks).toContain("NetworkPolicy Tidak dijalankan");
     expect(butir(10).teks).toContain("pengulangan +25 jam untuk versi benar Tidak dijalankan");
     expect(butir(13).teks).toContain("pemisahan tempat Tidak dijalankan");
