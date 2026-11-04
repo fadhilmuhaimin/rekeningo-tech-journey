@@ -4024,6 +4024,30 @@
   "jawab": "Penerbit tiruan membaca semua jawaban yang bukan 200 sebagai tidak ada jawaban dan menyetujui (`otorisasi.txt` bagian D, lab t4-kartu). Karena itu pod menjawab 200 dengan keputusan tolak dalam kurang dari 2 detik (`sakelar.txt` bagian D)."
  },
  {
+  "id": "t5-m50-1",
+  "halaman": "t5-m50",
+  "judul": "5.24 M50: Satu POS mengirim 3.000 permintaan per detik",
+  "url": "tahap-5/m50-satu-pos/",
+  "tanya": "Satu bucket 100 per detik dipakai semua mitra. Mitra A mengirim 600 permintaan dan mitra B 20 dalam satu detik. Berapa permintaan yang mendapat 429, dan apa yang berubah bila bucket dihitung per mitra?",
+  "jawab": "520 dari 620 permintaan mendapat 429 dan 100 lolos, dan mitra B ikut mendapat 429 (`kuota.txt`, bagian C). Dengan bucket per mitra, A mendapat 100 jawaban 200 dan 500 jawaban 429, sedangkan B 20 dari 20 tetap 200 (bagian A). Jam bucket dibekukan, jadi ini hitungan token, bukan laju sungguhan."
+ },
+ {
+  "id": "t5-m50-2",
+  "halaman": "t5-m50",
+  "judul": "5.24 M50: Satu POS mengirim 3.000 permintaan per detik",
+  "url": "tahap-5/m50-satu-pos/",
+  "tanya": "Kasir mengulang POST untuk membuat QR tanpa Idempotency-Key. Berapa baris `qr` terbentuk dari dua POST yang sama, dan apa yang terjadi dengan key yang sama?",
+  "jawab": "Tanpa key ada dua baris `qr` (gerbang di mode `tanpa-idempoten-wajib`). Dengan key yang sama ada satu baris: 201 dua kali dengan id QR yang sama (`tandatangan.txt`, bagian A). Lab tidak membayar QR itu, jadi pembeli membayar keduanya hanya dari naskah."
+ },
+ {
+  "id": "t5-m50-3",
+  "halaman": "t5-m50",
+  "judul": "5.24 M50: Satu POS mengirim 3.000 permintaan per detik",
+  "url": "tahap-5/m50-satu-pos/",
+  "tanya": "Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur?",
+  "jawab": "Rabu, 10.15, 3.000 permintaan per detik, dan jawaban yang lambat berasal dari cerita (Ilustrasi), dan 216% adalah Hitungan atas Ilustrasi. Lab memakai 600 dan 20 permintaan dengan jam bucket dibekukan, jadi laju sungguhan, jawaban lambat, dan kapasitas server tidak diukur (`kuota.txt`, bagian C)."
+ },
+ {
   "id": "t5-onprem-1",
   "halaman": "t5-onprem",
   "judul": "5.28 On-prem lawan cloud + ADR 59",
