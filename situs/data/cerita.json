@@ -4977,8 +4977,9 @@
       "prasyarat": [
         "t5-adr-60"
       ],
-      "ada": false,
-      "nomor": "5.31"
+      "ada": true,
+      "nomor": "5.31",
+      "menit": 17
     },
     {
       "id": "t5-jembatan",

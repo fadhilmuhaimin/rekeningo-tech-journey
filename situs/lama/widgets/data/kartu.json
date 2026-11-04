@@ -4328,6 +4328,46 @@
   "jawab": "Aturan 5 membaca pemicu yang bergantung pada PRD dari PRD yang disetujui. Pratinjau PRD v6 berlabel Ilustrasi dan belum menjadi PRD yang dikerjakan. Pemicu kedua, satu region mati lebih lama dari RTO 15 menit, juga belum terjadi."
  },
  {
+  "id": "t5-rekap-1",
+  "halaman": "t5-rekap",
+  "judul": "5.31 Yang dibawa keluar dari Tahap 5",
+  "url": "tahap-5/rekap/",
+  "tanya": "Replica asinkron ditahan, lalu Budi membayar Rp12.000. Saldo apa yang dijawab bacaan tanpa token, dan saldo apa yang dijawab bacaan dengan token?",
+  "jawab": "Tanpa token, replica menjawab Rp215.000, saldo lama. Dengan token, server membaca primary dan menjawab Rp203.000 (`baca.txt` bagian B)."
+ },
+ {
+  "id": "t5-rekap-2",
+  "halaman": "t5-rekap",
+  "judul": "5.31 Yang dibawa keluar dari Tahap 5",
+  "url": "tahap-5/rekap/",
+  "tanya": "Lima pembayaran dijawab 201 sesudah koneksi WAL replica asinkron putus, lalu replica dipromosikan. Berapa yang ada di node baru, dan berapa jurnal 201 yang ada dengan standby sinkron?",
+  "jawab": "Nol dari lima untuk replica asinkron (`promosi.txt` bagian A). Dengan standby sinkron, tiga jurnal yang dijawab 201 ada di node baru, dan jurnal keempat tidak dijawab dan hanya ada di primary lama (bagian B)."
+ },
+ {
+  "id": "t5-rekap-3",
+  "halaman": "t5-rekap",
+  "judul": "5.31 Yang dibawa keluar dari Tahap 5",
+  "url": "tahap-5/rekap/",
+  "tanya": "Enam service punya tiga pod tiap service dengan pool 10. Berapa koneksi yang diminta bila semua pool penuh, dan berapa yang tersedia?",
+  "jawab": "Diminta 6 × 3 × 10 = 180 dan tersedia 100 − 3 = 97, jadi 83 tidak bisa dibuka bila tidak ada koneksi lain (Hitungan atas Asumsi, halaman M46)."
+ },
+ {
+  "id": "t5-rekap-4",
+  "halaman": "t5-rekap",
+  "judul": "5.31 Yang dibawa keluar dari Tahap 5",
+  "url": "tahap-5/rekap/",
+  "tanya": "Batch angsuran diulang 25 jam sesudah job mati, dan key 24 jam sudah habis. Apa yang menahan jurnal kedua di versi benar?",
+  "jawab": "Referensi unik di tabel `jurnal`, yang tidak punya kolom kedaluwarsa. INSERT dengan referensi yang sama ditolak (`crash.txt` bagian C). Pengulangan +25 jam untuk versi benar Tidak dijalankan."
+ },
+ {
+  "id": "t5-rekap-5",
+  "halaman": "t5-rekap",
+  "judul": "5.31 Yang dibawa keluar dari Tahap 5",
+  "url": "tahap-5/rekap/",
+  "tanya": "Rollout tanpa traffic router memakai tiga replika dan `setWeight: 5`. Berapa pod versi baru, dan berapa bagiannya dari pod yang menjawab?",
+  "jawab": "Satu pod versi baru, yaitu 25,0% dari pod yang menjawab, bukan 5% (`tanpa-router.txt` bagian A). Dengan 20 replika bagiannya 1 dari 20."
+ },
+ {
   "id": "D2-1",
   "halaman": "D2",
   "judul": "Scaling",
