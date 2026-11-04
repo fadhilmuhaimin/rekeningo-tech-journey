@@ -16,15 +16,15 @@ import intiDiagram from "../../../../data/diagram/t5-waf-inti.json";
 
 ## Inti
 
-Pintu untuk mitra POS memeriksa isi, kunci, kuota, dan tanda tangan, dan lab merekam satu celah yang masih terbuka.
+Pintu mitra menolak serangan umum, dan satu celah masih terbuka.
 
 <Rantai data={intiDiagram} ringkas />
 
-Gerbang adalah pintu di tepi jaringan yang dilewati semua permintaan dari pihak luar sebelum sampai ke `api-t5`. WAF (web application firewall) adalah penyaring isi permintaan HTTP di depan API. Ia memakai OWASP CRS (Core Rule Set), kumpulan aturan yang memberi skor pada tiap kecocokan. Nonce adalah nilai sekali pakai yang ikut ditandatangani, supaya pesan yang sama tidak bisa dipakai dua kali.
+Gerbang adalah pintu di tepi jaringan yang dilewati semua permintaan dari mitra POS, penyedia kasir elektronik pihak ketiga ([[t5-prd]]), sebelum sampai ke `api-t5`. WAF (web application firewall) adalah penyaring isi permintaan HTTP di depan API. Ia memakai OWASP CRS (Core Rule Set), kumpulan aturan yang memberi skor pada tiap kecocokan. Nonce adalah nilai sekali pakai yang ikut ditandatangani, supaya pesan yang sama tidak bisa dipakai dua kali.
 
 Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `waf.txt` bagian A, WAF menolak 8 dari 8 payload uji dengan 403, walau kunci dan tanda tangannya sah. Bagian B meloloskan 37 dari 37 payload POS yang sah. Di `kuota.txt` bagian A jam bucket dibekukan, dan mitra A mendapat 100 jawaban 200 dan 500 jawaban 429 dari 600 permintaan. Mitra B tetap 20 dari 20.
 
-Tes Go gerbang mencatat bahwa permintaan sah yang diputar ulang di dalam jendela 5 menit diterima lagi (`testing.txt` bagian A).
+Idempotency-Key adalah kepala permintaan yang membuat pengulangan POST menghasilkan satu hasil ([[t2-idempotency]]). Tes Go adalah tes otomatis di folder gerbang atau di `api-t5`, dan `testing.txt` mencatat nama dan hasil PASS-nya. Tes Go gerbang mencatat bahwa permintaan sah yang diputar ulang di dalam jendela 5 menit diterima lagi (`testing.txt` bagian A).
 
 <details class="question">
 <summary>Sudah tahu? Cek 3 pertanyaan</summary>
@@ -43,12 +43,11 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 Pilah sepuluh kejadian di pintu mitra POS ke pemeriksaan yang menanganinya, lalu periksa jawabanmu. Alasan tiap jawaban menyebut rekaman lab t5-waf atau kode lab.
 
-Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] diatur di [Label sumber](/cara-pakai/#label-sumber). Empat label turunan dipakai di halaman ini:
+Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] diatur di [Label sumber](/cara-pakai/#label-sumber). Tiga label turunan dipakai di halaman ini:
 
 - **Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah.
 - **Penalaran:** kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.
 - **Dibaca dari kode:** kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.
-- **Tes Go:** tes otomatis di folder gerbang atau di `api-t5`. `testing.txt` mencatat nama dan hasil PASS-nya, dan isinya dibaca dari kode tes.
 
 <WidgetLama nama="pilah" src="data/t5-pintu-pilah.json" />
 
@@ -56,7 +55,7 @@ Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] diatur 
 
 <noscript>
 <p>Tanpa JavaScript, tombol pilihan tidak berfungsi. Jawaban yang tepat: kuota menangani permintaan ke-101, WAF menangani tautologi SQL, dan kunci API menangani kunci tak dikenal atau mitra yang dibekukan.</p>
-<p>Tanda tangan HMAC menangani isi yang diubah dan permintaan 360 detik lalu. Idempotency-Key menangani pengulangan dengan key yang sama. Api-t5 menangani merchant milik mitra lain dan referensi 101 karakter. Belum ada penahan untuk permintaan yang diputar ulang di dalam jendela dengan key lain, dan untuk kuota kasir yang sah saat kunci bocor.</p>
+<p>Tanda tangan HMAC menangani isi yang diubah dan permintaan 360 detik lalu. Idempotency-Key menangani pengulangan dengan key yang sama. Server `api-t5` menangani merchant milik mitra lain dan referensi 101 karakter. Belum ada penahan untuk permintaan yang diputar ulang di dalam jendela dengan key lain, dan untuk kuota kasir yang sah saat kunci bocor.</p>
 </noscript>
 
 </Blok>
@@ -73,7 +72,7 @@ Pihak luarnya kini ±50 penyedia POS (Asumsi, [[t5-prd]]), dan puncak seluruh AP
 
 ### Cara kerjanya
 
-**Satu gerbang memeriksa dalam urutan tetap.** Gerbang lab adalah proxy Go tiruan di depan `api-t5`. Gateway API, antarmuka Kubernetes untuk router ([[t5-rollout]]), Tidak dijalankan di lab ini. Tabel ini membaca urutannya dari `ServeHTTP` (dibaca dari kode):
+**Satu gerbang memeriksa dalam urutan tetap.** Gerbang lab adalah proxy Go tiruan di depan `api-t5`. Gateway API, antarmuka Kubernetes untuk router ([[t5-rollout]]), Tidak dijalankan di lab ini. Tabel ini membaca urutannya dari `ServeHTTP` (dibaca dari kode). `Retry-After` adalah kepala jawaban yang memberi client waktu tunggu sebelum mencoba lagi.
 
 | Urutan | Pemeriksaan | Menolak dengan |
 |---|---|---|
@@ -86,7 +85,7 @@ Pihak luarnya kini ±50 penyedia POS (Asumsi, [[t5-prd]]), dan puncak seluruh AP
 | 7 | Idempotency-Key untuk POST, PUT, PATCH, dan DELETE | 400 |
 | 8 | Diteruskan ke `api-t5`, yang mencocokkan merchant dengan mitra | 404 |
 
-`Retry-After` adalah kepala jawaban yang memberi client waktu tunggu sebelum mencoba lagi. Gerbang membuang kepala `X-Mitra-Id` dan `X-Gerbang-Rahasia` dari client, lalu memasang yang ia buat sendiri (dibaca dari kode).
+Gerbang membuang kepala `X-Mitra-Id` dan `X-Gerbang-Rahasia` dari client, lalu memasang yang ia buat sendiri (dibaca dari kode).
 
 **WAF menilai isi, bukan keabsahan.** CRS memberi skor pada tiap aturan yang cocok, dan memblokir permintaan bila skor masuk mencapai ambang. Menurut dokumentasi CRS, sebagian besar ancaman masuk yang terdeteksi bernilai 5 secara bawaan ([OWASP CRS: Anomaly Scoring](https://coreruleset.org/docs/2-how-crs-works/2-1-anomaly_scoring/), dibuka 2026-11-04, Tidak dijalankan). Lab memakai CRS v4.30.0 di Coraza v3.8.1 dengan ambang masuk 5, jadi satu temuan berskor 5 sudah memblokir.
 
@@ -126,7 +125,7 @@ Tes Go `TestGerbangKuotaSebelumTandaTangan` mengirim 100 permintaan dengan secre
 
 Penghitung permintaan berjalan bisa bocor bila gerbang mati sebelum melepasnya. Penghitung itu baru sembuh sesudah mitra sepi selama masa berlakunya, 10 detik di kode (Tes Go `TestPembatasSlotBocorSembuhHanyaSesudahSepi` memakai 600 milidetik).
 
-**Pencarian kunci mendahului penghitung kegagalan.** Gerbang membaca baris `mitra_pos` dari PostgreSQL lebih dulu, baru menghitung kegagalan per alamat di Redis (dibaca dari kode: `g.cari` sebelum `kunciGagal`). Jadi tiap permintaan dari satu alamat dengan kunci tidak kosong menyentuh database, juga yang akhirnya dijawab 429. Beban itu tidak diukur (Penalaran).
+**Pencarian kunci mendahului penghitung kegagalan.** Gerbang membaca baris `mitra_pos` dari PostgreSQL lebih dulu, baru menghitung kegagalan per alamat di Redis (dibaca dari kode: `g.cari` sebelum `kunciGagal`). Jadi tiap permintaan yang lolos WAF dan rute, dengan kunci tidak kosong, menyentuh database, juga yang akhirnya dijawab 429. Beban itu tidak diukur (Penalaran).
 
 **Kunci disimpan sebagai hash, dan tanda tangan dihitung per mitra.** Database menyimpan hash SHA-256 kunci di `mitra_pos.kunci_hash`, bukan kuncinya. Role `t5_gerbang` hanya punya SELECT atas lima dari enam kolom `mitra_pos`. Role itu tanpa INSERT, UPDATE, atau DELETE atas tabel itu, dan tanpa SELECT atas enam tabel service lain yang diperiksa (`tandatangan.txt` bagian F).
 

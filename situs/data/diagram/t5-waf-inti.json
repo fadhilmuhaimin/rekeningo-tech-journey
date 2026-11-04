@@ -1,9 +1,9 @@
 {
   "id": "t5-waf-inti",
-  "judul": "WAF menolak payload serangan umum, tetapi permintaan sah yang diputar ulang diterima lagi di dalam jendela lima menit",
+  "judul": "WAF menolak serangan umum, tetapi permintaan yang diputar ulang diterima lagi",
   "sumber": {
     "jenis": "rekaman",
-    "teks": "Baris pertama rekaman lab t5-waf · waf.txt bagian A (kunci dan tanda tangan sah, paranoia level 1); baris kedua tes Go gerbang · testing.txt bagian A (TestGerbangPutarUlangDalamJendelaDiterima)"
+    "teks": "Baris pertama rekaman lab waf.txt bagian A; baris kedua tes Go, testing.txt bagian A"
   },
   "baris": [
     {
@@ -29,7 +29,7 @@
       "sub": "tes Go",
       "simpul": [
         {
-          "teks": "Permintaan sah direkam",
+          "teks": "Permintaan sah",
           "sub": "sudah ditandatangani"
         },
         {
@@ -44,5 +44,5 @@
       ]
     }
   ],
-  "catatan": "Baris pertama adalah rekaman lab dengan paranoia level 1 dan delapan payload di payload.json. Baris kedua adalah tes Go dengan hulu tiruan: gerbang meneruskan permintaan yang diputar ulang, dan Idempotency-Key yang diganti sampai ke hulu. Kotak oranye adalah celah yang masih terbuka."
+  "catatan": "Baris pertama adalah rekaman lab dengan delapan payload di payload.json. Baris kedua adalah tes Go dengan hulu tiruan: gerbang meneruskan permintaan yang diputar ulang, dan Idempotency-Key yang diganti sampai ke hulu. Kotak oranye adalah celah yang masih terbuka."
 }

@@ -19,7 +19,7 @@
     "Mengira Idempotency-Key sama dengan nonce. Key yang tidak ikut ditandatangani bisa diganti oleh pihak yang memutar ulang pesan."
   ],
   "terkait": [
-    "HMAC",
+    "HMAC (hash-based message authentication code)",
     "Idempotency key"
   ],
   "sumber": [
