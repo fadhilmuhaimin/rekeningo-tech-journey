@@ -4850,15 +4850,14 @@
       "masalah": "File arsip dan cadangan dienkripsi dengan kunci yang tidak ikut keluar dari database",
       "pendek": "Arsip dan envelope encryption",
       "prasyarat": [
-        "t5-partisi",
-        "t4-audit",
-        "t4-infra-secret"
+        "t5-partisi"
       ],
       "lab": [
         "t5-kms"
       ],
-      "ada": false,
-      "nomor": "5.26"
+      "ada": true,
+      "nomor": "5.26",
+      "menit": 23
     },
     {
       "id": "t5-tim-infra",

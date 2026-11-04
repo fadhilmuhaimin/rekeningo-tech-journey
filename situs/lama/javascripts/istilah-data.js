@@ -16,6 +16,14 @@ window.ISTILAH = {
   "t": "ADR (Architecture Decision Record)",
   "u": "tahap-4/modular-monolith/"
  },
+ "AES-GCM": {
+  "b": "t5-kms",
+  "d": "Enkripsi AES dengan mode GCM: satu pesan dikunci dan diberi tag pemeriksa keaslian, sehingga satu byte yang berubah ketahuan saat dibuka.",
+  "n": "5.26 Arsip dan envelope encryption",
+  "s": "istilah-aes-gcm",
+  "t": "AES-GCM",
+  "u": "tahap-5/arsip-envelope-encryption/"
+ },
  "API": {
   "b": "A1",
   "d": "Sekumpulan endpoint yang disediakan server supaya program lain, mis. app Flutter, bisa membaca dan mengubah data.",
@@ -467,6 +475,14 @@ window.ISTILAH = {
   "t": "Daftar akar (root store)",
   "u": "tahap-3/tls-pinning/"
  },
+ "Data key": {
+  "b": "t5-kms",
+  "d": "Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK.",
+  "n": "5.26 Arsip dan envelope encryption",
+  "s": "istilah-data-key",
+  "t": "Data key",
+  "u": "tahap-5/arsip-envelope-encryption/"
+ },
  "Database": {
   "b": "B2.1",
   "d": "Program yang menyimpan data secara permanen dan menjamin aturan seperti constraint dan transaction.",
@@ -585,6 +601,15 @@ window.ISTILAH = {
   "s": "istilah-enumerasi",
   "t": "Enumerasi",
   "u": "tahap-1/idor-token-app/"
+ },
+ "Envelope encryption": {
+  "b": "t5-kms",
+  "d": "Enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, bukan bersama file.",
+  "h": "istilah/envelope-encryption/",
+  "n": "5.26 Arsip dan envelope encryption",
+  "s": "istilah-envelope-encryption",
+  "t": "Envelope encryption",
+  "u": "tahap-5/arsip-envelope-encryption/"
  },
  "Error budget": {
   "b": "t5-prd",
@@ -735,6 +760,14 @@ window.ISTILAH = {
   "s": "istilah-hpa",
   "t": "HPA (Horizontal Pod Autoscaler)",
   "u": "tahap-5/modul-ke-service/"
+ },
+ "HSM": {
+  "b": "t5-kms",
+  "d": "Perangkat keras yang menyimpan kunci dan menjalankan operasi kunci di dalamnya.",
+  "n": "5.26 Arsip dan envelope encryption",
+  "s": "istilah-hsm",
+  "t": "HSM (hardware security module)",
+  "u": "tahap-5/arsip-envelope-encryption/"
  },
  "HSTS": {
   "b": "t3-tls-pinning",
@@ -949,6 +982,23 @@ window.ISTILAH = {
   "s": "istilah-jurnal",
   "t": "Jurnal",
   "u": "tahap-2/ledger/"
+ },
+ "KEK": {
+  "b": "t5-kms",
+  "d": "Kunci pembungkus: kunci yang mengenkripsi data key, bukan isi file.",
+  "n": "5.26 Arsip dan envelope encryption",
+  "s": "istilah-kek",
+  "t": "KEK (key encryption key)",
+  "u": "tahap-5/arsip-envelope-encryption/"
+ },
+ "KMS": {
+  "b": "t5-kms",
+  "d": "Server yang membuat dan menyimpan KEK, dan membuka data key terbungkus bila pemanggilnya punya hak.",
+  "h": "istilah/kms/",
+  "n": "5.26 Arsip dan envelope encryption",
+  "s": "istilah-kms",
+  "t": "KMS (key management service)",
+  "u": "tahap-5/arsip-envelope-encryption/"
  },
  "Kapasitas worker": {
   "b": "t3-m27",
@@ -1240,7 +1290,7 @@ window.ISTILAH = {
  },
  "Nonce": {
   "b": "t5-waf",
-  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
+  "d": "Nilai sekali pakai yang tidak boleh berulang. Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali. Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama.",
   "h": "istilah/nonce/",
   "n": "5.25 Pintu untuk pihak luar",
   "s": "istilah-nonce",
@@ -2443,6 +2493,14 @@ window.ISTILAH = {
   "t": "Daftar akar (root store)",
   "u": "tahap-3/tls-pinning/"
  },
+ "data key": {
+  "b": "t5-kms",
+  "d": "Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK.",
+  "n": "5.26 Arsip dan envelope encryption",
+  "s": "istilah-data-key",
+  "t": "Data key",
+  "u": "tahap-5/arsip-envelope-encryption/"
+ },
  "database": {
   "b": "B2.1",
   "d": "Program yang menyimpan data secara permanen dan menjamin aturan seperti constraint dan transaction.",
@@ -2527,6 +2585,15 @@ window.ISTILAH = {
   "s": "istilah-enumerasi",
   "t": "Enumerasi",
   "u": "tahap-1/idor-token-app/"
+ },
+ "envelope encryption": {
+  "b": "t5-kms",
+  "d": "Enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, bukan bersama file.",
+  "h": "istilah/envelope-encryption/",
+  "n": "5.26 Arsip dan envelope encryption",
+  "s": "istilah-envelope-encryption",
+  "t": "Envelope encryption",
+  "u": "tahap-5/arsip-envelope-encryption/"
  },
  "error budget": {
   "b": "t5-prd",
@@ -3007,7 +3074,7 @@ window.ISTILAH = {
  },
  "nonce": {
   "b": "t5-waf",
-  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
+  "d": "Nilai sekali pakai yang tidak boleh berulang. Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali. Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama.",
   "h": "istilah/nonce/",
   "n": "5.25 Pintu untuk pihak luar",
   "s": "istilah-nonce",

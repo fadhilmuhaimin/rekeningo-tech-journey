@@ -1,0 +1,43 @@
+{
+  "id": "t5-kms-inti",
+  "judul": "Arsip tertutup tanpa hak, KEK bisa diputar",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t5-kms · arsip.txt dan rotasi.txt"
+  },
+  "baris": [
+    {
+      "label": "Ditutup",
+      "sub": "arsip.txt bagian C dan D",
+      "simpul": [
+        {
+          "teks": "Tanpa hak: 403",
+          "sub": "tanpa hak decrypt, data key tidak keluar",
+          "nada": "good"
+        },
+        {
+          "teks": "Bit diubah: GCM gagal",
+          "sub": "GCM gagal di lima posisi file",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Diputar",
+      "sub": "rotasi.txt bagian B dan C",
+      "simpul": [
+        {
+          "teks": "rotate: versi 2",
+          "sub": "arsip lama tetap terbuka",
+          "nada": "system"
+        },
+        {
+          "teks": "rewrap: file utuh",
+          "sub": "data key jadi versi 2",
+          "nada": "system"
+        }
+      ]
+    }
+  ],
+  "catatan": "Angka dari rekaman lab skala kecil: dua file arsip 28.000 baris, satu OpenBao v2.7.2 mode dev di satu mesin. Satu data key per file arsip."
+}

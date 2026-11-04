@@ -38,6 +38,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 |---|---|---|
 | **ACID** | Empat jaminan transaction di database relasional: atomicity, consistency, isolation, durability. | [[B3.1]] |
 | **ADR** (Architecture Decision Record) | Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya. | [[t4-modul]] |
+| **AES-GCM** | Enkripsi AES dengan mode GCM: satu pesan dikunci dan diberi tag pemeriksa keaslian, sehingga satu byte yang berubah ketahuan saat dibuka. | [[t5-kms]] |
 | **Alamat keluar** | Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak. | [[t4-m34]] |
 | **Alert** | Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang. | [[t3-tim-infra]] |
 | **Alert TLS** | Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required. | [[t5-mtls]] |
@@ -80,6 +81,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **CSP** (Content Security Policy) | Header respons yang memberi tahu browser sumber skrip dan sumber lain mana yang boleh dipakai halaman, sehingga skrip yang tidak dikenal ditolak. | [[t3-xss-csrf]] |
 | **CSRF** (cross-site request forgery) | Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim. | [[t3-xss-csrf]] |
 | **Daftar akar** (root store) | Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu. | [[t3-tls-pinning]] |
+| **Data key** | Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK. | [[t5-kms]] |
 | **Dead-letter queue** | Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya. | [[t3-at-least-once]] |
 | **Deadlock** | Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya. | [[t2-race-lock]] |
 | **Debit** | Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit. | [[t2-ledger]] |
@@ -89,6 +91,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Eager loading** | Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru. | [[t2-n-plus-1]] |
 | **Enumerasi** | Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada. | [[t1-idor]] |
 | **ERD** (Entity-Relationship Diagram) | Gambar skema database: tabel dengan kolom pentingnya, dan garis untuk setiap foreign key di antara tabel. | [[t2-skema]] |
+| **Envelope encryption** | Enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, bukan bersama file. | [[t5-kms]] |
 | **ERP** (Enterprise Resource Planning) | Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari. | [[t2-prd]] |
 | **Error budget** | Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. | [[t5-prd]] |
 | **Event sourcing** | Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu. | [[t2-adr-ledger]] |
@@ -111,6 +114,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **HMAC** (hash-based message authentication code) | Nilai yang dihitung dari isi pesan dan rahasia bersama, supaya penerima bisa memeriksa bahwa pesan tidak diubah dan berasal dari pemegang rahasia. | [[t4-webhook]] |
 | **Hold** (dana tertahan) | Dana yang dipisahkan sementara dari saldo untuk satu otorisasi kartu, dicatat sebagai jurnal ke buku sistem dan dilepas saat ditagih, dibatalkan, atau kedaluwarsa. | [[t4-kartu]] |
 | **HPA** (Horizontal Pod Autoscaler) | Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU. | [[t5-service]] |
+| **HSM** (hardware security module) | Perangkat keras yang menyimpan kunci dan menjalankan operasi kunci di dalamnya. | [[t5-kms]] |
 | **HSTS** (HTTP Strict Transport Security) | Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser. | [[t3-tls-pinning]] |
 | **IaC** (infrastructure as code) | Infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang di-review seperti kode, lalu dibuat oleh sebuah alat. | [[t4-infra-secret]] |
 | **Idempotency key** | Nilai unik yang dibuat app untuk satu aksi, mis. satu kali tekan Bayar, dan dikirim ulang di setiap retry, supaya server mengenali kiriman ulang dan tidak menjalankannya dua kali. | [[t2-idempotency]] |
@@ -127,8 +131,10 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Jurnal** | Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol. | [[t2-ledger]] |
 | **JWT** (JSON Web Token) | Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database. | [[B5.1]] |
 | **Kapasitas worker** | Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman. | [[t3-m27]] |
+| **KEK** (key encryption key) | Kunci pembungkus: kunci yang mengenkripsi data key, bukan isi file. | [[t5-kms]] |
 | **Kelas queue** | Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil. | [[t3-m27]] |
 | **Kill switch** | Feature flag yang tugasnya mematikan satu fitur seketika tanpa deploy, mis. menolak semua otorisasi kartu baru. | [[t4-kartu]] |
+| **KMS** (key management service) | Server yang membuat dan menyimpan KEK, dan membuka data key terbungkus bila pemanggilnya punya hak. | [[t5-kms]] |
 | **Kredit** | Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit. | [[t2-ledger]] |
 | **Kubernetes** | Sistem yang menjadwalkan pod, yaitu grup container, ke banyak mesin dalam satu cluster. | [[t5-service]] |
 | **Kunci akun** | Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya. | [[t2-m16]] |
@@ -159,7 +165,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **MVCC** (Multi-Version Concurrency Control) | Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis. | [[t2-isolation-level]] |
 | **N+1 query** | Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu. | [[t2-n-plus-1]] |
 | **NetworkPolicy** | Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya. | [[t5-m47]] |
-| **Nonce** | Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali. | [[t5-waf]] |
+| **Nonce** | Nilai sekali pakai yang tidak boleh berulang. Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali. Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama. | [[t5-waf]] |
 | **Nonrepeatable read** | Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan. | [[t2-isolation-level]] |
 | **OAuth 2.0** | Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password. | [[B5.2]] |
 | **Object storage** | Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3. | [[B11.2]] |

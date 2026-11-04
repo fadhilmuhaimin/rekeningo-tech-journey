@@ -904,7 +904,7 @@ describe("halaman istilah WAF dan Nonce dan baris glosarium: angka dari rekaman,
   test("glosarium: baris WAF dan Nonce menunjuk [[t5-waf]], urutan alfabet terjaga, nama terkait ada di glosarium.json, dan baris glosarium.json cocok", () => {
     const baris = glosarium.split("\n");
     const idx = (awal: string): number => { const i = baris.findIndex((b) => b.startsWith(awal)); expect(i, awal).toBeGreaterThan(0); return i; };
-    expect(baris[idx("| **Nonce** |")]).toBe("| **Nonce** | Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali. | [[t5-waf]] |");
+    expect(baris[idx("| **Nonce** |")]).toBe("| **Nonce** | Nilai sekali pakai yang tidak boleh berulang. Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali. Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama. | [[t5-waf]] |");
     expect(baris[idx("| **WAF** (web application firewall) |")]).toBe("| **WAF** (web application firewall) | Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan. | [[t5-waf]] |");
     expect(idx("| **NetworkPolicy** |")).toBeLessThan(idx("| **Nonce** |"));
     expect(idx("| **Nonce** |")).toBeLessThan(idx("| **Nonrepeatable read** |"));
