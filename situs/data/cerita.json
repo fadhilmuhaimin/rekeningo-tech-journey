@@ -4531,8 +4531,9 @@
       "lab": [
         "t5-fanout"
       ],
-      "ada": false,
-      "nomor": "5.14"
+      "ada": true,
+      "nomor": "5.14",
+      "menit": 15
     },
     {
       "id": "t5-fanout",
@@ -4769,8 +4770,9 @@
       "lab": [
         "t5-rollout"
       ],
-      "ada": false,
-      "nomor": "5.23"
+      "ada": true,
+      "nomor": "5.23",
+      "menit": 20
     },
     {
       "id": "t5-m50",
@@ -4788,14 +4790,15 @@
       "label": "Masalah 50 · minggu 12",
       "masalah": "Satu POS mengulang permintaan tanpa batas dan membuat merchant lain mendapat 429",
       "prasyarat": [
-        "t3-rate-limit-redis",
+        "t2-idempotency",
         "t4-webhook"
       ],
       "lab": [
         "t5-waf"
       ],
-      "ada": false,
-      "nomor": "5.24"
+      "ada": true,
+      "nomor": "5.24",
+      "menit": 12
     },
     {
       "id": "t5-waf",

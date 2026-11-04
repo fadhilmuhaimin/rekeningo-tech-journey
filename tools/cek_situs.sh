@@ -43,7 +43,7 @@ KELOMPOK_UKUR=(
   "galur@lanskap-hp tangkap kontras"
   "cls gerak"
   "alur erd"
-  "diagram luapan pool outbox cache webhook breaker biaya zona lag"
+  "diagram luapan pool outbox cache webhook breaker biaya zona lag fanout"
 )
 ukuran_bagian() {
   case "$1" in
@@ -212,6 +212,9 @@ jalan_ukur() {
     lag)
       echo "== widget jeda replica Tahap 5: tebak dulu, 15 kombinasi jeda dan aturan dari hitungan sendiri, ARIA, keyboard, target, 320 px Verdana, axe, reduced motion, tanpa JavaScript, CLS font telat (W5-lag)"
       (cd situs && node tools/ukur-lag.mjs --url "$URL" | grep -v "^ok ") ;;
+    fanout)
+      echo "== widget fan-out pengumuman Tahap 5: tebak dulu, 15 kombinasi pengirim dan jumlah perangkat dari hitungan sendiri, ARIA, keyboard, target, 320 px Verdana, axe, reduced motion, tanpa JavaScript, CLS font telat (W5-fanout)"
+      (cd situs && node tools/ukur-fanout.mjs --url "$URL" | grep -v "^ok ") ;;
     race)
       echo "== widget race ledger: tebak dulu, keyboard, ARIA, reduced motion, angka dari rekaman, axe akhir, CLS (W2-race)"
       (cd situs && node tools/ukur-race.mjs --url "$URL" | grep -v "^ok ") ;;
