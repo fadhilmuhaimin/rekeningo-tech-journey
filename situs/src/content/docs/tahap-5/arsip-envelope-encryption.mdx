@@ -199,7 +199,7 @@ c.setAAD(Buffer.from("arsip:" + periode));
 const isi = Buffer.concat([c.update(teks), c.final()]);
 const blob = Buffer.concat([iv, isi, c.getAuthTag()]);`} />
 
-**Yang berbeda di stack ini:** `createCipheriv` menerima IV dari pemanggil. Dokumentasi menulis bahwa syarat IV bergantung algoritma, dan bahwa IV tidak harus berupa secret dan boleh dikirim bersama ciphertext. Pemanggil yang membuat dan menyimpan IV, nonce, dan tag. Halaman itu tidak memuat kata KMS atau envelope.
+**Yang berbeda di stack ini:** `createCipheriv` menerima IV dari pemanggil. Dokumentasi menulis bahwa syarat IV bergantung algoritma, dan bahwa IV biasanya tidak harus berupa secret dan boleh dikirim bersama ciphertext. Pemanggil yang membuat dan menyimpan IV dan tag. Halaman itu tidak memuat kata KMS atau envelope.
 
 </Fragment>
 <Fragment slot="t2">
@@ -233,7 +233,7 @@ blob = nonce + AESGCM(data_key).encrypt(nonce, teks, aad)`} />
 
 *Tidak dijalankan. Dicek ke [Supabase: Vault](https://github.com/supabase/supabase/blob/master/apps/docs/content/guides/database/vault.mdx), dibaca dari teks mentah di repositori supabase/supabase, perubahan terakhir halaman itu 2026-10-30, dibuka 2026-11-04.*
 
-**Yang berbeda di stack ini:** Vault menyimpan secret terenkripsi di tabel database, bukan file arsip. Dokumentasi menulis bahwa kunci enkripsi tidak disimpan di database dan bahwa tiap project punya kunci akar sendiri. Migrasi ke project baru dengan `pg_dump` dan `pg_restore` manual membuat project baru memakai kunci baru yang tidak bisa mendekripsi secret yang disalin. Itu bentuk kegagalan yang sama dengan KEK yang hilang di rekaman bagian F.
+**Yang berbeda di stack ini:** Vault menyimpan secret terenkripsi di tabel database, bukan file arsip. Dokumentasi menulis bahwa kunci enkripsi tidak disimpan di database dan bahwa tiap project punya kunci akar sendiri. Migrasi ke project baru dengan `pg_dump` dan `pg_restore` manual membuat project baru memakai kunci baru yang tidak bisa mendekripsi secret yang disalin. Itu mirip dengan KEK yang hilang di rekaman bagian F: datanya ada, kuncinya tidak (penalaran).
 
 </Fragment>
 </TabSet>

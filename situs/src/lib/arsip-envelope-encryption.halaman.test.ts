@@ -463,7 +463,12 @@ describe("diagram Rantai, skenario alur, ADR 57, dan kartu Cek diri", () => {
     expect(skenario.varian.langkah).toHaveLength(3);
     const garis = new Set(rotasi.split("\n"));
     for (const l of [...skenario.langkah, ...skenario.varian.langkah]) {
-      for (const b of l.kirim.split("\n")) expect(garis.has(b), `kirim tidak ada di rotasi.txt: ${b}`).toBe(true);
+      for (const b of l.kirim.split("\n")) {
+        // "..." menggantikan satu argumen "-berkas <nama>.enc" (kata berkas ditolak audit bahasa di data widget); selebihnya sama dengan baris rekaman
+        const [awal, akhir] = b.includes(" ... ") ? b.split(" ... ") : [b, ""];
+        const ada = b.includes(" ... ") ? [...garis].some((g) => g.startsWith(`${awal} -berkas `) && g.endsWith(` ${akhir}`)) : garis.has(b);
+        expect(ada, `kirim tidak ada di rotasi.txt: ${b}`).toBe(true);
+      }
       expect(["op", "job"]).toContain(l.dari);
       expect(l.ke).toBe("bao");
     }
@@ -475,6 +480,8 @@ describe("diagram Rantai, skenario alur, ADR 57, dan kartu Cek diri", () => {
     expect(skenario.langkah[4]!.kirim).toContain('"min_decryption_version": 1');
     expect(skenario.langkah[4]!.kirim).toContain("terbuka: 1282072 byte");
     expect(skenario.langkah[3]!.jelas).toContain("1.282.072 byte");
+    expect(JSON.stringify(skenario)).not.toMatch(/-berkas/); // audit bahasa menolak kata berkas di data widget
+    expect(hitung(skenario.langkah.map((l) => l.kirim).join("\n") + skenario.varian.langkah.map((l) => l.kirim).join("\n"), / \.\.\. /g)).toBe(4);
     expect(skenario.varian.langkah[0]!.kirim).toContain("/trim");
     expect(skenario.varian.langkah[1]!.kirim).toContain("HTTP 400");
     expect(skenario.varian.langkah.map((l) => l.nada)).toEqual(["warn", "warn", "warn"]);

@@ -63,7 +63,7 @@
       "dari": "job",
       "ke": "bao",
       "judul": "posting_lalu_01 ditolak, posting_lalu_02 terbuka",
-      "kirim": "$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_01.enc -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal>\nkmsarsip: openbao menjawab 400: ciphertext or signature version is disallowed by policy (too old)\n# exit status 2",
+      "kirim": "$ BAO_TOKEN=<token pembuka> kmsarsip buka ... -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal>\nkmsarsip: openbao menjawab 400: ciphertext or signature version is disallowed by policy (too old)\n# exit status 2",
       "jelas": "Arsip yang masih terbungkus versi 1 tidak terbuka. posting_lalu_02, yang sudah dibungkus ulang, terbuka dengan 1.282.072 byte.",
       "nada": "warn"
     },
@@ -71,7 +71,7 @@
       "dari": "op",
       "ke": "bao",
       "judul": "Operator menurunkan min_decryption_version ke 1, dan posting_lalu_01 terbuka lagi",
-      "kirim": "$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{\"min_decryption_version\": 1}'\nHTTP 200\n$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_01.enc -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal> -keluar pulih.csv\nterbuka: 1282072 byte",
+      "kirim": "$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{\"min_decryption_version\": 1}'\nHTTP 200\n$ BAO_TOKEN=<token pembuka> kmsarsip buka ... -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal> -keluar pulih.csv\nterbuka: 1282072 byte",
       "jelas": "Menaikkan min_decryption_version bisa dibalik, jadi bukan pencabutan. Versi 1 masih tersimpan di OpenBao.",
       "nada": "good"
     }
@@ -100,7 +100,7 @@
         "dari": "job",
         "ke": "bao",
         "judul": "posting_lalu_01 tidak bisa dibuka lagi, posting_lalu_02 tetap terbuka",
-        "kirim": "$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_01.enc -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal>\nkmsarsip: openbao menjawab 400: ciphertext or signature version is disallowed by policy (too old)\n# exit status 2\n$ BAO_TOKEN=<token pembuka> kmsarsip buka -berkas posting_lalu_02.enc -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal> -keluar pulih.csv\nterbuka: 1282072 byte",
+        "kirim": "$ BAO_TOKEN=<token pembuka> kmsarsip buka ... -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal>\nkmsarsip: openbao menjawab 400: ciphertext or signature version is disallowed by policy (too old)\n# exit status 2\n$ BAO_TOKEN=<token pembuka> kmsarsip buka ... -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal> -keluar pulih.csv\nterbuka: 1282072 byte",
         "jelas": "File posting_lalu_01.enc masih ada, tetapi data key terbungkusnya tidak bisa dibuka. Pencabutan sungguhan berarti rewrap semua arsip dulu, baru trim.",
         "nada": "warn"
       }
