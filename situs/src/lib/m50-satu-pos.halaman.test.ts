@@ -216,6 +216,18 @@ describe("rekaman kuota.txt dan tandatangan.txt, kode gerbang, registry, dan nas
     expect(testingRek).toContain("--- PASS: TestGerbangKuotaBersamaDiModeRentan");
     expect(testingRek).toContain("--- PASS: TestGerbangKuotaPerMitra");
   });
+  test("Retry-After di setiap jawaban 429 yang ditulis gerbang, nama mode di kepala bagian C, 16 thread di run.py, dan ADR 27 di 3.17 membahas login dan proxy", () => {
+    // judul langkah varian "429 dari gerbang membawa Retry-After": rekaman hanya memuat satu jawaban, jadi kodenya dibaca per tempat
+    const tempat429 = gerbangBaris.flatMap((b, i) => (/tolak\(w, 429,/.test(b) ? [i] : []));
+    expect(tempat429.length).toBeGreaterThanOrEqual(2);
+    for (const i of tempat429) expect(gerbangBaris[i - 1], `baris ${i} sebelum jawaban 429 di baris ${i + 1}`).toMatch(/^\t+w\.Header\(\)\.Set\("Retry-After", /);
+    expect(hitungKali(gerbangGo, 'w.Header().Set("Retry-After"')).toBe(tempat429.length);
+    expect(kuotaBaris.find((b) => /^# --- C\./.test(b)), "kepala bagian C").toContain("kuota-bersama");
+    expect(runPy).toContain("def banjir(pekerjaan, pekerja=16):");
+    const hal317 = baca("situs/src/content/docs/tahap-3/rate-limit-redis.mdx");
+    expect(hal317).toContain("Hitungan login per alamat dan per akun hidup di Redis");
+    expect(hal317).toContain("seluruh karyawan berbagi satu key per alamat");
+  });
   test("api-t5: tanpa kepala Idempotency-Key permintaan diteruskan ke handler; rute POS untuk membuat QR memakai middleware itu; lapis per IP tidak direkam untuk rute POS", () => {
     expect(idempotenGo).toContain('if len(r.Header.Values("Idempotency-Key")) == 0 {\n\t\t\tnext(w, r)\n\t\t\treturn\n\t\t}');
     expect(posGo).toContain('mux.HandleFunc("POST /pos/v1/merchant/{id}/qr", s.wajibMitra(s.idempoten(s.posBuatQR)))');
@@ -466,7 +478,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     ]);
     expect(skenario.varian.langkah.map((l) => [l.dari, l.ke ?? null, l.judul, l.nada ?? null])).toEqual([
       ["batas", "api", "Bucket dihitung per mitra", "good"],
-      ["batas", "pos", "Tiap 429 membawa Retry-After", null],
+      ["batas", "pos", "429 dari gerbang membawa Retry-After", null],
       ["batas", null, "Batas ini dihitung sebelum tanda tangan", "warn"],
     ]);
     expect(badan).toContain("centang **Ubah satu hal: " + skenario.varian.label + "**");
@@ -488,7 +500,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(v1.kirim).toBe(`mitra A: ${A.n} permintaan -> 200: ${A.ok}, 429: ${A.tolak}\nmitra B: ${B.n} permintaan -> 200: ${B.ok}, 429: ${B.tolak} (Rekaman lab)`);
     expect(v1.jelas).toBe("Kuota dibaca dari baris mitra masing-masing, dan A tidak memakai token B (kuota.txt, bagian A).");
     expect(v2.kirim).toBe(`429 kuota-terlampaui, Retry-After: ${retryAfter} (Rekaman lab)`);
-    expect(v2.jelas).toBe("Kepala itu memberi kasir waktu tunggu. Lab tidak menjalankan POS yang membacanya (Tidak dijalankan).");
+    expect(v2.jelas).toBe("Kepala itu memberi kasir waktu tunggu. Rekaman memuat satu jawaban 429, dan kode gerbang memasang kepala itu di setiap jawaban 429 yang ia tulis sendiri (dibaca dari kode). Lab tidak menjalankan POS yang membacanya (Tidak dijalankan).");
     expect(v3.kirim).toBe(`${pengulangan} permintaan dengan secret penandatangan salah: 401, tetapi memakai token mitra pemiliknya\nlalu kasir A yang sah: 429 (Rekaman lab, tes Go)`);
     expect(v3.jelas).toBe("Urutan di gerbang: kunci API, kuota, lalu tanda tangan. Kunci yang bocor tanpa secret penandatangannya masih bisa menghabiskan kuota pemiliknya.");
     expect(skenario.predict.explain).toBe(
@@ -576,7 +588,7 @@ describe("registry, tautan, template blok, tabel, urutan tebakan, widget, dan ka
     expect(badan).not.toMatch(/\brahasia\b/);
     expect(badan).not.toMatch(/\blayanan\b/);
     expect(JSON.stringify(skenario)).not.toMatch(/\brahasia\b/);
-    expect(hitungKali(badan, "Penalaran")).toBe(6);
+    expect(hitungKali(badan, "Penalaran")).toBe(7);
   });
   test("ID riset, nomor keputusan, dan nomor PR tidak tampil di halaman, rantai, skenario, dan kartu; 'bagian C' dan 'bagian A' dipakai", () => {
     const semua = [halaman.replace("[[A0]]", ""), JSON.stringify(rantaiMentah), JSON.stringify(skenario), JSON.stringify(kartuSemua.filter((x) => x.halaman === "t5-m50"))].join("\n");
@@ -643,7 +655,7 @@ describe("penutup celah mutasi tanpa kunci: frontmatter, Gejala, noscript, butir
     const butir = k.split("\n").filter((b) => b.startsWith("- "));
     expect(butir).toEqual([
       "- [[t5-waf]]: kuota per mitra, tanda tangan bertimestamp, WAF, dan cakupan kunci di pintu untuk pihak luar. Keputusannya ADR 56.",
-      "- [[t3-rate-limit-redis]]: ADR 27, yang menghitung batas per alamat dan per akun. Halaman ini membaca batas itu untuk pihak luar.",
+      "- [[t3-rate-limit-redis]]: ADR 27, yang menghitung percobaan login per alamat dan per akun. Di belakang proxy semua client berbagi satu alamat, dan NAT berakibat sama (Penalaran).",
       "- [[t4-webhook]]: HMAC bertimestamp di ADR 34 untuk pesan masuk. Pintu mitra memakai pola yang sama, dengan method dan alamat ikut ditandatangani.",
     ]);
     expect(dari("t5-waf").adr).toEqual([56]);
@@ -728,7 +740,7 @@ const BADAN_DITURUNKAN: string[] = [
   `<Snippet file="labs/t5-waf/output/kuota.txt" lines="29:30" title="Rekaman lab: labs/t5-waf/output/kuota.txt, bagian C (mode kuota-bersama)" />`,
   `Mitra B ikut mendapat ${KODE}, walau ia hanya mengirim ${B.n} permintaan. Mode ini memerankan satu batas yang dipakai semua mitra, sesuai tulisan naskah (Penalaran). Ia tidak menghitung per alamat.`,
   `NAT adalah penerjemahan alamat jaringan. Salah satu jenisnya, NAPT, menerjemahkan banyak alamat dan port menjadi satu alamat ([RFC ${RFC_NAT}](https://www.rfc-editor.org/rfc/rfc${RFC_NAT}), Informational, dibuka ${TGL}, Tidak dijalankan). Naskah menulis bahwa batas per alamat dari ADR ${ADR27} memberi satu hitungan untuk satu alamat. Bila banyak kasir berbagi satu alamat NAT, hitungannya satu untuk semuanya (Penalaran, dari mekanismenya; lab tidak merekamnya).`,
-  `Karena itu memblokir alamat mitra bukan jawabannya. Semua kasir di belakang alamat itu ikut berhenti, termasuk kasir yang tidak mengulang apa pun (Penalaran). Menambah replica menambah ruang untuk pengulangan yang sama (Penalaran). Kapasitas satu server belum pernah diukur di lab ini (Tidak dijalankan).`,
+  `Karena itu memblokir alamat mitra bukan jawabannya. Semua kasir di belakang alamat itu ikut berhenti, termasuk kasir yang tidak mengulang apa pun (Penalaran). Menambah replica menambah ruang untuk pengulangan yang sama (Penalaran). Kapasitas satu server tidak diukur di lab t5-waf (Tidak dijalankan).`,
   `**Pengulangan POST tanpa Idempotency-Key membuat dua QR.** Idempotency-Key adalah kepala permintaan yang membuat pengulangan POST menghasilkan satu hasil ([[t2-idempotency]]). Di \`api-t5\`, \`idempoten\` meneruskan permintaan tanpa kepala itu apa adanya, termasuk di rute POS untuk membuat QR (Tidak dijalankan, dibaca dari kode).`,
   `Dua POST yang sama dikirim ke satu merchant. Tabel ini menaruh kedua kasus dari rekaman:`,
   `| Dua POST yang sama | Jawaban | Baris \`qr\` milik merchant |`,
@@ -756,7 +768,7 @@ const BADAN_DITURUNKAN: string[] = [
   `</Blok>`,
   `<Blok nama="Konsep yang lahir">`,
   `- [[t5-waf]]: kuota per mitra, tanda tangan bertimestamp, WAF, dan cakupan kunci di pintu untuk pihak luar. Keputusannya ADR ${ADR56}.`,
-  `- [[t3-rate-limit-redis]]: ADR ${ADR27}, yang menghitung batas per alamat dan per akun. Halaman ini membaca batas itu untuk pihak luar.`,
+  `- [[t3-rate-limit-redis]]: ADR ${ADR27}, yang menghitung percobaan login per alamat dan per akun. Di belakang proxy semua client berbagi satu alamat, dan NAT berakibat sama (Penalaran).`,
   `- [[t4-webhook]]: HMAC bertimestamp di ADR ${ADR34} untuk pesan masuk. Pintu mitra memakai pola yang sama, dengan method dan alamat ikut ditandatangani.`,
   `Satu mitra yang mengulang tanpa jeda cukup untuk menghabiskan batas yang dipakai bersama, jadi batas dihitung per mitra.`,
   `### Cek diri`,

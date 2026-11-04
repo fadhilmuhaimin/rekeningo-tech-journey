@@ -81,9 +81,9 @@
       {
         "dari": "batas",
         "ke": "pos",
-        "judul": "Tiap 429 membawa Retry-After",
+        "judul": "429 dari gerbang membawa Retry-After",
         "kirim": "429 kuota-terlampaui, Retry-After: 1 (Rekaman lab)",
-        "jelas": "Kepala itu memberi kasir waktu tunggu. Lab tidak menjalankan POS yang membacanya (Tidak dijalankan)."
+        "jelas": "Kepala itu memberi kasir waktu tunggu. Rekaman memuat satu jawaban 429, dan kode gerbang memasang kepala itu di setiap jawaban 429 yang ia tulis sendiri (dibaca dari kode). Lab tidak menjalankan POS yang membacanya (Tidak dijalankan)."
       },
       {
         "dari": "batas",
