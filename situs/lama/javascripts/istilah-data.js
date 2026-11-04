@@ -50,6 +50,14 @@ window.ISTILAH = {
   "t": "Alert",
   "u": "tahap-3/tim-infra/"
  },
+ "Alert TLS": {
+  "b": "t5-mtls",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-alert-tls",
+  "t": "Alert TLS",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "Allowlist": {
   "b": "t4-ssrf",
   "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
@@ -2075,6 +2083,14 @@ window.ISTILAH = {
   "s": "istilah-alert",
   "t": "Alert",
   "u": "tahap-3/tim-infra/"
+ },
+ "alert TLS": {
+  "b": "t5-mtls",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-alert-tls",
+  "t": "Alert TLS",
+  "u": "tahap-5/mtls-antar-service/"
  },
  "allowlist": {
   "b": "t4-ssrf",

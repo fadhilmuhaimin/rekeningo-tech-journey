@@ -38,6 +38,7 @@ EXTRA = {
     "N+1 query": ["N+1"],
     "Span / Tracing": ["trace"],
     "Partitioning": ["partisi", "Partisi"],
+    "Alert TLS": ["alert TLS"],
 }
 # Kunci yang terlalu umum untuk ditandai otomatis.
 SKIP = {"Index", "index", "Package", "package", "Mount", "mount", "Fake", "fake", "Mock", "mock",

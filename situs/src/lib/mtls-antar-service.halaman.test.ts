@@ -258,18 +258,18 @@ describe("rekaman mtls.txt, rentan.txt, idempoten.txt, dan testing.txt: nilai tu
     harus("Tanpa sertifikat dijawab `certificate required`. Sertifikat dari CA lain dijawab `unknown certificate authority`, yang kedaluwarsa `expired certificate`, dan yang kegunaannya hanya untuk server `bad certificate`. Kontrol positifnya, sertifikat pembayaran yang sah, diterima.");
     harus("Dari sisi server, handler ledger tidak jalan dan jurnal tetap 0.");
     harus("Log ledger mencatat alasan tiap penolakan, dan jumlah jurnal 0 sebelum dan sesudahnya:");
-    expect(badan).toContain("**Empat sertifikat yang salah mendapat empat alert.**");
+    expect(badan).toContain("**Empat sertifikat yang salah mendapat empat alert TLS.**");
     expect(badan).toContain("empat sertifikat yang salah ditolak server saat handshake, dan jurnal tetap 0.");
     expect(mtls.slice(nB, nC).some((b) => b.startsWith("$ panggil -sonde -cert dari-ca-lain"))).toBe(true);
     expect(mtls.slice(nB, nC).some((b) => b.includes("hanya untuk server (EKU serverAuth)"))).toBe(true);
   });
   test("sonde: 500 milidetik dari kode panggil, README, dan halaman", () => {
     expect(kodePanggil).toContain("identitas.Sonde(u.Host, cfgTLS, 500*time.Millisecond)");
-    harus("Bagian B rekaman memakai sonde: client yang menyelesaikan handshake, tidak mengirim apa pun, lalu menunggu paling lama 500 milidetik untuk alert. Log ledger mencatat alasan tiap penolakan, dan jumlah jurnal 0 sebelum dan sesudahnya:");
+    harus("Bagian B rekaman memakai sonde: client yang menyelesaikan handshake, tidak mengirim apa pun, lalu menunggu paling lama 500 milidetik untuk alert TLS. Log ledger mencatat alasan tiap penolakan, dan jumlah jurnal 0 sebelum dan sesudahnya:");
     expect(readmeLab).toContain("Client TLS 1.3 menganggap handshake selesai sebelum server menilai sertifikat client, jadi penolakan baru terbaca pada pembacaan pertama.");
     expect(readmeLab).toContain("Perilaku client yang langsung mengirim permintaan sesudah handshake tidak direkam.");
     expect(readmeLab).toContain("menunggu paling lama 500 ms untuk alert");
-    harus("Dari sisi client TLS 1.3, alert baru terbaca pada pembacaan pertama. Client menganggap handshake selesai sebelum server menilai sertifikat client (pengamatan lab di README, bukan kutipan RFC).");
+    harus("Dari sisi client TLS 1.3, alert TLS baru terbaca pada pembacaan pertama. Client menganggap handshake selesai sebelum server menilai sertifikat client (pengamatan lab di README, bukan kutipan RFC).");
   });
   test("bagian C: pembayaran 201 untuk topup dan kartu-tahan, notifikasi dan cicilan 403 untuk topup_bank; bagian D: 401 tanpa SAN, dua 403 atas nama notifikasi, jurnal akun uji 0", () => {
     expect(statusC.map((m) => m[1])).toEqual(["201", "201", "403", "403"]);
@@ -430,7 +430,7 @@ describe("sumber luar: kutipan di baris riset R5-200 sampai R5-204 dan tautan di
       "a DNS name, an IP address, and a Uniform Resource Identifier (URI).",
       "terbit Agustus 2018", "Mei 2008", "bagian 4.4.2.4", "bagian 4.2.1.6", `dibuka ${TANGGAL}`, "pkg.go.dev/crypto/tls, tanpa nomor versi", "pengamatan lab (R5-290)",
     ]) expect(r, k).toContain(k);
-    harus("RFC 8446 menulis bahwa bila client tidak mengirim sertifikat, server boleh meneruskan handshake tanpa autentikasi client atau menghentikannya dengan alert `certificate_required`. Pilihan yang sama berlaku bila rantai sertifikat client tidak dapat diterima ([RFC 8446](https://www.rfc-editor.org/rfc/rfc8446), bagian 4.4.2.4, Agustus 2018, dibuka 2026-11-04, Tidak dijalankan).");
+    harus("RFC 8446 menulis bahwa bila client tidak mengirim sertifikat, server boleh meneruskan handshake tanpa autentikasi client atau menghentikannya dengan alert TLS `certificate_required`. Pilihan yang sama berlaku bila rantai sertifikat client tidak dapat diterima ([RFC 8446](https://www.rfc-editor.org/rfc/rfc8446), bagian 4.4.2.4, Agustus 2018, dibuka 2026-11-04, Tidak dijalankan).");
     harus("Dokumentasi `crypto/tls` menulis bahwa `RequestClientCert` meminta sertifikat tanpa mewajibkannya, dan `VerifyClientCertIfGiven` hanya mewajibkan sertifikat yang dikirim itu valid. `RequireAnyClientCert` mewajibkan satu sertifikat yang tidak harus valid. Di antara keempat nilai itu, hanya `RequireAndVerifyClientCert` mewajibkan setidaknya satu sertifikat yang valid ([Go: crypto/tls](https://pkg.go.dev/crypto/tls), dokumen tanpa nomor versi, dibuka 2026-11-04, Tidak dijalankan).");
     expect(barisRiset("R5-290")).toContain("klien TLS 1.3 menganggap handshake selesai sebelum server menilai sertifikat klien");
     expect(jumlah(r, "terbit Agustus 2018")).toBe(1);
@@ -550,6 +550,19 @@ describe("halaman istilah mTLS dan SAN dan glosarium", () => {
     expect(baris[j + 1]!.startsWith("| **Secret manager**")).toBe(true);
     for (const t of [...m.terkait!, ...s.terkait!]) expect(glosarium, t).toContain(`**${t.split(" (")[0]}**`);
     expect(barisRiset("R5-200")).toContain("mTLS");
+  });
+
+  // Tooltip: plugin remark-abbr membungkus tiap kata yang cocok dengan kunci istilah. Kata "alert" sendirian memakai arti pemantauan
+  // (halaman 3.27); alert TLS memakai kunci "alert TLS" yang lebih panjang, jadi dicocokkan lebih dulu. Tanpa kunci itu, tiap alert TLS
+  // di halaman ini tampil dengan tooltip tentang orang yang sedang jaga (ditemukan di HTML hasil build, bukan oleh tes lain).
+  test("kata alert: arti TLS selalu ditulis 'alert TLS' dengan kunci tooltip sendiri, dan 'alert' sendirian hanya di dua kalimat pemantauan sisa umur sertifikat", () => {
+    const istilahMd = baca("situs/data/istilah.md");
+    expect(istilahMd).toContain("*[alert TLS]: Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya");
+    expect(istilahMd).toContain("*[Alert TLS]: Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya");
+    expect(glosarium).toContain("| **Alert TLS** | Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required. | [[t5-mtls]] |");
+    const sendiri = [...badan.matchAll(/\balert\b(?! TLS)(?: \S+){2}/gi)].map((m) => m[0]);
+    expect(sendiri).toEqual(["alert untuk sisa", "alert sisa umur,"]);
+    expect(jumlah(badan, "alert TLS")).toBe(7);
   });
 });
 
@@ -692,6 +705,10 @@ describe("struktur halaman, tebakan, banding, Rantai, dan kartu", () => {
       "Kode lab: labs/api-t5/cmd/ledger/main.go, rute() di versi benar (tiap rute dibungkus identitas.Wajib)",
       "labs/api-t5/cmd/ledger/main.go",
     ]);
+    // bahasa sorotan sintaks mengikuti ekstensi file: kode Go bertanda go, rekaman .txt tanpa bahasa (mutasi peninjau: lang="js" di satu Snippet Go lolos tanpa kunci baris)
+    expect(tag.map((a) => [atr(a, "file")!.split(".").pop(), atr(a, "lang")])).toEqual([
+      ["go", "go"], ["txt", undefined], ["go", "go"], ["txt", undefined], ["go", "go"], ["go", "go"], ["go", "go"], ["go", "go"],
+    ]);
     // rentang rekaman: B berakhir di baris terakhir sebelum baris kosong dan header C; D di sebelum baris kosong dan header E
     expect(mtls[nC - 1]).toBe("");
     expect(mtls[nE - 1]).toBe("");
@@ -822,18 +839,18 @@ const PARAGRAF_UTUH: string[] = [
   "Yakin dengan ketiganya? Lompat ke [[berikutnya]].",
   "Tebak dulu jawaban ledger untuk satu sertifikat yang janggal. Lalu pilih satu kejadian di widget perbandingan dan lihat jawaban ledger versi pertama dan ledger dengan mTLS.",
   "Catatan di widget menyebut file rekaman dan bagiannya bila berasal dari Rekaman lab. Tidak dijalankan berarti dicek ke kode atau dokumentasi tanpa menjalankannya. Penalaran adalah kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.",
-  "**Ubah satu hal:** pindah dari Pemanggil tanpa sertifikat ke Sertifikat notifikasi minta topup_bank. Jawaban ledger dengan mTLS berganti dari alert di handshake menjadi 403 dari handler: dua lapis, dua jawaban.",
+  "**Ubah satu hal:** pindah dari Pemanggil tanpa sertifikat ke Sertifikat notifikasi minta topup_bank. Jawaban ledger dengan mTLS berganti dari alert TLS di handshake menjadi 403 dari handler: dua lapis, dua jawaban.",
   "### Kenapa ini ada",
   "[[t5-m47]] menunjukkan ledger versi pertama yang membuat jurnal untuk pemanggil tanpa sertifikat dan tanpa identitas (Rekaman lab, `rentan.txt` bagian A). Idempotency-Key tidak menghentikannya, karena key menandai permintaan, bukan pemanggil ([[t2-idempotency]]).",
   "Pemicu service mesh di ADR 45 adalah lebih dari satu jalur antar service yang butuh TLS timbal balik dan retry seragam ([[t4-adr-45]]). Di Tahap 4 jalurnya satu. Naskah Tahap 5 menulis bahwa ledger dipanggil dari tiga service: pembayaran, cicilan, dan merchant (Asumsi dari naskah). Pemicu itu terpenuhi untuk TLS timbal balik, dan naskah memilih mengerjakannya di Go tanpa mesh.",
   "### Cara kerjanya",
-  "**Server menuntut sertifikat client, dan menolak adalah pilihan server.** Di TLS biasa, client memeriksa sertifikat server. Di mTLS, server juga meminta sertifikat dari client. RFC 8446 menulis bahwa bila client tidak mengirim sertifikat, server boleh meneruskan handshake tanpa autentikasi client atau menghentikannya dengan alert `certificate_required`. Pilihan yang sama berlaku bila rantai sertifikat client tidak dapat diterima ([RFC 8446](https://www.rfc-editor.org/rfc/rfc8446), bagian 4.4.2.4, Agustus 2018, dibuka 2026-11-04, Tidak dijalankan).",
+  "**Server menuntut sertifikat client, dan menolak adalah pilihan server.** Di TLS biasa, client memeriksa sertifikat server. Di mTLS, server juga meminta sertifikat dari client. RFC 8446 menulis bahwa bila client tidak mengirim sertifikat, server boleh meneruskan handshake tanpa autentikasi client atau menghentikannya dengan alert TLS `certificate_required`. Pilihan yang sama berlaku bila rantai sertifikat client tidak dapat diterima ([RFC 8446](https://www.rfc-editor.org/rfc/rfc8446), bagian 4.4.2.4, Agustus 2018, dibuka 2026-11-04, Tidak dijalankan).",
   "Go menyerahkan pilihan itu ke `Config.ClientAuth`. Dokumentasi `crypto/tls` menulis bahwa `RequestClientCert` meminta sertifikat tanpa mewajibkannya, dan `VerifyClientCertIfGiven` hanya mewajibkan sertifikat yang dikirim itu valid. `RequireAnyClientCert` mewajibkan satu sertifikat yang tidak harus valid. Di antara keempat nilai itu, hanya `RequireAndVerifyClientCert` mewajibkan setidaknya satu sertifikat yang valid ([Go: crypto/tls](https://pkg.go.dev/crypto/tls), dokumen tanpa nomor versi, dibuka 2026-11-04, Tidak dijalankan).",
   "Ledger lab memakai nilai terakhir, dengan TLS 1.3 sebagai versi terendah (pilihan lab) dan satu CA di `ClientCAs`:",
   "`GetCertificate` membaca sertifikat server dari file tiap handshake, jadi file yang diganti berlaku tanpa restart. Tes Go `TestSertifikatServerDibacaUlangTiapHandshake` memeriksanya (dibaca dari kode lab). Rotasi otomatis Tidak dijalankan.",
-  "**Empat sertifikat yang salah mendapat empat alert.** Bagian B rekaman memakai sonde: client yang menyelesaikan handshake, tidak mengirim apa pun, lalu menunggu paling lama 500 milidetik untuk alert. Log ledger mencatat alasan tiap penolakan, dan jumlah jurnal 0 sebelum dan sesudahnya:",
+  "**Empat sertifikat yang salah mendapat empat alert TLS.** Bagian B rekaman memakai sonde: client yang menyelesaikan handshake, tidak mengirim apa pun, lalu menunggu paling lama 500 milidetik untuk alert TLS. Log ledger mencatat alasan tiap penolakan, dan jumlah jurnal 0 sebelum dan sesudahnya:",
   "Tanpa sertifikat dijawab `certificate required`. Sertifikat dari CA lain dijawab `unknown certificate authority`, yang kedaluwarsa `expired certificate`, dan yang kegunaannya hanya untuk server `bad certificate`. Kontrol positifnya, sertifikat pembayaran yang sah, diterima.",
-  "**\"Gagal di handshake\" punya lingkup.** Dari sisi server, handler ledger tidak jalan dan jurnal tetap 0. Dari sisi client TLS 1.3, alert baru terbaca pada pembacaan pertama. Client menganggap handshake selesai sebelum server menilai sertifikat client (pengamatan lab di README, bukan kutipan RFC). Client yang langsung mengirim permintaan sesudah handshake tidak direkam, dan server lab menuntut TLS 1.3 sebagai versi terendah.",
+  "**\"Gagal di handshake\" punya lingkup.** Dari sisi server, handler ledger tidak jalan dan jurnal tetap 0. Dari sisi client TLS 1.3, alert TLS baru terbaca pada pembacaan pertama. Client menganggap handshake selesai sebelum server menilai sertifikat client (pengamatan lab di README, bukan kutipan RFC). Client yang langsung mengirim permintaan sesudah handshake tidak direkam, dan server lab menuntut TLS 1.3 sebagai versi terendah.",
   "**Identitas dibaca dari SAN yang lolos verifikasi.** SAN (Subject Alternative Name) adalah ekstensi sertifikat X.509 yang mengikat identitas ke subjek sertifikat, termasuk nama DNS ([RFC 5280](https://www.rfc-editor.org/rfc/rfc5280), bagian 4.2.1.6, Mei 2008, dibuka 2026-11-04, Tidak dijalankan). Fungsi `Nama` membaca SAN dari sertifikat daun di `VerifiedChains`, yaitu rantai yang sudah lolos verifikasi server. Ia tidak memakai `PeerCertificates`, CN, atau header, dan menuntut tepat satu SAN DNS berbentuk `<nama>.t5.lab`:",
   "Bagian D rekaman menguji tiga hal. Sertifikat dengan rantai sah tetapi tanpa SAN dijawab 401. Sertifikat dengan CN pembayaran dan SAN notifikasi bertindak sebagai notifikasi. Header `X-Layanan-Nama: pembayaran` tidak mengubah apa pun:",
   "Tes Go memeriksa nama yang mirip identitas: huruf besar, titik di ujung, wildcard, spasi, domain lain, dan sertifikat yang hanya memuat IP dijawab 401. Awalan tambahan seperti `xpembayaran` membentuk identitas lain yang tidak ada di tabel izin, dan dijawab 403 atas nama itu (`TestNamaMiripIdentitasTidakMenjadiPembayaran`, dibaca dari kode lab; `testing.txt` mencatat PASS-nya).",
@@ -1352,7 +1369,7 @@ describe("lapis 1b: noscript diturunkan dari rekaman, paragraf utuh, dan JSON ut
     const ns = cari(/<noscript>\n([\s\S]*?)\n<\/noscript>/, badan, "noscript")[1]!.split("\n");
     expect(ns).toEqual([
       `<p>Tanpa JavaScript tombol tebakan tidak berfungsi dan widget perbandingan tidak tampil. Jawaban yang tepat: ledger menjawab ${statusD[1]![1]} atas nama notifikasi, karena identitas dibaca dari SAN dan bukan dari CN (mtls.txt bagian D).</p>`,
-      `<p>Ledger versi pertama menjawab ${statusRentanA} untuk pemanggil tanpa sertifikat (rentan.txt bagian A). Ledger dengan mTLS mengirim alert ${alertRentanB} untuk pemanggil yang sama dan menjawab ${statusC[2]![1]} untuk sertifikat notifikasi yang sah (rentan.txt bagian B dan mtls.txt bagian C).</p>`,
+      `<p>Ledger versi pertama menjawab ${statusRentanA} untuk pemanggil tanpa sertifikat (rentan.txt bagian A). Ledger dengan mTLS mengirim alert TLS ${alertRentanB} untuk pemanggil yang sama dan menjawab ${statusC[2]![1]} untuk sertifikat notifikasi yang sah (rentan.txt bagian B dan mtls.txt bagian C).</p>`,
     ]);
   });
   test("paragraf utuh badan halaman sama dengan daftar di tes ini (setiap kalimat, tanpa tag), dalam urutan yang sama", () => {

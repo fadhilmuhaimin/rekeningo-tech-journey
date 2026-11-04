@@ -171,6 +171,15 @@
   "h": "/istilah/alert/"
  },
  {
+  "t": "Alert TLS",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "b": "t5-mtls",
+  "n": "5.19 mTLS antar service",
+  "u": "/tahap-5/mtls-antar-service/",
+  "s": "istilah-alert-tls",
+  "h": null
+ },
+ {
   "t": "Allowlist",
   "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
   "b": "t4-ssrf",
