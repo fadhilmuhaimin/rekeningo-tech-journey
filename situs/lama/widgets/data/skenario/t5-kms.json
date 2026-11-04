@@ -27,10 +27,10 @@
   "predict": {
     "q": "Operator menaikkan min_encryption_version dan min_decryption_version ke 2, lalu menjalankan trim. Arsip posting_lalu_01 belum dibungkus ulang dan masih memakai versi 1. Operator lalu menurunkan min_decryption_version ke 1, seperti di langkah 5. Apa yang terjadi?",
     "options": [
-      "Diterima, dan posting_lalu_01 terbuka lagi seperti di langkah 5",
+      "Diterima, dan posting_lalu_01 terbuka lagi seperti di langkah 5 karena versi 1 masih tersimpan",
       "Diterima, tetapi posting_lalu_01 hanya terbuka untuk token operator",
       "Ditolak 403, karena token operator tidak boleh mengubah konfigurasi sesudah trim",
-      "Ditolak 400, dan posting_lalu_01 tidak terbuka karena versi 1 sudah dihapus dari OpenBao"
+      "Ditolak 400, dan posting_lalu_01 tidak terbuka karena versi 1 sudah dihapus"
     ],
     "answer": 3,
     "varian": true,

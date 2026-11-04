@@ -72,7 +72,7 @@ Lab `t5-kms` hanya mengenkripsi file arsip partisi. Cadangan database tidak dien
 
 Data tambahan GCM diisi periode arsip. File bulan ini karena itu tidak terbuka bila dibuka seolah file bulan lain (`arsip.txt` bagian D). Dokumentasi Go menulis bahwa satu kunci tidak boleh mengenkripsi lebih dari 2^32 pesan, untuk menjaga risiko nonce acak bertabrakan tetap kecil (`go doc crypto/cipher.NewGCMWithRandomNonce`, dibuka 2026-11-04).
 
-**Data key dibuat dan dibungkus KMS.** Pemanggil meminta data key ke OpenBao lewat jalur `datakey/plaintext`. Dokumentasi OpenBao menulis bahwa jalur itu membuat kunci acak dan nilai yang dienkripsi dengan kunci bernama. ACL menentukan siapa boleh menerima teks biasanya ([OpenBao transit, v2.7.2](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx), dibuka 2026-11-04). Kode lab tidak menulis teks biasa data key ke file atau log, dan memanggil `clear` atas slice-nya sesudah dipakai.
+**Data key dibuat dan dibungkus KMS.** Pemanggil meminta data key ke OpenBao lewat jalur `datakey/plaintext`. OpenBao dibahas sebagai secret manager di [[t4-infra-secret]], dan di lab ini ia memakai mesin transit untuk kunci. Dokumentasi OpenBao menulis bahwa jalur itu membuat kunci acak dan nilai yang dienkripsi dengan kunci bernama. ACL menentukan siapa boleh menerima teks biasanya ([OpenBao transit, v2.7.2](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx), dibuka 2026-11-04). Kode lab tidak menulis teks biasa data key ke file atau log, dan memanggil `clear` atas slice-nya sesudah dipakai.
 
 <Snippet file="labs/t5-kms/bao/bao.go" lines="82:104" lang="go" title="Kode lab: labs/t5-kms/bao/bao.go baris 82 sampai 104 (BuatDataKey)" />
 
