@@ -1,0 +1,53 @@
+{
+  "id": "t5-m51-batas",
+  "judul": "Yang dihitung dan direkam di Tahap 5, dan yang diminta PRD v6",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Hitungan atas Asumsi naskah dan registry; rekaman lab api-t5, beban.txt bagian A, hanya untuk batas di satu laptop"
+  },
+  "baris": [
+    {
+      "label": "Dihitung dan direkam",
+      "sub": "Tahap 5 dan 6",
+      "simpul": [
+        {
+          "teks": "Puncak 13.888,9 per detik",
+          "sub": "10 kali Tahap 5, Hitungan",
+          "nada": "system"
+        },
+        {
+          "teks": "Uang 694,4 per detik",
+          "sub": "10 kali 69,4, Hitungan",
+          "nada": "system"
+        },
+        {
+          "teks": "Laptop: semua selesai",
+          "sub": "1.388,9 per detik, 15 detik",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Belum pernah diuji",
+      "sub": "diminta PRD v6",
+      "simpul": [
+        {
+          "teks": "Skor risiko 50 ms",
+          "sub": "antar host",
+          "nada": "warn"
+        },
+        {
+          "teks": "Data di dua wilayah",
+          "sub": "jeda antar wilayah",
+          "nada": "warn"
+        },
+        {
+          "teks": "Lebih dari 50 orang",
+          "sub": "dari 28",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Puncak dan transaksi uang Tahap 6 adalah Hitungan atas Asumsi. Semua selesai di laptop adalah batas lab dari rekaman, bukan kapasitas produksi, dan kapasitas satu primary belum terukur."
+}

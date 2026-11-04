@@ -4272,6 +4272,38 @@
   "jawab": "Itu satu perusahaan menengah dengan pertumbuhan yang ia sebut stabil, dan penghematannya hitungan pendirinya sendiri yang tidak menyebut audit independen. Tulisannya juga menyebut tim operasi tetap, yang di Rekeningo belum diketahui."
  },
  {
+  "id": "t5-m51-1",
+  "halaman": "t5-m51",
+  "judul": "5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6",
+  "url": "tahap-5/m51-prd-v6/",
+  "tanya": "Puncak Tahap 5 adalah 1.388,9 request per detik. Berapa puncak Tahap 6, dan kenapa hanya perlu satu pengali?",
+  "jawab": "13.888,9 request per detik: user naik 10 kali, sedangkan persen aktif, request per user, dan faktor puncak dianggap tetap (Hitungan atas Asumsi). Angka 10.000.000 user berasal dari pratinjau PRD v6 (Ilustrasi)."
+ },
+ {
+  "id": "t5-m51-2",
+  "halaman": "t5-m51",
+  "judul": "5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6",
+  "url": "tahap-5/m51-prd-v6/",
+  "tanya": "Rekaman beban menulis semua 20.833 permintaan selesai. Apa yang dibuktikan, dan kenapa bukan kapasitas satu primary?",
+  "jawab": "Satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, dengan p95 di bawah batas lab 5.000 ms. Databasenya bersih dan tanpa replica, ada permintaan yang pernah menunggu koneksi di pool 10, dan pembayaran datang 141 per detik, bukan 694,4 (`beban.txt` bagian A)."
+ },
+ {
+  "id": "t5-m51-3",
+  "halaman": "t5-m51",
+  "judul": "5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6",
+  "url": "tahap-5/m51-prd-v6/",
+  "tanya": "Kenapa 69,4 × 10 = 694 ditulis 694,4 di tabel Tahap 6?",
+  "jawab": "Angka 69,4 sudah dibulatkan dari 69,4444. Dikali 10 hasilnya 694,444, yang ditulis 694,4 dengan satu desimal. Selisihnya hanya pembulatan."
+ },
+ {
+  "id": "t5-m51-4",
+  "halaman": "t5-m51",
+  "judul": "5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6",
+  "url": "tahap-5/m51-prd-v6/",
+  "tanya": "Sebutkan tiga hal yang diminta PRD v6 dan belum pernah diuji di Tahap 5.",
+  "jawab": "Skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50. Lab Tahap 5 berjalan di satu mesin, dan jeda antar wilayah Tidak dijalankan."
+ },
+ {
   "id": "t5-adr-60-1",
   "halaman": "t5-adr-60",
   "judul": "5.30 ADR 60: Sengaja belum dilakukan",
