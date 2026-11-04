@@ -1,0 +1,48 @@
+{
+  "id": "t5-waf-inti",
+  "judul": "WAF menolak payload serangan umum, tetapi permintaan sah yang diputar ulang diterima lagi di dalam jendela lima menit",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Baris pertama rekaman lab t5-waf · waf.txt bagian A (kunci dan tanda tangan sah, paranoia level 1); baris kedua tes Go gerbang · testing.txt bagian A (TestGerbangPutarUlangDalamJendelaDiterima)"
+  },
+  "baris": [
+    {
+      "label": "Tertutup",
+      "sub": "rekaman lab",
+      "simpul": [
+        {
+          "teks": "Payload serangan",
+          "sub": "8 string uji generik"
+        },
+        {
+          "teks": "WAF memeriksa",
+          "sub": "Coraza dan CRS"
+        },
+        {
+          "teks": "403, 8 dari 8",
+          "sub": "walau kunci dan tanda tangan sah"
+        }
+      ]
+    },
+    {
+      "label": "Belum tertutup",
+      "sub": "tes Go",
+      "simpul": [
+        {
+          "teks": "Permintaan sah direkam",
+          "sub": "sudah ditandatangani"
+        },
+        {
+          "teks": "Diputar ulang",
+          "sub": "di dalam jendela 5 menit"
+        },
+        {
+          "teks": "Diterima lagi",
+          "sub": "tanpa nonce, header tak tertanda",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Baris pertama adalah rekaman lab dengan paranoia level 1 dan delapan payload di payload.json. Baris kedua adalah tes Go dengan hulu tiruan: gerbang meneruskan permintaan yang diputar ulang, dan Idempotency-Key yang diganti sampai ke hulu. Kotak oranye adalah celah yang masih terbuka."
+}
