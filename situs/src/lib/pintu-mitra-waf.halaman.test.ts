@@ -20,6 +20,7 @@ import registry from "../../data/cerita.json";
 import { DataRantai } from "./rantai";
 import { daftarBlok, cekTemplat } from "./blok";
 import { KALIMAT_TERKUNCI, KUNCI_JSON, RISET_TERKUNCI, SIDIK } from "./pintu-mitra-waf.halaman.nilai";
+import { BADAN_STATIS } from "./pintu-mitra-waf.halaman.badan";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -1051,19 +1052,33 @@ const KALIMAT_ANGKA: string[] = [
   `**4.** Hitung: kuota ${kuota} per detik untuk ${MITRA} mitra, dibanding puncak API ${puncakTulis} permintaan per detik. Apa artinya?`,
 ].filter((x) => x !== "");
 
+// lapis 1b: seluruh baris badan. Kalimat berangka di atas diganti penanda §n§ (nilainya diturunkan dari sumber); sisanya dibandingkan dengan salinan di
+// pintu-mitra-waf.halaman.badan.ts, yang TIDAK bisa dimatikan (TANPA_KUNCI hanya mematikan lapis 2). Dibuat ulang bersama berkas nilai oleh PERBARUI_KUNCI=1.
+const maskir = (teks: string): string[] => {
+  let t = teks;
+  KALIMAT_ANGKA.forEach((k, i) => { t = t.split(k).join(`§${i}§`); });
+  return t.split("\n").filter((b) => b.trim() !== "");
+};
+const badanMasker = maskir(badan);
+if (process.env.PERBARUI_KUNCI === "1") {
+  fs.writeFileSync(path.join(__dirname, "pintu-mitra-waf.halaman.badan.ts"), `// Dihasilkan oleh PERBARUI_KUNCI=1 (lihat pintu-mitra-waf.halaman.test.ts). Kalimat berangka diganti penanda §n§ dan diturunkan dari sumber di tes.\nexport const BADAN_STATIS: string[] = ${JSON.stringify(badanMasker, null, 1)};\n`);
+}
+
+describe("seluruh baris badan: kalimat berangka diturunkan dari sumber, sisanya sama dengan salinan statis (lapis 1b, tanpa bergantung pada kunci lapis 2)", () => {
+  test("baris tak kosong sama persis dengan salinan statis, dalam urutan yang sama, dan tiap penanda kalimat berangka muncul tepat sekali", () => {
+    expect(badanMasker).toEqual(BADAN_STATIS);
+    const semua = badanMasker.join("\n");
+    KALIMAT_ANGKA.forEach((k, i) => expect(hitungKali(semua, `§${i}§`), `penanda ${i}: ${k.slice(0, 40)}`).toBe(1));
+  });
+});
+
 describe("kalimat berangka: tiap kalimat yang diturunkan ada tepat sekali di badan halaman (lapis 1b, tanpa bergantung pada kunci lapis 2)", () => {
   KALIMAT_ANGKA.forEach((k, i) => {
     test(`kalimat ${i + 1}: ${k.slice(0, 60)}`, () => {
       expect(hitungKali(badan, k), k).toBe(1);
     });
   });
-  test("baris badan yang memuat angka: tiap baris prosa berangka memuat sedikitnya satu kalimat yang diturunkan, atau ada di tabel, Snippet, kode tab, atau daftar bacaan", () => {
-    const tanpaAngka = badan.split("\n").filter((b) => b.trim() !== "" && /\d/.test(b.replace(/\]\([^)]*\)/g, "]")) && !/^(<|\||- \[|\d\. \[|```|\s{2,})/.test(b));
-    const sisa = tanpaAngka.filter((b) => !KALIMAT_ANGKA.some((k) => b.includes(k.split(". ")[0]!.slice(0, 40)) || k.includes(b.slice(0, 40))));
-    expect(sisa.length, `baris berangka tanpa penjaga turunan:\n${sisa.map((x) => x.slice(0, 90)).join("\n")}`).toBeLessThanOrEqual(BARIS_BERANGKA_TANPA_TURUNAN);
-  });
 });
-const BARIS_BERANGKA_TANPA_TURUNAN = 40;
 
 // --- baris riset yang dibaca ke sumber primer pada 2026-11-04: kutipan, versi, tanggal, dan alamat tidak boleh berubah tanpa membuka sumbernya lagi
 describe("baris riset R5-230 sampai R5-234: isi persis (kutipan, versi, tanggal, alamat), tanpa bergantung pada kunci lapis 2", () => {
