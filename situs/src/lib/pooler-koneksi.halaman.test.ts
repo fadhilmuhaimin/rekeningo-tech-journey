@@ -161,6 +161,19 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(bulat(1388.9 * 0.02, 1)).toBe(27.8);
     expect(naskah).toContain("Rata-rata terpakai L = 1.388,9 × 0,02 = 27,8 (R5-37)");
   });
+  test("kalimat Kenapa ini ada diturunkan dari masukan kalkulator dan baris pemicu di 5.30; nomor ADR yang tertulis di teks adalah 45, 50, dan 52", () => {
+    const m = kalk.masukan;
+    const pot = m.service * m.pod * m.poolPod;
+    const ters = m.maxConnections - m.cadangan;
+    expect(badan).toContain(`Ada ${m.service} × ${m.pod} × ${m.poolPod} = ${pot} koneksi, dan ${ters} tersedia untuk role biasa (${m.maxConnections} − ${m.cadangan}, Hitungan atas Asumsi naskah). Selisihnya ${pot} − ${ters} = ${pot - ters}.`);
+    const pemicu = Number(hal530.match(/\| 4\. PgBouncer \| (\d+) koneksi dari 100/)![1]);
+    expect(badan).toContain(`[[t4-adr-45]] menunda PgBouncer sampai koneksi mencapai ${pemicu} dari ${m.maxConnections}. Angka ${pot} adalah ${pot} ÷ ${pemicu} = ${Math.round((pot / pemicu) * 100)}% dari pemicu itu (Hitungan atas Asumsi).`);
+    const adr = [...new Set([...badan.matchAll(/ADR (\d+)/g)].map((x) => Number(x[1])))].sort((x, y) => x - y);
+    expect(adr).toEqual([45, 50, 52]);
+    expect(dari("t4-adr-45").adr).toEqual([45]);
+    expect(dari("t5-service").adr).toEqual([50]);
+    expect(dari("t5-pooler").adr).toEqual([52]);
+  });
   test("naskah: baris M46 dan ADR 52 memuat 6 × 3 × 10 = 180, 97, 60 dari 97, 400, 100 dan 120 detik; masukan kalkulator sama", () => {
     const m46 = naskah.split("\n").find((b) => b.startsWith("| M46 |"))!;
     expect(m46).toContain("Koneksi potensial 6 × 3 × 10 = 180, tersedia 97 (100 dikurangi 3 cadangan), jadi 83 koneksi ditolak dengan kode 53300");
