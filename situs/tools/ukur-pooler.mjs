@@ -1,6 +1,7 @@
 // Memeriksa widget kalkulator koneksi dan pooler (ADR 52) di /uji/pooler/ dan di halaman ADR 52:
 // - tebak dulu: sebelum menebak semua tombol skenario nonaktif; sesudah menebak fokus ada di tombol skenario pertama (bukan body);
-// - angka: setiap skenario (enam baris, dua kolom) sama dengan hitungan alat ini sendiri dari data JSON (bukan logika.ts),
+// - angka: setiap skenario (enam baris, dua kolom) sama dengan hitungan alat ini sendiri dari data JSON (bukan logika.ts), dan baris yang berubah dari
+//   skenario sebelumnya ditandai (is-berubah),
 //   kalimat kesimpulan memuat angka kunci kasus yang benar, aria-pressed tepat satu per kelompok;
 // - role=status: dua wilayah, masing-masing satu kalimat pendek yang memuat angka kunci atau kata kunci;
 // - target >= 24 px, 320 px dengan font Verdana tanpa gulir ke samping, tabel di dalam widget, axe-core (WCAG A/AA sampai 2.2)
@@ -105,6 +106,11 @@ for (const path of HAL) {
     lapor(kalimat === harap, `${path} kalimat kasus ${r.kasus}: "${kalimat.slice(0, 60)}..."`);
     const pressed = await page.$$eval(".kp .bb-row button", (b) => b.map((x) => x.getAttribute("aria-pressed")));
     lapor(pressed.filter((x) => x === "true").length === 1 && pressed[i] === "true", `${path} aria-pressed skenario ${i}`);
+    // baris yang angkanya berubah dari skenario sebelumnya ditandai (kelas is-berubah): dihitung alat ini sendiri dari dua skenario berurutan
+    const berubah = await page.$$eval(".kp tbody tr", (trs) => trs.map((tr) => tr.classList.contains("is-berubah")));
+    const dulu = i === 0 ? r : ref(D.skenario[i - 1].ubah);
+    const harapBerubah = r.baris.map((b, k) => JSON.stringify(b) !== JSON.stringify(dulu.baris[k]));
+    lapor(JSON.stringify(berubah) === JSON.stringify(harapBerubah), `${path} skenario ${i}: baris yang ditandai berubah ${berubah.map((x) => (x ? 1 : 0)).join("")} sama dengan hitungan alat ${harapBerubah.map((x) => (x ? 1 : 0)).join("")}`);
     if (i === D.tebak.skenario) {
       lapor(status[1].startsWith("Belum tepat:") && status[1].includes(D.tebak.alasan), `${path} jawaban tebakan terbuka sesudah skenario ${i}, tebakan salah: "${status[1].slice(0, 40)}..."`);
     }
