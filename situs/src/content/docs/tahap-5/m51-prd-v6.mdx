@@ -39,9 +39,9 @@ Tim membaca daftar PRD v6 dan mengira sistem sekarang tidak akan menampungnya, k
 Satu rekaman beban Tahap 5 bisa memeriksa dugaan itu sebagian. Lab menjadwalkan 1.388,9 request per detik selama 15 detik ke satu proses API di satu laptop. Hasilnya dilaporkan sebagai status dan p95, yaitu waktu jawab yang dilewati 5% request paling lambat.
 
 <details class="question">
-<summary>Tebak dulu: beban PRD v6 adalah 10 kali beban Tahap 5, dan semua permintaan di rekaman itu selesai tanpa error. Apakah rekaman itu cukup untuk menilai beban PRD v6?</summary>
+<summary>Tebak dulu: beban PRD v6 adalah 10 kali beban Tahap 5, dan semua permintaan di rekaman itu selesai tanpa error. Apakah rekaman itu bisa dipakai untuk menilai beban PRD v6?</summary>
 
-Belum. Rekaman hanya menunjukkan bahwa satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, bukan 13.888,9. Ia tidak mengukur kapasitas satu primary, jadi 694,4 transaksi uang per detik di PRD v6 tidak punya angka pembanding. Blok berikutnya memisahkan yang dihitung, yang direkam, dan yang belum diuji.
+Belum. Rekaman hanya menunjukkan bahwa satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, bukan 13.888,9. Ia tidak mengukur kapasitas satu primary, yaitu database yang menerima semua tulis, jadi 694,4 transaksi uang per detik di PRD v6 tidak punya angka pembanding. Blok berikutnya memisahkan yang dihitung, yang direkam, dan yang belum diuji.
 
 </details>
 
@@ -49,7 +49,7 @@ Belum. Rekaman hanya menunjukkan bahwa satu proses di satu laptop menyelesaikan 
 
 <Blok nama="Yang sebenarnya">
 
-Beban PRD v6 adalah 10 kali Tahap 5 menurut hitungan, tetapi kapasitas satu primary belum pernah diukur, jadi 10 kali itu belum bisa dinilai. Primary adalah database yang menerima semua tulis.
+Beban PRD v6 adalah 10 kali Tahap 5 menurut hitungan, tetapi repo ini belum mengukur kapasitas satu primary, jadi 10 kali itu belum bisa dinilai.
 
 <Rantai data={batas} ringkas />
 
@@ -62,7 +62,7 @@ Angka 10.000.000 user berasal dari pratinjau PRD v6 (Ilustrasi), jadi seluruh ta
 | User aktif per hari | 200.000 | 2.000.000 | 10.000.000 × 20% |
 | Request per detik | 1.388,9 | 13.888,9 | 2.000.000 × 60 ÷ 86.400 × 10 |
 | Transaksi uang per detik | 69,4 (46,3) | 694,4 (463,0) | 2.000.000 × 3 (2) ÷ 86.400 × 10 |
-| Notifikasi uang per detik | 75,2 (52,1) | 752,3 (520,8) | (6.000.000 + 500.000) ÷ 86.400 × 10 |
+| Notifikasi uang per detik | 75,2 (52,1) | 752,3 (520,8) | (2.000.000 × 3 (2) + 2.000.000 × 0,25) ÷ 86.400 × 10 |
 | Posting per tahun | 438 juta (292 juta) | 4,38 miliar (2,92 miliar) | 2.000.000 × 3 (2) × 2 × 365 |
 
 Tiap nilai Tahap 6 adalah 10 kali nilai Tahap 5 yang tertulis, dengan selisih pembulatan. Angka 75,2 × 10 = 752, sedangkan dari nilai tepat 75,2315 hasilnya 752,3. Begitu juga 69,4 × 10 = 694 menjadi 694,4 dari 69,4444, dan 46,3 × 10 = 463 menjadi 463,0 dari 46,2963.
@@ -75,11 +75,11 @@ Notifikasi uang adalah transaksi uang ditambah top-up dari bank, 0,25 per user a
 
 Semua 20.833 selesai tanpa error: 18.718 baca (200) dan 2.115 pembayaran (201). Nilai p95 yang terukur tidak direkam. Rekaman hanya menulis bahwa p95 di bawah 5.000 ms, batas lab (Asumsi). README lab menulis p95 antar run berkisar dari beberapa milidetik sampai sekitar satu detik.
 
-Tiga baris rekaman tidak membuktikan kapasitas. Koneksi paling banyak ≤ 15 adalah pool 10 ditambah koneksi yang baru dibuka atau baru ditutup. Ada permintaan yang pernah menunggu koneksi, dan itu hanya berarti pool satu proses pernah penuh. Jadwal yang tidak tertinggal lebih dari 100 ms hanya menunjukkan bahwa generator mengirim tepat waktu.
+Tiga hal di rekaman tidak membuktikan kapasitas. Koneksi paling banyak ≤ 15 adalah pool 10 ditambah koneksi yang baru dibuka atau baru ditutup. Ada permintaan yang pernah menunggu koneksi, dan itu hanya berarti pool satu proses pernah penuh. Jadwal yang tidak tertinggal lebih dari 100 ms hanya menunjukkan bahwa generator mengirim tepat waktu.
 
-Campuran lab membayar dua kali lebih sering daripada hitungan Tahap 5: 2.115 ÷ 20.833 = 10,2% request, sedangkan 69,4 ÷ 1.388,9 = 5,0% (Hitungan). Jadi pembayaran datang 2.115 ÷ 15 = 141 per detik di rekaman, sekitar dua kali 69,4 (Hitungan dari rekaman). Angka itu bukan 694,4.
+Campuran lab membayar dua kali lebih sering daripada hitungan Tahap 5: 2.115 ÷ 20.833 = 10,2% request, sedangkan 69,4 ÷ 1.388,9 = 5,0% (Hitungan). Pembayaran di rekaman datang 2.115 ÷ 15 = 141 per detik, sekitar dua kali 69,4 (Hitungan dari rekaman). Angka itu bukan 694,4.
 
-Angka 141 itu batas bawah dari satu laptop, bukan kapasitas satu primary. Databasenya bersih dan tanpa replica (dibaca dari `run.py`, Tidak dijalankan), generator memakai 200 user lab, dan p95 boleh sampai 5.000 ms.
+Angka 141 menunjukkan apa yang selesai di satu laptop pada satu rekaman, bukan kapasitas satu primary. Databasenya bersih dan tanpa replica (dibaca dari `run.py`, Tidak dijalankan), generator memakai 200 user lab, dan p95 boleh sampai 5.000 ms.
 
 **Tiga hal yang belum pernah diuji.** Naskah menyebut ketiganya, dan tiap hal punya batas yang bisa dibaca di Tahap 5:
 
@@ -122,9 +122,9 @@ Angka 13.888,9 adalah Asumsi, dan lab tidak mengukur kapasitas produksi. Tebak d
 
 <Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />
 
-Widget membulatkan ke dua angka penting, jadi puncak 1.388,9 tampil 1.400, 13.888,9 tampil 14.000, 6.944,4 tampil 6.900, dan 33.333,3 tampil 33.000. Pilih **Tahap 6**, dan user naik ke 10.000.000 dan puncak ke 13.888,9, 10 kali Tahap 5. Pilih **Aktif 10%**, dan user aktif tinggal 1.000.000 dan puncak turun ke 6.944,4, tetap 5 kali Tahap 5.
+Widget membulatkan ke dua angka penting, jadi puncak 1.388,9 tampil 1.400, 13.888,9 tampil 14.000, 6.944,4 tampil 6.900, dan 33.333,3 tampil 33.000. Pilih **Tahap 6**: user naik ke 10.000.000 dan puncak naik ke 13.888,9, 10 kali Tahap 5. Pilih **Aktif 10%**: user aktif menjadi 1.000.000 dan puncak turun ke 6.944,4, tetap 5 kali Tahap 5.
 
-Pilih **Satu jam**, dan semua request sehari masuk dalam satu jam. Faktor puncaknya 24, dan 120.000.000 ÷ 3.600 = 33.333,3 request per detik (Hitungan). Kalkulator hanya menghitung request per detik. Ia tidak bisa menilai apakah satu primary sanggup.
+Pilih **Satu jam**: semua request sehari masuk dalam satu jam. Faktor puncaknya 24, dan 120.000.000 ÷ 3.600 = 33.333,3 request per detik (Hitungan). Kalkulator hanya menghitung request per detik. Ia tidak bisa menilai apakah satu primary sanggup.
 
 </Blok>
 
@@ -155,7 +155,7 @@ Masalah Tahap 5 adalah salinan yang tertinggal dan pekerjaan yang diulang, bukan
 <details class="success">
 <summary>Jawaban</summary>
 
-Satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, dengan p95 di bawah batas lab 5.000 ms. Databasenya bersih dan tanpa replica, pool 10 sudah antre, dan pembayaran hanya datang 141 per detik, jauh di bawah 694,4 (`beban.txt` bagian A).
+Satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, dengan p95 di bawah batas lab 5.000 ms. Databasenya bersih dan tanpa replica, ada permintaan yang pernah menunggu koneksi di pool 10, dan pembayaran datang 141 per detik, bukan 694,4 (`beban.txt` bagian A).
 
 </details>
 
@@ -176,5 +176,11 @@ Angka 69,4 sudah dibulatkan dari 69,4444. Dikali 10 hasilnya 694,444, yang ditul
 Skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50. Lab Tahap 5 berjalan di satu mesin, dan jeda antar wilayah Tidak dijalankan.
 
 </details>
+
+### Bacaan lanjut
+
+- [PostgreSQL 17: Synchronous Replication](https://www.postgresql.org/docs/17/warm-standby.html#SYNCHRONOUS-REPLICATION)
+- [PostgreSQL 17: pgbench](https://www.postgresql.org/docs/17/pgbench.html)
+- [Google SRE book: Handling Overload](https://sre.google/sre-book/handling-overload/), bagian "The Pitfalls of Queries per Second"
 
 </Blok>

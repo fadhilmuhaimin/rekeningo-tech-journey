@@ -4189,7 +4189,7 @@
   "judul": "5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6",
   "url": "tahap-5/m51-prd-v6/",
   "tanya": "Rekaman beban menulis semua 20.833 permintaan selesai. Apa yang dibuktikan, dan kenapa bukan kapasitas satu primary?",
-  "jawab": "Satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, dengan p95 di bawah batas lab 5.000 ms. Databasenya bersih dan tanpa replica, pool 10 sudah antre, dan pembayaran hanya datang 141 per detik, jauh di bawah 694,4 (`beban.txt` bagian A)."
+  "jawab": "Satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, dengan p95 di bawah batas lab 5.000 ms. Databasenya bersih dan tanpa replica, ada permintaan yang pernah menunggu koneksi di pool 10, dan pembayaran datang 141 per detik, bukan 694,4 (`beban.txt` bagian A)."
  },
  {
   "id": "t5-m51-3",
