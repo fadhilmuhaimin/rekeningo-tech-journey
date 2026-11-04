@@ -596,14 +596,14 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-230 sam
       "https://coreruleset.org/docs/2-how-crs-works/2-1-anomaly_scoring/", "https://coreruleset.org/docs/2-how-crs-works/2-2-paranoia_levels/", "https://github.com/corazawaf/coraza#readme",
       "https://www.rfc-editor.org/rfc/rfc9110#section-11.6.1", "https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2", "https://www.rfc-editor.org/rfc/rfc3022", "https://pkg.go.dev/time#Time.Sub",
       "https://github.com/express-rate-limit/express-rate-limit/blob/v8.7.3/readme.md", "https://laravel.com/docs/13.x/routing#rate-limiting", "https://www.django-rest-framework.org/api-guide/throttling/",
-      "https://docs.serverpod.dev/sitemap.xml", "https://supabase.com/docs/guides/functions/examples/rate-limiting",
+      "https://docs.serverpod.dev/concepts/endpoints-and-apis/endpoint-middleware", "https://supabase.com/docs/guides/functions/examples/rate-limiting",
     ]);
     const utama = tautan.slice(0, tautan.length - 12);
     expect(utama).toEqual([
       "https://coreruleset.org/docs/2-how-crs-works/2-1-anomaly_scoring/", "https://coreruleset.org/docs/2-how-crs-works/2-2-paranoia_levels/", "https://github.com/corazawaf/coraza/blob/v3.8.1/http/middleware.go",
       "https://www.rfc-editor.org/rfc/rfc9110#section-11.6.1", "https://pkg.go.dev/time#Time.Sub", "https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2",
       "https://github.com/express-rate-limit/express-rate-limit/blob/v8.7.3/readme.md", "https://laravel.com/docs/13.x/routing#rate-limiting", "https://www.django-rest-framework.org/api-guide/throttling/",
-      "https://docs.serverpod.dev/sitemap.xml", "https://supabase.com/docs/guides/functions/examples/rate-limiting", "https://www.rfc-editor.org/rfc/rfc3022", "https://github.com/corazawaf/coraza#readme",
+      "https://docs.serverpod.dev/concepts/endpoints-and-apis/endpoint-middleware", "https://supabase.com/docs/guides/functions/examples/rate-limiting", "https://www.rfc-editor.org/rfc/rfc3022", "https://github.com/corazawaf/coraza#readme",
     ]);
     const sumber: Record<string, [string, string]> = {
       "https://coreruleset.org/docs/2-how-crs-works/2-1-anomaly_scoring/": ["R5-231", "anomaly scoring"],
@@ -617,7 +617,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-230 sam
       "https://github.com/express-rate-limit/express-rate-limit/blob/v8.7.3/readme.md": ["R5-233", "express-rate-limit 8.7.3"],
       "https://laravel.com/docs/13.x/routing#rate-limiting": ["R5-233", "v13.40.0"],
       "https://www.django-rest-framework.org/api-guide/throttling/": ["R5-233", "3.18.3"],
-      "https://docs.serverpod.dev/sitemap.xml": ["R5-233", "226 alamat"],
+      "https://docs.serverpod.dev/concepts/endpoints-and-apis/endpoint-middleware": ["R5-233", "endpoints-and-apis/endpoint-middleware"],
       "https://supabase.com/docs/guides/functions/examples/rate-limiting": ["R5-233", "Rate Limiting Edge Functions"],
     };
     for (const u of new Set(tautan.filter((x) => x.startsWith("http")))) expect(barisRiset(sumber[u]![0]), `${u} di ${sumber[u]![0]}`).toContain(sumber[u]![1]);
@@ -673,7 +673,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-230 sam
     for (const x of [
       'opsi `keyGenerator` "Identify users (defaults to IP address)"', "express-rate-limit 8.7.3", "`Limit::perMinute(60)->by($request->user()?->id ?: $request->ip())`", "v13.40.0",
       "Django REST framework 3.18.3", "\"all clients behind a unique NAT'd gateway will be treated as a single client\"", "\"should not be considered a security measure or protection against brute forcing or denial-of-service attacks\"",
-      "Serverpod 4.1.0", "226 alamat, tanpa alamat dengan kata limit, throttle, firewall, atau waf", "\"We can even rate limit based on the user ID from Supabase Auth!\"",
+      "Serverpod 4.1.0", "226 alamat, tanpa alamat dengan kata limit, throttle, firewall, atau waf", "\"This example allows each client IP a fixed number of requests per time window\"", "Production quota patterns need eviction, and state shared across servers such as a database counter.", "nol sebutan WAF atau firewall", "\"We can even rate limit based on the user ID from Supabase Auth!\"",
     ]) expect(r, x).toContain(x);
     const potongan = halaman.split(/<Fragment slot="t\d">/).slice(1);
     expect(potongan).toHaveLength(6);
@@ -683,8 +683,10 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-230 sam
     expect(potongan[2]).toContain("Contoh dokumentasi memakai id user dan jatuh ke alamat IP bila user belum masuk, dan batasnya per menit, bukan per detik.");
     expect(potongan[3]).toContain("Dokumentasi menulis bahwa semua client di belakang satu gateway NAT, yaitu satu alamat jaringan yang dipakai banyak perangkat ([[t5-m50]]), dianggap satu client bila `NUM_PROXIES` diatur.");
     expect(potongan[3]).toContain("tidak boleh dianggap pengaman terhadap brute force atau serangan denial-of-service");
-    expect(potongan[4]).toContain("peta situs memuat 226 alamat, dan tidak ada yang mengandung kata limit, throttle, firewall, atau waf");
-    expect(potongan[4]).toContain("[perlu verifikasi]");
+    expect(potongan[4]).toContain("halaman itu memuat contoh middleware pembatas laju yang memakai alamat IP client sebagai kunci, menghitung dalam jendela waktu tetap, dan menjawab 429.");
+    expect(potongan[4]).toContain("penghitung contohnya ada di memori satu server, dan produksi butuh state yang dipakai bersama antar server.");
+    expect(potongan[4]).toContain("Tujuh halaman dokumentasi yang dibuka tidak menyebut WAF, dan halaman lain tidak dibuka.");
+    expect(potongan[4]).not.toContain("[perlu verifikasi]");
     expect(potongan[5]).toContain("Halaman yang dibaca tidak membahas WAF atau kuota per kunci API. Kode contohnya ada di GitHub dan tidak dibuka.");
     expect(hitungKali(halaman, "Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-04.")).toBe(1);
     const tab = halaman.match(/<TabSet id="stack" labels=\{(\[[^\]]+\])\}>/)!;
@@ -1172,7 +1174,7 @@ describe("kunci kalimat: teks halaman, diagram, pilah, dan kartu terkunci per ba
 describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka, tabel, riset, dan berkas", () => {
   (tanpaSidik ? test.skip : test)("jumlah label per jenis: Asumsi tidak naik menjadi Rekaman lab, dan tanggal buka tidak bergeser", () => {
     expect(sidikSekarang.label).toEqual(SIDIK.label);
-    expect(sidikSekarang.label.perluVerifikasi).toBe(3);
+    expect(sidikSekarang.label.perluVerifikasi).toBe(2);
     expect(sidikSekarang.label.dibuka).toBe(13);
   });
   (tanpaSidik ? test.skip : test)("sidik kata penentu halaman, diagram, dan pilah", () => {

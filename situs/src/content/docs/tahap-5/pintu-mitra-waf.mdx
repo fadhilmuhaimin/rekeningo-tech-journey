@@ -256,9 +256,9 @@ const kuotaMitra = rateLimit({
 </Fragment>
 <Fragment slot="t4">
 
-*Tidak dijalankan. Dicek ke peta situs [docs.serverpod.dev](https://docs.serverpod.dev/sitemap.xml) dan Serverpod 4.1.0 (pub.dev, terbit 2026-10-31), dibuka 2026-11-04.*
+*Tidak dijalankan. Dicek ke [Serverpod: Endpoint middleware](https://docs.serverpod.dev/concepts/endpoints-and-apis/endpoint-middleware) (Framework 4.1.0; Serverpod 4.1.0 di pub.dev, terbit 2026-10-31), dibuka 2026-11-04.*
 
-**Yang berbeda di stack ini:** peta situs memuat 226 alamat, dan tidak ada yang mengandung kata limit, throttle, firewall, atau waf. Isi halaman dokumentasinya tidak dibaca, jadi apakah Serverpod menyediakan pembatas laju atau WAF belum bisa dicek [perlu verifikasi].
+**Yang berbeda di stack ini:** halaman itu memuat contoh middleware pembatas laju yang memakai alamat IP client sebagai kunci, menghitung dalam jendela waktu tetap, dan menjawab 429. Contoh itu kode yang kamu tulis dan sesuaikan sendiri, jadi kunci per mitra ada di middleware milikmu. Halaman itu menulis bahwa penghitung contohnya ada di memori satu server, dan produksi butuh state yang dipakai bersama antar server. Tujuh halaman dokumentasi yang dibuka tidak menyebut WAF, dan halaman lain tidak dibuka.
 
 </Fragment>
 <Fragment slot="t5">
@@ -413,7 +413,7 @@ Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagi
 - [express-rate-limit: README](https://github.com/express-rate-limit/express-rate-limit/blob/v8.7.3/readme.md)
 - [Laravel 13.x: Routing, Rate Limiting](https://laravel.com/docs/13.x/routing#rate-limiting)
 - [Django REST framework: Throttling](https://www.django-rest-framework.org/api-guide/throttling/)
-- [Serverpod: peta situs dokumentasi](https://docs.serverpod.dev/sitemap.xml)
+- [Serverpod: Endpoint middleware](https://docs.serverpod.dev/concepts/endpoints-and-apis/endpoint-middleware)
 - [Supabase: Rate Limiting Edge Functions](https://supabase.com/docs/guides/functions/examples/rate-limiting)
 
 </Blok>
