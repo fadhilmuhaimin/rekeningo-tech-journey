@@ -71,6 +71,11 @@ describe("kalimat kesimpulan", () => {
       "Kedua instance boleh membuka 240 koneksi ke PostgreSQL, jadi sampai 180 sekaligus: paling sedikit 83 tetap ditolak 53300 walau ada pooler.",
     ]);
   });
+  it("client di atas batas didahulukan atas server pool yang melewati tersedia bila keduanya terjadi (8 pod, batas database kosong)", () => {
+    const h = hitung({ ...d.masukan, pod: 8, maxDbPerInstance: 0 });
+    expect([h.klienLebih > 0, h.ditolakDengan > 0]).toEqual([true, true]);
+    expect(kasus(h)).toBe("klienLewat");
+  });
   it("templat dengan isian yang tidak dikenal gagal keras", () => {
     expect(() => kesimpulan({ ...d.label.kesimpulan, pooler: "{asing}" }, semua[0]!)).toThrow(/asing/);
   });
@@ -111,6 +116,13 @@ describe("tebakan dan skenario di data", () => {
     expect(d.tebak.q).not.toMatch(/240/);
     expect(d.tebak.q).toContain("max_db_connections tidak diisi");
   });
+  it("baris yang ditandai berubah: kolom tanpa pooler dihitung juga (lebih banyak pod mengubah diminta, ke PostgreSQL tanpa pooler, dan ditolak)", () => {
+    expect(berubah(semua[0]!, semua[1]!)).toEqual(["potensi", "keServer", "ditolak"]);
+    expect(berubah(semua[3]!, semua[4]!)).toEqual(["potensi", "keServer", "ditolak"]);
+  });
+  it("urutan baris tabel: diminta, ke PostgreSQL, tersedia, ditolak, batas client, client di atas batas", () => {
+    expect(URUTAN).toEqual(["potensi", "keServer", "tersedia", "ditolak", "batasKlien", "klienLebih"]);
+  });
   it("tiap skenario mengubah paling sedikit satu baris dari skenario sebelumnya", () => {
     for (let i = 1; i < semua.length; i++) expect(berubah(semua[i - 1]!, semua[i]!).length, `skenario ${i}`).toBeGreaterThan(0);
     expect(berubah(semua[0]!, semua[0]!)).toEqual([]);
@@ -124,6 +136,12 @@ describe("skema", () => {
     expect(() => DataKoneksi.parse({ ...data, masukan: { ...data.masukan, cadangan: 100 } })).toThrow(/cadangan/);
     expect(() => DataKoneksi.parse({ ...data, awal: 9 })).toThrow(/di luar skenario/);
     expect(() => DataKoneksi.parse({ ...data, tebak: { ...data.tebak, skenario: 0 } })).toThrow(/dibuka dengan mengubah/);
+  });
+  it("menolak pilihan tebakan kurang dari dua atau lebih dari empat", () => {
+    const satu = { ...data.tebak, pilihan: [data.tebak.pilihan[0]!], jawaban: 0 };
+    const lima = { ...data.tebak, pilihan: [...data.tebak.pilihan, "lima"] };
+    expect(() => DataKoneksi.parse({ ...data, tebak: satu })).toThrow();
+    expect(() => DataKoneksi.parse({ ...data, tebak: lima })).toThrow();
   });
   it("titik ribuan", () => {
     expect([titik(0), titik(999), titik(1000), titik(1234567)]).toEqual(["0", "999", "1.000", "1.234.567"]);
