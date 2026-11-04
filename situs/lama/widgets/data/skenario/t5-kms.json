@@ -1,6 +1,6 @@
 {
   "versi": 2,
-  "judul": "Kunci pembungkus arsip diputar, dan trim menghapus versi lama dari OpenBao",
+  "judul": "Kunci pembungkus arsip diputar, dan satu dari dua data key dibungkus ulang",
   "sumber": {
     "jenis": "rekaman",
     "file": "labs/t5-kms/output/rotasi.txt",

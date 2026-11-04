@@ -72,7 +72,9 @@ Lab `t5-kms` hanya mengenkripsi file arsip partisi. Cadangan database tidak dien
 
 Data tambahan GCM diisi periode arsip. File bulan ini karena itu tidak terbuka bila dibuka seolah file bulan lain (`arsip.txt` bagian D). Dokumentasi Go menulis bahwa satu kunci tidak boleh mengenkripsi lebih dari 2^32 pesan, untuk menjaga risiko nonce acak bertabrakan tetap kecil (`go doc crypto/cipher.NewGCMWithRandomNonce`, dibuka 2026-11-04).
 
-**Data key dibuat dan dibungkus KMS.** Pemanggil meminta data key ke OpenBao lewat jalur `datakey/plaintext`. OpenBao dibahas sebagai secret manager di [[t4-infra-secret]], dan di lab ini ia memakai mesin transit untuk kunci. Dokumentasi OpenBao menulis bahwa jalur itu membuat kunci acak dan nilai yang dienkripsi dengan kunci bernama. ACL menentukan siapa boleh menerima teks biasanya ([OpenBao transit, v2.7.2](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx), dibuka 2026-11-04). Kode lab tidak menulis teks biasa data key ke file atau log, dan memanggil `clear` atas slice-nya sesudah dipakai.
+**Data key dibuat dan dibungkus KMS.** Pemanggil meminta data key ke OpenBao lewat jalur `datakey/plaintext`. OpenBao dibahas sebagai secret manager di [[t4-infra-secret]], dan di lab ini ia memakai mesin transit untuk kunci. Dokumentasi OpenBao menulis bahwa jalur itu membuat kunci acak dan nilai yang dienkripsi dengan kunci bernama. ACL menentukan siapa boleh menerima teks biasanya ([OpenBao transit, v2.7.2](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx), dibuka 2026-11-04).
+
+Kode lab tidak menulis teks biasa data key ke file atau log, dan memanggil `clear` atas slice-nya sesudah dipakai.
 
 <Snippet file="labs/t5-kms/bao/bao.go" lines="82:104" lang="go" title="Kode lab: labs/t5-kms/bao/bao.go baris 82 sampai 104 (BuatDataKey)" />
 
@@ -167,7 +169,9 @@ Dua belas file per tahun adalah satu file arsip per bulan. Syarat hitungan ini: 
 
 NIST SP 800-38D bagian 8.3 menulis bahwa total pemanggilan enkripsi terautentikasi dengan satu kunci tidak boleh melebihi 2^32. Itu berlaku pada konstruksi IV berbasis generator bilangan acak (edisi November 2007, dibuka 2026-11-04).
 
-**Kunci utama di HSM.** HSM adalah perangkat keras yang menyimpan kunci dan menjalankan operasi kunci di dalamnya. SoftHSM adalah tiruannya dalam perangkat lunak, dengan antarmuka PKCS#11. Lab tidak menjalankan keduanya. Rilis SoftHSM 2.7.0 (terbit 2026-01-20) dan `miekg/pkcs11` v1.1.2 hanya dicek ada. Bahwa client Go itu bekerja dengan SoftHSM 2.7.0 [perlu verifikasi]. Tiruan perangkat lunak tidak membuktikan apa pun tentang HSM nyata.
+**Kunci utama di HSM.** HSM adalah perangkat keras yang menyimpan kunci dan menjalankan operasi kunci di dalamnya. SoftHSM adalah tiruannya dalam perangkat lunak, dengan antarmuka PKCS#11.
+
+Lab tidak menjalankan keduanya. Rilis SoftHSM 2.7.0 (terbit 2026-01-20) dan `miekg/pkcs11` v1.1.2 hanya dicek ada. Apakah client Go itu bekerja dengan SoftHSM 2.7.0 belum bisa dicek [perlu verifikasi]. Tiruan perangkat lunak tidak membuktikan apa pun tentang HSM nyata.
 
 ### Di stack lain
 
@@ -195,7 +199,7 @@ c.setAAD(Buffer.from("arsip:" + periode));
 const isi = Buffer.concat([c.update(teks), c.final()]);
 const blob = Buffer.concat([iv, isi, c.getAuthTag()]);`} />
 
-**Yang berbeda di stack ini:** `createCipheriv` menerima IV dari pemanggil. Dokumentasi menulis bahwa syarat IV bergantung algoritma, dan bahwa IV tidak harus rahasia dan boleh dikirim bersama ciphertext. Pemanggil yang membuat dan menyimpan IV, nonce, dan tag. Halaman itu tidak memuat kata KMS atau envelope.
+**Yang berbeda di stack ini:** `createCipheriv` menerima IV dari pemanggil. Dokumentasi menulis bahwa syarat IV bergantung algoritma, dan bahwa IV tidak harus berupa secret dan boleh dikirim bersama ciphertext. Pemanggil yang membuat dan menyimpan IV, nonce, dan tag. Halaman itu tidak memuat kata KMS atau envelope.
 
 </Fragment>
 <Fragment slot="t2">

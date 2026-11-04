@@ -178,6 +178,9 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(Math.min(...o.map((x) => x.length))).toBeLessThan(o[3]!.length);
     expect(sebelum).not.toMatch(/dihapus dari OpenBao|too old|tidak bisa dibuka lagi|tidak terbuka lagi|min decryption version|permanen/);
     expect(sebelum).not.toContain(o[3]!);
+    // judul dan pengantar widget tampil di atas tebakan: tanpa kata yang membuka jawabannya
+    expect(skenario.judul + skenario.pengantar).not.toMatch(/dihapus|menghapus|trim menghapus|too old|permanen|400/);
+    expect(skenario.judul).toBe("Kunci pembungkus arsip diputar, dan satu dari dua data key dibungkus ulang");
     // jawaban terbuka di akhir jalur yang ditanyakan (varian), bukan di jalur utama
     expect(skenario.langkah.map((l) => l.jelas + l.kirim).join(" ")).not.toContain("min decryption version should not be less");
     expect(skenario.varian.langkah.at(-1)!.kirim).toContain("too old");
