@@ -85,6 +85,9 @@ for (const path of HAL) {
   lapor(fokus.pressed[0] === "true" && fokus.pressed.slice(1).every((x) => x === "false"), `${path} aria-pressed tebakan: ${fokus.pressed.join(",")}`);
   const matiTebak = await page.$$eval(".kp .bb-predict__opts button", (b) => b.map((x) => x.disabled));
   lapor(matiTebak.length === D.tebak.pilihan.length && matiTebak.every(Boolean), `${path} sesudah menebak semua pilihan tebakan nonaktif (${matiTebak.join(",")})`);
+  const jumlahStatus = await page.$$eval(".kp [role=status]", (e) => e.length);
+  lapor(jumlahStatus === 2, `${path} dua wilayah role=status (kesimpulan dan jawaban tebakan): ${jumlahStatus}`);
+  if (jumlahStatus !== 2) { await page.close(); continue; }
   // 2b. skenario lain (bukan pembuka jawaban) tidak membuka jawaban tebakan: jalur varian tidak membuka jawaban jalur utama
   const lain = D.skenario.findIndex((_, i) => i !== D.tebak.skenario);
   await page.locator(".kp .bb-row button").nth(lain).click();
