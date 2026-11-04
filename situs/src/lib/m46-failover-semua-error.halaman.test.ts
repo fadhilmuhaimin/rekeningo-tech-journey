@@ -401,7 +401,7 @@ describe("sumber luar: kutipan di baris riset R5-185 sampai R5-189 dan tautan di
     expect(goMod).toContain("github.com/jackc/pgx/v5 v5.11.0");
     expect(jumlah(badan, "v5.11.0")).toBe(7);
     expect(sebenarnyaM46).not.toContain("the greater of"); // naskah menulis 'lebih besar dari 4 atau jumlah CPU': selisih ke USULAN-CERITA
-    harus("**Koneksi ke primary lama dibuang.** Saat koneksi dikembalikan ke pool, `Release` menghancurkannya bila koneksi itu sudah tertutup, masih sibuk, atau masih di dalam transaction ([pgx v5.11.0, conn.go](" + URL_CONN + "), dibuka " + TANGGAL + ", Tidak dijalankan). Permintaan berikutnya lalu membuka koneksi baru ke node baru (penalaran).");
+    harus("**Koneksi yang tertutup dibuang.** Saat koneksi dikembalikan ke pool, `Release` menghancurkannya bila koneksi itu sudah tertutup, masih sibuk, atau masih di dalam transaction ([pgx v5.11.0, conn.go](" + URL_CONN + "), dibuka " + TANGGAL + ", Tidak dijalankan). Bila koneksi ke primary lama sudah tertutup, permintaan berikutnya membuka koneksi baru ke node baru (penalaran).");
     harus("**Bawaan pgx.** Dokumentasi pgxpool v5.11.0 menulis `MaxConns` bawaan sebesar nilai yang lebih besar antara 4 dan `runtime.NumCPU()`. Bawaan `MaxConnLifetime` adalah 1 jam dan bawaan `MaxConnLifetimeJitter` adalah 0 ([pgxpool v5.11.0](" + URL_POOL + "), dibuka " + TANGGAL + ", Tidak dijalankan). Lab memasang `MaxConns` 10 dan tidak mengatur jitter.");
     harus("Kode pgx menghitung batas umur koneksi dari waktu pembuatan, `MaxConnLifetime`, dan jitter acak sampai `MaxConnLifetimeJitter` (`pool.go`, Tidak dijalankan). Dengan jitter 0, koneksi yang dibuat pada detik yang sama sampai batas umurnya pada waktu yang hampir sama. Itu risiko satu jam sesudah koneksi dibuat bersamaan, bukan penyebab 4 menit di cerita (penalaran).");
     expect(nPool).toBe(poolPerKlien);
@@ -530,7 +530,17 @@ describe("ID registry, tautan, template blok, widget, kartu, tebakan, dan label"
       ["Gangguan 4 menit terhadap anggaran 43,2 menit", `${menitError} ÷ 43,2`, `${koma(persenAnggaran)}%`],
     ]);
     expect(nDitolak).toBe(nPotensi - tersedia);
-    expect(rpoRto).toContain("0,001 × 43.200");
+    // asal 43,2 dan RTO 15 menit: kalimat pendefinisi di 5.9 dikunci utuh (toContain pada angka saja puas dengan satu kemunculan lain; peninjau 5.16)
+    expect(rpoRto).toContain("RTO 15 menit membatasi lama pulih. Ketersediaan pembayaran 99,9% per 30 hari memberi anggaran kegagalan 0,001 × 43.200 = 43,2 menit.");
+    expect(0.001 * 30 * 24 * 60).toBeCloseTo(43.2, 9);
+    // catatan di bawah tabel: label baris gangguan (4 menit Ilustrasi, jadi Hitungan atas Asumsi dan Ilustrasi, seperti baris serupa di 5.9),
+    // beban merata untuk baris per pod, dan tumpang tindih permintaan untuk baris Lab 23 (kode lab menahan koneksi 20 × 50 ms = 1 detik)
+    expect(rpoRto).toContain("Hasilnya Hitungan atas Asumsi produk dan Ilustrasi, karena 23 menit berasal dari naskah.");
+    expect(putaranBawaan * jedaMs).toBe(1000);
+    harus(`Baris per pod mengandaikan beban merata di ${nService * nPod} pod. Baris gangguan memakai ${menitError} menit dari cerita dan anggaran 43,2 menit, jadi hasilnya Hitungan atas Asumsi dan Ilustrasi.`);
+    harus(`Angka ${diminta - tersedia} mengandaikan ${diminta} permintaan itu saling tumpang tindih. Kode lab menahan koneksi yang berhasil sekurangnya ${putaranBawaan} × ${jedaMs} milidetik = ${(putaranBawaan * jedaMs) / 1000} detik (Tidak dijalankan: dibaca dari kode lab).`);
+    expect(badan.indexOf("Baris per pod mengandaikan")).toBeGreaterThan(badan.indexOf("| Gangguan 4 menit"));
+    expect(badan.indexOf("Baris per pod mengandaikan")).toBeLessThan(badan.indexOf("Koneksi yang sibuk rata-rata hanya 27,8"));
     harus("Koneksi yang sibuk rata-rata hanya 27,8, sedangkan pool semua pod boleh membuka 180. Yang melewati batas adalah koneksi yang mungkin dipakai bersamaan, bukan rata-ratanya. Keadaan ini disebut badai koneksi: banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati.");
     harus(`Empat menit masih di bawah RTO 15 menit, tetapi pembayaran berhenti selama empat menit itu (Ilustrasi). RTO dan anggaran kegagalan 43,2 menit per 30 hari dibahas di [[t5-rpo-rto]], dan keduanya Asumsi produk.`);
     expect(menitError).toBe(4);
@@ -578,7 +588,7 @@ describe("ID registry, tautan, template blok, widget, kartu, tebakan, dan label"
       expect(b.includes("`pooler.txt` bagian A") || b.includes("`pooler.txt` bagian B") || b.includes("Arti Ilustrasi, Rekaman lab") || b.includes("Rekaman lab: labs/") || b.includes("Rekaman lab tidak punya retry") || b.includes("Dua baris Lab memakai angka rekaman") || b.includes("Hitungan atas Rekaman lab") || b.includes("Rekaman lab. ")).toBe(true);
     }
     expect(badan).not.toMatch(/\b\d+ (menit|jam)[^.\n]*\(Rekaman lab\)/);
-    expect(jumlah(badan, "(Tidak dijalankan: dibaca dari kode lab)")).toBe(1);
+    expect(jumlah(badan, "(Tidak dijalankan: dibaca dari kode lab)")).toBe(2);
     expect(jumlah(badan, "(Ilustrasi)")).toBe(3);
     expect(jumlah(badan, "[perlu verifikasi]")).toBe(0);
     expect(jumlah(badan, "(penalaran")).toBe(5);
@@ -589,7 +599,7 @@ describe("ID registry, tautan, template blok, widget, kartu, tebakan, dan label"
     expect(badan.indexOf("Hitungan")).toBe(badan.indexOf("Hitungan adalah hasil rumus"));
     expect(badan.indexOf("Hitungan")).toBeLessThan(badan.indexOf("| Besaran |"));
     expect(jumlah(badan.slice(0, badan.indexOf("<Blok nama=\"Yang sebenarnya\">")), "Hitungan")).toBe(0);
-    expect(jumlah(badan, "Asumsi")).toBe(6);
+    expect(jumlah(badan, "Asumsi")).toBe(7);
   });
   test("klaim universal: tak ada 'selalu', 'setiap', 'tidak pernah', 'hanya di'; 'semua', 'tiap', 'hanya', dan 'paling' hanya di kalimat berlingkup yang terkunci", () => {
     const tanpaNoscript = badan.replace(/<noscript>[\s\S]*?<\/noscript>/, "");
@@ -657,7 +667,7 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
           { teks: `Sebagian ditolak: ${kodeGalat}`, sub: "too_many_connections", nada: "warn", kode: false },
         ] },
       ],
-      catatan: `Kotak oranye adalah hasil yang bukan niat tim: koneksi yang ditolak. Jumlah koneksi yang berhasil tidak direkam sebagai angka, dan lab memeriksanya terhadap batas ${tersedia}. Rekaman ini bukan latihan failover: tidak ada primary yang dimatikan dan tidak ada pod.`,
+      catatan: `Kotak oranye adalah hasil yang bukan niat tim: koneksi yang ditolak. Jumlah koneksi yang berhasil tidak direkam sebagai angka. Lab memeriksa bahwa jumlahnya di bawah ${diminta} dan koneksi role itu paling banyak ${tersedia}. Rekaman ini bukan latihan failover: tidak ada primary yang dimatikan dan tidak ada pod.`,
     });
     expect(pooler[nKodeGalat - 1]).toContain(`${kodeGalat} = too_many_connections`);
     expect(d.baris).toHaveLength(1);
@@ -715,7 +725,7 @@ describe("diagram Rantai dan skenario alur: diturunkan dari rekaman", () => {
     ]);
     expect(skenario.langkah[0]!.jelas).toBe(`Di lab, max_connections bernilai ${maksKoneksi} dan ${cadangan} slot dicadangkan untuk superuser. Role biasa mendapat ${maksKoneksi} dikurangi ${cadangan}, yaitu ${tersedia} slot.`);
     expect(skenario.langkah[1]!.jelas).toBe(`Tiap client meminta sepuluh koneksi dari pool-nya sekaligus. Dua belas client dengan sepuluh koneksi masing-masing menghasilkan ${diminta} koneksi yang diminta.`);
-    expect(skenario.langkah[2]!.jelas).toBe(`PostgreSQL menjawab ${kodeGalat} untuk koneksi di atas batas. Lab tidak merekam jumlah koneksi yang berhasil sebagai angka, tetapi memeriksanya terhadap batas ${tersedia}. Kurang dari ${klien} client mendapat seluruh sepuluh koneksinya.`);
+    expect(skenario.langkah[2]!.jelas).toBe(`PostgreSQL menjawab ${kodeGalat} untuk koneksi di atas batas. Lab tidak merekam jumlah koneksi yang berhasil sebagai angka. Lab memeriksa bahwa jumlahnya di bawah ${diminta} dan koneksi role itu paling banyak ${tersedia}. Kurang dari ${klien} client mendapat seluruh sepuluh koneksinya.`);
     expect(skenario.varian.label).toBe("client yang sama lewat PgBouncer");
     expect(skenario.varian.langkah.map((l) => [l.dari, l.ke, l.judul, l.nada])).toEqual([
       ["client", "pgb", "Client yang sama menyambung lewat PgBouncer", undefined],
@@ -777,11 +787,13 @@ const PARAGRAF_UTUH: string[] = [
   "Jumlah koneksi yang berhasil tidak direkam sebagai angka, karena bergantung pada koneksi lain di database. Lab memeriksa bahwa jumlah itu di bawah 120, dan koneksi role itu paling banyak 97 pada sampel tiap 100 milidetik.",
   "**Dari 12 client ke 18 pod.** Cerita punya enam service dengan tiga pod tiap service, jadi 18 pod dengan pool 10 koneksi. Angka 180 dan 97 datang dari tabel beban naskah dan sudah dipakai di [[t5-fitur-teknis]]. Tabel ini menghitungnya dari masukannya.",
   "Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelnya mengikuti masukan terlemahnya. Pool 10, tiga pod per service, 3 koneksi cadangan, dan 0,02 detik per request adalah Asumsi naskah, jadi hasilnya Hitungan atas Asumsi. Dua baris Lab memakai angka rekaman, jadi labelnya Hitungan atas Rekaman lab. Laju 1.388,9 request per detik adalah beban puncak Tahap 5 ([[t5-prd]]), dan 0,02 detik sama dengan lama satu request memegang koneksi di [[t5-m40]].",
+  "Baris per pod mengandaikan beban merata di 18 pod. Baris gangguan memakai 4 menit dari cerita dan anggaran 43,2 menit, jadi hasilnya Hitungan atas Asumsi dan Ilustrasi.",
+  "Angka 23 mengandaikan 120 permintaan itu saling tumpang tindih. Kode lab menahan koneksi yang berhasil sekurangnya 20 × 50 milidetik = 1 detik (Tidak dijalankan: dibaca dari kode lab).",
   "Koneksi yang sibuk rata-rata hanya 27,8, sedangkan pool semua pod boleh membuka 180. Yang melewati batas adalah koneksi yang mungkin dipakai bersamaan, bukan rata-ratanya. Keadaan ini disebut badai koneksi: banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati.",
   "Empat menit masih di bawah RTO 15 menit, tetapi pembayaran berhenti selama empat menit itu (Ilustrasi). RTO dan anggaran kegagalan 43,2 menit per 30 hari dibahas di [[t5-rpo-rto]], dan keduanya Asumsi produk.",
   "**Kenapa pool bisa meminta penuh.** Dengan `MinConns` 0, pool membuka koneksi baru saat ada permintaan dan belum ada koneksi bebas. Itu penalaran, yaitu kesimpulan penulis dari kode dan dokumentasi, bukan hasil yang direkam.",
   "Selama primary lama tidak menjawab, permintaan ke tiap pod menumpuk. Saat node baru siap, pod yang punya sepuluh permintaan menunggu meminta pool penuhnya sekaligus (penalaran). Lab memerankan keadaan itu dengan sepuluh permintaan per client, dan queue di pod tidak direkam.",
-  "**Koneksi ke primary lama dibuang.** Saat koneksi dikembalikan ke pool, `Release` menghancurkannya bila koneksi itu sudah tertutup, masih sibuk, atau masih di dalam transaction ([pgx v5.11.0, conn.go](https://github.com/jackc/pgx/blob/v5.11.0/pgxpool/conn.go), dibuka 2026-11-04, Tidak dijalankan). Permintaan berikutnya lalu membuka koneksi baru ke node baru (penalaran).",
+  "**Koneksi yang tertutup dibuang.** Saat koneksi dikembalikan ke pool, `Release` menghancurkannya bila koneksi itu sudah tertutup, masih sibuk, atau masih di dalam transaction ([pgx v5.11.0, conn.go](https://github.com/jackc/pgx/blob/v5.11.0/pgxpool/conn.go), dibuka 2026-11-04, Tidak dijalankan). Bila koneksi ke primary lama sudah tertutup, permintaan berikutnya membuka koneksi baru ke node baru (penalaran).",
   "**Bawaan pgx.** Dokumentasi pgxpool v5.11.0 menulis `MaxConns` bawaan sebesar nilai yang lebih besar antara 4 dan `runtime.NumCPU()`. Bawaan `MaxConnLifetime` adalah 1 jam dan bawaan `MaxConnLifetimeJitter` adalah 0 ([pgxpool v5.11.0](https://pkg.go.dev/github.com/jackc/pgx/v5@v5.11.0/pgxpool), dibuka 2026-11-04, Tidak dijalankan). Lab memasang `MaxConns` 10 dan tidak mengatur jitter.",
   "Kode pgx menghitung batas umur koneksi dari waktu pembuatan, `MaxConnLifetime`, dan jitter acak sampai `MaxConnLifetimeJitter` (`pool.go`, Tidak dijalankan). Dengan jitter 0, koneksi yang dibuat pada detik yang sama sampai batas umurnya pada waktu yang hampir sama. Itu risiko satu jam sesudah koneksi dibuat bersamaan, bukan penyebab 4 menit di cerita (penalaran).",
   "**Retry bisa memperparah (penalaran).** Client yang mengulang koneksi yang ditolak tanpa jeda meminta slot yang sama lagi. Rekaman lab tidak punya retry: tiap permintaan koneksi berjalan sekali, dan galatnya dicatat (kode lab).",

@@ -26,5 +26,5 @@
       ]
     }
   ],
-  "catatan": "Kotak oranye adalah hasil yang bukan niat tim: koneksi yang ditolak. Jumlah koneksi yang berhasil tidak direkam sebagai angka, dan lab memeriksanya terhadap batas 97. Rekaman ini bukan latihan failover: tidak ada primary yang dimatikan dan tidak ada pod."
+  "catatan": "Kotak oranye adalah hasil yang bukan niat tim: koneksi yang ditolak. Jumlah koneksi yang berhasil tidak direkam sebagai angka. Lab memeriksa bahwa jumlahnya di bawah 120 dan koneksi role itu paling banyak 97. Rekaman ini bukan latihan failover: tidak ada primary yang dimatikan dan tidak ada pod."
 }

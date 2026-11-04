@@ -80,6 +80,10 @@ Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelny
 | Lab: paling sedikit ditolak | 120 − 97 | 23 |
 | Gangguan 4 menit terhadap anggaran 43,2 menit | 4 ÷ 43,2 | 9,3% |
 
+Baris per pod mengandaikan beban merata di 18 pod. Baris gangguan memakai 4 menit dari cerita dan anggaran 43,2 menit, jadi hasilnya Hitungan atas Asumsi dan Ilustrasi.
+
+Angka 23 mengandaikan 120 permintaan itu saling tumpang tindih. Kode lab menahan koneksi yang berhasil sekurangnya 20 × 50 milidetik = 1 detik (Tidak dijalankan: dibaca dari kode lab).
+
 Koneksi yang sibuk rata-rata hanya 27,8, sedangkan pool semua pod boleh membuka 180. Yang melewati batas adalah koneksi yang mungkin dipakai bersamaan, bukan rata-ratanya. Keadaan ini disebut badai koneksi: banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati.
 
 Empat menit masih di bawah RTO 15 menit, tetapi pembayaran berhenti selama empat menit itu (Ilustrasi). RTO dan anggaran kegagalan 43,2 menit per 30 hari dibahas di [[t5-rpo-rto]], dan keduanya Asumsi produk.
@@ -88,7 +92,7 @@ Empat menit masih di bawah RTO 15 menit, tetapi pembayaran berhenti selama empat
 
 Selama primary lama tidak menjawab, permintaan ke tiap pod menumpuk. Saat node baru siap, pod yang punya sepuluh permintaan menunggu meminta pool penuhnya sekaligus (penalaran). Lab memerankan keadaan itu dengan sepuluh permintaan per client, dan queue di pod tidak direkam.
 
-**Koneksi ke primary lama dibuang.** Saat koneksi dikembalikan ke pool, `Release` menghancurkannya bila koneksi itu sudah tertutup, masih sibuk, atau masih di dalam transaction ([pgx v5.11.0, conn.go](https://github.com/jackc/pgx/blob/v5.11.0/pgxpool/conn.go), dibuka 2026-11-04, Tidak dijalankan). Permintaan berikutnya lalu membuka koneksi baru ke node baru (penalaran).
+**Koneksi yang tertutup dibuang.** Saat koneksi dikembalikan ke pool, `Release` menghancurkannya bila koneksi itu sudah tertutup, masih sibuk, atau masih di dalam transaction ([pgx v5.11.0, conn.go](https://github.com/jackc/pgx/blob/v5.11.0/pgxpool/conn.go), dibuka 2026-11-04, Tidak dijalankan). Bila koneksi ke primary lama sudah tertutup, permintaan berikutnya membuka koneksi baru ke node baru (penalaran).
 
 **Bawaan pgx.** Dokumentasi pgxpool v5.11.0 menulis `MaxConns` bawaan sebesar nilai yang lebih besar antara 4 dan `runtime.NumCPU()`. Bawaan `MaxConnLifetime` adalah 1 jam dan bawaan `MaxConnLifetimeJitter` adalah 0 ([pgxpool v5.11.0](https://pkg.go.dev/github.com/jackc/pgx/v5@v5.11.0/pgxpool), dibuka 2026-11-04, Tidak dijalankan). Lab memasang `MaxConns` 10 dan tidak mengatur jitter.
 

@@ -54,7 +54,7 @@
       "dari": "db",
       "judul": "Sebagian koneksi ditolak dengan kode 53300",
       "kirim": "koneksi berhasil lebih sedikit dari diminta: ya\nkode galat: 53300   # 53300 = too_many_connections\nkoneksi role t5_app di PostgreSQL paling banyak <= 97 (disampel tiap 100 ms): ya\nclient yang mendapat seluruh 10 koneksinya: kurang dari 12: ya",
-      "jelas": "PostgreSQL menjawab 53300 untuk koneksi di atas batas. Lab tidak merekam jumlah koneksi yang berhasil sebagai angka, tetapi memeriksanya terhadap batas 97. Kurang dari 12 client mendapat seluruh sepuluh koneksinya.",
+      "jelas": "PostgreSQL menjawab 53300 untuk koneksi di atas batas. Lab tidak merekam jumlah koneksi yang berhasil sebagai angka. Lab memeriksa bahwa jumlahnya di bawah 120 dan koneksi role itu paling banyak 97. Kurang dari 12 client mendapat seluruh sepuluh koneksinya.",
       "nada": "warn"
     }
   ],
