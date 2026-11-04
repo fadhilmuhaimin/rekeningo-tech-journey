@@ -20,7 +20,7 @@ import { DataKoneksi } from "../widgets/koneksi-pooler/skema";
 import { hitung, kesimpulan, siapkan, titik } from "../widgets/koneksi-pooler/logika";
 import { daftarBlok, cekTemplat } from "./blok";
 import { KALIMAT_TERKUNCI, SIDIK } from "./pooler-koneksi.halaman.nilai";
-import { KUNCI_LITERAL } from "./pooler-koneksi.halaman.kunci";
+import { DATA_LITERAL, KUNCI_LITERAL, POLA_TOKEN, RISET_TOKEN } from "./pooler-koneksi.halaman.kunci";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -65,7 +65,6 @@ const hal513 = baca("situs/src/content/docs/tahap-5/modul-ke-service.mdx");
 const hal59 = baca("situs/src/content/docs/tahap-5/rpo-rto-failover.mdx");
 const hal530 = baca("situs/src/content/docs/tahap-5/sengaja-belum.mdx");
 const glosarium = baca("situs/src/content/docs/alat/glosarium.mdx");
-const istilahPgb = JSON.parse(baca("situs/data/halaman-istilah/pgbouncer.json")) as { cerita: { rujukan: string }[]; sumber: { riset: string; url: string }[] };
 const kartuSemua = JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as { id: string; halaman: string; judul: string; url: string; tanya: string; jawab: string }[];
 
 interface H { id: string; judul: string; tahap: number | string; nomor?: string; ada?: boolean; jenis?: string; inti?: boolean; menit?: number; prasyarat?: string[]; lab?: string[]; peran?: string[]; adr?: number[]; path?: string }
@@ -180,13 +179,10 @@ describe("registry, meta, susunan blok, dan tautan", () => {
     expect(m.role).toBe(m.service); // ADR 50: satu schema dan satu role per service
     expect(m.defaultPoolSize).toBe(Number(ini.match(/^default_pool_size = (\d+)/m)![1]));
   });
-  test("istilah: PgBouncer di glosarium menaut ke 5.17, dan halaman istilah punya rujukan t5-pooler dan sumber konfigurasi", () => {
-    expect(glosarium).toContain("| **PgBouncer** |");
-    expect(glosarium).toMatch(/\| \*\*PgBouncer\*\* \|[^\n]*\| \[\[t3-adr-33\]\], \[\[t5-pooler\]\] \|/);
-    expect(istilahPgb.cerita.map((c) => c.rujukan)).toEqual(["t3-pool", "t3-adr-33", "t5-pooler"]);
-    expect(istilahPgb.sumber.map((s) => s.riset)).toEqual(["R3-246", "R3-246", "R5-190"]);
-    expect(istilahPgb.sumber[2]!.url).toBe("https://www.pgbouncer.org/config.html");
-    if (!tanpaSidik) expect(sidik(JSON.stringify(JSON.parse(baca("situs/data/halaman-istilah/pgbouncer.json")))), "halaman istilah pgbouncer.json berubah").toBe(SIDIK.istilah);
+  test("istilah: baris glosarium PgBouncer tetap menaut ke 3.30 (penjaga 3.30 mengunci baris dan halaman istilahnya; 5.17 tidak mengubahnya) dan definisi pool pod dan pool server ada di halaman", () => {
+    expect(glosarium).toMatch(/\| \*\*PgBouncer\*\* \|[^\n]*\| \[\[t3-adr-33\]\] \|/);
+    expect(glosarium).not.toContain("[[t5-pooler]]");
+    expect(badan).toContain("Pool pod adalah kumpulan koneksi di dalam satu pod, dan pool server adalah kumpulan koneksi server di PgBouncer untuk satu pasangan database dan user.");
   });
 });
 
@@ -402,6 +398,13 @@ describe("hitungan: tabel Hitungan dihitung ulang dari angka yang tertulis di ha
       for (const tok of f!.split(/\s+/).filter((x) => /\d/.test(x))) expect(sah.has(angkaId(tok)), `${nama}: ${tok} bukan masukan`).toBe(true);
       sah.add(angkaId(teksHasil));
     }
+    const nama = baris.map((b) => b[0]);
+    expect(nama).toEqual([
+      "Koneksi yang diminta pod", "Koneksi tersedia", "Ditolak tanpa pooler", "Dari pemicu 70 koneksi", "Pool server ADR 52", "Pool server terhadap tersedia", "Client terhadap `max_client_conn`",
+      `${kalk.skenario[1]!.ubah!.pod} pod tiap service`, `${kalk.skenario[2]!.ubah!.pod} pod tiap service`, `Pool pod ${kalk.skenario[3]!.ubah!.poolPod}, ${m.pod} pod`, `Pool pod ${kalk.skenario[4]!.ubah!.poolPod}, ${kalk.skenario[4]!.ubah!.pod} pod`,
+      "Pool server tanpa `max_db_connections`", "Rata-rata terpakai terhadap satu instance",
+    ]);
+    expect(hal530).toContain("| 4. PgBouncer | 70 koneksi dari 100 |");
     expect(baris.map((b) => b[2])).toEqual(["180", "97", "83", "257%", "60", "61,9%", "45%", "300", "480", "90", "150", "240", "92,7%"]);
     expect(baris.map((b) => b[1])).toEqual(["6 × 3 × 10", "100 − 3", "180 − 97", "180 ÷ 70", "2 × 30", "60 ÷ 97", "180 ÷ 400", "6 × 5 × 10", "6 × 8 × 10", "6 × 3 × 5", "6 × 5 × 5", "2 × 6 × 20", "27,8 ÷ 30"]);
     expect(badan).toContain("Tiap hasil di tabel adalah Hitungan atas Asumsi.");
@@ -562,6 +565,59 @@ describe("sumber luar: baris riset, tanggal akses, tautan, versi, dan kutipan", 
   });
 });
 
+describe("tanggal, versi, port, dan tabel Sengaja belum: token diturunkan dari baris riset, konfigurasi, dan hitungan", () => {
+  const risetSemua = () => ["R5-190", "R5-191", "R5-192", "R5-193", "R5-194"].map(barisRiset).join("\n");
+  test("tanggal: tiap paragraf bertautan di luar Bacaan lanjut memuat 2026-11-04; tanggal lain hanya tanggal rilis PgBouncer dan tanggal isu pgx dari baris riset", () => {
+    const luar = badan.slice(0, badan.indexOf("### Bacaan lanjut"));
+    for (const b of luar.split("\n")) if (/\]\(https:\/\//.test(b)) expect(b, b.slice(0, 70)).toContain("2026-11-04");
+    const r = risetSemua();
+    const sah = new Set<string>(["2026-11-04"]);
+    for (const m of r.matchAll(/(\d{4}-\d{2}-\d{2}) - PgBouncer (1\.\d+\.\d+)/g)) sah.add(m[1]!);
+    sah.add(barisRiset("R5-191").match(/dibuka (\d{4}-\d{2}-\d{2}), status terbuka/)![1]!);
+    const ditemukan = [...badan.matchAll(/\d{4}-\d{2}-\d{2}/g)].map((m) => m[0]);
+    for (const t of ditemukan) expect(sah.has(t), t).toBe(true);
+    expect([...sah].sort()).toEqual(["2023-07-14", "2023-10-16", "2025-01-10", "2026-09-23", "2026-10-14", "2026-11-04"].filter((x) => x !== "2026-09-23"));
+    // tiap tanggal rilis yang ditulis halaman dipasangkan dengan versinya persis seperti di baris riset
+    for (const [tgl, v] of [["2026-10-14", "1.26.1"], ["2025-01-10", "1.24.0"], ["2023-10-16", "1.21.0"]] as const) {
+      expect(barisRiset("R5-190"), `${tgl} ${v}`).toContain(`${tgl} - PgBouncer ${v}`);
+      expect(badan).toContain(`${v} (${tgl})`);
+    }
+    expect(badan).toContain("terbuka sejak 2023-07-14");
+  });
+  test("versi: tiap token versi di prosa (di luar URL dan angka ribuan) muncul di salah satu baris riset R5-190 sampai R5-194", () => {
+    const r = risetSemua();
+    const prosa = badan.replace(/\]\([^)]*\)/g, "]").replace(/<Snippet [^\n]*\/>/g, "");
+    const token = [...prosa.matchAll(/v?\d+\.\d+(?:\.\d+)?(?![\d,])/g)].map((m) => m[0].replace(/^v/, "")).filter((t) => !/^\d{1,3}\.\d{3}$/.test(t));
+    expect(new Set(token).size).toBeGreaterThan(12);
+    for (const t of token) expect(r, `versi ${t}`).toContain(t);
+  });
+  test("port contoh Node.js sama dengan listen_port di pgbouncer.ini; ukuran pool contoh sama dengan bawaan Postgres.js di baris riset", () => {
+    const port = ini.match(/^listen_port = (\d+)/m)![1];
+    expect(badan).toContain(`postgres("postgres://pgbouncer.example:${port}/rekeningo", {`);
+    expect(barisRiset("R5-193")).toContain("By default `max` is 10");
+    expect(badan).toContain("  max: 10,");
+  });
+  test("tabel Sengaja belum: enam baris; angka diturunkan dari ini, kalkulator, dan hitungan", () => {
+    const sb = tabelSetelah("### Sengaja belum dilakukan").slice(1);
+    const labPrep = ini.match(/^max_prepared_statements = (\d+)/m)![1];
+    const pct = String(bulat((27.8 / kalk.masukan.maxDbPerInstance) * 100, 1)).replace(".", ",");
+    expect(sb).toEqual([
+      ["Dua instance PgBouncer di belakang satu Service", "Lab menjalankan satu container", "Belum dijadwalkan"],
+      ["`max_prepared_statements` bernilai 0", `Rekaman memakai ${labPrep}, dan nilai 0 tidak dijalankan`, "Belum dijadwalkan"],
+      ["Satu instance PgBouncer dimatikan saat beban", `Lab tidak mematikannya, dan ${pct}% adalah Hitungan atas Asumsi`, "Belum dijadwalkan"],
+      ["Lompatan tambahan p95 lewat PgBouncer", "Lab berjalan di satu mesin dan tidak mengukurnya", "Belum dijadwalkan"],
+      ["Pooler bawaan database terkelola", "Penyedia belum dipilih", "[[t5-onprem]]"],
+      ["Pemindai fitur sesi di kode service", "Belum ada di lab", "Belum dijadwalkan"],
+    ]);
+    expect(labPrep).toBe("100");
+  });
+  (tanpaLiteral ? test.skip : test)("kunci literal baris riset dan data JSON: versi, tanggal, URL, kutipan, dan hitungan tiap baris sama; kalkulator dan diagram sama dengan salinan beku", () => {
+    for (const id of ["R5-190", "R5-191", "R5-192", "R5-193", "R5-194"]) expect(barisRiset(id).match(POLA_TOKEN) ?? [], id).toEqual(RISET_TOKEN[id]);
+    expect(JSON.parse(baca("situs/data/widget/t5-pooler-kalkulator.json"))).toEqual(DATA_LITERAL.kalkulator);
+    expect(JSON.parse(baca("situs/data/diagram/t5-pooler-inti.json"))).toEqual(DATA_LITERAL.diagram);
+  });
+});
+
 describe("diagram Rantai dan kartu Cek diri: nilai diturunkan dari rekaman", () => {
   test("Rantai Inti: satu baris, dua simpul (galat 53300 dan paling banyak 20 koneksi), label 12 client 120 koneksi; sumber rekaman pooler.txt; nilai dari rekaman", () => {
     expect(diagram.baris).toHaveLength(1);
@@ -600,7 +656,7 @@ describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, tabel 
   test("tingkat heading dikunci: h2 Inti, h3 di Paham dan Putuskan dan Kunci, tanpa h4; daftar bernomor: pertanyaan Mulai (3), aturan ADR (9), pre-mortem (3); kotak centang 6", () => {
     const h = badan.split("\n").filter((b) => /^#{1,6} /.test(b));
     expect(h).toEqual([
-      "## Inti", "### Kenapa ini ada", "### Cara kerjanya", "### Di stack lain", "### ADR 52: PgBouncer mode transaction untuk semua service, dengan server pool terbatas dan jitter",
+      "## Inti", "### Kenapa ini ada", "### Cara kerjanya", "### Di stack lain", "### ADR 52: PgBouncer mode transaction di depan primary, dengan pool server terbatas dan jitter",
       "### Sengaja belum dilakukan", "### Cek diri", "### Saat me-review kode AI, cek ini", "### Bacaan lanjut",
     ]);
     expect(badan.split("\n").filter((b) => /^\d+\. /.test(b))).toHaveLength(3 + 9 + 3);

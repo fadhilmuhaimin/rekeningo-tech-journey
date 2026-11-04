@@ -116,7 +116,7 @@ Tabel itu tidak menyebut `SET LOCAL`, `set_config` dengan argumen ketiga `true`,
 
 <Snippet files={["labs/api-t5/internal/repo/kartu.go:141:146", "labs/api-t5/internal/repo/audit.go:39:42"]} lang="go" title="Kode lab: set_config tingkat transaction di kartu.go dan pg_advisory_xact_lock di audit.go" />
 
-Keduanya berjalan di dalam satu transaction, jadi satu koneksi server memegangnya sampai transaction selesai (penalaran dari definisi mode transaction). Lab tidak menjalankannya lewat PgBouncer (Tidak dijalankan). README Postgres.js memberi aturan yang sama. Fitur yang hidup lebih lama dari satu transaction, seperti `SET`, `LISTEN`, dan temporary table, hanya berjalan di dalam `sql.begin` atau tidak sama sekali ([Postgres.js](https://github.com/porsager/postgres), dibuka 2026-11-04).
+Keduanya berjalan di dalam satu transaction, jadi satu koneksi server memegangnya sampai transaction selesai (penalaran dari definisi mode transaction). Lab tidak menjalankannya lewat PgBouncer (Tidak dijalankan). README Postgres.js menulis hal serupa dari sisi client. Fitur yang hidup lebih lama dari satu transaction, seperti `SET`, `LISTEN`, dan temporary table, hanya berjalan di dalam `sql.begin` atau tidak sama sekali ([Postgres.js](https://github.com/porsager/postgres), dibuka 2026-11-04).
 
 Klaim outbox ([[t3-klaim-baris]]) adalah satu pernyataan `WITH ... FOR UPDATE SKIP LOCKED` yang disusul `UPDATE`. Seluruhnya satu transaction, jadi tidak butuh fitur sesi. Ini dibaca dari kode `KlaimOutboxTujuan`, dan Tidak dijalankan lewat PgBouncer. `SKIP LOCKED` hanya melewati baris yang sedang dikunci, dan bukan jaminan tanpa ganda.
 
@@ -162,14 +162,14 @@ Backoff dengan jitter ([[t2-idempotency]]) ada di kode lab untuk pengiriman ke p
 | Koneksi tersedia | 100 − 3 | 97 |
 | Ditolak tanpa pooler | 180 − 97 | 83 |
 | Dari pemicu 70 koneksi | 180 ÷ 70 | 257% |
-| Server pool ADR 52 | 2 × 30 | 60 |
-| Server pool terhadap tersedia | 60 ÷ 97 | 61,9% |
+| Pool server ADR 52 | 2 × 30 | 60 |
+| Pool server terhadap tersedia | 60 ÷ 97 | 61,9% |
 | Client terhadap `max_client_conn` | 180 ÷ 400 | 45% |
 | 5 pod tiap service | 6 × 5 × 10 | 300 |
 | 8 pod tiap service | 6 × 8 × 10 | 480 |
 | Pool pod 5, 3 pod | 6 × 3 × 5 | 90 |
 | Pool pod 5, 5 pod | 6 × 5 × 5 | 150 |
-| Server pool tanpa `max_db_connections` | 2 × 6 × 20 | 240 |
+| Pool server tanpa `max_db_connections` | 2 × 6 × 20 | 240 |
 | Rata-rata terpakai terhadap satu instance | 27,8 ÷ 30 | 92,7% |
 
 Tiap hasil di tabel adalah Hitungan atas Asumsi.
@@ -250,7 +250,7 @@ Halaman manajemen koneksi menulis ukuran pool per role. Halaman itu juga menyebu
 
 <Blok nama="Putuskan">
 
-### ADR 52: PgBouncer mode transaction untuk semua service, dengan server pool terbatas dan jitter
+### ADR 52: PgBouncer mode transaction di depan primary, dengan pool server terbatas dan jitter
 
 **Kebutuhan.** PRD v5 menulis tidak berhenti dan tidak kehilangan uang ([[t5-prd]]). [[t5-m46]] menunjukkan, menurut naskah (Ilustrasi), latihan failover yang menghabiskan koneksi: 180 koneksi pod lawan 97 tersedia (Hitungan atas Asumsi). Pemicu PgBouncer di ADR 45 ([[t4-adr-45]]) terpenuhi pada 257%.
 
@@ -258,7 +258,7 @@ Halaman manajemen koneksi menulis ukuran pool per role. Halaman itu juga menyebu
 
 | | A. Naikkan `max_connections` | B. Kecilkan pool tiap pod | C. Pooler bawaan database terkelola | D. PgBouncer mode transaction |
 |---|---|---|---|---|
-| Cara kerja | `max_connections` dinaikkan melewati koneksi yang mungkin dibuka pod | Pool pod diturunkan dari 10 ke 5 | Penyedia database menjalankan pooler sendiri | Dua instance PgBouncer di depan primary, dengan batas server pool dan client |
+| Cara kerja | `max_connections` dinaikkan melewati koneksi yang mungkin dibuka pod | Pool pod diturunkan dari 10 ke 5 | Penyedia database menjalankan pooler sendiri | Dua instance PgBouncer di depan primary, dengan batas pool server dan client |
 | Kelebihan | Tanpa komponen baru | Tanpa komponen baru, dan 90 koneksi muat di 97 | Penyedia mengambil pemeliharaan pooler [perlu verifikasi] | 120 client dilayani paling banyak 20 koneksi ke PostgreSQL (`pooler.txt` bagian B) |
 | Kekurangan | PostgreSQL mengalokasikan sumber daya menurut nilainya, termasuk shared memory, dan standby harus bernilai sama atau lebih tinggi (dokumentasi PostgreSQL 17) | 5 pod tiap service sudah 150 koneksi, lebih dari 97, jadi penambahan pod membatalkannya (Hitungan atas Asumsi) | Fitur pooler bisa berbeda dari PgBouncer: pooler bersama Supabase tidak mendukung prepared statement di mode transaction | Fitur sesi tidak berjalan, satu komponen baru, dan satu lompatan tambahan |
 | Biaya operasional | Memori database lebih besar | Queue di pool pod lebih cepat terbentuk (penalaran) | Biaya penyedia, belum dihitung | Dua instance, alert client menunggu, dan patch tiap rilis |
@@ -280,7 +280,7 @@ Halaman manajemen koneksi menulis ukuran pool per role. Halaman itu juga menyebu
 
 - **A ditolak** karena memindahkan batas tanpa mengurangi koneksi yang dibuka. Dokumentasi PostgreSQL 17 menulis bahwa kenaikannya menambah alokasi sumber daya, termasuk shared memory. Dokumentasi itu juga menulis bahwa banyak sesi bisa memakai `work_mem` bersamaan. Batas baru tetap bisa dilewati badai yang sama (penalaran).
 - **B tidak cukup** karena ia bergantung pada jumlah pod. Dengan pool 5, tiga pod memakai 90 koneksi dan lima pod memakai 150. Autoscaling menambah pod ([[t5-service]]), jadi batasnya berubah tanpa ada yang memutuskan.
-- **C tidak dipilih untuk lab** karena tidak bisa direkam, bukan karena salah. Dokumentasi Supabase menunjukkan pooler terkelola berbeda dalam prepared statement. Produksi database sendiri atau terkelola menunggu pemilik ([[t5-onprem]]).
+- **C tidak dipilih untuk lab** karena tidak bisa direkam, bukan karena salah. Dokumentasi Supabase menulis bahwa pooler bersamanya tidak mendukung prepared statement di mode transaction, sedangkan pooler khususnya mendukung. Produksi database sendiri atau terkelola menunggu pemilik ([[t5-onprem]]).
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
