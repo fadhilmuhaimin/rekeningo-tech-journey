@@ -326,7 +326,7 @@ describe("Hitungan atas Asumsi, label sumber, dan klaim dari dokumentasi", () =>
     expect(TRX_REG).toBe(2);
     expect(POSTING_TAHUN).toBe(438_000_000);
     expect(POSTING_TAHUN_2).toBe(292_000_000);
-    expect(badan).toContain("438 juta posting per tahun dari 200.000 × 3 × 2 × 365 ([[t5-partisi]]). Dengan dua transaksi per user aktif per hari hasilnya 292 juta.");
+    expect(badan).toContain("438 juta posting per tahun, yaitu 200.000 user aktif × 3 transaksi per user per hari × 2 posting per transaksi × 365 hari ([[t5-partisi]]). Dengan dua transaksi per user aktif per hari hasilnya 292 juta.");
     expect(partisiHal).toContain("| Posting per bulan | 438 juta ÷ 12 | 36,5 juta | 24,3 juta |");
     expect(partisiHal).toContain("| Ukuran posting per bulan | 36,5 juta × 250 byte | 9,1 GB | 6,1 GB |");
     expect(partisiHal).toContain("438 juta posting per tahun, yaitu 200.000 × 3 × 2 × 365");
@@ -370,7 +370,7 @@ describe("Hitungan atas Asumsi, label sumber, dan klaim dari dokumentasi", () =>
     expect(r).toContain("mulai baris 2230; `cipher.NewGCMWithRandomNonce` dipanggil di baris 2258");
     expect(badan).toContain("Kode OpenBao v2.7.2 memakai `NewGCMWithRandomNonce` untuk kunci AES-GCM tanpa convergent encryption (`sdk/helper/keysutil/policy.go`, fungsi `SymmetricEncryptRaw`, dibuka 2026-11-04).");
   });
-  test("label turunan didefinisikan sebelum dipakai: Asumsi, Hitungan, Penalaran, Tidak dijalankan; Ilustrasi lewat Label sumber; [perlu verifikasi] hanya tiga baris (HSM, tab Serverpod, Sengaja belum)", () => {
+  test("label turunan didefinisikan sebelum dipakai: Asumsi, Hitungan, Penalaran, Tidak dijalankan; Ilustrasi lewat Label sumber; [perlu verifikasi] hanya dua baris (HSM dan Sengaja belum)", () => {
     const def = badan.indexOf("Angka beban halaman ini Asumsi, yaitu angka pilihan penulis tanpa rekaman.");
     expect(def).toBeGreaterThan(0);
     expect(badan).toContain("Hitungan adalah hasil rumus dari angka yang tertulis di halaman, dan ia berlabel sama dengan masukan terlemahnya.");
@@ -382,10 +382,10 @@ describe("Hitungan atas Asumsi, label sumber, dan klaim dari dokumentasi", () =>
     }
     expect(badan.indexOf("Dalam cerita, Laras bertanya")).toBeGreaterThan(0);
     const pv = badan.split("\n").filter((b) => b.includes("[perlu verifikasi]"));
-    expect(pv).toHaveLength(3);
+    expect(pv).toHaveLength(2);
     for (const b of pv) expect(b, b).not.toMatch(/rotate|rewrap|trim|min_decryption_version|nonce acak|NewGCMWithRandomNonce|2\^32/); // yang sudah ditutup lewat dokumentasi dan kode OpenBao v2.7.2
     expect(pv.join("\n")).toMatch(/SoftHSM 2\.7\.0/);
-    expect(pv.join("\n")).toMatch(/Serverpod|serverpod/);
+    expect(pv.join("\n")).not.toMatch(/Serverpod|serverpod|NIST/); // keduanya sudah ditutup dengan sumber primer (serverpod_docs, halaman NIST Rev. 1)
     expect(readme).toContain("bahwa ia bekerja dengan SoftHSM 2.7.0 [perlu verifikasi]");
   });
   test("klaim dari dokumentasi: tiap tautan eksternal dan tanggal ada di baris riset, versi sama, kutipan pendek dikunci di riset", () => {
@@ -418,19 +418,24 @@ describe("Hitungan atas Asumsi, label sumber, dan klaim dari dokumentasi", () =>
     expect(slot(0)).toContain("*Dijalankan: lab t5-kms, Go 1.27.3 dan OpenBao v2.7.2");
     for (let n = 1; n < 6; n++) expect(slot(n), `slot t${n}`).toContain("*Tidak dijalankan.");
     for (let n = 1; n <= 3; n++) expect(slot(n), `slot t${n}`).toMatch(/[Kk]ode di bawah adalah Ilustrasi\.\*/);
-    expect(slot(4)).toContain("Kode Dart tidak ditulis di tab ini.");
+    expect(slot(4)).toContain("kode Dart tidak ditulis di tab ini.");
     expect(kodeInline.map((k) => k.lang)).toEqual(["js", "php", "python"]);
     expect(readme).toContain("| Go | 1.27.3 |");
     expect(slot(1)).toContain("Halaman itu tidak memuat kata KMS atau envelope.");
     expect(slot(2)).toContain("Halaman itu tidak membahas data key per file, KMS, atau envelope.");
     expect(slot(3)).toContain("kata encrypt tidak muncul di sana");
-    expect(slot(4)).toContain("dokumen desain cloud storage di repositori itu tidak memuat kata encrypt");
+    expect(slot(4)).toContain("kata encrypt, KMS, dan envelope tidak muncul di dokumen desain cloud storage maupun di dua halaman dokumentasi resmi itu");
+    expect(slot(4)).toContain("[serverpod/serverpod_docs](https://github.com/serverpod/serverpod_docs)");
+    expect(slot(4)).not.toContain("perlu verifikasi");
     expect(slot(5)).toContain("bukan file arsip");
     // klaim negatif tab Node, Laravel, Django, dan Serverpod dicek ke teks mentah yang dikutip riset (grep tanpa membedakan huruf besar)
     const r = barisRiset("R5-237");
     expect(r).toContain("`grep -i` untuk kms, envelope, key management, dan data key menghasilkan nol baris");
     expect(r).toContain("`grep -i` untuk kms, envelope, dan data key nol baris");
     expect(r).toContain("kata encrypt tidak muncul (`grep -i`)");
+    expect(r).toContain("kunci akar 64 karakter heksadesimal, jadi kunci project lama dapat disalin ke project baru");
+    expect(slot(5)).toContain("kunci akar project lama dapat diambil lewat Management API dan disalin ke project baru");
+    expect(slot(4)).not.toMatch(/dirender dengan JavaScript/);
     expect(r).toContain("tidak memuat kata encrypt, kms, atau envelope (`grep -i`)");
   });
 });
@@ -486,7 +491,9 @@ describe("diagram Rantai, skenario alur, ADR 57, dan kartu Cek diri", () => {
     expect(skenario.varian.langkah[1]!.kirim).toContain("HTTP 400");
     expect(skenario.varian.langkah.map((l) => l.nada)).toEqual(["warn", "warn", "warn"]);
     expect(skenario.langkah.map((l) => l.nada ?? "")).toEqual(["", "good", "", "warn", "good"]);
-    expect(skenario.predict.q).toContain("seperti di langkah 5");
+    expect(skenario.predict.q).toContain("menurunkan min_decryption_version ke 1 lagi. Apa yang terjadi?");
+    // pertanyaan Tebak tampil sebelum langkah dibaca: tanpa rujukan ke nomor langkah
+    expect(`${skenario.predict.q} ${skenario.predict.options.join(" ")}`).not.toMatch(/langkah \d/i);
     expect(skenario.predict.explain).toContain("400");
     // noscript memuat hasil kedua jalur
     const ns = cocok(badan, /<noscript>\n([\s\S]*?)\n<\/noscript>/)[1]!;
@@ -510,8 +517,23 @@ describe("diagram Rantai, skenario alur, ADR 57, dan kartu Cek diri", () => {
     const salah = adr.slice(adr.indexOf("**Kapan keputusan ini salah.**"), adr.indexOf("**Belum diputuskan.**"));
     expect(hitung(salah, /^- /gm)).toBe(6);
     expect(adr).toContain("**Belum diputuskan.** Tiga hal ini pertanyaan terbuka, bukan aturan.");
-    expect(adr).toContain("**Yang akan merevisinya.** Belum ada ADR berikutnya yang ditugaskan merevisi keputusan ini.");
+    expect(adr).toContain("**Yang akan merevisinya.** Naskah Tahap 5 belum menugaskan ADR berikutnya untuk merevisi keputusan ini.");
+    // klaim negatif berlingkup naskah: tidak ada ADR lain di naskah yang menyebut ADR 57 sebagai yang direvisi
+    expect(naskah.split("\n").filter((b) => /^\| (5[89]|60) \|/.test(b) && /ADR 57/.test(b))).toEqual([]);
     for (const a of ["A ditolak", "B ditolak", "C ditolak", "D ditolak"]) expect(adr, a).toContain(`**${a}**`);
+    // aturan 5 dan 6 diturunkan dari rekaman dan kode (tinjauan 5.26): trim butuh min_encryption_version, dan checksum di database
+    // adalah SHA-256 atas FILE TERENKRIPSI, jadi pemeriksaannya mendahului dekripsi dan tidak membandingkan hasil dekripsi dengannya.
+    expect(rE.teks).toContain("minimum available version cannot be set when minimum encryption version is not set");
+    expect(adr).toContain("lalu naikkan `min_encryption_version` dan jalankan `trim`. `trim` ditolak 400 bila `min_encryption_version` belum diisi (`rotasi.txt` bagian E)");
+    expect(readme).toContain("Checksum = SHA-256 atas file terenkripsi**, bukan atas CSV");
+    expect(envelopeGo).toContain("Checksum: Checksum(blob)");
+    expect(adr).toContain("6. Pemulihan lebih dulu membandingkan SHA-256 file terenkripsi dengan checksum di database dan jangkar, tanpa KMS. Sesudah itu ia membuka data key terbungkus lewat OpenBao dan mendekripsi file, dan tag GCM yang cocok menunjukkan isinya tidak berubah.");
+    expect(adr).not.toMatch(/SHA-256 hasilnya/);
+    // satu byte di data key terbungkus: galat GCM milik OpenBao (KEK aes256-gcm96), bukan GCM atas file
+    expect(aA.teks).toContain('"type": "aes256-gcm96"');
+    expect(aD.teks).toContain("openbao menjawab 400: cipher: message authentication failed");
+    expect(badan).toContain("Pesannya sama dengan galat GCM karena KEK berjenis `aes256-gcm96`, jadi pemeriksaan keaslian yang gagal adalah milik OpenBao atas data key itu:");
+    expect(badan).not.toMatch(/ditolak OpenBao, bukan GCM/);
     const bukti = sel(tabel.at(-1)!);
     expect(bukti.slice(1)).toEqual(["Tidak dijalankan: penalaran", "Hitungan, `rotasi.txt` bagian G", "Tidak dijalankan: penalaran", "Tidak dijalankan: kunci di tangan penyedia", "Rekaman lab `arsip.txt`, `rotasi.txt`, dan `testing.txt`"]);
     expect(adr).toContain("Satu varian aturan 5 ditolak oleh rekaman: `trim` sebelum semua arsip dibungkus ulang membuat posting_lalu_01 tidak terbuka lagi (`rotasi.txt` bagian E).");
@@ -653,7 +675,7 @@ describe("penjaga tambahan: tautan, paragraf ganda, angka prosa, kutipan bagian"
     const kalimat = (frag: string): string => badan.split("\n").find((b) => b.includes(frag))!;
     expect(kalimat("Hanya jangkar yang melihat pemalsuan ketiga")).toBeDefined();
     expect(aE.teks).toContain("Hanya jangkar di luar database yang melihatnya");
-    expect(kalimat("jadi pemalsuan kedua butuh pemilik schema (`arsip.txt` bagian E)")).toContain("42501");
+    expect(kalimat("jadi pemalsuan kedua butuh role dengan hak `UPDATE` atas kolom itu, seperti pemilik schema di rekaman (`arsip.txt` bagian E)")).toContain("42501");
     expect(kalimat("Rekaman bagian E")).toBeUndefined();
     expect(kalimat("Arsip hanya bertambah.")).toContain("`arsip.txt` bagian B");
     expect(kalimat("Semuanya dijawab `autentikasi GCM gagal`.")).toBeDefined();
