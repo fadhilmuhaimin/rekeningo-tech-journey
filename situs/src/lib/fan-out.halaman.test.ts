@@ -834,7 +834,10 @@ describe("5.15 halaman istilah dan glosarium", () => {
 // ADR, berkas dan bagian rekaman; hitungan label per blok; deret angka per blok; teks diagram dan istilah; dan deret angka baris riset.
 // Nilai dibangkitkan dari file saat ini oleh PERBARUI_KUNCI=1 sesudah tiap kalimat dibaca ke sumbernya (rekaman, README, kode, naskah, dokumentasi
 // di baris riset); kalimat penghubung tanpa angka dan tanpa kata penentu tidak dikunci di lapis ini.
-const KLAIM_RE = /\b(tidak|bukan|hanya|belum|tanpa|semua|setiap|selalu|paling|tepat|lebih|kurang|sampai|jadi|karena|boleh|harus|bisa|mungkin|satu|dua|tiga|empat|lima|enam|delapan|sebelum|sesudah|di atas|di bawah|yaitu|adalah|berarti|kecuali|saja|sama)\b|\d/i;
+// Tinjauan (keputusan 1559): kalimat dipisah di tanda baca yang diikuti spasi, bukan di tiap titik (nama berkas `antrean.txt`, versi 4.1.0, dan URL memecah kalimat
+// jadi serpihan pendek yang tak terkunci), dan kata benda kunci halaman ikut menjadi penanda klaim (consumer, partisi, relay, outbox, ...): 12 dari 103 mutan
+// tinjauan lolos tanpa kunci baris sebelum perubahan ini (kata benda diganti di kalimat tanpa angka dan tanpa kata penentu, "tidak" di teks tautan).
+const KLAIM_RE = /\b(tidak|bukan|hanya|belum|tanpa|semua|setiap|selalu|paling|tepat|lebih|kurang|sampai|jadi|karena|boleh|harus|bisa|mungkin|satu|dua|tiga|empat|lima|enam|delapan|sebelum|sesudah|di atas|di bawah|yaitu|adalah|berarti|kecuali|saja|sama|consumer|producer|partisi|offset|topik|relay|outbox|queue|worker|merchant|kunci|broker|grup|group|rekaman|pengirim|perangkat|pengumuman|uang|kuota|Kafka|penyedia|lab|batas)\b|\d/i;
 const kalimatProsa = (): string[] => {
   const out: string[] = [];
   let dalamKode = false;
@@ -845,8 +848,8 @@ const kalimatProsa = (): string[] => {
       continue;
     }
     if (!b.trim() || /^(<|\||import|#|```)/.test(b)) continue;
-    for (const m of b.matchAll(/[^.;:?!]+[.;:?!]?/g)) {
-      const k = norm(m[0]);
+    for (const potong of b.split(/(?<=[.;:?!])\s+/)) {
+      const k = norm(potong);
       if (k.split(" ").length >= 4 && KLAIM_RE.test(k)) out.push(k);
     }
   }
@@ -894,6 +897,30 @@ if (process.env.PERBARUI_KUNCI === "1") {
       `export const TURUNAN: any = ${JSON.stringify(turunanSekarang, null, 1)};\n`,
   );
 }
+describe("5.15 tinjauan: struktur, riset, dan glosarium yang tidak ikut kunci kalimat", () => {
+  test("Rantai Inti ringkas, lima jawaban Cek diri berkelas success dan satu pertanyaan berkelas question di Mulai", () => {
+    expect((badan.match(/<Rantai data=\{intiDiagram\} ringkas \/>/g) ?? []).length).toBe(1);
+    expect((badan.match(/<details class="success">/g) ?? []).length).toBe(5);
+    expect((badan.match(/<details class="question">/g) ?? []).length).toBe(1);
+    expect(blok.Mulai).toContain('<details class="question">');
+    expect(blok.Kunci.match(/<details class="success">/g)?.length).toBe(5);
+    expect((badan.match(/<summary>Jawaban<\/summary>/g) ?? []).length).toBe(5);
+  });
+  test("baris riset Redpanda: larangan Additional Use Grant dan tidak ditinjau hukum, dikutip dari berkas lisensi", () => {
+    const r182 = barisRiset("R5-182");
+    expect(r182).toContain('Additional Use Grant melarang pemakaian "for a Streaming or Queuing Service" bagi pihak ketiga');
+    expect(r182).toContain("Change License Apache 2.0");
+  });
+  test("baris glosarium Partisi memuat partisi tabel dan partisi topik, dan kata partisi tidak lagi dipetakan ke Partitioning", () => {
+    const glos = baca("situs/src/content/docs/alat/glosarium.mdx");
+    expect(glos).toContain("| **Partisi** | Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. | [[D2]], [[t5-fanout]] |");
+    expect(baca("tools/build_istilah.py")).not.toContain('"Partitioning": ["partisi"');
+    const istilah = baca("situs/data/istilah.md");
+    expect(istilah).toContain("*[partisi]: Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah.");
+    expect(istilah).not.toContain("*[partisi]: Membagi satu tabel besar");
+  });
+});
+
 describe("5.15 kunci turunan: klaim, tabel, urutan, label, angka, diagram, istilah, riset", () => {
   test("kalimat berklaim: tiap kalimat berangka atau berkata penentu terkunci, tidak ada yang bertambah, berubah, atau hilang", () => {
     const sekarangK = turunanSekarang.kalimat;
