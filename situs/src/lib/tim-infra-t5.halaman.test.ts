@@ -229,7 +229,13 @@ describe("tim, jalan beraspal, dan pembanding pipeline: tabel tim dari naskah, 2
     expect(empat * 4 + dua * 2).toBe(28);
     expect(halaman).toContain(`Totalnya 4 × ${empat} + 2 × ${dua} = ${empat * 4 + dua * 2} orang.`);
     expect(naskah).toContain("Totalnya 4 × 6 + 2 × 2 = 28 orang.");
-    expect(halaman).toContain(`Tiap service dipegang ${empat * 4 + dua * 2} ÷ 6 = ${koma(bulat(28 / 6, 1))} orang`);
+    const fungsi = ["Platform", "SRE", "Security"];
+    const orangProduk = timPage.filter((x) => !fungsi.includes(x.tim)).reduce((a, x) => a + x.orang, 0);
+    expect(orangProduk).toBe(20);
+    expect(halaman).toContain(`Dibagi enam service, itu ${empat * 4 + dua * 2} ÷ 6 = ${koma(bulat(28 / 6, 1))} orang per service bila semua tim dihitung. Bila hanya lima tim produk, hasilnya ${orangProduk} ÷ 6 = ${koma(bulat(orangProduk / 6, 1))}. Platform, SRE, dan Security tidak memegang service produk`);
+    expect(halaman).not.toContain("Tiap service dipegang");
+    expect(baca("situs/src/content/docs/tahap-5/modul-ke-service.mdx")).toContain("28 ÷ 6 = 4,7 orang per service untuk semua tim, dan 20 ÷ 6 = 3,3 untuk lima tim produk");
+    expect(baca("situs/src/content/docs/tahap-5/m44-rilis-menunggu-lima-tim.mdx")).toContain("Ketiganya memegang cluster, pipeline, SLO, dan tinjauan keamanan, bukan service produk");
     expect(naskah).toContain("| Orang per service | tim ÷ service | 28 ÷ 6 | 4,7 (Tahap 4: 13 ÷ 6 = 2,2 di ADR 45) |");
     expect(halaman).toContain("Naskah menolak membiarkan tiap tim membuat pipeline dan dashboard sendiri, karena enam service akan punya enam konfigurasi berbeda.");
     expect(adr58).toContain("Tiap tim membuat pipeline dan dashboard sendiri (ditolak: 8 tim dan 6 service memberi enam konfigurasi berbeda)");
@@ -312,7 +318,9 @@ describe("trace lintas service: versi, W3C, rekaman bagian A dan B, dan konfigur
     expect(r241).toContain("`opentelemetry-instrumentation-django` 0.66b2, unggahan 2026-10-29T17:37:26Z");
     expect(halaman).toContain("OpenTelemetry Go v1.47.0 dan otelhttp v0.72.0, keduanya terbit 2026-10-02 menurut proxy modul Go.");
     expect(halaman).toContain("Naskah menulis image Collector 0.163.0, tetapi tag itu tidak ada di Docker Hub (dibuka 2026-11-04). Tag 0.163.1 dan 0.163.2 ada, dan lab memakai 0.163.2.");
-    expect(halaman).toContain("Shorebird. Versi yang dibaca adalah v1.6.131, terbit 2026-10-23.".replace("Shorebird. ", ""));
+    expect(halaman).toContain("Naskah menulis v1.6.131 (terbit 2026-10-23), sedangkan rilis terbaru pada 2026-11-04 adalah v1.6.136 (terbit 2026-11-03).");
+    expect(halaman).not.toContain("Versi yang dibaca adalah v1.6.131");
+    expect(r241).toContain("rilis terbaru v1.6.136 terbit 2026-11-03T01:30:00Z");
     expect(halaman).toContain("npm [@opentelemetry/sdk-node](https://www.npmjs.com/package/@opentelemetry/sdk-node) 0.300.0 (terbit 2026-10-20)");
     expect(halaman).toContain("0.66b2 (terbit 2026-10-29)");
     expect(halaman).toContain("Serverpod 4.1.0 (pub.dev, terbit 2026-10-31)");
@@ -612,7 +620,7 @@ describe("tab Di stack lain, tautan per kalimat, dan kalimat dengan kata kuat: t
       "SRE melatih failover tiap bulan dan memegang tinjauan SLO ([[t5-rpo-rto]]).",
       "canary dengan rollback otomatis ([[t5-rollout]]).",
       "karena Argo CD Tidak dijalankan ([[t5-rollout]]).",
-      "Tiap service dipegang 28 ÷ 6 = 4,7 orang (Hitungan atas Asumsi, angka yang sama di [[t5-service]]).",
+      "Platform, SRE, dan Security tidak memegang service produk (Hitungan atas Asumsi, angka yang sama di [[t5-service]]).",
       "**Yang akan merevisinya.** [[t5-onprem]] menimbang tim Platform dan SRE yang tumbuh melewati 6 orang, dari 4 + 2 sekarang. [[t5-adr-60]] menulis pemicu provenance SLSA dan atestasi app yang masih ditunda.",
       "Rilis store bertahap dan versi app lama tetap mengikuti [[E1]].",
       "ADR 44 baru memindai file konfigurasi staging, dan rekamannya hanya dua file contoh ([[t4-infra-secret]]).",
@@ -638,7 +646,8 @@ describe("tab Di stack lain, tautan per kalimat, dan kalimat dengan kata kuat: t
       "| F. Tail sampling di Collector |",
       "| E. Head sampling saja |",
       "Shorebird v1.6.131 hanya untuk perbaikan Dart, tiap patch lewat feature flag.",
-      "Versi yang dibaca adalah v1.6.131, terbit 2026-10-23.",
+      "Naskah menulis v1.6.131 (terbit 2026-10-23)",
+      "Head sampling tidak dijalankan di lab. Rekaman bagian B hanya memperlihatkan kebijakan `status_code` di Collector menyimpan 11 dari 11 trace berkesalahan.",
       "- **E ditolak** karena head sampling tidak bisa menjamin trace berkesalahan tersimpan.",
       "- **D ditolak** karena 48,0 GB per hari tersimpan penuh, sedangkan tail sampling menyimpan 2,9 GB",
     ]) expect(badan, k).toContain(k);
@@ -907,5 +916,62 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka
     expect(sidikSekarang.tautan).toEqual(SIDIK.tautan);
     expect(sidikSekarang.glosarium).toEqual(SIDIK.glosarium);
     expect(sidikSekarang.berkas).toEqual(SIDIK.berkas);
+  });
+});
+
+describe("tinjauan 5.27: lingkup otelhttp dari kode, atribusi naskah, premis jaga, tabel Workbook, judul bagian, Supabase, dan glosarium", () => {
+  test("otelhttp: program layanan membungkus client dan handler, program ledger hanya handler dan hanya bila alamat OTLP diisi", () => {
+    const ledgerGo = baca("labs/api-t5/cmd/ledger/main.go");
+    expect(layananGo).toContain("otelhttp.NewTransport(");
+    expect(layananGo).toContain("otelhttp.NewHandler(");
+    expect(ledgerGo).toContain("otelhttp.NewHandler(");
+    expect(ledgerGo).not.toContain("otelhttp.NewTransport");
+    expect(ledgerGo).not.toMatch(/http\.(Client|DefaultClient|Get\(|Post\(|NewRequest)/);
+    expect(ledgerGo).toMatch(/if \*otlp != "" \{\s*srv\.Handler = otelhttp\.NewHandler\(/);
+    expect(halaman).toContain("Program service pembayaran dan notifikasi membungkus transport client dan handler server dengan otelhttp. Program ledger hanya membungkus handler server, dan hanya bila alamat OTLP diisi, karena ia tidak memanggil service lain (Dibaca dari kode):");
+    expect(halaman).not.toContain("Di tiap service, handler server dan transport client dibungkus otelhttp");
+  });
+  test("atribusi naskah: 'delapan tim merilis hampir tiap hari' ada di bagian 1 naskah, dan baris ADR 58 menulis 'tiap hari'", () => {
+    expect(naskah).toContain("28 orang dalam delapan tim merilis hampir tiap hari ke enam service.");
+    expect(adr58).toContain("SLO 99,9% terlalu ketat untuk delapan tim yang merilis tiap hari");
+    expect(halaman).toContain("Naskah menulis delapan tim merilis hampir tiap hari, jadi menunggu satu minggu memperlambat rilis.");
+    expect(halaman).toContain("Saat SLO 99,9% terlalu ketat untuk rilis hampir harian.");
+    expect(hitungKali(halaman, "hampir tiap hari")).toBe(1);
+    expect(hitungKali(halaman, "hampir harian")).toBe(1);
+  });
+  test("jaga: satu orang per minggu adalah Asumsi halaman, buku SRE memakai primer dan sekunder (dari baris riset), jadi tabel adalah batas bawah", () => {
+    expect(halaman).toContain("dengan satu orang jaga tiap minggu (Asumsi halaman ini)");
+    expect(halaman).toContain("Tabel memakai satu orang jaga per tim tiap minggu (Asumsi halaman ini). Buku SRE yang sama menghitung dua orang jaga sekaligus, primer dan sekunder. Dari situ ia menurunkan minimal delapan engineer per tim satu lokasi untuk jaga 24 jam. Karena itu angka tabel adalah batas bawah.");
+    expect(barisRiset("R5-242")).toContain("delapan engineer minimal untuk rotasi 24/7 satu lokasi dengan primer dan sekunder");
+    expect(bulat((2 / 4) * 100, 0)).toBe(50); // dua orang jaga sekaligus dalam tim berempat: separuh waktu, bukan 25%
+  });
+  test("tabel Workbook: jendela pendek ada di tabel 5-8, bukan 5-9, dan tabel 5-6 memuat laju 14,4, 6, dan 1", () => {
+    const r = barisRiset("R5-242");
+    expect(r).toContain("tabel 5-8: 1 jam dengan 5 menit, 6 jam dengan 30 menit, 3 hari dengan 6 jam");
+    expect(r).not.toContain("tabel 5-9");
+    expect(r).toContain("tabel 5-6: 2% dalam 1 jam laju 14,4 (page), 5% dalam 6 jam laju 6 (page), 10% dalam 3 hari laju 1 (ticket)");
+  });
+  test("judul bagian terkunci (teks h2 dan h3, urutan), dan klaim paket Supabase terkunci", () => {
+    const baris = badan.split("\n");
+    expect(baris.filter((b) => b.startsWith("## ")).map((b) => b.slice(3))).toEqual(["Inti"]);
+    expect(baris.filter((b) => b.startsWith("### ")).map((b) => b.slice(4))).toEqual([
+      "Kenapa ini ada", "Jalan beraspal: template dan pipeline", "Repo konfigurasi dan GitOps", "Trace lintas service", "Tail sampling: simpan yang berguna",
+      "SLO dan burn rate", "App Flutter dan Shorebird", "Di stack lain",
+      "ADR 58: jalan beraspal, trace yang menyambung, tail sampling, dan alert dari laju anggaran", "Sengaja belum dilakukan",
+      "Cek diri", "Saat me-review kode AI, cek ini", "Bacaan lanjut",
+    ]);
+    expect(hitungKali(halaman, "hanya tersedia di paket Pro, Team, dan Enterprise")).toBe(1);
+    expect(hitungKali(halaman, "Metrics API menyediakan metrik database yang kompatibel Prometheus, masih beta, dan tidak ada di Supabase yang dijalankan sendiri.")).toBe(1);
+  });
+  test("glosarium: definisi Burn rate, GitOps, SLO, dan Tail sampling sama dengan kalimat di halaman", () => {
+    const g = JSON.parse(baca("situs/data/glosarium.json")) as { t: string; d: string; b: string }[];
+    const d = Object.fromEntries(g.filter((x) => x.b === "t5-tim-infra").map((x) => [x.t, x.d]));
+    expect(Object.keys(d).sort()).toEqual(["Burn rate", "GitOps", "SLO (service level objective)", "Tail sampling"]);
+    expect(d["Burn rate"]).toBe("Laju habisnya anggaran kegagalan dibanding laju yang menghabiskannya tepat di akhir periode: laju 1 menghabiskannya tepat di akhir, laju 14,4 menghabiskannya 14,4 kali lebih cepat.");
+    expect(d["GitOps"]).toBe("Cara mengelola infrastruktur: keadaan yang diinginkan ditulis di repo Git, dan alat menyamakan cluster dengannya.");
+    expect(d["SLO (service level objective)"]).toBe("Target terukur untuk satu service, misalnya ketersediaan 99,9% dalam 30 hari. Selisihnya dengan 100% adalah anggaran kegagalan.");
+    expect(d["Tail sampling"]).toBe("Memilih trace yang disimpan sesudah melihat semua atau sebagian besar span-nya, sehingga trace berkesalahan bisa selalu disimpan.");
+    expect(halaman).toContain("laju 1 menghabiskannya tepat di akhir periode, dan laju 14,4 menghabiskannya 14,4 kali lebih cepat");
+    expect(halaman).toContain("Tail sampling memutuskan sesudah melihat semua atau sebagian besar span satu trace. Ia bisa selalu menyimpan trace yang memuat error");
   });
 });

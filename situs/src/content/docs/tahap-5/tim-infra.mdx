@@ -44,7 +44,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: Platform menyediakan jalan beraspal, SRE memegang SLO dan latihan failover, dan tiap tim produk menjawab alert service miliknya.">
 
-Delapan pekerjaan di bawah ini punya pemilik di naskah. Pilah tiap pekerjaan ke Platform, SRE, tim produk, atau Security, lalu baca alasannya.
+Tujuh dari delapan pekerjaan di bawah ini punya pemilik yang tertulis di naskah, dan satu disimpulkan dari penalaran. Pilah tiap pekerjaan ke Platform, SRE, tim produk, atau Security, lalu baca alasannya.
 
 Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] diatur di [Label sumber](/cara-pakai/#label-sumber). Empat label turunan dipakai di halaman ini:
 
@@ -64,7 +64,7 @@ Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] diatur 
 </ol>
 </noscript>
 
-**Ubah satu hal:** ganti ukuran tim yang bergiliran jaga. Tim berempat memberi tiap orang 1 ÷ 4 = 25% minggu jaga. Tim SRE atau Security berdua memberi 1 ÷ 2 = 50% (Hitungan atas Asumsi naskah). Tabel jaga ada di bagian Paham.
+**Ubah satu hal:** ganti ukuran tim yang bergiliran jaga, dengan satu orang jaga tiap minggu (Asumsi halaman ini). Tim berempat memberi tiap orang 1 ÷ 4 = 25% minggu jaga. Tim SRE atau Security berdua memberi 1 ÷ 2 = 50% (Hitungan atas Asumsi naskah). Tabel jaga ada di bagian Paham.
 
 </Blok>
 
@@ -87,7 +87,7 @@ Delapan tim itu dibagi seperti tabel ini. Semua angkanya Asumsi cerita:
 | SRE | 2 | Dewi | SLO, giliran jaga, latihan failover |
 | Security | 2 | Laras | threat model, tinjauan, uji penetrasi lokal |
 
-Totalnya 4 × 6 + 2 × 2 = 28 orang. Tiap service dipegang 28 ÷ 6 = 4,7 orang (Hitungan atas Asumsi, angka yang sama di [[t5-service]]).
+Totalnya 4 × 6 + 2 × 2 = 28 orang. Dibagi enam service, itu 28 ÷ 6 = 4,7 orang per service bila semua tim dihitung. Bila hanya lima tim produk, hasilnya 20 ÷ 6 = 3,3. Platform, SRE, dan Security tidak memegang service produk (Hitungan atas Asumsi, angka yang sama di [[t5-service]]).
 
 ### Jalan beraspal: template dan pipeline
 
@@ -119,7 +119,7 @@ ADR 44 baru memindai file konfigurasi staging, dan rekamannya hanya dua file con
 
 Satu pembayaran di Tahap 5 bisa melewati lebih dari satu service, dan trace menyambungnya lewat header `traceparent`. W3C Trace Context (Rekomendasi 23 November 2021) mendefinisikan header itu untuk HTTP, dan protokol lain diatur terpisah di registri protokol ([W3C: Trace Context](https://www.w3.org/TR/trace-context/), dibuka 2026-11-04). Header di event outbox atau Kafka Tidak dijalankan di lab. Rekomendasi itu hanya mengikat HTTP dan merujuk bentuk untuk protokol lain ke registri.
 
-Lab t5-service memakai OpenTelemetry Go v1.47.0 dan otelhttp v0.72.0, keduanya terbit 2026-10-02 menurut proxy modul Go. Di tiap service, handler server dan transport client dibungkus otelhttp (Dibaca dari kode):
+Lab t5-service memakai OpenTelemetry Go v1.47.0 dan otelhttp v0.72.0, keduanya terbit 2026-10-02 menurut proxy modul Go. Program service pembayaran dan notifikasi membungkus transport client dan handler server dengan otelhttp. Program ledger hanya membungkus handler server, dan hanya bila alamat OTLP diisi, karena ia tidak memanggil service lain (Dibaca dari kode):
 
 <Snippet file="labs/api-t5/cmd/layanan/main.go" lines="78:80" lang="go" title="Kode lab: labs/api-t5/cmd/layanan/main.go, transport client dengan otelhttp" />
 
@@ -181,11 +181,13 @@ Naskah menulis alert hanya untuk gejala: burn rate SLO, umur notifikasi uang ter
 | SRE | 2 | 1 ÷ 2 = 50% | di atas batas |
 | Security | 2 | 1 ÷ 2 = 50% | di atas batas |
 
+Tabel memakai satu orang jaga per tim tiap minggu (Asumsi halaman ini). Buku SRE yang sama menghitung dua orang jaga sekaligus, primer dan sekunder. Dari situ ia menurunkan minimal delapan engineer per tim satu lokasi untuk jaga 24 jam. Karena itu angka tabel adalah batas bawah.
+
 Naskah menulis rotasi per tim tanpa mengecualikan SRE dan Security. Bila keduanya ikut bergiliran sendiri, tiap orangnya jaga separuh dari minggu yang ada (Hitungan atas Asumsi). Cara lain memenuhinya tidak ditulis naskah.
 
 ### App Flutter dan Shorebird
 
-Shorebird memasang patch ke app yang sudah terpasang tanpa menunggu review store. Patch hanya mengubah kode Dart satu rilis. Kode native, aset, dan versi Flutter butuh rilis store baru ([FAQ Shorebird](https://docs.shorebird.dev/code-push/faq/), dibuka 2026-11-04). Versi yang dibaca adalah v1.6.131, terbit 2026-10-23.
+Shorebird memasang patch ke app yang sudah terpasang tanpa menunggu review store. Patch hanya mengubah kode Dart satu rilis. Kode native, aset, dan versi Flutter butuh rilis store baru ([FAQ Shorebird](https://docs.shorebird.dev/code-push/faq/), dibuka 2026-11-04). Naskah menulis v1.6.131 (terbit 2026-10-23), sedangkan rilis terbaru pada 2026-11-04 adalah v1.6.136 (terbit 2026-11-03).
 
 Pedoman Apple 2.5.2 melarang app mengunduh, memasang, atau menjalankan kode yang menambah atau mengubah fitur app ([App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), diperbarui 2026-10-16, dibuka 2026-11-04). Google Play melarang app mengunduh kode yang bisa dijalankan dari luar Google Play. Pengecualiannya kode yang berjalan di virtual machine atau interpreter dengan akses tidak langsung ke API Android ([Google Play: Device and Network Abuse](https://support.google.com/googleplay/android-developer/answer/9888379), dibuka 2026-11-04).
 
@@ -293,7 +295,7 @@ Tabel kedua membandingkan trace mana yang disimpan:
 - **A ditolak** karena enam service akan punya enam konfigurasi berbeda (naskah), dan tiap tim menanggung pekerjaan di luar fiturnya (Penalaran).
 - **C tidak dipilih** karena dokumentasi OpenTelemetry menulis pilihan tail sampling bisa terbatas pada yang ditawarkan vendor, dan harga tidak dibaca. Opsi ini Tidak dijalankan.
 - **D ditolak** karena 48,0 GB per hari tersimpan penuh, sedangkan tail sampling menyimpan 2,9 GB dan tetap menyimpan semua trace berkesalahan.
-- **E ditolak** karena head sampling tidak bisa menjamin trace berkesalahan tersimpan. Rekaman bagian B memperlihatkan hasil sebaliknya untuk kebijakan `status_code`: 11 dari 11.
+- **E ditolak** karena head sampling tidak bisa menjamin trace berkesalahan tersimpan. Head sampling tidak dijalankan di lab. Rekaman bagian B hanya memperlihatkan kebijakan `status_code` di Collector menyimpan 11 dari 11 trace berkesalahan.
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
