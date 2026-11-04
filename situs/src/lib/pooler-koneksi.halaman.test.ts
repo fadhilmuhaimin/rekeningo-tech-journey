@@ -551,6 +551,9 @@ describe("sumber luar: baris riset, tanggal akses, tautan, versi, dan kutipan", 
     expect(r).toContain("This helps prevent all connections from being closed at the exact same time, starving the pool.");
     expect(badan).toContain("Komentar kodenya menulis bahwa jitter mencegah semua koneksi ditutup di detik yang sama, sampai pool kehabisan koneksi");
     expect(badan).toContain("Kode sumber pgx v5.11.0 menulis `QueryExecModeCacheStatement` sebagai mode bawaan: pgx menyiapkan dan menyimpan prepared statement.");
+    // atribusi: kalimat "bisa tidak cocok dengan proxy seperti PgBouncer" ada di komentar field DefaultQueryExecMode (bukan di komentar konstanta QueryExecModeCacheStatement)
+    expect(badan).toContain("Komentar `DefaultQueryExecMode` menulis bahwa ini bisa tidak cocok dengan proxy seperti PgBouncer");
+    expect(barisRiset("R5-191")).toContain("`DefaultQueryExecMode`: \"By default pgx uses the extended protocol and automatically prepares and caches prepared statements. This may be incompatible with proxies such as PgBouncer");
     expect(badan).toContain("Mode `QueryExecModeDescribeExec` bisa bermasalah dengan pooler yang berganti koneksi di antara dua round trip.");
   });
   test("R5-192: PostgreSQL 17 max_connections bawaan 100, cadangan 3 dan 0, alokasi sumber daya, standby, work_mem, dan 53300", () => {
