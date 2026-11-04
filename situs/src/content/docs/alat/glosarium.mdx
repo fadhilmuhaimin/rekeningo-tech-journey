@@ -40,6 +40,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **ADR** (Architecture Decision Record) | Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya. | [[t4-modul]] |
 | **Alamat keluar** | Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak. | [[t4-m34]] |
 | **Alert** | Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang. | [[t3-tim-infra]] |
+| **Alert TLS** | Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required. | [[t5-mtls]] |
 | **Allowlist** | Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak. | [[t4-ssrf]] |
 | **API gateway** | Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing. | [[C4]] |
 | **Argon2id** | Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar. | [[t2-login-aman]] |
@@ -152,6 +153,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **MITM** (man-in-the-middle) | Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya. | [[t3-m26]] |
 | **Modular monolith** | Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas. | [[t4-modul]] |
 | **Monolith** | Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit. | [[A1]] |
+| **mTLS** (mutual TLS) | TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client. | [[t5-mtls]] |
 | **MVCC** (Multi-Version Concurrency Control) | Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis. | [[t2-isolation-level]] |
 | **N+1 query** | Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu. | [[t2-n-plus-1]] |
 | **NetworkPolicy** | Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya. | [[t5-m47]] |
@@ -211,6 +213,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **RTO** (recovery time objective) | Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan. | [[t5-prd]] |
 | **Saga** | Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi. | [[D3]] |
 | **Saldo cache** | Salinan jumlah posting satu buku di kolom `buku.saldo_cache`, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting. | [[t2-saldo-bukan-kolom]] |
+| **SAN** (Subject Alternative Name) | Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil. | [[t5-mtls]] |
 | **Secret manager** | Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya. | [[t4-infra-secret]] |
 | **Secure storage** | Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore. | [[t1-idor]] |
 | **SELECT FOR UPDATE** | Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu. | [[t2-race-lock]] |

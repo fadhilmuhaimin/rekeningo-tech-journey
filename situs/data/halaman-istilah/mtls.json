@@ -1,0 +1,30 @@
+{
+  "istilah": "mTLS (mutual TLS)",
+  "sehari_hari": "mTLS adalah TLS dua arah. Selain client memeriksa sertifikat server, server meminta sertifikat dari client dan memeriksanya terhadap CA yang ia percaya.",
+  "cerita": [
+    {
+      "rujukan": "t5-m47",
+      "teks": "Pod uji di cerita memanggil ledger tanpa sertifikat, dan ledger versi pertama membuat jurnal untuk pemanggil itu. Di versi dengan mTLS, pemanggil tanpa sertifikat ditolak saat handshake dan jurnal untuk key itu tetap 0 (Rekaman lab, `rentan.txt` bagian B)."
+    }
+  ],
+  "mekanisme": [
+    "Server meminta sertifikat client saat handshake. Di Go, nilai `ClientAuth` yang mewajibkan sertifikat valid adalah `RequireAndVerifyClientCert`.",
+    "Server memeriksa rantai sertifikat client terhadap CA yang ia percaya, masa berlakunya, dan kegunaannya.",
+    "Sertifikat yang tidak lolos membuat server menghentikan handshake dengan alert, dan handler aplikasi tidak berjalan.",
+    "Aplikasi membaca nama pemanggil dari sertifikat yang lolos, misalnya dari SAN, lalu memutuskan apa yang boleh dilakukan pemanggil itu."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memakai `RequestClientCert` atau `VerifyClientCertIfGiven` dan mengira pemanggil tanpa sertifikat pasti ditolak. Dokumentasi Go menulis bahwa kedua nilai itu tidak mewajibkan client mengirim sertifikat.",
+    "Mengira mTLS menilai niat pemanggil. mTLS menunjukkan siapa yang memanggil, dan service sah yang dibajak tetap memegang izinnya."
+  ],
+  "terkait": ["CA (Certificate Authority)", "Handshake TLS", "SAN (Subject Alternative Name)"],
+  "sumber": [
+    {
+      "riset": "R5-200",
+      "judul": "RFC 8446 bagian 4.4.2.4 dan Go crypto/tls (dibuka 2026-11-04)",
+      "url": "https://www.rfc-editor.org/rfc/rfc8446",
+      "catatan": "Bila client tidak mengirim sertifikat, server boleh meneruskan handshake atau menghentikannya dengan alert certificate_required. Dokumentasi Go crypto/tls membedakan nilai ClientAuth yang mewajibkan sertifikat valid dari yang tidak."
+    }
+  ]
+}

@@ -50,6 +50,14 @@ window.ISTILAH = {
   "t": "Alert",
   "u": "tahap-3/tim-infra/"
  },
+ "Alert TLS": {
+  "b": "t5-mtls",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-alert-tls",
+  "t": "Alert TLS",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "Allowlist": {
   "b": "t4-ssrf",
   "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
@@ -1707,6 +1715,15 @@ window.ISTILAH = {
   "t": "RLS (Row Level Security)",
   "u": "tahap-1/authorization/"
  },
+ "SAN": {
+  "b": "t5-mtls",
+  "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
+  "h": "istilah/san/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-san",
+  "t": "SAN (Subject Alternative Name)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "SELECT FOR UPDATE": {
   "b": "t2-race-lock",
   "d": "Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu.",
@@ -1900,6 +1917,15 @@ window.ISTILAH = {
   "t": "Status code",
   "u": "tahap-1/http/"
  },
+ "Subject Alternative Name": {
+  "b": "t5-mtls",
+  "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
+  "h": "istilah/san/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-san",
+  "t": "SAN (Subject Alternative Name)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "TTL": {
   "b": "B9",
   "d": "Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.",
@@ -2092,6 +2118,14 @@ window.ISTILAH = {
   "s": "istilah-alert",
   "t": "Alert",
   "u": "tahap-3/tim-infra/"
+ },
+ "alert TLS": {
+  "b": "t5-mtls",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-alert-tls",
+  "t": "Alert TLS",
+  "u": "tahap-5/mtls-antar-service/"
  },
  "allowlist": {
   "b": "t4-ssrf",
@@ -2811,6 +2845,15 @@ window.ISTILAH = {
   "t": "Lost update",
   "u": "tahap-2/race-lock/"
  },
+ "mTLS": {
+  "b": "t5-mtls",
+  "d": "TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.",
+  "h": "istilah/mtls/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-mtls",
+  "t": "mTLS (mutual TLS)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "merchant": {
   "b": "t3-jembatan",
   "d": "Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.",
@@ -2885,6 +2928,15 @@ window.ISTILAH = {
   "s": "istilah-monolith",
   "t": "Monolith",
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
+ },
+ "mutual TLS": {
+  "b": "t5-mtls",
+  "d": "TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.",
+  "h": "istilah/mtls/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-mtls",
+  "t": "mTLS (mutual TLS)",
+  "u": "tahap-5/mtls-antar-service/"
  },
  "n+1 query": {
   "b": "t2-n-plus-1",

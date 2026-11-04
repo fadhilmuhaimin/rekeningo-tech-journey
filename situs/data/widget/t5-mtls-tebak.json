@@ -1,0 +1,44 @@
+{
+  "id": "t5-mtls-tebak",
+  "judul": "Sertifikat yang CN-nya pembayaran dan SAN-nya notifikasi",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "labs/t5-service/output/mtls.txt bagian D"
+  },
+  "adegan": [
+    "Lab menerbitkan satu sertifikat uji dari CA yang sama dengan CA ledger. CN, yaitu kolom nama di subjek sertifikat, berisi pembayaran. SAN, yaitu daftar nama yang disahkan CA, hanya memuat notifikasi.t5.lab.",
+    "Sertifikat itu belum kedaluwarsa dan kegunaannya untuk client. Pemanggil membawanya ke ledger dengan mTLS dan meminta jurnal topup_bank untuk akun uji."
+  ],
+  "pertanyaan": "Apa jawaban ledger?",
+  "pilihan": [
+    {
+      "teks": "Ledger menjawab 201: CN berisi pembayaran, jadi ledger memperlakukannya sebagai pembayaran dan membuat jurnal topup_bank.",
+      "benar": false,
+      "alasan": "Ledger tidak membaca CN. Di rekaman bagian D, sertifikat ini dijawab 403 atas nama notifikasi, dan jumlah jurnal topup_bank untuk akun uji tetap 0."
+    },
+    {
+      "teks": "Ledger menjawab 403: ia membaca identitas notifikasi dari SAN, dan notifikasi tidak boleh membuat jurnal topup_bank.",
+      "benar": true,
+      "alasan": "Rekaman bagian D: status 403 dengan identitas notifikasi dan jenis topup_bank. Identitas dibaca dari SAN pada rantai yang lolos verifikasi, bukan dari CN."
+    },
+    {
+      "teks": "Ditolak saat handshake, karena CN dan SAN berbeda.",
+      "benar": false,
+      "alasan": "Penolakan di handshake di rekaman bagian B berasal dari rantai yang tidak sah: tanpa sertifikat, CA lain, kedaluwarsa, atau kegunaan hanya untuk server. Sertifikat ini sah, jadi handshake lolos dan handler yang menjawab."
+    },
+    {
+      "teks": "Ledger menjawab 401: sertifikat ini tidak membawa identitas yang bisa dibaca.",
+      "benar": false,
+      "alasan": "Jawaban 401 di rekaman bagian D hanya untuk sertifikat tanpa SAN. Sertifikat ini punya tepat satu SAN berbentuk nama.t5.lab, jadi identitasnya terbaca: notifikasi."
+    }
+  ],
+  "penutup": "Ledger membaca identitas dari SAN pada rantai yang lolos verifikasi. CN dan header tidak dipakai, jadi sertifikat itu bertindak sebagai notifikasi dan dijawab 403.",
+  "label": {
+    "sumber": "Rekaman lab · mtls.txt",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Tepat",
+    "belum": "Belum tepat",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Jawaban yang tepat"
+  }
+}
