@@ -261,6 +261,15 @@
   "h": "/istilah/backup-dan-uji-pulih/"
  },
  {
+  "t": "Badai koneksi",
+  "d": "Banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak.",
+  "b": "t5-m46",
+  "n": "5.16 M46",
+  "u": "/tahap-5/m46-failover-semua-error/",
+  "s": "istilah-badai-koneksi",
+  "h": "/istilah/badai-koneksi/"
+ },
+ {
   "t": "Batch",
   "d": "Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.",
   "b": "t5-batch",

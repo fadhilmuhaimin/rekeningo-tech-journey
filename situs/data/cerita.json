@@ -4584,8 +4584,9 @@
       "lab": [
         "api-t5"
       ],
-      "ada": false,
-      "nomor": "5.16"
+      "ada": true,
+      "nomor": "5.16",
+      "menit": 12
     },
     {
       "id": "t5-pooler",
@@ -4790,14 +4791,15 @@
       "label": "Masalah 50 · minggu 12",
       "masalah": "Satu POS mengulang permintaan tanpa batas dan membuat merchant lain mendapat 429",
       "prasyarat": [
-        "t3-rate-limit-redis",
+        "t2-idempotency",
         "t4-webhook"
       ],
       "lab": [
         "t5-waf"
       ],
-      "ada": false,
-      "nomor": "5.24"
+      "ada": true,
+      "nomor": "5.24",
+      "menit": 12
     },
     {
       "id": "t5-waf",

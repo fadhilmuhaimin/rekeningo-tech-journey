@@ -1,0 +1,49 @@
+{
+  "id": "t5-m50-satu-pos",
+  "judul": "Satu mitra mengulang tanpa jeda, dan satu batas bersama membuat mitra lain ikut mendapat 429",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Baris pertama cerita (Ilustrasi) dan hitungan atasnya; baris kedua rekaman lab t5-waf · kuota.txt bagian C (mode kuota-bersama, jam bucket dibekukan)"
+  },
+  "baris": [
+    {
+      "label": "Pengulangan",
+      "sub": "kasir mitra, cerita",
+      "simpul": [
+        {
+          "teks": "Jawaban belum ada",
+          "sub": "status pembayaran menunggu"
+        },
+        {
+          "teks": "Kasir mengulang",
+          "sub": "tanpa jeda"
+        },
+        {
+          "teks": "3.000 per detik",
+          "sub": "216% dari puncak (Ilustrasi)",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "Batas bersama",
+      "sub": "satu bucket, rekaman",
+      "simpul": [
+        {
+          "teks": "620 permintaan",
+          "sub": "satu bucket 100 per detik"
+        },
+        {
+          "teks": "520 mendapat 429",
+          "sub": "100 lolos"
+        },
+        {
+          "teks": "Mitra B ikut 429",
+          "sub": "walau tidak mengulang",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Baris pertama adalah cerita (Ilustrasi) dan baris kedua rekaman lab dengan 600 dan 20 permintaan, bukan 3.000. Kotak oranye adalah hasil yang bukan niat tim. Laju sungguhan tidak diukur."
+}

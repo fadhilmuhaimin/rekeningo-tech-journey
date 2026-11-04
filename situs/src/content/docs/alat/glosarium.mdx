@@ -50,6 +50,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Backfill** | Script sekali jalan yang mengisi kolom baru untuk baris lama, biasanya bertahap per batch. | [[t2-skema-tanpa-downtime]] |
 | **Backoff** | Jeda yang makin panjang di antara percobaan ulang, ditambah keacakan (jitter) supaya banyak app tidak mengulang di detik yang sama. | [[t2-idempotency]] |
 | **Backup dan uji pulih** | Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai. | [[t4-m33]] |
+| **Badai koneksi** | Banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak. | [[t5-m46]] |
 | **Batch** | Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu. | [[t5-batch]] |
 | **Backpressure** | Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan. | [[t5-fanout]] |
 | **BFF** (Backend for Frontend) | Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile. | [[B11.2]] |
