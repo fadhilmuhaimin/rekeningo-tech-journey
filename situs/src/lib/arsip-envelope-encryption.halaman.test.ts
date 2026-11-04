@@ -367,7 +367,7 @@ describe("Hitungan atas Asumsi, label sumber, dan klaim dari dokumentasi", () =>
     expect(readme).toContain("Batasnya berlaku per versi kunci: `rotate` memulai hitungan baru, jadi 9,8 tahun adalah jarak rotasi terjauh, bukan akhir hidup kunci.");
     const r = barisRiset("R5-235");
     expect(r).toContain("`KeyType_AES128_GCM96` dan `KeyType_AES256_GCM96` tanpa `opts.Convergent` memakai `cipher.NewGCMWithRandomNonce`");
-    expect(r).toContain("baris 2230 sampai 2262");
+    expect(r).toContain("mulai baris 2230; `cipher.NewGCMWithRandomNonce` dipanggil di baris 2258");
     expect(badan).toContain("Kode OpenBao v2.7.2 memakai `NewGCMWithRandomNonce` untuk kunci AES-GCM tanpa convergent encryption (`sdk/helper/keysutil/policy.go`, fungsi `SymmetricEncryptRaw`, dibuka 2026-11-04).");
   });
   test("label turunan didefinisikan sebelum dipakai: Asumsi, Hitungan, Penalaran, Tidak dijalankan; Ilustrasi lewat Label sumber; [perlu verifikasi] hanya tiga baris (HSM, tab Serverpod, Sengaja belum)", () => {

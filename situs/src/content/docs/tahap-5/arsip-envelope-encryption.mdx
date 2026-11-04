@@ -244,7 +244,7 @@ blob = nonce + AESGCM(data_key).encrypt(nonce, teks, aad)`} />
 
 ### ADR 57: satu data key per file arsip, dibungkus KEK di KMS
 
-**Kebutuhan.** File arsip partisi ([[t5-partisi]]) dan cadangan keluar dari database utama, dan Laras bertanya siapa yang bisa membacanya. Yang disalin harus tidak terbaca tanpa kunci yang tetap di KMS. Satu bulan arsip di skala naskah 36,5 juta posting dan 9,1 GB (Hitungan atas Asumsi, [[t5-partisi]]).
+**Kebutuhan.** File arsip partisi ([[t5-partisi]]) dan cadangan keluar dari database utama. Dalam cerita Laras bertanya siapa yang bisa membacanya (Ilustrasi). Yang disalin harus tidak terbaca tanpa kunci yang tetap di KMS. Satu bulan arsip di skala naskah 36,5 juta posting dan 9,1 GB (Hitungan atas Asumsi, [[t5-partisi]]).
 
 **Status:** diterima sesudah ADR 49. Naskah tidak menulis tanggal ADR.
 
