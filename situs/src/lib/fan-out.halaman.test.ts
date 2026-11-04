@@ -412,7 +412,29 @@ describe("5.15 Hitungan atas angka yang tertulis di halaman", () => {
     expect(p).toContain("laju = 1.000.000 / 1.800 detik = 555,6 per detik");
     expect(p).toContain("pengirim = 555,6 x 0,3 = 166,7 -> 167");
     expect(p).toContain("consumer = ceil(167 / 4) = 42; partisi paling sedikit = 42 (satu partisi dibaca satu consumer dalam satu grup)");
-    expect(norm(blok.Paham)).toContain("Tabel di widget memakai 167 ÷ 0,3 = 556,7 per detik, sedikit di atas target 555,6.");
+    expect(norm(blok.Paham)).toContain("Tabel di widget memakai 167 pengirim dan 167 ÷ 0,3 = 556,7 per detik, sedikit di atas target 555,6, jadi sel 167 pengirim dan 1.000.000 perangkat menunjukkan 29,9 menit, sedangkan 168 pengirim di tabel ini memberi 29,8 menit.");
+    expect(idn((N * t) / 167 / 60, 1)).toBe("29,9");
+    // widget: sel 167 pengirim x 1.000.000 perangkat berisi "sebanyak consumer: 29,9 menit"
+    expect(JSON.stringify(widgetMentah)).toContain('"jumlah":167');
+  });
+  test("dua transaksi per user aktif (registry) di sebelah tiga transaksi naskah: 450.000, 66,7, L = 20,0, 5 dan 8 proses, 52,1 + 555,6 = 607,7", () => {
+    const trxRegistry = (registry as any).tahap[4].asumsi.trx;
+    expect(trxRegistry).toBe(2);
+    const aktif = 600000 / 3; // 600.000 transaksi uang di tabel naskah dan [[t5-prd]] = 200.000 aktif x 3
+    const harian2 = aktif * trxRegistry + 50000;
+    expect(idn(harian2, 0)).toBe("450.000");
+    const lunch2 = (harian2 * bagian) / jendela;
+    expect(idn(lunch2, 1)).toBe("66,7");
+    expect(idn(66.7 * t, 1)).toBe("20,0");
+    expect(Math.ceil(20 / c)).toBe(5);
+    expect(Math.ceil(20 / 0.7 / c)).toBe(8);
+    const puncak2 = (harian2 / 86400) * 10;
+    expect(idn(puncak2, 1)).toBe("52,1");
+    expect(idn(52.1 + 555.6, 1)).toBe("607,7");
+    expect(idn(607.7 / 100, 1)).toBe("6,1");
+    expect(norm(blok.Paham)).toContain("Naskah menghitung 3 transaksi uang per user aktif per hari, dan registry memuat 2. Dengan 2 transaksi, notifikasi uang sehari berjumlah 450.000 (400.000 transaksi uang dan 50.000 top-up bank), jadi λ makan siang 66,7 per detik, L = 66,7 × 0,3 = 20,0 pengirim, 5 proses minimal, dan 8 proses untuk terpakai paling tinggi ±70%. Puncak harian 52,1 per detik, jadi uang dan pengumuman 52,1 + 555,6 = 607,7 per detik, yaitu 6,1 kali 100 (Hitungan atas Asumsi).");
+    // 5.14 memakai kolom 2 transaksi dengan nilai yang sama (66,7)
+    expect(baca("situs/src/content/docs/tahap-5/m45-pengumuman-satu-juta.mdx")).toContain("| λ, uang datang per detik | (transaksi + top-up) × 0,8 ÷ 5.400 | 96,3 | 66,7 |");
   });
   test("4 pengirim 20,8 jam; 6 partisi × 4 = 24 pengirim = 12.500 detik = 3,5 jam; jam dihitung dari detik tertulis", () => {
     expect(Math.round((N * t) / c)).toBe(75000);
@@ -675,8 +697,8 @@ describe("5.15 label sumber, kata, dan klaim berlingkup", () => {
     expect(r181).toContain("Failing a sent batch now bumps the producer epoch, as the Java client does.");
     expect(r181).toContain("dibuat 2026-10-06, ditutup 2026-10-12");
     expect(r181).toContain("is reproduced with a fake broker, not on a real cluster");
-    expect(norm(blok.Paham)).toContain("franz-go v1.22.1 pernah mengakui rekaman yang tidak ada di log dalam kasus langka (issue 1484 di repositori franz-go), dan v1.22.2 memperbaikinya");
-    expect(norm(blok.Paham)).toContain("Lab memakai v1.22.2, dan consumer tetap idempoten.");
+    expect(norm(blok.Paham)).toContain("franz-go v1.22.1 bisa mengakui rekaman yang tidak ada di log dalam kasus langka, dan v1.22.2 memperbaikinya");
+    expect(norm(blok.Paham)).toContain("Issue 1484 di repositori franz-go mereproduksi kasusnya dengan broker tiruan, bukan di cluster sungguhan. Lab memakai v1.22.2, dan consumer tetap idempoten.");
     expect(readmeLab).toContain("`proxy.golang.org`: terbit 2026-10-13");
   });
   test("opsi C, D, E: kutipan dokumentasi ada di baris riset dan kalimat tabel berlingkup", () => {
@@ -694,13 +716,18 @@ describe("5.15 label sumber, kata, dan klaim berlingkup", () => {
     expect(tabel.slice(2).map((r) => r[0])).toEqual(["A. Tambah worker saja", "B. Rentang perangkat di PostgreSQL", "C. NATS JetStream", "D. Redpanda", "E. CDC dengan Debezium", "F. Kafka dengan relay dari outbox"]);
     expect(tabel[4]![3]).toBe("Exactly once butuh ID pesan dan server yang mengingatnya; belum ada rekaman");
     expect(tabel[5]![3]).toContain("Lisensi BSL 1.1 melarang pemakaian untuk service streaming atau queue komersial bagi pihak ketiga");
-    expect(tabel[6]![3]).toBe("Slot menahan WAL, dan `max_slot_wal_keep_size` bawaan -1 berarti tanpa batas");
+    expect(tabel[6]![3]).toBe("Slot dapat menahan WAL tanpa batas bila `max_slot_wal_keep_size` bernilai bawaan -1");
     expect(tabel[7]![5]).toBe("Rekaman lab `aliran.txt`, `grup.txt`, `kuota.txt`, dan `antrean.txt`");
     expect(tabel[2]![5]).toBe("Rekaman lab `aliran.txt` bagian B dan `antrean.txt` bagian A");
   });
-  test("tabel Sengaja belum punya tiga kolom di tiap baris dan enam butir", () => {
+  test("tabel Sengaja belum punya tiga kolom di tiap baris dan tujuh butir", () => {
     const tabel = tabelDi(/^\| Yang ditunda \| Kenapa ditunda \| Muncul lagi di \|/);
-    expect(tabel.length).toBe(8);
+    expect(tabel.length).toBe(9);
+    expect(tabel[8]![0]).toBe("Jalur galat consumer (rekaman yang gagal diproses)");
+    // README lab, bagian "Selisih dengan naskah": rekaman gagal tidak dicatat dan baru dibaca lagi sesudah consumer dimulai ulang atau partisinya berpindah
+    expect(readmeLab).toContain("tidak dicatat offset-nya dan tidak dibaca ulang di dalam proses consumer; baru sesudah consumer dimulai ulang atau partisinya berpindah");
+    expect(readmeLab).toContain("bila rekaman berikutnya di partisi yang sama berhasil, offset yang lebih tinggi ikut menutupnya");
+    expect(tabel[8]![1]).toBe("Tidak diperankan di rekaman. README lab menulis bahwa rekaman yang gagal tidak dicatat offsetnya dan baru dibaca lagi sesudah consumer dimulai ulang atau partisinya berpindah, dan offset rekaman berikutnya di partisi yang sama menutupnya");
     for (const r of tabel) expect(r.length).toBe(3);
   });
   test("ADR: delapan aturan, tiga pre-mortem, enam kapan salah, nomor daftar berurutan", () => {

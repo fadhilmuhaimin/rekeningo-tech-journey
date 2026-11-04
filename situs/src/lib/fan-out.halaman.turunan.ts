@@ -76,11 +76,12 @@ export const TURUNAN: any = {
   "** `notifikasi_id` pengumuman dibuat dari nomor pengumuman dan nomor perangkat (UUID versi 5), jadi sama di setiap pengiriman ulang.",
   "Penyedia push tiruan hanya menghitung id berbeda per perangkat dan tidak menyaring ulangan.",
   "Satu notifikasi per perangkat berlaku bila penerima, yaitu app atau sistem operasi, menyaring id yang sama (README lab).",
-  "Perangkat dari rentang yang diulang lalu menerima dua id berbeda:",
+  "Sebagian perangkat di rentang yang diulang, yaitu yang sudah dikirimi sebelum consumer mati, lalu menerima lebih dari satu id berbeda (paling banyak 504 di rekaman):",
   "Di lab pengiriman ke penyedia push tidak menjadi tepat satu kali, karena rentang yang mati dikirim ulang.",
   "Producer idempoten juga bukan jaminan:",
-  "1 pernah mengakui rekaman yang tidak ada di log dalam kasus langka (issue 1484 di repositori franz-go), dan v1.",
+  "1 bisa mengakui rekaman yang tidak ada di log dalam kasus langka, dan v1.",
   "2 memperbaikinya ([franz-go, CHANGELOG](https:",
+  "Issue 1484 di repositori franz-go mereproduksi kasusnya dengan broker tiruan, bukan di cluster sungguhan.",
   "2, dan consumer tetap idempoten.",
   "Transaksi Kafka tidak dijalankan.",
   "**Backpressure menjaga laju di bawah kuota.",
@@ -106,7 +107,13 @@ export const TURUNAN: any = {
   "400 detik), 4 pengirim per proses, 0,3 detik per pengiriman, dan puncak harian dengan faktor 10.",
   "Uang memakai 8 proses × 4 = 32 pengirim, yaitu 32 ÷ 0,3 = 106,7 per detik dan terpakai 90,3%.",
   "Dengan 11 proses terpakai 65,7%, dihitung dari nilai tepat 96,296 ÷ 146,667.",
-  "Tabel di widget memakai 167 ÷ 0,3 = 556,7 per detik, sedikit di atas target 555,6.",
+  "Tabel di widget memakai 167 pengirim dan 167 ÷ 0,3 = 556,7 per detik, sedikit di atas target 555,6, jadi sel 167 pengirim dan 1.",
+  "000 perangkat menunjukkan 29,9 menit, sedangkan 168 pengirim di tabel ini memberi 29,8 menit.",
+  "Naskah menghitung 3 transaksi uang per user aktif per hari, dan registry memuat 2.",
+  "Dengan 2 transaksi, notifikasi uang sehari berjumlah 450.",
+  "000 transaksi uang dan 50.",
+  "000 top-up bank), jadi λ makan siang 66,7 per detik, L = 66,7 × 0,3 = 20,0 pengirim, 5 proses minimal, dan 8 proses untuk terpakai paling tinggi ±70%.",
+  "Puncak harian 52,1 per detik, jadi uang dan pengumuman 52,1 + 555,6 = 607,7 per detik, yaitu 6,1 kali 100 (Hitungan atas Asumsi).",
   "Ada batas ketiga di atas partisi dan pengirim, yaitu kuota.",
   "Dengan semua pengirim dan partisi tersedia, 1.",
   "000 − 75,2) = 101 detik adalah yang tercepat.",
@@ -121,9 +128,11 @@ export const TURUNAN: any = {
   "**Event pembayaran lewat jalur yang sama.",
   "** Baris outbox `stream` dari `POST /transfers` menjadi satu rekaman `pembayaran.",
   "semua data satu user dikirim ke partisi yang sama.",
-  "Di lab kunci yang sama selalu jatuh di partisi yang sama, sehingga urutan per merchant terjaga.",
+  "Di lab kunci yang sama selalu jatuh di partisi yang sama, dan Kafka menyimpan rekaman satu partisi menurut urutan penulisannya.",
   "Urutan antar merchant tidak dijaga.",
-  "Rekaman bagian C mencatat tiap merchant di satu partisi dengan jurnal naik menurut offset, dan jurnal di PostgreSQL tetap satu-satunya sumber uang.",
+  "Rekaman bagian C mencatat tiap merchant di satu partisi dengan jurnal naik menurut offset, dari satu relay tanpa kegagalan.",
+  "Relay mengklaim baris dengan `FOR UPDATE SKIP LOCKED` dan menunda baris yang gagal, jadi dua relay atau satu baris yang diulang bisa menulis jurnal satu merchant tidak berurutan (penalaran dari kode, Tidak dijalankan).",
+  "Jurnal di PostgreSQL tetap satu-satunya sumber uang.",
   "Bagian D mematikan relay sesudah broker menjawab dan sebelum baris ditandai terkirim.",
   "Rekaman yang sama ditulis dua kali:",
   "tercatat` harus menyaring `event_id`.",
@@ -191,7 +200,7 @@ export const TURUNAN: any = {
   "- **C ditolak** karena tidak ada rekamannya, dan dokumentasi NATS menulis kualitas dasar at least once, sama dengan Kafka di halaman ini.",
   "- **D ditolak** karena lisensi BSL 1.",
   "1 belum ditinjau hukum, dan halaman ini tidak membaca hal lain tentangnya.",
-  "- **E ditolak** karena relay dari outbox sudah ada, dan slot Debezium menahan WAL tanpa batas bawaan (PostgreSQL 17, [Replication](https:",
+  "- **E ditolak** karena relay dari outbox sudah ada, dan slot replikasi dapat menahan WAL tanpa batas pada nilai bawaan -1 (PostgreSQL 17, [Replication](https:",
   "** Bayangkan keputusan ini gagal 6 bulan lagi.",
   "Tiga penyebab yang paling mungkin:",
   "Pengirim ditambah tetapi partisi tidak.",
@@ -375,14 +384,14 @@ export const TURUNAN: any = {
     "E. CDC dengan Debezium",
     "Perubahan tingkat baris dibaca dari WAL lewat slot replikasi",
     "Perubahan dialirkan tanpa relay tulisan sendiri",
-    "Slot menahan WAL, dan `max_slot_wal_keep_size` bawaan -1 berarti tanpa batas",
+    "Slot dapat menahan WAL tanpa batas bila `max_slot_wal_keep_size` bernilai bawaan -1",
     "Connector, pemantauan slot, dan disk primary",
     "Tidak dijalankan: dokumentasi Debezium dan PostgreSQL 17"
    ],
    [
     "F. Kafka dengan relay dari outbox",
     "Relay menulis rekaman ke topik, dan consumer group membaginya per partisi",
-    "Grup membagi ulang partisi saat consumer mati, dan kunci merchant menjaga urutan per merchant",
+    "Grup membagi ulang partisi saat consumer mati, dan kunci merchant menaruh rekaman satu merchant di satu partisi",
     "Komponen baru, dan pengiriman tetap at-least-once",
     "Broker (produksi tiga broker, Tidak dijalankan), relay, dan lag consumer yang dipantau",
     "Rekaman lab `aliran.txt`, `grup.txt`, `kuota.txt`, dan `antrean.txt`"
@@ -427,6 +436,11 @@ export const TURUNAN: any = {
    [
     "Share group dan transaksi Kafka",
     "Consumer tetap idempoten, dan lab tidak menjalankannya",
+    "Belum dijadwalkan"
+   ],
+   [
+    "Jalur galat consumer (rekaman yang gagal diproses)",
+    "Tidak diperankan di rekaman. README lab menulis bahwa rekaman yang gagal tidak dicatat offsetnya dan baru dibaca lagi sesudah consumer dimulai ulang atau partisinya berpindah, dan offset rekaman berikutnya di partisi yang sama menutupnya",
     "Belum dijadwalkan"
    ]
   ]
@@ -561,15 +575,15 @@ export const TURUNAN: any = {
  "labelPerBlok": {
   "Mulai": "1,0,0,0,0,0,0",
   "Coba": "1,2,1,1,1,0,0",
-  "Paham": "7,4,6,8,0,3,0",
+  "Paham": "7,5,7,9,0,3,0",
   "Putuskan": "2,7,3,8,0,0,1",
   "Kunci": "0,1,1,1,0,0,0"
  },
  "angkaPerBlok": {
   "Mulai": "10.281 3 1 10.281 2 3",
   "Coba": "429 4 0,3 1.000.000 32 167 1.000.000 30 5.000 429",
-  "Paham": "96,3 650.000 0,8 5.400 4 4 0,3 13,33 1.000.000 4 1.000.000 0,3 4 75.000 20,8 100 650.000 86.400 10 75,2 10 75,2 555,6 630,8 30 555,6 1.000.000 1.800 51 166 166 1.000.000 166 300 300 4.3 4.3 4.3 2026 11 04 500 504 5 1.22.1 1484 1.22.2 2026 11 04 1.22.2 600 429 2026 11 02 10.000 1.000 429 429 429 3 200 600 1.000 429 2 429 2 429 650.000 600.000 50.000 80 90 5.400 4 0,3 10 650.000 0,8 5.400 96,3 96,3 0,3 28,89 29 28,89 4 28,89 0,7 4 8 11 70 30 1.000.000 1.800 555,6 555,6 0,3 166,7 167 167 4 42 42 168 1.000.000 0,3 42 4 1.786 29,8 6 1.000.000 0,3 6 4 12.500 3,5 555,6 10.000 5,6 1.000.000 60 16.667 167 75,2 555,6 630,8 6,3 100 6 11 66 8 4 32 32 0,3 106,7 90,3 11 65,7 96,296 146,667 167 0,3 556,7 555,6 1.000.000 10.000 75,2 101 75,2 48 300 10 13,4 13,33 36 11 6 11 66 66 51 8 8 2026 11 04 2026 11 04 0 5 5 4.3.2 1.22.2 17.11 1.27.3 3 200 600 1 2026 11 04 1000 4 600 10 2 13 13 2026 11 04 3 6.0 6.0 2026 11 04 4 4.1.0 2026 11 04 5 19 2026 2026 11 04",
-  "Putuskan": "51 5 30 95 30 722 20,8 4 45 45 70 1.000.000 166 300 300 20,8 4 2026 11 04 1.1 2026 11 04 1 17 1 96,3 0,3 28,89 8 11 70 2 3 42 42 4 168 29,8 4 5 6 429 30 555,6 5,6 10.000 7 36 11 66 8 4.3 3 166 300 3.000 2 1.1 17 2026 11 04 6 1 6 24 1.000.000 3,5 42 3 2 429 6 3 630,8 30 6,3 100 30 75,2 66 10.000 600.000 1484 5 3 1 66 1.000.000 10.281",
+  "Paham": "96,3 650.000 0,8 5.400 4 4 0,3 13,33 1.000.000 4 1.000.000 0,3 4 75.000 20,8 100 650.000 86.400 10 75,2 10 75,2 555,6 630,8 30 555,6 1.000.000 1.800 51 166 166 1.000.000 166 300 300 4.3 4.3 4.3 2026 11 04 500 504 5 504 1.22.1 1.22.2 2026 11 04 1484 1.22.2 600 429 2026 11 02 10.000 1.000 429 429 429 3 200 600 1.000 429 2 429 2 429 650.000 600.000 50.000 80 90 5.400 4 0,3 10 650.000 0,8 5.400 96,3 96,3 0,3 28,89 29 28,89 4 28,89 0,7 4 8 11 70 30 1.000.000 1.800 555,6 555,6 0,3 166,7 167 167 4 42 42 168 1.000.000 0,3 42 4 1.786 29,8 6 1.000.000 0,3 6 4 12.500 3,5 555,6 10.000 5,6 1.000.000 60 16.667 167 75,2 555,6 630,8 6,3 100 6 11 66 8 4 32 32 0,3 106,7 90,3 11 65,7 96,296 146,667 167 167 0,3 556,7 555,6 167 1.000.000 29,9 168 29,8 3 2 2 450.000 400.000 50.000 66,7 66,7 0,3 20,0 5 8 70 52,1 52,1 555,6 607,7 6,1 100 1.000.000 10.000 75,2 101 75,2 48 300 10 13,4 13,33 36 11 6 11 66 66 51 8 8 2026 11 04 2026 11 04 0 5 5 4.3.2 1.22.2 17.11 1.27.3 3 200 600 1 2026 11 04 1000 4 600 10 2 13 13 2026 11 04 3 6.0 6.0 2026 11 04 4 4.1.0 2026 11 04 5 19 2026 2026 11 04",
+  "Putuskan": "51 5 30 95 30 722 20,8 4 45 45 70 1.000.000 166 300 300 20,8 4 2026 11 04 1.1 2026 11 04 1 17 1 96,3 0,3 28,89 8 11 70 2 3 42 42 4 168 29,8 4 5 6 429 30 555,6 5,6 10.000 7 36 11 66 8 4.3 3 166 300 3.000 2 1.1 1 17 2026 11 04 6 1 6 24 1.000.000 3,5 42 3 2 429 6 3 630,8 30 6,3 100 30 75,2 66 10.000 600.000 1484 5 3 1 66 1.000.000 10.281",
   "Kunci": "1 10.281 2 4 167 42 6 1.000.000 12.500 3,5 6 6 4 24 1.000.000 0,3 24 3 504 4 429 2 5 45 51 75,2 555,6 630,8 30 429 4.3 17 13 6.0"
  },
  "rantai": [
