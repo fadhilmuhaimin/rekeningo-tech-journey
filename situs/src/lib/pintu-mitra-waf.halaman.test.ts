@@ -860,6 +860,8 @@ describe("halaman istilah WAF dan Nonce dan baris glosarium: angka dari rekaman,
     expect(istilahWaf.cerita).toEqual([{ rujukan: "t5-waf", teks: `Gerbang di depan api-t5 memeriksa delapan payload serangan uji dengan Coraza dan CRS, dan semuanya dijawab 403 walau kunci dan tanda tangannya sah. Dari ${SAH.uji} payload POS yang sah, ${SAH_REF} hanya mengubah satu field, jadi angka itu bukan ukuran alarm palsu (\`waf.txt\` bagian A dan B).` }]);
     expect(BLOKIR.dari).toBe(8);
     expect(istilahWaf.mekanisme).toHaveLength(4);
+    expect(istilahWaf.mekanisme[0]).toBe("Permintaan masuk ke gerbang, dan WAF membaca method, alamat, header, dan body.");
+    expect(istilahWaf.mekanisme[2]).toBe("Bila skor mencapai ambang masuk, WAF menjawab 403 dan permintaan tidak sampai ke API.");
     expect(istilahWaf.mekanisme[1]).toBe("Tiap aturan CRS yang cocok menambah skor. Menurut dokumentasi CRS, sebagian besar ancaman masuk yang terdeteksi bernilai 5 secara bawaan.");
     expect(istilahWaf.mekanisme[3]).toBe("Mesin DetectionOnly mencatat aturan yang cocok tanpa memblokir, jadi terbaca apa yang akan diblokir bila mesinnya menyala.");
     expect(istilahWaf.jebakan[0]).toBe(`Mengira WAF memvalidasi isi. Kolom referensi berisi ${KARAKTER} karakter tanpa pola serangan lolos WAF dan ditolak API dengan ${KODE_VALIDASI} (\`waf.txt\` bagian C).`);
@@ -883,6 +885,8 @@ describe("halaman istilah WAF dan Nonce dan baris glosarium: angka dari rekaman,
     expect(istilahNonce.istilah).toBe("Nonce");
     expect(istilahNonce.cerita).toEqual([{ rujukan: "t5-waf", teks: `Gerbang mitra POS menandatangani timestamp, method, alamat, dan byte body, tanpa nonce. Tes Go mencatat permintaan sah yang diputar ulang di dalam jendela ${TOLERANSI / 60} menit diterima lagi (\`testing.txt\` bagian A).` }]);
     expect(istilahNonce.mekanisme).toHaveLength(4);
+    expect(istilahNonce.sehari_hari).toBe("Nonce adalah nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan. Penerima mencatatnya, supaya pesan yang sama tidak diterima dua kali.");
+    expect(istilahNonce.mekanisme.slice(0, 3)).toEqual(["Penanda tangan menambahkan nilai unik ke tiap pesan sebelum menghitung tanda tangan.", "Penerima memeriksa tanda tangan, lalu memeriksa apakah nilai itu sudah pernah dilihat dalam jendela waktu.", "Nilai yang sama untuk kedua kalinya berarti pesan diputar ulang, dan pesan itu ditolak."]);
     expect(istilahNonce.mekanisme[3]).toBe("Penerima menyimpan nilai selama dua kali toleransi timestamp, karena timestamp boleh di depan atau di belakang jam penerima.");
     expect(istilahNonce.jebakan).toHaveLength(2);
     expect(istilahNonce.jebakan[0]).toBe("Mengira timestamp saja menahan pengulangan. Di dalam jendela toleransi, pesan yang sama diterima lagi.");
