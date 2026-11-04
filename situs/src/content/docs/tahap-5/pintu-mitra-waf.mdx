@@ -41,7 +41,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 <Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: tiap pemeriksaan di pintu menjawab satu pertanyaan, dan Idempotency-Key tidak tertanda, jadi ia menyatukan pengulangan kasir tetapi tidak menahan permintaan yang diputar ulang dengan key lain.">
 
-Pilah sepuluh kejadian di pintu mitra POS ke pemeriksaan yang menanganinya, lalu periksa jawabanmu. Alasan tiap jawaban menyebut rekaman lab t5-waf atau kode lab.
+Pilah sepuluh kejadian di pintu mitra POS ke pemeriksaan yang menanganinya, lalu periksa jawabanmu. Alasan tiap jawaban menyebut rekaman lab t5-waf atau kode lab. HMAC, yang dipakai di widget, adalah nilai yang dihitung dari isi pesan dan secret bersama, jadi hanya pemegang secret yang bisa membuatnya ([[t4-webhook]]).
 
 Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] diatur di [Label sumber](/cara-pakai/#label-sumber). Tiga label turunan dipakai di halaman ini:
 
@@ -131,7 +131,7 @@ Penghitung permintaan berjalan bisa bocor bila gerbang mati sebelum melepasnya. 
 
 Secret penandatangan tiap mitra berbeda dari kunci API dan tidak ada di database. Lab membacanya dari file JSON sementara sebagai penyimpanan secret tiruan.
 
-HMAC adalah nilai yang dihitung dari isi pesan dan secret bersama, jadi hanya pemegang secret yang bisa membuatnya ([[t4-webhook]]). Gerbang menghitung HMAC-SHA256 atas timestamp, method, alamat dengan query string, dan byte mentah body, digabung dengan titik. ADR 34 menandatangani timestamp dan byte body.
+Gerbang menghitung HMAC-SHA256 atas timestamp, method, alamat dengan query string, dan byte mentah body, digabung dengan titik. ADR 34 menandatangani timestamp dan byte body.
 
 Method dan alamat ikut ditandatangani di sini. GET tidak punya body, jadi tanda tangan atas timestamp dan body saja berlaku untuk GET mana pun dalam jendelanya (README lab, dibaca dari kode):
 
@@ -153,7 +153,7 @@ Go menulis bahwa `Sub` mengembalikan durasi maksimum atau minimum bila hasilnya 
 
 Pola yang sama ada di `labs/api-t4/internal/modul/pembayaran/pembayaran.go` baris 132 sampai 138, tanpa penjaga itu, dan tidak diubah (dibaca dari kode). Timestamp ikut ditandatangani, jadi hanya pemegang secret yang bisa membuat tanda tangan seperti itu (Penalaran). Ini tindak lanjut, bukan bukti bahwa Tahap 4 aman atau tidak aman.
 
-**Permintaan yang diputar ulang di dalam jendela diterima lagi.** Replay adalah pengiriman ulang permintaan sah yang sudah direkam, oleh pihak yang bukan kasirnya. Tanda tangan gerbang tidak memuat nonce dan tidak memuat header apa pun, termasuk `Idempotency-Key`, `Content-Type`, dan `Host` (README lab dan fungsi `TandaTangan`, dibaca dari kode). Tes Go ini mengirim POST yang sama tiga kali, dua kali persis sama dan sekali dengan Idempotency-Key lain:
+**Permintaan yang diputar ulang di dalam jendela diterima lagi.** Replay adalah pengiriman ulang permintaan sah yang sudah direkam, oleh pihak yang bukan kasirnya. Tanda tangan gerbang tidak memuat nonce, dan dari header hanya nilai timestamp (`X-Waktu`) yang ikut dihitung. `Idempotency-Key`, `Content-Type`, dan `Host` tidak ikut (README lab dan fungsi `TandaTangan`, dibaca dari kode). Tes Go ini mengirim POST yang sama tiga kali, dua kali persis sama dan sekali dengan Idempotency-Key lain:
 
 <Snippet file="labs/t5-waf/gerbang/gerbang_tinjau_test.go" lines="242:254" lang="go" title="Tes Go: labs/t5-waf/gerbang/gerbang_tinjau_test.go, putar ulang dalam jendela" />
 
@@ -165,7 +165,7 @@ Memegang salinan permintaan butuh akses ke jalur permintaan. Gerbang lab melayan
 
 ADR 34 ([[t4-webhook]]) punya pola yang sama. Di sana tanda tangan menerima kiriman 60 detik lalu, dan `event_id` unik yang menahan kiriman ganda, bukan tanda tangan. Pintu mitra tidak punya `event_id` untuk permintaan POS. Idempotency-Key bukan padanannya, karena tidak tertanda.
 
-RFC 9421 bagian 7.2.2 menulis dua penangkal. Penanda tangan menutup bagian pesan yang cukup untuk membedakannya dari pesan lain. Parameter `nonce` memberi nilai unik per pesan, supaya verifier bisa mendeteksi tanda tangan yang diulang ([RFC 9421](https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2), Standards Track, dibuka 2026-11-04, Tidak dijalankan).
+RFC 9421 bagian 7.2.2 menulis beberapa penangkal replay. Penanda tangan menutup bagian pesan yang cukup untuk membedakannya dari pesan lain. Parameter `nonce` memberi nilai unik per pesan, supaya verifier bisa mendeteksi tanda tangan yang diulang bila nilai itu muncul lagi. Timestamp dan waktu kedaluwarsa membatasi guna tanda tangan yang tertangkap, dan pintu ini sudah memakai timestamp ([RFC 9421](https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2), Standards Track, dibuka 2026-11-04, Tidak dijalankan).
 
 Untuk pintu ini, Idempotency-Key ikut ditandatangani, atau gerbang mencatat nonce selama jendela. Keduanya tindak lanjut yang tidak dikerjakan di lab (Penalaran dari RFC).
 
@@ -177,7 +177,7 @@ Mencatat nonce menyimpan tiap nilai selama dua kali toleransi, yaitu 2 × 300 = 
 
 Merchant milik mitra lain, merchant yang tidak ada, dan akun yang bukan merchant dijawab 404 yang sama (pola ADR 7, [[t1-idor]]). Di rekaman bagian C ada lima percobaan yang dijawab 404, dan baris `qr` milik merchant B tetap 1, yang dibuat B sendiri. Di mode rentan `pos-tanpa-cakupan`, pembacaan yang sama dijawab 200 dengan data QR milik B (`tandatangan.txt` bagian C):
 
-<Snippet file="labs/t5-waf/output/tandatangan.txt" lines="41:51" title="Rekaman lab: labs/t5-waf/output/tandatangan.txt, bagian C (cakupan)" />
+<Snippet file="labs/t5-waf/output/tandatangan.txt" lines="41:53" title="Rekaman lab: labs/t5-waf/output/tandatangan.txt, bagian C (cakupan)" />
 
 Permintaan langsung ke `api-t5` tanpa secret gerbang dijawab 401 `bukan-dari-gerbang`, dan kepala `X-Mitra-Id` milik B dari client dibuang gerbang (bagian C).
 
@@ -251,7 +251,7 @@ const kuotaMitra = rateLimit({
     def allow_request(self, request, view):
         return hitung(request.mitra.id) <= 100`} />
 
-**Yang berbeda di stack ini:** `AnonRateThrottle` memakai alamat IP, dan `UserRateThrottle` memakai id user lalu jatuh ke alamat IP. Throttle sendiri dibuat dengan mengganti `BaseThrottle` dan menulis `.allow_request`. Dokumentasi menulis bahwa semua client di belakang satu gateway NAT dianggap satu client bila `NUM_PROXIES` diatur. Ia juga menulis bahwa throttling tingkat aplikasi tidak boleh dianggap pengaman terhadap brute force atau serangan denial-of-service.
+**Yang berbeda di stack ini:** `AnonRateThrottle` memakai alamat IP, dan `UserRateThrottle` memakai id user lalu jatuh ke alamat IP. Throttle sendiri dibuat dengan mengganti `BaseThrottle` dan menulis `.allow_request`. Dokumentasi menulis bahwa semua client di belakang satu gateway NAT, yaitu satu alamat jaringan yang dipakai banyak perangkat ([[t5-m50]]), dianggap satu client bila `NUM_PROXIES` diatur. Ia juga menulis bahwa throttling tingkat aplikasi tidak boleh dianggap pengaman terhadap brute force atau serangan denial-of-service.
 
 </Fragment>
 <Fragment slot="t4">
@@ -309,7 +309,7 @@ Tabel kedua membandingkan cara membuktikan identitas mitra:
 5. Kunci API per mitra tersimpan sebagai hash di `mitra_pos.kunci_hash`. HMAC-SHA256 menandatangani timestamp, method, alamat, dan byte mentah body dengan toleransi 5 menit (Asumsi). Secret penandatangan ada di penyimpanan secret, bukan di database.
 6. Kunci mitra hanya membuka merchant yang punya `akun.mitra_pos_id` miliknya. `api-t5` memeriksanya dan menjawab 404 untuk yang lain.
 7. Idempotency-Key wajib untuk POST, PUT, PATCH, dan DELETE, dan permintaan tanpa key dijawab 400.
-8. Enumerasi tetap dibatasi: 5 kunci salah per alamat dalam 60 detik (Asumsi) dijawab 429, dan `api-t5` membatasi 10 QR per menit per akun (`tandatangan.txt` bagian D). Webhook keluar memakai aturan ADR 41 dan HMAC dari Rekeningo, dan Tidak dijalankan di lab.
+8. Enumerasi tetap dibatasi: sesudah 5 kunci salah dari satu alamat dalam 60 detik (Asumsi), kunci salah berikutnya dijawab 429, dan `api-t5` membatasi 10 QR per menit per akun (`tandatangan.txt` bagian D). Webhook keluar memakai aturan ADR 41 dan HMAC dari Rekeningo, dan Tidak dijalankan di lab.
 
 **Kenapa D dan G, bukan yang lain.**
 
@@ -335,7 +335,7 @@ Tabel kedua membandingkan cara membuktikan identitas mitra:
 - Saat Coraza kehilangan pemelihara. Pada 2026-11-04 README menulis label itu untuk plugin Caddy dan ekstensi WASM Traefik, sedangkan inti Coraza punya rilis v3.8.1 tanggal 2026-10-02 dan komit sampai 2026-10-29. Risikonya ke depan, dan belum terjadi.
 - Saat serangan volumetrik lapisan 3 dan 4 datang. Gerbang ini tidak menutupnya.
 
-**Yang akan merevisinya.** [[t5-adr-60]] menulis pemicu untuk butir yang tetap ditunda. [[t5-mtls]] membahas mTLS antar service di Go, dan pola itu menjadi bahan bila mitra menuntut mTLS (Penalaran). Mitra yang menuntut tanda tangan lain memakai RFC 9421.
+**Yang akan merevisinya.** Belum ada halaman yang menjadwalkan revisinya, dan semua butir di tabel Sengaja belum bertanda "Belum dijadwalkan". [[t5-mtls]] membahas mTLS antar service di Go, dan pola itu menjadi bahan bila mitra menuntut mTLS (Penalaran). Mitra yang menuntut tanda tangan lain memakai RFC 9421.
 
 ### Sengaja belum dilakukan
 
@@ -379,7 +379,7 @@ Jawabannya 404, dan cakupan diperiksa di `api-t5` lewat `akun.mitra_pos_id`, buk
 <details class="success">
 <summary>Jawaban</summary>
 
-Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat header dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan.
+Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan.
 
 </details>
 

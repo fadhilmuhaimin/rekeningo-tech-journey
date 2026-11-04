@@ -4093,7 +4093,7 @@
   "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
   "url": "tahap-5/pintu-mitra-waf/",
   "tanya": "Permintaan sah diputar ulang di dalam jendela 5 menit dengan Idempotency-Key lain. Apa yang dilakukan gerbang, dan kenapa Idempotency-Key tidak menahannya?",
-  "jawab": "Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat header dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan."
+  "jawab": "Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan."
  },
  {
   "id": "t5-waf-4",

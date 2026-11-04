@@ -38,7 +38,7 @@
         },
         {
           "teks": "Diterima lagi",
-          "sub": "tanpa nonce, header tak tertanda",
+          "sub": "tanpa nonce, key tak tertanda",
           "nada": "warn"
         }
       ]

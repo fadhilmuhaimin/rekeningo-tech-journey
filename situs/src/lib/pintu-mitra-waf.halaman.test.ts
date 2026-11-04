@@ -210,7 +210,7 @@ const RENTANG = {
   waktu: { awal: barisKe(tandaBaris, /^\$ GET status QR, timestamp 240 detik lalu/), akhir: barisKe(tandaBaris, /^\$ GET status QR, timestamp 360 detik ke depan/) + 1 },
   putar: { awal: barisKe(tinjauBaris, /^func TestGerbangPutarUlangDalamJendelaDiterima\(/), akhir: fungsiAkhir(tinjauBaris, barisKe(tinjauBaris, /^func TestGerbangPutarUlangDalamJendelaDiterima\(/), "}") },
   cakupanKode: { awal: barisKe(posBaris, /^\t\tmerchant, ok := idDariPath\(r\)$/), akhir: fungsiAkhir(posBaris, barisKe(posBaris, /^\t\tif s\.rentan != service\.RentanPosTanpaCakupan \{$/), "\t\t}") },
-  cakupanRek: { awal: barisKe(tandaBaris, /^\$ A membaca QR sendiri$/), akhir: barisKe(tandaBaris, /^baris qr milik merchant B sesudah semua percobaan A: /) },
+  cakupanRek: { awal: barisKe(tandaBaris, /^\$ A membaca QR sendiri$/), akhir: barisKe(tandaBaris, /^\$ A mengirim kepala X-Mitra-Id milik B/) + 1 },
   keyWajib: { awal: barisKe(tandaBaris, /^\$ POST tanpa Idempotency-Key$/), akhir: barisKe(tandaBaris, /^ {2}-> 422 idempotency-key-dipakai-ulang$/) },
   kuotaGerbang: { awal: barisKe(gerbangBaris, /^\t\tput, err := g\.Batas\.Masuk\(ctx, kuncikuota, mitra\.KuotaPerDetik\)$|^\tput, err := g\.Batas\.Masuk\(ctx, kuncikuota, mitra\.KuotaPerDetik\)$/), akhir: 0 },
 };
@@ -552,7 +552,7 @@ describe("hitungan, naskah ADR 56, registry, dan halaman tetangga", () => {
     const hitung: Record<string, number> = {};
     for (const m of badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)) hitung[m[1]!] = (hitung[m[1]!] ?? 0) + 1;
     for (const id of Object.keys(hitung)) expect(id === "berikutnya" || hal.some((x) => x.id === id), id).toBe(true);
-    expect(hitung).toEqual({ "t5-prd": 5, "t2-idempotency": 1, berikutnya: 1, "t5-m50": 3, "t1-sql-injection": 2, "t5-rollout": 1, "t3-rate-limit-redis": 2, "t4-webhook": 2, "t1-idor": 1, "t4-ssrf": 1, "t5-mtls": 2, "t5-adr-60": 2 });
+    expect(hitung).toEqual({ "t5-prd": 5, "t2-idempotency": 1, berikutnya: 1, "t5-m50": 4, "t1-sql-injection": 2, "t5-rollout": 1, "t3-rate-limit-redis": 2, "t4-webhook": 2, "t1-idor": 1, "t4-ssrf": 1, "t5-mtls": 2, "t5-adr-60": 1 });
   });
   test("ADR 4 di halaman 1.20: WAF di depan API ditunda ke Tahap 5 dengan alasan 0,14 request per detik, satu gedung, penguji internal; satu dari tiga butir; aturan ADR 4 tetap", () => {
     expect(hal120).toContain("| WAF di depan API | Puncak 0,14 request per detik, satu gedung, penguji internal | Tahap 5 |");
@@ -664,7 +664,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-230 sam
     expect(r).toContain('"If the result exceeds the maximum (or minimum) value that can be stored in a Duration, the maximum (or minimum) duration will be returned."');
     expect(r).toContain("go1.27.1 lokal");
     expect(badan).toContain("RFC 9110 bagian 11.6.1 menulis bahwa server yang menjawab 401 harus mengirim `WWW-Authenticate` dengan sedikitnya satu challenge");
-    expect(badan).toContain("RFC 9421 bagian 7.2.2 menulis dua penangkal. Penanda tangan menutup bagian pesan yang cukup untuk membedakannya dari pesan lain. Parameter `nonce` memberi nilai unik per pesan, supaya verifier bisa mendeteksi tanda tangan yang diulang");
+    expect(badan).toContain("RFC 9421 bagian 7.2.2 menulis beberapa penangkal replay. Penanda tangan menutup bagian pesan yang cukup untuk membedakannya dari pesan lain. Parameter `nonce` memberi nilai unik per pesan, supaya verifier bisa mendeteksi tanda tangan yang diulang bila nilai itu muncul lagi. Timestamp dan waktu kedaluwarsa membatasi guna tanda tangan yang tertangkap, dan pintu ini sudah memakai timestamp");
     expect(badan).toContain("Keduanya tindak lanjut yang tidak dikerjakan di lab (Penalaran dari RFC).");
     expect(badan).not.toMatch(/RFC 9421[^.]*(wajib|harus)/);
   });
@@ -681,7 +681,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-230 sam
     for (const p of potongan.slice(1)) expect(p).toContain("*Tidak dijalankan.");
     expect(potongan[1]).toContain("README menulis bahwa `keyGenerator` mengenali user dan bawaannya alamat IP");
     expect(potongan[2]).toContain("Contoh dokumentasi memakai id user dan jatuh ke alamat IP bila user belum masuk, dan batasnya per menit, bukan per detik.");
-    expect(potongan[3]).toContain("Dokumentasi menulis bahwa semua client di belakang satu gateway NAT dianggap satu client bila `NUM_PROXIES` diatur.");
+    expect(potongan[3]).toContain("Dokumentasi menulis bahwa semua client di belakang satu gateway NAT, yaitu satu alamat jaringan yang dipakai banyak perangkat ([[t5-m50]]), dianggap satu client bila `NUM_PROXIES` diatur.");
     expect(potongan[3]).toContain("tidak boleh dianggap pengaman terhadap brute force atau serangan denial-of-service");
     expect(potongan[4]).toContain("peta situs memuat 226 alamat, dan tidak ada yang mengandung kata limit, throttle, firewall, atau waf");
     expect(potongan[4]).toContain("[perlu verifikasi]");
@@ -843,7 +843,7 @@ describe("Snippet: rentang diturunkan dari isi berkas, judul sesuai bagian rekam
     expect(ambil("labs/t5-waf/output/kuota.txt", "kuotaA")).toEqual(["mitra A: 600 permintaan -> 200: 100, 429: 500", "mitra B: 20 permintaan -> 200: 20, 429: 0"]);
     expect(ambil("labs/t5-waf/gerbang/tanda.go", "tanda")).toHaveLength(6);
     expect(ambil("labs/t5-waf/output/tandatangan.txt", "waktu")).toHaveLength(6);
-    expect(ambil("labs/t5-waf/output/tandatangan.txt", "cakupanRek")).toHaveLength(11);
+    expect(ambil("labs/t5-waf/output/tandatangan.txt", "cakupanRek")).toHaveLength(13);
     expect(ambil("labs/t5-waf/output/tandatangan.txt", "keyWajib")).toHaveLength(6);
     expect(ambil("labs/api-t5/internal/handler/handler_pos.go", "cakupanKode")[0]).toBe("\t\tmerchant, ok := idDariPath(r)");
     expect(ambil("labs/t5-waf/gerbang/gerbang.go", "kuotaGerbang")[0]).toContain("put, err := g.Batas.Masuk(ctx, kuncikuota, mitra.KuotaPerDetik)");
@@ -943,7 +943,7 @@ describe("widget pilah, diagram Rantai, dan kartu Cek diri", () => {
     expect(kunciIt.teks).toBe("Kunci API yang tidak dikenal, atau kunci milik mitra yang sudah dibekukan.");
     expect(cakupanIt.kenapa).toBe("Gerbang tidak membandingkan merchant dengan mitra. Handler di api-t5 membandingkannya lewat akun.mitra_pos_id dan menjawab 404, sama dengan merchant yang tidak ada (tandatangan.txt bagian C, handler_pos.go).");
     expect(keyIt.kenapa).toBe(`Kedua jawabannya ${mKey[1]} dengan id QR yang sama, dan baris qr milik merchant hanya satu (tandatangan.txt bagian A). Key ini menyatukan pengulangan kasir.`);
-    expect(putarIt.kenapa).toBe("Tanda tangan tidak memuat header dan tidak ada nonce, jadi tes Go gerbang mencatat permintaan itu diterima dan key baru sampai ke hulu. Apakah api-t5 membuat QR kedua dibaca dari kode, tidak dijalankan.");
+    expect(putarIt.kenapa).toBe("Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi tes Go gerbang mencatat permintaan itu diterima dan key baru sampai ke hulu. Apakah api-t5 membuat QR kedua dibaca dari kode, tidak dijalankan.");
     expect(nominalIt.teks).toBe("POST yang nominalnya diubah dari 25.000 menjadi 99.000 sesudah ditandatangani.");
     expect(nominalIt.kenapa).toBe("HMAC dihitung atas byte mentah body, jadi isi yang berubah menghasilkan tanda yang tidak cocok dan dijawab 401 (tandatangan.txt bagian B).");
     expect(kunciIt.kenapa).toBe(`Gerbang mencari hash kunci di mitra_pos. Dua kasus itu dijawab 401 yang sama, dan sesudah ${GAGAL_MAKS} kegagalan dari satu alamat jawabannya 429 (tandatangan.txt bagian B dan D).`);
@@ -978,7 +978,7 @@ describe("widget pilah, diagram Rantai, dan kartu Cek diri", () => {
     expect(d.baris[1]!.simpul.map((s) => [s.teks, s.sub ?? "", s.nada])).toEqual([
       ["Permintaan sah", "sudah ditandatangani", "biasa"],
       ["Diputar ulang", `di dalam jendela ${TOLERANSI / 60} menit`, "biasa"],
-      ["Diterima lagi", "tanpa nonce, header tak tertanda", "warn"],
+      ["Diterima lagi", "tanpa nonce, key tak tertanda", "warn"],
     ]);
     expect(d.judul).toBe("WAF menolak serangan umum, tetapi permintaan yang diputar ulang diterima lagi");
     expect(d.catatan).toBe("Baris pertama adalah rekaman lab dengan delapan payload di payload.json. Baris kedua adalah tes Go dengan hulu tiruan: gerbang meneruskan permintaan yang diputar ulang, dan Idempotency-Key yang diganti sampai ke hulu. Kotak oranye adalah celah yang masih terbuka.");
@@ -1001,7 +1001,7 @@ describe("widget pilah, diagram Rantai, dan kartu Cek diri", () => {
     expect(kartuSemua.filter((x) => x.id.startsWith("t5-waf-"))).toHaveLength(4);
     expect(jawaban[0]).toBe(`WAF menolak ${BLOKIR.ok} dari ${BLOKIR.dari} payload dengan 403 (\`waf.txt\` bagian A). Dari ${SAH.uji} payload sah yang lolos, ${SAH_REF} hanya mengubah teks \`referensi\`, jadi angka itu bukan ukuran alarm palsu untuk payload POS lain (bagian B).`);
     expect(jawaban[1]).toBe("Jawabannya 404, dan cakupan diperiksa di `api-t5` lewat `akun.mitra_pos_id`, bukan di gerbang. Di mode `pos-tanpa-cakupan` pembacaan yang sama dijawab 200 dengan data QR milik B (`tandatangan.txt` bagian C).");
-    expect(jawaban[2]).toBe("Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat header dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan.");
+    expect(jawaban[2]).toBe("Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan.");
     expect(soal[3]).toBe(`Hitung: kuota ${KUOTA} per detik untuk ${MITRA} mitra, dibanding puncak API ${puncakTulis} permintaan per detik. Apa artinya?`);
     expect(jawaban[3]).toBe(`${MITRA} × ${KUOTA} = ${ribu(TOTAL_KUOTA)} per detik, dan ${ribu(TOTAL_KUOTA)} ÷ ${puncakTulis} = ${KALI} kali puncak (Hitungan atas Asumsi). Kapasitas satu server belum diukur, jadi jumlah kuota yang boleh diberikan belum diketahui.`);
     expect(soal[0]).toBe(`Payload serangan umum datang dengan kunci dan tanda tangan yang sah. Siapa yang menolaknya, dan apa yang tidak diukur oleh ${SAH.uji} payload sah?`);
@@ -1047,7 +1047,7 @@ const KALIMAT_ANGKA: string[] = [
   `3. Kuota per mitra adalah ${kuota} per detik dan ${berjalan} permintaan berjalan (Asumsi), dengan token bucket di Redis. Redis datang dari ADR ${ADR27} ([[t3-rate-limit-redis]]), yang menghitung percobaan login dengan jendela tetap, jadi algoritmanya lain. Redis yang tidak terjangkau dijawab 503.`,
   `4. Batas ukuran body ${KIB} KiB (Asumsi, dijawab 413) dan timeout 3 detik di kode. Timeout itu tidak direkam.`,
   `5. Kunci API per mitra tersimpan sebagai hash di \`mitra_pos.kunci_hash\`. HMAC-SHA256 menandatangani timestamp, method, alamat, dan byte mentah body dengan toleransi ${TOLERANSI / 60} menit (Asumsi). Secret penandatangan ada di penyimpanan secret, bukan di database.`,
-  `8. Enumerasi tetap dibatasi: ${GAGAL_MAKS} kunci salah per alamat dalam ${JENDELA_GAGAL} detik (Asumsi) dijawab 429, dan \`api-t5\` membatasi ${tD11[2]} QR per menit per akun (\`tandatangan.txt\` bagian D). Webhook keluar memakai aturan ADR ${ADR41} dan HMAC dari Rekeningo, dan Tidak dijalankan di lab.`,
+  `8. Enumerasi tetap dibatasi: sesudah ${GAGAL_MAKS} kunci salah dari satu alamat dalam ${JENDELA_GAGAL} detik (Asumsi), kunci salah berikutnya dijawab 429, dan \`api-t5\` membatasi ${tD11[2]} QR per menit per akun (\`tandatangan.txt\` bagian D). Webhook keluar memakai aturan ADR ${ADR41} dan HMAC dari Rekeningo, dan Tidak dijalankan di lab.`,
   `- **A ditolak** karena WAF menilai isi, bukan jumlah. Pengulangan kasir yang sah tidak memuat pola serangan, jadi ${SAH.uji} dari ${SAH.uji} payload sah di rekaman lolos tanpa blokir (Penalaran dari \`waf.txt\` bagian B).`,
   `- **C ditolak** karena M50: ${KC.tolak} dari ${KC.total} permintaan mendapat 429 dan mitra B ikut (\`kuota.txt\` bagian C).`,
   `- **F ditunda** karena mTLS untuk ±${MITRA} mitra belum diminta (Asumsi), dan ia Tidak dijalankan di lab.`,

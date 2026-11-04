@@ -33,7 +33,7 @@
     {
       "teks": "Permintaan sah diputar ulang di dalam jendela 5 menit dengan Idempotency-Key lain. Siapa yang menahannya?",
       "jawab": 6,
-      "kenapa": "Tanda tangan tidak memuat header dan tidak ada nonce, jadi tes Go gerbang mencatat permintaan itu diterima dan key baru sampai ke hulu. Apakah api-t5 membuat QR kedua dibaca dari kode, tidak dijalankan."
+      "kenapa": "Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi tes Go gerbang mencatat permintaan itu diterima dan key baru sampai ke hulu. Apakah api-t5 membuat QR kedua dibaca dari kode, tidak dijalankan."
     },
     {
       "teks": "POST yang nominalnya diubah dari 25.000 menjadi 99.000 sesudah ditandatangani.",
