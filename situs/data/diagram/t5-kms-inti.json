@@ -16,7 +16,7 @@
           "nada": "good"
         },
         {
-          "teks": "Bit diubah: gagal",
+          "teks": "Bit diubah: GCM gagal",
           "sub": "GCM gagal di lima posisi file",
           "nada": "good"
         }

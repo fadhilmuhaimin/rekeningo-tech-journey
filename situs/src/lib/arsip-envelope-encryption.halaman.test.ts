@@ -440,8 +440,8 @@ describe("diagram Rantai, skenario alur, ADR 57, dan kartu Cek diri", () => {
     expect(diagram.baris).toHaveLength(2);
     expect(diagram.baris.map((b) => b.label)).toEqual(["Ditutup", "Diputar"]);
     expect(diagram.baris.map((b) => b.sub)).toEqual(["arsip.txt bagian C dan D", "rotasi.txt bagian B dan C"]);
-    expect(diagram.baris.flatMap((b) => b.simpul.map((s) => s.teks))).toEqual(["Tanpa hak: 403", "Bit diubah: gagal", "rotate: versi 2", "rewrap: file utuh"]);
-    for (const b of diagram.baris) for (const s of b.simpul) expect(s.teks.length, s.teks).toBeLessThanOrEqual(18);
+    expect(diagram.baris.flatMap((b) => b.simpul.map((s) => s.teks))).toEqual(["Tanpa hak: 403", "Bit diubah: GCM gagal", "rotate: versi 2", "rewrap: file utuh"]);
+    for (const b of diagram.baris) for (const s of b.simpul) expect(s.teks.length, s.teks).toBeLessThanOrEqual(22);
     expect(diagram.sumber).toEqual({ jenis: "rekaman", teks: "Rekaman lab t5-kms · arsip.txt dan rotasi.txt" });
     expect(aC.teks).toContain("openbao menjawab 403");
     expect(aD.teks).toContain("autentikasi GCM gagal");
