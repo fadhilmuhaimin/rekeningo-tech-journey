@@ -1341,6 +1341,15 @@
   "h": "/istilah/pagination-kursor/"
  },
  {
+  "t": "Partisi",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "b": "D2",
+  "n": "Scaling (versi lama)",
+  "u": "/d-system-design/d2-scaling/",
+  "s": "istilah-partisi",
+  "h": null
+ },
+ {
   "t": "Partisi topik",
   "d": "Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
   "b": "t5-fanout",

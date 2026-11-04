@@ -1375,10 +1375,10 @@ window.ISTILAH = {
  },
  "Partisi": {
   "b": "D2",
-  "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
   "n": "Scaling (versi lama)",
-  "s": "istilah-partitioning",
-  "t": "Partitioning",
+  "s": "istilah-partisi",
+  "t": "Partisi",
   "u": "d-system-design/d2-scaling/"
  },
  "Partisi topik": {
@@ -2990,10 +2990,10 @@ window.ISTILAH = {
  },
  "partisi": {
   "b": "D2",
-  "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
   "n": "Scaling (versi lama)",
-  "s": "istilah-partitioning",
-  "t": "Partitioning",
+  "s": "istilah-partisi",
+  "t": "Partisi",
   "u": "d-system-design/d2-scaling/"
  },
  "partisi topik": {
