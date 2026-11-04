@@ -287,6 +287,7 @@ describe("GitOps dan pemindai kunci: Argo CD v3.5.6 dari baris riset, state Open
     expect(hal4).toContain("Memindai state IaC dan seluruh repositori Tidak dijalankan: rekaman hanya dua file contoh.");
     expect(naskah).toContain("pemindai kunci produksi atas state IaC dan konfigurasi, karena repo konfigurasi GitOps menambah permukaan yang sama");
     expect(adr58).toContain("pemindai kunci berjalan atas repo konfigurasi dan state IaC");
+    expect(adr58).toContain("SLO pembayaran 99,9% per 30 hari (43,2 menit anggaran kegagalan)");
     expect(badan).toContain("ADR 44 baru memindai file konfigurasi staging, dan rekamannya hanya dua file contoh ([[t4-infra-secret]]). ADR 58 memperluasnya ke repo konfigurasi dan state IaC. Pemindaian sungguhan atas keduanya Tidak dijalankan di Tahap 5.");
   });
 });
