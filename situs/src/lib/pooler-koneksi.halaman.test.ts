@@ -678,6 +678,33 @@ describe("diagram Rantai dan kartu Cek diri: nilai diturunkan dari rekaman", () 
   });
 });
 
+describe("kalimat ADR dan Kapan salah: angka dan versi diturunkan dari sumber, tertangkap juga tanpa kunci baris (tinjauan 1567)", () => {
+  test("terpenuhi pada 257% dari 180 ÷ 70; jitter 5 menit sama dengan naskah ADR 52; anggaran 50 ms dari halaman 4.13; jitter bawaan pgxpool 0 sama dengan baris riset", () => {
+    const m = kalk.masukan;
+    const pot = m.service * m.pod * m.poolPod;
+    const pemicu = Number(hal530.match(/\| 4\. PgBouncer \| (\d+) koneksi dari 100/)![1]);
+    expect(badan).toContain(`terpenuhi pada ${Math.round((pot / pemicu) * 100)}%.`);
+    const adr = naskah.split("\n").find((b) => b.startsWith("| 52 |"))!;
+    const menit = Number(adr.match(/`MaxConnLifetimeJitter` diisi \(Asumsi: (\d+) menit\)/)![1]);
+    expect(badan).toContain(`\`MaxConnLifetimeJitter\` ${menit} menit (Asumsi)`);
+    const ms = Number(baca("situs/src/content/docs/tahap-4/modular-monolith.mdx").match(/Anggarannya (\d+) ms\./)![1]);
+    expect(badan).toContain(`melewati ${ms} ms, anggaran satu lompatan`);
+    expect(barisRiset("R5-191")).toContain('"(default 0)"');
+    expect(badan).toContain("`pgxpool.Config.MaxConnLifetimeJitter` bernilai bawaan 0.");
+  });
+  test("versi Serverpod dan Django di prosa diturunkan dari baris riset R5-193; pre-mortem menunjuk aturan 2 yang memang aturan max_db_connections; Yang akan merevisinya menunjuk 5.28 (ADR 59)", () => {
+    const r = barisRiset("R5-193");
+    const sv = r.match(/Serverpod (\d+\.\d+\.\d+)/)![1]!;
+    const dj = r.match(/"New in Django (\d+\.\d+)"/)![1]!;
+    expect(badan).toContain(`Serverpod ${sv}, dibuka`);
+    expect(badan).toContain(`Django ${dj} menambah opsi \`pool\``);
+    expect(badan).toMatch(/^2\. Koneksi ke PostgreSQL dibatasi 60 dari 97 tersedia/m);
+    expect(badan).toContain("Pencegahannya aturan 2 dan alert bila jumlah koneksi role pooler mendekati 97.");
+    expect(dari("t5-onprem")).toMatchObject({ nomor: "5.28", adr: [59] });
+    expect(badan).toContain("**Yang akan merevisinya.** [[t5-onprem]] menimbang database dijalankan sendiri atau terkelola.");
+  });
+});
+
 describe("struktur halaman: tingkat heading, nomor daftar, jumlah elemen, tabel ADR, dan setiap baris terkunci", () => {
   test("tingkat heading dikunci: h2 Inti, h3 di Paham dan Putuskan dan Kunci, tanpa h4; daftar bernomor: pertanyaan Mulai (3), aturan ADR (9), pre-mortem (3); kotak centang 6", () => {
     const h = badan.split("\n").filter((b) => /^#{1,6} /.test(b));
