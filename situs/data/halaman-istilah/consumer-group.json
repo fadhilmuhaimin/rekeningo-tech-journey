@@ -1,0 +1,38 @@
+{
+  "istilah": "Consumer group",
+  "sehari_hari": "Consumer group adalah kumpulan consumer Kafka yang membaca satu topik bersama. Dokumentasi Kafka menulis bahwa tiap partisi dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "cerita": [
+    {
+      "rujukan": "t5-fanout",
+      "teks": "Di lab tiga consumer memegang dua partisi tiap consumer. Satu consumer mati di tengah, dan dua consumer yang hidup memegang tiga partisi tiap consumer (Rekaman lab, grup.txt bagian A)."
+    }
+  ],
+  "mekanisme": [
+    "Consumer bergabung ke grup dengan nama yang sama. Di lab namanya pengumuman-pengirim.",
+    "Grup membagi partisi topik di antara anggotanya, dan satu partisi dibaca satu consumer dalam grup itu.",
+    "Consumer mencatat offset, yaitu posisi rekaman berikutnya, sesudah satu rekaman selesai dikerjakan.",
+    "Bila satu consumer mati, partisinya dibagi ulang ke anggota yang hidup, dan rekaman yang offset-nya belum dicatat dibaca lagi."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menambah consumer melebihi jumlah partisi tidak mempercepat pekerjaan: consumer berlebih tidak memegang partisi. Itu penalaran dari dokumentasi consumer group biasa, dan share group boleh punya consumer lebih banyak dari partisi.",
+    "Mengira pembagian ulang partisi membuat tiap rekaman dikerjakan tepat satu kali. Rekaman yang offset-nya belum dicatat dikerjakan lagi, jadi pekerjaannya harus tahan ulangan."
+  ],
+  "terkait": [
+    "At-least-once",
+    "Outbox"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-180",
+      "judul": "Apache Kafka 4.3: Design (dibuka 2026-11-04)",
+      "url": "https://github.com/apache/kafka/blob/4.3/docs/design/design.md",
+      "catatan": "Satu partisi dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. Share group boleh punya consumer lebih banyak dari partisi."
+    },
+    {
+      "judul": "Rekaman lab t5-fanout: consumer mati di tengah rentang",
+      "rekaman": "labs/t5-fanout/output/grup.txt",
+      "catatan": "Bagian A: tiga consumer dengan dua partisi tiap consumer, lalu dua consumer dengan tiga partisi tiap consumer sesudah satu consumer mati."
+    }
+  ]
+}

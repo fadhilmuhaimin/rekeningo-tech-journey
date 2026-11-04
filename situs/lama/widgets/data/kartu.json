@@ -3888,6 +3888,46 @@
   "jawab": "Kamis, 11.30, dan 12.10 adalah Ilustrasi. Angka 96,3, 722%, 83, 34,5 menit, dan 20,8 jam adalah Hitungan atas Asumsi. Lab mengukur c dan t pada tiruan. Ia tidak mengukur queue uang 90 menit, pengumuman ke 1.000.000 HP, atau jumlah 429 sebagai nilai (`pengirim.txt`, bagian B, dan `antrean.txt`, bagian B)."
  },
  {
+  "id": "t5-fanout-1",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Satu pengumuman ke 10.281 perangkat menulis berapa baris outbox dan berapa rekaman Kafka? Kenapa rekamannya enam, bukan satu?",
+  "jawab": "Satu baris outbox dan enam rekaman, satu per partisi (`aliran.txt` bagian A). Satu rekaman hanya dibaca satu consumer dalam satu grup, jadi satu rekaman untuk seluruh pengumuman tidak bisa dibagi (README lab)."
+ },
+ {
+  "id": "t5-fanout-2",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Pengirim naik dari 4 ke 167 (42 consumer), tetapi topik tetap punya 6 partisi. Berapa lama 1.000.000 perangkat selesai, dan kenapa?",
+  "jawab": "12.500 detik, yaitu sekitar 3,5 jam. Satu partisi dibaca satu consumer dalam satu grup, jadi hanya 6 consumer yang bekerja, yaitu 6 × 4 = 24 pengirim: 1.000.000 × 0,3 ÷ 24 (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t5-fanout-3",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Satu consumer mati di tengah rentangnya. Apa yang dijamin untuk perangkat di rentang itu, dan apa yang tidak?",
+  "jawab": "Rentang itu dikirim ulang dari awal oleh consumer lain, dengan id yang sama. Tiap perangkat melihat satu notifikasi berbeda, tetapi sebagian dikirimi lebih dari sekali (`grup.txt` bagian A, paling banyak 504 panggilan diulang). Pengiriman tepat satu kali tidak dijamin."
+ },
+ {
+  "id": "t5-fanout-4",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Pengumuman tanpa batas laju dan tanpa backoff berjalan bersama notifikasi uang. Apa yang terjadi, dan kenapa kelas queue tidak menolong?",
+  "jawab": "Uang ikut dijawab 429 dan umur uang tertua melewati 2 detik (`antrean.txt` bagian B, batas lab). Kelas queue hanya mengatur urutan klaim di outbox, sedangkan pengumuman dan uang memakai satu kuota penyedia push."
+ },
+ {
+  "id": "t5-fanout-5",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Pemicu \"terus-menerus\" ADR 45 belum terpenuhi. Kenapa ADR 51 tetap memilih Kafka, dan kapan pilihan itu salah?",
+  "jawab": "Pemicu itu terpenuhi hanya selama pengumuman: 75,2 + 555,6 = 630,8 per detik selama 30 menit. Alasan memilih Kafka adalah pembagian partisi oleh consumer group dan tiga pembaca rancangan atas event pembayaran, yang Tidak dijalankan. Pilihan itu salah bila hanya satu consumer group yang membaca dan pengumuman berhenti: opsi rentang di PostgreSQL lebih sederhana."
+ },
+ {
   "id": "t5-m46-1",
   "halaman": "t5-m46",
   "judul": "5.16 M46: Latihan failover membuat semua service error",

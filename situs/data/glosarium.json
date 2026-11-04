@@ -279,6 +279,15 @@
   "h": null
  },
  {
+  "t": "Backpressure",
+  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "b": "t5-fanout",
+  "n": "5.15 Fan-out dan event streaming",
+  "u": "/tahap-5/fan-out/",
+  "s": "istilah-backpressure",
+  "h": "/istilah/backpressure/"
+ },
+ {
   "t": "BFF (Backend for Frontend)",
   "d": "Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.",
   "b": "B11.2",
@@ -439,6 +448,15 @@
   "u": "/tahap-1/deployment-rollback/",
   "s": "istilah-container",
   "h": null
+ },
+ {
+  "t": "Consumer group",
+  "d": "Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.",
+  "b": "t5-fanout",
+  "n": "5.15 Fan-out dan event streaming",
+  "u": "/tahap-5/fan-out/",
+  "s": "istilah-consumer-group",
+  "h": "/istilah/consumer-group/"
  },
  {
   "t": "CRC (cyclic redundancy check)",
@@ -1330,6 +1348,24 @@
   "u": "/tahap-2/pagination-kursor/",
   "s": "istilah-pagination-kursor",
   "h": "/istilah/pagination-kursor/"
+ },
+ {
+  "t": "Partisi",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "b": "D2",
+  "n": "Scaling (versi lama)",
+  "u": "/d-system-design/d2-scaling/",
+  "s": "istilah-partisi",
+  "h": null
+ },
+ {
+  "t": "Partisi topik",
+  "d": "Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "b": "t5-fanout",
+  "n": "5.15 Fan-out dan event streaming",
+  "u": "/tahap-5/fan-out/",
+  "s": "istilah-partisi-topik",
+  "h": null
  },
  {
   "t": "Partitioning",
