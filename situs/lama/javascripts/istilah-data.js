@@ -1274,7 +1274,7 @@ window.ISTILAH = {
  },
  "Nonce": {
   "b": "t5-waf",
-  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
+  "d": "Nilai sekali pakai yang tidak boleh berulang. Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali. Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama.",
   "h": "istilah/nonce/",
   "n": "5.25 Pintu untuk pihak luar",
   "s": "istilah-nonce",
@@ -3034,7 +3034,7 @@ window.ISTILAH = {
  },
  "nonce": {
   "b": "t5-waf",
-  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
+  "d": "Nilai sekali pakai yang tidak boleh berulang. Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali. Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama.",
   "h": "istilah/nonce/",
   "n": "5.25 Pintu untuk pihak luar",
   "s": "istilah-nonce",
