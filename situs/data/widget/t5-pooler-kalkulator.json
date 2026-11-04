@@ -1,0 +1,67 @@
+{
+  "id": "t5-pooler-kalkulator",
+  "judul": "Koneksi ke PostgreSQL: tanpa pooler dan dengan PgBouncer",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Masukan: 6 service, 3 pod, pool 10, dan 100 − 3 koneksi tersedia dari naskah Tahap 5; dua instance PgBouncer, 30 koneksi server dan 400 client per instance, serta enam role adalah Asumsi desain ADR 52. Aturan batas dari dokumentasi PgBouncer, tidak dijalankan: lab memakai satu role dan satu instance."
+  },
+  "masukan": {
+    "service": 6,
+    "pod": 3,
+    "poolPod": 10,
+    "maxConnections": 100,
+    "cadangan": 3,
+    "instance": 2,
+    "role": 6,
+    "defaultPoolSize": 20,
+    "maxDbPerInstance": 30,
+    "maxClient": 400
+  },
+  "skenario": [
+    { "label": "Naskah: 6 service × 3 pod" },
+    { "label": "5 pod tiap service", "ubah": { "pod": 5 } },
+    { "label": "8 pod tiap service", "ubah": { "pod": 8 } },
+    { "label": "Pool tiap pod 5, 3 pod", "ubah": { "poolPod": 5 } },
+    { "label": "Pool tiap pod 5, 5 pod", "ubah": { "poolPod": 5, "pod": 5 } },
+    { "label": "Enam role, batas database kosong", "ubah": { "maxDbPerInstance": 0 } }
+  ],
+  "awal": 0,
+  "tebak": {
+    "q": "ADR 52 memasang dua instance PgBouncer dengan default_pool_size 20, dan tiap service menyambung dengan role sendiri, jadi ada enam role. Bila max_db_connections tidak diisi, berapa koneksi paling banyak yang boleh dibuka kedua instance ke PostgreSQL?",
+    "pilihan": [
+      "20 koneksi, seperti di lab",
+      "60 koneksi",
+      "240 koneksi",
+      "97 koneksi, semua yang tersedia"
+    ],
+    "jawaban": 2,
+    "skenario": 5,
+    "alasan": "Dokumentasi PgBouncer menulis bahwa default_pool_size berlaku per pasangan user dan database, dan max_db_connections bawaannya tanpa batas. Enam role × 20 × dua instance = 240, jauh di atas 97 tersedia."
+  },
+  "label": {
+    "sumber": "Hitungan atas Asumsi",
+    "tebakDulu": "Tebak dulu:",
+    "lanjut": "Sekarang pilih “Enam role, batas database kosong” di atas tabel.",
+    "benar": "Tepat:",
+    "belum": "Belum tepat:",
+    "ubah": "Skenario",
+    "caption": "Koneksi pada skenario terpilih, hasil rumus",
+    "besaran": "Besaran",
+    "tanpa": "Tanpa pooler",
+    "dengan": "Dengan PgBouncer",
+    "baris": {
+      "potensi": "Koneksi yang diminta semua pod",
+      "keServer": "Paling banyak ke PostgreSQL",
+      "tersedia": "Tersedia di PostgreSQL",
+      "ditolak": "Ditolak 53300, paling sedikit",
+      "batasKlien": "Batas client per instance",
+      "klienLebih": "Client di atas batas itu"
+    },
+    "kesimpulan": {
+      "muatTanpa": "{potensi} koneksi muat di {tersedia} yang tersedia, jadi tanpa pooler tidak ada galat 53300 pada angka ini.",
+      "pooler": "Tanpa pooler paling sedikit {ditolak} dari {potensi} koneksi ditolak 53300. Dengan PgBouncer paling banyak {keServer} koneksi sampai ke PostgreSQL, di bawah {tersedia} tersedia.",
+      "serverLewat": "Kedua instance boleh membuka {serverMaks} koneksi ke PostgreSQL, jadi sampai {keServer} sekaligus: paling sedikit {ditolakServer} tetap ditolak 53300 walau ada pooler.",
+      "klienLewat": "{potensi} koneksi pod melewati max_client_conn {maxClient} satu instance: {klienLebih} client di atas batas bila instance lain mati."
+    }
+  }
+}

@@ -4612,8 +4612,9 @@
       "lab": [
         "api-t5"
       ],
-      "ada": false,
-      "nomor": "5.17"
+      "ada": true,
+      "nomor": "5.17",
+      "menit": 23
     },
     {
       "id": "t5-m47",

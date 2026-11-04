@@ -3952,6 +3952,38 @@
   "jawab": "`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Di lab, `MaxConns` bernilai 10 dan jitter tidak diatur."
  },
  {
+  "id": "t5-pooler-1",
+  "halaman": "t5-pooler",
+  "judul": "5.17 Pooler koneksi: PgBouncer + ADR 52",
+  "url": "tahap-5/pooler-koneksi/",
+  "tanya": "Dua belas client dengan pool pod 10 meminta 120 koneksi. Apa yang terjadi bila mereka langsung ke PostgreSQL, dan apa bila lewat PgBouncer?",
+  "jawab": "Langsung ke PostgreSQL, sebagian ditolak dengan kode 53300 dan role `t5_app` tidak melewati 97 koneksi (`pooler.txt` bagian A). Lewat PgBouncer, 120 koneksi berhasil, 2.400 query selesai, dan paling banyak 20 koneksi sampai ke PostgreSQL (bagian B)."
+ },
+ {
+  "id": "t5-pooler-2",
+  "halaman": "t5-pooler",
+  "judul": "5.17 Pooler koneksi: PgBouncer + ADR 52",
+  "url": "tahap-5/pooler-koneksi/",
+  "tanya": "Dokumentasi PgBouncer menulis `SET` tidak berjalan di mode transaction. Kode lab memakai apa yang tabel itu tidak sebut, dan apa statusnya?",
+  "jawab": "`kartu.go` memakai `set_config('lock_timeout', ..., true)` di dalam transaction, dan `audit.go` memakai `pg_advisory_xact_lock`. Tabel dokumentasi tidak menyebut keduanya. Lab tidak menjalankannya lewat PgBouncer, jadi keduanya dites sebelum cutover (Tidak dijalankan)."
+ },
+ {
+  "id": "t5-pooler-3",
+  "halaman": "t5-pooler",
+  "judul": "5.17 Pooler koneksi: PgBouncer + ADR 52",
+  "url": "tahap-5/pooler-koneksi/",
+  "tanya": "Dua instance PgBouncer, enam role, `default_pool_size` 20, dan `max_db_connections` kosong. Berapa koneksi server paling banyak, dan berapa setelah `max_db_connections` 30 per instance?",
+  "jawab": "2 × 6 × 20 = 240 koneksi, lebih dari 97 tersedia. Dengan 30 per instance, 2 × 30 = 60 koneksi (Hitungan atas Asumsi dan dokumentasi, Tidak dijalankan)."
+ },
+ {
+  "id": "t5-pooler-4",
+  "halaman": "t5-pooler",
+  "judul": "5.17 Pooler koneksi: PgBouncer + ADR 52",
+  "url": "tahap-5/pooler-koneksi/",
+  "tanya": "Tiap service naik ke 5 pod, pool pod tetap 10. Berapa koneksi pod, berapa yang ditolak tanpa pooler, dan apakah 400 client per instance cukup?",
+  "jawab": "6 × 5 × 10 = 300 koneksi. Tanpa pooler, 300 − 97 = 203 koneksi ditolak. 300 client muat di 400 per instance (75%), tetapi 8 pod tiap service memberi 480 dan melewati batas itu (Hitungan atas Asumsi)."
+ },
+ {
   "id": "t5-m47-1",
   "halaman": "t5-m47",
   "judul": "5.18 M47: Pod notifikasi membuat jurnal",
