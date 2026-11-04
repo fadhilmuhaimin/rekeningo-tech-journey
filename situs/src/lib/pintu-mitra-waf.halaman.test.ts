@@ -932,6 +932,9 @@ describe("widget pilah, diagram Rantai, dan kartu Cek diri", () => {
     expect(kuotaIt.teks).toBe(`Mitra A mengirim permintaan ke-${kuota + 1} dalam satu detik, dan mitra B hanya mengirim ${B.n}.`);
     expect(kuotaIt.kenapa).toBe(`Bucket dihitung per mitra, dengan jam bucket dibekukan: A mendapat ${A.ok} jawaban 200 dan ${A.tolak} jawaban 429 dari ${A.n} permintaan, sedangkan B ${B.ok} dari ${B.n} tetap 200 (kuota.txt bagian A).`);
     expect(wafIt.kenapa).toBe("WAF membaca isi permintaan dan menjawab 403 dengan aturan CRS yang cocok. Kunci dan tanda tangan sah, jadi bukan autentikasi yang menghentikannya (waf.txt bagian A).");
+    expect(cakupanIt.teks).toBe("Kunci API mitra A membaca QR milik merchant mitra B lewat alamat merchant B.");
+    expect(keyIt.teks).toBe("Kasir mengirim POST yang sama dua kali dengan Idempotency-Key yang sama.");
+    expect(kunciIt.teks).toBe("Kunci API yang tidak dikenal, atau kunci milik mitra yang sudah dibekukan.");
     expect(cakupanIt.kenapa).toBe("Gerbang tidak membandingkan merchant dengan mitra. Handler di api-t5 membandingkannya lewat akun.mitra_pos_id dan menjawab 404, sama dengan merchant yang tidak ada (tandatangan.txt bagian C, handler_pos.go).");
     expect(keyIt.kenapa).toBe(`Kedua jawabannya ${mKey[1]} dengan id QR yang sama, dan baris qr milik merchant hanya satu (tandatangan.txt bagian A). Key ini menyatukan pengulangan kasir.`);
     expect(putarIt.kenapa).toBe("Tanda tangan tidak memuat header dan tidak ada nonce, jadi tes Go gerbang mencatat permintaan itu diterima dan key baru sampai ke hulu. Apakah api-t5 membuat QR kedua dibaca dari kode, tidak dijalankan.");
