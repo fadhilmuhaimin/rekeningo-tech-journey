@@ -1,0 +1,180 @@
+---
+title: "5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6"
+description: Minggu 16. Uji coba nasional lolos, lalu Sinta datang dengan PRD v6. Beban naik 10 kali menurut hitungan atas Asumsi, tetapi kapasitas satu primary belum pernah diukur dan tiga hal yang diminta PRD v6 belum pernah diuji.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import Kalkulator from "../../../widgets/kalkulator/Kalkulator.tsx";
+import dataKalkulator from "../../../../data/widget/t5-m51-kalkulator.json";
+import cerita from "../../../../data/cerita.json";
+import batas from "../../../../data/diagram/t5-m51-batas.json";
+
+<p class="meta">Baca 10 menit · coba 3 menit · Prasyarat: [[t5-onprem]], [[t4-estimasi]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 16 Tahap 5. Uji coba nasional berjalan dengan 1.000.000 user terdaftar.
+
+Pak Hadi membuka laporan rekonsiliasi hari ke-14 berturut-turut ([[t4-rekonsiliasi]]). Tiap hari selisihnya Rp0, atau insiden yang muncul sudah tertutup dalam satu hari kerja.
+
+Lalu Sinta membagikan PRD v6. Isinya 10 juta user, multi-region, skor risiko real-time, dan platform untuk lebih dari 50 developer.
+
+"Apa yang harus diganti sebelum PRD v6 dikerjakan?" tanya Sinta.
+
+*Angka cerita (Ilustrasi):* minggu 16, 1.000.000 user terdaftar, 14 hari berturut-turut, dan selisih Rp0 atau insiden tertutup dalam satu hari kerja berasal dari naskah. Naskah menulisnya sebagai target (Asumsi), tanpa rekaman yang mengulangnya.
+
+*Catatan:* Isi PRD v6 juga dari naskah (Ilustrasi), dan PRD v6 belum ada di repo. Pratinjaunya ada di [[t5-jembatan]]. Pertanyaan Sinta ditambahkan halaman ini. PT Rekeningo adalah perusahaan fiktif, dan halaman ini tidak menyebut izin atau regulasi apa pun.
+
+Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]]. Hitungan di halaman ini berarti hasil rumus yang ditulis di sebelahnya, dan labelnya mengikuti masukan terlemahnya.
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Tim membaca daftar PRD v6 dan mengira sistem sekarang tidak akan menampungnya, karena 10 juta user terdengar seperti skala yang menuntut komponen baru. Bayu mengusulkan service mesh sekarang, yaitu lapisan proxy yang mengurus keamanan dan lalu lintas antar service. Nadia mengusulkan multi-region sekarang, yaitu menjalankan sistem di lebih dari satu region, wilayah pusat data.
+
+*Skenario (Ilustrasi):* siapa mengusulkan apa ditulis halaman ini. Naskah hanya menulis dugaannya, yaitu perlu multi-region dan service mesh sekarang.
+
+Satu rekaman beban Tahap 5 bisa memeriksa dugaan itu sebagian. Lab menjadwalkan 1.388,9 request per detik selama 15 detik ke satu proses API di satu laptop. Hasilnya dilaporkan sebagai status dan p95, yaitu waktu jawab yang dilewati 5% request paling lambat.
+
+<details class="question">
+<summary>Tebak dulu: beban PRD v6 adalah 10 kali beban Tahap 5, dan semua permintaan di rekaman itu selesai tanpa error. Apakah rekaman itu cukup untuk menilai beban PRD v6?</summary>
+
+Belum. Rekaman hanya menunjukkan bahwa satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, bukan 13.888,9. Ia tidak mengukur kapasitas satu primary, jadi 694,4 transaksi uang per detik di PRD v6 tidak punya angka pembanding. Blok berikutnya memisahkan yang dihitung, yang direkam, dan yang belum diuji.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Beban PRD v6 adalah 10 kali Tahap 5 menurut hitungan, tetapi kapasitas satu primary belum pernah diukur, jadi 10 kali itu belum bisa dinilai. Primary adalah database yang menerima semua tulis.
+
+<Rantai data={batas} ringkas />
+
+**Angka Tahap 6 dihitung dari angka Tahap 5.** Tabel ini mengalikan masukan Tahap 5 dengan 10, karena user naik dari 1.000.000 ke 10.000.000 dan masukan lain dianggap tetap. Persen aktif 20%, 60 request per user aktif, dan faktor puncak 10 (laju jam paling ramai dibanding rata-rata harian) tidak berubah. Angka Tahap 5 berasal dari tabel beban di [[t5-prd]].
+
+Angka 10.000.000 user berasal dari pratinjau PRD v6 (Ilustrasi), jadi seluruh tabel adalah Hitungan atas Asumsi. Dasar hitungannya 3 transaksi uang per user aktif per hari, dan angka dalam kurung memakai 2 transaksi, angka registry Tahap 5 ([[t5-prd]]).
+
+| Besaran di puncak | Tahap 5 | Tahap 6 | Cara hitung Tahap 6 |
+|---|---|---|---|
+| User aktif per hari | 200.000 | 2.000.000 | 10.000.000 × 20% |
+| Request per detik | 1.388,9 | 13.888,9 | 2.000.000 × 60 ÷ 86.400 × 10 |
+| Transaksi uang per detik | 69,4 (46,3) | 694,4 (463,0) | 2.000.000 × 3 (2) ÷ 86.400 × 10 |
+| Notifikasi uang per detik | 75,2 (52,1) | 752,3 (520,8) | (6.000.000 + 500.000) ÷ 86.400 × 10 |
+| Posting per tahun | 438 juta (292 juta) | 4,38 miliar (2,92 miliar) | 2.000.000 × 3 (2) × 2 × 365 |
+
+Tiap nilai Tahap 6 adalah 10 kali nilai Tahap 5 yang tertulis, dengan selisih pembulatan. Angka 75,2 × 10 = 752, sedangkan dari nilai tepat 75,2315 hasilnya 752,3. Begitu juga 69,4 × 10 = 694 menjadi 694,4 dari 69,4444, dan 46,3 × 10 = 463 menjadi 463,0 dari 46,2963.
+
+Notifikasi uang adalah transaksi uang ditambah top-up dari bank, 0,25 per user aktif per hari. Tiap transaksi menulis dua posting, satu di tiap sisi jurnal. Tabel ini tidak membandingkan hasilnya dengan batas komponen Tahap 5. ADR 46 sampai 59 sudah mengubah komponennya, dan perbandingan itu butuh kapasitas satu primary yang belum ada.
+
+**Rekaman: yang dibuktikan dan yang tidak.** Lab `api-t5` menjalankan beban Tahap 5, bukan Tahap 6: 1.388,9 request per detik selama 15 detik, atau ⌊1.388,9 × 15⌋ = 20.833 permintaan. Permintaan ke-i berangkat pada detik i ÷ 1.388,9 tanpa menunggu jawaban sebelumnya. Server Go dan generator berjalan di satu laptop, dengan satu proses `api-t5` (Go 1.27.3), pool 10 koneksi, dan PostgreSQL 17.11.
+
+<Snippet file="labs/api-t5/output/beban.txt" lines="9:17" title="Rekaman lab: labs/api-t5/output/beban.txt baris 9 sampai 17 (bagian A, beban berjadwal)" />
+
+Semua 20.833 selesai tanpa error: 18.718 baca (200) dan 2.115 pembayaran (201). Nilai p95 yang terukur tidak direkam. Rekaman hanya menulis bahwa p95 di bawah 5.000 ms, batas lab (Asumsi). README lab menulis p95 antar run berkisar dari beberapa milidetik sampai sekitar satu detik.
+
+Tiga baris rekaman tidak membuktikan kapasitas. Koneksi paling banyak ≤ 15 adalah pool 10 ditambah koneksi yang baru dibuka atau baru ditutup. Ada permintaan yang pernah menunggu koneksi, dan itu hanya berarti pool satu proses pernah penuh. Jadwal yang tidak tertinggal lebih dari 100 ms hanya menunjukkan bahwa generator mengirim tepat waktu.
+
+Campuran lab membayar dua kali lebih sering daripada hitungan Tahap 5: 2.115 ÷ 20.833 = 10,2% request, sedangkan 69,4 ÷ 1.388,9 = 5,0% (Hitungan). Jadi pembayaran datang 2.115 ÷ 15 = 141 per detik di rekaman, sekitar dua kali 69,4 (Hitungan dari rekaman). Angka itu bukan 694,4.
+
+Angka 141 itu batas bawah dari satu laptop, bukan kapasitas satu primary. Databasenya bersih dan tanpa replica (dibaca dari `run.py`, Tidak dijalankan), generator memakai 200 user lab, dan p95 boleh sampai 5.000 ms.
+
+**Tiga hal yang belum pernah diuji.** Naskah menyebut ketiganya, dan tiap hal punya batas yang bisa dibaca di Tahap 5:
+
+| Hal baru di PRD v6 | Yang ada di Tahap 5 | Dibaca di |
+|---|---|---|
+| Skor risiko real-time dalam 50 ms (Asumsi naskah) | Lab `t5-gabung` memperagakan alur skor delapan aturan poin. Dengan jeda buatan 10 ms per panggilan, tiga proses punya batas bawah 6 × 10 = 60 ms. Jaringan antar host tidak diukur | [[t5-service]] |
+| Data di dua wilayah | Replica sinkron hanya dijalankan di satu mesin (lab `t5-replika`), dan jeda antar wilayah Tidak dijalankan | [[t5-rpo-rto]] |
+| 28 orang menjadi lebih dari 50 | 28 orang dalam delapan tim (Asumsi cerita). Ambang ±50 developer untuk microservices tidak punya sumber primer [perlu verifikasi], dan halaman ini tidak memakainya | [[t5-prd]] dan [[t4-modul]] |
+
+Skor itu peraga, bukan model risiko dan bukan fitur PRD v5. Angka 50 ms di baris pertama sama dengan anggaran alur skor di lab `t5-gabung` (Asumsi naskah). Anggaran lompatan 50 ms di ADR 37 lain: tambahan p95 satu panggilan HTTP ke ledger. Angkanya sama, artinya berbeda ([[t5-service]]).
+
+Untuk baris kedua, PostgreSQL 17 menulis bahwa tiap COMMIT sinkron menunggu konfirmasi dari standby (bagian 26.2.8, dibuka 2026-11-04, Tidak dijalankan). Waktu tunggu minimumnya adalah round-trip time antara primary dan standby. Bila standby sinkron berada di wilayah lain, tiap transaksi uang menanggung jeda itu (Penalaran, yaitu kesimpulan dari dokumentasi tanpa dijalankan). Nilainya belum diukur.
+
+Baris ketiga membandingkan orang dengan user. User naik 10 kali, sedangkan tim naik paling sedikit 50 ÷ 28 = 1,8 kali (Hitungan atas Asumsi). Angka lebih dari 50 berasal dari PRD v6 (Ilustrasi).
+
+**Dua dugaan, dan yang menjawabnya.** Bayu mengusulkan service mesh. Ledger dipanggil dari tiga service, dan ADR 53 menjawab TLS timbal balik di kode Go ([[t5-mtls]]). [[t5-adr-60]] menulis service mesh penuh baru perlu bila lebih dari satu tujuan kritis butuh identitas yang sama, dan tujuan kritisnya satu, yaitu ledger.
+
+Nadia mengusulkan multi-region. [[t5-adr-60]] menulis multi-region salah saat satu region mati lebih lama dari RTO 15 menit, atau saat PRD v6 memintanya. Pratinjau PRD v6 memintanya (Ilustrasi), dan PRD yang disetujui belum ada.
+
+M42 adalah satu mesin yang mati 23 menit (Ilustrasi). ADR 48 menimbang kejadian itu di dalam satu region, dan lab tidak mengukur RTO ([[t5-rpo-rto]]). Multi-region menjawab pertanyaan lain: apa yang terjadi bila satu region hilang.
+
+**Aturan estimasi yang dipakai.** Aturan di [[t4-estimasi]] berlaku: hitung ulang dari masukan yang tertulis, pisahkan kelas pekerjaan, dan catat yang tidak terjawab. Dua aturan lain ikut dari halaman ini.
+
+- Hasil yang batasnya belum terukur ditulis belum bisa dinilai, bukan aman atau tidak aman.
+- Angka dari rekaman satu laptop dipakai sebagai batas yang diperiksa, bukan dikali 10.
+
+Pengali 10 salah bila perilaku per user berubah. Skor risiko yang dihitung tiap pembayaran menambah kerja per transaksi (Penalaran). Pembayaran bisa memuat lebih banyak pekerjaan daripada Tahap 5, walau jumlahnya tetap 694,4 per detik.
+
+**Estimasi ini berhenti di tiga pertanyaan dan tidak memilih komponen.**
+
+1. *Berapa transaksi uang per detik yang sanggup ditulis satu primary di server sungguhan?* Tidak terjawab. Buku SRE Google menulis bahwa memodelkan kapasitas sebagai queries per second sering menjadi ukuran yang buruk. Alasannya, biaya tiap query berbeda dan bisa berubah. Sumbernya bagian "The Pitfalls of Queries per Second", dibuka 2026-11-04. Alat `pgbench` di PostgreSQL 17 menjalankan urutan perintah SQL yang sama berulang lewat beberapa sesi dan menghitung rata-rata transaksi per detik. Keduanya Tidak dijalankan di repo ini.
+2. *Berapa jeda antar wilayah, dan berapa dari anggaran 50 ms yang ia habiskan?* Tidak terjawab: lab `t5-replika` dan `t5-gabung` hanya berjalan di satu mesin.
+3. *Bagaimana tim yang lebih besar mengubah satu codebase?* Tidak ada rumus di halaman ini yang memuat koordinasi.
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Angka 13.888,9 adalah Asumsi, dan lab tidak mengukur kapasitas produksi. Tebak dulu akibatnya bila persentase user aktif turun separuh, lalu ubah satu hal: ganti skenario dan lihat baris mana yang berubah.
+
+<Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />
+
+Widget membulatkan ke dua angka penting, jadi puncak 1.388,9 tampil 1.400, 13.888,9 tampil 14.000, 6.944,4 tampil 6.900, dan 33.333,3 tampil 33.000. Pilih **Tahap 6**, dan user naik ke 10.000.000 dan puncak ke 13.888,9, 10 kali Tahap 5. Pilih **Aktif 10%**, dan user aktif tinggal 1.000.000 dan puncak turun ke 6.944,4, tetap 5 kali Tahap 5.
+
+Pilih **Satu jam**, dan semua request sehari masuk dalam satu jam. Faktor puncaknya 24, dan 120.000.000 ÷ 3.600 = 33.333,3 request per detik (Hitungan). Kalkulator hanya menghitung request per detik. Ia tidak bisa menilai apakah satu primary sanggup.
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t5-adr-60]]: ADR 60, "Sengaja belum dilakukan". Service mesh penuh, multi-region, database terpisah per service, sharding, dan butir lain sengaja belum dipasang, masing-masing dengan pemicunya.
+- [[t5-jembatan]]: pratinjau PRD v6, dengan tebakan keputusan Tahap 5 mana yang pecah lebih dulu.
+- [[t4-estimasi]]: rumus puncak yang sama untuk Tahap 4 → 5. Halaman ini memakainya sekali lagi untuk Tahap 5 → 6.
+- [[t5-service]]: lab `t5-gabung` dan anggaran 50 ms antar host, yang belum diukur.
+- [[t5-rpo-rto]]: replica sinkron dan RTO 15 menit di satu region.
+- [[t5-prd]]: tabel beban Tahap 5 dan tim 28 orang, tempat angka masukan halaman ini berasal.
+
+Masalah Tahap 5 adalah salinan yang tertinggal dan pekerjaan yang diulang, bukan jumlah request per detik. Kapasitas satu primary belum terukur.
+
+### Cek diri
+
+**1.** Puncak Tahap 5 adalah 1.388,9 request per detik. Berapa puncak Tahap 6, dan kenapa hanya perlu satu pengali?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+13.888,9 request per detik: user naik 10 kali, sedangkan persen aktif, request per user, dan faktor puncak dianggap tetap (Hitungan atas Asumsi). Angka 10.000.000 user berasal dari pratinjau PRD v6 (Ilustrasi).
+
+</details>
+
+**2.** Rekaman beban menulis semua 20.833 permintaan selesai. Apa yang dibuktikan, dan kenapa bukan kapasitas satu primary?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Satu proses di satu laptop menyelesaikan campuran lab pada 1.388,9 request per detik, dengan p95 di bawah batas lab 5.000 ms. Databasenya bersih dan tanpa replica, pool 10 sudah antre, dan pembayaran hanya datang 141 per detik, jauh di bawah 694,4 (`beban.txt` bagian A).
+
+</details>
+
+**3.** Kenapa 69,4 × 10 = 694 ditulis 694,4 di tabel Tahap 6?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Angka 69,4 sudah dibulatkan dari 69,4444. Dikali 10 hasilnya 694,444, yang ditulis 694,4 dengan satu desimal. Selisihnya hanya pembulatan.
+
+</details>
+
+**4.** Sebutkan tiga hal yang diminta PRD v6 dan belum pernah diuji di Tahap 5.
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50. Lab Tahap 5 berjalan di satu mesin, dan jeda antar wilayah Tidak dijalankan.
+
+</details>
+
+</Blok>
