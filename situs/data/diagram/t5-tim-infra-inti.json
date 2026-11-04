@@ -3,7 +3,7 @@
   "judul": "Trace lintas service dan alert dari laju anggaran",
   "sumber": {
     "jenis": "rekaman",
-    "teks": "Rekaman lab t5-service · jejak.txt bagian A dan B; baris Alert: Asumsi dari naskah dan SRE Workbook"
+    "teks": "Rekaman lab t5-service · jejak.txt; baris Alert: Asumsi"
   },
   "baris": [
     {
