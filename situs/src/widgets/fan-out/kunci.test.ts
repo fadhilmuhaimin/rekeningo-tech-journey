@@ -66,7 +66,7 @@ describe("kunci: kalimat dan sel tabel", () => {
     expect(d.tebak.alasan).toBe("Satu partisi dibaca satu consumer dalam satu grup, jadi 36 dari 42 consumer tidak punya yang dibaca. Enam consumer dengan 4 pengirim berarti 24 pengirim: 1.000.000 × 0,3 ÷ 24 = 12.500 detik, sekitar 3,5 jam.");
   });
   it("label: kolom, kelompok, caption, dan petunjuk penggeser", () => {
-    expect(d.label.tabel.kolom).toEqual({ consumer: "Consumer bekerja", antrean: "Antrean tiap partisi", laju: "Laju kirim", selesai: "Selesai dalam", kuota: "Kuota terpakai", akibat: "Akibat" });
+    expect(d.label.tabel.kolom).toEqual({ consumer: "Consumer bekerja", antrean: "Queue tiap partisi", laju: "Laju kirim", selesai: "Selesai dalam", kuota: "Kuota terpakai", akibat: "Akibat" });
     expect(d.label.kelompok).toEqual({ sebanyak: "{partisi} partisi, sebanyak consumer", lab: "{partisi} partisi, seperti di lab" });
     expect(d.label.tabel.caption).toBe("Pengumuman yang sama dengan dua jumlah partisi");
     expect(d.label.pengirim.petunjuk).toBe("Tiap consumer memegang 4 pengirim; 12 pengirim sama dengan tiga consumer di lab. Pada 5.000 pengirim, 1.000.000 perangkat selesai dalam satu menit bila kuota tidak membatasi.");
@@ -104,7 +104,7 @@ describe("kunci: kalimat dan sel tabel", () => {
   });
   it("uang: kelas hanya mengatur urutan; kuota dipakai bersama; tanpa batas laju uang ikut 429", () => {
     // antrean.txt A: "-- kelas hanya mengatur urutan di antrean yang sama; penyedia push dan kuotanya dipakai bersama (bagian B)"
-    expect(d.uang[0]!.teks).toBe("Kelas antrean mengurutkan uang di depan 3.000 baris promo di outbox: satu putaran worker mengirim empat baris uang. Kelas hanya mengatur urutan di antrean yang sama, sedangkan penyedia push dan kuotanya dipakai bersama.");
+    expect(d.uang[0]!.teks).toBe("Kelas queue mengurutkan uang di depan 3.000 baris promo di outbox: satu putaran worker mengirim empat baris uang. Kelas hanya mengatur urutan di queue yang sama, sedangkan penyedia push dan kuotanya dipakai bersama.");
     // antrean.txt B: terkendali 3 x 200 = 600; uang 429 0; umur uang tertua tidak lebih 2 detik; rentan: uang 429 dan umur melebihi 2 detik
     expect(d.uang[1]!.teks).toBe("Dengan laju tiap consumer dibatasi (3 × 200 = 600 per detik, di bawah kuota lab 1.000), uang tidak dijawab 429. Umur uang tertua tidak melewati 2 detik. Tanpa batas laju dan tanpa backoff, uang ikut dijawab 429 dan umurnya melewati 2 detik.");
     expect(d.uang.map((u) => [u.berkas, u.bagian])).toEqual([["antrean.txt", "A"], ["antrean.txt", "B"]]);

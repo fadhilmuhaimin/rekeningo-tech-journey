@@ -132,7 +132,7 @@ describe("teks widget: angka dan label diturunkan dari skenario dan pilihan", ()
     expect(d.penerima.map((x) => x.label)).toEqual(d.penerima.map((x, i) => (i === 0 ? `${ribuan(x.jumlah)} (lab)` : ribuan(x.jumlah))));
     expect(d.pengirim.map((x) => x.label)).toEqual(d.pengirim.map((x) => ribuan(x.jumlah)));
   });
-  it("kolom Antrean tiap partisi dan Consumer bekerja disebut persis dengan nama konsep di kalimat akibat", () => {
+  it("kolom Queue tiap partisi dan Consumer bekerja disebut persis dengan nama konsep di kalimat akibat", () => {
     expect(d.label.akibat.partisi).toContain("consumer menganggur");
     expect(d.label.akibat.kuota).toContain("dijawab 429");
     expect(d.label.sel.consumer).toBe("{bekerja} dari {consumer}");
