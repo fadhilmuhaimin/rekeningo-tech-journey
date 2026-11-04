@@ -183,6 +183,15 @@ window.ISTILAH = {
   "t": "Backoff",
   "u": "tahap-2/retry-idempotency/"
  },
+ "Backpressure": {
+  "b": "t5-fanout",
+  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "h": "istilah/backpressure/",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-backpressure",
+  "t": "Backpressure",
+  "u": "tahap-5/fan-out/"
+ },
  "Backup dan uji pulih": {
   "b": "t4-m33",
   "d": "Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.",
@@ -191,6 +200,15 @@ window.ISTILAH = {
   "s": "istilah-backup-dan-uji-pulih",
   "t": "Backup dan uji pulih",
   "u": "tahap-4/m33-uji-pulih/"
+ },
+ "Badai koneksi": {
+  "b": "t5-m46",
+  "d": "Banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak.",
+  "h": "istilah/badai-koneksi/",
+  "n": "5.16 M46",
+  "s": "istilah-badai-koneksi",
+  "t": "Badai koneksi",
+  "u": "tahap-5/m46-failover-semua-error/"
  },
  "Batch": {
   "b": "t5-batch",
@@ -389,6 +407,15 @@ window.ISTILAH = {
   "s": "istilah-constraint",
   "t": "Constraint",
   "u": "tahap-1/data-modeling/"
+ },
+ "Consumer group": {
+  "b": "t5-fanout",
+  "d": "Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.",
+  "h": "istilah/consumer-group/",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-consumer-group",
+  "t": "Consumer group",
+  "u": "tahap-5/fan-out/"
  },
  "Container": {
   "b": "C3",
@@ -1365,11 +1392,19 @@ window.ISTILAH = {
  },
  "Partisi": {
   "b": "D2",
-  "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
   "n": "Scaling (versi lama)",
-  "s": "istilah-partitioning",
-  "t": "Partitioning",
+  "s": "istilah-partisi",
+  "t": "Partisi",
   "u": "d-system-design/d2-scaling/"
+ },
+ "Partisi topik": {
+  "b": "t5-fanout",
+  "d": "Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-partisi-topik",
+  "t": "Partisi topik",
+  "u": "tahap-5/fan-out/"
  },
  "Partitioning": {
   "b": "D2",
@@ -2177,6 +2212,15 @@ window.ISTILAH = {
   "t": "Backoff",
   "u": "tahap-2/retry-idempotency/"
  },
+ "backpressure": {
+  "b": "t5-fanout",
+  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "h": "istilah/backpressure/",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-backpressure",
+  "t": "Backpressure",
+  "u": "tahap-5/fan-out/"
+ },
  "backup dan uji pulih": {
   "b": "t4-m33",
   "d": "Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai.",
@@ -2185,6 +2229,15 @@ window.ISTILAH = {
   "s": "istilah-backup-dan-uji-pulih",
   "t": "Backup dan uji pulih",
   "u": "tahap-4/m33-uji-pulih/"
+ },
+ "badai koneksi": {
+  "b": "t5-m46",
+  "d": "Banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak.",
+  "h": "istilah/badai-koneksi/",
+  "n": "5.16 M46",
+  "s": "istilah-badai-koneksi",
+  "t": "Badai koneksi",
+  "u": "tahap-5/m46-failover-semua-error/"
  },
  "batch": {
   "b": "t5-batch",
@@ -2297,6 +2350,15 @@ window.ISTILAH = {
   "s": "istilah-constraint",
   "t": "Constraint",
   "u": "tahap-1/data-modeling/"
+ },
+ "consumer group": {
+  "b": "t5-fanout",
+  "d": "Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.",
+  "h": "istilah/consumer-group/",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-consumer-group",
+  "t": "Consumer group",
+  "u": "tahap-5/fan-out/"
  },
  "container": {
   "b": "C3",
@@ -2998,11 +3060,19 @@ window.ISTILAH = {
  },
  "partisi": {
   "b": "D2",
-  "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
   "n": "Scaling (versi lama)",
-  "s": "istilah-partitioning",
-  "t": "Partitioning",
+  "s": "istilah-partisi",
+  "t": "Partisi",
   "u": "d-system-design/d2-scaling/"
+ },
+ "partisi topik": {
+  "b": "t5-fanout",
+  "d": "Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-partisi-topik",
+  "t": "Partisi topik",
+  "u": "tahap-5/fan-out/"
  },
  "partitioning": {
   "b": "D2",

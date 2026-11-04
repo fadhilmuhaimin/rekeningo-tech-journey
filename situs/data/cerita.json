@@ -4558,8 +4558,9 @@
       "lab": [
         "t5-fanout"
       ],
-      "ada": false,
-      "nomor": "5.15"
+      "ada": true,
+      "nomor": "5.15",
+      "menit": 26
     },
     {
       "id": "t5-m46",
@@ -4583,8 +4584,9 @@
       "lab": [
         "api-t5"
       ],
-      "ada": false,
-      "nomor": "5.16"
+      "ada": true,
+      "nomor": "5.16",
+      "menit": 12
     },
     {
       "id": "t5-pooler",

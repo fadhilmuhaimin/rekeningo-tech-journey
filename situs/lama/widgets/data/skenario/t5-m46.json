@@ -1,0 +1,82 @@
+{
+  "versi": 2,
+  "judul": "Dua belas client dengan pool 10 meminta 120 koneksi langsung ke PostgreSQL",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/api-t5/output/pooler.txt",
+    "fileVarian": "labs/api-t5/output/pooler.txt",
+    "catatan": "Lab api-t5, PostgreSQL 17.11, dari database bersih (make -C labs/api-t5 run BAGIAN=pooler). Jalur utama: pooler.txt bagian A, satu proses yang membuka 12 pool dengan 10 koneksi per pool langsung ke PostgreSQL. Ubah satu hal: pooler.txt bagian B, client yang sama lewat PgBouncer 1.26.1. Rekaman ini bukan latihan failover: rekaman pooler.txt memakai satu PostgreSQL tanpa replica, pod, atau app Flutter, dan tidak merekam layar HP. Jumlah koneksi yang berhasil tidak direkam sebagai angka. Baris diawali tanda pagar adalah baris rekaman, bukan baris log."
+  },
+  "pengantar": "Dewi menjalankan latihan failover, dan service menjawab 500. Lab memerankan satu bagiannya: banyak pool meminta koneksi bersamaan. Ikuti langkahnya, lalu centang 'Ubah satu hal' dan tebak apa yang terjadi bila client yang sama menyambung lewat PgBouncer.",
+  "komponen": [
+    {
+      "id": "client",
+      "label": "12 client, pool 10"
+    },
+    {
+      "id": "pgb",
+      "label": "PgBouncer"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "perangkat": [],
+  "layarAwal": {},
+  "predict": {
+    "q": "Dua belas client yang sama, dengan pool 10 dan jumlah query yang sama, sekarang menyambung lewat PgBouncer, yaitu perantara yang menerima koneksi client dan meneruskan query ke PostgreSQL lewat koneksinya sendiri. Apa yang terjadi?",
+    "options": [
+      "Galat 53300 tetap muncul, karena tiap client tetap membuka sepuluh koneksi ke PostgreSQL dan batasnya sama",
+      "Sebagian query gagal karena habis waktu menunggu koneksi di PgBouncer, tetapi galat 53300 tidak muncul lagi",
+      "Semua 120 koneksi client berhasil tanpa galat, dan koneksi dari role itu di PostgreSQL tetap di bawah batas",
+      "Galat 53300 muncul lebih sedikit, karena PgBouncer menolak sebagian koneksi client lebih dulu, sebelum sampai ke PostgreSQL"
+    ],
+    "answer": 2,
+    "varian": true,
+    "explain": "Semua 120 koneksi client berhasil dan tidak ada galat. Dari role itu paling banyak 20 koneksi sampai ke PostgreSQL, di bawah batas 97 (pooler.txt bagian B). Cara PgBouncer membagi koneksi dan batasnya dibahas di halaman berikutnya."
+  },
+  "langkah": [
+    {
+      "dari": "db",
+      "judul": "PostgreSQL menerima paling banyak 97 koneksi dari role biasa",
+      "kirim": "=> SHOW max_connections        -- 100\n=> SHOW superuser_reserved_connections   -- 3; tersedia untuk role biasa: 100 - 3 = 97",
+      "jelas": "Di lab, max_connections bernilai 100 dan 3 slot dicadangkan untuk superuser. Role biasa mendapat 100 dikurangi 3, yaitu 97 slot."
+    },
+    {
+      "dari": "client",
+      "ke": "db",
+      "judul": "Dua belas client membuka pool 10 koneksi langsung ke PostgreSQL",
+      "kirim": "koneksi diminta: 120",
+      "jelas": "Tiap client meminta sepuluh koneksi dari pool-nya sekaligus. Dua belas client dengan sepuluh koneksi masing-masing menghasilkan 120 koneksi yang diminta."
+    },
+    {
+      "dari": "db",
+      "judul": "Sebagian koneksi ditolak dengan kode 53300",
+      "kirim": "koneksi berhasil lebih sedikit dari diminta: ya\nkode galat: 53300   # 53300 = too_many_connections\nkoneksi role t5_app di PostgreSQL paling banyak <= 97 (disampel tiap 100 ms): ya\nclient yang mendapat seluruh 10 koneksinya: kurang dari 12: ya",
+      "jelas": "PostgreSQL menjawab 53300 untuk koneksi di atas batas. Lab tidak merekam jumlah koneksi yang berhasil sebagai angka. Lab memeriksa bahwa jumlahnya di bawah 120 dan koneksi role itu paling banyak 97. Kurang dari 12 client mendapat seluruh sepuluh koneksinya.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "client yang sama lewat PgBouncer",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "client",
+        "ke": "pgb",
+        "judul": "Client yang sama menyambung lewat PgBouncer",
+        "kirim": "$ pgbouncer --version   -- PgBouncer 1.26.1\nkoneksi diminta: 120, berhasil: 120, galat: tidak ada",
+        "jelas": "PgBouncer 1.26.1 menerima 120 koneksi dari 12 client yang sama, dan tidak ada galat. Cara memasangnya dibahas di halaman berikutnya."
+      },
+      {
+        "dari": "pgb",
+        "ke": "db",
+        "judul": "PostgreSQL melihat jauh lebih sedikit koneksi dari role itu",
+        "kirim": "query selesai: 2400 (= 12 client × 10 koneksi × 20 putaran)\nclient yang mendapat seluruh 10 koneksinya: 12 dari 12\n120 koneksi client dilayani oleh paling banyak 20 koneksi ke PostgreSQL, jauh di bawah 97.",
+        "jelas": "Semua 2.400 query selesai dan 12 dari 12 client mendapat seluruh sepuluh koneksinya. Paling banyak 20 koneksi sampai ke PostgreSQL, di bawah batas 97.",
+        "nada": "good"
+      }
+    ]
+  }
+}
