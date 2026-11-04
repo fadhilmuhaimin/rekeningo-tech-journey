@@ -1242,6 +1242,15 @@
   "h": "/istilah/networkpolicy/"
  },
  {
+  "t": "Nonce",
+  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
+  "b": "t5-waf",
+  "n": "5.25 Pintu untuk pihak luar",
+  "u": "/tahap-5/pintu-mitra-waf/",
+  "s": "istilah-nonce",
+  "h": "/istilah/nonce/"
+ },
+ {
   "t": "Nonrepeatable read",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
   "b": "t2-isolation-level",
@@ -2068,6 +2077,15 @@
   "u": "/tahap-3/m27-hari-promo/",
   "s": "istilah-umur-notifikasi-tertua",
   "h": null
+ },
+ {
+  "t": "WAF (web application firewall)",
+  "d": "Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan.",
+  "b": "t5-waf",
+  "n": "5.25 Pintu untuk pihak luar",
+  "u": "/tahap-5/pintu-mitra-waf/",
+  "s": "istilah-waf",
+  "h": "/istilah/waf/"
  },
  {
   "t": "WAL (Write-Ahead Log)",

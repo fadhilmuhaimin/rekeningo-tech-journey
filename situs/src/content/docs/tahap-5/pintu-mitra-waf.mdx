@@ -1,0 +1,421 @@
+---
+title: "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56"
+description: Rekeningo menaruh satu gerbang di depan API untuk mitra POS, dengan WAF, kunci dan tanda tangan per mitra, kuota per mitra, dan Idempotency-Key wajib. ADR 56 menimbang cara lain dan menulis kapan pilihan ini salah, termasuk celah replay yang direkam lab.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t5-waf-inti.json";
+
+<p class="meta">Baca 18 menit · coba 3 menit · Prasyarat: [[t5-m50]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Pintu mitra menolak serangan umum, dan satu celah masih terbuka.
+
+<Rantai data={intiDiagram} ringkas />
+
+Gerbang adalah pintu di tepi jaringan yang dilewati semua permintaan dari mitra POS, penyedia kasir elektronik pihak ketiga ([[t5-prd]]), sebelum sampai ke `api-t5`. WAF (web application firewall) adalah penyaring isi permintaan HTTP di depan API. Ia memakai OWASP CRS (Core Rule Set), kumpulan aturan yang memberi skor pada tiap kecocokan. Nonce adalah nilai sekali pakai yang ikut ditandatangani, supaya pesan yang sama tidak bisa dipakai dua kali.
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `waf.txt` bagian A, WAF menolak 8 dari 8 payload uji dengan 403, walau kunci dan tanda tangannya sah. Bagian B meloloskan 37 dari 37 payload POS yang sah. Di `kuota.txt` bagian A jam bucket dibekukan, dan mitra A mendapat 100 jawaban 200 dan 500 jawaban 429 dari 600 permintaan. Mitra B tetap 20 dari 20.
+
+Idempotency-Key adalah kepala permintaan yang membuat pengulangan POST menghasilkan satu hasil ([[t2-idempotency]]). Tes Go adalah tes otomatis di folder gerbang atau di `api-t5`, dan `testing.txt` mencatat nama dan hasil PASS-nya. Tes Go gerbang mencatat bahwa permintaan sah yang diputar ulang di dalam jendela 5 menit diterima lagi (`testing.txt` bagian A).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Payload serangan umum datang dengan kunci dan tanda tangan yang sah. Siapa yang menolaknya, dan dengan status apa?
+2. Kunci API mitra A membaca QR milik merchant mitra B. Apa jawabannya, dan di komponen mana cakupan itu diperiksa?
+3. Permintaan sah ditandatangani, lalu diputar ulang di dalam jendela 5 menit dengan Idempotency-Key lain. Apa yang dilakukan gerbang, dan apa yang belum menahannya?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: tiap pemeriksaan di pintu menjawab satu pertanyaan, dan Idempotency-Key tidak tertanda, jadi ia menyatukan pengulangan kasir tetapi tidak menahan permintaan yang diputar ulang dengan key lain.">
+
+Pilah sepuluh kejadian di pintu mitra POS ke pemeriksaan yang menanganinya, lalu periksa jawabanmu. Alasan tiap jawaban menyebut rekaman lab t5-waf atau kode lab. HMAC, yang dipakai di widget, adalah nilai yang dihitung dari isi pesan dan secret bersama, jadi hanya pemegang secret yang bisa membuatnya ([[t4-webhook]]).
+
+Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] diatur di [Label sumber](/cara-pakai/#label-sumber). Tiga label turunan dipakai di halaman ini:
+
+- **Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah.
+- **Penalaran:** kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.
+- **Dibaca dari kode:** kode sumber dibaca tanpa dijalankan, jadi labelnya Tidak dijalankan.
+
+<WidgetLama nama="pilah" src="data/t5-pintu-pilah.json" />
+
+**Ubah satu hal:** bayangkan Idempotency-Key ikut ditandatangani. Kejadian kelima tidak lagi lolos, karena key yang diganti mengubah tanda tangan (Penalaran dari RFC 9421, tidak dijalankan di lab).
+
+<noscript>
+<p>Tanpa JavaScript, tombol pilihan tidak berfungsi. Jawaban yang tepat: kuota menangani permintaan ke-101, WAF menangani tautologi SQL, dan kunci API menangani kunci tak dikenal atau mitra yang dibekukan.</p>
+<p>Tanda tangan HMAC menangani isi yang diubah dan permintaan 360 detik lalu. Idempotency-Key menangani pengulangan dengan key yang sama. Server `api-t5` menangani merchant milik mitra lain dan referensi 101 karakter. Belum ada penahan untuk permintaan yang diputar ulang di dalam jendela dengan key lain, dan untuk kuota kasir yang sah saat kunci bocor.</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t5-m50]] merekam satu mitra yang mengulang tanpa jeda dan satu batas bersama yang membuat mitra lain ikut mendapat 429. Halaman itu menyerahkan pembelaannya ke halaman ini. PRD v5 meminta API publik untuk POS dengan kunci per mitra, kuota per mitra, dan Idempotency-Key wajib untuk perintah yang menggerakkan uang ([[t5-prd]]).
+
+ADR 4 ([[t1-sql-injection]]) menaruh WAF di depan API di bagian "Sengaja belum dilakukan". Alasannya puncak 0,14 request per detik, satu gedung, dan penguji internal, dan Tahap 5 ditulis sebagai tempat muncul lagi. Itu satu dari tiga butir yang ditunda ADR 4. Keputusan ADR 4 sendiri, yaitu parameter query, allowlist, linter, dan field minimal, tetap berlaku.
+
+Pihak luarnya kini ±50 penyedia POS (Asumsi, [[t5-prd]]), dan puncak seluruh API 1.388,9 permintaan per detik (Asumsi beban Tahap 5, [[t5-prd]]).
+
+### Cara kerjanya
+
+**Satu gerbang memeriksa dalam urutan tetap.** Gerbang lab adalah proxy Go tiruan di depan `api-t5`. Gateway API, antarmuka Kubernetes untuk router ([[t5-rollout]]), Tidak dijalankan di lab ini. Tabel ini membaca urutannya dari `ServeHTTP` (dibaca dari kode). `Retry-After` adalah kepala jawaban yang memberi client waktu tunggu sebelum mencoba lagi.
+
+| Urutan | Pemeriksaan | Menolak dengan |
+|---|---|---|
+| 1 | Batas ukuran body 64 KiB (Asumsi) | 413 |
+| 2 | WAF: Coraza dengan CRS, mode blokir | 403, atau 400 untuk JSON rusak |
+| 3 | Rute: hanya alamat di bawah `/pos/v1/` | 404 |
+| 4 | Kunci API: hash SHA-256 dicari di `mitra_pos`, statusnya harus aktif | 401, atau 429 sesudah 5 kegagalan per alamat dalam 60 detik (Asumsi) |
+| 5 | Kuota per mitra: 20 permintaan berjalan, lalu bucket 100 per detik (Asumsi) | 429 dengan `Retry-After` |
+| 6 | Tanda tangan HMAC bertimestamp | 401 |
+| 7 | Idempotency-Key untuk POST, PUT, PATCH, dan DELETE | 400 |
+| 8 | Diteruskan ke `api-t5`, yang mencocokkan merchant dengan mitra | 404 |
+
+Gerbang membuang kepala `X-Mitra-Id` dan `X-Gerbang-Rahasia` dari client, lalu memasang yang ia buat sendiri (dibaca dari kode).
+
+**WAF menilai isi, bukan keabsahan.** CRS memberi skor pada tiap aturan yang cocok, dan memblokir permintaan bila skor masuk mencapai ambang. Menurut dokumentasi CRS, sebagian besar ancaman masuk yang terdeteksi bernilai 5 secara bawaan ([OWASP CRS: Anomaly Scoring](https://coreruleset.org/docs/2-how-crs-works/2-1-anomaly_scoring/), dibuka 2026-11-04, Tidak dijalankan). Lab memakai CRS v4.30.0 di Coraza v3.8.1 dengan ambang masuk 5, jadi satu temuan berskor 5 sudah memblokir.
+
+Paranoia level adalah seberapa agresif CRS. Menurut dokumentasinya, level 1 memuat aturan yang hampir tidak pernah memicu alarm palsu. Alarm palsu masih mungkin tergantung susunan lokal ([OWASP CRS: Paranoia Levels](https://coreruleset.org/docs/2-how-crs-works/2-2-paranoia_levels/), dibuka 2026-11-04, Tidak dijalankan). Lab memakai level 1.
+
+Delapan payload di `payload.json` terdiri dari tiga SQL injection, tiga XSS, dan dua naik direktori (dibaca dari kode). Semuanya dikirim dengan kunci dan tanda tangan yang sah, jadi yang menghentikannya WAF:
+
+<Snippet file="labs/t5-waf/output/waf.txt" lines="20:25" title="Rekaman lab: labs/t5-waf/output/waf.txt, bagian A (dua dari delapan payload dan jumlahnya)" />
+
+Sebaliknya, 37 payload POS yang sah lolos tanpa blokir. Dari 37 itu, 34 hanya mengubah teks `referensi`. Satu lagi POST tanpa `referensi`, dan dua GET status QR (34 + 1 + 2 = 37, Hitungan atas bagian B):
+
+<Snippet file="labs/t5-waf/output/waf.txt" lines="66:67" title="Rekaman lab: labs/t5-waf/output/waf.txt, bagian B (ringkasan payload sah)" />
+
+Angka 37 bukan ukuran alarm palsu untuk payload POS di luar daftar itu.
+
+**WAF bukan validasi.** Kolom `referensi` berisi 101 karakter tanpa pola serangan lolos WAF, dan `api-t5` menjawab 400 (`waf.txt` bagian C). ADR 4 tetap menjaga query lewat parameter dan allowlist, dan WAF menambah penyaring di depannya (Penalaran).
+
+**Mode deteksi hanya mencatat.** Di mode rentan `waf-deteksi` mesin Coraza berjalan sebagai `DetectionOnly`. Aturan yang sama cocok dan tercatat, tetapi 0 dari 8 payload diblokir dan jawabannya 201 atau 404 (`waf.txt` bagian D). Dari catatan itu terbaca apa yang akan diblokir bila mesinnya menyala (dibaca dari kode `waf.go`).
+
+**Kalau WAF sendiri galat.** Middleware HTTP bawaan Coraza v3.8.1, `WrapHandler`, mencatat log dan kembali bila pemrosesan permintaan galat. Ia tidak memanggil handler berikutnya dan tidak menulis jawaban, jadi client menerima 200 kosong ([http/middleware.go baris 139 sampai 141](https://github.com/corazawaf/coraza/blob/v3.8.1/http/middleware.go), dibuka 2026-11-04, dibaca dari kode). Tes Go `TestCorazaWrapHandlerBawaanGalatMenjawab200Kosong` menjalankannya.
+
+Gerbang lab menulis middleware sendiri yang menjawab 503 `waf-gagal`. Gagal tertutup berarti permintaan ditolak bila pemeriksanya sendiri galat, dan Tes Go `TestGerbangWAFGagalTertutup` membuktikannya dengan WAF palsu yang galat, bukan dengan rekaman jalur penuh. Di kedua perilaku `api-t5` tidak dipanggil. Bedanya ada di kasir: 200 kosong membuatnya mengira QR sudah dibuat (Penalaran).
+
+**Kuota dihitung per mitra di Redis.** Ada dua batas. Pertama, paling banyak 20 permintaan berjalan per mitra. Kedua, token bucket 100 token per detik dengan kapasitas satu detik (Asumsi).
+
+Tiap permintaan memakai satu token, dan token terisi ulang dengan laju tetap ([[t3-rate-limit-redis]]). Jam bucket dibekukan di lab, jadi 600 permintaan mitra A dihitung dalam satu detik tanpa mengukur laju sungguhan:
+
+<Snippet file="labs/t5-waf/output/kuota.txt" lines="9:10" title="Rekaman lab: labs/t5-waf/output/kuota.txt, bagian A (jam bucket dibekukan)" />
+
+Isi ulang 500 milidetik menambah 50 token: 60 permintaan A menghasilkan 50 jawaban 200. Sesudah 10 detik bucket tidak melebihi 100: 130 permintaan A menghasilkan 100 jawaban 200 (bagian A). Di bagian B hulu ditahan 1,5 detik. Dari 25 permintaan A bersamaan, 20 lolos dan 5 dijawab 429 `terlalu-banyak-berjalan`, sedangkan satu permintaan B tetap 200.
+
+Bila satu permintaan berjalan lebih dari 0,2 detik, 20 permintaan berjalan menahan mitra itu di bawah 100 per detik. Itu Hitungan atas Asumsi: 20 ÷ 100 = 0,2 detik.
+
+**Kuota dihitung sebelum tanda tangan.** Urutannya kunci API, kuota, lalu tanda tangan. Kode menulis alasannya: mitra yang membanjiri gerbang dibatasi sebelum gerbang menghitung HMAC untuk tiap permintaannya (dibaca dari kode). Akibatnya kunci API yang bocor tanpa secret penandatangannya tetap bisa menghabiskan kuota mitra pemiliknya.
+
+Tes Go `TestGerbangKuotaSebelumTandaTangan` mengirim 100 permintaan dengan secret salah, dan semuanya dijawab 401. Sesudah itu permintaan berikutnya dijawab 429, juga permintaan kasir A yang sah, sedangkan mitra B tetap 200.
+
+Penghitung permintaan berjalan bisa bocor bila gerbang mati sebelum melepasnya. Penghitung itu baru sembuh sesudah mitra sepi selama masa berlakunya, 10 detik di kode (Tes Go `TestPembatasSlotBocorSembuhHanyaSesudahSepi` memakai 600 milidetik).
+
+**Pencarian kunci mendahului penghitung kegagalan.** Gerbang membaca baris `mitra_pos` dari PostgreSQL lebih dulu, baru menghitung kegagalan per alamat di Redis (dibaca dari kode: `g.cari` sebelum `kunciGagal`). Jadi tiap permintaan yang lolos WAF dan rute, dengan kunci tidak kosong, menyentuh database, juga yang akhirnya dijawab 429. Beban itu tidak diukur (Penalaran).
+
+**Kunci disimpan sebagai hash, dan tanda tangan dihitung per mitra.** Database menyimpan hash SHA-256 kunci di `mitra_pos.kunci_hash`, bukan kuncinya. Role `t5_gerbang` hanya punya SELECT atas lima dari enam kolom `mitra_pos`. Role itu tanpa INSERT, UPDATE, atau DELETE atas tabel itu, dan tanpa SELECT atas enam tabel service lain yang diperiksa (`tandatangan.txt` bagian F).
+
+Secret penandatangan tiap mitra berbeda dari kunci API dan tidak ada di database. Lab membacanya dari file JSON sementara sebagai penyimpanan secret tiruan.
+
+Gerbang menghitung HMAC-SHA256 atas timestamp, method, alamat dengan query string, dan byte mentah body, digabung dengan titik. ADR 34 menandatangani timestamp dan byte body.
+
+Method dan alamat ikut ditandatangani di sini. GET tidak punya body, jadi tanda tangan atas timestamp dan body saja berlaku untuk GET mana pun dalam jendelanya (README lab, dibaca dari kode):
+
+<Snippet file="labs/t5-waf/gerbang/tanda.go" lines="24:29" lang="go" title="Kode lab: labs/t5-waf/gerbang/tanda.go, fungsi TandaTangan" />
+
+Toleransi timestamp 5 menit adalah Asumsi, sama dengan ADR 34. Permintaan 240 detik lalu lolos pemeriksaan gerbang dan dijawab 404 oleh `api-t5`, karena QR contoh tidak ada. Permintaan 360 detik lalu dan 360 detik ke depan dijawab 401:
+
+<Snippet file="labs/t5-waf/output/tandatangan.txt" lines="25:30" title="Rekaman lab: labs/t5-waf/output/tandatangan.txt, bagian B (toleransi 5 menit)" />
+
+Isi yang diubah dari 25.000 menjadi 99.000 dijawab 401 `tanda-tangan-salah`. Kunci yang tidak dikenal atau milik mitra yang dibekukan dijawab 401 `kunci-tidak-sah` (bagian B).
+
+**Tidak semua jawaban 401 sesuai RFC.** RFC 9110 bagian 11.6.1 menulis bahwa server yang menjawab 401 harus mengirim `WWW-Authenticate` dengan sedikitnya satu challenge ([RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#section-11.6.1), dibuka 2026-11-04, Tidak dijalankan).
+
+Di kode gerbang satu dari empat tempat yang menjawab 401 memasangnya, yaitu `kunci-tidak-sah`. Jawaban `tanda-tangan-salah` dan `waktu-di-luar-toleransi` tidak (dibaca dari kode). Ini tindak lanjut, dan tidak diubah di lab.
+
+**Timestamp jauh di depan ditolak.** `PeriksaTanda` menolak timestamp di luar toleransi ke dua arah. Sebelumnya `Sub` menjenuh untuk timestamp jauh di depan, dan negasi nilai minimum meluap ke dirinya sendiri. Jadi timestamp lebih dari 292 tahun di depan lolos pemeriksaan toleransi (komentar di `tanda.go`; perilaku sebelum perbaikan tidak direkam).
+
+Go menulis bahwa `Sub` mengembalikan durasi maksimum atau minimum bila hasilnya tidak muat ([Go: time.Time.Sub](https://pkg.go.dev/time#Time.Sub), go1.27.1 lokal sedangkan lab memakai go1.27.3, dibuka 2026-11-04). Tes Go `TestPeriksaTandaTimestampJauhDiDepan` menolak enam timestamp berbeda yang bertanda tangan sah.
+
+Pola yang sama ada di `labs/api-t4/internal/modul/pembayaran/pembayaran.go` baris 132 sampai 138, tanpa penjaga itu, dan tidak diubah (dibaca dari kode). Timestamp ikut ditandatangani, jadi hanya pemegang secret yang bisa membuat tanda tangan seperti itu (Penalaran). Ini tindak lanjut, bukan bukti bahwa Tahap 4 aman atau tidak aman.
+
+**Permintaan yang diputar ulang di dalam jendela diterima lagi.** Replay adalah pengiriman ulang permintaan sah yang sudah direkam, oleh pihak yang bukan kasirnya. Tanda tangan gerbang tidak memuat nonce, dan dari header hanya nilai timestamp (`X-Waktu`) yang ikut dihitung. `Idempotency-Key`, `Content-Type`, dan `Host` tidak ikut (README lab dan fungsi `TandaTangan`, dibaca dari kode). Tes Go ini mengirim POST yang sama tiga kali, dua kali persis sama dan sekali dengan Idempotency-Key lain:
+
+<Snippet file="labs/t5-waf/gerbang/gerbang_tinjau_test.go" lines="242:254" lang="go" title="Tes Go: labs/t5-waf/gerbang/gerbang_tinjau_test.go, putar ulang dalam jendela" />
+
+Ketiganya diterima (200 dari hulu tiruan), dan key lain itu sampai ke hulu. Pengulangan kasir yang jujur tetap menghasilkan satu QR, karena key yang sama menghasilkan id QR yang sama (`tandatangan.txt` bagian A).
+
+Pihak yang memegang salinan permintaan dan mengganti key memberi `api-t5` key baru. Klaim key di `api-t5` adalah `INSERT ... ON CONFLICT (kunci)`, jadi key baru menjadi permintaan baru (dibaca dari kode `KlaimKunci`). Berapa QR yang terbentuk tidak direkam: lab tidak menjalankan skenario itu sampai `api-t5`.
+
+Memegang salinan permintaan butuh akses ke jalur permintaan. Gerbang lab melayani HTTP di localhost, jadi TLS di tepi Tidak dijalankan.
+
+ADR 34 ([[t4-webhook]]) punya pola yang sama. Di sana tanda tangan menerima kiriman 60 detik lalu, dan `event_id` unik yang menahan kiriman ganda, bukan tanda tangan. Pintu mitra tidak punya `event_id` untuk permintaan POS. Idempotency-Key bukan padanannya, karena tidak tertanda.
+
+RFC 9421 bagian 7.2.2 menulis beberapa penangkal replay. Penanda tangan menutup bagian pesan yang cukup untuk membedakannya dari pesan lain. Parameter `nonce` memberi nilai unik per pesan, supaya verifier bisa mendeteksi tanda tangan yang diulang bila nilai itu muncul lagi. Timestamp dan waktu kedaluwarsa membatasi guna tanda tangan yang tertangkap, dan pintu ini sudah memakai timestamp ([RFC 9421](https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2), Standards Track, dibuka 2026-11-04, Tidak dijalankan).
+
+Untuk pintu ini, Idempotency-Key ikut ditandatangani, atau gerbang mencatat nonce selama jendela. Keduanya tindak lanjut yang tidak dikerjakan di lab (Penalaran dari RFC).
+
+Mencatat nonce menyimpan tiap nilai selama dua kali toleransi, yaitu 2 × 300 = 600 detik. Alasannya timestamp boleh 300 detik di depan atau di belakang. Pada 100 per detik itu 100 × 600 = 60.000 nonce per mitra, dan 50 × 60.000 = 3.000.000 untuk ±50 mitra (Hitungan atas Asumsi).
+
+**Cakupan diperiksa di api-t5, dengan data dari database.** Kunci mitra A hanya membuka merchant yang punya `akun.mitra_pos_id` miliknya. Gerbang tidak memeriksanya. Handler di `api-t5` membandingkan mitra dari gerbang dengan merchant di alamat lewat SQL (README lab, dibaca dari kode):
+
+<Snippet file="labs/api-t5/internal/handler/handler_pos.go" lines="44:59" lang="go" title="Kode lab: labs/api-t5/internal/handler/handler_pos.go, cakupan merchant" />
+
+Merchant milik mitra lain, merchant yang tidak ada, dan akun yang bukan merchant dijawab 404 yang sama (pola ADR 7, [[t1-idor]]). Di rekaman bagian C ada lima percobaan yang dijawab 404, dan baris `qr` milik merchant B tetap 1, yang dibuat B sendiri. Di mode rentan `pos-tanpa-cakupan`, pembacaan yang sama dijawab 200 dengan data QR milik B (`tandatangan.txt` bagian C):
+
+<Snippet file="labs/t5-waf/output/tandatangan.txt" lines="41:53" title="Rekaman lab: labs/t5-waf/output/tandatangan.txt, bagian C (cakupan)" />
+
+Permintaan langsung ke `api-t5` tanpa secret gerbang dijawab 401 `bukan-dari-gerbang`, dan kepala `X-Mitra-Id` milik B dari client dibuang gerbang (bagian C).
+
+**Idempotency-Key wajib, tetapi bukan penahan replay.** Gerbang menolak POST, PUT, PATCH, dan DELETE tanpa Idempotency-Key dengan 400. Key yang sama dengan isi yang sama menghasilkan QR yang sama, dan key yang sama dengan isi lain dijawab 422:
+
+<Snippet file="labs/t5-waf/output/tandatangan.txt" lines="6:11" title="Rekaman lab: labs/t5-waf/output/tandatangan.txt, bagian A (Idempotency-Key wajib)" />
+
+Mode rentan `tanpa-idempoten-wajib` mengembalikan perilaku Tahap 4: dua POST tanpa key membuat dua baris `qr` ([[t5-m50]]). Idempotency-Key melindungi pengulangan kasir, bukan permintaan yang diputar ulang pihak lain.
+
+**Webhook keluar dan mTLS hanya disebut.** Rekeningo juga mengirim webhook ke alamat yang diisi mitra. Aturan alamat keluar ADR 41 ([[t4-ssrf]]) berlaku, dan Rekeningo menandatangani isinya dengan HMAC seperti ADR 34, dengan arah dibalik. Bagian ini Tidak dijalankan di lab t5-waf.
+
+mTLS untuk mitra hanya disebut. [[t5-mtls]] membahas mTLS antar service, dan sertifikat client untuk ±50 mitra belum diminta (Asumsi).
+
+**Serangan volumetrik tidak tertutup di sini.** Banjir paket dan SYN flood di lapisan 3 dan 4 diserahkan ke penyedia jaringan (Ilustrasi). Lab t5-waf hanya menguji lapisan 7 di gerbang (`kuota.txt`, kalimat penutup).
+
+**Yang tidak direkam.**
+
+- Laju sungguhan: jam bucket dibekukan, dan kapasitas satu server tidak diukur.
+- Timeout 3 detik di gerbang: ada di kode, tetapi tidak direkam sebagai perilaku (Tidak dijalankan).
+- Redis mati dan galat WAF dijawab 503 hanya di Tes Go, bukan di rekaman jalur penuh.
+- Alarm palsu di luar 37 payload sah dan paranoia level di atas 1.
+- Tanda tangan GPG rilis CRS belum diperiksa [perlu verifikasi], dan govulncheck dan grype atas gerbang Tidak dijalankan.
+
+### Di stack lain
+
+**Skenario:** satu API membatasi permintaan per client yang memegang kunci, bukan per alamat. Yang ditanyakan: apa kunci penghitung bawaannya, dan di mana kamu menggantinya.
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-04. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab t5-waf, go1.27.3, Redis 8.10.2 (rekaman `kuota.txt` bagian A sampai C).*
+
+<Snippet file="labs/t5-waf/gerbang/gerbang.go" lines="167:177" lang="go" title="Kode lab: labs/t5-waf/gerbang/gerbang.go, kuota per mitra di ServeHTTP" />
+
+**Yang berbeda di stack ini:** kunci penghitung adalah id mitra dari kunci API yang sah, dan alamat tidak ikut. Redis yang tidak terjangkau dijawab 503 `kuota-tidak-tersedia`, dibuktikan Tes Go `TestGerbangRedisMati`. Pembatas ini ditulis sendiri dan tidak memakai library rate limit.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke README [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit/blob/v8.7.3/readme.md) 8.7.3 (npm, diubah 2026-11-02), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`import { rateLimit } from "express-rate-limit";
+
+const kuotaMitra = rateLimit({
+  windowMs: 1000,
+  limit: 100,
+  keyGenerator: (req) => req.mitra.id,
+});`} />
+
+**Yang berbeda di stack ini:** README menulis bahwa `keyGenerator` mengenali user dan bawaannya alamat IP, jadi kunci per mitra harus kamu pasang sendiri. Opsi `store` membagi hitungan antar node.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Routing](https://laravel.com/docs/13.x/routing#rate-limiting), bagian Rate Limiting (`laravel/framework` v13.40.0 di Packagist), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`RateLimiter::for('api', function (Request $request) {
+    return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+});`} />
+
+**Yang berbeda di stack ini:** kunci penghitung dipilih lewat `by()`. Contoh dokumentasi memakai id user dan jatuh ke alamat IP bila user belum masuk, dan batasnya per menit, bukan per detik.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django REST framework: Throttling](https://www.django-rest-framework.org/api-guide/throttling/) 3.18.3 (PyPI), teks mentah tag 3.18.3, dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`class KuotaMitra(BaseThrottle):
+    def allow_request(self, request, view):
+        return hitung(request.mitra.id) <= 100`} />
+
+**Yang berbeda di stack ini:** `AnonRateThrottle` memakai alamat IP, dan `UserRateThrottle` memakai id user lalu jatuh ke alamat IP. Throttle sendiri dibuat dengan mengganti `BaseThrottle` dan menulis `.allow_request`. Dokumentasi menulis bahwa semua client di belakang satu gateway NAT, yaitu satu alamat jaringan yang dipakai banyak perangkat ([[t5-m50]]), dianggap satu client bila `NUM_PROXIES` diatur. Ia juga menulis bahwa throttling tingkat aplikasi tidak boleh dianggap pengaman terhadap brute force atau serangan denial-of-service.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Endpoint middleware](https://docs.serverpod.dev/concepts/endpoints-and-apis/endpoint-middleware) (Framework 4.1.0; Serverpod 4.1.0 di pub.dev, terbit 2026-10-31), dibuka 2026-11-04.*
+
+**Yang berbeda di stack ini:** halaman itu memuat contoh middleware pembatas laju yang memakai alamat IP client sebagai kunci, menghitung dalam jendela waktu tetap, dan menjawab 429. Contoh itu kode yang kamu tulis dan sesuaikan sendiri, jadi kunci per mitra ada di middleware milikmu. Halaman itu menulis bahwa penghitung contohnya ada di memori satu server, dan produksi butuh state yang dipakai bersama antar server. Tujuh halaman dokumentasi yang dibuka tidak menyebut WAF, dan halaman lain tidak dibuka.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Rate Limiting Edge Functions](https://supabase.com/docs/guides/functions/examples/rate-limiting), dibuka 2026-11-04.*
+
+**Yang berbeda di stack ini:** halaman itu menaruh penghitung di Redis lewat Upstash, dan menulis bahwa pembatasan bisa memakai id user dari Supabase Auth. Halaman yang dibaca tidak membahas WAF atau kuota per kunci API. Kode contohnya ada di GitHub dan tidak dibuka.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 56: satu gerbang di tepi dengan WAF, kuota dan tanda tangan per mitra, dan cakupan kunci
+
+**Kebutuhan.** M50 menunjukkan satu mitra yang mengulang tanpa jeda dan satu batas bersama yang menghabiskan jatah mitra lain ([[t5-m50]]). PRD v5 meminta kunci per mitra, kuota per mitra, dan Idempotency-Key wajib ([[t5-prd]]). ADR 4 ([[t1-sql-injection]]) menunda WAF di depan API ke Tahap 5. Mitra ±50 (Asumsi) dan puncak API 1.388,9 permintaan per detik (Asumsi).
+
+**Status:** diterima sesudah M50, dan menutup butir WAF di ADR 4. Naskah tidak menulis tanggal ADR.
+
+Ada dua keputusan, jadi ada dua tabel. Tabel pertama membandingkan cara menjaga pintu:
+
+| | A. WAF saja | B. Blokir alamat IP mitra | C. Kuota bersama | D. Gerbang dengan WAF, kuota per mitra, kunci, HMAC, dan key wajib |
+|---|---|---|---|---|
+| Cara kerja | WAF menilai isi tiap permintaan, tanpa kuota atau kunci per mitra | Alamat jaringan mitra yang membanjiri diblokir di tepi | Satu bucket 100 per detik dipakai semua mitra | Urutan di tabel pemeriksaan: body, WAF, rute, kunci, kuota per mitra, tanda tangan, Idempotency-Key |
+| Kelebihan | Satu komponen, dan 8 dari 8 payload serangan umum ditolak | Biaya rendah, tanpa penghitung per mitra | Satu angka untuk diatur | Tiap pemeriksaan menjawab pertanyaan sendiri, dan satu mitra tidak menghabiskan jatah mitra lain |
+| Kekurangan | Pengulangan yang sah tidak memuat pola serangan, jadi tidak terlihat WAF (Penalaran) | Banyak kasir bisa berbagi satu alamat NAT, dan mitra yang sah ikut terblokir (Penalaran) | Satu mitra yang mengulang menghabiskan jatah mitra lain: 520 dari 620 permintaan mendapat 429, dan B ikut | Lebih banyak bagian: Redis jadi ketergantungan, dan permintaan yang diputar ulang di dalam jendela diterima |
+| Biaya operasional | Aturan CRS diperbarui dan alarm palsu disetel | Daftar alamat mitra dirawat | Paling kecil | WAF, Redis, secret penandatangan per mitra, dan kuota per mitra |
+| Bukti | Penalaran dari `waf.txt` bagian B: 37 payload sah lolos tanpa blokir | Tidak dijalankan: RFC 3022 dan dokumentasi DRF menulis alamat NAT sebagai satu client | Rekaman lab `kuota.txt` bagian C | Rekaman lab `waf.txt`, `kuota.txt` bagian A, dan `tandatangan.txt` bagian A sampai D |
+
+Tabel kedua membandingkan cara membuktikan identitas mitra:
+
+| | E. Kunci API tanpa tanda tangan | F. mTLS untuk mitra | G. HMAC bertimestamp atas byte mentah |
+|---|---|---|---|
+| Cara kerja | Kunci di header dipercaya begitu saja | Mitra memasang sertifikat client, dan TLS membuktikan identitasnya | Mitra menghitung HMAC-SHA256 dengan secret sendiri atas timestamp, method, alamat, dan body |
+| Kelebihan | Paling sederhana bagi mitra | Identitas dibuktikan di lapisan TLS | Isi yang berubah ditolak, dan mitra hanya butuh fungsi hash, bukan sertifikat |
+| Kekurangan | Kunci yang bocor sudah cukup untuk membuat QR atas nama mitra (Penalaran) | Sertifikat client untuk ±50 mitra belum diminta (Asumsi), dan penerbitannya jadi pekerjaan operasional | Replay di dalam jendela diterima, dan Idempotency-Key tidak tertanda |
+| Biaya operasional | Tidak ada | CA, penerbitan, dan pembaruan sertifikat client | Penyimpanan secret per mitra (file JSON sementara di lab) |
+| Bukti | Penalaran dari kode: tanpa pemeriksaan tanda tangan tidak ada yang menolak | Tidak dijalankan | Rekaman lab `tandatangan.txt` bagian B dan Tes Go putar ulang |
+
+**Keputusan: opsi D untuk menjaga pintu dan opsi G untuk identitas mitra.** Delapan aturan:
+
+1. Semua permintaan mitra POS lewat satu gerbang di tepi sebelum `api-t5`. Di lab gerbang adalah proxy Go tiruan, dan Gateway API Tidak dijalankan.
+2. WAF memakai Coraza v3.8.1 dengan OWASP CRS v4.30.0 dalam mode blokir, paranoia level 1, dan ambang masuk 5. Galat WAF dijawab 503.
+3. Kuota per mitra adalah 100 per detik dan 20 permintaan berjalan (Asumsi), dengan token bucket di Redis. Redis datang dari ADR 27 ([[t3-rate-limit-redis]]), yang menghitung percobaan login dengan jendela tetap, jadi algoritmanya lain. Redis yang tidak terjangkau dijawab 503.
+4. Batas ukuran body 64 KiB (Asumsi, dijawab 413) dan timeout 3 detik di kode. Timeout itu tidak direkam.
+5. Kunci API per mitra tersimpan sebagai hash di `mitra_pos.kunci_hash`. HMAC-SHA256 menandatangani timestamp, method, alamat, dan byte mentah body dengan toleransi 5 menit (Asumsi). Secret penandatangan ada di penyimpanan secret, bukan di database.
+6. Kunci mitra hanya membuka merchant yang punya `akun.mitra_pos_id` miliknya. `api-t5` memeriksanya dan menjawab 404 untuk yang lain.
+7. Idempotency-Key wajib untuk POST, PUT, PATCH, dan DELETE, dan permintaan tanpa key dijawab 400.
+8. Enumerasi tetap dibatasi: sesudah 5 kunci salah dari satu alamat dalam 60 detik (Asumsi), kunci salah berikutnya dijawab 429, dan `api-t5` membatasi 10 QR per menit per akun (`tandatangan.txt` bagian D). Webhook keluar memakai aturan ADR 41 dan HMAC dari Rekeningo, dan Tidak dijalankan di lab.
+
+**Kenapa D dan G, bukan yang lain.**
+
+- **A ditolak** karena WAF menilai isi, bukan jumlah. Pengulangan kasir yang sah tidak memuat pola serangan, jadi 37 dari 37 payload sah di rekaman lolos tanpa blokir (Penalaran dari `waf.txt` bagian B).
+- **B ditolak** karena alamat bukan identitas mitra. Banyak kasir bisa berada di belakang satu alamat NAT ([RFC 3022](https://www.rfc-editor.org/rfc/rfc3022), Informational, dibuka 2026-11-04, Tidak dijalankan). Dokumentasi DRF menulis bahwa client di belakang satu gateway NAT dianggap satu client bila `NUM_PROXIES` diatur.
+- **C ditolak** karena M50: 520 dari 620 permintaan mendapat 429 dan mitra B ikut (`kuota.txt` bagian C).
+- **E ditolak** karena kunci yang bocor sudah cukup untuk membuat QR atas nama mitra, dan tidak ada pemeriksaan isi (Penalaran).
+- **F ditunda** karena mTLS untuk ±50 mitra belum diminta (Asumsi), dan ia Tidak dijalankan di lab.
+- **Plugin Caddy untuk Coraza tidak dipilih.** README Coraza menulis plugin itu "stable, needs a maintainer", sedangkan inti Coraza ditulis aktif dikembangkan ([README Coraza](https://github.com/corazawaf/coraza#readme), dibuka 2026-11-04). Gerbang lab memakai Coraza sebagai library Go di prosesnya sendiri, dan plugin Caddy Tidak dijalankan.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Kunci API yang bocor menghabiskan kuota mitra pemiliknya, karena kuota dihitung sebelum tanda tangan. Pencegahannya peringatan pada lonjakan 401 `tanda-tangan-salah` per mitra, dan rotasi kunci lewat `mitra_pos.kunci_hash` dan status `dibekukan` (Penalaran).
+2. Permintaan yang diputar ulang dengan Idempotency-Key lain membuat QR kedua untuk merchant. Pencegahannya TLS di tepi, lalu Idempotency-Key ikut ditandatangani atau nonce dicatat. Ketiganya Tidak dijalankan di lab.
+3. WAF menolak permintaan POS yang sah sesudah pembaruan POS, dan kasir mitra mendapat 403. Pencegahannya menjalankan mesin `DetectionOnly` untuk bentuk payload baru lebih dulu, seperti mode `waf-deteksi` yang direkam di lab (Penalaran).
+
+**Kapan keputusan ini salah.**
+
+- Saat jumlah kuota melebihi kapasitas terukur. 50 mitra × 100 per detik = 5.000 per detik, yaitu 3,6 kali puncak 1.388,9 (Hitungan atas Asumsi: 5.000 ÷ 1.388,9 = 3,59997). Kapasitas satu server belum diukur, jadi kuota diturunkan sampai ukuran dasar load test ada.
+- Saat 20 permintaan berjalan lebih dulu tercapai daripada 100 per detik, yaitu bila satu permintaan memakan lebih dari 0,2 detik (Hitungan atas Asumsi).
+- Saat WAF menolak permintaan POS yang sah. Paranoia level 1 hampir tidak pernah memicu alarm palsu menurut dokumentasi CRS, dan 37 payload sah bukan ukuran alarm palsu.
+- Saat mitra menuntut mTLS atau skema tanda tangan lain, misalnya HTTP Message Signatures (RFC 9421). [[t5-adr-60]] mencatat bahwa mitra POS memakai HMAC bertimestamp dan tidak meminta HTTP Message Signatures.
+- Saat Coraza kehilangan pemelihara. Pada 2026-11-04 README menulis label itu untuk plugin Caddy dan ekstensi WASM Traefik, sedangkan inti Coraza punya rilis v3.8.1 tanggal 2026-10-02 dan komit sampai 2026-10-29. Risikonya ke depan, dan belum terjadi.
+- Saat serangan volumetrik lapisan 3 dan 4 datang. Gerbang ini tidak menutupnya.
+
+**Yang akan merevisinya.** Belum ada halaman yang menjadwalkan revisinya, dan semua butir di tabel Sengaja belum bertanda "Belum dijadwalkan". [[t5-mtls]] membahas mTLS antar service di Go, dan pola itu menjadi bahan bila mitra menuntut mTLS (Penalaran). Mitra yang menuntut tanda tangan lain memakai RFC 9421.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Idempotency-Key tertanda atau nonce | Lab hanya merekam penolakan permintaan yang lebih tua dari jendela, dan replay di dalam jendela hanya Tes Go | Belum dijadwalkan |
+| `WWW-Authenticate` di semua jawaban 401, dan penjaga `Sub` di api-t4 | Tidak diubah di lab t5-waf | Belum dijadwalkan |
+| mTLS untuk mitra | Belum diminta oleh ±50 mitra (Asumsi) | Belum dijadwalkan |
+| Gateway API dan plugin Caddy untuk Coraza | Lab memakai proxy Go tiruan | Belum dijadwalkan |
+| Paranoia level di atas 1 dan pengukuran alarm palsu | Hanya 37 payload sah yang diuji | Belum dijadwalkan |
+| Cache hash kunci atau hitungan kegagalan sebelum pencarian kunci | Beban pencarian kunci tidak diukur | Belum dijadwalkan |
+| Webhook keluar ke POS dengan aturan alamat ADR 41 | Tidak dijalankan di lab t5-waf | Belum dijadwalkan |
+| Kuota dari ukuran dasar load test | Kapasitas satu server belum diukur | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Payload serangan umum datang dengan kunci dan tanda tangan yang sah. Siapa yang menolaknya, dan apa yang tidak diukur oleh 37 payload sah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+WAF menolak 8 dari 8 payload dengan 403 (`waf.txt` bagian A). Dari 37 payload sah yang lolos, 34 hanya mengubah teks `referensi`, jadi angka itu bukan ukuran alarm palsu untuk payload POS lain (bagian B).
+
+</details>
+
+**2.** Kunci mitra A dipakai untuk membaca QR milik merchant mitra B. Apa jawabannya, di mana cakupannya diperiksa, dan apa yang terjadi di mode `pos-tanpa-cakupan`?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jawabannya 404, dan cakupan diperiksa di `api-t5` lewat `akun.mitra_pos_id`, bukan di gerbang. Di mode `pos-tanpa-cakupan` pembacaan yang sama dijawab 200 dengan data QR milik B (`tandatangan.txt` bagian C).
+
+</details>
+
+**3.** Permintaan sah diputar ulang di dalam jendela 5 menit dengan Idempotency-Key lain. Apa yang dilakukan gerbang, dan kenapa Idempotency-Key tidak menahannya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan.
+
+</details>
+
+**4.** Hitung: kuota 100 per detik untuk 50 mitra, dibanding puncak API 1.388,9 permintaan per detik. Apa artinya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+50 × 100 = 5.000 per detik, dan 5.000 ÷ 1.388,9 = 3,6 kali puncak (Hitungan atas Asumsi). Kapasitas satu server belum diukur, jadi jumlah kuota yang boleh diberikan belum diketahui.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Kuota dihitung per identitas yang sah, yaitu mitra, bukan per alamat dan bukan satu angka bersama.
+- [ ] Tanda tangan mencakup method, alamat, dan byte mentah, dan header yang mengubah hasil, seperti Idempotency-Key, ikut tertanda atau nonce dicatat.
+- [ ] WAF yang galat menolak permintaan dengan jawaban galat, bukan 200 kosong.
+- [ ] Kepala identitas dari client dibuang, dan backend hanya percaya permintaan yang membawa secret gerbang.
+- [ ] Cakupan kunci dicek di server dengan data dari database, dan merchant milik orang lain dijawab sama dengan yang tidak ada.
+- [ ] Tiap jawaban 401 membawa `WWW-Authenticate`.
+
+### Bacaan lanjut
+
+- [OWASP CRS: Anomaly Scoring](https://coreruleset.org/docs/2-how-crs-works/2-1-anomaly_scoring/)
+- [OWASP CRS: Paranoia Levels](https://coreruleset.org/docs/2-how-crs-works/2-2-paranoia_levels/)
+- [Coraza: README](https://github.com/corazawaf/coraza#readme)
+- [RFC 9110: WWW-Authenticate](https://www.rfc-editor.org/rfc/rfc9110#section-11.6.1)
+- [RFC 9421: Signature Replay](https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2)
+- [RFC 3022: Traditional IP Network Address Translator](https://www.rfc-editor.org/rfc/rfc3022)
+- [Go: time.Time.Sub](https://pkg.go.dev/time#Time.Sub)
+- [express-rate-limit: README](https://github.com/express-rate-limit/express-rate-limit/blob/v8.7.3/readme.md)
+- [Laravel 13.x: Routing, Rate Limiting](https://laravel.com/docs/13.x/routing#rate-limiting)
+- [Django REST framework: Throttling](https://www.django-rest-framework.org/api-guide/throttling/)
+- [Serverpod: Endpoint middleware](https://docs.serverpod.dev/concepts/endpoints-and-apis/endpoint-middleware)
+- [Supabase: Rate Limiting Edge Functions](https://supabase.com/docs/guides/functions/examples/rate-limiting)
+
+</Blok>
+
+<SkripLama daftar={["pilah"]} />

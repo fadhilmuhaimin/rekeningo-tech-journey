@@ -1238,6 +1238,15 @@ window.ISTILAH = {
   "t": "NetworkPolicy",
   "u": "tahap-5/m47-pod-membuat-jurnal/"
  },
+ "Nonce": {
+  "b": "t5-waf",
+  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
+  "h": "istilah/nonce/",
+  "n": "5.25 Pintu untuk pihak luar",
+  "s": "istilah-nonce",
+  "t": "Nonce",
+  "u": "tahap-5/pintu-mitra-waf/"
+ },
  "Nonrepeatable read": {
   "b": "t2-isolation-level",
   "d": "Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.",
@@ -2081,6 +2090,15 @@ window.ISTILAH = {
   "s": "istilah-umur-notifikasi-tertua",
   "t": "Umur notifikasi tertua",
   "u": "tahap-3/m27-hari-promo/"
+ },
+ "WAF": {
+  "b": "t5-waf",
+  "d": "Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan.",
+  "h": "istilah/waf/",
+  "n": "5.25 Pintu untuk pihak luar",
+  "s": "istilah-waf",
+  "t": "WAF (web application firewall)",
+  "u": "tahap-5/pintu-mitra-waf/"
  },
  "WAL": {
   "b": "t5-read-replica",
@@ -2986,6 +3004,15 @@ window.ISTILAH = {
   "s": "istilah-n-1-query",
   "t": "N+1 query",
   "u": "tahap-2/n-plus-1/"
+ },
+ "nonce": {
+  "b": "t5-waf",
+  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
+  "h": "istilah/nonce/",
+  "n": "5.25 Pintu untuk pihak luar",
+  "s": "istilah-nonce",
+  "t": "Nonce",
+  "u": "tahap-5/pintu-mitra-waf/"
  },
  "nonrepeatable read": {
   "b": "t2-isolation-level",

@@ -159,6 +159,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **MVCC** (Multi-Version Concurrency Control) | Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis. | [[t2-isolation-level]] |
 | **N+1 query** | Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu. | [[t2-n-plus-1]] |
 | **NetworkPolicy** | Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya. | [[t5-m47]] |
+| **Nonce** | Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali. | [[t5-waf]] |
 | **Nonrepeatable read** | Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan. | [[t2-isolation-level]] |
 | **OAuth 2.0** | Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password. | [[B5.2]] |
 | **Object storage** | Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3. | [[B11.2]] |
@@ -251,6 +252,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **TTL** (Time To Live) | Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa. | [[B9]] |
 | **Tutup buku** | Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang. | [[t2-tutup-buku]] |
 | **Umur notifikasi tertua** | Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu. | [[t3-m27]] |
+| **WAF** (web application firewall) | Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan. | [[t5-waf]] |
 | **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[t5-read-replica]] |
 | **Webhook** | HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil. | [[t4-webhook]] |
 | **WebSocket** | Koneksi dua arah yang tetap terbuka antara app dan server. | [[E4]] |
