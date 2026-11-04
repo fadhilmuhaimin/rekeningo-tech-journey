@@ -1361,4 +1361,12 @@ describe("kalimat naratif terikat ke kode, tes Go, dan rekaman, tanpa bergantung
     const pm = badan.slice(badan.indexOf("**Pre-mortem.**"), badan.indexOf("**Kapan keputusan ini salah.**"));
     expect([...pm.matchAll(/^(\d)\. /gm)].map((x) => x[1])).toEqual(["1", "2", "3"]);
   });
+  test("kepala empat rekaman sama pada baris versi, README memuat versi Coraza, mode kuota-bersama memakai satu kunci, dan 3.17 menulis jendela tetap", () => {
+    const kepala = [wafBaris, kuotaBaris, tandaBaris, testingRek.split("\n")].map((b) => b[1]);
+    expect(new Set(kepala).size).toBe(1);
+    expect(readmeLab).toContain(`| Coraza | ${versi.coraza} (Apache-2.0) |`);
+    expect(gerbangGo).toContain('if g.Rentan[RentanKuotaBersama] {\n\t\tkuncikuota = "bersama"\n\t}');
+    expect(hal317).toContain("**Jendela tetap menggantikan token bucket.**");
+    satu("yang menghitung percobaan login dengan jendela tetap, jadi algoritmanya lain.");
+  });
 });
