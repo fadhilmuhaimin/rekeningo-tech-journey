@@ -1,0 +1,30 @@
+{
+  "istilah": "SAN (Subject Alternative Name)",
+  "sehari_hari": "SAN adalah daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS. Ledger membaca nama service dari SAN, bukan dari CN.",
+  "cerita": [
+    {
+      "rujukan": "t5-mtls",
+      "teks": "Lab menerbitkan sertifikat yang CN-nya pembayaran dan SAN-nya notifikasi. Ledger menjawab 403 atas nama notifikasi, karena identitas dibaca dari SAN (Rekaman lab, `mtls.txt` bagian D)."
+    }
+  ],
+  "mekanisme": [
+    "CA menandatangani sertifikat bersama ekstensi SAN, yang memuat nama seperti nama DNS, alamat IP, atau URI.",
+    "Setelah handshake lolos, server membaca SAN dari sertifikat daun pada rantai yang sudah terverifikasi.",
+    "Ledger lab menuntut tepat satu SAN DNS berbentuk `<nama>.t5.lab`. Sertifikat tanpa SAN itu dijawab 401.",
+    "Nama yang sudah dibaca dicocokkan dengan daftar jenis jurnal yang boleh dibuat identitas itu."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Membaca identitas dari CN atau dari header. Di lab, sertifikat ber-CN pembayaran dan ber-SAN notifikasi bertindak sebagai notifikasi, dan header yang menyebut pembayaran tidak mengubah apa pun.",
+    "Membaca SAN dari sertifikat yang belum terverifikasi. Lab membaca `VerifiedChains`, bukan `PeerCertificates`."
+  ],
+  "terkait": ["mTLS (mutual TLS)", "CA (Certificate Authority)"],
+  "sumber": [
+    {
+      "riset": "R5-200",
+      "judul": "RFC 5280 bagian 4.2.1.6 (dibuka 2026-11-04)",
+      "url": "https://www.rfc-editor.org/rfc/rfc5280",
+      "catatan": "Ekstensi subject alternative name mengikat identitas ke subjek sertifikat. Pilihan yang ditentukan: alamat email, nama DNS, alamat IP, dan URI."
+    }
+  ]
+}

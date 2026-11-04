@@ -459,8 +459,8 @@ describe("halaman istilah NetworkPolicy dan glosarium", () => {
     const baris = glosarium.split("\n");
     const i = baris.findIndex((b) => b.startsWith("| **NetworkPolicy** |"));
     expect(baris[i - 1]!.startsWith("| **N+1 query**")).toBe(true);
-    // istilah lain yang urut abjad di antara NetworkPolicy dan Nonrepeatable read (Nonce, halaman 5.26) boleh menyela
-    expect((baris[i + 1]!.startsWith("| **Nonce**") ? baris[i + 2]! : baris[i + 1]!).startsWith("| **Nonrepeatable read**")).toBe(true);
+    // baris Nonce dari halaman 5.25 boleh ada di antara NetworkPolicy dan Nonrepeatable read
+    expect(baris[baris[i + 1]!.startsWith("| **Nonce** |") ? i + 2 : i + 1]!.startsWith("| **Nonrepeatable read**")).toBe(true);
   });
   test("kalimat istilah: bawaan terisolasi, plugin, TLS: cocok dengan kutipan riset dan tidak lebih kuat", () => {
     const d = HalamanIstilah.parse(istilahMentah);

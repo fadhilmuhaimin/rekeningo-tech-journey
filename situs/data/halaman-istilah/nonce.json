@@ -1,39 +1,38 @@
 {
   "istilah": "Nonce",
-  "sehari_hari": "Nonce adalah angka sekali pakai yang harus berbeda untuk tiap pesan yang dienkripsi dengan kunci yang sama. Di AES-GCM nonce 96 bit disimpan di depan ciphertext.",
+  "sehari_hari": "Nonce adalah nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan. Penerima mencatatnya, supaya pesan yang sama tidak diterima dua kali.",
   "cerita": [
     {
-      "rujukan": "t5-kms",
-      "teks": "File arsip terenkripsi berukuran file asal ditambah 28 byte: nonce 12 byte di depan dan tag 16 byte di belakang. Satu bit yang dibalik di byte pertama, yaitu nonce, membuat pembukaan gagal (`arsip.txt` bagian B dan D, Rekaman lab)."
+      "rujukan": "t5-waf",
+      "teks": "Gerbang mitra POS menandatangani timestamp, method, alamat, dan byte body, tanpa nonce. Tes Go mencatat permintaan sah yang diputar ulang di dalam jendela 5 menit diterima lagi (`testing.txt` bagian A)."
     }
   ],
   "mekanisme": [
-    "Enkripsi AES-GCM butuh nonce yang tidak pernah dipakai dua kali dengan kunci yang sama.",
-    "Go membuat nonce acak 96 bit lewat `NewGCMWithRandomNonce` dan menaruhnya di depan ciphertext.",
-    "Dokumentasi Go menulis bahwa satu kunci tidak boleh mengenkripsi lebih dari 2^32 pesan, supaya tabrakan nonce acak tetap sangat kecil.",
-    "Pada stack yang meminta pemanggil memberi nonce, pemanggil juga yang menjaga nonce tidak terulang."
+    "Penanda tangan menambahkan nilai unik ke tiap pesan sebelum menghitung tanda tangan.",
+    "Penerima memeriksa tanda tangan, lalu memeriksa apakah nilai itu sudah pernah dilihat dalam jendela waktu.",
+    "Nilai yang sama untuk kedua kalinya berarti pesan diputar ulang, dan pesan itu ditolak.",
+    "Penerima menyimpan nilai selama dua kali toleransi timestamp, karena timestamp boleh di depan atau di belakang jam penerima."
   ],
   "stack": null,
   "jebakan": [
-    "Memakai ulang nonce dengan kunci yang sama. Dokumentasi pustaka cryptography menulis agar nonce tidak pernah dipakai ulang.",
-    "Mengira batas 2^32 sama dengan umur kunci. Batas itu per versi kunci, dan memutar kunci memulai hitungan baru (`rotasi.txt` bagian G, Hitungan atas Asumsi)."
+    "Mengira timestamp saja menahan pengulangan. Di dalam jendela toleransi, pesan yang sama diterima lagi.",
+    "Mengira Idempotency-Key sama dengan nonce. Key yang tidak ikut ditandatangani bisa diganti oleh pihak yang memutar ulang pesan."
   ],
   "terkait": [
-    "AES-GCM",
-    "Envelope encryption"
+    "HMAC (hash-based message authentication code)",
+    "Idempotency key"
   ],
   "sumber": [
     {
-      "riset": "R5-236",
-      "judul": "NIST SP 800-38D bagian 8.3 dan dokumentasi crypto/cipher Go (dibuka 2026-11-04)",
-      "url": "https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf",
-      "catatan": "Total pemanggilan fungsi enkripsi terautentikasi dengan satu kunci tidak boleh melebihi 2^32 pada konstruksi IV berbasis generator acak."
+      "riset": "R5-232",
+      "judul": "RFC 9421: HTTP Message Signatures, bagian 7.2.2 (dibuka 2026-11-04)",
+      "url": "https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2",
+      "catatan": "Parameter nonce memberi nilai unik per pesan supaya verifier bisa mendeteksi tanda tangan yang diulang. Penanda tangan juga bisa memberi timestamp pembuatan dan waktu kedaluwarsa."
     },
     {
-      "riset": "R5-238",
-      "judul": "Rekaman lab t5-kms: arsip.txt bagian B dan D",
-      "rekaman": "labs/t5-kms/output/arsip.txt",
-      "catatan": "Ukuran terenkripsi sama dengan ukuran asal ditambah 28 byte, dan satu bit di nonce menggagalkan pembukaan."
+      "judul": "Tes Go lab t5-waf: testing.txt bagian A",
+      "rekaman": "labs/t5-waf/output/testing.txt",
+      "catatan": "TestGerbangPutarUlangDalamJendelaDiterima: POST yang sama diterima tiga kali, dan Idempotency-Key yang diganti sampai ke hulu."
     }
   ]
 }

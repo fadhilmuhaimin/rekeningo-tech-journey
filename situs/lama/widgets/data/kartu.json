@@ -3888,6 +3888,46 @@
   "jawab": "Kamis, 11.30, dan 12.10 adalah Ilustrasi. Angka 96,3, 722%, 83, 34,5 menit, dan 20,8 jam adalah Hitungan atas Asumsi. Lab mengukur c dan t pada tiruan. Ia tidak mengukur queue uang 90 menit, pengumuman ke 1.000.000 HP, atau jumlah 429 sebagai nilai (`pengirim.txt`, bagian B, dan `antrean.txt`, bagian B)."
  },
  {
+  "id": "t5-fanout-1",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Satu pengumuman ke 10.281 perangkat menulis berapa baris outbox dan berapa rekaman Kafka? Kenapa rekamannya enam, bukan satu?",
+  "jawab": "Satu baris outbox dan enam rekaman, satu per partisi (`aliran.txt` bagian A). Satu rekaman hanya dibaca satu consumer dalam satu grup, jadi satu rekaman untuk seluruh pengumuman tidak bisa dibagi (README lab)."
+ },
+ {
+  "id": "t5-fanout-2",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Pengirim naik dari 4 ke 167 (42 consumer), tetapi topik tetap punya 6 partisi. Berapa lama 1.000.000 perangkat selesai, dan kenapa?",
+  "jawab": "12.500 detik, yaitu sekitar 3,5 jam. Satu partisi dibaca satu consumer dalam satu grup, jadi hanya 6 consumer yang bekerja, yaitu 6 × 4 = 24 pengirim: 1.000.000 × 0,3 ÷ 24 (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t5-fanout-3",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Satu consumer mati di tengah rentangnya. Apa yang dijamin untuk perangkat di rentang itu, dan apa yang tidak?",
+  "jawab": "Rentang itu dikirim ulang dari awal oleh consumer lain, dengan id yang sama. Tiap perangkat melihat satu notifikasi berbeda, tetapi sebagian dikirimi lebih dari sekali (`grup.txt` bagian A, paling banyak 504 panggilan diulang). Pengiriman tepat satu kali tidak dijamin."
+ },
+ {
+  "id": "t5-fanout-4",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Pengumuman tanpa batas laju dan tanpa backoff berjalan bersama notifikasi uang. Apa yang terjadi, dan kenapa kelas queue tidak menolong?",
+  "jawab": "Uang ikut dijawab 429 dan umur uang tertua melewati 2 detik (`antrean.txt` bagian B, batas lab). Kelas queue hanya mengatur urutan klaim di outbox, sedangkan pengumuman dan uang memakai satu kuota penyedia push."
+ },
+ {
+  "id": "t5-fanout-5",
+  "halaman": "t5-fanout",
+  "judul": "5.15 Fan-out: event streaming, partisi, backpressure + ADR 51",
+  "url": "tahap-5/fan-out/",
+  "tanya": "Pemicu \"terus-menerus\" ADR 45 belum terpenuhi. Kenapa ADR 51 tetap memilih Kafka, dan kapan pilihan itu salah?",
+  "jawab": "Pemicu itu terpenuhi hanya selama pengumuman: 75,2 + 555,6 = 630,8 per detik selama 30 menit. Alasan memilih Kafka adalah pembagian partisi oleh consumer group dan tiga pembaca rancangan atas event pembayaran, yang Tidak dijalankan. Pilihan itu salah bila hanya satu consumer group yang membaca dan pengumuman berhenti: opsi rentang di PostgreSQL lebih sederhana."
+ },
+ {
   "id": "t5-m46-1",
   "halaman": "t5-m46",
   "judul": "5.16 M46: Latihan failover membuat semua service error",
@@ -3912,6 +3952,38 @@
   "jawab": "`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Di lab, `MaxConns` bernilai 10 dan jitter tidak diatur."
  },
  {
+  "id": "t5-pooler-1",
+  "halaman": "t5-pooler",
+  "judul": "5.17 Pooler koneksi: PgBouncer + ADR 52",
+  "url": "tahap-5/pooler-koneksi/",
+  "tanya": "Dua belas client dengan pool pod 10 meminta 120 koneksi. Apa yang terjadi bila mereka langsung ke PostgreSQL, dan apa bila lewat PgBouncer?",
+  "jawab": "Langsung ke PostgreSQL, sebagian ditolak dengan kode 53300 dan role `t5_app` tidak melewati 97 koneksi (`pooler.txt` bagian A). Lewat PgBouncer, 120 koneksi berhasil, 2.400 query selesai, dan paling banyak 20 koneksi sampai ke PostgreSQL (bagian B)."
+ },
+ {
+  "id": "t5-pooler-2",
+  "halaman": "t5-pooler",
+  "judul": "5.17 Pooler koneksi: PgBouncer + ADR 52",
+  "url": "tahap-5/pooler-koneksi/",
+  "tanya": "Dokumentasi PgBouncer menulis `SET` tidak berjalan di mode transaction. Kode lab memakai apa yang tabel itu tidak sebut, dan apa statusnya?",
+  "jawab": "`kartu.go` memakai `set_config('lock_timeout', ..., true)` di dalam transaction, dan `audit.go` memakai `pg_advisory_xact_lock`. Tabel dokumentasi tidak menyebut keduanya. Lab tidak menjalankannya lewat PgBouncer, jadi keduanya dites sebelum cutover (Tidak dijalankan)."
+ },
+ {
+  "id": "t5-pooler-3",
+  "halaman": "t5-pooler",
+  "judul": "5.17 Pooler koneksi: PgBouncer + ADR 52",
+  "url": "tahap-5/pooler-koneksi/",
+  "tanya": "Dua instance PgBouncer, enam role, `default_pool_size` 20, dan `max_db_connections` kosong. Berapa koneksi server paling banyak, dan berapa setelah `max_db_connections` 30 per instance?",
+  "jawab": "2 × 6 × 20 = 240 koneksi, lebih dari 97 tersedia. Dengan 30 per instance, 2 × 30 = 60 koneksi (Hitungan atas Asumsi dan dokumentasi, Tidak dijalankan)."
+ },
+ {
+  "id": "t5-pooler-4",
+  "halaman": "t5-pooler",
+  "judul": "5.17 Pooler koneksi: PgBouncer + ADR 52",
+  "url": "tahap-5/pooler-koneksi/",
+  "tanya": "Tiap service naik ke 5 pod, pool pod tetap 10. Berapa koneksi pod, berapa yang ditolak tanpa pooler, dan apakah 400 client per instance cukup?",
+  "jawab": "6 × 5 × 10 = 300 koneksi. Tanpa pooler, 300 − 97 = 203 koneksi ditolak. 300 client muat di 400 per instance (75%), tetapi 8 pod tiap service memberi 480 dan melewati batas itu (Hitungan atas Asumsi)."
+ },
+ {
   "id": "t5-m47-1",
   "halaman": "t5-m47",
   "judul": "5.18 M47: Pod notifikasi membuat jurnal",
@@ -3934,6 +4006,38 @@
   "url": "tahap-5/m47-pod-membuat-jurnal/",
   "tanya": "Rekaman memakai perintah `panggil` di mesin yang sama dengan ledger, bukan pod di cluster. Apa yang dibuktikan rekaman itu, dan apa yang tidak?",
   "jawab": "Rekaman membuktikan bahwa ledger versi pertama membuat jurnal untuk pemanggil tanpa sertifikat dan tanpa identitas (`rentan.txt` bagian A). Rekaman tidak membuktikan cara jaringan cluster memperlakukan pod uji, karena lab tidak memakai Kubernetes."
+ },
+ {
+  "id": "t5-mtls-1",
+  "halaman": "t5-mtls",
+  "judul": "5.19 Keamanan 10: Identitas antar service, mTLS + ADR 53",
+  "url": "tahap-5/mtls-antar-service/",
+  "tanya": "Sertifikat notifikasi sah, tetapi permintaannya dijawab 403 dan bukan ditolak di handshake. Kenapa dua jawaban berbeda?",
+  "jawab": "Handshake memeriksa rantai sertifikat: CA penerbit, masa berlaku, dan kegunaannya. Sertifikat notifikasi lolos pemeriksaan itu. Handler membaca identitas notifikasi dan mencocokkannya dengan daftar jenis jurnal, dan notifikasi tidak punya topup_bank, jadi jawabannya 403 (`mtls.txt` bagian C)."
+ },
+ {
+  "id": "t5-mtls-2",
+  "halaman": "t5-mtls",
+  "judul": "5.19 Keamanan 10: Identitas antar service, mTLS + ADR 53",
+  "url": "tahap-5/mtls-antar-service/",
+  "tanya": "Server hanya meminta sertifikat client tanpa memverifikasinya. Kenapa lab tetap tidak membuat jurnal untuk sertifikat dari CA lain?",
+  "jawab": "Handler membaca identitas hanya dari rantai yang sudah terverifikasi, dan rantai itu kosong di server yang hanya meminta sertifikat. Handler menjawab 401 tanpa identitas. Ini diperiksa tes Go `TestSertifikatTakTerverifikasiTidakDipakaiSebagaiIdentitas` (dibaca dari kode lab), bukan bagian di `mtls.txt`."
+ },
+ {
+  "id": "t5-mtls-3",
+  "halaman": "t5-mtls",
+  "judul": "5.19 Keamanan 10: Identitas antar service, mTLS + ADR 53",
+  "url": "tahap-5/mtls-antar-service/",
+  "tanya": "Service pembayaran yang sah mengirim key baru dengan akun dan jumlah yang sama. Apa yang tidak dihentikan mTLS?",
+  "jawab": "Jurnal kedua. mTLS menjawab siapa yang memanggil, bukan niatnya, dan key baru adalah permintaan baru. Pembayaran punya izin topup_bank, jadi ledger menjawab 201 (`idempoten.txt` bagian C)."
+ },
+ {
+  "id": "t5-mtls-4",
+  "halaman": "t5-mtls",
+  "judul": "5.19 Keamanan 10: Identitas antar service, mTLS + ADR 53",
+  "url": "tahap-5/mtls-antar-service/",
+  "tanya": "ADR 53 memilih mTLS di Go dan menunda service mesh. Apa yang membuat pilihan ini salah?",
+  "jawab": "Tujuan kritis kedua selain ledger yang butuh identitas yang sama, sertifikat kedaluwarsa tanpa rotasi otomatis, service sah yang dibajak, dan daftar jenis jurnal yang salah. Pembandingnya tiga pemanggil ke satu ledger."
  },
  {
   "id": "t5-m48-1",
@@ -4070,6 +4174,38 @@
   "url": "tahap-5/m50-satu-pos/",
   "tanya": "Angka mana di halaman ini yang bukan rekaman, dan apa yang lab tidak ukur?",
   "jawab": "Rabu, 10.15, 3.000 permintaan per detik, dan jawaban yang lambat berasal dari cerita (Ilustrasi), dan 216% adalah Hitungan atas Ilustrasi. Lab memakai 600 dan 20 permintaan dengan jam bucket dibekukan, jadi laju sungguhan, jawaban lambat, dan kapasitas server tidak diukur (`kuota.txt`, bagian C)."
+ },
+ {
+  "id": "t5-waf-1",
+  "halaman": "t5-waf",
+  "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+  "url": "tahap-5/pintu-mitra-waf/",
+  "tanya": "Payload serangan umum datang dengan kunci dan tanda tangan yang sah. Siapa yang menolaknya, dan apa yang tidak diukur oleh 37 payload sah?",
+  "jawab": "WAF menolak 8 dari 8 payload dengan 403 (`waf.txt` bagian A). Dari 37 payload sah yang lolos, 34 hanya mengubah teks `referensi`, jadi angka itu bukan ukuran alarm palsu untuk payload POS lain (bagian B)."
+ },
+ {
+  "id": "t5-waf-2",
+  "halaman": "t5-waf",
+  "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+  "url": "tahap-5/pintu-mitra-waf/",
+  "tanya": "Kunci mitra A dipakai untuk membaca QR milik merchant mitra B. Apa jawabannya, di mana cakupannya diperiksa, dan apa yang terjadi di mode `pos-tanpa-cakupan`?",
+  "jawab": "Jawabannya 404, dan cakupan diperiksa di `api-t5` lewat `akun.mitra_pos_id`, bukan di gerbang. Di mode `pos-tanpa-cakupan` pembacaan yang sama dijawab 200 dengan data QR milik B (`tandatangan.txt` bagian C)."
+ },
+ {
+  "id": "t5-waf-3",
+  "halaman": "t5-waf",
+  "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+  "url": "tahap-5/pintu-mitra-waf/",
+  "tanya": "Permintaan sah diputar ulang di dalam jendela 5 menit dengan Idempotency-Key lain. Apa yang dilakukan gerbang, dan kenapa Idempotency-Key tidak menahannya?",
+  "jawab": "Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan."
+ },
+ {
+  "id": "t5-waf-4",
+  "halaman": "t5-waf",
+  "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+  "url": "tahap-5/pintu-mitra-waf/",
+  "tanya": "Hitung: kuota 100 per detik untuk 50 mitra, dibanding puncak API 1.388,9 permintaan per detik. Apa artinya?",
+  "jawab": "50 × 100 = 5.000 per detik, dan 5.000 ÷ 1.388,9 = 3,6 kali puncak (Hitungan atas Asumsi). Kapasitas satu server belum diukur, jadi jumlah kuota yang boleh diberikan belum diketahui."
  },
  {
   "id": "t5-kms-1",

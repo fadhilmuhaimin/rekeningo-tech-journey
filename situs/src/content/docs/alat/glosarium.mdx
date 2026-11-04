@@ -41,6 +41,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **AES-GCM** | Enkripsi AES dengan mode GCM: satu pesan dikunci dan diberi tag pemeriksa keaslian, sehingga satu byte yang berubah ketahuan saat dibuka. | [[t5-kms]] |
 | **Alamat keluar** | Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak. | [[t4-m34]] |
 | **Alert** | Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang. | [[t3-tim-infra]] |
+| **Alert TLS** | Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required. | [[t5-mtls]] |
 | **Allowlist** | Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak. | [[t4-ssrf]] |
 | **API gateway** | Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing. | [[C4]] |
 | **Argon2id** | Fungsi hash password yang sengaja lambat dan memakai banyak memori, supaya menebak password dari tabel yang bocor butuh waktu dan RAM besar. | [[t2-login-aman]] |
@@ -53,6 +54,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Backup dan uji pulih** | Salinan isi database dalam satu file, dan pemulihannya ke database lain untuk membuktikan salinan itu bisa dipakai. | [[t4-m33]] |
 | **Badai koneksi** | Banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak. | [[t5-m46]] |
 | **Batch** | Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu. | [[t5-batch]] |
+| **Backpressure** | Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan. | [[t5-fanout]] |
 | **BFF** (Backend for Frontend) | Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile. | [[B11.2]] |
 | **Branch protection** | Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push. | [[t2-tim-infra]] |
 | **Brute force** | Menebak banyak password untuk satu akun sampai ada yang cocok, biasanya otomatis. | [[t2-login-aman]] |
@@ -71,6 +73,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **COMMIT** | Perintah yang membuat semua perubahan dalam transaction menjadi permanen dan terlihat oleh koneksi lain. | [[B3.1]] |
 | **Connection pool** | Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request. | [[t3-pool]] |
 | **Container** | Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server. | [[C3]] |
+| **Consumer group** | Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu. | [[t5-fanout]] |
 | **CRC** (cyclic redundancy check) | Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian. | [[t4-m35]] |
 | **CRDT** (Conflict-free Replicated Data Type) | Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis. | [[t3-offline]] |
 | **Credential stuffing** | Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama. | [[t2-m16]] |
@@ -95,7 +98,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Expand-migrate-contract** | Urutan mengubah skema tanpa downtime: tambah yang baru, pindahkan data dan kode, baru hapus yang lama. | [[E1]], [[t2-skema-tanpa-downtime]] |
 | **EXPLAIN** | Perintah PostgreSQL yang menampilkan query plan; dengan ANALYZE ia menjalankan query dan mencatat baris dan waktu tiap node. | [[t2-index]] |
 | **Failover** | Memindahkan tugas database utama ke salinannya sesudah primary gagal, termasuk mengenali kegagalan, memutuskan promosi, dan mengarahkan app ke node baru. | [[t5-rpo-rto]] |
-| **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]] |
+| **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]], [[t5-fanout]] |
 | **FCM** (Firebase Cloud Messaging) | Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya. | [[E4]] |
 | **Fencing** | Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary. | [[t5-rpo-rto]] |
 | **Foreign key** | Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada. | [[B2.1]] |
@@ -156,10 +159,11 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **MITM** (man-in-the-middle) | Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya. | [[t3-m26]] |
 | **Modular monolith** | Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas. | [[t4-modul]] |
 | **Monolith** | Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit. | [[A1]] |
+| **mTLS** (mutual TLS) | TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client. | [[t5-mtls]] |
 | **MVCC** (Multi-Version Concurrency Control) | Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis. | [[t2-isolation-level]] |
 | **N+1 query** | Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu. | [[t2-n-plus-1]] |
 | **NetworkPolicy** | Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya. | [[t5-m47]] |
-| **Nonce** | Angka sekali pakai yang harus berbeda untuk tiap pesan yang dienkripsi dengan kunci yang sama. | [[t5-kms]] |
+| **Nonce** | Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali. | [[t5-waf]] |
 | **Nonrepeatable read** | Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan. | [[t2-isolation-level]] |
 | **OAuth 2.0** | Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password. | [[B5.2]] |
 | **Object storage** | Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3. | [[B11.2]] |
@@ -176,6 +180,8 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **p95 / p50** | Persentil latency: 95% request selesai lebih cepat dari angka p95, dan separuh request lebih cepat dari p50 (median). | [[t3-observability]] |
 | **Pagination** | Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu. | [[t2-kursor]] |
 | **Pagination kursor** (keyset) | Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk. | [[t2-kursor]] |
+| **Partisi** | Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. | [[D2]], [[t5-fanout]] |
+| **Partisi topik** | Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. | [[t5-fanout]] |
 | **Partitioning** | Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data. | [[D2]] |
 | **Passkey** (WebAuthn) | Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun. | [[t3-xss-csrf]] |
 | **PgBouncer** | Pooler koneksi PostgreSQL yang menampung banyak koneksi client dan meminjamkan sedikit koneksi ke database, dengan beberapa fitur sesi yang tidak berjalan di mode transaction. | [[t3-adr-33]] |
@@ -214,6 +220,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **RTO** (recovery time objective) | Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan. | [[t5-prd]] |
 | **Saga** | Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi. | [[D3]] |
 | **Saldo cache** | Salinan jumlah posting satu buku di kolom `buku.saldo_cache`, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting. | [[t2-saldo-bukan-kolom]] |
+| **SAN** (Subject Alternative Name) | Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil. | [[t5-mtls]] |
 | **Secret manager** | Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya. | [[t4-infra-secret]] |
 | **Secure storage** | Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore. | [[t1-idor]] |
 | **SELECT FOR UPDATE** | Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu. | [[t2-race-lock]] |
@@ -247,6 +254,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **TTL** (Time To Live) | Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa. | [[B9]] |
 | **Tutup buku** | Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang. | [[t2-tutup-buku]] |
 | **Umur notifikasi tertua** | Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu. | [[t3-m27]] |
+| **WAF** (web application firewall) | Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan. | [[t5-waf]] |
 | **WAL** (Write-Ahead Log) | Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary. | [[t5-read-replica]] |
 | **Webhook** | HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil. | [[t4-webhook]] |
 | **WebSocket** | Koneksi dua arah yang tetap terbuka antara app dan server. | [[E4]] |

@@ -180,6 +180,15 @@
   "h": "/istilah/alert/"
  },
  {
+  "t": "Alert TLS",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "b": "t5-mtls",
+  "n": "5.19 mTLS antar service",
+  "u": "/tahap-5/mtls-antar-service/",
+  "s": "istilah-alert-tls",
+  "h": null
+ },
+ {
   "t": "Allowlist",
   "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
   "b": "t4-ssrf",
@@ -286,6 +295,15 @@
   "u": "/tahap-5/batch-tahan-crash/",
   "s": "istilah-batch",
   "h": null
+ },
+ {
+  "t": "Backpressure",
+  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "b": "t5-fanout",
+  "n": "5.15 Fan-out dan event streaming",
+  "u": "/tahap-5/fan-out/",
+  "s": "istilah-backpressure",
+  "h": "/istilah/backpressure/"
  },
  {
   "t": "BFF (Backend for Frontend)",
@@ -448,6 +466,15 @@
   "u": "/tahap-1/deployment-rollback/",
   "s": "istilah-container",
   "h": null
+ },
+ {
+  "t": "Consumer group",
+  "d": "Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.",
+  "b": "t5-fanout",
+  "n": "5.15 Fan-out dan event streaming",
+  "u": "/tahap-5/fan-out/",
+  "s": "istilah-consumer-group",
+  "h": "/istilah/consumer-group/"
  },
  {
   "t": "CRC (cyclic redundancy check)",
@@ -1215,6 +1242,15 @@
   "h": null
  },
  {
+  "t": "mTLS (mutual TLS)",
+  "d": "TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.",
+  "b": "t5-mtls",
+  "n": "5.19 mTLS antar service",
+  "u": "/tahap-5/mtls-antar-service/",
+  "s": "istilah-mtls",
+  "h": "/istilah/mtls/"
+ },
+ {
   "t": "MVCC (Multi-Version Concurrency Control)",
   "d": "Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis.",
   "b": "t2-isolation-level",
@@ -1243,10 +1279,10 @@
  },
  {
   "t": "Nonce",
-  "d": "Angka sekali pakai yang harus berbeda untuk tiap pesan yang dienkripsi dengan kunci yang sama.",
-  "b": "t5-kms",
-  "n": "5.26 Arsip dan envelope encryption",
-  "u": "/tahap-5/arsip-envelope-encryption/",
+  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
+  "b": "t5-waf",
+  "n": "5.25 Pintu untuk pihak luar",
+  "u": "/tahap-5/pintu-mitra-waf/",
   "s": "istilah-nonce",
   "h": "/istilah/nonce/"
  },
@@ -1393,6 +1429,24 @@
   "u": "/tahap-2/pagination-kursor/",
   "s": "istilah-pagination-kursor",
   "h": "/istilah/pagination-kursor/"
+ },
+ {
+  "t": "Partisi",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "b": "D2",
+  "n": "Scaling (versi lama)",
+  "u": "/d-system-design/d2-scaling/",
+  "s": "istilah-partisi",
+  "h": null
+ },
+ {
+  "t": "Partisi topik",
+  "d": "Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "b": "t5-fanout",
+  "n": "5.15 Fan-out dan event streaming",
+  "u": "/tahap-5/fan-out/",
+  "s": "istilah-partisi-topik",
+  "h": null
  },
  {
   "t": "Partitioning",
@@ -1737,6 +1791,15 @@
   "h": "/istilah/saldo-cache/"
  },
  {
+  "t": "SAN (Subject Alternative Name)",
+  "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
+  "b": "t5-mtls",
+  "n": "5.19 mTLS antar service",
+  "u": "/tahap-5/mtls-antar-service/",
+  "s": "istilah-san",
+  "h": "/istilah/san/"
+ },
+ {
   "t": "Secret manager",
   "d": "Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.",
   "b": "t4-infra-secret",
@@ -2032,6 +2095,15 @@
   "u": "/tahap-3/m27-hari-promo/",
   "s": "istilah-umur-notifikasi-tertua",
   "h": null
+ },
+ {
+  "t": "WAF (web application firewall)",
+  "d": "Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan.",
+  "b": "t5-waf",
+  "n": "5.25 Pintu untuk pihak luar",
+  "u": "/tahap-5/pintu-mitra-waf/",
+  "s": "istilah-waf",
+  "h": "/istilah/waf/"
  },
  {
   "t": "WAL (Write-Ahead Log)",

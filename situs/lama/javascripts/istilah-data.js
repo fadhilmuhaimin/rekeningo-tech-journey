@@ -58,6 +58,14 @@ window.ISTILAH = {
   "t": "Alert",
   "u": "tahap-3/tim-infra/"
  },
+ "Alert TLS": {
+  "b": "t5-mtls",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-alert-tls",
+  "t": "Alert TLS",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "Allowlist": {
   "b": "t4-ssrf",
   "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
@@ -182,6 +190,15 @@ window.ISTILAH = {
   "s": "istilah-backoff",
   "t": "Backoff",
   "u": "tahap-2/retry-idempotency/"
+ },
+ "Backpressure": {
+  "b": "t5-fanout",
+  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "h": "istilah/backpressure/",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-backpressure",
+  "t": "Backpressure",
+  "u": "tahap-5/fan-out/"
  },
  "Backup dan uji pulih": {
   "b": "t4-m33",
@@ -398,6 +415,15 @@ window.ISTILAH = {
   "s": "istilah-constraint",
   "t": "Constraint",
   "u": "tahap-1/data-modeling/"
+ },
+ "Consumer group": {
+  "b": "t5-fanout",
+  "d": "Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.",
+  "h": "istilah/consumer-group/",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-consumer-group",
+  "t": "Consumer group",
+  "u": "tahap-5/fan-out/"
  },
  "Container": {
   "b": "C3",
@@ -1247,13 +1273,13 @@ window.ISTILAH = {
   "u": "tahap-5/m47-pod-membuat-jurnal/"
  },
  "Nonce": {
-  "b": "t5-kms",
-  "d": "Angka sekali pakai yang harus berbeda untuk tiap pesan yang dienkripsi dengan kunci yang sama.",
+  "b": "t5-waf",
+  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
   "h": "istilah/nonce/",
-  "n": "5.26 Arsip dan envelope encryption",
+  "n": "5.25 Pintu untuk pihak luar",
   "s": "istilah-nonce",
   "t": "Nonce",
-  "u": "tahap-5/arsip-envelope-encryption/"
+  "u": "tahap-5/pintu-mitra-waf/"
  },
  "Nonrepeatable read": {
   "b": "t2-isolation-level",
@@ -1425,11 +1451,19 @@ window.ISTILAH = {
  },
  "Partisi": {
   "b": "D2",
-  "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
   "n": "Scaling (versi lama)",
-  "s": "istilah-partitioning",
-  "t": "Partitioning",
+  "s": "istilah-partisi",
+  "t": "Partisi",
   "u": "d-system-design/d2-scaling/"
+ },
+ "Partisi topik": {
+  "b": "t5-fanout",
+  "d": "Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-partisi-topik",
+  "t": "Partisi topik",
+  "u": "tahap-5/fan-out/"
  },
  "Partitioning": {
   "b": "D2",
@@ -1740,6 +1774,15 @@ window.ISTILAH = {
   "t": "RLS (Row Level Security)",
   "u": "tahap-1/authorization/"
  },
+ "SAN": {
+  "b": "t5-mtls",
+  "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
+  "h": "istilah/san/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-san",
+  "t": "SAN (Subject Alternative Name)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "SELECT FOR UPDATE": {
   "b": "t2-race-lock",
   "d": "Perintah SQL yang membaca baris sekaligus menguncinya sampai transaction selesai, sehingga transaction lain yang mau mengubah atau mengunci baris itu menunggu.",
@@ -1933,6 +1976,15 @@ window.ISTILAH = {
   "t": "Status code",
   "u": "tahap-1/http/"
  },
+ "Subject Alternative Name": {
+  "b": "t5-mtls",
+  "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
+  "h": "istilah/san/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-san",
+  "t": "SAN (Subject Alternative Name)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "TTL": {
   "b": "B9",
   "d": "Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.",
@@ -2057,6 +2109,15 @@ window.ISTILAH = {
   "t": "Umur notifikasi tertua",
   "u": "tahap-3/m27-hari-promo/"
  },
+ "WAF": {
+  "b": "t5-waf",
+  "d": "Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan.",
+  "h": "istilah/waf/",
+  "n": "5.25 Pintu untuk pihak luar",
+  "s": "istilah-waf",
+  "t": "WAF (web application firewall)",
+  "u": "tahap-5/pintu-mitra-waf/"
+ },
  "WAL": {
   "b": "t5-read-replica",
   "d": "Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.",
@@ -2125,6 +2186,14 @@ window.ISTILAH = {
   "s": "istilah-alert",
   "t": "Alert",
   "u": "tahap-3/tim-infra/"
+ },
+ "alert TLS": {
+  "b": "t5-mtls",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-alert-tls",
+  "t": "Alert TLS",
+  "u": "tahap-5/mtls-antar-service/"
  },
  "allowlist": {
   "b": "t4-ssrf",
@@ -2210,6 +2279,15 @@ window.ISTILAH = {
   "s": "istilah-backoff",
   "t": "Backoff",
   "u": "tahap-2/retry-idempotency/"
+ },
+ "backpressure": {
+  "b": "t5-fanout",
+  "d": "Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "h": "istilah/backpressure/",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-backpressure",
+  "t": "Backpressure",
+  "u": "tahap-5/fan-out/"
  },
  "backup dan uji pulih": {
   "b": "t4-m33",
@@ -2340,6 +2418,15 @@ window.ISTILAH = {
   "s": "istilah-constraint",
   "t": "Constraint",
   "u": "tahap-1/data-modeling/"
+ },
+ "consumer group": {
+  "b": "t5-fanout",
+  "d": "Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.",
+  "h": "istilah/consumer-group/",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-consumer-group",
+  "t": "Consumer group",
+  "u": "tahap-5/fan-out/"
  },
  "container": {
   "b": "C3",
@@ -2843,6 +2930,15 @@ window.ISTILAH = {
   "t": "Lost update",
   "u": "tahap-2/race-lock/"
  },
+ "mTLS": {
+  "b": "t5-mtls",
+  "d": "TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.",
+  "h": "istilah/mtls/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-mtls",
+  "t": "mTLS (mutual TLS)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "merchant": {
   "b": "t3-jembatan",
   "d": "Pihak yang menerima pembayaran lewat Rekeningo. Di Tahap 1 sampai 3 merchant adalah warung.",
@@ -2918,6 +3014,15 @@ window.ISTILAH = {
   "t": "Monolith",
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
  },
+ "mutual TLS": {
+  "b": "t5-mtls",
+  "d": "TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.",
+  "h": "istilah/mtls/",
+  "n": "5.19 mTLS antar service",
+  "s": "istilah-mtls",
+  "t": "mTLS (mutual TLS)",
+  "u": "tahap-5/mtls-antar-service/"
+ },
  "n+1 query": {
   "b": "t2-n-plus-1",
   "d": "Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.",
@@ -2928,13 +3033,13 @@ window.ISTILAH = {
   "u": "tahap-2/n-plus-1/"
  },
  "nonce": {
-  "b": "t5-kms",
-  "d": "Angka sekali pakai yang harus berbeda untuk tiap pesan yang dienkripsi dengan kunci yang sama.",
+  "b": "t5-waf",
+  "d": "Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.",
   "h": "istilah/nonce/",
-  "n": "5.26 Arsip dan envelope encryption",
+  "n": "5.25 Pintu untuk pihak luar",
   "s": "istilah-nonce",
   "t": "Nonce",
-  "u": "tahap-5/arsip-envelope-encryption/"
+  "u": "tahap-5/pintu-mitra-waf/"
  },
  "nonrepeatable read": {
   "b": "t2-isolation-level",
@@ -3049,11 +3154,19 @@ window.ISTILAH = {
  },
  "partisi": {
   "b": "D2",
-  "d": "Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.",
+  "d": "Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
   "n": "Scaling (versi lama)",
-  "s": "istilah-partitioning",
-  "t": "Partitioning",
+  "s": "istilah-partisi",
+  "t": "Partisi",
   "u": "d-system-design/d2-scaling/"
+ },
+ "partisi topik": {
+  "b": "t5-fanout",
+  "d": "Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.",
+  "n": "5.15 Fan-out dan event streaming",
+  "s": "istilah-partisi-topik",
+  "t": "Partisi topik",
+  "u": "tahap-5/fan-out/"
  },
  "partitioning": {
   "b": "D2",

@@ -545,12 +545,15 @@ describe("diagram Rantai, skenario alur, ADR 57, dan kartu Cek diri", () => {
     expect(hitung(kunci.slice(kunci.indexOf("### Bacaan lanjut")), /^- \[/gm)).toBe(8);
     expect(kunci).toContain("Satu data key per posting menghasilkan 438 juta data key per tahun.");
   });
-  test("halaman istilah dan glosarium: tujuh baris menunjuk [[t5-kms]]; tiga halaman istilah memakai ID riset yang ada dan istilah terkait yang ada", () => {
-    const baris = glosarium.filter((g) => ["AES-GCM", "Data key", "Envelope encryption", "HSM (hardware security module)", "KEK (key encryption key)", "KMS (key management service)", "Nonce"].includes(g.t));
-    expect(baris).toHaveLength(7);
+  test("halaman istilah dan glosarium: enam baris menunjuk [[t5-kms]]; dua halaman istilah memakai ID riset yang ada dan istilah terkait yang ada; Nonce milik 5.25 tidak diubah", () => {
+    const baris = glosarium.filter((g) => ["AES-GCM", "Data key", "Envelope encryption", "HSM (hardware security module)", "KEK (key encryption key)", "KMS (key management service)"].includes(g.t));
+    expect(baris).toHaveLength(6);
     const gm = baca("situs/src/content/docs/alat/glosarium.mdx");
-    expect(hitung(gm, /\| \[\[t5-kms\]\] \|/g)).toBe(7);
-    for (const slug of ["envelope-encryption", "kms", "nonce"]) {
+    expect(hitung(gm, /\| \[\[t5-kms\]\] \|/g)).toBe(6);
+    // "Nonce" sudah didefinisikan halaman 5.25 (arti tanda tangan): halaman ini memberi arti nonce AES-GCM sendiri di prosa, tanpa baris atau halaman istilah baru
+    expect(hitung(gm, /^\| \*\*Nonce\*\* \|/gm)).toBe(1);
+    expect(gm).toMatch(/\| \*\*Nonce\*\* \|[^\n]*\[\[t5-waf\]\] \|/);
+    for (const slug of ["envelope-encryption", "kms"]) {
       const d = JSON.parse(baca(`situs/data/halaman-istilah/${slug}.json`)) as { istilah: string; cerita: { rujukan: string }[]; terkait: string[]; sumber: { riset: string; rekaman?: string; url?: string }[] };
       expect(glosarium.some((g) => g.t === d.istilah && g.h === `/istilah/${slug}/`), slug).toBe(true);
       for (const t of d.terkait) expect(glosarium.some((g) => g.t === t), t).toBe(true);

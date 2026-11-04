@@ -639,7 +639,7 @@ describe("glosarium: tiga istilah baru menunjuk 3.26, definisi paling banyak 25 
     expect(glosMdx).toContain("| **Umur notifikasi tertua** | Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu. | [[t3-m27]] |");
     // istilah lain yang urut abjad di antara dua baris ini (KEK dan KMS, halaman 5.26) boleh menyela
     expect(glosMdx).toMatch(/\| \*\*JWT\*\* [^\n]*\n\| \*\*Kapasitas worker\*\* [^\n]*\n(?:\| \*\*KEK\*\* [^\n]*\n)?\| \*\*Kelas queue\*\* [^\n]*\n(?:\| \*\*Kill switch\*\* [^\n]*\n)?(?:\| \*\*KMS\*\* [^\n]*\n)?\| \*\*Kredit\*\* /);
-    expect(glosMdx).toMatch(/\| \*\*Tutup buku\*\* [^\n]*\n\| \*\*Umur notifikasi tertua\*\* [^\n]*\n\| \*\*WAL\*\* /);
+    expect(glosMdx).toMatch(/\| \*\*Tutup buku\*\* [^\n]*\n\| \*\*Umur notifikasi tertua\*\* [^\n]*\n(?:\| \*\*WAF\*\* [^\n]*\n)?\| \*\*WAL\*\* /); // baris WAF dari halaman 5.25 boleh ada di antaranya
   });
   test("istilah yang dipakai halaman ada di glosarium: queue, fan-out, worker; kelas, kapasitas, dan umur tertua sesuai kode (kolom kelas, ORDER BY, min(dibuat))", () => {
     for (const t of ["Fan-out", "Queue", "Worker"]) expect(glosMdx).toContain(`| **${t}** |`);

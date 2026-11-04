@@ -1539,6 +1539,14 @@ p.catatan-fiktif { margin-top: 1.6rem; color: var(--teks-2); font-size: var(--rk
 .sl-markdown-content .bt-tabel :is(th, td) { overflow-wrap: anywhere; }
 @media (scripting: none) { .sl-markdown-content .bt { display: none; } }
 
+/* Kalkulator koneksi dan pooler (ADR 52): memakai bb-*, jt-tabel, dan bb-predict; hanya aturan di bawah yang baru. Tanpa JavaScript
+   tebakan dan tombol tidak berfungsi: widget disembunyikan, dan halaman memuat tabel semua skenario di <noscript>. */
+.sl-markdown-content .kp-tabel caption { caption-side: top; text-align: left; padding: 0.2rem 0.5rem; font-size: var(--rk-ui-kecil); }
+.sl-markdown-content .kp-tabel thead th { font-weight: 600; border-bottom: 1px solid var(--garis-2); }
+.sl-markdown-content .kp-tabel :is(th, td) { overflow-wrap: anywhere; }
+.sl-markdown-content .kp-tabel thead .jt-angka { white-space: normal; }
+@media (scripting: none) { .sl-markdown-content .kp { display: none; } }
+
 /* Peta lima zona Tahap 5 (W5-zona): memakai bb-*, jt-tabel, dan bb-predict; hanya aturan di bawah yang baru. Tanpa JavaScript
    tebakan dan tombol tidak berfungsi: widget disembunyikan, dan pembungkus memuat isi zona dan tabel di <noscript>. Tabel kejadian
    dua baris per kejadian (nama di atas, tiga sel sama lebar di bawah) supaya kata "Terjaga" dan "Tidak berlaku" muat di 320 px. */

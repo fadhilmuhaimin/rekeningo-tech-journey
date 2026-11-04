@@ -1,0 +1,65 @@
+{
+  "judul": "Siapa yang menangani kejadian ini di pintu mitra POS?",
+  "kelompok": [
+    "WAF",
+    "Kunci API",
+    "Kuota per mitra",
+    "Tanda tangan HMAC",
+    "Idempotency-Key",
+    "Validasi dan cakupan di api-t5",
+    "Belum ada di lab"
+  ],
+  "item": [
+    {
+      "teks": "Mitra A mengirim permintaan ke-101 dalam satu detik, dan mitra B hanya mengirim 20.",
+      "jawab": 2,
+      "kenapa": "Bucket dihitung per mitra, dengan jam bucket dibekukan: A mendapat 100 jawaban 200 dan 500 jawaban 429 dari 600 permintaan, sedangkan B 20 dari 20 tetap 200 (kuota.txt bagian A)."
+    },
+    {
+      "teks": "Query berisi tautologi SQL, dikirim dengan kunci dan tanda tangan yang sah.",
+      "jawab": 0,
+      "kenapa": "WAF membaca isi permintaan dan menjawab 403 dengan aturan CRS yang cocok. Kunci dan tanda tangan sah, jadi bukan autentikasi yang menghentikannya (waf.txt bagian A)."
+    },
+    {
+      "teks": "Kunci API mitra A membaca QR milik merchant mitra B lewat alamat merchant B.",
+      "jawab": 5,
+      "kenapa": "Gerbang tidak membandingkan merchant dengan mitra. Handler di api-t5 membandingkannya lewat akun.mitra_pos_id dan menjawab 404, sama dengan merchant yang tidak ada (tandatangan.txt bagian C, handler_pos.go)."
+    },
+    {
+      "teks": "Kasir mengirim POST yang sama dua kali dengan Idempotency-Key yang sama.",
+      "jawab": 4,
+      "kenapa": "Kedua jawabannya 201 dengan id QR yang sama, dan baris qr milik merchant hanya satu (tandatangan.txt bagian A). Key ini menyatukan pengulangan kasir."
+    },
+    {
+      "teks": "Permintaan sah diputar ulang di dalam jendela 5 menit dengan Idempotency-Key lain. Siapa yang menahannya?",
+      "jawab": 6,
+      "kenapa": "Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi tes Go gerbang mencatat permintaan itu diterima dan key baru sampai ke hulu. Apakah api-t5 membuat QR kedua dibaca dari kode, tidak dijalankan."
+    },
+    {
+      "teks": "POST yang nominalnya diubah dari 25.000 menjadi 99.000 sesudah ditandatangani.",
+      "jawab": 3,
+      "kenapa": "HMAC dihitung atas byte mentah body, jadi isi yang berubah menghasilkan tanda yang tidak cocok dan dijawab 401 (tandatangan.txt bagian B)."
+    },
+    {
+      "teks": "Kunci API yang tidak dikenal, atau kunci milik mitra yang sudah dibekukan.",
+      "jawab": 1,
+      "kenapa": "Gerbang mencari hash kunci di mitra_pos. Dua kasus itu dijawab 401 yang sama, dan sesudah 5 kegagalan dari satu alamat jawabannya 429 (tandatangan.txt bagian B dan D)."
+    },
+    {
+      "teks": "Kunci API mitra A bocor tanpa secret penandatangannya. Siapa yang menjaga kuota kasir A yang sah dari 100 permintaan palsu?",
+      "jawab": 6,
+      "kenapa": "Tanda tangan menolak tiap permintaan palsu dengan 401, tetapi kuota dihitung lebih dulu, jadi kasir A yang sah mendapat 429. Itu hasil tes Go (testing.txt bagian A), bukan rekaman kuota.txt."
+    },
+    {
+      "teks": "Kolom referensi berisi 101 karakter biasa, tanpa pola serangan.",
+      "jawab": 5,
+      "kenapa": "Tidak ada aturan CRS yang cocok, jadi WAF meloloskannya. Server api-t5 menolaknya dengan 400 karena batasnya 100 karakter (waf.txt bagian C). WAF bukan validasi."
+    },
+    {
+      "teks": "Permintaan sah direkam 360 detik lalu, lalu diputar ulang apa adanya.",
+      "jawab": 3,
+      "kenapa": "Timestamp ikut dihitung dalam tanda tangan, dan toleransinya 5 menit. Permintaan yang lebih tua dari itu dijawab 401 waktu-di-luar-toleransi (tandatangan.txt bagian B)."
+    }
+  ],
+  "penutup": "Tiap pemeriksaan menjawab satu pertanyaan. Idempotency-Key menyatukan pengulangan kasir, tetapi ia tidak tertanda, jadi key yang diganti membuat permintaan yang diputar ulang lolos sebagai permintaan baru (dibaca dari kode)."
+}
