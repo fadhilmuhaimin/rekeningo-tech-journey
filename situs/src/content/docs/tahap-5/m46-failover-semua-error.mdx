@@ -1,0 +1,169 @@
+---
+title: "5.16 M46: Latihan failover membuat semua service error"
+description: Minggu 8. Latihan failover pertama Dewi mempromosikan replica dalam 40 detik, tetapi service menjawab 500 selama 4 menit. Rekaman lab menunjukkan koneksi yang diminta melewati batas database dan ditolak dengan kode 53300.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import poolBatas from "../../../../data/diagram/t5-m46-pool-melewati-batas.json";
+
+<p class="meta">Baca 9 menit · coba 3 menit · Prasyarat: [[t5-rpo-rto]], [[t3-pool]] · Jalur inti</p>
+
+<Blok nama="Gejala" buka>
+
+Minggu 8 Tahap 5. Selasa pukul 10.00 Dewi menjalankan latihan failover pertamanya. Replica dipromosikan dalam 40 detik.
+
+Selama 4 menit berikutnya app Budi menampilkan "Gagal memuat", dan kasir Ani menolak pembayaran. Semua service menjawab 500, dan alert menyala walau database sehat.
+
+*Angka cerita (Ilustrasi):* hari, pukul 10.00, 40 detik, dan 4 menit berasal dari naskah, bukan dari rekaman. Rekaman di halaman ini memakai satu PostgreSQL di lab api-t5, tanpa replica atau pod.
+
+Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+</Blok>
+
+<Blok nama="Yang Raka kira" buka>
+
+Raka menduga promosi belum selesai. Dugaan lainnya: database belum siap menerima koneksi.
+
+Pod adalah satu atau lebih container yang berjalan bersama ([[t5-service]]). Pool adalah kumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request ([[t3-pool]]). Role biasa adalah role database tanpa atribut superuser, seperti role yang dipakai service.
+
+PostgreSQL membatasi jumlah koneksi yang terbuka bersamaan lewat `max_connections`, dan menyisakan sebagian slot untuk superuser lewat `superuser_reserved_connections`.
+
+<details class="question">
+<summary>Tebak dulu: database sehat dan menerima koneksi, tetapi jumlah koneksi dari role biasa yang diminta melewati batas itu. Menurut dokumentasi PostgreSQL 17, apa yang terjadi pada koneksi baru: ditahan sampai ada slot bebas, atau ditolak?</summary>
+
+Ditolak. Dokumentasi menulis batasnya. Bila koneksi aktif sudah mencapai atau melewati `max_connections` dikurangi `superuser_reserved_connections`, koneksi baru hanya diterima untuk superuser ([PostgreSQL 17: Connection Settings](https://www.postgresql.org/docs/17/runtime-config-connection.html), dibuka 2026-11-04, Tidak dijalankan).
+
+Dokumentasi yang sama menulis bahwa `max_connections` biasanya bernilai 100 dan `superuser_reserved_connections` bawaannya tiga, jadi role biasa mendapat 100 − 3 = 97 slot. Lampiran kode galat PostgreSQL 17 menamai kode `53300` sebagai `too_many_connections` ([PostgreSQL 17: Appendix A](https://www.postgresql.org/docs/17/errcodes-appendix.html), dibuka 2026-11-04, Tidak dijalankan).
+
+Blok berikutnya menunjukkan kode itu di rekaman lab.
+
+</details>
+
+</Blok>
+
+<Blok nama="Yang sebenarnya">
+
+Pool yang meminta koneksi bersamaan melewati batas database, dan sebagian ditolak dengan kode 53300 (Rekaman lab, `pooler.txt` bagian A).
+
+<Rantai data={poolBatas} ringkas />
+
+*Kondisi rekaman:* PostgreSQL 17.11, go1.27.3, dan pgx v5.11.0, dari database bersih, di lab api-t5. Satu proses `pooler` membuka 12 pool dengan 10 koneksi per pool, langsung ke PostgreSQL. Rekaman ini bukan latihan failover: tidak ada primary yang dimatikan, replica yang dipromosikan, atau pod.
+
+**Kode yang direkam.** Tiap client memakai satu pool dengan `MaxConns` 10, lalu meminta sepuluh koneksi sekaligus. Tiap koneksi yang berhasil dibuka dipakai untuk 20 query, dengan jeda 50 milidetik sesudah tiap query (Tidak dijalankan: dibaca dari kode lab):
+
+<Snippet file="labs/api-t5/cmd/pooler/main.go" lines="45:61" lang="go" title="Kode lab: labs/api-t5/cmd/pooler/main.go baris 45 sampai 61 (tiap client memakai satu pool dan meminta seluruh koneksinya sekaligus)" />
+
+Rekaman bagian A menjalankan kode itu langsung ke PostgreSQL:
+
+<Snippet file="labs/api-t5/output/pooler.txt" lines="5:13" title="Rekaman lab: labs/api-t5/output/pooler.txt, bagian A (12 client × pool 10, langsung ke PostgreSQL)" />
+
+Semua galat yang tercatat berkode 53300. Galat itu dikirim oleh server PostgreSQL yang hidup, karena kode lab membacanya dari `pgconn.PgError`. Jadi database yang hidup dan menjawab bisa menolak koneksi.
+
+Jumlah koneksi yang berhasil tidak direkam sebagai angka, karena bergantung pada koneksi lain di database. Lab memeriksa bahwa jumlah itu di bawah 120, dan koneksi role itu paling banyak 97 pada sampel tiap 100 milidetik.
+
+**Dari 12 client ke 18 pod.** Cerita punya enam service dengan tiga pod tiap service, jadi 18 pod dengan pool 10 koneksi. Angka 180 dan 97 datang dari tabel beban naskah dan sudah dipakai di [[t5-fitur-teknis]]. Tabel ini menghitungnya dari masukannya.
+
+Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini, dan labelnya mengikuti masukan terlemahnya. Pool 10, tiga pod per service, 3 koneksi cadangan, dan 0,02 detik per request adalah Asumsi naskah, jadi hasilnya Hitungan atas Asumsi. Dua baris Lab memakai angka rekaman, jadi labelnya Hitungan atas Rekaman lab. Laju 1.388,9 request per detik adalah beban puncak Tahap 5 ([[t5-prd]]), dan 0,02 detik sama dengan lama satu request memegang koneksi di [[t5-m40]].
+
+| Besaran | Rumus | Hasil |
+| --- | --- | --- |
+| Koneksi bila semua pool penuh | 6 service × 3 pod × 10 | 180 |
+| Tersedia untuk role biasa | 100 − 3 | 97 |
+| Tidak bisa dibuka bila tidak ada koneksi lain | 180 − 97 | 83 |
+| Diminta dibanding tersedia | 180 ÷ 97 | 186% |
+| Koneksi sibuk rata-rata pada beban puncak | 1.388,9 × 0,02 | 27,8 |
+| Koneksi sibuk rata-rata per pod | 27,8 ÷ 18 | 1,5 |
+| Lab: koneksi diminta | 12 × 10 | 120 |
+| Lab: paling sedikit ditolak | 120 − 97 | 23 |
+| Gangguan 4 menit terhadap anggaran 43,2 menit | 4 ÷ 43,2 | 9,3% |
+
+Baris per pod mengandaikan beban merata di 18 pod. Baris gangguan memakai 4 menit dari cerita dan anggaran 43,2 menit, jadi hasilnya Hitungan atas Asumsi dan Ilustrasi.
+
+Angka 23 mengandaikan 120 permintaan itu saling tumpang tindih. Kode lab menahan koneksi yang berhasil sekurangnya 20 × 50 milidetik = 1 detik (Tidak dijalankan: dibaca dari kode lab).
+
+Koneksi yang sibuk rata-rata hanya 27,8, sedangkan pool semua pod boleh membuka 180. Yang melewati batas adalah koneksi yang mungkin dipakai bersamaan, bukan rata-ratanya. Keadaan ini disebut badai koneksi: banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati.
+
+Empat menit masih di bawah RTO 15 menit, tetapi pembayaran berhenti selama empat menit itu (Ilustrasi). RTO dan anggaran kegagalan 43,2 menit per 30 hari dibahas di [[t5-rpo-rto]], dan keduanya Asumsi produk.
+
+**Kenapa pool bisa meminta penuh.** Dengan `MinConns` 0, pool membuka koneksi baru saat ada permintaan dan belum ada koneksi bebas. Itu penalaran, yaitu kesimpulan penulis dari kode dan dokumentasi, bukan hasil yang direkam.
+
+Selama primary lama tidak menjawab, permintaan ke tiap pod menumpuk. Saat node baru siap, pod yang punya sepuluh permintaan menunggu meminta pool penuhnya sekaligus (penalaran). Lab memerankan keadaan itu dengan sepuluh permintaan per client, dan queue di pod tidak direkam.
+
+**Koneksi yang tertutup dibuang.** Saat koneksi dikembalikan ke pool, `Release` menghancurkannya bila koneksi itu sudah tertutup, masih sibuk, atau masih di dalam transaction ([pgx v5.11.0, conn.go](https://github.com/jackc/pgx/blob/v5.11.0/pgxpool/conn.go), dibuka 2026-11-04, Tidak dijalankan). Bila koneksi ke primary lama sudah tertutup, permintaan berikutnya membuka koneksi baru ke node baru (penalaran).
+
+**Bawaan pgx.** Dokumentasi pgxpool v5.11.0 menulis `MaxConns` bawaan sebesar nilai yang lebih besar antara 4 dan `runtime.NumCPU()`. Bawaan `MaxConnLifetime` adalah 1 jam dan bawaan `MaxConnLifetimeJitter` adalah 0 ([pgxpool v5.11.0](https://pkg.go.dev/github.com/jackc/pgx/v5@v5.11.0/pgxpool), dibuka 2026-11-04, Tidak dijalankan). Lab memasang `MaxConns` 10 dan tidak mengatur jitter.
+
+Kode pgx menghitung batas umur koneksi dari waktu pembuatan, `MaxConnLifetime`, dan jitter acak sampai `MaxConnLifetimeJitter` (`pool.go`, Tidak dijalankan). Dengan jitter 0, koneksi yang dibuat pada detik yang sama sampai batas umurnya pada waktu yang hampir sama. Itu risiko satu jam sesudah koneksi dibuat bersamaan, bukan penyebab 4 menit di cerita (penalaran).
+
+**Retry bisa memperparah (penalaran).** Client yang mengulang koneksi yang ditolak tanpa jeda meminta slot yang sama lagi. Rekaman lab tidak punya retry: tiap permintaan koneksi berjalan sekali, dan galatnya dicatat (kode lab).
+
+**Yang tidak direkam.**
+
+- Selasa, pukul 10.00, 40 detik, 4 menit, Dewi, app Budi, dan kasir Ani berasal dari cerita (Ilustrasi). Rekaman `pooler.txt` memakai satu PostgreSQL, tanpa replica, pod, atau app.
+- Rekaman memuat satu proses dengan 12 pool, bukan 18 pod. Angka 180, 83, dan 27,8 adalah Hitungan atas Asumsi.
+- Primary yang dimatikan, promosi, dan koneksi yang diputus tidak direkam di lab ini. Promosi direkam di [[t5-m42]] untuk skema ledger.
+- Queue permintaan di tiap pod, retry, dan lama 4 menit tidak direkam (penalaran dan Ilustrasi).
+
+</Blok>
+
+<Blok nama="Coba sendiri">
+
+Widget ini mengikuti rekaman `pooler.txt`. Jalur utama memakai bagian A. Tebakannya tentang satu hal yang kamu ubah, jadi jawabannya terbuka di akhir langkah varian.
+
+<WidgetLama nama="alur" src="data/skenario/t5-m46.json" />
+
+Centang **Ubah satu hal: client yang sama lewat PgBouncer**. PgBouncer adalah pooler, yaitu perantara yang menerima koneksi client dan meneruskan query ke PostgreSQL lewat koneksinya sendiri.
+
+Jalurnya berganti menjadi dua langkah dari `pooler.txt` bagian B (Rekaman lab). Cara memasang PgBouncer dan batasnya dibahas di [[t5-pooler]]. Widget ini hanya menunjukkan bahwa satu hal berbeda mengubah hasilnya.
+
+<noscript>
+Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jalur utama: dari 12 client dengan pool 10, 120 koneksi diminta ke PostgreSQL yang menerima 97 untuk role biasa. Sebagian ditolak dengan kode 53300, dan kurang dari 12 client mendapat seluruh sepuluh koneksinya (`pooler.txt` bagian A).
+
+Bila client yang sama menyambung lewat PgBouncer, 120 koneksi berhasil tanpa galat dan 2.400 query selesai. Dari role itu paling banyak 20 koneksi sampai ke PostgreSQL (`pooler.txt` bagian B).
+</noscript>
+
+</Blok>
+
+<Blok nama="Konsep yang lahir">
+
+- [[t5-pooler]]: pooler koneksi, yaitu perantara antara client dan PostgreSQL. Keputusannya ADR 52.
+- [[t3-pool]]: pool koneksi dan Little's Law, dibaca ulang untuk banyak pod.
+- [[t5-rpo-rto]]: promosi, failover, dan RTO, yang di latihan ini terlihat dari sisi user.
+
+Pool satu pod belum menghitung pod lain: koneksi yang mungkin dipakai bersamaan harus muat di batas database.
+
+### Cek diri
+
+**1.** Lab merekam galat 53300 dari 12 client dengan pool 10. Apa yang dibuktikan rekaman itu, dan apa yang tidak?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Rekaman membuktikan bahwa PostgreSQL 17.11 menolak koneksi dari role biasa dengan kode 53300 saat 120 koneksi diminta bersamaan dan batasnya 97 (`pooler.txt` bagian A). Rekaman tidak membuktikan failover, 18 pod, atau jumlah koneksi yang berhasil. Rekaman `pooler.txt` memakai satu PostgreSQL tanpa replica atau pod, dan tidak merekam jumlah itu sebagai angka.
+
+</details>
+
+**2.** Enam service punya tiga pod tiap service dengan pool 10. Berapa koneksi yang diminta bila semua pool penuh, berapa yang tersedia, dan berapa yang sibuk rata-rata pada beban puncak?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Diminta 6 × 3 × 10 = 180 dan tersedia 100 − 3 = 97, jadi 83 tidak bisa dibuka bila tidak ada koneksi lain. Yang sibuk rata-rata 1.388,9 × 0,02 = 27,8. Semuanya Hitungan atas Asumsi.
+
+</details>
+
+**3.** Berapa nilai bawaan pgxpool v5.11.0 untuk `MaxConns` dan `MaxConnLifetimeJitter`, dan apa yang dipasang lab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`MaxConns` bawaan adalah nilai yang lebih besar antara 4 dan `runtime.NumCPU()`, dan `MaxConnLifetimeJitter` bawaan 0 (dokumentasi, Tidak dijalankan). Di lab, `MaxConns` bernilai 10 dan jitter tidak diatur.
+
+</details>
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

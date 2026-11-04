@@ -1,0 +1,40 @@
+{
+  "istilah": "Badai koneksi",
+  "sehari_hari": "Badai koneksi adalah keadaan saat banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak.",
+  "cerita": [
+    {
+      "rujukan": "t5-m46",
+      "teks": "Latihan failover Dewi membuat service menjawab 500 selama 4 menit (Ilustrasi). Lab memerankan satu bagiannya: 12 client dengan pool 10 meminta 120 koneksi sekaligus, dan sebagian ditolak dengan kode 53300 (Rekaman lab)."
+    }
+  ],
+  "mekanisme": [
+    "PostgreSQL menerima paling banyak max_connections koneksi bersamaan dan menyisakan superuser_reserved_connections slot untuk superuser. Dokumentasi menulis bawaannya biasanya 100 dan 3.",
+    "Koneksi baru dari role biasa yang datang sesudah batas itu tercapai tidak diterima, karena dokumentasi hanya menyebut superuser. Lab merekam kode 53300 untuk koneksi seperti itu.",
+    "Koneksi yang mungkin dipakai bersamaan adalah jumlah pool dikali ukuran tiap pool, bukan jumlah koneksi yang sibuk rata-rata.",
+    "Bila banyak pool membuka koneksinya pada waktu yang sama, jumlah yang diminta bisa melewati batas walau yang sibuk rata-rata jauh di bawahnya."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira hanya database yang kurang kuat. Batas koneksi adalah angka pengaturan, dan 120 koneksi yang diminta melewati batas 97 walau tiap koneksi hanya menjalankan query singkat (Rekaman lab).",
+    "Mengira mengulang koneksi yang ditolak tanpa jeda menyelesaikan masalah. Itu penalaran penulis: pengulangan meminta slot yang sama lagi."
+  ],
+  "terkait": [
+    "Connection pool",
+    "Failover",
+    "Backoff"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-185",
+      "judul": "PostgreSQL 17: Connection Settings (dibuka 2026-11-04)",
+      "url": "https://www.postgresql.org/docs/17/runtime-config-connection.html",
+      "catatan": "max_connections biasanya 100, superuser_reserved_connections bawaan tiga, dan koneksi baru hanya diterima untuk superuser saat batasnya tercapai."
+    },
+    {
+      "riset": "R5-187",
+      "judul": "Rekaman lab api-t5: pooler.txt bagian A",
+      "rekaman": "labs/api-t5/output/pooler.txt",
+      "catatan": "Dua belas client dengan pool 10 meminta 120 koneksi langsung ke PostgreSQL, dan galat yang tercatat berkode 53300."
+    }
+  ]
+}
