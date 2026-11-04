@@ -253,6 +253,8 @@
 *[n+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[N+1]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[NetworkPolicy]: Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya.
+*[Nonce]: Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.
+*[nonce]: Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.
 *[Nonrepeatable read]: Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.
 *[nonrepeatable read]: Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.
 *[OAuth 2.0]: Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password.
@@ -414,6 +416,7 @@
 *[tutup buku]: Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.
 *[Umur notifikasi tertua]: Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu.
 *[umur notifikasi tertua]: Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu.
+*[WAF]: Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan.
 *[WAL]: Log perubahan yang ditulis PostgreSQL sebelum data diubah. Replica menyalin perubahan dengan membaca WAL dari primary.
 *[Webhook]: HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.
 *[webhook]: HTTP request yang dikirim sistem lain ke API kita saat ada kejadian, mis. pembayaran berhasil.

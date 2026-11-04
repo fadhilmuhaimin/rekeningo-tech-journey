@@ -4176,6 +4176,38 @@
   "jawab": "Rabu, 10.15, 3.000 permintaan per detik, dan jawaban yang lambat berasal dari cerita (Ilustrasi), dan 216% adalah Hitungan atas Ilustrasi. Lab memakai 600 dan 20 permintaan dengan jam bucket dibekukan, jadi laju sungguhan, jawaban lambat, dan kapasitas server tidak diukur (`kuota.txt`, bagian C)."
  },
  {
+  "id": "t5-waf-1",
+  "halaman": "t5-waf",
+  "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+  "url": "tahap-5/pintu-mitra-waf/",
+  "tanya": "Payload serangan umum datang dengan kunci dan tanda tangan yang sah. Siapa yang menolaknya, dan apa yang tidak diukur oleh 37 payload sah?",
+  "jawab": "WAF menolak 8 dari 8 payload dengan 403 (`waf.txt` bagian A). Dari 37 payload sah yang lolos, 34 hanya mengubah teks `referensi`, jadi angka itu bukan ukuran alarm palsu untuk payload POS lain (bagian B)."
+ },
+ {
+  "id": "t5-waf-2",
+  "halaman": "t5-waf",
+  "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+  "url": "tahap-5/pintu-mitra-waf/",
+  "tanya": "Kunci mitra A dipakai untuk membaca QR milik merchant mitra B. Apa jawabannya, di mana cakupannya diperiksa, dan apa yang terjadi di mode `pos-tanpa-cakupan`?",
+  "jawab": "Jawabannya 404, dan cakupan diperiksa di `api-t5` lewat `akun.mitra_pos_id`, bukan di gerbang. Di mode `pos-tanpa-cakupan` pembacaan yang sama dijawab 200 dengan data QR milik B (`tandatangan.txt` bagian C)."
+ },
+ {
+  "id": "t5-waf-3",
+  "halaman": "t5-waf",
+  "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+  "url": "tahap-5/pintu-mitra-waf/",
+  "tanya": "Permintaan sah diputar ulang di dalam jendela 5 menit dengan Idempotency-Key lain. Apa yang dilakukan gerbang, dan kenapa Idempotency-Key tidak menahannya?",
+  "jawab": "Gerbang menerimanya, dan key lain itu sampai ke hulu (Tes Go, `testing.txt` bagian A). Tanda tangan tidak memuat Idempotency-Key dan tidak ada nonce, jadi key yang diganti tidak membatalkan tanda tangan. Bahwa `api-t5` lalu membuat QR kedua dibaca dari kode dan tidak dijalankan."
+ },
+ {
+  "id": "t5-waf-4",
+  "halaman": "t5-waf",
+  "judul": "5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56",
+  "url": "tahap-5/pintu-mitra-waf/",
+  "tanya": "Hitung: kuota 100 per detik untuk 50 mitra, dibanding puncak API 1.388,9 permintaan per detik. Apa artinya?",
+  "jawab": "50 × 100 = 5.000 per detik, dan 5.000 ÷ 1.388,9 = 3,6 kali puncak (Hitungan atas Asumsi). Kapasitas satu server belum diukur, jadi jumlah kuota yang boleh diberikan belum diketahui."
+ },
+ {
   "id": "t5-onprem-1",
   "halaman": "t5-onprem",
   "judul": "5.28 On-prem lawan cloud + ADR 59",

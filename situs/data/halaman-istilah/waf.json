@@ -1,0 +1,44 @@
+{
+  "istilah": "WAF (web application firewall)",
+  "sehari_hari": "WAF adalah penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan serangan, lalu menolak permintaan yang cocok. Aturannya bisa berupa kumpulan seperti OWASP CRS.",
+  "cerita": [
+    {
+      "rujukan": "t5-waf",
+      "teks": "Gerbang di depan api-t5 memeriksa delapan payload serangan uji dengan Coraza dan CRS, dan semuanya dijawab 403 walau kunci dan tanda tangannya sah. Dari 37 payload POS yang sah, 34 hanya mengubah satu field, jadi angka itu bukan ukuran alarm palsu (`waf.txt` bagian A dan B)."
+    }
+  ],
+  "mekanisme": [
+    "Permintaan masuk ke gerbang, dan WAF membaca method, alamat, header, dan body.",
+    "Tiap aturan CRS yang cocok menambah skor. Menurut dokumentasi CRS, sebagian besar ancaman masuk yang terdeteksi bernilai 5 secara bawaan.",
+    "Bila skor mencapai ambang masuk, WAF menjawab 403 dan permintaan tidak sampai ke API.",
+    "Mesin DetectionOnly mencatat aturan yang cocok tanpa memblokir, jadi terbaca apa yang akan diblokir bila mesinnya menyala."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira WAF memvalidasi isi. Kolom referensi berisi 101 karakter tanpa pola serangan lolos WAF dan ditolak API dengan 400 (`waf.txt` bagian C).",
+    "Menyimpulkan tingkat alarm palsu dari satu daftar payload sah. Dari 37 payload di rekaman, 34 hanya mengubah satu field."
+  ],
+  "terkait": [
+    "Rate limit",
+    "API gateway"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-231",
+      "judul": "OWASP CRS: Anomaly Scoring dan Paranoia Levels (dibuka 2026-11-04)",
+      "url": "https://coreruleset.org/docs/2-how-crs-works/2-1-anomaly_scoring/",
+      "catatan": "Skor dijumlahkan dan dibandingkan dengan ambang masuk; sebagian besar ancaman masuk yang terdeteksi bernilai 5 secara bawaan. Halaman paranoia level menulis level 1 hampir tidak pernah memicu alarm palsu, dan alarm palsu masih mungkin tergantung susunan lokal."
+    },
+    {
+      "riset": "R5-230",
+      "judul": "Coraza: README (dibuka 2026-11-04)",
+      "url": "https://github.com/corazawaf/coraza#readme",
+      "catatan": "Coraza adalah WAF yang ditulis dalam Go dan dipakai lab sebagai library di proses gerbang. README menandai plugin Caddy dan ekstensi WASM Traefik sebagai butuh pemelihara."
+    },
+    {
+      "judul": "Rekaman lab t5-waf: waf.txt bagian A sampai D",
+      "rekaman": "labs/t5-waf/output/waf.txt",
+      "catatan": "Delapan dari delapan payload serangan dijawab 403, 37 payload sah lolos, referensi 101 karakter dijawab 400 oleh api-t5, dan mode waf-deteksi tidak memblokir satu pun."
+    }
+  ]
+}
