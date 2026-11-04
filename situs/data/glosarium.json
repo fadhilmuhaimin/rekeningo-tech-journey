@@ -153,6 +153,15 @@
   "h": null
  },
  {
+  "t": "AES-GCM",
+  "d": "Enkripsi AES dengan mode GCM: satu pesan dikunci dan diberi tag pemeriksa keaslian, sehingga satu byte yang berubah ketahuan saat dibuka.",
+  "b": "t5-kms",
+  "n": "5.26 Arsip dan envelope encryption",
+  "u": "/tahap-5/arsip-envelope-encryption/",
+  "s": "istilah-aes-gcm",
+  "h": null
+ },
+ {
   "t": "Alamat keluar",
   "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
   "b": "t4-m34",
@@ -495,6 +504,15 @@
   "h": null
  },
  {
+  "t": "Data key",
+  "d": "Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK.",
+  "b": "t5-kms",
+  "n": "5.26 Arsip dan envelope encryption",
+  "u": "/tahap-5/arsip-envelope-encryption/",
+  "s": "istilah-data-key",
+  "h": null
+ },
+ {
   "t": "Dead-letter queue",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
   "b": "t3-at-least-once",
@@ -574,6 +592,15 @@
   "u": "/tahap-2/skema-data/",
   "s": "istilah-erd",
   "h": "/istilah/erd/"
+ },
+ {
+  "t": "Envelope encryption",
+  "d": "Enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, bukan bersama file.",
+  "b": "t5-kms",
+  "n": "5.26 Arsip dan envelope encryption",
+  "u": "/tahap-5/arsip-envelope-encryption/",
+  "s": "istilah-envelope-encryption",
+  "h": "/istilah/envelope-encryption/"
  },
  {
   "t": "ERP (Enterprise Resource Planning)",
@@ -765,6 +792,15 @@
   "h": "/istilah/hpa/"
  },
  {
+  "t": "HSM (hardware security module)",
+  "d": "Perangkat keras yang menyimpan kunci dan menjalankan operasi kunci di dalamnya.",
+  "b": "t5-kms",
+  "n": "5.26 Arsip dan envelope encryption",
+  "u": "/tahap-5/arsip-envelope-encryption/",
+  "s": "istilah-hsm",
+  "h": null
+ },
+ {
   "t": "HSTS (HTTP Strict Transport Security)",
   "d": "Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.",
   "b": "t3-tls-pinning",
@@ -909,6 +945,15 @@
   "h": null
  },
  {
+  "t": "KEK (key encryption key)",
+  "d": "Kunci pembungkus: kunci yang mengenkripsi data key, bukan isi file.",
+  "b": "t5-kms",
+  "n": "5.26 Arsip dan envelope encryption",
+  "u": "/tahap-5/arsip-envelope-encryption/",
+  "s": "istilah-kek",
+  "h": null
+ },
+ {
   "t": "Kelas queue",
   "d": "Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.",
   "b": "t3-m27",
@@ -925,6 +970,15 @@
   "u": "/tahap-4/kartu-virtual/",
   "s": "istilah-kill-switch",
   "h": "/istilah/kill-switch/"
+ },
+ {
+  "t": "KMS (key management service)",
+  "d": "Server yang membuat dan menyimpan KEK, dan membuka data key terbungkus bila pemanggilnya punya hak.",
+  "b": "t5-kms",
+  "n": "5.26 Arsip dan envelope encryption",
+  "u": "/tahap-5/arsip-envelope-encryption/",
+  "s": "istilah-kms",
+  "h": "/istilah/kms/"
  },
  {
   "t": "Kredit",
@@ -1186,6 +1240,15 @@
   "u": "/tahap-5/m47-pod-membuat-jurnal/",
   "s": "istilah-networkpolicy",
   "h": "/istilah/networkpolicy/"
+ },
+ {
+  "t": "Nonce",
+  "d": "Angka sekali pakai yang harus berbeda untuk tiap pesan yang dienkripsi dengan kunci yang sama.",
+  "b": "t5-kms",
+  "n": "5.26 Arsip dan envelope encryption",
+  "u": "/tahap-5/arsip-envelope-encryption/",
+  "s": "istilah-nonce",
+  "h": "/istilah/nonce/"
  },
  {
   "t": "Nonrepeatable read",

@@ -1,0 +1,40 @@
+{
+  "istilah": "KMS (key management service)",
+  "sehari_hari": "KMS adalah server yang membuat dan menyimpan kunci pembungkus (KEK), dan membuka data key terbungkus bila pemanggilnya punya hak. Kunci pembungkusnya tidak ikut keluar dari server itu.",
+  "cerita": [
+    {
+      "rujukan": "t5-kms",
+      "teks": "Di lab, fungsi KMS dijalankan OpenBao v2.7.2 dengan mesin transit. KEK tidak bisa diekspor: permintaan isi kunci dijawab 400, dan tiga token masing-masing hanya punya satu hak (`arsip.txt` bagian A dan C, Rekaman lab)."
+    }
+  ],
+  "mekanisme": [
+    "KMS membuat KEK dan menyimpannya. Pemanggil hanya menyebut nama kunci.",
+    "Pemanggil dengan hak datakey meminta data key baru, dan KMS menjawab bentuk terbungkusnya bersama teks biasanya.",
+    "Pemanggil dengan hak decrypt mengirim data key terbungkus, dan KMS menjawab teks biasanya. Pemanggil dengan hak rewrap hanya mendapat bentuk terbungkus yang baru.",
+    "Bila KMS tidak tersedia, data key terbungkus tidak bisa dibuka, sehingga file yang dilindunginya juga tidak terbaca."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menganggap KMS mode dev sama dengan produksi. Mode dev menyimpan kunci di memori, dan restart menghapusnya (`rotasi.txt` bagian F).",
+    "Memberi satu token semua hak. Lab memisahkan hak arsipkan, buka, dan rewrap ke tiga token, dan enam operasi di luar hak dijawab 403 (`arsip.txt` bagian C)."
+  ],
+  "terkait": [
+    "Envelope encryption",
+    "KEK (key encryption key)",
+    "Data key"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-235",
+      "judul": "OpenBao v2.7.2: mesin transit (dibuka 2026-11-04)",
+      "url": "https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/secrets/transit/index.mdx",
+      "catatan": "Mesin transit melayani enkripsi sebagai layanan dengan versi kunci, dan rewrap tidak menjawab teks biasa."
+    },
+    {
+      "riset": "R5-238",
+      "judul": "Rekaman lab t5-kms: arsip.txt bagian A dan C, rotasi.txt bagian F",
+      "rekaman": "labs/t5-kms/output/rotasi.txt",
+      "catatan": "OpenBao dijeda lalu dimulai ulang: arsip tidak terbaca selama jeda, dan restart mode dev menghapus KEK."
+    }
+  ]
+}

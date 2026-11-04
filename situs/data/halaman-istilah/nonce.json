@@ -1,0 +1,39 @@
+{
+  "istilah": "Nonce",
+  "sehari_hari": "Nonce adalah angka sekali pakai yang harus berbeda untuk tiap pesan yang dienkripsi dengan kunci yang sama. Di AES-GCM nonce 96 bit disimpan di depan ciphertext.",
+  "cerita": [
+    {
+      "rujukan": "t5-kms",
+      "teks": "File arsip terenkripsi berukuran file asal ditambah 28 byte: nonce 12 byte di depan dan tag 16 byte di belakang. Satu bit yang dibalik di byte pertama, yaitu nonce, membuat pembukaan gagal (`arsip.txt` bagian B dan D, Rekaman lab)."
+    }
+  ],
+  "mekanisme": [
+    "Enkripsi AES-GCM butuh nonce yang tidak pernah dipakai dua kali dengan kunci yang sama.",
+    "Go membuat nonce acak 96 bit lewat `NewGCMWithRandomNonce` dan menaruhnya di depan ciphertext.",
+    "Dokumentasi Go menulis bahwa satu kunci tidak boleh mengenkripsi lebih dari 2^32 pesan, supaya tabrakan nonce acak tetap sangat kecil.",
+    "Pada stack yang meminta pemanggil memberi nonce, pemanggil juga yang menjaga nonce tidak terulang."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memakai ulang nonce dengan kunci yang sama. Dokumentasi pustaka cryptography menulis agar nonce tidak pernah dipakai ulang.",
+    "Mengira batas 2^32 sama dengan umur kunci. Batas itu per versi kunci, dan memutar kunci memulai hitungan baru (`rotasi.txt` bagian G, Hitungan atas Asumsi)."
+  ],
+  "terkait": [
+    "AES-GCM",
+    "Envelope encryption"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-236",
+      "judul": "NIST SP 800-38D bagian 8.3 dan dokumentasi crypto/cipher Go (dibuka 2026-11-04)",
+      "url": "https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf",
+      "catatan": "Total pemanggilan fungsi enkripsi terautentikasi dengan satu kunci tidak boleh melebihi 2^32 pada konstruksi IV berbasis generator acak."
+    },
+    {
+      "riset": "R5-238",
+      "judul": "Rekaman lab t5-kms: arsip.txt bagian B dan D",
+      "rekaman": "labs/t5-kms/output/arsip.txt",
+      "catatan": "Ukuran terenkripsi sama dengan ukuran asal ditambah 28 byte, dan satu bit di nonce menggagalkan pembukaan."
+    }
+  ]
+}
