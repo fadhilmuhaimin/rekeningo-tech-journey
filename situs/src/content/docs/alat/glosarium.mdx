@@ -57,6 +57,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Branch protection** | Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push. | [[t2-tim-infra]] |
 | **Brute force** | Menebak banyak password untuk satu akun sampai ada yang cocok, biasanya otomatis. | [[t2-login-aman]] |
 | **Buku ledger** | Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya. | [[t2-ledger]] |
+| **Burn rate** | Laju habisnya anggaran kegagalan dibanding laju yang menghabiskannya tepat di akhir periode: laju 1 menghabiskannya tepat di akhir, laju 14,4 menghabiskannya 14,4 kali lebih cepat. | [[t5-tim-infra]] |
 | **CA** (Certificate Authority) | Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan. | [[t3-tls-pinning]] |
 | **Cache** | Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli. | [[B9]] |
 | **Cache invalidation** | Membuang atau memperbarui entri cache saat data aslinya berubah, supaya salinan tidak tertinggal. | [[t3-cache]] |
@@ -100,6 +101,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Foreign key** | Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada. | [[B2.1]] |
 | **Gateway API** | Keluarga jenis API Kubernetes untuk mengatur routing lalu lintas ke service, penerus Ingress API. | [[t5-service]] |
 | **Gateway pembayaran** | Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk. | [[t3-jembatan]] |
+| **GitOps** | Cara mengelola infrastruktur: keadaan yang diinginkan ditulis di repo Git, dan alat menyamakan cluster dengannya. | [[t5-tim-infra]] |
 | **Golden signals** | Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation. | [[t3-observability]] |
 | **Graceful shutdown** | Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar. | [[t3-dua-instance]] |
 | **gzip** | Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip. | [[t2-payload]] |
@@ -222,6 +224,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Signature** | Nilai hasil perhitungan kriptografi atas data dan secret, untuk membuktikan data tidak diubah. | [[B5.1]] |
 | **Signed URL** | URL berbatas waktu yang memberi akses langsung ke satu file di object storage. | [[B11.2]] |
 | **SKIP LOCKED** | Opsi `FOR UPDATE` yang melewati baris yang sudah dikunci transaction lain, bukan menunggunya. | [[t3-klaim-baris]] |
+| **SLO** (service level objective) | Target terukur untuk satu service, misalnya ketersediaan 99,9% dalam 30 hari. Selisihnya dengan 100% adalah anggaran kegagalan. | [[t5-tim-infra]] |
 | **Snapshot** | Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang. | [[t2-isolation-level]] |
 | **Source of truth** | Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan. | [[A1]] |
 | **SSE** (Server-Sent Events) | Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client. | [[E4]] |
@@ -231,6 +234,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Standby** | Server PostgreSQL yang menerima WAL dari primary dan memutarnya ulang. Standby yang menjawab query disebut hot standby. | [[t5-read-replica]] |
 | **Standby sinkron** | Standby yang ditunggu primary saat COMMIT, jadi jawaban sukses baru dikirim sesudah standby menyimpan commit-nya. | [[t5-rpo-rto]] |
 | **Stateless** | Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun. | [[D2]] |
+| **Tail sampling** | Memilih trace yang disimpan sesudah melihat semua atau sebagian besar span-nya, sehingga trace berkesalahan bisa selalu disimpan. | [[t5-tim-infra]] |
 | **Tes integrasi** | Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya. | [[t2-tim-infra]] |
 | **Testcontainers** | Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai. | [[t2-tim-infra]] |
 | **Throughput** | Jumlah pekerjaan yang selesai per satuan waktu, mis. request per detik. | [[t3-observability]] |

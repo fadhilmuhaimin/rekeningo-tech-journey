@@ -1,0 +1,51 @@
+{
+  "id": "t5-tim-infra-inti",
+  "judul": "Trace lintas service dan alert dari laju anggaran",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab t5-service · jejak.txt bagian A dan B; baris Alert: Asumsi dari naskah dan SRE Workbook"
+  },
+  "baris": [
+    {
+      "label": "Trace",
+      "sub": "lab t5-service",
+      "simpul": [
+        {
+          "teks": "403 dari ledger",
+          "sub": "client notifikasi berstatus Error"
+        },
+        {
+          "teks": "Satu trace",
+          "sub": "3 span, 2 service, satu trace id"
+        },
+        {
+          "teks": "Disimpan",
+          "sub": "11 dari 11 trace berkesalahan",
+          "nada": "good"
+        }
+      ]
+    },
+    {
+      "label": "Alert",
+      "sub": "SLO 99,9%",
+      "simpul": [
+        {
+          "teks": "43,2 menit",
+          "sub": "anggaran 30 hari",
+          "nada": "warn"
+        },
+        {
+          "teks": "Laju 14,4",
+          "sub": "2% anggaran habis dalam 1 jam",
+          "nada": "warn"
+        },
+        {
+          "teks": "Orang dipanggil",
+          "sub": "laju 1 selama 3 hari hanya membuka tiket",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah Asumsi dan hitungan atasnya, bukan rekaman lab."
+}

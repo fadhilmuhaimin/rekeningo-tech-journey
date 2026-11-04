@@ -4883,8 +4883,9 @@
       "lab": [
         "t5-service"
       ],
-      "ada": false,
-      "nomor": "5.27"
+      "ada": true,
+      "nomor": "5.27",
+      "menit": 23
     },
     {
       "id": "t5-onprem",
