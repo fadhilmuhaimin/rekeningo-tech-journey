@@ -764,6 +764,15 @@ describe("frasa kunci mekanisme dan atribusi: ada tepat sekali, dan sumbernya me
     ["<Rantai data={intiDiagram} ringkas />", () => expect(diagram.baris).toHaveLength(2)],
     ['<Snippet file="labs/t5-kms/bao/bao.go" lines="82:104" lang="go"', () => expect(baoGo.split("\n")[81]).toContain("// BuatDataKey")],
     ['<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: menaikkan min_decryption_version menolak arsip yang masih terbungkus versi lama tetapi bisa dibalik, dan data key terbungkus hanya bisa dibuka lagi bila OpenBao masih menyimpan versinya (rotasi.txt bagian D dan E).">', () => { expect(rD.teks).toContain("Kenaikan itu bisa dibalik"); expect(rE.teks).toContain("hilang"); }],
+    ["HSM adalah perangkat keras yang menyimpan kunci", () => expect(GLOSARIUM.join("\n")).toContain("Perangkat keras yang menyimpan kunci dan menjalankan operasi kunci di dalamnya.")],
+    ["SoftHSM adalah tiruannya dalam perangkat lunak", () => expect(naskahAdr57).toContain("SoftHSM 2.7.0 lewat PKCS#11 sebagai Ilustrasi, bukan perangkat")],
+    ["ditolak OpenBao dengan 400, sebelum GCM atas file dijalankan.", () => { const i = envelopeGo.indexOf("dek, err := p.Buka(ctx, terbungkus)"); expect(i).toBeGreaterThan(0); expect(envelopeGo.indexOf("return Dekripsi(blob, dek, periode)")).toBeGreaterThan(i); expect(envelopeGo.slice(i, i + 80)).toContain("return nil, err"); }],
+    ["Dokumentasi API menulis bahwa `min_decryption_version` dapat mencegah ciphertext lama didekripsi", () => expect(rujukRiset(235)).toContain("can prevent old copies of ciphertext from being decrypted")],
+    ["Nilai `min_decryption_version` adalah versi terendah yang masih boleh membuka data key terbungkus", () => expect(rujukRiset(235)).toContain("`min_decryption_version` \"Specifies the minimum version of ciphertext allowed to be decrypted\"")],
+    ["dan `min_encryption_version` adalah versi terendah yang boleh dipakai untuk membungkus", () => expect(rujukRiset(235)).toContain("`min_encryption_version` \"Specifies the minimum version of the key that can be used to encrypt plaintext\"")],
+    ["membuat dekripsi mencoba kunci sekarang lalu kunci lama", () => expect(rujukRiset(237)).toContain("(kunci sekarang dicoba dulu lalu kunci lama)")],
+    ["latihan pemulihan tiap kuartal bersama uji pasang", () => expect(partisiHal).toContain("Pemasangan diuji tiap kuartal (Asumsi desain).")],
+    ["Itu usulan lab, bukan keputusan:", () => { expect(readme).toContain("Hak ini belum ada di `api-t5`; lab memberikannya di schema sendiri."); expect(dasarT5).not.toMatch(/GRANT[^"]*UPDATE[^"]*arsip_partisi/); }],
     ["**Status:** diterima sesudah ADR 49.", () => expect(naskah).toContain("| 49 |")],
     ["- **B ditolak** karena tiap posting butuh satu data key dan satu panggilan KMS.", () => expect(naskahAdr57).toContain("ditolak: satu panggilan KMS tiap baris")],
   ];
@@ -776,6 +785,11 @@ describe("frasa kunci mekanisme dan atribusi: ada tepat sekali, dan sumbernya me
   }
   test("frontmatter: judul dan description utuh", () => {
     expect(frontmatter).toContain("description: ADR 57 mengenkripsi tiap file arsip partisi dengan satu data key, dan data key itu dibungkus kunci di OpenBao. Harganya tiga. Pemulihan butuh OpenBao hidup, mencabut versi kunci lama punya urutan, dan checksum di database butuh jangkar di luarnya.");
+  });
+  test("halaman istilah KMS dan Envelope encryption: isi utuh sama dengan yang ditinjau, dan 'tidak ikut keluar' sama dengan rekaman export ditolak", () => {
+    expect(["kms", "envelope-encryption"].map((n) => sidik(baca(`situs/data/halaman-istilah/${n}.json`)))).toEqual(SIDIK.istilah);
+    expect(baca("situs/data/halaman-istilah/kms.json")).toContain("Kunci pembungkusnya tidak ikut keluar dari server itu.");
+    expect(aA.teks).toContain("private key material is not exportable");
   });
   test("rekaman: daftar kunci sesudah trim memuat versi 2 saja, dan restart mode dev dijawab 404", () => {
     expect(hitung(rE.teks, /versi yang tampil di daftar kunci \[2\]/g)).toBe(2);
