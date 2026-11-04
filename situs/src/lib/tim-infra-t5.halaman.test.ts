@@ -975,3 +975,58 @@ describe("tinjauan 5.27: lingkup otelhttp dari kode, atribusi naskah, premis jag
     expect(halaman).toContain("Tail sampling memutuskan sesudah melihat semua atau sebagian besar span satu trace. Ia bisa selalu menyimpan trace yang memuat error");
   });
 });
+
+describe("tinjauan 5.27 (lapis 1): kalimat yang dulu hanya dijaga kunci baris diturunkan dari naskah, baris riset, rekaman, dan struktur data", () => {
+  test("aturan 7 sama dengan baris ADR 58 naskah, dan jendela pendek seperdua belas berasal dari baris riset Workbook", () => {
+    const n = "Alert burn rate 14,4 selama 1 jam dan 6 selama 6 jam memanggil orang, dan 1 selama 3 hari membuka tiket";
+    expect(adr58).toContain(n);
+    expect(halaman).toContain(`7. SLO pembayaran 99,9% per 30 hari. ${n}. Tiap alert memakai jendela pendek seperdua belas panjang jendela panjangnya, seperti Workbook.`);
+    expect(barisRiset("R5-242")).toContain('jendela pendek "1/12 the duration of the long window"');
+    expect(hitungKali(halaman, "seperdua belas")).toBe(2);
+  });
+  test("peta situs Serverpod 226 alamat, SRE book bab 11 dan 25%, dan 720 jam sama dengan baris riset dan hitungan", () => {
+    const r244 = barisRiset("R5-244");
+    const r242 = barisRiset("R5-242");
+    expect(r244).toContain("peta situs 226 alamat");
+    expect(halaman).toContain("Peta situs dokumentasi (226 alamat)");
+    expect(r242).toContain('Google SRE book, bab 11 "Being On-Call"');
+    expect(halaman).toContain("[SRE book, bab 11](https://sre.google/sre-book/being-on-call/)");
+    expect(r242).toContain("paling banyak 25% waktu SRE untuk jaga");
+    expect(halaman).toContain("tidak lebih dari 25% waktu seorang SRE");
+    expect(JAM_30_HARI).toBe(720);
+    expect(hitungKali(halaman, "÷ 720 jam, karena 30 hari adalah 720 jam")).toBe(1);
+  });
+  test("tabel opsi: enam service dan Platform 4 orang dari naskah, ADR 44 di aturan 2, bagian B rekaman, dan [perlu verifikasi] di aturan 9", () => {
+    expect(adr58).toContain("8 tim dan 6 service memberi enam konfigurasi berbeda");
+    expect(halaman).toContain("| Satu bentuk untuk enam service |");
+    expect(tim.find((x) => x.tim === "Platform")!.orang).toBe(4);
+    expect(halaman).toContain("| Tim Platform 4 orang merawat template dan pipeline |");
+    expect(adr58).toContain("pipeline per service (ADR 44 diperluas:");
+    expect(halaman).toContain("2. Pipeline per service memperluas ADR 44 dengan contract");
+    expect(rekJejak).toContain("# --- B. 211 trace");
+    expect(halaman).toContain("| Bukti | Hitungan atas Asumsi di halaman ini | Tidak dijalankan: dokumentasi OpenTelemetry | Rekaman lab `jejak.txt` bagian B |");
+    expect(adr58).toContain("kebijakan Google Play [perlu verifikasi]");
+    expect(halaman).toContain("tiap patch lewat feature flag. Kebijakan toko atas patch [perlu verifikasi].");
+  });
+  test("kartu pilah: delapan kartu dengan satu penalaran, RTO 15 menit dari naskah; diagram: simpul akhir Trace hijau dan baris Alert oranye", () => {
+    expect(pilahMentah.item).toHaveLength(8);
+    expect(pilahMentah.item.filter((i) => i.kenapa.includes("(Penalaran)"))).toHaveLength(1);
+    expect(halaman).toContain("Tujuh dari delapan pekerjaan di bawah ini punya pemilik yang tertulis di naskah, dan satu disimpulkan dari penalaran.");
+    const failover = pilahMentah.item.find((i) => i.teks.startsWith("Latihan failover"))!;
+    expect(failover.teks).toContain("RTO 15 menit");
+    expect(failover.kenapa).toContain("RTO 15 menit adalah Asumsi produk di PRD v5");
+    expect(adr48).toContain("terhadap RTO 15 menit");
+    const baris = (rantaiMentah as unknown as { baris: { simpul: { nada?: string }[] }[] }).baris;
+    expect(baris[0]!.simpul.map((s) => s.nada ?? "")).toEqual(["", "", "good"]);
+    expect(baris[1]!.simpul.map((s) => s.nada ?? "")).toEqual(["warn", "warn", "warn"]);
+  });
+  test("kartu Cek diri: tiap pertanyaan dan jawaban kartu ada di halaman, dan jawaban 4,7 GB sama dengan hitungan", () => {
+    const k = kartuT5 as unknown as { tanya: string; jawab: string }[];
+    expect(k).toHaveLength(4);
+    for (const x of k) {
+      expect(halaman, x.tanya).toContain(x.tanya);
+      expect(halaman, x.jawab).toContain(x.jawab);
+    }
+    expect(k[1]!.jawab).toContain(`hasilnya ${satu(gbGalat5)} GB`);
+  });
+});
