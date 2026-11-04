@@ -75,6 +75,8 @@
 *[brute force]: Menebak banyak password untuk satu akun sampai ada yang cocok, biasanya otomatis.
 *[Buku ledger]: Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.
 *[buku ledger]: Satu tempat uang dicatat di ledger: milik satu karyawan, satu warung, atau sistem seperti tunjangan; saldonya adalah jumlah posting-nya.
+*[Burn rate]: Laju habisnya anggaran kegagalan dibanding laju yang menghabiskannya tepat di akhir periode: laju 1 menghabiskannya tepat di akhir, laju 14,4 menghabiskannya 14,4 kali lebih cepat.
+*[burn rate]: Laju habisnya anggaran kegagalan dibanding laju yang menghabiskannya tepat di akhir periode: laju 1 menghabiskannya tepat di akhir, laju 14,4 menghabiskannya 14,4 kali lebih cepat.
 *[CA]: Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.
 *[Certificate Authority]: Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.
 *[Cache]: Salinan data di tempat yang lebih cepat dibaca, dengan risiko isinya tertinggal dari data asli.
@@ -152,6 +154,7 @@
 *[Gateway API]: Keluarga jenis API Kubernetes untuk mengatur routing lalu lintas ke service, penerus Ingress API.
 *[Gateway pembayaran]: Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.
 *[gateway pembayaran]: Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.
+*[GitOps]: Cara mengelola infrastruktur: keadaan yang diinginkan ditulis di repo Git, dan alat menyamakan cluster dengannya.
 *[Golden signals]: Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.
 *[golden signals]: Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.
 *[Graceful shutdown]: Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar.
@@ -375,6 +378,7 @@
 *[signature]: Nilai hasil perhitungan kriptografi atas data dan secret, untuk membuktikan data tidak diubah.
 *[Signed URL]: URL berbatas waktu yang memberi akses langsung ke satu file di object storage.
 *[SKIP LOCKED]: Opsi FOR UPDATE yang melewati baris yang sudah dikunci transaction lain, bukan menunggunya.
+*[SLO]: Target terukur untuk satu service, misalnya ketersediaan 99,9% dalam 30 hari. Selisihnya dengan 100% adalah anggaran kegagalan.
 *[Snapshot]: Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.
 *[snapshot]: Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.
 *[Source of truth]: Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan.
@@ -391,6 +395,8 @@
 *[standby sinkron]: Standby yang ditunggu primary saat COMMIT, jadi jawaban sukses baru dikirim sesudah standby menyimpan commit-nya.
 *[Stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.
 *[stateless]: Server tidak menyimpan keadaan antar-request di memorinya, jadi request mana pun bisa dilayani instance mana pun.
+*[Tail sampling]: Memilih trace yang disimpan sesudah melihat semua atau sebagian besar span-nya, sehingga trace berkesalahan bisa selalu disimpan.
+*[tail sampling]: Memilih trace yang disimpan sesudah melihat semua atau sebagian besar span-nya, sehingga trace berkesalahan bisa selalu disimpan.
 *[Tes integrasi]: Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.
 *[tes integrasi]: Tes yang menjalankan kode bersama komponen sungguhan di sekitarnya, misalnya database, bukan tiruannya.
 *[Testcontainers]: Pustaka yang menyalakan container, misalnya PostgreSQL, dari dalam kode tes dan menunggu sampai siap dipakai.
