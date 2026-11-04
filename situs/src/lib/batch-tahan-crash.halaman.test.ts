@@ -997,7 +997,9 @@ describe("registry, tautan, template blok, widget, kartu, istilah, dan label", (
     expect(baris("Kunci bisnis")).toBe("| **Kunci bisnis** | Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur. | [[t5-batch]] |");
     expect(baca("situs/src/content/docs/tahap-2/job-rekonsiliasi.mdx")).toContain("Job yang **idempoten** menghasilkan keadaan akhir yang sama, dijalankan sekali atau berkali-kali dengan input yang sama");
     const nama = glosariumMdx.split("\n").filter((b) => b.startsWith("| **")).map((b) => b.split("|")[1]!.trim().replace(/\*\*/g, ""));
-    expect(nama.indexOf("Batch")).toBe(nama.indexOf("Backup dan uji pulih") + 1);
+    // istilah lain yang urut abjad di antara Backup dan Batch (Badai koneksi, halaman 5.16) boleh menyela; Batch tetap tepat sesudah istilah itu
+    expect(["Backup dan uji pulih", "Badai koneksi"]).toContain(nama[nama.indexOf("Batch") - 1]);
+    expect(nama.indexOf("Batch")).toBeGreaterThan(nama.indexOf("Backup dan uji pulih"));
     expect(nama.indexOf("Durable execution")).toBe(nama.indexOf("Double-entry") + 1);
     expect(nama.indexOf("Job idempoten")).toBe(nama.indexOf("Job terjadwal") - 1);
     expect(nama.indexOf("Kunci bisnis")).toBe(nama.indexOf("Kunci akun") + 1);

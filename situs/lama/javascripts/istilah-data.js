@@ -184,6 +184,15 @@ window.ISTILAH = {
   "t": "Backup dan uji pulih",
   "u": "tahap-4/m33-uji-pulih/"
  },
+ "Badai koneksi": {
+  "b": "t5-m46",
+  "d": "Banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak.",
+  "h": "istilah/badai-koneksi/",
+  "n": "5.16 M46",
+  "s": "istilah-badai-koneksi",
+  "t": "Badai koneksi",
+  "u": "tahap-5/m46-failover-semua-error/"
+ },
  "Batch": {
   "b": "t5-batch",
   "d": "Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.",
@@ -2151,6 +2160,15 @@ window.ISTILAH = {
   "s": "istilah-backup-dan-uji-pulih",
   "t": "Backup dan uji pulih",
   "u": "tahap-4/m33-uji-pulih/"
+ },
+ "badai koneksi": {
+  "b": "t5-m46",
+  "d": "Banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak.",
+  "h": "istilah/badai-koneksi/",
+  "n": "5.16 M46",
+  "s": "istilah-badai-koneksi",
+  "t": "Badai koneksi",
+  "u": "tahap-5/m46-failover-semua-error/"
  },
  "batch": {
   "b": "t5-batch",
