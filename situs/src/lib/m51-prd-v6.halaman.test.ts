@@ -807,8 +807,10 @@ describe("riset: baris milik halaman ini ada tanpa ID ganda dan tidak tampil ke 
     const id = [...riset.matchAll(/^\| (R5-\d+) \|/gm)].map((m) => m[1]!);
     expect(new Set(id).size, "ID riset ganda").toBe(id.length);
     for (const n of [250, 251, 252, 253, 254]) expect(id.filter((x) => x === `R5-${n}`)).toHaveLength(1);
-    const i249 = id.indexOf("R5-249");
-    expect(id.slice(i249, i249 + 7)).toEqual(["R5-249", "R5-250", "R5-251", "R5-252", "R5-253", "R5-254", "R5-255"]);
+    const i250 = id.indexOf("R5-250");
+    expect(id.slice(i250, i250 + 5)).toEqual(["R5-250", "R5-251", "R5-252", "R5-253", "R5-254"]);
+    expect(id.indexOf("R5-249"), "R5-249 sebelum R5-250").toBeLessThan(i250);
+    expect(id.indexOf("R5-255"), "R5-255 sesudah R5-254").toBeGreaterThan(id.indexOf("R5-254"));
     const dua = (n: number) => riset.split("\n").find((b) => b.startsWith(`| R5-${n} |`))!;
     expect(dua(250)).toContain("PostgreSQL 17.11 bagian 26.2.8 Synchronous Replication (postgresql.org/docs/17/warm-standby.html");
     expect(dua(250)).toContain("The minimum wait time is the round-trip time between primary and standby.");
@@ -894,5 +896,55 @@ describe("tinjauan 5.29: jawaban tebakan belum tertulis, asal angka enam, nama b
     expect(r251).toContain("possibly in multiple concurrent database sessions");
     expect(badan).toContain("dapat lewat beberapa sesi bersamaan");
     expect(badan).not.toMatch(/berulang lewat beberapa sesi/);
+  });
+});
+
+describe("tinjauan 5.29: celah mutasi tanpa kunci ditutup (riset, header rekaman, README lab, tetangga, kode lab)", () => {
+  const dua = (n: number) => riset.split("\n").find((b) => b.startsWith(`| R5-${n} |`))!;
+  test("baris riset: kolom 'Berubah sejak Okt 2026' tiap baris diawali 'Tidak berubah'; versi, alat, kutipan, label, dan PROPOSAL terkunci per baris", () => {
+    for (const n of [250, 251, 252, 253, 254]) {
+      const sel = dua(n).split("|").map((s) => s.trim()).filter(Boolean);
+      expect(sel.at(-1), `kolom terakhir R5-${n}`).toMatch(/^Tidak berubah/);
+    }
+    expect(dua(250)).toContain("| Replica sinkron di wilayah lain: jeda COMMIT (5.29) | PostgreSQL 17.11 bagian 26.2.8");
+    expect(dua(250)).toContain("sambungan ke wilayah lain adalah Penalaran halaman, bukan kutipan");
+    expect(dua(251)).toContain("| pgbench sebagai alat ukur transaksi per detik (5.29) | PostgreSQL 17.11 pgbench (postgresql.org/docs/17/pgbench.html");
+    expect(dua(251)).toContain("loosely based on TPC-B");
+    expect(dua(251)).toContain("possibly in multiple concurrent database sessions");
+    expect(dua(252)).toContain("Sama dengan R4-245");
+    expect(dua(253)).toContain("dibaca 2026-11-04");
+    expect(dua(254)).toContain("1jt sampai 10jt");
+    expect(dua(254)).toContain("tetap tanpa sumber primer [perlu verifikasi]");
+    expect(dua(254)).toContain("tim Tahap 5 28 orang (Asumsi cerita, 5.1)");
+  });
+  test("header rekaman beban dan baris penutup: open loop, pool 10, bukan kapasitas produksi, kapasitas satu primary belum diukur", () => {
+    expect(beban).toContain("(open loop: permintaan berangkat menurut jadwal, tidak menunggu jawaban sebelumnya)");
+    expect(beban).toContain("sebagai t5_app (pool 10)");
+    expect(beban).toContain("Dijalankan di laptop lab: bukan kapasitas produksi.");
+    expect(beban).toContain("# Bukan klaim kapasitas produksi. Kapasitas satu primary untuk 69,4 transaksi uang per detik belum diukur di sini.");
+    expect(beban).toContain("PostgreSQL 17.11");
+    expect(beban).toContain("go1.27.3");
+  });
+  test("README t5-gabung dan t5-replika: enam panggilan, batas bawah 6 × jeda, delapan aturan, jeda buatan Asumsi, jeda antar wilayah Tidak dijalankan", () => {
+    expect(readmeGabung).toContain("dibagi enam panggilan");
+    expect(readmeGabung).toContain("paling sedikit 6 × jeda");
+    expect(readmeGabung).toContain("Aturannya delapan kode alasan");
+    expect(readmeGabung).toContain("**Jeda per panggilan adalah jeda buatan (Asumsi).**");
+    expect(readmeGabung).toContain("**Anggaran 50 ms di lab ini adalah anggaran satu alur skor**");
+    expect(readmeReplika).toContain("Jeda antar-wilayah, jaringan antar host, dan penyimpanan terkelola **Tidak dijalankan**");
+    expect(latensi).toContain("# --- B. Anggaran 50 ms ---");
+  });
+  test("kalimat tetangga yang dipakai halaman: ADR 53 di kode Go tanpa mesh (5.30), RPO nol dan RTO 15 menit sebagai Asumsi produk (5.9)", () => {
+    expect(hal530).toContain("Rekeningo memakai mTLS di kode Go, tanpa mesh (ADR 53).");
+    expect(hal59).toContain("PRD v5 menulis RPO nol dan RTO 15 menit sebagai Asumsi produk");
+    expect(hal530).toContain("| 1. Service mesh penuh | Lebih dari satu tujuan kritis butuh identitas yang sama |");
+    expect(hal530).toContain("| 2. Multi-region | Satu region mati lebih lama dari RTO 15 menit, atau PRD v6 memintanya |");
+  });
+  test("kode lab yang memerankan rekaman: pool 10, jadwal tidak tertinggal lebih dari 100 ms, koneksi <= 15, p95 5000", () => {
+    expect(runPy).toContain('(pool["maks"], pool["terbuka"] <= pool["maks"]), (10, True), "pool 10")');
+    expect(runPy).toContain('m["lag_maks_ms"] < 100');
+    expect(runPy).toContain('m["koneksi_maks"] <= 15');
+    expect(runPy).toContain("batas_p95 = 5000");
+    expect(runPy).toContain("LAMA, RPS = 15, 1388.9");
   });
 });
