@@ -342,6 +342,15 @@
   "h": "/istilah/buku-ledger/"
  },
  {
+  "t": "Burn rate",
+  "d": "Laju habisnya anggaran kegagalan dibanding laju yang menghabiskannya tepat di akhir periode: laju 1 menghabiskannya tepat di akhir, laju 14,4 menghabiskannya 14,4 kali lebih cepat.",
+  "b": "t5-tim-infra",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "u": "/tahap-5/tim-infra/",
+  "s": "istilah-burn-rate",
+  "h": null
+ },
+ {
   "t": "CA (Certificate Authority)",
   "d": "Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.",
   "b": "t3-tls-pinning",
@@ -744,6 +753,15 @@
   "n": "3.32 Pratinjau PRD v4",
   "u": "/tahap-3/jembatan-prd-v4/",
   "s": "istilah-gateway-pembayaran",
+  "h": null
+ },
+ {
+  "t": "GitOps",
+  "d": "Cara mengelola infrastruktur: keadaan yang diinginkan ditulis di repo Git, dan alat menyamakan cluster dengannya.",
+  "b": "t5-tim-infra",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "u": "/tahap-5/tim-infra/",
+  "s": "istilah-gitops",
   "h": null
  },
  {
@@ -1899,6 +1917,15 @@
   "h": "/istilah/skip-locked/"
  },
  {
+  "t": "SLO (service level objective)",
+  "d": "Target terukur untuk satu service, misalnya ketersediaan 99,9% dalam 30 hari. Selisihnya dengan 100% adalah anggaran kegagalan.",
+  "b": "t5-tim-infra",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "u": "/tahap-5/tim-infra/",
+  "s": "istilah-slo",
+  "h": null
+ },
+ {
   "t": "Snapshot",
   "d": "Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.",
   "b": "t2-isolation-level",
@@ -1977,6 +2004,15 @@
   "n": "Scaling (versi lama)",
   "u": "/d-system-design/d2-scaling/",
   "s": "istilah-stateless",
+  "h": null
+ },
+ {
+  "t": "Tail sampling",
+  "d": "Memilih trace yang disimpan sesudah melihat semua atau sebagian besar span-nya, sehingga trace berkesalahan bisa selalu disimpan.",
+  "b": "t5-tim-infra",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "u": "/tahap-5/tim-infra/",
+  "s": "istilah-tail-sampling",
   "h": null
  },
  {

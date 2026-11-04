@@ -4240,6 +4240,38 @@
   "jawab": "4.294.967.296 ÷ 438.000.000 = 9,806 tahun, dan 14,709 tahun dengan 292 juta posting (Hitungan atas Asumsi). Itu jarak rotasi terjauh per versi kunci, bukan umur kunci, karena `rotate` memulai hitungan baru. Dengan 12 data key per tahun batas itu tidak relevan."
  },
  {
+  "id": "t5-tim-infra-1",
+  "halaman": "t5-tim-infra",
+  "judul": "5.27 Tim dan infra Tahap 5: platform, GitOps, OpenTelemetry, SLO + ADR 58",
+  "url": "tahap-5/tim-infra/",
+  "tanya": "Satu permintaan notifikasi ke ledger dijawab 403. Span mana yang berstatus Error, dan kenapa Collector menyimpan trace-nya?",
+  "jawab": "Span client notifikasi, karena ledger menjawab 403 (`jejak.txt` bagian A). Kebijakan `status_code` memilih trace yang memuat span berstatus ERROR, dan Collector menyimpan trace bila satu kebijakan memilihnya: 11 dari 11 trace berkesalahan tersimpan (bagian B)."
+ },
+ {
+  "id": "t5-tim-infra-2",
+  "halaman": "t5-tim-infra",
+  "judul": "5.27 Tim dan infra Tahap 5: platform, GitOps, OpenTelemetry, SLO + ADR 58",
+  "url": "tahap-5/tim-infra/",
+  "tanya": "Trace tanpa sampling 48,0 GB per hari, dan tail sampling menyimpan 2,9 GB. Dari mana kedua angka itu, dan apa yang membuat 2,9 naik?",
+  "jawab": "138,9 × 8 × 500 × 86.400 = 48,0 GB, dan 48,0 × (1% + 99% × 5%) = 2,9 GB (Hitungan atas Asumsi). Bila 5% trace berkesalahan, bukan 1%, hasilnya 4,7 GB. Lab sendiri 11 dari 211 berkesalahan, 5,2%."
+ },
+ {
+  "id": "t5-tim-infra-3",
+  "halaman": "t5-tim-infra",
+  "judul": "5.27 Tim dan infra Tahap 5: platform, GitOps, OpenTelemetry, SLO + ADR 58",
+  "url": "tahap-5/tim-infra/",
+  "tanya": "Alert burn rate 14,4 selama 1 jam: berapa persen anggaran yang habis, dan berapa lama anggaran 43,2 menit bertahan pada laju itu?",
+  "jawab": "14,4 × 1 ÷ 720 = 2% anggaran. Pada laju 14,4 anggaran habis dalam 720 ÷ 14,4 = 50 jam (Hitungan atas Asumsi dan tabel Workbook)."
+ },
+ {
+  "id": "t5-tim-infra-4",
+  "halaman": "t5-tim-infra",
+  "judul": "5.27 Tim dan infra Tahap 5: platform, GitOps, OpenTelemetry, SLO + ADR 58",
+  "url": "tahap-5/tim-infra/",
+  "tanya": "Satu patch Shorebird menambah layar baru di app. Kenapa ADR 58 tidak membolehkannya, dan apa yang belum diverifikasi?",
+  "jawab": "Pedoman Apple 2.5.2 melarang kode yang diunduh menambah atau mengubah fitur app, dan FAQ Shorebird menulis bahwa fitur besar baru lewat review toko. Patch dibatasi pada perbaikan Dart lewat feature flag. Klaim vendor bahwa patch memenuhi kedua toko [perlu verifikasi]."
+ },
+ {
   "id": "t5-onprem-1",
   "halaman": "t5-onprem",
   "judul": "5.28 On-prem lawan cloud + ADR 59",

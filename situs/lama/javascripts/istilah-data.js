@@ -253,6 +253,14 @@ window.ISTILAH = {
   "t": "Buku ledger",
   "u": "tahap-2/ledger/"
  },
+ "Burn rate": {
+  "b": "t5-tim-infra",
+  "d": "Laju habisnya anggaran kegagalan dibanding laju yang menghabiskannya tepat di akhir periode: laju 1 menghabiskannya tepat di akhir, laju 14,4 menghabiskannya 14,4 kali lebih cepat.",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "s": "istilah-burn-rate",
+  "t": "Burn rate",
+  "u": "tahap-5/tim-infra/"
+ },
  "CA": {
   "b": "t3-tls-pinning",
   "d": "Pihak yang menandatangani sertifikat. App yang mempercayai sebuah CA ikut mempercayai sertifikat yang ia terbitkan.",
@@ -709,6 +717,14 @@ window.ISTILAH = {
   "s": "istilah-gateway-pembayaran",
   "t": "Gateway pembayaran",
   "u": "tahap-3/jembatan-prd-v4/"
+ },
+ "GitOps": {
+  "b": "t5-tim-infra",
+  "d": "Cara mengelola infrastruktur: keadaan yang diinginkan ditulis di repo Git, dan alat menyamakan cluster dengannya.",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "s": "istilah-gitops",
+  "t": "GitOps",
+  "u": "tahap-5/tim-infra/"
  },
  "Golden signals": {
   "b": "t3-observability",
@@ -1801,6 +1817,14 @@ window.ISTILAH = {
   "t": "SKIP LOCKED",
   "u": "tahap-3/klaim-per-baris/"
  },
+ "SLO": {
+  "b": "t5-tim-infra",
+  "d": "Target terukur untuk satu service, misalnya ketersediaan 99,9% dalam 30 hari. Selisihnya dengan 100% adalah anggaran kegagalan.",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "s": "istilah-slo",
+  "t": "SLO (service level objective)",
+  "u": "tahap-5/tim-infra/"
+ },
  "SSE": {
   "b": "E4",
   "d": "Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client.",
@@ -1992,6 +2016,14 @@ window.ISTILAH = {
   "s": "istilah-ttl",
   "t": "TTL (Time To Live)",
   "u": "b-fondasi/b9-caching/"
+ },
+ "Tail sampling": {
+  "b": "t5-tim-infra",
+  "d": "Memilih trace yang disimpan sesudah melihat semua atau sebagian besar span-nya, sehingga trace berkesalahan bisa selalu disimpan.",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "s": "istilah-tail-sampling",
+  "t": "Tail sampling",
+  "u": "tahap-5/tim-infra/"
  },
  "Tes integrasi": {
   "b": "t2-tim-infra",
@@ -2341,6 +2373,14 @@ window.ISTILAH = {
   "s": "istilah-buku-ledger",
   "t": "Buku ledger",
   "u": "tahap-2/ledger/"
+ },
+ "burn rate": {
+  "b": "t5-tim-infra",
+  "d": "Laju habisnya anggaran kegagalan dibanding laju yang menghabiskannya tepat di akhir periode: laju 1 menghabiskannya tepat di akhir, laju 14,4 menghabiskannya 14,4 kali lebih cepat.",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "s": "istilah-burn-rate",
+  "t": "Burn rate",
+  "u": "tahap-5/tim-infra/"
  },
  "cache": {
   "b": "B9",
@@ -3525,6 +3565,14 @@ window.ISTILAH = {
   "s": "istilah-status-code",
   "t": "Status code",
   "u": "tahap-1/http/"
+ },
+ "tail sampling": {
+  "b": "t5-tim-infra",
+  "d": "Memilih trace yang disimpan sesudah melihat semua atau sebagian besar span-nya, sehingga trace berkesalahan bisa selalu disimpan.",
+  "n": "5.27 Tim dan infra Tahap 5",
+  "s": "istilah-tail-sampling",
+  "t": "Tail sampling",
+  "u": "tahap-5/tim-infra/"
  },
  "tes integrasi": {
   "b": "t2-tim-infra",

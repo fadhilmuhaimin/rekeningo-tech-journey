@@ -1,0 +1,51 @@
+{
+  "judul": "Siapa memegang pekerjaan ini: Platform, SRE, tim produk, atau Security?",
+  "kelompok": [
+    "Platform",
+    "SRE",
+    "Tim produk",
+    "Security"
+  ],
+  "item": [
+    {
+      "teks": "Giliran jaga mingguan untuk service milik tim sendiri.",
+      "jawab": 2,
+      "kenapa": "Naskah menulis rotasi jaga mingguan per tim, dan alert hanya untuk gejala. Naskah tidak menulis bahwa SRE menjaga semua service, jadi kartu ini dibaca sebagai tugas tim produk (Penalaran)."
+    },
+    {
+      "teks": "Template service, pipeline per service, dashboard, dan alert bawaan.",
+      "jawab": 0,
+      "kenapa": "ADR 58 menulis tim Platform menyediakan jalan beraspal ini. Isi template dan pipeline sungguhan Tidak dijalankan di lab."
+    },
+    {
+      "teks": "Latihan failover tiap bulan, dengan waktunya dicatat terhadap RTO 15 menit.",
+      "jawab": 1,
+      "kenapa": "ADR 48 menulis SRE melatih failover tiap bulan dan mencatat waktunya. RTO 15 menit adalah Asumsi produk di PRD v5."
+    },
+    {
+      "teks": "Threat model tahap ini dan pemeriksaan ADR 44 untuk tiap service.",
+      "jawab": 3,
+      "kenapa": "Naskah menulis Laras dan tim Security membaca threat model dan menjalankan pemeriksaan ADR 44 untuk tiap service."
+    },
+    {
+      "teks": "Cluster Kubernetes dan pooler koneksi di depan primary.",
+      "jawab": 0,
+      "kenapa": "Naskah menaruh cluster, pooler, pipeline, dan observability di tim Platform (Bayu, 4 orang)."
+    },
+    {
+      "teks": "Tinjauan SLO 99,9% per 30 hari.",
+      "jawab": 1,
+      "kenapa": "ADR 58 menulis SRE memegang tinjauan SLO. Targetnya sendiri Asumsi produk di PRD v5, bukan hasil ukuran."
+    },
+    {
+      "teks": "Batch harian cicilan dan tabungan.",
+      "jawab": 2,
+      "kenapa": "Naskah menaruh ledger, cicilan, tabungan, dan batch harian di tim Ledger dan Tabungan, yaitu tim produk (Hendra, 4 orang)."
+    },
+    {
+      "teks": "Uji penetrasi lokal atas service yang dirilis.",
+      "jawab": 3,
+      "kenapa": "Naskah menaruh threat model, tinjauan, dan uji penetrasi lokal di tim Security (Laras, 2 orang). Lab hanya memakai container lokal."
+    }
+  ]
+}
