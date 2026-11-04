@@ -1225,3 +1225,111 @@ describe("struktur baris kosong, panjang kalimat, dan frontmatter", () => {
     expect(hitungKali(badan, "5.25 Keamanan 11")).toBe(0);
   });
 });
+
+// --- penutup celah yang ditemukan tinjauan independen (keputusan 1599): kalimat naratif yang sebelumnya hanya dijaga kunci kalimat dan salinan statis.
+// Tiap tes mengikat satu kalimat halaman ke sumbernya (kode, tes Go, rekaman, README, payload.json), jadi kalimat yang berubah dan kunci yang dibuat
+// ulang tetap gagal di sini. Yang tetap hanya dijaga kunci: kalimat Penalaran ("200 kosong membuatnya mengira QR sudah dibuat") dan kalimat cerita.
+describe("kalimat naratif terikat ke kode, tes Go, dan rekaman, tanpa bergantung pada kunci (tinjauan 1599)", () => {
+  const gerbangTes = baca("labs/t5-waf/gerbang/gerbang_test.go");
+  const servicePos = baca("labs/api-t5/internal/service/pos.go");
+  const satu = (kalimat: string): void => {
+    expect(hitungKali(badan, kalimat), kalimat).toBe(1);
+  };
+  const kata = ["nol", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan"];
+  test("jumlah payload per kelas di kalimat halaman sama dengan payload.json", () => {
+    const n = (k: string): number => payload.serangan.filter((x) => x.kelas === k).length;
+    const semua = payload.serangan.length;
+    const besar = kata[semua]![0]!.toUpperCase() + kata[semua]!.slice(1);
+    satu(`${besar} payload di \`payload.json\` terdiri dari ${kata[n("sqli")]} SQL injection, ${kata[n("xss")]} XSS, dan ${kata[n("traversal")]} naik direktori (dibaca dari kode).`);
+    expect(n("sqli") + n("xss") + n("traversal")).toBe(semua);
+  });
+  test("metode yang wajib Idempotency-Key di kalimat halaman sama dengan metodeUbah di gerbang.go dan tes Go gerbang", () => {
+    const fn = cari(/func metodeUbah\(m string\) bool \{\n\treturn ([^\n]+)\n\}/, gerbangGo, "metodeUbah")[1]!;
+    expect([...fn.matchAll(/http\.Method(\w+)/g)].map((x) => x[1]!.toUpperCase())).toEqual(["POST", "PUT", "PATCH", "DELETE"]);
+    expect(gerbangTes).toContain('for _, m := range []string{"POST", "PUT", "PATCH", "DELETE"} {');
+    const daftar = "POST, PUT, PATCH, dan DELETE";
+    satu(`Gerbang menolak ${daftar} tanpa Idempotency-Key dengan 400.`);
+    satu(`7. Idempotency-Key wajib untuk ${daftar}, dan permintaan tanpa key dijawab 400.`);
+    satu(`| 7 | Idempotency-Key untuk ${daftar} | 400 |`);
+  });
+  test("galat WAF dan Redis yang tidak terjangkau dijawab 503 tanpa memanggil hulu; WrapHandler bawaan menjawab 200 kosong", () => {
+    expect(gerbangGo).toContain('tolak(w, 503, "waf-gagal", "Pemeriksaan permintaan tidak bisa dijalankan")');
+    expect(gerbangGo).toContain('tolak(w, 503, "kuota-tidak-tersedia", "Kuota tidak bisa diperiksa")');
+    expect(gerbangTes).toMatch(/func TestGerbangWAFGagalTertutup[^]*?503, "waf-gagal"[^]*?n != 0[^]*?padahal WAF gagal/);
+    expect(gerbangTes).toMatch(/func TestGerbangRedisMati[^]*?503, "kuota-tidak-tersedia"[^]*?n != 0[^]*?padahal Redis mati/);
+    expect(tinjauTest).toContain("if dipanggil || rec.Code != 200 || rec.Body.Len() != 0 {");
+    expect(tinjauTest).toContain("yang dicatat: tidak dipanggil, 200, kosong");
+    satu("Galat WAF dijawab 503.");
+    satu("Redis yang tidak terjangkau dijawab 503.");
+    satu("Redis yang tidak terjangkau dijawab 503 `kuota-tidak-tersedia`, dibuktikan Tes Go `TestGerbangRedisMati`.");
+    satu("Gerbang lab menulis middleware sendiri yang menjawab 503 `waf-gagal`.");
+    satu("Di kedua perilaku `api-t5` tidak dipanggil.");
+    satu("Ia tidak memanggil handler berikutnya dan tidak menulis jawaban, jadi client menerima 200 kosong");
+  });
+  test("kunci API bocor tanpa secret tetap menghabiskan kuota mitra: tes Go, README, dan kalimat halaman", () => {
+    const fn = cari(/func TestGerbangKuotaSebelumTandaTangan[^]*?\n\}\n/, tinjauTest, "tes kuota sebelum tanda tangan")[0];
+    expect(fn).toContain("for i := 0; i < 100; i++ {");
+    expect(fn).toContain('kunciA, "rahasia-lain", "GET", uriQR+"/x", ""), 401, "tanda-tangan-salah")');
+    expect(fn).toContain('kunciA, "rahasia-lain", "GET", uriQR+"/x", ""), 429, "kuota-terlampaui")');
+    expect(fn).toContain('kunciA, rahasiaA, "GET", uriQR+"/x", ""), 429, "kuota-terlampaui") // kasir A yang sah ikut terkena');
+    expect(fn).toContain('kunciB, rahasiaB, "GET", uriQR+"/x", ""), 200, "")');
+    expect(readmeLab).toContain("kunci API yang bocor tanpa rahasia penandatangannya masih bisa menghabiskan kuota mitra pemiliknya");
+    satu("Akibatnya kunci API yang bocor tanpa secret penandatangannya tetap bisa menghabiskan kuota mitra pemiliknya.");
+    satu("Tes Go `TestGerbangKuotaSebelumTandaTangan` mengirim 100 permintaan dengan secret salah, dan semuanya dijawab 401. Sesudah itu permintaan berikutnya dijawab 429, juga permintaan kasir A yang sah, sedangkan mitra B tetap 200.");
+  });
+  test("pencarian kunci: kunci kosong tidak menyentuh database, kunci tidak kosong menyentuhnya sebelum kunciGagal", () => {
+    expect(gerbangGo).toContain('func (g *Gerbang) cari(ctx context.Context, kunci string) (Mitra, bool, error) {\n\tif strings.TrimSpace(kunci) == "" {\n\t\treturn Mitra{}, false, nil\n\t}\n\treturn g.Toko.CariKunci(ctx, SidikKunci(kunci))\n}');
+    expect(mainGo).toContain("SELECT id, nama, status, kuota_per_detik FROM mitra_pos WHERE kunci_hash = $1");
+    expect(gerbangGo.indexOf("g.cari(ctx, kunci)")).toBeGreaterThan(0);
+    expect(gerbangGo.indexOf("g.cari(ctx, kunci)")).toBeLessThan(gerbangGo.indexOf("g.kunciGagal(ctx, w, ip)"));
+    satu("Jadi tiap permintaan yang lolos WAF dan rute, dengan kunci tidak kosong, menyentuh database, juga yang akhirnya dijawab 429.");
+  });
+  test("secret penandatangan tidak ada di database: berkas rahasia untuk gerbang, dan query hanya membaca kolom mitra_pos tanpa rahasia", () => {
+    expect(mainGo).toContain('flag.String("rahasia-berkas"');
+    expect(mainGo).not.toMatch(/SELECT[^`]*rahasia/i);
+    expect(gerbangGo).toMatch(/Rahasia\s+map\[int64\]string \/\/ rahasia tanda tangan per mitra, dari penyimpanan rahasia \(bukan dari database\)/);
+    expect(readmeLab).toContain("Rahasia penandatangan per mitra datang dari penyimpanan rahasia tiruan (file JSON di folder sementara), bukan dari database");
+    satu("Secret penandatangan tiap mitra berbeda dari kunci API dan tidak ada di database. Lab membacanya dari file JSON sementara sebagai penyimpanan secret tiruan.");
+  });
+  test("key baru menjadi permintaan baru: KlaimKunci mengklaim lewat INSERT ... ON CONFLICT (kunci), dan hanya key yang sama diperlakukan ulang", () => {
+    expect(idempotenRepo).toContain("ON CONFLICT (kunci) DO UPDATE");
+    expect(idempotenRepo).toContain("if n, _ := h.RowsAffected(); n == 1 {\n\t\treturn KlaimBaru, nil, nil");
+    expect(idempotenRepo).toContain("case status == \"selesai\":\n\t\treturn KlaimUlang, respons, nil");
+    satu("Klaim key di `api-t5` adalah `INSERT ... ON CONFLICT (kunci)`, jadi key baru menjadi permintaan baru (dibaca dari kode `KlaimKunci`).");
+  });
+  test("merchant milik mitra lain, yang tidak ada, dan akun yang bukan merchant dijawab 404 yang sama di api-t5", () => {
+    const wajib = posGo.slice(posGo.indexOf("func (s Server) wajibMitra"), posGo.indexOf("// POST /pos/v1/merchant"));
+    expect(hitungKali(wajib, 'tidakDitemukan(w, "Merchant")')).toBe(2);
+    expect(wajib).toContain("s.svc.MerchantMilikMitra(r.Context(), merchant, mitra)");
+    expect(servicePos).toContain('return jenis == "merchant" && m.Valid && m.Int64 == mitra, nil');
+    expect(servicePos).toContain("if errors.Is(err, repo.ErrTidakAda) {\n\t\treturn false, nil");
+    satu("Merchant milik mitra lain, merchant yang tidak ada, dan akun yang bukan merchant dijawab 404 yang sama (pola ADR 7, [[t1-idor]]).");
+  });
+  test("gerbang tidak memeriksa cakupan merchant dan membuang kepala identitas dari client", () => {
+    expect(gerbangGo + kuotaGo + wafGo + mainGo + tandaGo).not.toMatch(/merchant|mitra_pos_id|MerchantMilik/i);
+    expect(gerbangGo).toMatch(/HeaderMitra\s+= "X-Mitra-Id"/);
+    expect(gerbangGo).toMatch(/HeaderRahasiaGerbang\s+= "X-Gerbang-Rahasia"/);
+    expect(gerbangGo).toContain("for _, h := range []string{HeaderMitra, HeaderRahasiaGerbang, HeaderKunci, HeaderTanda, HeaderWaktu} {\n\t\tr.Header.Del(h)\n\t}");
+    expect(gerbangGo).toContain("r.Header.Set(HeaderMitra, strconv.FormatInt(mitra.ID, 10))\n\tr.Header.Set(HeaderRahasiaGerbang, g.RahasiaHulu)");
+    satu("Gerbang tidak memeriksanya. Handler di `api-t5`");
+    satu("Gerbang membuang kepala `X-Mitra-Id` dan `X-Gerbang-Rahasia` dari client, lalu memasang yang ia buat sendiri (dibaca dari kode).");
+  });
+  test("Idempotency-Key menjaga pengulangan kasir, bukan replay: README, tes Go, dan kalimat halaman", () => {
+    expect(readmeLab).toContain("`Idempotency-Key` menjaga pengulangan kasir yang jujur: key yang sama menghasilkan QR yang sama");
+    expect(testingRek).toContain("--- PASS: TestGerbangPutarUlangDalamJendelaDiterima");
+    satu("Idempotency-Key melindungi pengulangan kasir, bukan permintaan yang diputar ulang pihak lain.");
+  });
+  test("opsi ADR: A, B, C, E ditolak, F ditunda, D dan G dipilih", () => {
+    const keputusan = [...badan.matchAll(/^- \*\*([A-G]) (ditolak|ditunda)\*\*/gm)].map((m) => `${m[1]} ${m[2]}`);
+    expect(keputusan).toEqual(["A ditolak", "B ditolak", "C ditolak", "E ditolak", "F ditunda"]);
+    satu("**Keputusan: opsi D untuk menjaga pintu dan opsi G untuk identitas mitra.** Delapan aturan:");
+  });
+  test("pre-mortem butir 2 dan pembatas: TLS di tepi, key tertanda, dan nonce tidak ada di rekaman; pembatas tanpa library", () => {
+    expect(testingRek).not.toMatch(/nonce|tertanda/i);
+    expect(readmeLab).toContain("TLS di tepi Tidak dijalankan di lab ini.");
+    satu("Ketiganya Tidak dijalankan di lab.");
+    expect(gerbangMod).not.toMatch(/limiter|ratelimit|rate-limit|golang\.org\/x\/time/i);
+    expect(kuotaGo).toContain("var skripBucket = redis.NewScript(");
+    satu("Pembatas ini ditulis sendiri dan tidak memakai library rate limit.");
+  });
+});
