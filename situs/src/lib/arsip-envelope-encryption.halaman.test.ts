@@ -15,7 +15,7 @@ import cerita from "../../data/cerita.json";
 import diagramMentah from "../../data/diagram/t5-kms-inti.json";
 import { DataRantai } from "./rantai";
 import { daftarBlok, cekTemplat } from "./blok";
-import { DIAGRAM_DAUN, KALIMAT_TERKUNCI, KATA_POLA, PIN, RISET_TERKUNCI, SIDIK, WIDGET_DAUN } from "./arsip-envelope-encryption.halaman.nilai";
+import { DIAGRAM_DAUN, GLOSARIUM, KALIMAT_TERKUNCI, KATA_POLA, PIN, RISET_TERKUNCI, SIDIK, WIDGET_DAUN } from "./arsip-envelope-encryption.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -720,6 +720,75 @@ describe("pin kelas: kata kunci, angka, tanggal, baris tabel, dan nilai daun", (
     expect(daun(diagramMentah)).toEqual(DIAGRAM_DAUN);
     expect(daun(skenario)).toEqual(WIDGET_DAUN);
     expect(IDS.map(barisRiset)).toEqual(RISET_TERKUNCI);
+  });
+});
+
+// Tinjauan 5.26 (keputusan 1603): mutan kalimat mekanisme dan atribusi lolos putaran tanpa kunci di seri pelaksana (42 dari 143). Tiap frasa
+// kunci di bawah harus ada TEPAT SATU kali di halaman dan sumbernya (rekaman, kode, README, naskah, atau baris riset) memuat dasarnya, jadi
+// mengubah frasa atau sumbernya menggagalkan tes ini juga pada putaran TANPA_KUNCI=1.
+describe("frasa kunci mekanisme dan atribusi: ada tepat sekali, dan sumbernya memuat dasarnya", () => {
+  const rujukRiset = (n: number): string => barisRiset(`R5-${n}`);
+  const naskahAdr57 = naskah.split("\n").find((b) => b.startsWith("| 57 |"))!;
+  const adr57 = badan.slice(badan.indexOf("### ADR 57"), badan.indexOf("### Sengaja belum dilakukan"));
+  const kasus: [string, () => void][] = [
+    ["Mode GCM menempelkan tag pemeriksa keaslian di akhir pesan.", () => expect(aD.teks).toContain("nonce di byte 0-11, ciphertext, tag di 16 byte terakhir")],
+    ["di Go membuat nonce acak dan menaruhnya di depan ciphertext", () => expect(envelopeGo).toContain("nonce (12 byte) || ciphertext || tag (16 byte)")],
+    ["jadi file terenkripsi berisi nonce 12 byte, ciphertext, dan tag 16 byte", () => expect(envelopeGo).toContain("nonce (12 byte) || ciphertext || tag (16 byte)")],
+    ["lewat jalur `datakey/plaintext`. OpenBao dibahas", () => { expect(baoGo).toContain('"datakey/plaintext"'); expect(runPy).toContain("transit/datakey/plaintext/{KEK}"); }],
+    ["dan memanggil `clear` atas slice-nya sesudah dipakai", () => { expect(hitung(envelopeGo, /defer clear\(dek\)/g)).toBe(2); }],
+    ["operator pun ditolak saat meminta isi kunci", () => { expect(aA.teks).toContain("private key material is not exportable"); expect(aA.teks).toContain("<token operator>"); }],
+    ["Tiga peran dan tiga jalur menghasilkan enam sel di luar diagonal, dan semuanya dijawab 403:", () => { expect(hitung(aC.teks, /\b(arsipkan|buka|rewrap) 403\b/g)).toBe(5); expect(aC.teks).toContain("kmsarsip: openbao menjawab 403: 1 error occurred"); }],
+    ["File yang terpotong atau diperpanjang satu byte dan periode lain juga gagal.", () => { expect(hitung(aD.teks, /^kmsarsip: autentikasi GCM gagal/gm)).toBe(8); }],
+    ["Tes Go membalik satu bit di tiap byte sebuah blob kecil", () => { const t = baca("labs/t5-kms/envelope/envelope_test.go"); expect(t).toContain("for i := range blob"); expect(t).toContain("ubah[i] ^= 0x01"); }],
+    ["di file yang hanya bertambah dan berada di luar database", () => expect(readme).toContain("file JSONL di luar database yang hanya bertambah")],
+    ["Dua belas file per tahun adalah satu file arsip per bulan.", () => expect(aB.teks).toContain("(12 data key per tahun bila satu per bulan)")],
+    ["satu pembungkusan data key memakai satu nonce acak 96 bit di KEK", () => expect(rG.teks).toContain("satu pembungkusan data key memakai satu nonce acak 96 bit di KEK")],
+    ["Itu berlaku pada konstruksi IV berbasis generator bilangan acak", () => expect(rujukRiset(236)).toContain("konstruksi IV berbasis RBG untuk IV sepanjang apa pun")],
+    ["Perintah `rotate` membuat versi kunci baru", () => expect(rB.teks).toContain("rotate: versi baru dibuat")],
+    ["Ikhtisar transit menulis bahwa dalam keadaan darurat", () => expect(rujukRiset(235)).toMatch(/secrets\/transit\/index\.mdx`: Working set management[^;]*in an emergency/)],
+    ["NIST membuka panggilan komentar pra-draf kedua untuk revisi SP 800-38D", () => expect(rujukRiset(236)).toContain("(2nd Preliminary Draft)")],
+    ["pada 1 Juni 2026, dan halamannya", () => expect(rujukRiset(236)).toContain("dipublikasikan 1 Juni 2026")],
+    ["https://csrc.nist.gov/pubs/sp/800/38/d/r1/2prd", () => expect(rujukRiset(236)).toContain("csrc.nist.gov/pubs/sp/800/38/d/r1/2prd")],
+    ["`createCipheriv` menerima IV dari pemanggil", () => expect(rujukRiset(237)).toContain("`crypto.createCipheriv(algorithm, key, iv)` menerima iv dari pemanggil")],
+    ["`SECRET_KEY_FALLBACKS` dipakai untuk memutar kunci tanda tangan", () => expect(rujukRiset(237)).toContain("`SECRET_KEY_FALLBACKS` dapat dipakai untuk memutar kunci")],
+    ["menimbulkan `OverflowError`", () => expect(rujukRiset(237)).toContain("data lebih dari 2^31 − 1 byte menimbulkan `OverflowError`")],
+    ["dengan backend database, GCP, S3, dan Cloudflare R2", () => expect(rujukRiset(237)).toContain("backend database, GCP, S3, dan Cloudflare R2")],
+    ["tiap project punya kunci akar sendiri", () => expect(rujukRiset(237)).toContain("tiap project punya kunci akar sendiri")],
+    ["`miekg/pkcs11` v1.1.2 hanya dicek ada", () => expect(readme).toContain("`github.com/miekg/pkcs11` v1.1.2 | **Tidak dijalankan**")],
+    ["dan teks biasanya hanya hidup di memori proses", () => { expect(envelopeGo).not.toMatch(/os\.WriteFile|log\.|fmt\.Print/); expect(baoGo).not.toMatch(/\bos\.|log\./); }],
+    ["pengarsip untuk `datakey/plaintext`, pembuka untuk `decrypt`, dan pembungkus-ulang untuk `rewrap`", () => { for (const [p, j] of [["pengarsip", "datakey/plaintext"], ["pembuka", "decrypt"], ["pembungkus-ulang", "rewrap"]]) expect(runPy).toContain(`"${p}": f'path "transit/${j}/{KEK}" {{ capabilities = ["update"] }}'`); }],
+    ["dan checksum SHA-256 atas file terenkripsi. Checksum yang sama", () => expect(readme).toContain("Checksum = SHA-256 atas file terenkripsi**")],
+    ["- Saat KEK dan file arsip tersimpan di tempat yang sama.", () => expect(naskahAdr57).toContain("KEK dan file tersimpan di tempat yang sama")],
+    ["- [ ] `trim` hanya dijalankan sesudah query `versi_kek` lama mengembalikan nol baris.", () => { expect(adr57).toContain("periksa bahwa tidak ada `versi_kek` lama"); expect(rE.teks).toContain("WHERE versi_kek < 2"); }],
+    ['<details class="question">', () => expect(hitung(badan, /<details class="success">/g)).toBe(4)],
+    ["<Rantai data={intiDiagram} ringkas />", () => expect(diagram.baris).toHaveLength(2)],
+    ['<Snippet file="labs/t5-kms/bao/bao.go" lines="82:104" lang="go"', () => expect(baoGo.split("\n")[81]).toContain("// BuatDataKey")],
+    ['<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: menaikkan min_decryption_version menolak arsip yang masih terbungkus versi lama tetapi bisa dibalik, dan data key terbungkus hanya bisa dibuka lagi bila OpenBao masih menyimpan versinya (rotasi.txt bagian D dan E).">', () => { expect(rD.teks).toContain("Kenaikan itu bisa dibalik"); expect(rE.teks).toContain("hilang"); }],
+    ["**Status:** diterima sesudah ADR 49.", () => expect(naskah).toContain("| 49 |")],
+    ["- **B ditolak** karena tiap posting butuh satu data key dan satu panggilan KMS.", () => expect(naskahAdr57).toContain("ditolak: satu panggilan KMS tiap baris")],
+  ];
+  for (const [frasa, bukti] of kasus) {
+    test(`frasa kunci: ${frasa.slice(0, 70).replace(/\n/g, " ")}`, () => {
+      const di = `${badan}\n${frontmatter}`;
+      expect(di.split(frasa).length - 1, "kemunculan di halaman").toBe(1);
+      bukti();
+    });
+  }
+  test("frontmatter: judul dan description utuh", () => {
+    expect(frontmatter).toContain("description: ADR 57 mengenkripsi tiap file arsip partisi dengan satu data key, dan data key itu dibungkus kunci di OpenBao. Harganya tiga. Pemulihan butuh OpenBao hidup, mencabut versi kunci lama punya urutan, dan checksum di database butuh jangkar di luarnya.");
+  });
+  test("rekaman: daftar kunci sesudah trim memuat versi 2 saja, dan restart mode dev dijawab 404", () => {
+    expect(hitung(rE.teks, /versi yang tampil di daftar kunci \[2\]/g)).toBe(2);
+    expect(rF.teks).toContain("openbao menjawab 404: no handler for route");
+  });
+  test("glosarium: enam baris 5.26 sama dengan yang ditinjau, dan arti Nonce mencakup tanda tangan dan nonce AES-GCM 96 bit", () => {
+    const gm = baca("situs/src/content/docs/alat/glosarium.mdx").split("\n").filter((b) => /^\| \*\*(AES-GCM|Data key|Envelope encryption|HSM|KEK|KMS)\*\*/.test(b));
+    expect(gm).toEqual(GLOSARIUM);
+    const nonce = baca("situs/src/content/docs/alat/glosarium.mdx").split("\n").filter((b) => b.startsWith("| **Nonce** |"));
+    expect(nonce).toHaveLength(1);
+    expect(nonce[0]).toContain("Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali.");
+    expect(nonce[0]).toContain("Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama.");
+    expect(badan).toContain("Nonce adalah angka sekali pakai 96 bit yang tidak boleh berulang untuk kunci yang sama.");
   });
 });
 
