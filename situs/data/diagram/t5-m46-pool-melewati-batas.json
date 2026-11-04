@@ -1,0 +1,30 @@
+{
+  "id": "t5-m46-pool-melewati-batas",
+  "judul": "Dua belas client yang meminta 120 koneksi ke batas 97 untuk role biasa sebagian ditolak dengan kode 53300",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t5 · pooler.txt bagian A (12 client, pool 10, langsung ke PostgreSQL)"
+  },
+  "baris": [
+    {
+      "label": "Dua belas client",
+      "sub": "langsung ke PostgreSQL",
+      "simpul": [
+        {
+          "teks": "12 client × pool 10",
+          "sub": "koneksi diminta bersamaan"
+        },
+        {
+          "teks": "120 diminta, 97 tersedia",
+          "sub": "100 dikurangi 3 cadangan"
+        },
+        {
+          "teks": "Sebagian ditolak: 53300",
+          "sub": "too_many_connections",
+          "nada": "warn"
+        }
+      ]
+    }
+  ],
+  "catatan": "Kotak oranye adalah hasil yang bukan niat tim: koneksi yang ditolak. Jumlah koneksi yang berhasil tidak direkam sebagai angka. Lab memeriksa bahwa jumlahnya di bawah 120 dan koneksi role itu paling banyak 97. Rekaman ini bukan latihan failover: tidak ada primary yang dimatikan dan tidak ada pod."
+}
