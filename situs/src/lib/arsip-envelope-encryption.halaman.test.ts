@@ -15,7 +15,7 @@ import cerita from "../../data/cerita.json";
 import diagramMentah from "../../data/diagram/t5-kms-inti.json";
 import { DataRantai } from "./rantai";
 import { daftarBlok, cekTemplat } from "./blok";
-import { DIAGRAM_DAUN, KALIMAT_TERKUNCI, RISET_TERKUNCI, SIDIK, WIDGET_DAUN } from "./arsip-envelope-encryption.halaman.nilai";
+import { DIAGRAM_DAUN, KALIMAT_TERKUNCI, KATA_POLA, PIN, RISET_TERKUNCI, SIDIK, WIDGET_DAUN } from "./arsip-envelope-encryption.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -665,6 +665,30 @@ describe("penjaga tambahan: tautan, paragraf ganda, angka prosa, kutipan bagian"
   });
 });
 
+// Pin kelas: tetap berjalan pada putaran TANPA_KUNCI=1. Menjaga hitungan kata kunci, label, kode status, huruf bagian, versi, angka,
+// tanggal, baris tabel, dan semua nilai daun diagram, skenario, dan baris riset, supaya sisipan, penggantian, dan penukaran satu nilai tertangkap.
+describe("pin kelas: kata kunci, angka, tanggal, baris tabel, dan nilai daun", () => {
+  test("hitungan kata kunci, label, kode status, huruf bagian, dan versi sama dengan yang ditinjau", () => {
+    const hasil = Object.fromEntries(KATA_POLA.map(([n, re, f]) => [n, hitung(badan, new RegExp(re, f))]));
+    expect(hasil).toEqual(PIN.kata);
+    expect(PIN.kata["Vault"]).toBe(3); // hanya tab Supabase menyebut Vault
+    expect(PIN.kata["OpenBao"]).toBeGreaterThan(30);
+  });
+  test("angka di prosa dan tabel (kecuali Snippet dan tautan), tanggal, dan baris tabel sama dengan yang ditinjau", () => {
+    const prosa = badan.replace(/<Snippet[^>]*\/>/g, "").replace(/\]\([^)]*\)/g, "]").replace(/<[^>]+>/g, " ");
+    expect([...(prosa.match(/\b\d[\d.,]*\d\b|\b\d\b/g) ?? [])].sort()).toEqual(PIN.angka);
+    expect([...(badan.match(/2026-\d\d-\d\d/g) ?? [])].sort()).toEqual(PIN.tanggal);
+    expect(badan.split("\n").filter((b) => b.startsWith("|") && !/^\|[-| ]+\|$/.test(b)).map(sidik)).toEqual(PIN.tabel);
+  });
+  test("nilai daun diagram dan skenario dan baris riset utuh sama dengan yang ditinjau", () => {
+    const daun = (o: unknown, j = ""): [string, string | number | boolean][] =>
+      typeof o === "string" || typeof o === "number" || typeof o === "boolean" ? [[j, o]] : Array.isArray(o) ? o.flatMap((v, i) => daun(v, `${j}[${i}]`)) : o && typeof o === "object" ? Object.entries(o).flatMap(([k, v]) => daun(v, `${j}.${k}`)) : [];
+    expect(daun(diagramMentah)).toEqual(DIAGRAM_DAUN);
+    expect(daun(skenario)).toEqual(WIDGET_DAUN);
+    expect(IDS.map(barisRiset)).toEqual(RISET_TERKUNCI);
+  });
+});
+
 // TANPA_KUNCI=1 melewati blok ini (kunci kalimat dan sidik) supaya uji mutasi bisa menilai tes turunan sendirian (putaran TANPA kunci).
 describe.skipIf(process.env.TANPA_KUNCI === "1")("kunci: kalimat, sidik, kata penuh, dan baris riset", () => {
   test("setiap baris badan sama dengan KALIMAT_TERKUNCI, urut dan utuh", () => {
@@ -684,13 +708,6 @@ describe.skipIf(process.env.TANPA_KUNCI === "1")("kunci: kalimat, sidik, kata pe
     });
     expect(sn).toEqual(SIDIK.snippet);
     expect(kodeInline.map((k) => sidik(k.kode))).toEqual(SIDIK.kode);
-  });
-  test("nilai daun diagram dan skenario dan baris riset utuh sama dengan yang dikunci", () => {
-    const daun = (o: unknown, j = ""): [string, string | number | boolean][] =>
-      typeof o === "string" || typeof o === "number" || typeof o === "boolean" ? [[j, o]] : Array.isArray(o) ? o.flatMap((v, i) => daun(v, `${j}[${i}]`)) : o && typeof o === "object" ? Object.entries(o).flatMap(([k, v]) => daun(v, `${j}.${k}`)) : [];
-    expect(daun(diagramMentah)).toEqual(DIAGRAM_DAUN);
-    expect(daun(skenario)).toEqual(WIDGET_DAUN);
-    expect(IDS.map(barisRiset)).toEqual(RISET_TERKUNCI);
   });
   test("baris riset: lima ID berurutan 235 sampai 239, tanpa ID ganda di berkas, di antara R5-229 dan R5-245 (rentang, bukan tetangga langsung)", () => {
     const urut = riset.split("\n").filter((b) => /^\| R5-\d+ \|/.test(b)).map((b) => Number(b.match(/^\| R5-(\d+) \|/)![1]));
