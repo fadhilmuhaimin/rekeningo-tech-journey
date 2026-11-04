@@ -1,0 +1,64 @@
+{
+  "id": "t5-m51-kalkulator",
+  "judul": "Beban di jam paling ramai, Tahap 5 dan Tahap 6",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah dari cerita.json, dengan 10.000.000 user dari pratinjau PRD v6 (Ilustrasi), bukan pengukuran."
+  },
+  "skenario": [
+    { "label": "Tahap 5", "tahap": 5 },
+    {
+      "label": "Tahap 6",
+      "tahap": 5,
+      "ubah": {
+        "user": 10000000
+      }
+    },
+    {
+      "label": "Aktif 10%",
+      "tahap": 5,
+      "ubah": {
+        "user": 10000000,
+        "aktif": 10
+      }
+    },
+    {
+      "label": "Satu jam",
+      "tahap": 5,
+      "ubah": {
+        "user": 10000000,
+        "puncak": 24
+      }
+    }
+  ],
+  "awal": 0,
+  "tebak": {
+    "q": "PRD v6 menaikkan user dari 1.000.000 ke 10.000.000. Bila persentase aktif turun dari 20% ke 10%, berapa kali lipat puncak request per detik dibanding Tahap 5?",
+    "pilihan": [
+      "5 kali",
+      "10 kali",
+      "2 kali",
+      "20 kali"
+    ],
+    "jawaban": 0,
+    "skenario": 2,
+    "alasan": "User naik 10 kali dan persentase aktif turun separuh, jadi puncak naik 10 × 0,5 = 5 kali, dari 1.388,9 ke 6.944,4 request per detik. Request per user dan faktor puncak tetap, jadi bukan 10 kali."
+  },
+  "label": {
+    "sumber": "Asumsi",
+    "tebakDulu": "Tebak dulu:",
+    "lanjut": "Sekarang pilih skenario “Aktif 10%” di atas tabel.",
+    "ubah": "Skenario",
+    "asumsi": "asumsi",
+    "detik": "detik",
+    "ms": "ms",
+    "baris": {
+      "user": "User terdaftar",
+      "dau": "User aktif per hari",
+      "reqHari": "Request per hari",
+      "rata": "Rata-rata, request per detik",
+      "puncak": "Puncak, request per detik"
+    },
+    "kesimpulan": "Di jam paling ramai, satu request datang kira-kira tiap {jarak}."
+  }
+}

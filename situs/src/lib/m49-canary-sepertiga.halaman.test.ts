@@ -450,8 +450,9 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R5-215 sam
         `([utils/replicaset/replicaset.go](https://github.com/argoproj/argo-rollouts/blob/v1.10.1/utils/replicaset/replicaset.go), dibuka 2026-11-03, Tidak dijalankan, dibaca dari kode). ` +
         `Untuk ${kata(A3.diminta)} replika hasilnya ${kata(tambahan(A3.diminta))} pod tambahan, dan itu cocok dengan rekaman: ${kata(A3.menjawab)} pod bila \`maxSurge\` tidak diubah.`,
     );
-    // rekaman dan README lab masih menulis 'bawaan 1' (halaman spesifikasi): selisih dicatat sebagai polesan lab, hasil rekaman tidak berubah
-    expect(baca("labs/t5-rollout/output/tanpa-router.txt")).toContain("bawaan v1.10.1: 1");
+    // kepala rekaman dikoreksi (keputusan 1896) dari 'bawaan v1.10.1: 1' (komentar contoh halaman spesifikasi) ke bawaan kode (defaults.go)
+    expect(baca("labs/t5-rollout/output/tanpa-router.txt")).toContain(`bawaan v1.10.1: ${bawaan}% dari jumlah replika, dibulatkan ke atas`);
+    expect(baca("labs/t5-rollout/output/tanpa-router.txt")).not.toContain("bawaan v1.10.1: 1)");
   });
   test("R5-217: kutipan komentar fungsi, aturan nol pod, dan pasangan total spec.replicas atau satu lebih", () => {
     const r = barisRiset("R5-217");

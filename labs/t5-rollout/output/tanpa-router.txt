@@ -5,7 +5,7 @@
 # --- A. Argo Rollouts tanpa traffic router: setWeight 5 dengan 3 replika, dengan 20 replika, dan dengan 3 replika bila maxSurge 0 ---
 # Rollout canary dasar (manifes/kartu-tanpa-router.yaml): satu langkah setWeight 5, lalu jeda tanpa batas. Tidak ada trafficRouting,
 # jadi bobot hanya bisa diwujudkan lewat jumlah pod versi baru. Versi baru = template pod berubah (VERSI v1 ke v2).
-# maxSurge tidak ditulis di manifes (bawaan v1.10.1: 1), kecuali di bagian ketiga yang menulis maxSurge: 0.
+# maxSurge tidak ditulis di manifes (bawaan v1.10.1: 25% dari jumlah replika, dibulatkan ke atas), kecuali di bagian ketiga yang menulis maxSurge: 0.
 
 ## 3 replika
 Rollout kartu-a3 versi v1: phase Healthy, 3 pod siap
