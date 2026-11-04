@@ -169,7 +169,7 @@ describe("registry, naskah, blok, dan tautan", () => {
     expect(naskah).toContain("| 5.29 | 4 | M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6 | Masalah + Konsep | ★ | api-t5 | kalkulator |");
     const minggu = cocok(M51, /\| M51 \| (\d+) \|/)[1]!;
     expect(r.label).toBe(`Masalah 51 · minggu ${minggu}`);
-    harus(`Minggu ${minggu} Tahap 5.`);
+    harus(`Minggu ${minggu} Tahap 5. Uji coba nasional berjalan dengan ${angka(reg5.user, 0)} user terdaftar.`);
     expect(r.judul).toBe("M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6");
     expect(frontmatter).toContain('title: "5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6"');
     expect(hal.filter((h) => h.nomor === "5.29").map((h) => h.id)).toEqual(["t5-m51"]);
@@ -408,6 +408,8 @@ describe("rekaman api-t5 beban.txt bagian A: batas di satu laptop, bukan kapasit
     expect(bagA).toContain("permintaan yang pernah menunggu koneksi dari pool (database/sql WaitCount; nilai tidak direkam): lebih dari 0: ya");
     expect(KONEKSI_MAKS).toBe(15);
     expect(PENGGUNA).toBe(200);
+    expect(bagA).toContain("koneksi database dari api-t5 (pg_stat_activity, disampel tiap 100 ms): paling banyak <= 15 (pool 10 ditambah koneksi yang baru dibuka atau baru ditutup client dan belum hilang di server; nilai ukur tidak direkam)");
+    expect(bebanGo).toContain("time.After(100 * time.Millisecond)");
     expect(beban.split("\n").slice(0, 8).join("\n")).toContain("Dijalankan di laptop lab: bukan kapasitas produksi.");
     expect(beban.split("\n")[1]).toContain("PostgreSQL 17.11");
     expect(beban.split("\n")[1]).toContain("go1.27.3");
@@ -611,6 +613,9 @@ describe("widget kalkulator: konfigurasi dihitung mesin yang sama dengan widget,
     expect(kalk.judul).toBe("Beban di jam paling ramai, Tahap 5 dan Tahap 6");
     harus(`Angka ${angka(T6.puncak, 1)} adalah Asumsi, dan lab tidak mengukur kapasitas produksi.`);
     harus("lalu ubah satu hal: ganti skenario dan lihat baris mana yang berubah.");
+    const butirPuncak = kalk.skenario.map((s, i) => `${s.label} ${angka(hitungBeban(siapkan(kalk, asumsi)[i]!).puncak, 1)}`);
+    const noscriptPuncak = `${butirPuncak.slice(0, -1).join(", ")}, dan ${butirPuncak[butirPuncak.length - 1]}`;
+    harus(`<noscript>\nTanpa JavaScript tebakan dan pilihan skenario tidak berjalan. Jawaban tebakan adalah ${kalk.tebak.pilihan[kalk.tebak.jawaban]}. Puncak request per detik: ${noscriptPuncak} (Hitungan atas Asumsi).\n</noscript>`);
     harus("Tebak dulu akibatnya bila persentase user aktif turun separuh");
   });
   test("tebakan: 10 × 0,5 = 5 kali, jawaban di pilihan pertama (posisi lain dari kalkulator tetangga yang memakai satu sampai tiga), bukan pilihan terpanjang", () => {
@@ -683,7 +688,14 @@ describe("struktur halaman: tingkat heading, daftar, label, istilah, dan tanpa I
     expect(badan.split("\n").filter((b) => /^\|---/.test(b)).length).toBe(2);
     expect(hitung(badan, "<Snippet ")).toBe(1);
     expect(hitung(badan, "<Kalkulator ")).toBe(1);
-    expect(hitung(badan, "<noscript")).toBe(0);
+    expect(hitung(badan, "<noscript")).toBe(1);
+    expect(badan.indexOf("<noscript")).toBeGreaterThan(badan.indexOf("<Kalkulator "));
+    expect(badan.indexOf("</noscript>")).toBeLessThan(badan.indexOf("</Blok>", badan.indexOf("<noscript")));
+  });
+  test("bentuk paragraf: jumlah potongan yang dipisah baris kosong, per blok dan seluruh badan (tanpa bergantung pada nilai terkunci)", () => {
+    expect(badan.split(/\n\s*\n/).length).toBe(77);
+    const perBlok = badan.split(/<Blok nama="[^"]+"(?: buka)?>/).slice(1).map((s) => s.split("</Blok>")[0]!.trim().split(/\n\s*\n/).length);
+    expect(perBlok).toEqual([7, 6, 26, 5, 21]);
   });
   test("butir Konsep yang lahir dan bacaan lanjut: tautan eksternal sama dengan baris riset; tiap butir menunjuk halaman yang memuat topiknya", () => {
     harus("- [[t5-adr-60]]: ADR 60, \"Sengaja belum dilakukan\". Service mesh penuh, multi-region, database terpisah per service, sharding, dan butir lain sengaja belum dipasang, masing-masing dengan pemicunya.");
@@ -710,7 +722,7 @@ describe("struktur halaman: tingkat heading, daftar, label, istilah, dan tanpa I
     expect(hitung(badan, "Rekaman lab:")).toBe(1);
     expect(hitung(badan, "Kode lab:")).toBe(0);
     expect(hitung(badan, "(Ilustrasi)")).toBeGreaterThanOrEqual(8);
-    expect(hitung(badan, "Hitungan atas Asumsi")).toBe(3);
+    expect(hitung(badan, "Hitungan atas Asumsi")).toBe(4);
     expect(hitung(badan, "Hitungan di halaman ini berarti")).toBe(1);
     expect(badan.indexOf("Hitungan")).toBe(badan.indexOf("Hitungan di halaman ini berarti"));
     expect(badan.indexOf("Penalaran"), "Penalaran didefinisikan di pemakaian pertama").toBe(badan.indexOf("(Penalaran, yaitu kesimpulan dari dokumentasi tanpa dijalankan)") + 1);
@@ -758,8 +770,8 @@ describe("dunia angka tertutup: tiap token angka dan konteksnya dihitung dari su
     const token = [...badan.matchAll(/\d{1,3}(?:\.\d{3})*,\d+|\d+,\d+/g)].map((m) => m[0]);
     expect([...new Set(token.filter((x) => !boleh.has(x)))], "token berkoma di halaman yang tidak dihitung dari sumber").toEqual([]);
     for (const b of boleh) expect(token, `nilai yang dihitung tidak dipakai halaman: ${b}`).toContain(b);
-    expect(hitung(badan, angka(T5.puncak, 1))).toBe(10);
-    expect(hitung(badan, angka(T6.puncak, 1))).toBe(6);
+    expect(hitung(badan, angka(T5.puncak, 1))).toBe(11);
+    expect(hitung(badan, angka(T6.puncak, 1))).toBe(7);
     expect(hitung(badan, angka(trxDetik(T6, TRX_DASAR), 1))).toBe(9);
     expect(hitung(badan, angka(u5, 1))).toBe(8);
   });
@@ -812,7 +824,13 @@ describe("riset: baris milik halaman ini ada tanpa ID ganda dan tidak tampil ke 
     expect(dua(254)).toContain("`plan/PROPOSAL.md` baris 318");
     expect(dua(254)).toContain("50 ÷ 28 = 1,8");
     expect(dua(254)).toContain("694,4 (2 transaksi: 463,0)");
-    for (const n of [250, 251, 252, 253, 254]) expect(dua(n), `tanggal akses R5-${n}`).toContain("2026-11-04");
+    const tanggal: Record<number, number> = { 250: 2, 251: 2, 252: 3, 253: 2, 254: 2 };
+    for (const n of [250, 251, 252, 253, 254]) {
+      expect([...dua(n).matchAll(/\d{4}-\d{2}-\d{2}/g)].map((m) => m[0]), `tanggal akses R5-${n}`).toEqual(Array(tanggal[n]).fill("2026-11-04"));
+    }
+    expect(dua(250)).toContain("(Penalaran, Tidak dijalankan: lab `t5-replika` hanya satu mesin dan jeda antar wilayah Tidak dijalankan)");
+    expect(dua(251)).toContain("Tidak dijalankan di repo ini");
+    expect(dua(253)).toContain("batas_p95");
     expect(hitung(badan, "dibuka 2026-11-04")).toBe(2);
     expect(badan).not.toMatch(/\bR5-\d+\b/);
     expect(proposal.split("\n")[317]).toContain("| 6 (proyeksi) | 1jt–10jt | 50+ (10+ tim, platform sebagai produk) |");

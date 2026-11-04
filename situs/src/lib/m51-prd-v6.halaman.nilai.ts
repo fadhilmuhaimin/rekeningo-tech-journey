@@ -76,6 +76,9 @@ export const BARIS_MDX: string[] = [
  "<Blok nama=\"Coba sendiri\">",
  "Angka 13.888,9 adalah Asumsi, dan lab tidak mengukur kapasitas produksi. Tebak dulu akibatnya bila persentase user aktif turun separuh, lalu ubah satu hal: ganti skenario dan lihat baris mana yang berubah.",
  "<Kalkulator client:visible data={dataKalkulator} asumsi={cerita.tahap.map((t) => t.asumsi)} />",
+ "<noscript>",
+ "Tanpa JavaScript tebakan dan pilihan skenario tidak berjalan. Jawaban tebakan adalah 5 kali. Puncak request per detik: Tahap 5 1.388,9, Tahap 6 13.888,9, Aktif 10% 6.944,4, dan Satu jam 33.333,3 (Hitungan atas Asumsi).",
+ "</noscript>",
  "Widget membulatkan ke dua angka penting, jadi puncak 1.388,9 tampil 1.400, 13.888,9 tampil 14.000, 6.944,4 tampil 6.900, dan 33.333,3 tampil 33.000. Pilih **Tahap 6**: user naik ke 10.000.000 dan puncak naik ke 13.888,9, 10 kali Tahap 5. Pilih **Aktif 10%**: user aktif menjadi 1.000.000 dan puncak turun ke 6.944,4, tetap 5 kali Tahap 5.",
  "Pilih **Satu jam**: semua request sehari masuk dalam satu jam. Faktor puncaknya 24, dan 120.000.000 ÷ 3.600 = 33.333,3 request per detik (Hitungan). Kalkulator hanya menghitung request per detik. Ia tidak bisa menilai apakah satu primary sanggup.",
  "</Blok>",
@@ -116,7 +119,7 @@ export const BARIS_MDX: string[] = [
 ];
 // Bentuk baris tiap baris MDX: S = <Snippet> berberkas (diturunkan dari rekaman), - = baris kosong, # = baris isi. Baris kosong
 // menentukan cara MDX mengurai paragraf, daftar, tabel, dan tag JSX, jadi satu baris kosong yang hilang harus gagal.
-export const BENTUK_MDX = "###########-#-#-#-#-#-#-#-#-#-#-#-#-#-#-##-#-#-#-#-#-#-#-#-#######-#-#-#-S-#-#-#-#-#-#####-#-#-#-#-#-#-#-##-#-#-###-#-#-#-#-#-#-#-#-######-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-###-#-";
+export const BENTUK_MDX = "###########-#-#-#-#-#-#-#-#-#-#-#-#-#-#-##-#-#-#-#-#-#-#-#-#######-#-#-#-S-#-#-#-#-#-#####-#-#-#-#-#-#-#-##-#-#-###-#-#-#-#-###-#-#-#-#-######-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-##-#-#-#-###-#-";
 export const NILAI_JSON: Record<string, string[]> = {
  "rantai": [
   "id=\"t5-m51-batas\"",
