@@ -817,7 +817,8 @@ describe.runIf(fs.existsSync(distHtml))("hasil build di dist: tautan rujukan wid
       expect(html, `tanpa tautan ${i}`).not.toContain(`href="${url(dari(i))}"`);
       expect(html, `segera ${i}`).toContain(`${dari(i).nomor} `);
     }
-    expect(html).toContain("rujukan-menyusul");
+    // kelas hanya ada selama masih ada halaman yang dirujuk widget dan belum terbit (5.26 dan 5.27 sudah terbit)
+    expect(html.includes("rujukan-menyusul"), `belum terbit: ${belum.join(", ") || "tidak ada"}`).toBe(belum.length > 0);
   });
   test("dua tabel GFM halaman dirender sebagai tabel dengan kepala, dan Rantai ringkas ada di blok Mulai sebelum widget", () => {
     expect(html).toContain("<th>Di backend</th>");
