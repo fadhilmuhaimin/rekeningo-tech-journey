@@ -1,0 +1,376 @@
+---
+title: "5.26 Keamanan 12: Arsip dan cadangan, envelope encryption + ADR 57"
+description: ADR 57 mengenkripsi tiap file arsip partisi dengan satu data key, dan data key itu dibungkus kunci di OpenBao. Harganya tiga. Pemulihan butuh OpenBao hidup, mencabut versi kunci lama punya urutan, dan checksum di database butuh jangkar di luarnya.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t5-kms-inti.json";
+
+<p class="meta">Baca 19 menit · coba 4 menit · Prasyarat: [[t5-partisi]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+File arsip dikunci dengan kunci yang tidak ikut tersimpan bersamanya, jadi file yang disalin tidak terbaca.
+
+<Rantai data={intiDiagram} ringkas />
+
+Envelope encryption memakai dua kunci. Data key mengunci isi satu file, dan KEK (kunci pembungkus) mengunci data key itu. KEK tinggal di KMS (key management service), yaitu server kunci yang terpisah dari database.
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `arsip.txt` bagian C dan D, file arsip 28.000 baris ditolak 403 tanpa hak `decrypt`. Satu bit yang dibalik di lima posisi file membuat pemeriksaan keaslian AES-GCM gagal. ADR 57 memilih satu data key per file arsip. Harganya tiga: pemulihan butuh KMS, versi KEK lama dicabut dengan urutan tertentu, dan checksum di database butuh jangkar di luarnya.
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Token yang hanya boleh membuat data key mencoba membuka file arsip. Siapa yang menolak, dan dengan kode apa?
+2. File arsip terenkripsi berukuran 1.282.100 byte. Berapa byte file aslinya, dan apa isi tambahan itu?
+3. Pemilik schema mengganti checksum di database dengan nilai lain. Pemeriksaan mana yang menyebut selisihnya, dan mana yang tidak?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: menaikkan min_decryption_version menolak arsip yang masih terbungkus versi lama tetapi bisa dibalik, dan data key terbungkus hanya bisa dibuka lagi bila OpenBao masih menyimpan versinya (rotasi.txt bagian D dan E).">
+
+Widget ini mengikuti kunci pembungkus yang diputar di OpenBao. Perintah `rotate` membuat versi kunci baru, dan `rewrap` membungkus ulang satu data key dengan versi terbaru. Nilai `min_decryption_version` adalah versi terendah yang masih boleh membuka data key terbungkus, dan `min_encryption_version` adalah versi terendah yang boleh dipakai untuk membungkus.
+
+Jalur utama memakai `rotasi.txt` bagian B sampai D. Satu dari dua arsip dibungkus ulang, lalu versi minimum untuk membuka dinaikkan dan diturunkan lagi.
+
+Tebak dulu apa yang terjadi bila operator menjalankan `trim` padahal satu arsip belum dibungkus ulang. Lalu centang **Ubah satu hal** dan baca jawabannya di akhir jalur itu.
+
+<WidgetLama nama="alur" src="data/skenario/t5-kms.json" />
+
+Jalur yang dipilih **Ubah satu hal** berganti menjadi tiga langkah dari `rotasi.txt` bagian E (Rekaman lab). Arti tiap langkahnya dijelaskan di blok Paham. Widget hanya menunjukkan bahwa satu perintah tambahan mengubah hasilnya.
+
+<noscript>
+<p>Tanpa JavaScript widget tidak berjalan. Jalur utama: sesudah `rotate` dan `rewrap` untuk posting_lalu_02, `min_decryption_version` 2 menolak posting_lalu_01 dengan 400 (too old). Menurunkannya ke 1 membuka posting_lalu_01 lagi sebanyak 1.282.072 byte (`rotasi.txt` bagian B sampai D).</p>
+<p>Bila `trim` dijalankan sesudah dua versi minimum dinaikkan ke 2, menurunkan `min_decryption_version` ke 1 ditolak 400. Daftar kunci hanya memuat versi 2, dan posting_lalu_01 tetap ditolak (`rotasi.txt` bagian E).</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t5-partisi]] melepas posting lama dari tabel dan menyimpannya sebagai file arsip di luar database utama. File itu memuat riwayat uang satu bulan. Dalam cerita, Laras bertanya siapa yang bisa membacanya (Ilustrasi).
+
+Angka beban halaman ini Asumsi, yaitu angka pilihan penulis tanpa rekaman. Hitungan adalah hasil rumus dari angka yang tertulis di halaman, dan ia berlabel sama dengan masukan terlemahnya. Penalaran adalah kesimpulan dari kode atau dokumentasi, bukan hasil ukuran. Tidak dijalankan berarti dicek ke dokumentasi atau kode tanpa dijalankan.
+
+Lab `t5-kms` hanya mengenkripsi file arsip partisi. Cadangan database tidak dienkripsi di lab itu (README lab, Tidak dijalankan), jadi aturan untuk cadangan di ADR 57 adalah arah, bukan hasil rekaman.
+
+### Cara kerjanya
+
+**Satu data key per file.** AES-256-GCM adalah enkripsi AES dengan kunci 256 bit. Mode GCM menempelkan tag pemeriksa keaslian di akhir pesan. Nonce adalah angka sekali pakai 96 bit yang tidak boleh berulang untuk kunci yang sama. `NewGCMWithRandomNonce` di Go membuat nonce acak dan menaruhnya di depan ciphertext, jadi file terenkripsi berisi nonce 12 byte, ciphertext, dan tag 16 byte.
+
+<Snippet file="labs/t5-kms/envelope/envelope.go" lines="48:66" lang="go" title="Kode lab: labs/t5-kms/envelope/envelope.go baris 48 sampai 66 (aead dan Enkripsi)" />
+
+Data tambahan GCM adalah teks yang ikut diperiksa tag tanpa dienkripsi, dan di sini isinya periode arsip. File bulan ini karena itu tidak terbuka bila dibuka seolah file bulan lain (`arsip.txt` bagian D). Dokumentasi Go menulis bahwa satu kunci tidak boleh mengenkripsi lebih dari 2^32 pesan, untuk menjaga risiko nonce acak bertabrakan tetap kecil (`go doc crypto/cipher.NewGCMWithRandomNonce`, dibuka 2026-11-04).
+
+**Data key dibuat dan dibungkus KMS.** Pemanggil meminta data key ke OpenBao lewat jalur `datakey/plaintext`. OpenBao dibahas sebagai secret manager di [[t4-infra-secret]], dan di lab ini ia memakai mesin transit untuk kunci. Dokumentasi OpenBao menulis bahwa jalur itu membuat kunci acak dan nilai yang dienkripsi dengan kunci bernama. ACL menentukan siapa boleh menerima teks biasanya ([OpenBao transit, v2.7.2](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx), dibuka 2026-11-04).
+
+Kode lab tidak menulis teks biasa data key ke file atau log, dan memanggil `clear` atas slice-nya sesudah dipakai.
+
+<Snippet file="labs/t5-kms/bao/bao.go" lines="82:104" lang="go" title="Kode lab: labs/t5-kms/bao/bao.go baris 82 sampai 104 (BuatDataKey)" />
+
+Yang tersimpan per arsip: file terenkripsi, data key terbungkus berbentuk `vault:v1:...`, `versi_kek`, dan checksum SHA-256 atas file terenkripsi. Tiga yang terakhir adalah kolom `arsip_partisi` ([[t5-skema]]). Ukuran file terenkripsi sama dengan file asal ditambah 28 byte, dan dua file mendapat dua data key terbungkus berbeda:
+
+<Snippet file="labs/t5-kms/output/arsip.txt" lines="26:33" title="Rekaman lab: labs/t5-kms/output/arsip.txt, bagian B (dua arsip, dua data key terbungkus)" />
+
+Arsip hanya bertambah. File tujuan dibuat dengan `O_EXCL` dan izin 0600, jadi arsipkan ulang ke tujuan yang sudah ada ditolak dengan `file exists` (`arsip.txt` bagian B). Kode `Arsipkan` meminta data key sebelum membuka file tujuan, jadi percobaan yang ditolak itu tetap memakai satu permintaan data key. Itu dibaca dari kode, tidak direkam.
+
+<Snippet file="labs/t5-kms/envelope/envelope.go" lines="95:125" lang="go" title="Kode lab: labs/t5-kms/envelope/envelope.go baris 95 sampai 125 (Arsipkan)" />
+
+**Kunci tidak keluar dari OpenBao.** KEK dibuat tanpa `exportable`. Di rekaman, pembacaan kunci hanya menjawab waktu pembuatan tiap versi, dan operator pun ditolak saat meminta isi kunci:
+
+<Snippet file="labs/t5-kms/output/arsip.txt" lines="11:15" title="Rekaman lab: labs/t5-kms/output/arsip.txt, bagian A (export KEK ditolak)" />
+
+Dokumentasi OpenBao menulis bahwa `exportable`, sekali dinyalakan, tidak bisa dimatikan ([OpenBao transit, v2.7.2](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx), dibuka 2026-11-04). Kode status backup tidak direkam di `arsip.txt`.
+
+**Tanpa KMS, file tidak terbaca.** Isi file terenkripsi tidak memuat baris pertama CSV asal, tidak memuat potongan `,1000`, dan bukan UTF-8 yang sah. Tiga cara membukanya gagal dengan sebab yang berbeda:
+
+<Snippet file="labs/t5-kms/output/arsip.txt" lines="42:54" title="Rekaman lab: labs/t5-kms/output/arsip.txt, bagian C (data key file lain, token pengarsip, token tidak dikenal)" />
+
+Data key file lain lolos dari OpenBao dan gagal di GCM. Token pengarsip dan token tidak dikenal ditolak OpenBao dengan 403, jadi data key tidak sampai ke pemanggil. Dengan token pembuka dan data key terbungkus yang benar, file terbuka dan SHA-256 isinya sama dengan file asal. Lingkupnya satu: file arsip ini dengan data key terbungkus yang tercatat.
+
+**Satu token, satu hak.** Tiap peran punya token dan kebijakan OpenBao dengan satu jalur dan satu hak, yaitu `update`. Tiga peran dan tiga jalur menghasilkan enam sel di luar diagonal, dan semuanya dijawab 403:
+
+| Token | Jalur transit | Operasi yang berhasil | Operasi yang dijawab 403 |
+| --- | --- | --- | --- |
+| pengarsip | `datakey/plaintext` | arsipkan | buka, rewrap |
+| pembuka | `decrypt` | buka | arsipkan, rewrap |
+| pembungkus-ulang | `rewrap` | rewrap | arsipkan, buka |
+
+<Snippet file="labs/t5-kms/output/arsip.txt" lines="55:58" title="Rekaman lab: labs/t5-kms/output/arsip.txt, bagian C (enam sel di luar diagonal)" />
+
+Dokumentasi OpenBao menulis bahwa `rewrap` tidak pernah menjawab teks biasa. Pekerjaannya karena itu bisa didelegasikan ke user atau skrip yang tidak dipercaya ([OpenBao transit, v2.7.2](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx), dibuka 2026-11-04). Operator di lab memegang token root mode dev, yaitu data lab, bukan secret. Token berumur pendek dan TLS di produksi Tidak dijalankan.
+
+**Satu byte yang berubah gagal.** Rekaman membalik satu bit di lima posisi file: byte pertama (nonce), awal ciphertext, tengah, ciphertext terakhir, dan byte terakhir (tag).
+
+Semuanya dijawab `autentikasi GCM gagal`. File yang terpotong atau diperpanjang satu byte dan periode lain juga gagal. Tes Go membalik satu bit di tiap byte sebuah blob kecil (`testing.txt`, 28 tes lulus). Satu byte yang diubah di data key terbungkus ditolak OpenBao dengan 400, sebelum GCM atas file dijalankan. Pesannya sama dengan galat GCM karena KEK berjenis `aes256-gcm96`, jadi pemeriksaan keaslian yang gagal adalah milik OpenBao atas data key itu:
+
+<Snippet file="labs/t5-kms/output/arsip.txt" lines="98:102" title="Rekaman lab: labs/t5-kms/output/arsip.txt, bagian D (data key terbungkus diubah)" />
+
+**Checksum di database dan jangkar di luarnya.** Checksum adalah SHA-256 atas file terenkripsi, jadi pemeriksaannya tidak butuh KMS. Jangkar adalah satu baris per periode di file yang hanya bertambah dan berada di luar database, seperti jangkar log di [[t4-audit]]. Tiga pemalsuan dan pemeriksa yang melihatnya:
+
+| Kejadian | File lawan database | File lawan jangkar | Database lawan jangkar |
+| --- | --- | --- | --- |
+| Keadaan sehat | cocok | cocok | cocok |
+| File di penyimpanan diubah satu byte | beda | beda | cocok |
+| Pemilik schema mengganti checksum di database | beda | cocok | beda |
+| File dan baris database diubah bersama | cocok | beda | beda |
+
+Role aplikasi `api_t5` ditolak dengan 42501 saat mengubah `checksum`, jadi pemalsuan kedua butuh role dengan hak `UPDATE` atas kolom itu, seperti pemilik schema di rekaman (`arsip.txt` bagian E). Hanya jangkar yang melihat pemalsuan ketiga:
+
+<Snippet file="labs/t5-kms/output/arsip.txt" lines="124:133" title="Rekaman lab: labs/t5-kms/output/arsip.txt, bagian E (file dan database diubah bersama)" />
+
+Jangkar di lab adalah satu file lokal sendiri, bukan jangkar log `audit_log` Tahap 4. Penggabungannya dengan rantai itu Tidak dijalankan. Pihak yang bisa mengubah jangkar, database, dan file sekaligus tidak tercakup.
+
+**Rotasi KEK punya urutan.** Dokumentasi OpenBao menulis bahwa kunci AES-GCM sebaiknya diputar sebelum sekitar 2^32 enkripsi oleh satu versi kunci. Dokumentasi itu merujuk NIST SP 800-38D ([OpenBao transit, v2.7.2, bagian NIST rotation guidance](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/secrets/transit/index.mdx), dibuka 2026-11-04). Lima langkahnya, dengan sifat bisa-balik tiap langkah:
+
+| Langkah | Akibat yang terekam | Bisa dibalik? |
+| --- | --- | --- |
+| 1. `rotate` | Versi terbaru jadi 2, data key versi 1 tetap terbuka (`rotasi.txt` bagian B) | Tidak menghapus apa pun |
+| 2. `rewrap` tiap data key, lalu UPDATE kolom | Data key terbungkus versi 2, file tidak berubah (bagian C) | Tidak menghapus versi 1: bagian D masih membuka arsip yang terbungkus versi itu |
+| 3. Periksa `versi_kek` di bawah 2 | Satu baris tersisa di rekaman, jadi belum boleh lanjut (bagian E) | Hanya membaca |
+| 4. Naikkan `min_decryption_version` | Versi 1 ditolak 400 (bagian D) | Bisa: diturunkan ke 1 membuka lagi |
+| 5. Naikkan kedua versi minimum ke 2, lalu `trim` | Versi 1 dihapus dari OpenBao (bagian E) | Tidak bisa |
+
+Dokumentasi API menulis bahwa `min_decryption_version` dapat mencegah ciphertext lama didekripsi, dan bahwa `trim` membuat versi lama tidak bisa dipulihkan ([OpenBao transit API, v2.7.2](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx), dibuka 2026-11-04). Ikhtisar transit menulis bahwa dalam keadaan darurat `min_decryption_version` dapat dipindah kembali ([OpenBao transit, v2.7.2, bagian Working set management](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/secrets/transit/index.mdx), dibuka 2026-11-04). Rekaman cocok dengan keduanya:
+
+<Snippet file="labs/t5-kms/output/rotasi.txt" lines="87:106" title="Rekaman lab: labs/t5-kms/output/rotasi.txt, bagian E (trim, menurunkan versi, dan membuka arsip)" />
+
+Pembungkusan ulang mengubah dua kolom di `arsip_partisi`. Role aplikasi hanya punya `SELECT` dan `INSERT` atas `arsip_partisi` di daftar hak `api-t5`, jadi UPDATE ditolak 42501 sampai lab memberi `GRANT UPDATE` atas dua kolom itu saja. Hak itu belum ada di `api-t5`, dan lab memberikannya di schema sendiri. Itu usulan lab, bukan keputusan:
+
+<Snippet file="labs/t5-kms/output/rotasi.txt" lines="29:40" title="Rekaman lab: labs/t5-kms/output/rotasi.txt, bagian C (rewrap dan hak UPDATE dua kolom)" />
+
+**Pemulihan butuh OpenBao.** Saat container OpenBao dijeda, pembukaan arsip menunggu sampai batas waktu client 5 detik. Sesudah dilanjutkan, arsip terbuka lagi. Mode dev menyimpan semua di memori, jadi restart menghapus mount transit dan arsip yang dibungkus KEK itu tidak terbuka lagi (404):
+
+<Snippet file="labs/t5-kms/output/rotasi.txt" lines="116:131" title="Rekaman lab: labs/t5-kms/output/rotasi.txt, bagian F (OpenBao dijeda lalu dimulai ulang)" />
+
+Produksi memakai penyimpanan persisten, unseal, dan cadangan KEK. Semuanya Tidak dijalankan di lab. Rekaman berhenti di dekripsi file: pemasangan kembali hasilnya ke tabel dengan `ATTACH PARTITION` ada di [[t5-partisi]] dan tidak direkam bersama enkripsi.
+
+**KEK punya batas pemakaian per versi.** Batas 2^32 itu berlaku per versi kunci, dan `rotate` memulai hitungan baru. Jadi angka di bawah adalah jarak rotasi terjauh per versi kunci, bukan umur kunci.
+
+Masukannya 438 juta posting per tahun, yaitu 200.000 user aktif × 3 transaksi per user per hari × 2 posting per transaksi × 365 hari ([[t5-partisi]]). Dengan dua transaksi per user aktif per hari hasilnya 292 juta. Semua baris Hitungan atas Asumsi:
+
+| Besaran | Rumus | Hasil | Dengan 2 transaksi |
+| --- | --- | --- | --- |
+| Batas satu versi KEK | 2^32 | 4.294.967.296 enkripsi | sama |
+| Jarak rotasi, satu data key per posting | 4.294.967.296 ÷ posting per tahun | 9,806 tahun (9,8) | 14,709 tahun (14,7) |
+| Jarak rotasi, satu data key per file | 4.294.967.296 ÷ 12 | 357.913.941 tahun | sama |
+
+Dua belas file per tahun adalah satu file arsip per bulan. Syarat hitungan ini: satu pembungkusan data key memakai satu nonce acak 96 bit di KEK. Kode OpenBao v2.7.2 memakai `NewGCMWithRandomNonce` untuk kunci AES-GCM tanpa convergent encryption (`sdk/helper/keysutil/policy.go`, fungsi `SymmetricEncryptRaw`, dibuka 2026-11-04).
+
+NIST SP 800-38D bagian 8.3 menulis bahwa total pemanggilan enkripsi terautentikasi dengan satu kunci tidak boleh melebihi 2^32. Itu berlaku pada konstruksi IV berbasis generator bilangan acak (edisi November 2007, dibuka 2026-11-04). NIST membuka panggilan komentar pra-draf kedua untuk revisi SP 800-38D pada 1 Juni 2026, dan halamannya menulis bahwa belum ada dokumen draf ([NIST SP 800-38D Rev. 1, pra-draf kedua](https://csrc.nist.gov/pubs/sp/800/38/d/r1/2prd), dibuka 2026-11-04).
+
+**Kunci utama di HSM.** HSM adalah perangkat keras yang menyimpan kunci dan menjalankan operasi kunci di dalamnya. SoftHSM adalah tiruannya dalam perangkat lunak, dengan antarmuka PKCS#11.
+
+Lab tidak menjalankan keduanya. Rilis SoftHSM 2.7.0 (terbit 2026-01-20) dan `miekg/pkcs11` v1.1.2 hanya dicek ada. Apakah client Go itu bekerja dengan SoftHSM 2.7.0 belum bisa dicek [perlu verifikasi]. Tiruan perangkat lunak tidak membuktikan apa pun tentang HSM nyata.
+
+### Di stack lain
+
+**Skenario:** satu file arsip dienkripsi AES-GCM dengan data key sendiri, dan kunci yang membungkus data key berada di luar aplikasi. Yang ditanyakan: apa yang disediakan stack untuk nonce dan untuk memutar kunci?
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-04. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab t5-kms, Go 1.27.3 dan OpenBao v2.7.2 (rekaman `arsip.txt`, `rotasi.txt`, dan `testing.txt`).*
+
+<Snippet file="labs/t5-kms/envelope/envelope.go" lines="59:66" lang="go" title="labs/t5-kms/envelope/envelope.go (Enkripsi)" />
+
+**Yang berbeda di stack ini:** pustaka standar membuat nonce acak dan menaruhnya di depan ciphertext. Pemanggil tidak menyentuh nonce, dan dokumentasi menulis batas 2^32 pesan per kunci.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [Node.js v26.13.0: crypto](https://github.com/nodejs/node/blob/v26.13.0/doc/api/crypto.md), dibaca dari teks mentah, dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`const iv = crypto.randomBytes(12);
+const c = crypto.createCipheriv("aes-256-gcm", dataKey, iv);
+c.setAAD(Buffer.from("arsip:" + periode));
+const isi = Buffer.concat([c.update(teks), c.final()]);
+const blob = Buffer.concat([iv, isi, c.getAuthTag()]);`} />
+
+**Yang berbeda di stack ini:** `createCipheriv` menerima IV dari pemanggil. Dokumentasi menulis bahwa syarat IV bergantung algoritma, dan bahwa IV biasanya tidak harus berupa secret dan boleh dikirim bersama ciphertext. Pemanggil yang membuat dan menyimpan IV dan tag. Halaman itu tidak memuat kata KMS atau envelope.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Encryption](https://laravel.com/docs/13.x/encryption), dibaca dari teks mentah di repositori laravel/docs cabang 13.x, dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`$terenkripsi = Crypt::encryptString($isiFile);
+$isiFile = Crypt::decryptString($terenkripsi);`} />
+
+**Yang berbeda di stack ini:** `Crypt` mengenkripsi teks dengan satu kunci aplikasi, `APP_KEY`. Dokumentasi menyebut AES-256-CBC dengan MAC untuk nilai terenkripsi. Memutar kunci lewat `APP_PREVIOUS_KEYS` membuat dekripsi mencoba kunci sekarang lalu kunci lama. Halaman itu tidak membahas data key per file, KMS, atau envelope.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 5.2: Cryptographic signing](https://docs.djangoproject.com/en/5.2/topics/signing/), teks mentah cabang 5.2. Dicek juga ke [cryptography 50.0.2: AEAD](https://cryptography.io/en/50.0.2/hazmat/primitives/aead/), paket PyPI terbit 2026-09-30. Keduanya dibuka 2026-11-04, dan kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`nonce = os.urandom(12)
+blob = nonce + AESGCM(data_key).encrypt(nonce, teks, aad)`} />
+
+**Yang berbeda di stack ini:** halaman Django membahas penandatanganan, dan kata encrypt tidak muncul di sana. `SECRET_KEY_FALLBACKS` dipakai untuk memutar kunci tanda tangan. Enkripsi AES-GCM datang dari paket pihak ketiga `cryptography`. Pemanggil memberi nonce, dokumentasi menulis agar nonce tidak pernah dipakai ulang, dan data lebih dari 2^31 − 1 byte menimbulkan `OverflowError`.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke repositori [serverpod/serverpod](https://github.com/serverpod/serverpod): file SERVERPOD_VERSION pada cabang main (4.1.0) dan dokumen desain cloud storage. Dokumentasi resmi dibaca dari repositori [serverpod/serverpod_docs](https://github.com/serverpod/serverpod_docs): halaman file uploads dan custom cloud storage pada cabang main. Semuanya dibuka 2026-11-04, dan kode Dart tidak ditulis di tab ini.*
+
+**Yang berbeda di stack ini:** kata encrypt, KMS, dan envelope tidak muncul di dokumen desain cloud storage maupun di dua halaman dokumentasi resmi itu. Halaman file uploads menulis bahwa file dikirim langsung ke penyimpanan lewat upload description yang bertanda tangan, dengan backend database, GCP, S3, dan Cloudflare R2. Enkripsi file arsip dan pengelolaan kunci tidak dibahas di sana.
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Vault](https://github.com/supabase/supabase/blob/master/apps/docs/content/guides/database/vault.mdx), dibaca dari teks mentah di repositori supabase/supabase, perubahan terakhir halaman itu 2026-10-30, dibuka 2026-11-04.*
+
+**Yang berbeda di stack ini:** Vault menyimpan secret terenkripsi di tabel database, bukan file arsip. Dokumentasi menulis bahwa kunci enkripsi tidak disimpan di database dan bahwa tiap project punya kunci akar sendiri. Migrasi ke project baru dengan `pg_dump` dan `pg_restore` manual membuat project baru memakai kunci baru yang tidak bisa mendekripsi secret yang disalin. Dokumentasi menulis bahwa kunci akar project lama dapat diambil lewat Management API dan disalin ke project baru. Tanpa penyalinan itu keadaannya mirip KEK yang hilang di rekaman bagian F: datanya ada, kuncinya tidak (penalaran).
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 57: satu data key per file arsip, dibungkus KEK di KMS
+
+**Kebutuhan.** File arsip partisi ([[t5-partisi]]) dan cadangan keluar dari database utama. Dalam cerita Laras bertanya siapa yang bisa membacanya (Ilustrasi). Yang disalin harus tidak terbaca tanpa kunci yang tetap di KMS. Satu bulan arsip di skala naskah 36,5 juta posting dan 9,1 GB (Hitungan atas Asumsi, [[t5-partisi]]).
+
+**Status:** diterima sesudah ADR 49. Naskah tidak menulis tanggal ADR.
+
+| | A. Enkripsi disk saja | B. Satu data key per posting | C. Satu data key per tabel | D. Enkripsi oleh penyedia penyimpanan | E. Satu data key per file arsip |
+|---|---|---|---|---|---|
+| Cara kerja | Volume tempat file disimpan dienkripsi sistem, file di dalamnya tidak | Tiap posting punya data key sendiri, dibungkus KEK | Satu data key untuk semua file arsip satu tabel | Penyimpanan objek mengenkripsi file dengan kunci milik penyedia | Satu data key AES-256-GCM per file bulanan, dibungkus KEK di OpenBao |
+| Kelebihan | Tanpa kode enkripsi dan tanpa KMS | Satu data key yang bocor membuka satu posting (penalaran) | Satu data key diurus per tabel (penalaran) | Tanpa kode enkripsi di aplikasi (penalaran) | Satu data key yang bocor membuka satu bulan, dan rotasi KEK membungkus ulang 12 data key per tahun |
+| Kekurangan | File yang disalin dari volume yang terpasang sudah terbuka (penalaran) | 438 juta data key per tahun, dan jarak rotasi 9,8 tahun (Hitungan atas Asumsi) | Satu data key yang bocor membuka semua file tabel itu (penalaran) | Kunci ada di tangan penyedia, bukan Rekeningo | Pemulihan butuh OpenBao hidup, dan satu file jadi satu pesan di memori |
+| Biaya operasional | Tidak ada tambahan | Satu panggilan KMS tiap posting, dan satu data key terbungkus tiap baris (penalaran) | Satu data key yang dipakai lama (penalaran) | Kunci di luar kendali Rekeningo (penalaran) | OpenBao, job rewrap, dan jangkar di luar database |
+| Bukti | Tidak dijalankan: penalaran | Hitungan, `rotasi.txt` bagian G | Tidak dijalankan: penalaran | Tidak dijalankan: kunci di tangan penyedia | Rekaman lab `arsip.txt`, `rotasi.txt`, dan `testing.txt` |
+
+**Keputusan: opsi E.** Delapan aturan:
+
+1. Satu data key AES-256-GCM per file arsip, satu file per bulan atau 12 per tahun (Hitungan). Nonce acak 96 bit lewat `NewGCMWithRandomNonce`, dan data tambahan GCM diisi periode.
+2. Data key dibuat dan dibungkus KEK oleh OpenBao transit v2.7.2, dan teks biasanya hanya hidup di memori proses. KEK dibuat tanpa `exportable`.
+3. Tiga peran memegang tiga token dengan satu hak masing-masing: pengarsip untuk `datakey/plaintext`, pembuka untuk `decrypt`, dan pembungkus-ulang untuk `rewrap`. Hak `UPDATE` atas `kunci_data_terbungkus` dan `versi_kek` untuk role aplikasi adalah usulan lab dan belum ada di daftar hak `api-t5`.
+4. Yang tersimpan di `arsip_partisi` adalah data key terbungkus, `versi_kek`, dan checksum SHA-256 atas file terenkripsi. Checksum yang sama dicatat di jangkar di luar database, dan pemeriksaannya tidak memakai KMS.
+5. Rotasi KEK berurutan: `rotate`, `rewrap` semua data key, periksa bahwa tidak ada `versi_kek` lama, naikkan `min_decryption_version`, lalu naikkan `min_encryption_version` dan jalankan `trim`. `trim` ditolak 400 bila `min_encryption_version` belum diisi (`rotasi.txt` bagian E), dan tidak dijalankan sebelum `rewrap` selesai untuk semua arsip.
+6. Pemulihan lebih dulu membandingkan SHA-256 file terenkripsi dengan checksum di database dan jangkar, tanpa KMS. Sesudah itu ia membuka data key terbungkus lewat OpenBao dan mendekripsi file, dan tag GCM yang cocok menunjukkan isinya tidak berubah. Pemasangan kembali ke tabel mengikuti aturan 7 di [[t5-partisi]].
+7. OpenBao di produksi memakai penyimpanan persisten, unseal, token berumur pendek, TLS, dan cadangan KEK. Semuanya Tidak dijalankan di lab.
+8. Data pribadi di kolom tidak dienkripsi per baris di Tahap 5. Cadangan database dienkripsi dengan pola yang sama, tanpa rekaman (Tidak dijalankan).
+
+**Kenapa E, bukan A, B, C, atau D.**
+
+- **A ditolak** karena enkripsi disk tidak menutup file yang disalin lewat volume yang sudah terpasang (penalaran, Tidak dijalankan). Opsi ini tetap berguna sebagai lapisan tambahan.
+- **B ditolak** karena tiap posting butuh satu data key dan satu panggilan KMS. Satu versi KEK mencapai 2^32 enkripsi dalam 9,8 tahun (14,7 dengan dua transaksi). Dokumentasi OpenBao menulis bahwa `rewrap` mendekripsi lalu mengenkripsi lagi dengan versi terbaru. Tiap data key yang dibungkus ulang karena itu memakai satu enkripsi lagi dari versi baru (penalaran).
+- **C ditolak** karena satu data key yang dipakai untuk semua file satu tabel membuka semuanya bila bocor (penalaran, Tidak dijalankan).
+- **D ditolak** karena kuncinya dipegang penyedia penyimpanan, bukan Rekeningo (naskah, Tidak dijalankan).
+
+Satu varian aturan 5 ditolak oleh rekaman: `trim` sebelum semua arsip dibungkus ulang membuat posting_lalu_01 tidak terbuka lagi (`rotasi.txt` bagian E).
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. OpenBao tidak hidup atau KEK hilang saat pemulihan. Di lab jeda dijawab timeout 5 detik, dan restart mode dev membuat arsip tidak terbuka lagi (`rotasi.txt` bagian F). Pencegahannya aturan 7 dan latihan pemulihan tiap kuartal bersama uji pasang di [[t5-partisi]] (Asumsi desain).
+2. Rotasi menjalankan `trim` sebelum semua data key dibungkus ulang. Pencegahannya aturan 5: periksa `versi_kek` lama dulu, dan `trim` hanya dari perintah yang menolak bila hasilnya tidak nol (Asumsi desain).
+3. Checksum dan file diganti bersama dan tidak ketahuan. Pencegahannya aturan 4: jangkar harus di tempat yang tidak bisa ditulis pihak yang menulis database. Tempat itu Tidak dijalankan di lab.
+
+**Kapan keputusan ini salah.**
+
+- Saat satu file arsip tidak muat di memori satu proses. Lab membaca satu file 1.282.072 byte sebagai satu pesan. Satu bulan di skala naskah 9,1 GB (Hitungan atas Asumsi), dan enkripsi berpotongan Tidak dijalankan.
+- Saat data key diminta per posting. Jumlahnya naik dari 12 menjadi 438 juta per tahun, dan jarak rotasi terjauh per versi KEK turun ke 9,8 tahun (14,7 dengan dua transaksi).
+- Saat pemulihan menunggu OpenBao lebih lama dari RTO 15 menit di [[t5-prd]] (Asumsi produk). Lab hanya merekam jeda dengan batas waktu client 5 detik.
+- Saat KEK dan file arsip tersimpan di tempat yang sama. Di lab OpenBao dan folder arsip berada di satu mesin, dan pemisahan tempat Tidak dijalankan.
+- Saat rewrap tidak lengkap sebelum `trim`: arsip yang tertinggal tidak terbuka lagi.
+- Saat kunci utama di HSM dibutuhkan. SoftHSM adalah tiruan, jadi ia tidak membuktikan apa pun tentang HSM nyata.
+
+**Belum diputuskan.** Tiga hal ini pertanyaan terbuka, bukan aturan. Pertama, tempat KEK dan tempat file arsip di produksi supaya satu salinan tidak membawa keduanya. Kedua, tempat jangkar yang tidak bisa ditulis pihak yang menulis database. Ketiga, hak `UPDATE` dua kolom untuk role aplikasi, dan job yang menjalankan `rewrap`.
+
+**Yang akan merevisinya.** Naskah Tahap 5 belum menugaskan ADR berikutnya untuk merevisi keputusan ini. Tiga pertanyaan di atas menunggu keputusan pemilik.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| OpenBao mode produksi: penyimpanan persisten, unseal, audit, dan cadangan KEK | Lab memakai mode dev di memori dan token root | Belum dijadwalkan |
+| Enkripsi berpotongan untuk file lebih besar dari memori | Lab membaca satu file 1.282.072 byte sebagai satu pesan | Belum dijadwalkan |
+| Enkripsi cadangan database | Lab hanya mengenkripsi file arsip partisi | Belum dijadwalkan |
+| Kunci utama di HSM lewat PKCS#11 | SoftHSM adalah tiruan, dan client Go-nya [perlu verifikasi] | Belum dijadwalkan |
+| Pemasangan kembali arsip terenkripsi dengan `ATTACH PARTITION` | Rekaman berhenti di dekripsi file | [[t5-partisi]] |
+| Rotasi otomatis KEK dan pemindai kerentanan | Rotasi lab dijalankan operator, dan govulncheck serta grype Tidak dijalankan di lab ini | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Token pengarsip, yang hanya boleh membuat data key, mencoba membuka file arsip. Apa jawabannya, dan dari mana?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+OpenBao menjawab 403 `permission denied`. Data key tidak pernah sampai ke pemanggil, jadi galatnya datang dari KMS dan bukan dari GCM (`arsip.txt` bagian C). Token yang tidak dikenal dijawab 403 juga.
+
+</details>
+
+**2.** Satu bit di byte terakhir file arsip dibalik. Apa yang terjadi, dan apa bedanya dengan satu byte yang diubah di data key terbungkus?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pembukaan gagal dengan `autentikasi GCM gagal` karena tag tidak cocok. Satu byte di data key terbungkus ditolak OpenBao dengan 400, sebelum GCM atas file dijalankan (`arsip.txt` bagian D).
+
+</details>
+
+**3.** `min_decryption_version` naik ke 2 dan satu arsip masih terbungkus versi 1. Apa akibatnya, dan kapan itu menjadi permanen?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Arsip itu ditolak 400 (too old), tetapi menurunkan versi minimum ke 1 membuka lagi. Ia menjadi permanen setelah `trim`: menurunkan versi minimum ditolak 400, dan arsip yang belum dibungkus ulang tidak terbuka lagi (`rotasi.txt` bagian D dan E).
+
+</details>
+
+**4.** Satu data key per posting menghasilkan 438 juta data key per tahun. Berapa tahun sampai satu versi KEK mencapai 2^32 enkripsi, dan apa arti angka itu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+4.294.967.296 ÷ 438.000.000 = 9,806 tahun, dan 14,709 tahun dengan 292 juta posting (Hitungan atas Asumsi). Itu jarak rotasi terjauh per versi kunci, bukan umur kunci, karena `rotate` memulai hitungan baru. Dengan 12 data key per tahun batas itu tidak relevan.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Data key dibuat per file, nonce acak, dan data tambahan GCM memuat periode. Tes mengubah satu byte di tiap posisi dan mengharapkan galat autentikasi.
+- [ ] File terenkripsi dibuat dengan tujuan baru (`O_EXCL`), izin ketat, dan checksum dihitung atas file terenkripsi.
+- [ ] Tiap peran punya token dengan satu hak, dan operasi di luar haknya diuji dengan 403, bukan hanya operasi yang berhasil.
+- [ ] KEK tidak `exportable`, dan token root tidak dipakai aplikasi.
+- [ ] `trim` hanya dijalankan sesudah query `versi_kek` lama mengembalikan nol baris.
+- [ ] Teks biasa data key tidak ditulis ke log atau file.
+- [ ] Jangkar ada di luar database, dan pemeriksaan pulih membandingkan file, database, dan jangkar.
+
+### Bacaan lanjut
+
+- [OpenBao transit: dokumentasi API (v2.7.2)](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx)
+- [OpenBao transit: ikhtisar dan rotasi (v2.7.2)](https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/secrets/transit/index.mdx)
+- [NIST SP 800-38D: Galois/Counter Mode](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf)
+- [Node.js v26.13.0: crypto](https://github.com/nodejs/node/blob/v26.13.0/doc/api/crypto.md)
+- [Laravel 13.x: Encryption](https://laravel.com/docs/13.x/encryption)
+- [Django 5.2: Cryptographic signing](https://docs.djangoproject.com/en/5.2/topics/signing/)
+- [cryptography 50.0.2: AEAD](https://cryptography.io/en/50.0.2/hazmat/primitives/aead/)
+- [Supabase: Vault](https://github.com/supabase/supabase/blob/master/apps/docs/content/guides/database/vault.mdx)
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

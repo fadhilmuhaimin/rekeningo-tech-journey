@@ -1,0 +1,109 @@
+{
+  "versi": 2,
+  "judul": "Kunci pembungkus arsip diputar, dan satu dari dua data key dibungkus ulang",
+  "sumber": {
+    "jenis": "rekaman",
+    "file": "labs/t5-kms/output/rotasi.txt",
+    "fileVarian": "labs/t5-kms/output/rotasi.txt",
+    "catatan": "Lab t5-kms, PostgreSQL 17.11, OpenBao v2.7.2 mode dev, dari database bersih (make -C labs/t5-kms run BAGIAN=rotasi). Jalur utama: rotasi.txt bagian B, C, dan D (rotate, rewrap, min_decryption_version naik lalu turun). Ubah satu hal: rotasi.txt bagian E (trim sesudah rewrap sebagian). Dua arsip, posting_lalu_02 dan posting_lalu_01, masing-masing satu data key terbungkus. Lab tidak memakai OpenBao mode produksi, dan token operator adalah token root mode dev."
+  },
+  "pengantar": "Operator memutar kunci pembungkus (KEK) arsip dan membungkus ulang satu dari dua data key. Ikuti langkahnya, lalu centang 'Ubah satu hal' dan tebak apa yang terjadi pada arsip yang belum dibungkus ulang.",
+  "komponen": [
+    {
+      "id": "op",
+      "label": "Operator"
+    },
+    {
+      "id": "job",
+      "label": "Job kmsarsip"
+    },
+    {
+      "id": "bao",
+      "label": "OpenBao"
+    }
+  ],
+  "perangkat": [],
+  "layarAwal": {},
+  "predict": {
+    "q": "Operator menaikkan min_encryption_version dan min_decryption_version ke 2, lalu menjalankan trim. Arsip posting_lalu_01 belum dibungkus ulang dan masih memakai versi 1. Operator lalu menurunkan min_decryption_version ke 1 lagi. Apa yang terjadi?",
+    "options": [
+      "Diterima, dan posting_lalu_01 terbuka lagi karena versi 1 masih tersimpan",
+      "Diterima, tetapi posting_lalu_01 hanya terbuka untuk token operator",
+      "Ditolak 403, karena token operator tidak boleh mengubah konfigurasi sesudah trim",
+      "Ditolak 400, dan posting_lalu_01 tidak terbuka karena versi 1 sudah dihapus"
+    ],
+    "answer": 3,
+    "varian": true,
+    "explain": "Ditolak 400 dengan pesan bahwa min decryption version tidak boleh lebih kecil dari min available version. Daftar kunci hanya memuat versi 2, dan posting_lalu_01 tetap dijawab 400 too old (rotasi.txt bagian E). File terenkripsinya masih ada, tetapi data key terbungkusnya tidak bisa dibuka lagi. Arsip yang sudah dibungkus ulang tetap terbuka."
+  },
+  "langkah": [
+    {
+      "dari": "op",
+      "ke": "bao",
+      "judul": "Operator memutar KEK: rotate",
+      "kirim": "$ curl -X POST $BAO/v1/transit/keys/kek-arsip/rotate -H 'X-Vault-Token: <token operator>'\nHTTP 200\n# kunci kek-arsip: versi terbaru 2, min_decryption_version 1, min_encryption_version 0, min_available_version 0, versi yang tampil di daftar kunci [1, 2]",
+      "jelas": "Versi baru dibuat. Data key terbungkus versi 1 masih terbuka, dan file arsip tidak berubah. Data key yang dibuat sesudahnya memakai versi 2."
+    },
+    {
+      "dari": "job",
+      "ke": "bao",
+      "judul": "Job membungkus ulang data key posting_lalu_02 dengan versi 2",
+      "kirim": "$ BAO_TOKEN=<token pembungkus-ulang> kmsarsip rewrap -terbungkus <data key terbungkus posting_lalu_02 v1>\n{\"data_key_terbungkus\": \"<data key terbungkus posting_lalu_02 v2>\", \"versi_kek\": 2}\n# exit status 0",
+      "jelas": "Token ini hanya boleh rewrap, jadi OpenBao tidak menjawab teks biasa data key. Hanya posting_lalu_02 dibungkus ulang. posting_lalu_01 masih terbungkus versi 1.",
+      "nada": "good"
+    },
+    {
+      "dari": "op",
+      "ke": "bao",
+      "judul": "Operator menaikkan min_decryption_version ke 2",
+      "kirim": "$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{\"min_decryption_version\": 2}'\nHTTP 200\n# kunci kek-arsip: versi terbaru 2, min_decryption_version 2, min_encryption_version 0, min_available_version 0, versi yang tampil di daftar kunci [2]",
+      "jelas": "Versi 1 hilang dari daftar kunci. Versi di bawah min_decryption_version diarsipkan, belum dihapus."
+    },
+    {
+      "dari": "job",
+      "ke": "bao",
+      "judul": "posting_lalu_01 ditolak, posting_lalu_02 terbuka",
+      "kirim": "$ BAO_TOKEN=<token pembuka> kmsarsip buka ... -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal>\nkmsarsip: openbao menjawab 400: ciphertext or signature version is disallowed by policy (too old)\n# exit status 2",
+      "jelas": "Arsip yang masih terbungkus versi 1 tidak terbuka. posting_lalu_02, yang sudah dibungkus ulang, terbuka dengan 1.282.072 byte.",
+      "nada": "warn"
+    },
+    {
+      "dari": "op",
+      "ke": "bao",
+      "judul": "Operator menurunkan min_decryption_version ke 1, dan posting_lalu_01 terbuka lagi",
+      "kirim": "$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{\"min_decryption_version\": 1}'\nHTTP 200\n$ BAO_TOKEN=<token pembuka> kmsarsip buka ... -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal> -keluar pulih.csv\nterbuka: 1282072 byte",
+      "jelas": "Menaikkan min_decryption_version bisa dibalik, jadi bukan pencabutan. Versi 1 masih tersimpan di OpenBao.",
+      "nada": "good"
+    }
+  ],
+  "varian": {
+    "label": "trim sesudah rewrap sebagian",
+    "mulai": 2,
+    "langkah": [
+      {
+        "dari": "op",
+        "ke": "bao",
+        "judul": "Operator menaikkan dua versi minimum ke 2, lalu menjalankan trim",
+        "kirim": "$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{\"min_encryption_version\": 2}'\nHTTP 200\n$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{\"min_decryption_version\": 2}'\nHTTP 200\n$ curl -X POST $BAO/v1/transit/keys/kek-arsip/trim -H 'X-Vault-Token: <token operator>' -d '{\"min_available_version\": 2}'\nHTTP 200\n# kunci kek-arsip: versi terbaru 2, min_decryption_version 2, min_encryption_version 2, min_available_version 2, versi yang tampil di daftar kunci [2]",
+        "jelas": "Sebelum trim, satu baris arsip_partisi masih terbungkus versi di bawah 2: posting_lalu_01. Trim yang dikirim lebih awal, sebelum min_encryption_version diisi, ditolak 400 (rotasi.txt bagian E).",
+        "nada": "warn"
+      },
+      {
+        "dari": "op",
+        "ke": "bao",
+        "judul": "Operator mencoba menurunkan min_decryption_version ke 1",
+        "kirim": "$ curl -X POST $BAO/v1/transit/keys/kek-arsip/config -H 'X-Vault-Token: <token operator>' -d '{\"min_decryption_version\": 1}'\nHTTP 400\n{\"errors\": [\"min decryption version should not be less then min available version\"]}",
+        "jelas": "Pesan galat ditulis persis seperti rekaman. Daftar kunci tetap memuat versi 2 saja.",
+        "nada": "warn"
+      },
+      {
+        "dari": "job",
+        "ke": "bao",
+        "judul": "posting_lalu_01 tidak bisa dibuka lagi, posting_lalu_02 tetap terbuka",
+        "kirim": "$ BAO_TOKEN=<token pembuka> kmsarsip buka ... -terbungkus <data key terbungkus posting_lalu_01 v1> -periode <tanggal>\nkmsarsip: openbao menjawab 400: ciphertext or signature version is disallowed by policy (too old)\n# exit status 2\n$ BAO_TOKEN=<token pembuka> kmsarsip buka ... -terbungkus <data key terbungkus posting_lalu_02 v2> -periode <tanggal> -keluar pulih.csv\nterbuka: 1282072 byte",
+        "jelas": "File posting_lalu_01.enc masih ada, tetapi data key terbungkusnya tidak bisa dibuka. Pencabutan sungguhan berarti rewrap semua arsip dulu, baru trim.",
+        "nada": "warn"
+      }
+    ]
+  }
+}

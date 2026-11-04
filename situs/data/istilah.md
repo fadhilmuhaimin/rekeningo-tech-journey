@@ -37,6 +37,7 @@
 *[ACID]: Empat jaminan transaction di database relasional: atomicity, consistency, isolation, durability.
 *[ADR]: Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.
 *[Architecture Decision Record]: Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.
+*[AES-GCM]: Enkripsi AES dengan mode GCM: satu pesan dikunci dan diberi tag pemeriksa keaslian, sehingga satu byte yang berubah ketahuan saat dibuka.
 *[Alamat keluar]: Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.
 *[alamat keluar]: Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.
 *[Alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
@@ -113,6 +114,8 @@
 *[CSRF]: Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim.
 *[Daftar akar]: Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.
 *[daftar akar]: Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.
+*[Data key]: Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK.
+*[data key]: Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK.
 *[Dead-letter queue]: Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.
 *[dead-letter queue]: Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.
 *[Deadlock]: Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.
@@ -130,6 +133,8 @@
 *[Enumerasi]: Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada.
 *[enumerasi]: Mencoba nilai satu per satu, mis. ID akun 401 sampai 503 atau daftar email, untuk mengetahui data mana yang ada.
 *[ERD]: Gambar skema database: tabel dengan kolom pentingnya, dan garis untuk setiap foreign key di antara tabel.
+*[Envelope encryption]: Enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, bukan bersama file.
+*[envelope encryption]: Enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, bukan bersama file.
 *[ERP]: Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.
 *[Enterprise Resource Planning]: Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.
 *[Error budget]: Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.
@@ -168,6 +173,7 @@
 *[hold]: Dana yang dipisahkan sementara dari saldo untuk satu otorisasi kartu, dicatat sebagai jurnal ke buku sistem dan dilepas saat ditagih, dibatalkan, atau kedaluwarsa.
 *[HPA]: Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.
 *[Horizontal Pod Autoscaler]: Pengendali Kubernetes yang menambah atau mengurangi jumlah pod mengikuti metrik, misalnya CPU.
+*[HSM]: Perangkat keras yang menyimpan kunci dan menjalankan operasi kunci di dalamnya.
 *[HSTS]: Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.
 *[HTTP Strict Transport Security]: Header yang membuat browser memakai https untuk sebuah host selama jangka waktu tertentu, sehingga permintaan http dinaikkan ke https sebelum meninggalkan browser.
 *[IaC]: Infrastruktur, seperti mesin, database, dan alamat jaringan, ditulis sebagai file konfigurasi yang di-review seperti kode, lalu dibuat oleh sebuah alat.
@@ -197,10 +203,12 @@
 *[JSON Web Token]: Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database.
 *[Kapasitas worker]: Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.
 *[kapasitas worker]: Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.
+*[KEK]: Kunci pembungkus: kunci yang mengenkripsi data key, bukan isi file.
 *[Kelas queue]: Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.
 *[kelas queue]: Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.
 *[Kill switch]: Feature flag yang tugasnya mematikan satu fitur seketika tanpa deploy, mis. menolak semua otorisasi kartu baru.
 *[kill switch]: Feature flag yang tugasnya mematikan satu fitur seketika tanpa deploy, mis. menolak semua otorisasi kartu baru.
+*[KMS]: Server yang membuat dan menyimpan KEK, dan membuka data key terbungkus bila pemanggilnya punya hak.
 *[Kredit]: Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.
 *[kredit]: Sisi kanan sebuah jurnal akuntansi; di setiap jurnal total kredit sama dengan total debit, dan akun kewajiban bertambah di sisi kredit.
 *[Kubernetes]: Sistem yang menjadwalkan pod, yaitu grup container, ke banyak mesin dalam satu cluster.
@@ -256,8 +264,8 @@
 *[n+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[N+1]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[NetworkPolicy]: Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya.
-*[Nonce]: Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.
-*[nonce]: Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali.
+*[Nonce]: Nilai sekali pakai yang tidak boleh berulang. Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali. Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama.
+*[nonce]: Nilai sekali pakai yang tidak boleh berulang. Di tanda tangan pesan, penerima menolak pesan bila nilainya muncul dua kali. Di AES-GCM, nonce acak 96 bit tidak boleh berulang untuk kunci yang sama.
 *[Nonrepeatable read]: Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.
 *[nonrepeatable read]: Anomali: baris yang sama dibaca dua kali dalam satu transaction dan nilainya berbeda, karena transaction lain sudah commit perubahan.
 *[OAuth 2.0]: Standar untuk memberi aplikasi akses terbatas ke akun user di layanan lain tanpa memberikan password.

@@ -1,0 +1,40 @@
+{
+  "istilah": "Envelope encryption",
+  "sehari_hari": "Envelope encryption adalah enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, jadi file yang disalin tidak membawa kunci pembukanya.",
+  "cerita": [
+    {
+      "rujukan": "t5-kms",
+      "teks": "Posting yang dilepas dari tabel disimpan sebagai file arsip. Di lab file 28.000 baris itu dienkripsi dengan satu data key, dan OpenBao menolak token tanpa hak decrypt dengan 403 (`arsip.txt` bagian C, Rekaman lab)."
+    }
+  ],
+  "mekanisme": [
+    "Pemanggil meminta data key baru ke KMS. KMS menjawab data key dalam teks biasa dan bentuk yang sudah dibungkus KEK.",
+    "File dienkripsi dengan data key teks biasa, lalu teks biasanya dibuang dari memori.",
+    "Yang disimpan adalah file terenkripsi dan data key terbungkus. KEK tidak ikut tersimpan.",
+    "Untuk membuka file, pemanggil mengirim data key terbungkus ke KMS. KMS membukanya hanya bila token pemanggil punya hak decrypt."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menyimpan KEK dan file di tempat yang sama. Satu salinan lalu membawa keduanya, dan lab hanya memerankan pemisahan itu di satu mesin (`rotasi.txt` bagian F).",
+    "Memutar KEK lalu menjalankan trim sebelum semua data key dibungkus ulang. Arsip yang tertinggal tidak terbuka lagi (`rotasi.txt` bagian E)."
+  ],
+  "terkait": [
+    "KEK (key encryption key)",
+    "KMS (key management service)",
+    "Data key"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-235",
+      "judul": "OpenBao v2.7.2: mesin transit, datakey, rewrap, dan trim (dibuka 2026-11-04)",
+      "url": "https://github.com/openbao/openbao/blob/v2.7.2/website/content/docs/api/secret/transit.mdx",
+      "catatan": "Jalur datakey membuat kunci acak dan nilai yang dienkripsi dengan kunci bernama, dan ACL menentukan siapa menerima teks biasanya."
+    },
+    {
+      "riset": "R5-238",
+      "judul": "Rekaman lab t5-kms: arsip.txt bagian C",
+      "rekaman": "labs/t5-kms/output/arsip.txt",
+      "catatan": "Data key file lain gagal di GCM, dan token tanpa hak decrypt dijawab 403 oleh OpenBao."
+    }
+  ]
+}
