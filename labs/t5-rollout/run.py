@@ -451,7 +451,7 @@ def rekam_tanpa_router():
     bagian("A. Argo Rollouts tanpa traffic router: setWeight 5 dengan 3 replika, dengan 20 replika, dan dengan 3 replika bila maxSurge 0")
     catat("# Rollout canary dasar (manifes/kartu-tanpa-router.yaml): satu langkah setWeight 5, lalu jeda tanpa batas. Tidak ada trafficRouting,")
     catat("# jadi bobot hanya bisa diwujudkan lewat jumlah pod versi baru. Versi baru = template pod berubah (VERSI v1 ke v2).")
-    catat("# maxSurge tidak ditulis di manifes (bawaan v1.10.1: 1), kecuali di bagian ketiga yang menulis maxSurge: 0.")
+    catat("# maxSurge tidak ditulis di manifes (bawaan v1.10.1: 25% dari jumlah replika, dibulatkan ke atas), kecuali di bagian ketiga yang menulis maxSurge: 0.")
     hasil = {}
     for replika, surge in ((3, None), (20, None), (3, 0)):
         nama = f"kartu-a{replika}" + ("" if surge is None else f"s{surge}")
@@ -498,7 +498,7 @@ def rekam_tanpa_router():
     catat("Hitungan pembulatan 5% dari n pod (tanpa traffic router): jumlah pod terukur di atas, bukan umum untuk semua versi Argo Rollouts.")
     for (replika, surge), (v1, v2) in hasil.items():
         catat(f"- {replika} replika{'' if surge is None else f', maxSurge {surge}'}: {v2} pod canary dan {v1} pod stabil menjawab; bagian pod v2 {100 * v2 / (v1 + v2):.1f}%")
-    harap(hasil[(3, None)], (3, 1), "3 replika, maxSurge bawaan: satu pod canary di samping tiga pod stabil (rekaman)")
+    harap(hasil[(3, None)], (3, 1), "3 replika, maxSurge tidak ditulis (bawaan 25% = 1 pod tambahan): satu pod canary di samping tiga pod stabil (rekaman)")
     harap(hasil[(20, None)], (19, 1), "20 replika: 5% harus 1 pod canary (naskah)")
     harap(hasil[(3, 0)], (2, 1), "3 replika, maxSurge 0: satu pod canary dan dua pod stabil (33,3% naskah)")
     tulis("tanpa-router.txt", "setWeight 5 tanpa traffic router (3 dan 20 replika, dan 3 replika dengan maxSurge 0)")
