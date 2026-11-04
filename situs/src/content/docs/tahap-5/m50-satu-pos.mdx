@@ -94,7 +94,7 @@ Naskah menulis bahwa pembeli bisa membayar kedua QR. Lab hanya merekam jumlah ba
 - Jumlah permintaan mitra B yang tertolak di mode `kuota-bersama` tidak dihitung terpisah.
 - Penghitungan per alamat NAT tidak direkam: untuk rute POS semua permintaan tiba dari alamat gerbang.
 - Serangan volumetrik lapisan 3 dan 4 dan reset stream HTTP/2 Tidak dijalankan.
-- Pembelaannya, yaitu kuota per mitra, tanda tangan bertimestamp, WAF, dan cakupan kunci, dibahas di [[t5-waf]].
+- Pembelaannya, yaitu kuota per mitra, tanda tangan bertimestamp, WAF (penyaring permintaan HTTP di depan API), dan cakupan kunci, dibahas di [[t5-waf]].
 
 </Blok>
 
@@ -104,7 +104,7 @@ Widget ini mengikuti cerita M50. Jalur utama memuat satu langkah cerita (Ilustra
 
 <WidgetLama nama="alur" src="data/skenario/t5-m50.json" />
 
-Sesudah langkah terakhir, centang **Ubah satu hal: Tiap mitra punya bucket 100 per detik sendiri**. Tiga langkah berikutnya memuat rekaman bucket per mitra, kepala `Retry-After`, dan urutan kuota sebelum tanda tangan.
+Sesudah langkah terakhir, centang **Ubah satu hal: Tiap mitra punya bucket 100 per detik sendiri**. Tiga langkah berikutnya memuat rekaman bucket per mitra, kepala `Retry-After` (waktu tunggu bagi client sebelum mencoba lagi), dan urutan kuota sebelum tanda tangan.
 
 Widget ini tidak punya layar HP, karena M50 terjadi di antara API dan kasir mitra, bukan di app.
 
