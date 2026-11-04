@@ -382,8 +382,8 @@ describe("angka beban Tahap 6: dari registry Tahap 5, naskah, dan rumus; semuany
     expect(hal51).toContain("| Notifikasi uang di puncak | 75,2 per detik | (600.000 + 50.000) ÷ 86.400 × 10; dengan 2 transaksi 52,1 |");
   });
   test("skenario di bawah widget: Tahap 6 13.888,9 (10 kali), aktif 10% 6.944,4 (5 kali), satu jam 33.333,3; pembulatan dua angka penting dari mesin widget", () => {
-    harus(`Widget membulatkan ke dua angka penting, jadi puncak ${angka(T5.puncak, 1)} tampil ${duaAngka(T5.puncak)}, ${angka(T6.puncak, 1)} tampil ${duaAngka(T6.puncak)}, ${angka(aktif10.puncak, 1)} tampil ${duaAngka(aktif10.puncak)}, dan ${angka(satuJam.puncak, 1)} tampil ${duaAngka(satuJam.puncak)}.`);
-    harus(`Pilih **Tahap 6**: user naik ke ${angka(USER6, 0)} dan puncak naik ke ${angka(T6.puncak, 1)}, ${T6.puncak / T5.puncak} kali Tahap 5. Pilih **Aktif 10%**: user aktif menjadi ${angka(aktif10.dau, 0)} dan puncak turun ke ${angka(aktif10.puncak, 1)}, tetap ${bulat(aktif10.puncak / T5.puncak, 6)} kali Tahap 5.`);
+    harus(`Widget membulatkan ke dua angka penting, jadi puncak ${angka(T5.puncak, 1)} tampil ${duaAngka(T5.puncak)}, ${angka(T6.puncak, 1)} tampil ${duaAngka(T6.puncak)}, dan ${angka(satuJam.puncak, 1)} tampil ${duaAngka(satuJam.puncak)}.`);
+    harus(`Pilih **Tahap 6**: user naik ke ${angka(USER6, 0)} dan puncak naik ke ${angka(T6.puncak, 1)}, ${T6.puncak / T5.puncak} kali Tahap 5. Pilih **Aktif 10%** sesudah menebak: widget menulis hasilnya dan alasannya.`);
     harus(`Pilih **Satu jam**: semua request sehari masuk dalam satu jam. Faktor puncaknya ${DETIK / 3600}, dan ${angka(T6.reqHari, 0)} ÷ ${angka(3600, 0)} = ${angka(satuJam.puncak, 1)} request per detik (Hitungan).`);
     expect(aktif10.puncak / T5.puncak).toBeCloseTo(5, 10);
     expect(satuJam.puncak).toBeCloseTo(T6.reqHari / 3600, 10);
@@ -515,8 +515,8 @@ describe("klaim negatif dan lingkup, dijaga pemindaian berkas terlacak", () => {
     expect(hal513).toContain("Alurnya membaca data akun, data perangkat, dan riwayat transaksi, lalu menghitung skor risiko dengan delapan aturan poin. Skor itu peraga, bukan fitur PRD v5 dan bukan model risiko.");
     expect(hal513).toContain("Pada jeda 10 ms batas bawahnya 6 × 10 = 60 ms, jadi 500 dari 500 transaksi tiga proses melewati 50 ms.");
     expect(hal513).toContain("Itu bukan anggaran lompatan di ADR 37, yaitu batas tambahan p95 satu panggilan HTTP ke ledger. Angkanya sama, artinya lain.");
-    harus("| Skor risiko real-time dalam 50 ms (Asumsi naskah) | Lab `t5-gabung` memperagakan alur skor delapan aturan poin. Dengan jeda buatan 10 ms per panggilan, tiga proses punya batas bawah 6 × 10 = 60 ms. Jaringan antar host tidak diukur | [[t5-service]] |");
-    harus("Skor itu peraga, bukan model risiko dan bukan fitur PRD v5. Angka 50 ms di baris pertama sama dengan anggaran alur skor di lab `t5-gabung` (Asumsi naskah). Anggaran lompatan 50 ms di ADR 37 lain: tambahan p95 satu panggilan HTTP ke ledger. Angkanya sama, artinya berbeda ([[t5-service]]).");
+    harus("| Skor risiko real-time dalam 50 ms (Asumsi naskah) | Lab `t5-gabung` memperagakan alur skor delapan aturan poin. Satu transaksi di tiga proses melewati enam panggilan, dan dengan jeda buatan 10 ms per panggilan batas bawahnya 6 × 10 = 60 ms. Jaringan antar host tidak diukur | [[t5-service]] |");
+    harus("Skor itu peraga, bukan model risiko dan bukan fitur PRD v5. Angka 50 ms di baris pertama sama dengan batas uji 50 ms di lab `t5-gabung`, yaitu batas total satu transaksi alur skor (Asumsi naskah). Anggaran lompatan 50 ms di ADR 37 lain: tambahan p95 satu panggilan HTTP ke ledger. Angkanya sama, artinya berbeda ([[t5-service]]).");
   });
   test("28 orang menjadi lebih dari 50: tim 28 dari 5.1 dan naskah; ±50 developer tanpa sumber primer; 50 ÷ 28 = 1,8; halaman tidak memakai ±50 sebagai pembanding", () => {
     expect(hal51).toContain("28 orang dalam delapan tim");
@@ -550,7 +550,7 @@ describe("klaim negatif dan lingkup, dijaga pemindaian berkas terlacak", () => {
     harus("- Hasil yang batasnya belum terukur ditulis belum bisa dinilai, bukan aman atau tidak aman.\n- Angka dari rekaman satu laptop dipakai sebagai batas yang diperiksa, bukan dikali 10.");
     harus(`Pengali 10 salah bila perilaku per user berubah. Skor risiko yang dihitung tiap pembayaran menambah kerja per transaksi (Penalaran). Pembayaran bisa memuat lebih banyak pekerjaan daripada Tahap 5, walau jumlahnya tetap ${angka(trxDetik(T6, TRX_DASAR), 1)} per detik.`);
     harus("**Estimasi ini berhenti di tiga pertanyaan dan tidak memilih komponen.**");
-    harus("*Berapa jeda antar wilayah, dan berapa dari anggaran 50 ms yang ia habiskan?*");
+    harus("*Berapa jeda antar wilayah, dan berapa dari 50 ms skor risiko yang ia habiskan?*");
     harus("*Bagaimana tim yang lebih besar mengubah satu codebase?* Tidak ada rumus di halaman ini yang memuat koordinasi.");
     harus("*Berapa transaksi uang per detik yang sanggup ditulis satu primary di server sungguhan?* Tidak terjawab.");
     harus("Beban PRD v6 adalah 10 kali Tahap 5 menurut hitungan, tetapi repo ini belum mengukur kapasitas satu primary, jadi 10 kali itu belum bisa dinilai.");
@@ -700,7 +700,7 @@ describe("struktur halaman: tingkat heading, daftar, label, istilah, dan tanpa I
   test("butir Konsep yang lahir dan bacaan lanjut: tautan eksternal sama dengan baris riset; tiap butir menunjuk halaman yang memuat topiknya", () => {
     harus("- [[t5-adr-60]]: ADR 60, \"Sengaja belum dilakukan\". Service mesh penuh, multi-region, database terpisah per service, sharding, dan butir lain sengaja belum dipasang, masing-masing dengan pemicunya.");
     harus("- [[t4-estimasi]]: rumus puncak yang sama untuk Tahap 4 → 5. Halaman ini memakainya sekali lagi untuk Tahap 5 → 6.");
-    harus("- [[t5-service]]: lab `t5-gabung` dan anggaran 50 ms antar host, yang belum diukur.");
+    harus("- [[t5-service]]: lab `t5-gabung` dan batas uji 50 ms antar host, yang belum diukur.");
     harus("- [[t5-rpo-rto]]: replica sinkron dan RTO 15 menit di satu region.");
     harus("- [[t5-prd]]: tabel beban Tahap 5 dan tim 28 orang, tempat angka masukan halaman ini berasal.");
     const tautan = [...badan.matchAll(/^- \[([^\]]+)\]\((https:[^)]+)\)/gm)].map((m) => [m[1], m[2]]);
@@ -740,8 +740,9 @@ describe("struktur halaman: tingkat heading, daftar, label, istilah, dan tanpa I
     expect(definisiMulti).toBeGreaterThan(pertama("multi-region"));
     expect(definisiMulti - pertama("multi-region"), "arti multi-region ada di blok berikutnya, sebelum dipakai dalam argumen").toBeLessThan(1200);
     expect(pertama("service mesh")).toBe(badan.indexOf("Bayu mengusulkan service mesh sekarang, yaitu lapisan proxy") + "Bayu mengusulkan ".length);
-    expect(hitung(badan, "50 ms")).toBe(6);
-    expect(badan.search(/\bRTO\b/)).toBeGreaterThan(badan.indexOf("Dengan jeda buatan"));
+    expect(hitung(badan, "50 ms")).toBe(7);
+    expect(badan.indexOf("dengan jeda buatan 10 ms per panggilan"), "kalimat jeda buatan ada").toBeGreaterThan(0);
+    expect(badan.search(/\bRTO\b/)).toBeGreaterThan(badan.indexOf("dengan jeda buatan 10 ms per panggilan"));
   });
   test("front matter dikunci: title dan description memuat minggu 16, uji coba nasional, 10 kali, dan tiga hal PRD v6", () => {
     expect(frontmatter).toBe(
@@ -777,7 +778,7 @@ describe("dunia angka tertutup: tiap token angka dan konteksnya dihitung dari su
   });
   test("angka berpemisah ribuan: user, aktif, request per hari, detik sehari, jadwal, status rekaman, batas p95, dan hasil pembulatan widget", () => {
     const boleh = new Set([angka(reg5.user, 0), angka(USER6, 0), angka(T5.dau, 0), angka(T6.dau, 0), angka(DETIK, 0), angka(TOTAL, 0), angka(BACA, 0), angka(BAYAR, 0), angka(BATAS_P95, 0), angka(T6.reqHari, 0), angka(3600, 0),
-      duaAngka(T5.puncak), duaAngka(T6.puncak), duaAngka(aktif10.puncak), duaAngka(satuJam.puncak)]);
+      duaAngka(T5.puncak), duaAngka(T6.puncak), duaAngka(satuJam.puncak)]);
     const token = [...badan.matchAll(/(?<![\d,])\d{1,3}(?:\.\d{3})+(?!,\d)/g)].map((m) => m[0]);
     expect([...new Set(token.filter((x) => !boleh.has(x)))]).toEqual([]);
     for (const b of boleh) expect(token, b).toContain(b);
@@ -796,7 +797,7 @@ describe("dunia angka tertutup: tiap token angka dan konteksnya dihitung dari su
     expect(dari("t5-rpo-rto").adr).toEqual([48]);
     expect(hitung(badan, "RTO 15 menit")).toBe(2);
     expect(hitung(badan, "23 menit")).toBe(1);
-    expect(hitung(badan, "50 ms")).toBe(6);
+    expect(hitung(badan, "50 ms")).toBe(7);
     expect(hitung(badan, "× 10")).toBeGreaterThanOrEqual(6);
   });
 });
@@ -842,13 +843,13 @@ describe("riset: baris milik halaman ini ada tanpa ID ganda dan tidak tampil ke 
 describe("kalimat klaim kunci: ditulis di tes, bukan dibangkitkan dari halaman, supaya mutasi yang membangkitkan ulang kunci kata tetap gagal", () => {
   test("blok Yang Raka kira dan sebenarnya: kalimat berisi sebab, label, dan batas", () => {
     harus("Pak Hadi membuka laporan rekonsiliasi hari ke-14 berturut-turut ([[t4-rekonsiliasi]]). Tiap hari selisihnya Rp0, atau insiden yang muncul sudah tertutup dalam satu hari kerja.");
-    harus("Satu rekaman beban Tahap 5 bisa memeriksa dugaan itu sebagian.");
+    harus("Satu rekaman beban Tahap 5 ada di repo. Lab menjadwalkan");
     harus("Arti label Rekaman lab, Asumsi, Ilustrasi, dan Tidak dijalankan ada di [[A0]].");
     harus(`**Rekaman: yang dibuktikan dan yang tidak.** Lab \`api-t5\` menjalankan beban Tahap 5, bukan Tahap 6`);
     harus("**Tiga hal yang belum pernah diuji.** Naskah menyebut ketiganya, dan tiap hal punya batas yang bisa dibaca di Tahap 5:");
     harus("| Hal baru di PRD v6 | Yang ada di Tahap 5 | Dibaca di |");
     harus("Untuk baris kedua, PostgreSQL 17 menulis bahwa tiap COMMIT sinkron menunggu konfirmasi dari standby (bagian 26.2.8, dibuka 2026-11-04, Tidak dijalankan). Waktu tunggu minimumnya adalah round-trip time antara primary dan standby. Bila standby sinkron berada di wilayah lain, tiap transaksi uang menanggung jeda itu (Penalaran, yaitu kesimpulan dari dokumentasi tanpa dijalankan). Nilainya belum diukur.");
-    harus("Buku SRE Google menulis bahwa memodelkan kapasitas sebagai queries per second sering menjadi ukuran yang buruk. Alasannya, biaya tiap query berbeda dan bisa berubah. Sumbernya bagian \"The Pitfalls of Queries per Second\", dibuka 2026-11-04. Alat `pgbench` di PostgreSQL 17 menjalankan urutan perintah SQL yang sama berulang lewat beberapa sesi dan menghitung rata-rata transaksi per detik. Keduanya Tidak dijalankan di repo ini.");
+    harus("Buku SRE Google menulis bahwa memodelkan kapasitas sebagai queries per second sering menjadi ukuran yang buruk. Alasannya, biaya tiap query berbeda dan bisa berubah. Sumbernya bagian \"The Pitfalls of Queries per Second\", dibuka 2026-11-04. Alat `pgbench` di PostgreSQL 17 menjalankan urutan perintah SQL yang sama berulang, dapat lewat beberapa sesi bersamaan, dan menghitung rata-rata transaksi per detik. Keduanya Tidak dijalankan di repo ini.");
     harus("Hasilnya dilaporkan sebagai status dan p95, yaitu waktu jawab yang dilewati 5% request paling lambat.");
     harus("Tabel ini mengalikan masukan Tahap 5 dengan 10");
     harus("Masalah Tahap 5 adalah salinan yang tertinggal");
@@ -861,5 +862,37 @@ describe("kalimat klaim kunci: ditulis di tes, bukan dibangkitkan dari halaman, 
     expect(kalk.label).toEqual({ ...tetangga.label, lanjut: kalk.label.lanjut });
     expect(kalk.label.baris).toEqual({ user: "User terdaftar", dau: "User aktif per hari", reqHari: "Request per hari", rata: "Rata-rata, request per detik", puncak: "Puncak, request per detik" });
     expect([kalk.label.tebakDulu, kalk.label.ubah, kalk.label.asumsi, kalk.label.detik, kalk.label.ms]).toEqual(["Tebak dulu:", "Skenario", "asumsi", "detik", "ms"]);
+  });
+});
+
+describe("tinjauan 5.29: jawaban tebakan belum tertulis, asal angka enam, nama batas uji sama dengan 5.13, pelunak pgbench", () => {
+  const tanpaNoscript = badan.replace(/<noscript>[\s\S]*?<\/noscript>/g, "");
+  test("jawaban tebakan kalkulator (5 kali, 6.944,4, 6.900) hanya di noscript, bukan di prosa yang terlihat sebelum menebak", () => {
+    expect(badan).toContain("Jawaban tebakan adalah 5 kali.");
+    expect(tanpaNoscript).not.toMatch(/\b5 kali\b/);
+    expect(tanpaNoscript).not.toContain(angka(aktif10.puncak, 1));
+    expect(tanpaNoscript).not.toContain(duaAngka(aktif10.puncak));
+    expect(kalk.tebak.pilihan[kalk.tebak.jawaban]).toBe("5 kali");
+    expect(kalk.skenario[kalk.tebak.skenario]!.label).toBe("Aktif 10%");
+  });
+  test("jawaban tebakan blok Yang Raka kira ('Belum') tidak ada di prosa sebelum details.question", () => {
+    const blok = badan.split('<Blok nama="Yang Raka kira" buka>')[1]!.split('<details class="question">')[0]!;
+    expect(blok).not.toMatch(/\bBelum\b|\bsebagian\b/i);
+    expect(blok).toContain("Satu rekaman beban Tahap 5 ada di repo.");
+  });
+  test("enam panggilan di baris skor risiko berasal dari 5.13 dan rekaman latensi; batas uji 50 ms memakai nama 5.13, bukan 'anggaran' untuk lab", () => {
+    expect(hal513).toContain("Satu transaksi melewati enam panggilan: masuk kirim, perangkat ambil, perangkat kirim, riwayat ambil, riwayat kirim, masuk ambil hasil.");
+    expect(hal513).toContain("Batas uji 50 ms di lab adalah batas total satu transaksi alur skor (Asumsi lab)");
+    expect(readmeGabung).toContain("dibagi enam panggilan");
+    expect(badan).toContain("Satu transaksi di tiga proses melewati enam panggilan, dan dengan jeda buatan 10 ms per panggilan batas bawahnya 6 × 10 = 60 ms.");
+    expect(hitung(badan, "batas uji 50 ms")).toBe(2);
+    expect(badan).not.toMatch(/anggaran alur skor|anggaran 50 ms/i);
+    expect(hitung(badan, "Anggaran lompatan 50 ms di ADR 37")).toBe(1);
+  });
+  test("pgbench: pelunak 'possibly' di dokumentasi ikut ke halaman sebagai 'dapat lewat beberapa sesi'", () => {
+    const r251 = riset.split("\n").find((b) => b.startsWith("| R5-251 |"))!;
+    expect(r251).toContain("possibly in multiple concurrent database sessions");
+    expect(badan).toContain("dapat lewat beberapa sesi bersamaan");
+    expect(badan).not.toMatch(/berulang lewat beberapa sesi/);
   });
 });
