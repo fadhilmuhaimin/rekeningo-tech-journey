@@ -72,6 +72,9 @@ for (const path of HAL) {
   });
   const L = D.label, B = L.baris;
   lapor(kepala.peran === "group" && kepala.nama === D.judul, `${path} grup widget punya nama dari data: "${kepala.nama}"`);
+  // tombol skenario berada dalam grup bernama (SC 1.3.1, 4.1.2): nama dari data, enam tombol di dalamnya
+  const grupSkenario = await page.evaluate(() => { const g = document.querySelector(".kp .bb-row"); return { peran: g?.getAttribute("role"), nama: g?.getAttribute("aria-label"), tombol: g?.querySelectorAll("button").length }; });
+  lapor(grupSkenario.peran === "group" && grupSkenario.nama === D.label.ubah && grupSkenario.tombol === D.skenario.length, `${path} tombol skenario dalam grup bernama "${grupSkenario.nama}" (${grupSkenario.peran}, ${grupSkenario.tombol} tombol)`);
   lapor(kepala.chip === L.sumber && kepala.sumber === D.sumber.teks, `${path} chip sumber "${kepala.chip}" dan catatan sumber sama dengan data`);
   lapor(kepala.jumlahTabel === 1 && kepala.caption === L.caption, `${path} satu tabel dengan caption dari data`);
   lapor(JSON.stringify(kepala.kolom) === JSON.stringify([L.besaran, L.tanpa, L.dengan]), `${path} kepala kolom tabel`);
