@@ -171,7 +171,7 @@ Workbook menulis angka itu sebagai titik awal yang masuk akal, dan nilai yang te
 
 Bagian anggaran dihitung dari laju × jendela ÷ 720 jam, karena 30 hari adalah 720 jam. Hasilnya 14,4 × 1 ÷ 720 = 2%, 6 × 6 ÷ 720 = 5%, dan 1 × 72 ÷ 720 = 10% (Hitungan atas tabel Workbook). Laju 14,4 setara 14,4 × 0,1% = 1,44% permintaan gagal, dan menghabiskan anggaran dalam 720 ÷ 14,4 = 50 jam.
 
-Pada kegagalan total, jendela 1 jam mencapai 2% anggaran sesudah 2% × 43,2 = 0,864 menit, atau ±52 detik (Hitungan atas Asumsi, lalu lintas tetap). Satu kegagalan sepanjang RTO 15 menit ([[t5-rpo-rto]]) memakai 15 ÷ 43,2 = 34,7% anggaran. Lab t5-service dan t5-rollout tidak menghitung burn rate, jadi semua angka di bagian ini Hitungan atas Asumsi.
+Pada kegagalan total, jendela 1 jam mencapai 2% anggaran sesudah 2% × 43,2 = 0,864 menit, atau ±52 detik (Hitungan atas Asumsi, lalu lintas tetap). Satu kegagalan sepanjang RTO 15 menit ([[t5-rpo-rto]]) memakai 15 ÷ 43,2 = 34,7% anggaran. Lab t5-service dan t5-rollout tidak menghitung burn rate, jadi hitungan di bagian ini adalah Hitungan atas Asumsi, bukan rekaman. Angka dalam tabel berasal dari Workbook.
 
 Naskah menulis alert hanya untuk gejala: burn rate SLO, umur notifikasi uang tertua per kelas, selisih rekonsiliasi harian, dan relay outbox yang tertinggal (Asumsi). Rotasi jaga mingguan berlaku per tim. Buku SRE Google menulis bahwa tidak lebih dari 25% waktu seorang SRE dipakai untuk jaga ([SRE book, bab 11](https://sre.google/sre-book/being-on-call/), dibuka 2026-11-04). Angka itu dipakai sebagai pembanding, bukan aturan untuk tim produk (Penalaran):
 
@@ -181,7 +181,7 @@ Naskah menulis alert hanya untuk gejala: burn rate SLO, umur notifikasi uang ter
 | SRE | 2 | 1 ÷ 2 = 50% | di atas batas |
 | Security | 2 | 1 ÷ 2 = 50% | di atas batas |
 
-Naskah menulis rotasi per tim tanpa mengecualikan SRE dan Security. Bila keduanya ikut bergiliran sendiri, tiap orangnya jaga separuh dari semua minggu (Hitungan atas Asumsi). Cara lain memenuhinya tidak ditulis naskah.
+Naskah menulis rotasi per tim tanpa mengecualikan SRE dan Security. Bila keduanya ikut bergiliran sendiri, tiap orangnya jaga separuh dari minggu yang ada (Hitungan atas Asumsi). Cara lain memenuhinya tidak ditulis naskah.
 
 ### App Flutter dan Shorebird
 

@@ -558,7 +558,7 @@ describe("klaim negatif berlingkup: lab tidak menghitung burn rate, tidak memasa
     const berkas = daftar(["labs/t5-service/", "labs/t5-rollout/", "labs/api-t5/"]);
     expect(berkas.length).toBeGreaterThan(30);
     expect(berkas.filter((f) => /burn/i.test(tulisan(f)))).toEqual([]);
-    expect(halaman).toContain("Lab t5-service dan t5-rollout tidak menghitung burn rate, jadi semua angka di bagian ini Hitungan atas Asumsi.");
+    expect(halaman).toContain("Lab t5-service dan t5-rollout tidak menghitung burn rate, jadi hitungan di bagian ini adalah Hitungan atas Asumsi, bukan rekaman. Angka dalam tabel berasal dari Workbook.");
   });
   test("kode Go labs/api-t5 tidak mengimpor paket metrik atau log OpenTelemetry; jejak.go menyebut hanya trace", () => {
     const go = daftar(["labs/api-t5/"], /\.go$/);
