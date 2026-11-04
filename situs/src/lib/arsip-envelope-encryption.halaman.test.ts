@@ -455,6 +455,8 @@ describe("diagram Rantai, skenario alur, ADR 57, dan kartu Cek diri", () => {
   test("skenario t5-kms: lima langkah utama, varian mulai di 2 dengan tiga langkah; tiap baris kirim ada di rotasi.txt; angka jelas sama dengan rekaman", () => {
     expect(skenario.versi).toBe(2);
     expect(skenario.sumber).toMatchObject({ jenis: "rekaman", file: "labs/t5-kms/output/rotasi.txt", fileVarian: "labs/t5-kms/output/rotasi.txt" });
+    expect(badan).toContain('<WidgetLama nama="alur" src="data/skenario/t5-kms.json" />'); // widget memuat skenario ini, bukan skenario halaman lain
+    expect(badan).toContain('<SkripLama daftar={["hp","alur-core","alur"]} />');
     expect(skenario.komponen.map((k) => k.id)).toEqual(["op", "job", "bao"]);
     expect(skenario.langkah).toHaveLength(5);
     expect(skenario.varian.mulai).toBe(2);
