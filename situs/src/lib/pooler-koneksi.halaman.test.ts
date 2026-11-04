@@ -318,9 +318,14 @@ describe("rekaman pooler.txt dan kode lab: bagian, angka, dan rentang Snippet", 
     expect(memuat(/QueryExecMode/)).toEqual([]);
     expect(memuat(/pgx\/v5\/pgxpool/)).toEqual(["labs/api-t5/cmd/pooler/main.go"]);
     expect(memuat(/jitter/i)).toEqual(["labs/api-t5/internal/stream/kirim.go", "labs/api-t5/internal/worker/verifikasi.go", "labs/api-t5/internal/worker/worker.go"]);
+    // kalimat halaman memuat tes: seluruh berkas Go (termasuk tes) yang memuat kata jitter ada di dua folder itu, dan tak satu pun di cmd
+    const semuaGo = [...(terlacak ?? [])].filter((f) => /^labs\/api-t5\/.+\.go$/.test(f));
+    const denganJitter = semuaGo.filter((f) => /jitter/i.test(fs.readFileSync(path.join(akar, f), "utf8"))).sort();
+    expect(denganJitter).toEqual(["labs/api-t5/internal/stream/kirim.go", "labs/api-t5/internal/stream/kirim_test.go", "labs/api-t5/internal/worker/verifikasi.go", "labs/api-t5/internal/worker/worker.go", "labs/api-t5/internal/worker/worker_test.go"]);
+    expect(denganJitter.filter((f) => f.startsWith("labs/api-t5/cmd/"))).toEqual([]);
     expect(memuat(/MaxConnLifetime/)).toEqual([]);
     expect(memuat(/stdlib\.OpenDB/)).toEqual(["labs/api-t5/cmd/api/main.go", "labs/api-t5/cmd/ledger/main.go", "labs/api-t5/cmd/stream/main.go"]);
-    expect(badan).toContain("Backoff dengan jitter ([[t2-idempotency]]) ada di kode lab untuk pengiriman ke penyedia push dan verifikasi, yaitu di `internal/worker` dan `internal/stream`. Di `labs/api-t5`, kata jitter tidak muncul di `cmd` maupun di file Go lain selain tes.");
+    expect(badan).toContain("Backoff dengan jitter ([[t2-idempotency]]) ada di kode lab untuk pengiriman ke penyedia push dan verifikasi, yaitu di `internal/worker` dan `internal/stream`. Di file Go `labs/api-t5`, kata jitter hanya muncul di dua folder itu, termasuk tes keduanya, dan tidak muncul di `cmd`.");
   });
 });
 
@@ -540,7 +545,7 @@ describe("sumber luar: baris riset, tanggal akses, tautan, versi, dan kutipan", 
     for (const q of ["The default is the greater of 4 or runtime.NumCPU().", "(default 0)", "This helps prevent all connections from being closed at the exact same time, starving the pool.", "This is the default.", "may be incompatible with proxies such as PgBouncer", "This may cause problems with connection poolers that switch the underlying connection between round trips.", "The default is 0 (unlimited).", "dibuka 2023-07-14", "pgx v5.4.1", "Please try pgx v5.4.2. It resolved some issues with connections not being correctly cleaned up."]) expect(r, q).toContain(q);
     expect(r).toContain("berkas itu tidak memuat kata jitter");
     expect(badan).toContain("Di pgx v5.11.0, bawaan `pgxpool.Config.MaxConns` adalah yang lebih besar antara 4 dan `runtime.NumCPU()`. Jitter bawaannya 0.");
-    expect(badan).toContain("Isu pgx#1687 melaporkan pool menumpuk bersama `query_wait_timeout`. Pelapor memakai pgx v5.4.1, isu itu terbuka sejak 2023-07-14, dan pemilik pgx menjawab bahwa v5.4.2 memperbaiki koneksi yang tidak dibersihkan dengan benar. Apakah masalah itu ada di v5.11.0 belum diperiksa [perlu verifikasi].");
+    expect(badan).toContain("Isu pgx#1687 melaporkan pool menumpuk bersama `query_wait_timeout`. Pelapor memakai pgx v5.4.1, dan isu itu terbuka sejak 2023-07-14. Pemilik pgx menjawab agar pelapor mencoba v5.4.2, yang menurutnya memperbaiki sebagian masalah koneksi yang tidak dibersihkan dengan benar. Apakah masalah itu ada di v5.11.0 belum diperiksa [perlu verifikasi].");
     expect(badan).toContain("File `sql.go` di Go 1.27.3 tidak memuat kata jitter (dicari di teks file)");
     expect(badan).toContain("Pengaturan `MaxConnLifetimeJitter` hanya ada di `pgxpool`.");
     expect(r).toContain("This helps prevent all connections from being closed at the exact same time, starving the pool.");
@@ -556,7 +561,7 @@ describe("sumber luar: baris riset, tanggal akses, tautan, versi, dan kutipan", 
   });
   test("R5-193: enam tab stack — versi, kutipan, klaim negatif berlingkup 'dicari di teks halaman'; enam label tab dan urutan slot", () => {
     const r = barisRiset("R5-193");
-    for (const q of ["Django 5.2", "closing the database connection at the end of each request", "New in Django 5.1", "is ignored with psycopg2", "requires disabling server-side cursors for that connection.", "v13.39.0", "Laravel automatically enables emulated prepares for the pooled connection.", "By default this is set to 10", "pg 8.23.1", "postgres 4.0.0", "By default `max` is 10", "Serverpod 4.1.0", "a maximum of 10 connections to the database", "The shared pooler doesn't support prepared statements in transaction mode.", "Unlike the shared pooler, it supports prepared statements on PgBouncer 1.21 and later.", "This pool size applies per database user (role), not as a single total for the whole project.", "past 40% of the Database Max Connections. Otherwise, you can commit 80% to the pool."]) expect(r, q).toContain(q);
+    for (const q of ["Django 5.2", "closing the database connection at the end of each request", "New in Django 5.1", "is ignored with psycopg2", "requires disabling server-side cursors for that connection.", "v13.40.0", "Laravel automatically enables emulated prepares for the pooled connection.", "By default this is set to 10", "pg 8.23.1", "postgres 4.0.0", "By default `max` is 10", "Serverpod 4.1.0", "a maximum of 10 connections to the database", "The shared pooler doesn't support prepared statements in transaction mode.", "Unlike the shared pooler, it supports prepared statements on PgBouncer 1.21 and later.", "This pool size applies per database user (role), not as a single total for the whole project.", "past 40% of the Database Max Connections. Otherwise, you can commit 80% to the pool."]) expect(r, q).toContain(q);
     expect(r).toContain("halaman itu tidak memuat kata PgBouncer");
     expect(r).toContain("halaman itu tidak memuat kata PgBouncer atau pooler");
     expect(badan).toContain('<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>');
@@ -587,9 +592,14 @@ describe("tanggal, versi, port, dan tabel Sengaja belum: token diturunkan dari b
     const sah = new Set<string>(["2026-11-04"]);
     for (const m of r.matchAll(/(\d{4}-\d{2}-\d{2}) - PgBouncer (1\.\d+\.\d+)/g)) sah.add(m[1]!);
     sah.add(barisRiset("R5-191").match(/dibuka (\d{4}-\d{2}-\d{2}), status terbuka/)![1]!);
+    // rilis terbaru Laravel di Packagist: versi dan tanggalnya dibaca dari baris riset R5-193, dan halaman menulis keduanya persis
+    const lv = barisRiset("R5-193").match(/rilis terbaru (v\d+\.\d+\.\d+), (\d{4}-\d{2}-\d{2})T/)!;
+    expect([lv[1], lv[2]]).toEqual(["v13.40.0", "2026-11-03"]);
+    expect(badan).toContain(`(rilis terbaru di Packagist ${lv[1]}, ${lv[2]})`);
+    sah.add(lv[2]!);
     const ditemukan = [...badan.matchAll(/\d{4}-\d{2}-\d{2}/g)].map((m) => m[0]);
     for (const t of ditemukan) expect(sah.has(t), t).toBe(true);
-    expect([...sah].sort()).toEqual(["2023-07-14", "2023-10-16", "2025-01-10", "2026-09-23", "2026-10-14", "2026-11-04"].filter((x) => x !== "2026-09-23"));
+    expect([...sah].sort()).toEqual(["2023-07-14", "2023-10-16", "2025-01-10", "2026-10-14", "2026-11-03", "2026-11-04"]);
     // tiap tanggal rilis yang ditulis halaman dipasangkan dengan versinya persis seperti di baris riset
     for (const [tgl, v] of [["2026-10-14", "1.26.1"], ["2025-01-10", "1.24.0"], ["2023-10-16", "1.21.0"]] as const) {
       expect(barisRiset("R5-190"), `${tgl} ${v}`).toContain(`${tgl} - PgBouncer ${v}`);

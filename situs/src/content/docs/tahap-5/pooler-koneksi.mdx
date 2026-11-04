@@ -152,7 +152,7 @@ Kolom `cl_waiting` di perintah `SHOW POOLS` menghitung client yang sudah mengiri
 
 Server `api-t5` memakai `database/sql` lewat `stdlib.OpenDB`, bukan `pgxpool`. File `sql.go` di Go 1.27.3 tidak memuat kata jitter (dicari di teks file), jadi `database/sql` tidak punya padanannya. Pengaturan `MaxConnLifetimeJitter` hanya ada di `pgxpool`.
 
-Backoff dengan jitter ([[t2-idempotency]]) ada di kode lab untuk pengiriman ke penyedia push dan verifikasi, yaitu di `internal/worker` dan `internal/stream`. Di `labs/api-t5`, kata jitter tidak muncul di `cmd` maupun di file Go lain selain tes. Penyambungan ulang ke database dengan backoff dan jitter Tidak dijalankan.
+Backoff dengan jitter ([[t2-idempotency]]) ada di kode lab untuk pengiriman ke penyedia push dan verifikasi, yaitu di `internal/worker` dan `internal/stream`. Di file Go `labs/api-t5`, kata jitter hanya muncul di dua folder itu, termasuk tes keduanya, dan tidak muncul di `cmd`. Penyambungan ulang ke database dengan backoff dan jitter Tidak dijalankan.
 
 **Hitungan koneksi.** Tabel memakai angka yang tertulis di halaman ini. Skenario 5 pod, 8 pod, dan pool pod 5 adalah pilihan penulis:
 
@@ -203,7 +203,7 @@ Tab Go dijalankan sebagian di lab. Tab lain tidak dijalankan, dan hanya dicek ke
 </Fragment>
 <Fragment slot="t2">
 
-*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database) (Packagist memuat v13.39.0), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database) (rilis terbaru di Packagist v13.40.0, 2026-11-03), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
 
 <Snippet lang="php" code={`'pgsql' => [
     'driver' => 'pgsql',
@@ -292,7 +292,7 @@ Halaman manajemen koneksi menulis ukuran pool per role. Halaman itu juga menyebu
 
 - Saat service butuh `SET`, `LISTEN`, advisory lock tingkat sesi, atau `PREPARE` tingkat SQL. Service itu perlu koneksi langsung atau pooler mode session.
 - Saat pooler menjadi titik gagal tunggal. Catatan rilis 1.26.1 menulis satu client tanpa autentikasi bisa membuat PgBouncer berhenti melayani semua client pada 1.20.0 sampai 1.26.0, dengan syarat `ignore_startup_parameters` tidak kosong.
-- Saat client menunggu server lebih dari `query_wait_timeout` 120 detik dan diputus, sehingga badai koneksi menjadi badai timeout. Isu pgx#1687 melaporkan pool menumpuk bersama `query_wait_timeout`. Pelapor memakai pgx v5.4.1, isu itu terbuka sejak 2023-07-14, dan pemilik pgx menjawab bahwa v5.4.2 memperbaiki koneksi yang tidak dibersihkan dengan benar. Apakah masalah itu ada di v5.11.0 belum diperiksa [perlu verifikasi].
+- Saat client menunggu server lebih dari `query_wait_timeout` 120 detik dan diputus, sehingga badai koneksi menjadi badai timeout. Isu pgx#1687 melaporkan pool menumpuk bersama `query_wait_timeout`. Pelapor memakai pgx v5.4.1, dan isu itu terbuka sejak 2023-07-14. Pemilik pgx menjawab agar pelapor mencoba v5.4.2, yang menurutnya memperbaiki sebagian masalah koneksi yang tidak dibersihkan dengan benar. Apakah masalah itu ada di v5.11.0 belum diperiksa [perlu verifikasi].
 - Saat koneksi pod melewati `max_client_conn`: 8 pod tiap service memberi 480 client lawan 400 per instance (Hitungan atas Asumsi). Pembanding naskah: 180 lawan 400.
 - Saat p95 lompatan tambahan melewati 50 ms, anggaran satu lompatan di [[t4-modul]] (Asumsi). Lab memakai satu mesin dan tidak mengukurnya (Tidak dijalankan).
 
