@@ -874,6 +874,8 @@ describe("halaman istilah WAF dan Nonce dan baris glosarium: angka dari rekaman,
     expect(istilahWaf.sumber[1]!.catatan).toBe("Coraza adalah WAF yang ditulis dalam Go dan dipakai lab sebagai library di proses gerbang. README menandai plugin Caddy dan ekstensi WASM Traefik sebagai butuh pemelihara.");
     expect(istilahWaf.sumber[2]!.catatan).toBe(`Delapan dari delapan payload serangan dijawab 403, ${SAH.uji} payload sah lolos, referensi ${KARAKTER} karakter dijawab ${KODE_VALIDASI} oleh api-t5, dan mode waf-deteksi tidak memblokir satu pun.`);
     expect(fs.existsSync(path.join(akar, istilahWaf.sumber[2]!.rekaman!))).toBe(true);
+    expect(istilahWaf.sehari_hari).toBe("WAF adalah penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan serangan, lalu menolak permintaan yang cocok. Aturannya bisa berupa kumpulan seperti OWASP CRS.");
+    expect(istilahWaf.sumber.map((x) => x.judul)).toEqual(["OWASP CRS: Anomaly Scoring dan Paranoia Levels (dibuka 2026-11-04)", "Coraza: README (dibuka 2026-11-04)", "Rekaman lab t5-waf: waf.txt bagian A sampai D"]);
     expect(istilahWaf.stack).toBeNull();
     expect(istilahWaf.terkait).toEqual(["Rate limit", "API gateway"]);
   });
