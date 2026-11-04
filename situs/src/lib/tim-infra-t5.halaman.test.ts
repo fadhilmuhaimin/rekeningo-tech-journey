@@ -194,10 +194,10 @@ describe("registry, naskah, dan struktur: nomor, jenis, jalur, lima blok, impor,
   });
   test("tautan [[id]]: himpunan sama dengan yang diharapkan; nomor dan judul sama dengan registry", () => {
     const id = [...new Set([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!))].sort();
-    expect(id).toEqual(["E1", "berikutnya", "t4-infra-secret", "t4-tim-infra", "t5-adr-60", "t5-m44", "t5-m46", "t5-m49", "t5-m51", "t5-onprem", "t5-prd", "t5-rollout", "t5-rpo-rto", "t5-service"]);
+    expect(id).toEqual(["E1", "berikutnya", "t4-infra-secret", "t4-tim-infra", "t5-adr-60", "t5-m44", "t5-m46", "t5-m49", "t5-onprem", "t5-prd", "t5-rollout", "t5-rpo-rto", "t5-service"]);
     const sesuai: [string, string, string][] = [
       ["E1", "1.33", "App versi lama"], ["t4-infra-secret", "4.17", "Secret manager, IaC"], ["t4-tim-infra", "4.26", "Tim dan infra Tahap 4"],
-      ["t5-adr-60", "5.30", "ADR 60"], ["t5-m44", "5.12", "M44"], ["t5-m46", "5.16", "M46"], ["t5-m49", "5.22", "M49"], ["t5-m51", "5.29", "M51"],
+      ["t5-adr-60", "5.30", "ADR 60"], ["t5-m44", "5.12", "M44"], ["t5-m46", "5.16", "M46"], ["t5-m49", "5.22", "M49"],
       ["t5-onprem", "5.28", "On-prem lawan cloud"], ["t5-prd", "5.1", "PRD v5"], ["t5-rollout", "5.23", "Progressive delivery"], ["t5-rpo-rto", "5.9", "RPO, RTO"], ["t5-service", "5.13", "Dari modul ke service"],
     ];
     for (const [idh, nomor, awal] of sesuai) {
@@ -587,6 +587,65 @@ describe("klaim negatif berlingkup: lab tidak menghitung burn rate, tidak memasa
   });
 });
 
+describe("tab Di stack lain, tautan per kalimat, dan kalimat dengan kata kuat: tiap slot memuat dokumentasi stack-nya, tiap tautan berada di kalimatnya", () => {
+  test("tiap slot tab memuat dokumentasi tabnya (slot t0 sampai t5 menurut label)", () => {
+    const potong = badan.split(/<Fragment slot="t(\d)">/);
+    const isi: Record<string, string> = {};
+    for (let i = 1; i < potong.length; i += 2) isi[potong[i]!] = potong[i + 1]!.split("</Fragment>")[0]!;
+    expect(Object.keys(isi)).toEqual(["0", "1", "2", "3", "4", "5"]);
+    const harap: [string, string[]][] = [
+      ["0", ["lab t5-service dan api-t5", "jejak.go"]], ["1", ["OpenTelemetry JS", "sdk-node"]], ["2", ["OpenTelemetry PHP", "Laravel"]],
+      ["3", ["OpenTelemetry Python", "opentelemetry-instrumentation-django", "Django"]], ["4", ["Serverpod Docs", "Serverpod 4.1.0"]], ["5", ["Supabase: Log Drains", "Metrics API"]],
+    ];
+    for (const [k, kata] of harap) for (const x of kata) expect(isi[k]!, `slot t${k} memuat ${x}`).toContain(x);
+    for (const [k, kata] of harap) for (const [k2] of harap) if (k2 !== k) expect(isi[k2]!.includes(kata[0]!), `slot t${k2} tidak memuat ${kata[0]}`).toBe(false);
+  });
+  test("tautan [[id]] ada di kalimat yang menyebut halamannya", () => {
+    const kalimat: string[] = [
+      "Pemeriksaannya contract, SAST, SBOM, dan tanda tangan atas digest, lalu ditambah canary dengan rollback otomatis ([[t5-rollout]]) dan tes beban terjadwal.",
+      "GitOps berarti keadaan yang diinginkan ditulis di repo, dan alat menyamakan cluster dengannya ([[t5-rollout]]).",
+      "dan angka itu Asumsi produk di PRD v5 ([[t5-prd]]).",
+      "dan rata-rata 138,9 request per detik ([[t5-prd]]).",
+      "yaitu 43,2 menit anggaran (Asumsi produk, [[t5-prd]]).",
+      "Satu kegagalan sepanjang RTO 15 menit ([[t5-rpo-rto]]) memakai",
+      "SRE melatih failover tiap bulan dan memegang tinjauan SLO ([[t5-rpo-rto]]).",
+      "canary dengan rollback otomatis ([[t5-rollout]]).",
+      "karena Argo CD Tidak dijalankan ([[t5-rollout]]).",
+      "Tiap service dipegang 28 ÷ 6 = 4,7 orang (Hitungan atas Asumsi, angka yang sama di [[t5-service]]).",
+      "**Yang akan merevisinya.** [[t5-onprem]] menimbang tim Platform dan SRE yang tumbuh melewati 6 orang, dari 4 + 2 sekarang. [[t5-adr-60]] menulis pemicu provenance SLSA dan atestasi app yang masih ditunda.",
+      "Rilis store bertahap dan versi app lama tetap mengikuti [[E1]].",
+      "ADR 44 baru memindai file konfigurasi staging, dan rekamannya hanya dua file contoh ([[t4-infra-secret]]).",
+      "Pipeline per service memperluas pemeriksaan ADR 44 di [[t4-tim-infra]].",
+      "| Provenance SLSA dan atestasi app | Pihak luar belum memintanya | [[t5-adr-60]] |",
+      "[[t5-m44]] mencatat rilis yang menunggu lima tim, [[t5-m46]] mencatat latihan failover yang membuat semua service error, dan [[t5-m49]] mencatat canary 5% yang jadi sepertiga.",
+      "Delapan tim merilis enam service ([[t5-m44]]), latihan failover membuat semua service error ([[t5-m46]]), dan canary 5% jadi sepertiga ([[t5-m49]]).",
+      "dan menutup satu butir \"Sengaja belum\" di [[t4-tim-infra]], yaitu pemindai kunci atas state IaC.",
+      "dan canary dengan rollback otomatis ([[t5-rollout]]).",
+    ];
+    for (const k of kalimat) expect(badan, k).toContain(k);
+    expect(hitungKali(badan, "[[t5-rollout]]")).toBe(4);
+    expect(hitungKali(badan, "[[t5-prd]]")).toBe(3);
+  });
+  test("kalimat dengan kata kuat (harus, sebaiknya, dapat, tail dan head sampling) sama dengan sumbernya", () => {
+    for (const k of [
+      "dan semua span satu trace harus sampai ke instance Collector yang sama.",
+      "untuk status 4xx, span server harus dibiarkan tanpa status dan span client sebaiknya Error",
+      "**Keputusan: opsi B untuk pipeline dan opsi F untuk trace.** Sembilan aturan:",
+      "Head sampling memutuskan di awal tanpa melihat isi trace",
+      "Tail sampling memutuskan sesudah melihat semua atau sebagian besar span satu trace.",
+      "Collector menjalankan tail sampling: semua trace berkesalahan disimpan dan sisanya disampel 5%",
+      "| F. Tail sampling di Collector |",
+      "| E. Head sampling saja |",
+      "Shorebird v1.6.131 hanya untuk perbaikan Dart, tiap patch lewat feature flag.",
+      "Versi yang dibaca adalah v1.6.131, terbit 2026-10-23.",
+      "- **E ditolak** karena head sampling tidak bisa menjamin trace berkesalahan tersimpan.",
+      "- **D ditolak** karena 48,0 GB per hari tersimpan penuh, sedangkan tail sampling menyimpan 2,9 GB",
+    ]) expect(badan, k).toContain(k);
+    expect(hitungKali(halaman, "v1.6.131")).toBe(2);
+    expect(hitungKali(halaman, "Tail sampling") + hitungKali(halaman, "tail sampling")).toBeGreaterThanOrEqual(10);
+  });
+});
+
 describe("pilah: delapan kartu, empat kelompok, jawaban diturunkan dari naskah, posisi tidak berpola", () => {
   const p = pilahMentah;
   const kelompok = p.kelompok;
@@ -757,7 +816,7 @@ describe("label sumber, glosarium, kartu, dan Cek diri: label turunan didefinisi
 });
 
 // --- lapis 2: kunci per baris, sidik kata penentu, struktur, angka, dan label
-const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "delapan", "atau", "dan", "kecuali", "sekali", "minimal", "maksimal", "sepertiga", "seperdua belas", "stable", "development", "beta", "release candidate", "page", "tiket", "kapan", "salah"];
+const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling banyak", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "delapan", "atau", "dan", "kecuali", "sekali", "minimal", "maksimal", "sepertiga", "seperdua belas", "stable", "development", "beta", "release candidate", "page", "tiket", "kapan", "salah", "tail sampling", "head sampling", "harus", "sebaiknya", "dapat", "mungkin", "misalnya", "bisa", "perlu"];
 const sidikKata = (teks: string, kata2: string[]): Record<string, number> =>
   Object.fromEntries(kata2.map((k) => [k, (teks.toLowerCase().match(new RegExp(`(?<![\\w-])${k}(?![\\w-])`, "g")) ?? []).length]));
 const nilaiString = (x: unknown, keluar: string[] = []): string[] => {
@@ -801,6 +860,8 @@ const sidikSekarang = {
   struktur: struktur.join(" "), angka: prosa2.flatMap((b) => angkaDari(b)).join(" "),
   tabel: badan.split("\n").filter((b) => b.startsWith("|")).map(h16),
   riset: RISET_IDS.map((id) => h16(barisRiset(id))),
+  token: h16((halaman.match(/[\w.-]*\d[\w.-]*/g) ?? []).join(" ")),
+  tautan: Object.fromEntries([...new Set([...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!))].sort().map((id) => [id, hitungKali(badan, `[[${id}]]`)])),
   glosarium: glosarium4.map(h16),
   berkas: { rantai: h16(JSON.stringify(rantaiMentah)), pilah: h16(JSON.stringify(pilahMentah)), kartu: h16(JSON.stringify(kartuT5)), frontmatter: h16(halaman.split("\n---\n")[0]!) },
 };
@@ -841,6 +902,8 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka
     expect(sidikSekarang.angka).toBe(SIDIK.angka);
     expect(sidikSekarang.tabel).toEqual(SIDIK.tabel);
     expect(sidikSekarang.riset).toEqual(SIDIK.riset);
+    expect(sidikSekarang.token).toBe(SIDIK.token);
+    expect(sidikSekarang.tautan).toEqual(SIDIK.tautan);
     expect(sidikSekarang.glosarium).toEqual(SIDIK.glosarium);
     expect(sidikSekarang.berkas).toEqual(SIDIK.berkas);
   });
