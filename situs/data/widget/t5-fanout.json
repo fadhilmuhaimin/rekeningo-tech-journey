@@ -121,7 +121,7 @@
   ],
   "uang": [
     {
-      "teks": "Kelas antrean mengurutkan uang di depan 3.000 baris promo di outbox: satu putaran worker mengirim empat baris uang. Kelas hanya mengatur urutan di antrean yang sama, sedangkan penyedia push dan kuotanya dipakai bersama.",
+      "teks": "Kelas queue mengurutkan uang di depan 3.000 baris promo di outbox: satu putaran worker mengirim empat baris uang. Kelas hanya mengatur urutan di queue yang sama, sedangkan penyedia push dan kuotanya dipakai bersama.",
       "berkas": "antrean.txt",
       "bagian": "A",
       "bukti": [
@@ -171,7 +171,7 @@
     },
     "tabel": {
       "caption": "Pengumuman yang sama dengan dua jumlah partisi",
-      "kolom": { "consumer": "Consumer bekerja", "antrean": "Antrean tiap partisi", "laju": "Laju kirim", "selesai": "Selesai dalam", "kuota": "Kuota terpakai", "akibat": "Akibat" }
+      "kolom": { "consumer": "Consumer bekerja", "antrean": "Queue tiap partisi", "laju": "Laju kirim", "selesai": "Selesai dalam", "kuota": "Kuota terpakai", "akibat": "Akibat" }
     },
     "kelompok": { "sebanyak": "{partisi} partisi, sebanyak consumer", "lab": "{partisi} partisi, seperti di lab" },
     "sel": {

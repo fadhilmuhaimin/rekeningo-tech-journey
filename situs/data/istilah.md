@@ -41,6 +41,8 @@
 *[alamat keluar]: Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.
 *[Alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
 *[alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
+*[Alert TLS]: Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.
+*[alert TLS]: Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.
 *[Allowlist]: Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.
 *[allowlist]: Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.
 *[API gateway]: Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing.
@@ -63,6 +65,8 @@
 *[badai koneksi]: Banyak pool menyambung ke database pada waktu yang sama sampai batas koneksinya terlewati, sehingga sebagian koneksi ditolak.
 *[Batch]: Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.
 *[batch]: Satu putaran job yang mengerjakan banyak data sekaligus, mis. semua angsuran yang jatuh tempo hari itu.
+*[Backpressure]: Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.
+*[backpressure]: Pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya, supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.
 *[BFF]: Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.
 *[Backend for Frontend]: Endpoint atau service yang dibentuk khusus untuk satu jenis client, mis. satu endpoint beranda untuk app mobile.
 *[Branch protection]: Aturan di GitHub tentang apa yang boleh masuk ke satu branch: persetujuan wajib, status check wajib, dan larangan force push.
@@ -96,6 +100,8 @@
 *[connection pool]: Sekumpulan koneksi database yang dibuka sekali lalu dipinjamkan bergantian ke request.
 *[Container]: Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server.
 *[container]: Paket aplikasi beserta semua dependensinya yang berjalan dengan cara sama di laptop maupun server.
+*[Consumer group]: Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.
+*[consumer group]: Kumpulan consumer Kafka yang membaca satu topik bersama, dengan tiap partisi dibaca tepat satu consumer dalam grup itu pada satu waktu.
 *[CRC]: Angka pendek yang dihitung dari isi data untuk mendeteksi data yang salah terbaca atau rusak saat dikirim; rumusnya terbuka dan tanpa key, jadi bukan bukti keaslian.
 *[CRDT]: Jenis data yang dirancang supaya perubahan dari beberapa salinan yang boleh berbeda sementara bisa digabung otomatis.
 *[Credential stuffing]: Mencoba pasangan email dan password dari kebocoran situs lain di pintu login, dengan harapan sebagian orang memakai ulang password yang sama.
@@ -240,6 +246,8 @@
 *[modular monolith]: Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.
 *[Monolith]: Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit.
 *[monolith]: Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit.
+*[mTLS]: TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.
+*[mutual TLS]: TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.
 *[MVCC]: Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis.
 *[N+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[n+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
@@ -276,10 +284,12 @@
 *[pagination]: Membagi daftar panjang menjadi potongan kecil yang diminta satu per satu.
 *[Pagination kursor]: Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.
 *[pagination kursor]: Pagination yang meminta baris sesudah nilai urutan baris terakhir yang sudah tampil, bukan halaman ke-N, jadi tetap stabil saat baris baru masuk.
+*[Partisi]: Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.
+*[partisi]: Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.
+*[Partisi topik]: Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.
+*[partisi topik]: Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.
 *[Partitioning]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
 *[partitioning]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
-*[partisi]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
-*[Partisi]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
 *[Passkey]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
 *[passkey]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
 *[WebAuthn]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
@@ -344,6 +354,8 @@
 *[saga]: Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.
 *[Saldo cache]: Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.
 *[saldo cache]: Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.
+*[SAN]: Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.
+*[Subject Alternative Name]: Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.
 *[Secret manager]: Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.
 *[secret manager]: Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.
 *[Secure storage]: Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore.

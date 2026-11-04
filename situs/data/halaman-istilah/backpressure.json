@@ -1,0 +1,45 @@
+{
+  "istilah": "Backpressure",
+  "sehari_hari": "Backpressure adalah pembatasan laju oleh pihak yang lebih lambat terhadap pihak di hulunya. Tujuannya supaya queue di tengah tidak tumbuh tanpa batas dan pihak hilir tidak kewalahan.",
+  "cerita": [
+    {
+      "rujukan": "t5-fanout",
+      "teks": "Penyedia push tiruan menjawab 429 di atas kuota, dan pengirim menjawabnya dengan backoff serta batas laju per proses (Rekaman lab, kuota.txt dan antrean.txt)."
+    }
+  ],
+  "mekanisme": [
+    "Pihak hilir punya batas, misalnya kuota penyedia push atau kecepatan consumer.",
+    "Pada sistem tarik seperti Kafka, consumer mengambil rekaman sendiri. Dokumentasi menulis bahwa consumer cukup tertinggal dan menyusul saat ia sanggup.",
+    "Pada penyedia berkuota, kelebihan dijawab 429. Pengirim mundur dengan backoff dan jitter, dan membatasi lajunya per proses.",
+    "Jumlah proses dikali batas laju per proses harus tetap di bawah kuota. Di lab 3 × 200 = 600 per detik lawan kuota 1.000."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengulang segera sesudah 429 menambah permintaan. Di lab, tanpa backoff jumlah 429 paling sedikit dua kali lebih banyak.",
+    "Mengira kelas queue melindungi uang dari kuota yang dihabiskan pengumuman. Kelas hanya mengatur urutan klaim di outbox."
+  ],
+  "terkait": [
+    "Backoff",
+    "At-least-once",
+    "Queue"
+  ],
+  "sumber": [
+    {
+      "riset": "R5-180",
+      "judul": "Apache Kafka 4.3: Design, bagian Push vs. pull (dibuka 2026-11-04)",
+      "url": "https://github.com/apache/kafka/blob/4.3/docs/design/design.md",
+      "catatan": "Pada sistem tarik, consumer cukup tertinggal dan menyusul saat ia sanggup; pada sistem dorong consumer cenderung kewalahan."
+    },
+    {
+      "riset": "R5-288",
+      "judul": "Firebase Cloud Messaging: Throttling and Quotas (dibuka 2026-11-02)",
+      "url": "https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas",
+      "catatan": "Kuota bawaan 600 ribu pesan per menit per proyek; kelebihan dijawab 429."
+    },
+    {
+      "judul": "Rekaman lab t5-fanout: kuota bersama pengumuman dan uang",
+      "rekaman": "labs/t5-fanout/output/antrean.txt",
+      "catatan": "Bagian B: dengan batas laju uang tidak dijawab 429; tanpa batas laju dan tanpa backoff uang ikut dijawab 429."
+    }
+  ]
+}

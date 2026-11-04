@@ -383,7 +383,7 @@ describe("sumber: kalimat turunan yang lolos mutasi tanpa kunci baris", () => {
     const b = hitung(d, n, p, "lab");
     expect(namaKelompok(d, a)).toBe(`${a.consumer} partisi, sebanyak consumer`);
     expect(namaKelompok(d, b)).toBe(`${d.skenario.partisiLab} partisi, seperti di lab`);
-    expect(d.label.tabel.kolom.antrean).toBe("Antrean tiap partisi");
+    expect(d.label.tabel.kolom.antrean).toBe("Queue tiap partisi");
     expect(a.perPartisi).toBeCloseTo(n.jumlah / a.consumer, 6);
   });
 });
