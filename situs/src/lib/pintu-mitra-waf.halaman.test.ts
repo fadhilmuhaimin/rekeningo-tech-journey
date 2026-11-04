@@ -77,6 +77,11 @@ const hal47 = baca("situs/src/content/docs/tahap-4/webhook-masuk.mdx");
 const hal51 = baca("situs/src/content/docs/tahap-5/prd-v5.mdx");
 const hal524 = baca("situs/src/content/docs/tahap-5/m50-satu-pos.mdx");
 const hal530 = baca("situs/src/content/docs/tahap-5/sengaja-belum.mdx");
+const istilahWaf = JSON.parse(baca("situs/data/halaman-istilah/waf.json")) as IstilahJson;
+const istilahNonce = JSON.parse(baca("situs/data/halaman-istilah/nonce.json")) as IstilahJson;
+const glosarium = baca("situs/src/content/docs/alat/glosarium.mdx");
+const glosJson = JSON.parse(baca("situs/data/glosarium.json")) as { t: string; d: string; b: string; s: string; h?: string }[];
+interface IstilahJson { istilah: string; sehari_hari: string; cerita: { rujukan: string; teks: string }[]; mekanisme: string[]; stack: unknown; jebakan: string[]; terkait: string[]; sumber: { riset?: string; judul: string; url?: string; rekaman?: string; catatan: string }[] }
 const kartuSemua = JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as { id: string; halaman: string; judul: string; url: string; tanya: string; jawab: string }[];
 const tanpaKunci = process.env.TANPA_KUNCI === "1";
 const tanpaSidik = process.env.TANPA_SIDIK === "1";
@@ -848,6 +853,65 @@ describe("Snippet: rentang diturunkan dari isi berkas, judul sesuai bagian rekam
   });
 });
 
+describe("halaman istilah WAF dan Nonce dan baris glosarium: angka dari rekaman, sumber dengan baris riset, tanggal akses, dan tetangga alfabet", () => {
+  test("waf.json: cerita memakai angka rekaman, mekanisme memuat pelunak CRS, sumber punya riset, url sama dengan halaman, dan tanggal akses sama dengan baris riset", () => {
+    expect(istilahWaf.istilah).toBe("WAF (web application firewall)");
+    expect(istilahWaf.cerita).toEqual([{ rujukan: "t5-waf", teks: `Gerbang di depan api-t5 memeriksa delapan payload serangan uji dengan Coraza dan CRS, dan semuanya dijawab 403 walau kunci dan tanda tangannya sah. Dari ${SAH.uji} payload POS yang sah, ${SAH_REF} hanya mengubah satu field, jadi angka itu bukan ukuran alarm palsu (\`waf.txt\` bagian A dan B).` }]);
+    expect(BLOKIR.dari).toBe(8);
+    expect(istilahWaf.mekanisme).toHaveLength(4);
+    expect(istilahWaf.mekanisme[1]).toBe("Tiap aturan CRS yang cocok menambah skor. Menurut dokumentasi CRS, sebagian besar ancaman masuk yang terdeteksi bernilai 5 secara bawaan.");
+    expect(istilahWaf.mekanisme[3]).toBe("Mesin DetectionOnly mencatat aturan yang cocok tanpa memblokir, jadi terbaca apa yang akan diblokir bila mesinnya menyala.");
+    expect(istilahWaf.jebakan[0]).toBe(`Mengira WAF memvalidasi isi. Kolom referensi berisi ${KARAKTER} karakter tanpa pola serangan lolos WAF dan ditolak API dengan ${KODE_VALIDASI} (\`waf.txt\` bagian C).`);
+    expect(istilahWaf.jebakan[1]).toBe(`Menyimpulkan tingkat alarm palsu dari satu daftar payload sah. Dari ${SAH.uji} payload di rekaman, ${SAH_REF} hanya mengubah satu field.`);
+    expect(istilahWaf.sumber.map((x) => [x.riset ?? "", x.url ?? x.rekaman])).toEqual([["R5-231", "https://coreruleset.org/docs/2-how-crs-works/2-1-anomaly_scoring/"], ["R5-230", "https://github.com/corazawaf/coraza#readme"], ["", "labs/t5-waf/output/waf.txt"]]);
+    for (const x of istilahWaf.sumber.filter((y) => y.url)) {
+      expect(x.judul).toContain("dibuka 2026-11-04");
+      expect(barisRiset(x.riset!)).toContain("dibuka 2026-11-04");
+      expect(badan).toContain(`](${x.url})`);
+    }
+    expect(istilahWaf.sumber[0]!.catatan).toBe("Skor dijumlahkan dan dibandingkan dengan ambang masuk; sebagian besar ancaman masuk yang terdeteksi bernilai 5 secara bawaan. Halaman paranoia level menulis level 1 hampir tidak pernah memicu alarm palsu, dan alarm palsu masih mungkin tergantung susunan lokal.");
+    expect(istilahWaf.sumber[1]!.catatan).toBe("Coraza adalah WAF yang ditulis dalam Go dan dipakai lab sebagai library di proses gerbang. README menandai plugin Caddy dan ekstensi WASM Traefik sebagai butuh pemelihara.");
+    expect(istilahWaf.sumber[2]!.catatan).toBe(`Delapan dari delapan payload serangan dijawab 403, ${SAH.uji} payload sah lolos, referensi ${KARAKTER} karakter dijawab ${KODE_VALIDASI} oleh api-t5, dan mode waf-deteksi tidak memblokir satu pun.`);
+    expect(fs.existsSync(path.join(akar, istilahWaf.sumber[2]!.rekaman!))).toBe(true);
+    expect(istilahWaf.stack).toBeNull();
+    expect(istilahWaf.terkait).toEqual(["Rate limit", "API gateway"]);
+  });
+  test("nonce.json: cerita memakai toleransi dari kode, sumber RFC 9421 bagian 7.2.2 dan tes Go, tanggal akses sama dengan baris riset", () => {
+    expect(istilahNonce.istilah).toBe("Nonce");
+    expect(istilahNonce.cerita).toEqual([{ rujukan: "t5-waf", teks: `Gerbang mitra POS menandatangani timestamp, method, alamat, dan byte body, tanpa nonce. Tes Go mencatat permintaan sah yang diputar ulang di dalam jendela ${TOLERANSI / 60} menit diterima lagi (\`testing.txt\` bagian A).` }]);
+    expect(istilahNonce.mekanisme).toHaveLength(4);
+    expect(istilahNonce.mekanisme[3]).toBe("Penerima menyimpan nilai selama dua kali toleransi timestamp, karena timestamp boleh di depan atau di belakang jam penerima.");
+    expect(istilahNonce.jebakan).toHaveLength(2);
+    expect(istilahNonce.jebakan[0]).toBe("Mengira timestamp saja menahan pengulangan. Di dalam jendela toleransi, pesan yang sama diterima lagi.");
+    expect(istilahNonce.jebakan[1]).toBe("Mengira Idempotency-Key sama dengan nonce. Key yang tidak ikut ditandatangani bisa diganti oleh pihak yang memutar ulang pesan.");
+    expect(istilahNonce.sumber[0]).toEqual({ riset: "R5-232", judul: "RFC 9421: HTTP Message Signatures, bagian 7.2.2 (dibuka 2026-11-04)", url: "https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2", catatan: "Parameter nonce memberi nilai unik per pesan supaya verifier bisa mendeteksi tanda tangan yang diulang. Penanda tangan juga bisa memberi timestamp pembuatan dan waktu kedaluwarsa." });
+    expect(barisRiset("R5-232")).toContain("RFC 9421 (Standards Track, Februari 2024) bagian 7.2.2");
+    expect(badan).toContain(`](${istilahNonce.sumber[0]!.url})`);
+    expect(istilahNonce.sumber[1]).toEqual({ judul: "Tes Go lab t5-waf: testing.txt bagian A", rekaman: "labs/t5-waf/output/testing.txt", catatan: "TestGerbangPutarUlangDalamJendelaDiterima: POST yang sama diterima tiga kali, dan Idempotency-Key yang diganti sampai ke hulu." });
+    expect(testingRek).toContain(`--- PASS: ${istilahNonce.sumber[1]!.catatan.split(":")[0]}`);
+    expect(istilahNonce.terkait).toEqual(["HMAC (hash-based message authentication code)", "Idempotency key"]);
+    expect(istilahNonce.stack).toBeNull();
+  });
+  test("glosarium: baris WAF dan Nonce menunjuk [[t5-waf]], urutan alfabet terjaga, nama terkait ada di glosarium.json, dan baris glosarium.json cocok", () => {
+    const baris = glosarium.split("\n");
+    const idx = (awal: string): number => { const i = baris.findIndex((b) => b.startsWith(awal)); expect(i, awal).toBeGreaterThan(0); return i; };
+    expect(baris[idx("| **Nonce** |")]).toBe("| **Nonce** | Nilai sekali pakai yang ikut dihitung dalam tanda tangan sebuah pesan, supaya penerima bisa menolak pesan yang sama bila nilainya muncul dua kali. | [[t5-waf]] |");
+    expect(baris[idx("| **WAF** (web application firewall) |")]).toBe("| **WAF** (web application firewall) | Penyaring di depan API yang memeriksa isi permintaan HTTP dengan aturan seperti OWASP CRS, lalu menolak permintaan yang cocok dengan pola serangan. | [[t5-waf]] |");
+    expect(idx("| **NetworkPolicy** |")).toBeLessThan(idx("| **Nonce** |"));
+    expect(idx("| **Nonce** |")).toBeLessThan(idx("| **Nonrepeatable read** |"));
+    expect(idx("| **Umur notifikasi tertua** |")).toBeLessThan(idx("| **WAF** (web application firewall) |"));
+    expect(idx("| **WAF** (web application firewall) |")).toBeLessThan(idx("| **WAL** (Write-Ahead Log) |"));
+    const nama = glosJson.map((x) => x.t);
+    for (const n of [...istilahWaf.terkait, ...istilahNonce.terkait]) expect(nama, n).toContain(n);
+    for (const [t, slug] of [["Nonce", "nonce"], ["WAF (web application firewall)", "waf"]] as const) {
+      const b = glosJson.find((x) => x.t === t)!;
+      expect(b.b).toBe("t5-waf");
+      expect(b.h).toBe(`/istilah/${slug}/`);
+    }
+    expect(badan).not.toMatch(/\/istilah\//);
+  });
+});
+
 describe("widget pilah, diagram Rantai, dan kartu Cek diri", () => {
   test("pilah: tujuh kelompok, sepuluh kejadian, tiap jawaban menunjuk kelompok yang ada, posisi jawaban bervariasi, kejadian kelima adalah putar ulang dengan key lain", () => {
     expect(pilah.judul).toBe("Siapa yang menangani kejadian ini di pintu mitra POS?");
@@ -1056,11 +1120,11 @@ const sidikSekarang = {
   struktur: struktur.join(" "), angka: prosa.flatMap((b) => angkaDari(b)).join(" "),
   tabel: badan.split("\n").filter((b) => b.startsWith("|")).map(h16),
   riset: ["R5-230", "R5-231", "R5-232", "R5-233", "R5-234"].map((id) => h16(barisRiset(id))),
-  berkas: { rantai: h16(JSON.stringify(rantaiMentah)), pilah: h16(JSON.stringify(pilah)), kartu: h16(JSON.stringify(kartuT5waf)), frontmatter: h16(halaman.split("\n---\n")[0]!) },
+  berkas: { rantai: h16(JSON.stringify(rantaiMentah)), pilah: h16(JSON.stringify(pilah)), kartu: h16(JSON.stringify(kartuT5waf)), istilahWaf: h16(JSON.stringify(istilahWaf)), istilahNonce: h16(JSON.stringify(istilahNonce)), glosarium: h16(glosarium.split("\n").filter((b) => /^\| \*\*(Nonce|WAF)\*\*/.test(b)).join("\n")), frontmatter: h16(halaman.split("\n---\n")[0]!) },
 };
 const sekarang = {
   halaman: halaman.split("\n").filter((b) => b.trim() !== ""),
-  json: { rantai: tekstual(rantaiMentah), pilah: tekstual(pilah), kartu: tekstual(kartuT5waf) },
+  json: { rantai: tekstual(rantaiMentah), pilah: tekstual(pilah), kartu: tekstual(kartuT5waf), istilahWaf: tekstual(istilahWaf), istilahNonce: tekstual(istilahNonce) },
   riset: Object.fromEntries(["R5-230", "R5-231", "R5-232", "R5-233", "R5-234"].map((id) => [id, barisRiset(id)])),
 };
 if (process.env.PERBARUI_KUNCI === "1") {
