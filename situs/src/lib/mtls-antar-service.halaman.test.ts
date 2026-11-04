@@ -531,8 +531,8 @@ describe("halaman istilah mTLS dan SAN dan glosarium", () => {
     expect([m.istilah, s.istilah]).toEqual(["mTLS (mutual TLS)", "SAN (Subject Alternative Name)"]);
     expect([m.cerita![0]!.rujukan, s.cerita![0]!.rujukan]).toEqual(["t5-m47", "t5-mtls"]);
     expect([m.sumber![0]!.riset, s.sumber![0]!.riset]).toEqual(["R5-200", "R5-200"]);
-    expect(m.sumber![0]!.url).toBe("https://www.rfc-editor.org/rfc/rfc8446");
-    expect(s.sumber![0]!.url).toBe("https://www.rfc-editor.org/rfc/rfc5280");
+    expect((m.sumber![0] as { url: string }).url).toBe("https://www.rfc-editor.org/rfc/rfc8446");
+    expect((s.sumber![0] as { url: string }).url).toBe("https://www.rfc-editor.org/rfc/rfc5280");
     expect(m.sumber![0]!.judul).toBe(`RFC 8446 bagian 4.4.2.4 dan Go crypto/tls (dibuka ${TANGGAL})`);
     expect(s.sumber![0]!.judul).toBe(`RFC 5280 bagian 4.2.1.6 (dibuka ${TANGGAL})`);
     expect(m.terkait).toEqual(["CA (Certificate Authority)", "Handshake TLS", "SAN (Subject Alternative Name)"]);
