@@ -926,6 +926,7 @@ describe("tinjauan 5.29: celah mutasi tanpa kunci ditutup (riset, header rekaman
     expect(beban).toContain("go1.27.3");
   });
   test("README t5-gabung dan t5-replika: enam panggilan, batas bawah 6 × jeda, delapan aturan, jeda buatan Asumsi, jeda antar wilayah Tidak dijalankan", () => {
+    expect(readmeGabung).toContain("Satu transaksi melewati enam panggilan antar proses");
     expect(readmeGabung).toContain("dibagi enam panggilan");
     expect(readmeGabung).toContain("paling sedikit 6 × jeda");
     expect(readmeGabung).toContain("Aturannya delapan kode alasan");
