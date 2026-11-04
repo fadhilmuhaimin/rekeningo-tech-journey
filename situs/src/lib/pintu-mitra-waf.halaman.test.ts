@@ -1332,4 +1332,33 @@ describe("kalimat naratif terikat ke kode, tes Go, dan rekaman, tanpa bergantung
     expect(kuotaGo).toContain("var skripBucket = redis.NewScript(");
     satu("Pembatas ini ditulis sendiri dan tidak memakai library rate limit.");
   });
+  test("kalimat sumber di halaman cocok dengan baris riset: kategori RFC, versi Go, tanggal paket, dan label stack", () => {
+    const r227 = barisRiset("R5-227"), r232 = barisRiset("R5-232"), r233 = barisRiset("R5-233");
+    satu("[RFC 9421](https://www.rfc-editor.org/rfc/rfc9421#section-7.2.2), Standards Track, dibuka 2026-11-04");
+    expect(r232).toContain("RFC 9421 (Standards Track, Februari 2024)");
+    satu("[RFC 3022](https://www.rfc-editor.org/rfc/rfc3022), Informational, dibuka 2026-11-04");
+    expect(r227).toContain("RFC 3022 (rfc-editor.org/rfc/rfc3022, Januari 2001, Informational,");
+    satu("go1.27.1 lokal sedangkan lab memakai go1.27.3");
+    expect(r232).toContain("toolchain go1.27.1 lokal");
+    expect(gerbangMod).toMatch(/^go 1\.27\.3$/m);
+    satu("8.7.3 (npm, diubah 2026-11-02), dibuka 2026-11-04");
+    expect(r233).toContain("express-rate-limit 8.7.3 (npm, diubah 2026-11-02T18:37:21Z)");
+    satu("[Laravel 13.x: Routing](https://laravel.com/docs/13.x/routing#rate-limiting)");
+    expect(r233).toContain("Laravel 13.x (`laravel/framework` v13.40.0 di Packagist");
+    satu("halaman itu menaruh penghitung di Redis lewat Upstash");
+    expect(r233).toContain("hitungan di Redis lewat Upstash");
+    satu("Serverpod 4.1.0 di pub.dev, terbit 2026-10-31)");
+    expect(r233).toContain("Serverpod 4.1.0 (pub.dev, terbit 2026-10-31T16:19:50Z;");
+  });
+  test("klaim baru tinjauan: dari header hanya timestamp ikut ditandatangani, arti HMAC sama dengan 4.7, dan pre-mortem tiga penyebab dalam enam bulan", () => {
+    expect(gerbangGo).toMatch(/PeriksaTanda\(rahasia, g\.Sekarang\(\), g\.Toleransi, r\.Header\.Get\(HeaderWaktu\), r\.Header\.Get\(HeaderTanda\),\s+r\.Method, r\.URL\.RequestURI\(\), isi\)/);
+    expect(tandaGo).toContain("func TandaTangan(rahasia string, ts int64, method, uri string, body []byte) string {");
+    satu("Tanda tangan gerbang tidak memuat nonce, dan dari header hanya nilai timestamp (`X-Waktu`) yang ikut dihitung. `Idempotency-Key`, `Content-Type`, dan `Host` tidak ikut (README lab dan fungsi `TandaTangan`, dibaca dari kode).");
+    expect(hal47).toContain("HMAC adalah nilai kriptografi dari data dan rahasia bersama, jadi hanya pihak yang tahu rahasia yang bisa membuatnya");
+    expect(glosJson.find((g) => g.t.startsWith("HMAC"))!.d).toContain("Nilai yang dihitung dari isi pesan dan rahasia bersama");
+    satu("HMAC, yang dipakai di widget, adalah nilai yang dihitung dari isi pesan dan secret bersama, jadi hanya pemegang secret yang bisa membuatnya ([[t4-webhook]]).");
+    satu("**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:");
+    const pm = badan.slice(badan.indexOf("**Pre-mortem.**"), badan.indexOf("**Kapan keputusan ini salah.**"));
+    expect([...pm.matchAll(/^(\d)\. /gm)].map((x) => x[1])).toEqual(["1", "2", "3"]);
+  });
 });
