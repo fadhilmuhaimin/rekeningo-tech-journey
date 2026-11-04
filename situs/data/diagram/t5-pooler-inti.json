@@ -1,0 +1,27 @@
+{
+  "id": "t5-pooler-inti",
+  "judul": "Koneksi yang diminta dan yang sampai ke PostgreSQL",
+  "sumber": {
+    "jenis": "rekaman",
+    "teks": "Rekaman lab api-t5 · pooler.txt"
+  },
+  "baris": [
+    {
+      "label": "12 client, 120 koneksi",
+      "sub": "role t5_app, max_connections 100",
+      "simpul": [
+        {
+          "teks": "Tanpa pooler: galat 53300",
+          "sub": "pooler.txt bagian A",
+          "nada": "warn"
+        },
+        {
+          "teks": "Lewat PgBouncer: paling banyak 20 koneksi ke PostgreSQL",
+          "sub": "pooler.txt bagian B",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Satu proses PgBouncer 1.26.1 di mode transaction, dan tiap koneksi hanya menjalankan SELECT 1 dengan jeda di antaranya. Rekaman ini menunjukkan jumlah koneksi, bukan kapasitas di bawah beban."
+}

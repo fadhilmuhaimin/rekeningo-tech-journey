@@ -1,0 +1,88 @@
+{
+  "judul": "Ledger versi pertama atau ledger dengan mTLS dan daftar jenis jurnal",
+  "opsi": [
+    {
+      "id": "rentan",
+      "nama": "A · Versi pertama (mode rentan)",
+      "baris": [
+        [
+          { "id": "pemanggil", "label": "Pemanggil", "sub": "siapa pun yang sampai ke port" },
+          { "id": "pintu", "label": "Port ledger", "sub": "HTTP biasa, tanpa handshake TLS" },
+          { "id": "handler", "label": "Handler jurnal", "sub": "topup_bank dan kartu_tahan" }
+        ],
+        [
+          { "id": "identitas", "label": "Identitas pemanggil", "sub": "tidak dibaca" },
+          { "id": "daftar", "label": "Daftar jenis jurnal", "sub": "tidak ada" },
+          { "id": "key", "label": "Idempotency-Key", "sub": "menandai permintaan" }
+        ]
+      ],
+      "judulBaris": ["", "Yang diperiksa ledger"]
+    },
+    {
+      "id": "mtls",
+      "nama": "B · mTLS dan daftar jenis jurnal (pilihan ADR 53)",
+      "baris": [
+        [
+          { "id": "pemanggil", "label": "Pemanggil", "sub": "sertifikat dari CA ledger" },
+          { "id": "pintu", "label": "Port ledger", "sub": "HTTPS, sertifikat client wajib" },
+          { "id": "handler", "label": "Handler jurnal", "sub": "dibungkus identitas.Wajib" }
+        ],
+        [
+          { "id": "identitas", "label": "Identitas pemanggil", "sub": "satu SAN dari rantai terverifikasi" },
+          { "id": "daftar", "label": "Daftar jenis jurnal", "sub": "per identitas" },
+          { "id": "key", "label": "Idempotency-Key", "sub": "tetap, bukan otorisasi" }
+        ]
+      ],
+      "judulBaris": ["", "Yang diperiksa ledger"]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Pemanggil tanpa sertifikat",
+      "sorot": {
+        "rentan": ["pemanggil", "pintu", "handler"],
+        "mtls": ["pemanggil", "pintu"]
+      },
+      "catatan": {
+        "rentan": "Ledger menjawab 201 dan membuat jurnal topup Rp1.000 untuk akun uji. Saldo akun itu naik dari 0 ke 1.000 (Rekaman lab, rentan.txt bagian A).",
+        "mtls": "Server mengirim alert certificate required. Handler tidak jalan, dan jurnal untuk key itu 0 (Rekaman lab, rentan.txt bagian B dan mtls.txt bagian B)."
+      },
+      "nada": { "rentan": "warn" }
+    },
+    {
+      "label": "Sertifikat notifikasi minta topup_bank",
+      "sorot": {
+        "rentan": ["handler", "identitas", "daftar"],
+        "mtls": ["identitas", "daftar", "handler"]
+      },
+      "catatan": {
+        "rentan": "Tidak direkam. Rute mode rentan dipasang tanpa pembungkus, jadi tidak ada bagian yang membedakan notifikasi dari pemanggil lain (penalaran dari kode lab, Tidak dijalankan).",
+        "mtls": "Handshake lolos. Handler membaca identitas notifikasi dan menjawab 403 jenis-tidak-diizinkan (Rekaman lab, mtls.txt bagian C)."
+      },
+      "nada": { "rentan": "warn" }
+    },
+    {
+      "label": "Sertifikat pembayaran minta topup_bank",
+      "sorot": {
+        "rentan": ["pemanggil", "handler"],
+        "mtls": ["pemanggil", "identitas", "daftar", "handler"]
+      },
+      "catatan": {
+        "rentan": "Tidak direkam untuk pembayaran. Pod uji tanpa sertifikat di bagian A dijawab 201 oleh handler yang sama (penalaran dari kode lab).",
+        "mtls": "Identitas pembayaran punya izin topup_bank. Ledger menjawab 201 dan membuat satu jurnal topup_bank (Rekaman lab, mtls.txt bagian C)."
+      }
+    },
+    {
+      "label": "Key baru dari pemanggil yang sah",
+      "sorot": {
+        "rentan": ["key", "handler"],
+        "mtls": ["key", "handler"]
+      },
+      "catatan": {
+        "rentan": "Tidak direkam. Handler membaca key dan isi permintaan, tanpa parameter pemanggil (penalaran dari kode lab).",
+        "mtls": "Pembayaran dengan sertifikat sah dan key baru membuat jurnal kedua untuk akun dan jumlah yang sama: 201, dan tiga jurnal topup_bank berjumlah Rp600.000 (Rekaman lab, idempoten.txt bagian C). mTLS menjawab siapa, bukan niatnya."
+      },
+      "nada": { "mtls": "warn" }
+    }
+  ]
+}

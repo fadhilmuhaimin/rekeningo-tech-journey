@@ -1,0 +1,357 @@
+---
+title: "5.19 Keamanan 10: Identitas antar service, mTLS + ADR 53"
+description: Ledger membaca identitas pemanggil dari sertifikat yang lolos verifikasi dan mencocokkannya dengan daftar jenis jurnal per identitas. ADR 53 menimbang empat cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import intiDiagram from "../../../../data/diagram/t5-mtls-inti.json";
+import dataTebak from "../../../../data/widget/t5-mtls-tebak.json";
+
+<p class="meta">Baca 19 menit · coba 4 menit · Prasyarat: [[t5-m47]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Ledger menolak pemanggil tanpa sertifikat sah di handshake dan menjawab 403 bila izin jenis jurnalnya tidak ada.
+
+<Rantai data={intiDiagram} ringkas />
+
+mTLS, singkatan mutual TLS, adalah TLS dua arah: client memeriksa sertifikat server, dan server memeriksa sertifikat client. Sertifikat client adalah bukti identitas pemanggil yang ditandatangani CA yang dipercaya ledger. Ledger membaca nama service dari sertifikat itu, lalu mencocokkannya dengan daftar jenis jurnal yang boleh dibuat service tersebut.
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `mtls.txt` bagian B, empat sertifikat yang salah ditolak server saat handshake, dan jurnal tetap 0. Bagian C menjawab sertifikat notifikasi dengan 403 untuk jenis topup_bank, sedangkan sertifikat pembayaran membuat jurnal dan dijawab 201. Idempotency-Key tetap dipakai, tetapi ia mencegah pemrosesan ganda, bukan pemanggil yang tidak berhak ([[t5-m47]]).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Sertifikat notifikasi sah, tetapi permintaannya dijawab 403 dan bukan ditolak di handshake. Kenapa?
+2. Server hanya meminta sertifikat client tanpa memverifikasinya. Kenapa lab tetap tidak membuat jurnal untuk sertifikat dari CA lain?
+3. Service pembayaran yang sah mengirim key baru dengan akun dan jumlah yang sama. Apa yang tidak dihentikan mTLS?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: ledger membaca identitas dari SAN pada sertifikat yang lolos verifikasi, bukan dari CN atau header, dan sertifikat sah milik service lain dijawab 403.">
+
+Tebak dulu jawaban ledger untuk satu sertifikat yang janggal. Lalu pilih satu kejadian di widget perbandingan dan lihat jawaban ledger versi pertama dan ledger dengan mTLS.
+
+Catatan di widget menyebut file rekaman dan bagiannya bila berasal dari Rekaman lab. Tidak dijalankan berarti dicek ke kode atau dokumentasi tanpa menjalankannya. Penalaran adalah kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.
+
+<Tebak client:visible data={dataTebak} />
+
+<WidgetLama nama="banding" src="data/t5-mtls-banding.json" />
+
+**Ubah satu hal:** pindah dari Pemanggil tanpa sertifikat ke Sertifikat notifikasi minta topup_bank. Jawaban ledger dengan mTLS berganti dari alert TLS di handshake menjadi 403 dari handler: dua lapis, dua jawaban.
+
+<noscript>
+<p>Tanpa JavaScript tombol tebakan tidak berfungsi dan widget perbandingan tidak tampil. Jawaban yang tepat: ledger menjawab 403 atas nama notifikasi, karena identitas dibaca dari SAN dan bukan dari CN (mtls.txt bagian D).</p>
+<p>Ledger versi pertama menjawab 201 untuk pemanggil tanpa sertifikat (rentan.txt bagian A). Ledger dengan mTLS mengirim alert TLS certificate required untuk pemanggil yang sama dan menjawab 403 untuk sertifikat notifikasi yang sah (rentan.txt bagian B dan mtls.txt bagian C).</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t5-m47]] menunjukkan ledger versi pertama yang membuat jurnal untuk pemanggil tanpa sertifikat dan tanpa identitas (Rekaman lab, `rentan.txt` bagian A). Idempotency-Key tidak menghentikannya, karena key menandai permintaan, bukan pemanggil ([[t2-idempotency]]).
+
+Pemicu service mesh di ADR 45 adalah lebih dari satu jalur antar service yang butuh TLS timbal balik dan retry seragam ([[t4-adr-45]]). Di Tahap 4 jalurnya satu. Naskah Tahap 5 menulis bahwa ledger dipanggil dari tiga service: pembayaran, cicilan, dan merchant (Asumsi dari naskah). Pemicu itu terpenuhi untuk TLS timbal balik, dan naskah memilih mengerjakannya di Go tanpa mesh.
+
+### Cara kerjanya
+
+**Server menuntut sertifikat client, dan menolak adalah pilihan server.** Di TLS biasa, client memeriksa sertifikat server. Di mTLS, server juga meminta sertifikat dari client. RFC 8446 menulis bahwa bila client tidak mengirim sertifikat, server boleh meneruskan handshake tanpa autentikasi client atau menghentikannya dengan alert TLS `certificate_required`. Pilihan yang sama berlaku bila rantai sertifikat client tidak dapat diterima ([RFC 8446](https://www.rfc-editor.org/rfc/rfc8446), bagian 4.4.2.4, Agustus 2018, dibuka 2026-11-04, Tidak dijalankan).
+
+Go menyerahkan pilihan itu ke `Config.ClientAuth`. Dokumentasi `crypto/tls` menulis bahwa `RequestClientCert` meminta sertifikat tanpa mewajibkannya, dan `VerifyClientCertIfGiven` hanya mewajibkan sertifikat yang dikirim itu valid. `RequireAnyClientCert` mewajibkan satu sertifikat yang tidak harus valid. Di antara keempat nilai itu, hanya `RequireAndVerifyClientCert` mewajibkan setidaknya satu sertifikat yang valid ([Go: crypto/tls](https://pkg.go.dev/crypto/tls), dokumen tanpa nomor versi, dibuka 2026-11-04, Tidak dijalankan).
+
+Ledger lab memakai nilai terakhir, dengan TLS 1.3 sebagai versi terendah (pilihan lab) dan satu CA di `ClientCAs`:
+
+<Snippet file="labs/api-t5/internal/identitas/identitas.go" region="server-tls" lang="go" title="Kode lab: labs/api-t5/internal/identitas/identitas.go, ServerTLS (server menuntut sertifikat client dari CA ini)" />
+
+`GetCertificate` membaca sertifikat server dari file tiap handshake, jadi file yang diganti berlaku tanpa restart. Tes Go `TestSertifikatServerDibacaUlangTiapHandshake` memeriksanya (dibaca dari kode lab). Rotasi otomatis Tidak dijalankan.
+
+**Empat sertifikat yang salah mendapat empat alert TLS.** Bagian B rekaman memakai sonde: client yang menyelesaikan handshake, tidak mengirim apa pun, lalu menunggu paling lama 500 milidetik untuk alert TLS. Log ledger mencatat alasan tiap penolakan, dan jumlah jurnal 0 sebelum dan sesudahnya:
+
+<Snippet file="labs/t5-service/output/mtls.txt" lines="38:58" title="Rekaman lab: labs/t5-service/output/mtls.txt, bagian B (empat sertifikat salah ditolak saat handshake)" />
+
+Tanpa sertifikat dijawab `certificate required`. Sertifikat dari CA lain dijawab `unknown certificate authority`, yang kedaluwarsa `expired certificate`, dan yang kegunaannya hanya untuk server `bad certificate`. Kontrol positifnya, sertifikat pembayaran yang sah, diterima.
+
+**"Gagal di handshake" punya lingkup.** Dari sisi server, handler ledger tidak jalan dan jurnal tetap 0. Dari sisi client TLS 1.3, alert TLS baru terbaca pada pembacaan pertama. Client menganggap handshake selesai sebelum server menilai sertifikat client (pengamatan lab di README, bukan kutipan RFC). Client yang langsung mengirim permintaan sesudah handshake tidak direkam, dan server lab menuntut TLS 1.3 sebagai versi terendah.
+
+**Identitas dibaca dari SAN yang lolos verifikasi.** SAN (Subject Alternative Name) adalah ekstensi sertifikat X.509 yang mengikat identitas ke subjek sertifikat, termasuk nama DNS ([RFC 5280](https://www.rfc-editor.org/rfc/rfc5280), bagian 4.2.1.6, Mei 2008, dibuka 2026-11-04, Tidak dijalankan). Fungsi `Nama` membaca SAN dari sertifikat daun di `VerifiedChains`, yaitu rantai yang sudah lolos verifikasi server. Ia tidak memakai `PeerCertificates`, CN, atau header, dan menuntut tepat satu SAN DNS berbentuk `<nama>.t5.lab`:
+
+<Snippet file="labs/api-t5/internal/identitas/identitas.go" lines="58:73" lang="go" title="Kode lab: labs/api-t5/internal/identitas/identitas.go baris 58 sampai 73 (Nama: identitas dari tepat satu SAN)" />
+
+Bagian D rekaman menguji tiga hal. Sertifikat dengan rantai sah tetapi tanpa SAN dijawab 401. Sertifikat dengan CN pembayaran dan SAN notifikasi bertindak sebagai notifikasi. Header `X-Layanan-Nama: pembayaran` tidak mengubah apa pun:
+
+<Snippet file="labs/t5-service/output/mtls.txt" lines="82:93" title="Rekaman lab: labs/t5-service/output/mtls.txt, bagian D (identitas hanya dari SAN)" />
+
+Tes Go memeriksa nama yang mirip identitas: huruf besar, titik di ujung, wildcard, spasi, domain lain, dan sertifikat yang hanya memuat IP dijawab 401. Awalan tambahan seperti `xpembayaran` membentuk identitas lain yang tidak ada di tabel izin, dan dijawab 403 atas nama itu (`TestNamaMiripIdentitasTidakMenjadiPembayaran`, dibaca dari kode lab; `testing.txt` mencatat PASS-nya).
+
+Contoh di dokumentasi cert-manager memuat komentar agar nama DNS di sertifikat daun ditulis di `dnsNames`, bukan di `commonName` ([cert-manager: Certificate](https://cert-manager.io/docs/usage/certificate/), dokumen tanpa nomor versi, dibuka 2026-11-04, Tidak dijalankan). SPIFFE memakai SAN jenis URI dan menuntut tepat satu per sertifikat, karena lebih dari satu SPIFFE ID menyulitkan audit dan logika otorisasi ([SPIFFE X.509-SVID](https://github.com/spiffe/spiffe/blob/main/standards/X509-SVID.md), dibuka 2026-11-04, Tidak dijalankan). Lab memakai SAN DNS, bukan URI SPIFFE.
+
+**Ledger menyimpan daftar jenis jurnal per identitas.** Daftar itu berasal dari naskah ADR 53, dan kode lab menyalinnya apa adanya:
+
+<Snippet file="labs/api-t5/internal/identitas/identitas.go" lines="30:36" lang="go" title="Kode lab: labs/api-t5/internal/identitas/identitas.go baris 30 sampai 36 (IzinNaskah: jenis jurnal per identitas)" />
+
+| Identitas | Jenis jurnal yang boleh dibuat |
+|---|---|
+| `pembayaran` | topup_bank, kartu_tahan, kartu_tangkap |
+| `cicilan` | angsuran, tabungan |
+| `merchant` | bayar |
+| `notifikasi` | tidak ada |
+| `akun` | tidak ada |
+
+Tabel itu memuat enam jenis jurnal untuk lima identitas. Hanya tiga identitas yang boleh membuat jurnal (Hitungan atas tabel: Hitungan adalah hasil rumus dari angka yang tertulis di halaman). Tes Go `TestJenisDiTabelIzinAdaDiConstraintJurnal` memeriksa tiap jenis di tabel terhadap constraint `jurnal_jenis_check` di database. Ledger lab hanya punya rute untuk `topup_bank` dan `kartu_tahan`. Empat jenis lain sudah punya izin, tetapi belum punya rute (README lab).
+
+`Wajib` membungkus satu rute dengan jenis jurnal yang ditulisnya. Tanpa identitas ia menjawab 401, dan identitas tanpa izin ia jawab 403:
+
+<Snippet file="labs/api-t5/internal/identitas/identitas.go" lines="77:99" lang="go" title="Kode lab: labs/api-t5/internal/identitas/identitas.go baris 77 sampai 99 (Wajib: 401 tanpa identitas, 403 tanpa izin)" />
+
+Ledger memasang dua rute dengan pembungkus itu, masing-masing dengan jenis jurnalnya:
+
+<Snippet file="labs/api-t5/cmd/ledger/main.go" region="rute-identitas" lang="go" title="Kode lab: labs/api-t5/cmd/ledger/main.go, rute() di versi benar (tiap rute dibungkus identitas.Wajib)" />
+
+Tes `TestSemuaRuteLedgerLewatIdentitasKecualiHealthz` memindai kode dengan `go/ast` dan gagal bila rute di fungsi `rute()` dipasang tanpa pembungkus. Satu-satunya pengecualian adalah `GET /healthz`, yang hanya memeriksa database (dibaca dari kode lab). Karena itu halaman ini tidak menulis "semua rute dilindungi". `/healthz` tidak memeriksa identitas di handler, walau versi benar tetap menuntut sertifikat sah saat handshake (`mtls.txt` bagian A memanggilnya dengan sertifikat pembayaran).
+
+| Pemanggil | Jawaban | Ditolak di | Bukti |
+|---|---|---|---|
+| Tanpa sertifikat, dari CA lain, kedaluwarsa, atau kegunaan hanya untuk server | alert TLS | handshake | `mtls.txt` bagian B |
+| Rantai sah, tanpa tepat satu SAN identitas | 401 | handler | `mtls.txt` bagian D |
+| Identitas sah, tanpa izin jenis jurnal itu | 403 | handler | `mtls.txt` bagian C dan D |
+| Identitas sah, dengan izin | 201 | tidak ditolak | `mtls.txt` bagian C |
+
+**Kunci bersama dari Tahap 4 digantikan.** Ledger Tahap 4 menuntut satu nilai di header `X-Layanan-Kunci`, dan permintaan tanpa nilai itu dijawab 401 (Rekaman lab Tahap 4, `ledger.txt` bagian A, [[t4-modul]]). Kode `PasangLedger` menerima satu nilai kunci dan membandingkannya dengan header (dibaca dari kode lab). Kunci itu menunjukkan bahwa pemanggil memegangnya, bukan service mana yang memegangnya ([[t5-m47]]).
+
+mTLS mengubah tiga hal. Pertama, identitas: SAN menyebut service, dan ledger menjawab 403 untuk notifikasi serta 201 untuk pembayaran (`mtls.txt` bagian C). Kedua, izin: jenis jurnal dipisah per identitas, sedangkan satu kunci bersama membuka rute yang sama bagi semua pemegangnya (penalaran dari kode `PasangLedger`). Ketiga, rotasi: satu nilai bersama diganti di semua pemegangnya, sedangkan tiap service punya sertifikat dan umur sendiri (penalaran, rotasi Tidak dijalankan).
+
+Versi benar di lab ini tidak memasang pemeriksa kunci itu. Pemeriksanya tetap ada di kode bersama dan dijaga tes (README lab). Naskah tidak menulis nasib kunci bersama, jadi pencabutannya dari jalur ke ledger adalah keputusan ADR di bawah.
+
+**Idempotency-Key tetap dipakai.** mTLS menjawab siapa yang memanggil, dan Idempotency-Key menjawab permintaan yang mana. Permintaan yang sama dua kali lewat pembayaran menghasilkan satu jurnal: 201, lalu 200 (`idempoten.txt` bagian A). Key baru dari pembayaran yang sah, dengan akun dan jumlah yang sama, menghasilkan jurnal kedua (`idempoten.txt` bagian C). Service sah yang dibajak tetap memegang izin jenis jurnalnya, dan lab tidak membuktikan sebaliknya (README lab).
+
+**Sertifikat punya asal, umur, dan rotasi.** Lab membuat CA saat dijalankan dan menerbitkan sertifikat service dari CA itu, ditambah satu sertifikat uji dari CA lain. Kunci privat berizin 0600 disimpan di folder sementara di luar repo, dan kunci CA tidak ditulis (`mtls.txt` bagian A). Rotasi otomatis Tidak dijalankan: tidak ada rekaman yang mengganti sertifikat.
+
+Naskah memilih cert-manager v1.21.3 untuk menerbitkan dan memutar sertifikat. Rilis itu terbit 2026-10-23 di GitHub (dibuka 2026-11-04, Tidak dijalankan). Dokumentasinya menulis bahwa cert-manager membuat sertifikat TLS untuk workload di cluster dan memperbaruinya sebelum kedaluwarsa. Nilai bawaan `spec.duration` sebuah Certificate adalah 90 hari ([cert-manager: Certificate](https://cert-manager.io/docs/usage/certificate/), dokumen tanpa nomor versi, dibuka 2026-11-04).
+
+Dokumentasi issuer CA di cert-manager memuat peringatan. Issuer CA umumnya untuk demo atau user berpengalaman yang punya perkakas PKI. Pemakaian aman di produksi menuntut perencanaan rotasi, distribusi trust store, dan pemulihan bencana ([cert-manager: CA](https://cert-manager.io/docs/configuration/ca/), dokumen tanpa nomor versi, dibuka 2026-11-04). Naskah tidak menulis jenis issuer yang dipakai Rekeningo, jadi peringatan itu adalah risiko yang harus dijawab sebelum CA internal dipakai.
+
+SPIRE adalah toolchain yang dapat memverifikasi software yang berjalan dan menerbitkan SPIFFE ID serta SVID untuknya, sehingga dua workload bisa saling percaya lewat koneksi mTLS atau JWT. SVID adalah SPIFFE Verifiable Identity Document ([README SPIRE](https://github.com/spiffe/spire), rilis v1.15.5 terbit 2026-10-20, dibuka 2026-11-04, Tidak dijalankan).
+
+**Yang tidak direkam.**
+
+- Laras, minggu 9, dan pod uji berasal dari cerita (Ilustrasi). Pemanggil di rekaman adalah perintah `panggil` dan service notifikasi lab di mesin yang sama dengan ledger.
+- NetworkPolicy dan jaringan yang menegakkannya Tidak dijalankan. Plugin jaringan di cluster Rekeningo belum ditentukan [perlu verifikasi].
+- Rotasi sertifikat, cert-manager, SPIFFE/SPIRE, dan service mesh Tidak dijalankan.
+- Service pembayaran, cicilan, dan merchant yang dibajak tidak direkam. Lab tidak menguji kapasitas ledger dan tidak mengklaimnya.
+
+### Di stack lain
+
+**Skenario:** satu service memanggil ledger lewat HTTPS, dan ledger harus tahu service mana yang memanggil dari sertifikat client. Yang ditanyakan: di mana server menuntut sertifikat client, dan di mana nama service dibaca?
+
+Tab Go dijalankan di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-04. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan: lab t5-service atas api-t5, PostgreSQL 17.11, Go 1.27.3 (rekaman `mtls.txt`).*
+
+<Snippet file="labs/api-t5/cmd/ledger/main.go" region="rute-identitas" lang="go" title="labs/api-t5/cmd/ledger/main.go" />
+
+**Yang berbeda di stack ini:** server menuntut sertifikat client lewat `ClientAuth` di `tls.Config`, dan nama service dibaca dari `VerifiedChains` di kode ledger sendiri. Izin per jenis jurnal ditulis di kode yang sama.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke [Node.js v26.13.0: tls](https://nodejs.org/api/tls.html), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`const server = tls.createServer(
+  { key, cert, ca, requestCert: true, rejectUnauthorized: true },
+  (socket) => {
+    const nama = socket.getPeerCertificate().subjectaltname;
+  },
+);`} />
+
+**Yang berbeda di stack ini:** dokumentasi menulis bahwa `requestCert` bawaannya `false`, dan `rejectUnauthorized` hanya berpengaruh bila `requestCert` bernilai `true`. `subjectaltname` adalah string gabungan nama yang opsional, jadi kode sendiri harus mengurai string itu dan menangani objek kosong yang dikembalikan bila client tidak mengirim sertifikat. Dokumentasi juga menulis bahwa, tergantung pengaturan server, koneksi yang tidak berotorisasi masih bisa diterima.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: HTTP Client](https://laravel.com/docs/13.x/http-client) dan [Guzzle: request options](https://docs.guzzlephp.org/en/stable/request-options.html) (dokumen tanpa nomor versi), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`Http::withOptions([
+    'cert' => '/etc/mtls/pembayaran.pem',
+    'ssl_key' => '/etc/mtls/pembayaran.key',
+])->withHeaders(['Idempotency-Key' => $kunci])
+  ->post('https://ledger.t5.lab/ledger/jurnal-topup', $isi);`} />
+
+**Yang berbeda di stack ini:** Laravel membungkus Guzzle, dan opsi Guzzle diteruskan lewat `withOptions`. Guzzle menulis bahwa `cert` menunjuk file sertifikat client berformat PEM, dan bahwa `ssl_key` saat ini hanya didukung handler cURL. Halaman yang dibuka membahas sisi pemanggil. Siapa yang memverifikasi sertifikat client di sisi penerima tidak ditulis di sana.
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 5.2: How to authenticate using REMOTE_USER](https://docs.djangoproject.com/en/5.2/howto/auth-remote-user/), dibuka 2026-11-04. Kode Python tidak ditulis di tab ini.*
+
+**Yang berbeda di stack ini:** dokumentasi menulis bahwa bila web server yang mengurus autentikasi, ia biasanya menyediakan user terautentikasi sebagai `REMOTE_USER`, dan `RemoteUserMiddleware` membacanya. Halaman itu tidak menyebut sertifikat client. Ia memperingatkan bahwa middleware itu tidak boleh dipakai bila client bisa mengirim header sendiri, dan peringatan itu berlaku di ASGI untuk semua konfigurasi. Ini sejajar dengan header `X-Layanan-Nama` di bagian D rekaman, yang diabaikan ledger. Verifikasi sertifikat terjadi di web server di depan Django, dan daftar jenis jurnal tetap ditulis di kode aplikasi (penalaran).
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: Security and TLS](https://docs.serverpod.dev/concepts/operations/security-and-tls), teks mentah dari llms-full.txt dokumentasi untuk Serverpod 4.1.0, dibuka 2026-11-04. Kode Dart tidak ditulis di tab ini.*
+
+**Yang berbeda di stack ini:** halaman itu menulis bahwa TLS biasanya dihentikan di depan server oleh load balancer atau reverse proxy, dan bahwa Serverpod bisa menghentikan TLS sendiri lewat `SecurityContextConfig` dengan rantai sertifikat dan kunci privat. Pencarian `client certificate`, `mTLS`, `mutual TLS`, dan `requestClientCertificate` di seluruh dokumentasi mentah tidak menemukan apa pun, jadi sertifikat client tidak dibahas. Identitas pemanggil harus datang dari proxy atau kode sendiri (penalaran).
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: SSL enforcement](https://supabase.com/docs/guides/platform/ssl-enforcement) dan [Supabase: Network restrictions](https://supabase.com/docs/guides/platform/network-restrictions), halaman tanpa nomor versi, dibuka 2026-11-04.*
+
+**Yang berbeda di stack ini:** halaman SSL enforcement membahas mode `verify-full`, yaitu client memverifikasi sertifikat server database, dan tidak menyebut sertifikat client. Network restrictions membatasi lewat daftar CIDR dan, menurut halamannya, hanya berlaku untuk Postgres dan database pooler, bukan HTTPS API seperti PostgREST, Storage, dan Auth. Yang dibahas kedua halaman adalah alamat pemanggil dan sertifikat server, bukan identitas pemanggil (penalaran).
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 53: mTLS di Go dengan daftar jenis jurnal per identitas
+
+**Kebutuhan.** Ledger dipanggil tiga service: pembayaran, cicilan, dan merchant (Asumsi dari naskah, [[t5-service]]). Aturan inti Tahap 5 menulis bahwa uang bergerak hanya lewat ledger ([[t5-fitur-teknis]]). Ledger versi pertama membuat jurnal top-up Rp1.000 untuk pemanggil tanpa sertifikat, dan saldo akun uji naik dari 0 ke 1.000 ([[t5-m47]], `rentan.txt` bagian A).
+
+**Status:** diterima sesudah M47 (minggu 9). Urutan itu dibaca dari tabel masalah, karena naskah tidak menulis tanggal ADR.
+
+| | A. Jaringan privat dipercaya | B. Token bearer per service | C. Service mesh penuh | D. SPIFFE/SPIRE v1.15.5 | E. mTLS di Go dan daftar jenis jurnal |
+|---|---|---|---|---|---|
+| Cara kerja | Ledger menerima pemanggil yang sampai ke port-nya, dan batasnya hanya jaringan | Tiap service membawa token di header, dan ledger memeriksanya | Proxy di jalur tiap panggilan mengurus identitas dan TLS (naskah) | SPIRE memverifikasi workload dan menerbitkan SPIFFE ID dalam SVID | Server menuntut sertifikat client, identitas dibaca dari SAN, dan ledger memeriksa jenis jurnal per identitas |
+| Kelebihan | Tanpa kode atau sertifikat baru | Tanpa TLS dua arah (penalaran) | TLS timbal balik dan retry seragam, seperti pemicu ADR 45 (naskah) | Identitas workload seragam bila jalur bertambah (naskah) | Penolakan sebelum handler, dan izin per jenis jurnal, tanpa komponen baru di jalur panggilan |
+| Kekurangan | Pod uji tanpa sertifikat membuat jurnal Rp1.000 (`rentan.txt` bagian A) | Pemegang token mana pun bisa memakainya ulang, dan naskah menulis token bocor lewat log | Satu komponen di jalur tiap panggilan, untuk satu tujuan kritis (naskah) | Satu sistem tambahan yang dipasang dan dijaga (penalaran) | Sertifikat harus diterbitkan dan diputar, dan mTLS tidak menilai niat |
+| Biaya operasional | Nol, dengan harga jurnal dari pemanggil mana pun | Token disimpan, diputar, dan dijaga dari log | Dioperasikan tim platform 4 orang (naskah) | Pemasangan dan operasi sistem tambahan, tidak diukur (penalaran) | Rotasi sertifikat dan daftar izin dipantau (desain, Tidak dijalankan) |
+| Bukti | Rekaman lab `rentan.txt` bagian A | Tidak dijalankan: RFC 9700 dan naskah | Tidak dijalankan: naskah | Tidak dijalankan: README SPIRE dan spesifikasi X.509-SVID | Rekaman lab `mtls.txt` bagian B sampai D dan `idempoten.txt` |
+
+**Keputusan: opsi E.** Delapan aturan:
+
+1. Panggilan ke ledger memakai mTLS: server menuntut sertifikat client yang valid (`RequireAndVerifyClientCert`) dari CA internal. Server lab menuntut TLS 1.3 sebagai versi terendah, dan itu pilihan lab.
+2. Identitas pemanggil adalah satu-satunya SAN DNS `<nama>.<domain>` pada rantai yang lolos verifikasi. CN dan header diabaikan, dan sertifikat tanpa tepat satu SAN identitas dijawab 401.
+3. Ledger menyimpan daftar jenis jurnal per identitas: `pembayaran` (topup_bank, kartu_tahan, kartu_tangkap), `cicilan` (angsuran, tabungan), dan `merchant` (bayar). `notifikasi` dan `akun` tidak boleh membuat jurnal. Identitas di luar daftar tidak punya izin, dan jenis di luar izin dijawab 403.
+4. Tiap rute ledger yang membuat jurnal dibungkus pemeriksa itu, dan tes yang memindai kode dengan `go/ast` menjaganya. Pengecualiannya `GET /healthz`.
+5. Idempotency-Key tetap di semua panggilan yang mengubah keadaan. Ia mencegah pemrosesan ganda, bukan pemanggil yang tidak berhak.
+6. Sertifikat berasal dari CA internal dan diputar otomatis. Naskah menulis cert-manager v1.21.3, dan jenis issuer-nya belum ditentukan (Tidak dijalankan).
+7. NetworkPolicy membatasi pod yang boleh menjangkau ledger [perlu verifikasi: jaringan yang menegakkannya]. Aturan ini Tidak dijalankan.
+8. Pemeriksa kunci bersama `X-Layanan-Kunci` dicabut dari jalur ke ledger sesudah semua pemanggilnya memakai sertifikat. Ini keputusan halaman ini, karena naskah tidak menulis nasib kunci itu.
+
+**Kenapa E, bukan A sampai D.**
+
+- **A ditolak** karena pod uji tanpa sertifikat membuat jurnal dan saldo akun uji naik dari 0 ke 1.000 (`rentan.txt` bagian A).
+- **B ditolak untuk sekarang.** RFC 9700 menulis bahwa authorization server SHOULD memastikan token akses terikat pengirim, dan menyebut akses baca ke log web server sebagai contoh akses sebagian ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), bagian 4.9.3 dan 4.10, Januari 2025, dibuka 2026-11-04). Bagian 4.10.1 menyebut dua cara: sertifikat client lewat RFC 8705 dan DPoP lewat RFC 9449, yaitu tanda tangan di tingkat aplikasi ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), September 2023). RFC itu mengatur token akses OAuth 2.0, jadi halaman ini memakainya sebagai rujukan untuk masalah yang sama, bukan sebagai aturan bagi Rekeningo (penalaran). Opsi ini tidak ada rekamannya (Tidak dijalankan).
+- **C ditunda.** Naskah menulis proxy di jalur tiap panggilan sebagai biaya, untuk satu tujuan kritis dan tim platform 4 orang. Dokumentasi Istio dan Linkerd tidak dibuka (Tidak dijalankan).
+- **D disebut, bukan dipilih.** Naskah menulis SPIFFE/SPIRE sebagai pelengkap mTLS bila jalur bertambah. README SPIRE dan spesifikasi X.509-SVID dibuka, dan SPIRE Tidak dijalankan.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Sertifikat kedaluwarsa tanpa rotasi. Satu sertifikat kedaluwarsa ditolak saat handshake (`mtls.txt` bagian B), jadi service pemegangnya tidak bisa memanggil ledger. Pencegahannya rotasi otomatis dan alert untuk sisa umur sertifikat. Ini desain, dan lab tidak membangunnya (Tidak dijalankan).
+2. Kunci CA bocor, atau satu service sah dibajak. mTLS menerima sertifikat dari CA yang dipercaya, dan service sah yang dibajak tetap memegang izin jenis jurnalnya (README lab). Pencegahannya izin sempit per identitas dan kunci CA yang dijaga di luar service (penalaran).
+3. Daftar jenis jurnal salah. Jenis yang lupa didaftar menolak pemanggil sah dengan 403, dan izin yang terlalu longgar membuka jenis yang tidak seharusnya. Pencegahannya tes yang membandingkan daftar dengan constraint `jurnal_jenis_check` dan pemindai rute, keduanya sudah ada di lab.
+
+**Kapan keputusan ini salah.**
+
+- Saat tujuan kritis kedua, selain ledger, butuh identitas yang sama. Pembandingnya tiga pemanggil ke satu ledger, yaitu satu tujuan kritis (Asumsi dari naskah). Pemicu service mesh di [[t5-adr-60]] memakai satuan tujuan kritis, dan mesh atau SPIFFE lebih ringan daripada rotasi dengan tangan.
+- Saat sertifikat kedaluwarsa tanpa rotasi otomatis, karena semua panggilan dari service pemegangnya gagal di handshake.
+- Saat service sah dibajak. mTLS membuktikan siapa yang memanggil, bukan niatnya.
+- Saat daftar jenis jurnal salah menolak pemanggil sah atau menerima pemanggil yang tidak berhak.
+
+**Yang akan merevisinya.** [[t5-adr-60]] menulis service mesh penuh sebagai sengaja belum, dengan pemicu tujuan kritis kedua. Bila pemicu itu terjadi, ADR 53 ditinjau ulang.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Service mesh penuh | Satu tujuan kritis, yaitu ledger, dipanggil tiga service | [[t5-adr-60]] |
+| SPIFFE/SPIRE | Disebut sebagai pelengkap bila jalur bertambah, dan Tidak dijalankan | Belum dijadwalkan |
+| Rotasi sertifikat otomatis | Lab hanya merekam pembacaan ulang file server, bukan penerbitan atau penggantian | Belum dijadwalkan |
+| NetworkPolicy dan jaringan penegaknya | Tidak dijalankan [perlu verifikasi] | Belum dijadwalkan |
+| Pencabutan sertifikat sebelum kedaluwarsa | Lab tidak menerbitkan CRL dan tidak menjawab OCSP: kata CRL di kode lab hanya muncul sebagai bit kegunaan kunci CA (pencarian 2026-11-04) | Belum dijadwalkan |
+| Rute ledger untuk kartu_tangkap, angsuran, tabungan, dan bayar | Izinnya tercatat, tetapi rutenya belum ada di lab | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Sertifikat notifikasi sah, tetapi permintaannya dijawab 403 dan bukan ditolak di handshake. Kenapa dua jawaban berbeda?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Handshake memeriksa rantai sertifikat: CA penerbit, masa berlaku, dan kegunaannya. Sertifikat notifikasi lolos pemeriksaan itu. Handler membaca identitas notifikasi dan mencocokkannya dengan daftar jenis jurnal, dan notifikasi tidak punya topup_bank, jadi jawabannya 403 (`mtls.txt` bagian C).
+
+</details>
+
+**2.** Server hanya meminta sertifikat client tanpa memverifikasinya. Kenapa lab tetap tidak membuat jurnal untuk sertifikat dari CA lain?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Handler membaca identitas hanya dari rantai yang sudah terverifikasi, dan rantai itu kosong di server yang hanya meminta sertifikat. Handler menjawab 401 tanpa identitas. Ini diperiksa tes Go `TestSertifikatTakTerverifikasiTidakDipakaiSebagaiIdentitas` (dibaca dari kode lab), bukan bagian di `mtls.txt`.
+
+</details>
+
+**3.** Service pembayaran yang sah mengirim key baru dengan akun dan jumlah yang sama. Apa yang tidak dihentikan mTLS?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Jurnal kedua. mTLS menjawab siapa yang memanggil, bukan niatnya, dan key baru adalah permintaan baru. Pembayaran punya izin topup_bank, jadi ledger menjawab 201 (`idempoten.txt` bagian C).
+
+</details>
+
+**4.** ADR 53 memilih mTLS di Go dan menunda service mesh. Apa yang membuat pilihan ini salah?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tujuan kritis kedua selain ledger yang butuh identitas yang sama, sertifikat kedaluwarsa tanpa rotasi otomatis, service sah yang dibajak, dan daftar jenis jurnal yang salah. Pembandingnya tiga pemanggil ke satu ledger.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Server menuntut sertifikat client dengan `RequireAndVerifyClientCert`, bukan `RequestClientCert` atau `VerifyClientCertIfGiven`.
+- [ ] Identitas dibaca dari `VerifiedChains`, bukan `PeerCertificates`, CN, atau header.
+- [ ] Identitas berasal dari tepat satu SAN, dan nama yang mirip ditolak.
+- [ ] Tiap rute yang membuat jurnal dibungkus pemeriksa izin, dan tes memindai rute baru.
+- [ ] Jenis di daftar izin cocok dengan constraint jenis jurnal di database.
+- [ ] Idempotency-Key tetap dipakai, dan tidak dianggap izin pemanggil.
+- [ ] Sertifikat punya rotasi dan alert sisa umur, dan kunci CA tidak ada di repo.
+
+### Bacaan lanjut
+
+- [RFC 8446: TLS 1.3](https://www.rfc-editor.org/rfc/rfc8446)
+- [RFC 5280: profil sertifikat X.509](https://www.rfc-editor.org/rfc/rfc5280)
+- [Go: crypto/tls](https://pkg.go.dev/crypto/tls)
+- [RFC 9700: praktik terbaik keamanan OAuth 2.0](https://www.rfc-editor.org/rfc/rfc9700)
+- [RFC 9449: DPoP](https://www.rfc-editor.org/rfc/rfc9449)
+- [RFC 8705: OAuth 2.0 mutual TLS](https://www.rfc-editor.org/rfc/rfc8705)
+- [cert-manager: Certificate](https://cert-manager.io/docs/usage/certificate/)
+- [cert-manager: CA](https://cert-manager.io/docs/configuration/ca/)
+- [SPIFFE: X.509-SVID](https://github.com/spiffe/spiffe/blob/main/standards/X509-SVID.md)
+- [SPIRE](https://github.com/spiffe/spire)
+- [Node.js: tls](https://nodejs.org/api/tls.html)
+- [Laravel 13.x: HTTP Client](https://laravel.com/docs/13.x/http-client)
+- [Guzzle: request options](https://docs.guzzlephp.org/en/stable/request-options.html)
+- [Django 5.2: REMOTE_USER](https://docs.djangoproject.com/en/5.2/howto/auth-remote-user/)
+- [Serverpod: Security and TLS](https://docs.serverpod.dev/concepts/operations/security-and-tls)
+- [Supabase: SSL enforcement](https://supabase.com/docs/guides/platform/ssl-enforcement)
+- [Supabase: Network restrictions](https://supabase.com/docs/guides/platform/network-restrictions)
+
+</Blok>
+
+<SkripLama daftar={["cerita","banding"]} />

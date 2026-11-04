@@ -41,6 +41,8 @@
 *[alamat keluar]: Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.
 *[Alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
 *[alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
+*[Alert TLS]: Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.
+*[alert TLS]: Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.
 *[Allowlist]: Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.
 *[allowlist]: Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.
 *[API gateway]: Server di depan beberapa instance atau service yang mengurus hal bersama sebelum request diteruskan, mis. rate limit, authentication, dan routing.
@@ -247,6 +249,8 @@
 *[modular monolith]: Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.
 *[Monolith]: Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit.
 *[monolith]: Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit.
+*[mTLS]: TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.
+*[mutual TLS]: TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.
 *[MVCC]: Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis.
 *[N+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[n+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
@@ -351,6 +355,8 @@
 *[saga]: Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.
 *[Saldo cache]: Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.
 *[saldo cache]: Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.
+*[SAN]: Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.
+*[Subject Alternative Name]: Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.
 *[Secret manager]: Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.
 *[secret manager]: Layanan yang menyimpan secret di luar kode dan file konfigurasi, dan dibaca aplikasi lewat API dengan token saat ia membutuhkannya.
 *[Secure storage]: Penyimpanan terenkripsi milik sistem operasi HP untuk rahasia kecil seperti token sesi: Keychain di iOS, kunci di Android Keystore.

@@ -1,0 +1,384 @@
+---
+title: "5.17 Pooler koneksi: PgBouncer + ADR 52"
+description: Rekeningo memasang PgBouncer di mode transaction, supaya koneksi pod tidak langsung memenuhi max_connections PostgreSQL. ADR 52 menimbang tiga cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import TabSet from "../../../components/TabSet.astro";
+import KoneksiPooler from "../../../widgets/koneksi-pooler/KoneksiPooler.tsx";
+import intiDiagram from "../../../../data/diagram/t5-pooler-inti.json";
+import dataKalkulator from "../../../../data/widget/t5-pooler-kalkulator.json";
+
+<p class="meta">Baca 20 menit · coba 3 menit · Prasyarat: [[t5-m46]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+PgBouncer di mode transaction melayani 120 koneksi client dengan paling banyak 20 koneksi ke PostgreSQL.
+
+<Rantai data={intiDiagram} ringkas />
+
+Pooler koneksi adalah program di antara aplikasi dan PostgreSQL. Ia menerima koneksi dari aplikasi, lalu meminjamkan koneksi ke database hanya selama satu transaction.
+
+Di Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) `pooler.txt`, 12 client dengan pool 10 meminta 120 koneksi. Langsung ke PostgreSQL, sebagian ditolak dengan kode 53300, yaitu `too_many_connections` (bagian A). Lewat PgBouncer, 120 koneksi berhasil dan paling banyak 20 sampai ke PostgreSQL (bagian B).
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Di mode transaction, fitur PostgreSQL apa yang tidak berjalan, dan kode lab memakai apa yang tabel dokumentasi tidak sebut?
+2. Batas mana yang menentukan jumlah koneksi ke PostgreSQL, dan batas mana yang menentukan jumlah client?
+3. Kenapa menaikkan `max_connections` atau mengecilkan pool pod bukan jawaban tetap?
+
+Yakin dengan ketiganya? Lompat ke [[berikutnya]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: default_pool_size berlaku per pasangan user dan database, jadi enam role dan dua instance membuka sampai 240 koneksi ke PostgreSQL bila max_db_connections kosong. ADR 52 memasang 30 per instance, 60 bersama.">
+
+Tebak dulu berapa koneksi ke PostgreSQL yang boleh dibuka kedua instance PgBouncer. Pengaturan `default_pool_size` membatasi koneksi ke PostgreSQL yang dibuka satu pool server, dan bawaannya 20. Pengaturan `max_db_connections` adalah batas lain untuk koneksi ke PostgreSQL, dan bawaannya tanpa batas.
+
+Dua instance dan enam role, satu role per service, adalah rancangan ADR 52 di blok Putuskan. Angka 6 service × 3 pod × pool 10 dan 100 − 3 koneksi tersedia berasal dari naskah Tahap 5 (Asumsi). [[t5-m46]] memakai angka yang sama.
+
+Hitungan adalah hasil rumus dari angka yang tertulis di halaman ini. Asumsi adalah angka pilihan penulis tanpa rekaman. Tidak dijalankan berarti dicek ke dokumentasi atau kode, tanpa dijalankan. Penalaran adalah kesimpulan dari kode atau angka di halaman, bukan hasil ukuran.
+
+<KoneksiPooler client:visible data={dataKalkulator} />
+
+<noscript>
+<p>Tanpa JavaScript widget tidak berjalan. Jawaban yang tepat untuk tebakan: 240 koneksi, yaitu 2 instance × 6 role × 20. Enam skenario, semua Hitungan atas Asumsi:</p>
+<table>
+<thead><tr><th>Skenario</th><th>Diminta pod</th><th>Ke PostgreSQL tanpa pooler</th><th>Ke PostgreSQL dengan PgBouncer</th><th>Ditolak 53300 dengan PgBouncer</th><th>Client di atas batas</th></tr></thead>
+<tbody>
+<tr><td>Naskah: 6 service × 3 pod</td><td>180</td><td>180</td><td>60</td><td>0</td><td>0</td></tr>
+<tr><td>5 pod tiap service</td><td>300</td><td>300</td><td>60</td><td>0</td><td>0</td></tr>
+<tr><td>8 pod tiap service</td><td>480</td><td>480</td><td>60</td><td>0</td><td>80</td></tr>
+<tr><td>Pool tiap pod 5, 3 pod</td><td>90</td><td>90</td><td>60</td><td>0</td><td>0</td></tr>
+<tr><td>Pool tiap pod 5, 5 pod</td><td>150</td><td>150</td><td>60</td><td>0</td><td>0</td></tr>
+<tr><td>Enam role, batas database kosong</td><td>180</td><td>180</td><td>180</td><td>83</td><td>0</td></tr>
+</tbody>
+</table>
+</noscript>
+
+**Ubah satu hal:** pilih Pool tiap pod 5, 3 pod, lalu Pool tiap pod 5, 5 pod. Dengan 3 pod, 6 × 3 × 5 = 90 koneksi muat di 97 tanpa pooler. Dengan 5 pod jumlahnya 150, dan paling sedikit 53 koneksi ditolak. Pool pod yang kecil menahan badai selama jumlah pod tetap.
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+[[t5-m46]] menunjukkan latihan failover yang membuat semua pod menyambung ulang bersamaan, lengkap dengan gejala dan sebabnya. Halaman ini memakai angka yang sama. Ada 6 × 3 × 10 = 180 koneksi, dan 97 tersedia untuk role biasa (100 − 3, Hitungan atas Asumsi naskah). Selisihnya 180 − 97 = 83.
+
+[[t4-adr-45]] menunda PgBouncer sampai koneksi mencapai 70 dari 100. Angka 180 adalah 180 ÷ 70 = 257% dari pemicu itu (Hitungan atas Asumsi). Rata-rata yang terpakai hanya 27,8 koneksi, yaitu 1.388,9 request per detik × 20 ms dari [[t3-pool]] (Hitungan atas Asumsi). Pemicunya terpenuhi karena koneksi yang mungkin dibuka, bukan yang rata-rata dipakai.
+
+[[t3-adr-33]] menulis dua syarat memasang PgBouncer. Fitur sesi tidak berjalan di mode transaction, dan pgx perlu dicocokkan lebih dulu. Halaman ini menjawab keduanya.
+
+### Cara kerjanya
+
+**Pooler menukar koneksi client dengan koneksi server.** Koneksi client adalah koneksi dari pod ke PgBouncer, dan koneksi server adalah koneksi dari PgBouncer ke PostgreSQL. Pool pod adalah kumpulan koneksi di dalam satu pod, dan pool server adalah kumpulan koneksi server di PgBouncer untuk satu pasangan database dan user.
+
+Dokumentasi PgBouncer menulis bahwa di mode transaction koneksi server ditugaskan ke client hanya selama transaction. Sesudah transaction selesai, koneksi itu kembali ke pool server ([PgBouncer: features](https://www.pgbouncer.org/features.html), dibuka 2026-11-04). Dokumentasi yang sama menulis kebutuhan memori 2 kB per koneksi secara bawaan.
+
+Bagian A rekaman menjalankan 12 client dengan pool pod 10 langsung ke PostgreSQL:
+
+<Snippet file="labs/api-t5/output/pooler.txt" lines="5:13" title="Rekaman lab: labs/api-t5/output/pooler.txt, bagian A (tanpa pooler)" />
+
+Role `t5_app` tidak melewati 97 koneksi di PostgreSQL pada sampel tiap 100 ms. Tidak semua dari 12 client mendapat kesepuluh koneksinya. Bagian B menjalankan client yang sama lewat satu container PgBouncer 1.26.1:
+
+<Snippet file="labs/api-t5/output/pooler.txt" lines="15:25" title="Rekaman lab: labs/api-t5/output/pooler.txt, bagian B (PgBouncer)" />
+
+Konfigurasi PgBouncer di lab memakai `default_pool_size` 20, `max_client_conn` 1000, dan `max_prepared_statements` 100:
+
+<Snippet file="labs/api-t5/pgbouncer/pgbouncer.ini" lines="13:18" title="Konfigurasi lab: labs/api-t5/pgbouncer/pgbouncer.ini" />
+
+Image `api-t5-pgbouncer:1.26.1` dibangun dari paket `1.26.1-1.pgdg13+1` di apt.postgresql.org, dan bagian B memeriksa `pgbouncer --version`.
+
+Rekaman itu menunjukkan jumlah koneksi, bukan kapasitas. Kode `cmd/pooler/main.go` membuka 12 pool pod. Tiap koneksi menjalankan `SELECT 1` dua puluh kali dengan jeda 50 ms di antaranya:
+
+<Snippet file="labs/api-t5/cmd/pooler/main.go" lines="77:94" lang="go" title="Kode lab: labs/api-t5/cmd/pooler/main.go baris 77 sampai 94 (query pendek dengan jeda)" />
+
+Tiap query berdiri sendiri, jadi koneksi server kembali ke pool server sesudahnya (penalaran dari kode). Lama tunggu, p95, dan client yang sedang di dalam transaction panjang bersamaan tidak direkam (Tidak dijalankan).
+
+**Mode transaction mematikan fitur sesi.** Dokumentasi menulis bahwa mode itu memutus beberapa fitur PostgreSQL yang bergantung pada sesi, dan hanya boleh dipakai bila aplikasi tidak memakainya. Tabel di dokumentasi memuat:
+
+| Fitur PostgreSQL | Di mode transaction (tabel dokumentasi) |
+|---|---|
+| `SET` dan `RESET` | `Never` |
+| `LISTEN` | `Never` |
+| Advisory lock tingkat sesi | `Never` |
+| `PREPARE` dan `DEALLOCATE` tingkat SQL | `Never` |
+| Prepared statement tingkat protokol | `Yes`, bila `max_prepared_statements` bukan nol |
+
+Tabel itu tidak menyebut `SET LOCAL`, `set_config` dengan argumen ketiga `true`, maupun advisory lock tingkat transaction (dicari di teks halaman). Kode lab memakai dua di antaranya:
+
+<Snippet files={["labs/api-t5/internal/repo/kartu.go:141:146", "labs/api-t5/internal/repo/audit.go:39:42"]} lang="go" title="Kode lab: set_config tingkat transaction di kartu.go dan pg_advisory_xact_lock di audit.go" />
+
+Keduanya berjalan di dalam satu transaction, jadi satu koneksi server memegangnya sampai transaction selesai (penalaran dari definisi mode transaction). Lab tidak menjalankannya lewat PgBouncer (Tidak dijalankan). README Postgres.js menulis hal serupa dari sisi client. Fitur yang hidup lebih lama dari satu transaction, seperti `SET`, `LISTEN`, dan temporary table, hanya berjalan di dalam `sql.begin` atau tidak sama sekali ([Postgres.js](https://github.com/porsager/postgres), dibuka 2026-11-04).
+
+Klaim outbox ([[t3-klaim-baris]]) adalah satu pernyataan `WITH ... FOR UPDATE SKIP LOCKED` yang disusul `UPDATE`. Seluruhnya satu transaction, jadi tidak butuh fitur sesi. Ini dibaca dari kode `KlaimOutboxTujuan`, dan Tidak dijalankan lewat PgBouncer. `SKIP LOCKED` hanya melewati baris yang sedang dikunci, dan bukan jaminan tanpa ganda.
+
+**pgx menyiapkan statement secara bawaan, dan PgBouncer harus melacaknya.** Kode sumber pgx v5.11.0 menulis `QueryExecModeCacheStatement` sebagai mode bawaan: pgx menyiapkan dan menyimpan prepared statement. Komentar `DefaultQueryExecMode` menulis bahwa ini bisa tidak cocok dengan proxy seperti PgBouncer, kecuali PgBouncer dikonfigurasi untuk prepared statement tingkat protokol ([pgx v5.11.0: conn.go](https://github.com/jackc/pgx/blob/v5.11.0/conn.go), dibuka 2026-11-04). Mode `QueryExecModeDescribeExec` bisa bermasalah dengan pooler yang berganti koneksi di antara dua round trip.
+
+PgBouncer 1.21.0 (2023-10-16) menambah dukungan prepared statement tingkat protokol, dengan syarat `max_prepared_statements` bukan nol. Sejak 1.24.0 (2025-01-10) bawaannya 200, dan lab menulis 100 ([PgBouncer: changelog](https://www.pgbouncer.org/changelog.html), dibuka 2026-11-04). Bagian B rekaman berjalan dengan nilai 100. Nilai 0 Tidak dijalankan.
+
+`PREPARE`, `EXECUTE`, dan `DEALLOCATE` tingkat SQL diteruskan langsung ke PostgreSQL tanpa pelacakan, kecuali `DEALLOCATE ALL` dan `DISCARD ALL` ([PgBouncer: configuration](https://www.pgbouncer.org/config.html), dibuka 2026-11-04). Server `api-t5` membuka pool lewat `stdlib.OpenDB` dan tidak mengubah mode eksekusi bawaan (dibaca dari kode `bukaDB`).
+
+**Lima pengaturan membatasi lima hal berbeda.** Tabel berikut membedakan nilai rekaman lab dari rancangan ADR 52. Kolom bawaan dan kolom lab dibaca dari dokumentasi dan `pgbouncer.ini`. Kolom ADR 52 adalah Asumsi desain:
+
+| Pengaturan | Yang dibatasi | Bawaan | Rekaman lab | Desain ADR 52 (Asumsi) |
+|---|---|---|---|---|
+| `max_client_conn` | Koneksi client yang diizinkan | 100 | 1000 | 400 per instance |
+| `default_pool_size` | Koneksi server per pasangan user dan database | 20 | 20 | 20 per role (bawaan) |
+| `max_db_connections` | Koneksi server per database, semua user | 0 (tanpa batas) | Tidak diisi | 30 per instance, 60 bersama |
+| `query_wait_timeout` | Detik client menunggu server sebelum diputus | 120 | Tidak diisi | 120 (bawaan) |
+| `max_prepared_statements` | Prepared statement yang dilacak | 200 | 100 | Lebih dari 0 |
+
+Client rekaman memakai satu role, `t5_app`, jadi 20 di lab adalah batas untuk satu pasangan database dan user. Dokumentasi menulis bahwa `default_pool_size` berlaku per pasangan user dan database. Perintah `SHOW POOLS` membuat satu entri pool untuk tiap pasangan itu ([PgBouncer: usage](https://www.pgbouncer.org/usage.html), dibuka 2026-11-04).
+
+ADR 50 memberi tiap service satu role ([[t5-service]]). Enam role dan dua instance membuka sampai 2 × 6 × 20 = 240 koneksi server bila `max_db_connections` kosong, lebih dari 97 tersedia. Hitungan ini atas dokumentasi dan Asumsi enam role, dan Tidak dijalankan: lab memakai satu role. Supabase menulis hal serupa untuk pooler-nya: ukuran pool berlaku per role, bukan total satu proyek ([Supabase: connection management](https://supabase.com/docs/guides/database/connection-management), tanpa nomor versi, dibuka 2026-11-04).
+
+Karena itu ADR 52 mengisi `max_db_connections`. Dokumentasi menulis batas ini per database tanpa memandang user. Tiap instance PgBouncer menghitungnya sendiri, jadi 60 koneksi server bersama dibagi dua instance: 30 per instance (penalaran, Tidak dijalankan).
+
+**Batas client dan waktu tunggu punya akibat berbeda.** Dokumentasi menulis `max_client_conn` sebagai "Maximum number of client connections allowed", dengan bawaan 100. Query yang belum mendapat koneksi server menunggu. Bila menunggu melewati `query_wait_timeout`, client diputus, dan nilai 0 membuat client menunggu tanpa ujung ([PgBouncer: configuration](https://www.pgbouncer.org/config.html), dibuka 2026-11-04).
+
+Kolom `cl_waiting` di perintah `SHOW POOLS` menghitung client yang sudah mengirim query tetapi belum mendapat koneksi server.
+
+**Pooler adalah komponen yang harus dijaga.** Dokumentasi menulis bahwa PgBouncer single-threaded dan memakai satu core CPU per instance. Catatan rilis 1.26.1 (2026-10-14) memuat tiga perbaikan keamanan atas versi sampai 1.26.0. Salah satunya: client tanpa autentikasi bisa membuat PgBouncer 1.20.0 sampai 1.26.0 berputar di satu core dan berhenti melayani semua client, bila `ignore_startup_parameters` tidak kosong.
+
+**Jitter dan backoff mencegah koneksi kedaluwarsa bersamaan.** Di pgx v5.11.0, `pgxpool.Config.MaxConnLifetimeJitter` bernilai bawaan 0. Komentar kodenya menulis bahwa jitter mencegah semua koneksi ditutup di detik yang sama, sampai pool kehabisan koneksi ([pgx v5.11.0: pgxpool](https://github.com/jackc/pgx/blob/v5.11.0/pgxpool/pool.go), dibuka 2026-11-04).
+
+Server `api-t5` memakai `database/sql` lewat `stdlib.OpenDB`, bukan `pgxpool`. File `sql.go` di Go 1.27.3 tidak memuat kata jitter (dicari di teks file), jadi `database/sql` tidak punya padanannya. Pengaturan `MaxConnLifetimeJitter` hanya ada di `pgxpool`.
+
+Backoff dengan jitter ([[t2-idempotency]]) ada di kode lab untuk pengiriman ke penyedia push dan verifikasi, yaitu di `internal/worker` dan `internal/stream`. Di file Go `labs/api-t5`, kata jitter hanya muncul di dua folder itu, termasuk tes keduanya, dan tidak muncul di `cmd`. Penyambungan ulang ke database dengan backoff dan jitter Tidak dijalankan.
+
+**Hitungan koneksi.** Tabel memakai angka yang tertulis di halaman ini. Skenario 5 pod, 8 pod, dan pool pod 5 adalah pilihan penulis:
+
+| Besaran | Rumus | Hasil |
+|---|---|---|
+| Koneksi yang diminta pod | 6 × 3 × 10 | 180 |
+| Koneksi tersedia | 100 − 3 | 97 |
+| Ditolak tanpa pooler | 180 − 97 | 83 |
+| Dari pemicu 70 koneksi | 180 ÷ 70 | 257% |
+| Pool server ADR 52 | 2 × 30 | 60 |
+| Pool server terhadap tersedia | 60 ÷ 97 | 61,9% |
+| Client terhadap `max_client_conn` | 180 ÷ 400 | 45% |
+| 5 pod tiap service | 6 × 5 × 10 | 300 |
+| 8 pod tiap service | 6 × 8 × 10 | 480 |
+| Pool pod 5, 3 pod | 6 × 3 × 5 | 90 |
+| Pool pod 5, 5 pod | 6 × 5 × 5 | 150 |
+| Pool server tanpa `max_db_connections` | 2 × 6 × 20 | 240 |
+| Rata-rata terpakai terhadap satu instance | 27,8 ÷ 30 | 92,7% |
+
+Tiap hasil di tabel adalah Hitungan atas Asumsi.
+
+### Di stack lain
+
+**Skenario:** satu service membuka koneksi ke PostgreSQL lewat pooler mode transaction. Yang ditanyakan: apa yang ditulis dokumentasi stack ini tentang jumlah koneksi dan fitur sesi?
+
+Tab Go dijalankan sebagian di lab. Tab lain tidak dijalankan, dan hanya dicek ke dokumentasi pada 2026-11-04. Kode di tab lain adalah Ilustrasi.
+
+<TabSet id="stack" labels={["Go", "Node.js", "Laravel", "Django", "Dart (Serverpod)", "Supabase"]}>
+<Fragment slot="t0">
+
+*Dijalankan sebagian: `cmd/pooler` memakai `pgxpool` dan direkam di bagian A dan B. Server `api-t5` memakai `database/sql` dan tidak dijalankan lewat PgBouncer.*
+
+<Snippet file="labs/api-t5/cmd/api/main.go" region="buka-db" lang="go" title="Kode lab: labs/api-t5/cmd/api/main.go (bukaDB)" />
+
+**Yang berbeda di stack ini:** dua pustaka pool hidup berdampingan di repo. Di pgx v5.11.0, bawaan `pgxpool.Config.MaxConns` adalah yang lebih besar antara 4 dan `runtime.NumCPU()`. Jitter bawaannya 0. Di Go 1.27.3, `database/sql` membatasi lewat `SetMaxOpenConns` dengan bawaan 0, yaitu tanpa batas, dan `SetConnMaxLifetime` tanpa jitter.
+
+</Fragment>
+<Fragment slot="t1">
+
+*Tidak dijalankan. Dicek ke halaman pg.Pool di dokumentasi node-postgres (pg 8.23.1 di npm) dan README Postgres.js (postgres 4.0.0 di npm), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="js" code={`const sql = postgres("postgres://pgbouncer.example:6432/rekeningo", {
+  max: 10,
+});`} />
+
+**Yang berbeda di stack ini:** `max` bawaan pool node-postgres adalah 10, dan halaman itu tidak memuat kata PgBouncer (dicari di teks halaman). README Postgres.js menulis `max` bawaan 10 dan memuat tabel pooler. Untuk transaction dengan `max_prepared_statements` (PgBouncer 1.21 ke atas) tidak ada opsi tambahan, dan yang tidak berjalan `LISTEN` serta `DEALLOCATE` yang dikirim sebagai SQL. Tanpa itu opsinya `prepare: false`.
+
+</Fragment>
+<Fragment slot="t2">
+
+*Tidak dijalankan. Dicek ke [Laravel 13.x: Database](https://laravel.com/docs/13.x/database) (rilis terbaru di Packagist v13.40.0, 2026-11-03), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="php" code={`'pgsql' => [
+    'driver' => 'pgsql',
+    'pooled' => env('DB_POOLED', false),
+    'direct' => array_filter(['host' => env('DB_DIRECT_HOST')]),
+],`} />
+
+**Yang berbeda di stack ini:** halaman itu punya bagian Pooled PostgreSQL Connections dengan dua koneksi. Koneksi pooled memakai emulated prepares, dan migration serta perintah skema memakai koneksi direct yang menunjuk langsung ke PostgreSQL. Halaman itu tidak membahas `max_prepared_statements` maupun ukuran pool (dicari di teks halaman).
+
+</Fragment>
+<Fragment slot="t3">
+
+*Tidak dijalankan. Dicek ke [Django 5.2: Databases](https://docs.djangoproject.com/en/5.2/ref/databases/), dibuka 2026-11-04. Kode di bawah adalah Ilustrasi.*
+
+<Snippet lang="python" code={`DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "DISABLE_SERVER_SIDE_CURSORS": True,
+    }
+}`} />
+
+**Yang berbeda di stack ini:** `CONN_MAX_AGE` bawaannya 0, yaitu koneksi ditutup di akhir tiap request. Mode transaction menuntut server-side cursor dimatikan lewat `DISABLE_SERVER_SIDE_CURSORS`, karena cursor hanya hidup di koneksi pembuatnya. Django 5.1 menambah opsi `pool` untuk psycopg, dan opsi itu diabaikan di psycopg2.
+
+</Fragment>
+<Fragment slot="t4">
+
+*Tidak dijalankan. Dicek ke [Serverpod: database connection](https://docs.serverpod.dev/concepts/data-and-the-database/database/connection), Serverpod 4.1.0, dibuka 2026-11-04. Kode Dart tidak ditulis di tab ini.*
+
+**Yang berbeda di stack ini:** Serverpod memakai pool dengan paling banyak 10 koneksi ke database secara bawaan, diubah lewat `maxConnectionCount`. Nilai 0 atau negatif berarti tanpa batas. Halaman itu tidak memuat kata PgBouncer maupun pooler (dicari di teks halaman).
+
+</Fragment>
+<Fragment slot="t5">
+
+*Tidak dijalankan. Dicek ke [Supabase: Connect to your database](https://supabase.com/docs/guides/database/connecting-to-postgres), dokumen tanpa nomor versi, dibuka 2026-11-04.*
+
+**Yang berbeda di stack ini:** halaman itu membedakan dua pooler. Pooler bersama (Supavisor) di mode transaction tidak mendukung prepared statement. Pooler khusus memakai PgBouncer dan mendukungnya sejak PgBouncer 1.21.
+
+Halaman manajemen koneksi menulis ukuran pool per role. Halaman itu juga menyebut 40% dari koneksi maksimum database bila PostgREST dipakai berat, selain itu 80%. Angka itu aturan umum Supabase, bukan aturan PostgreSQL.
+
+</Fragment>
+</TabSet>
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 52: PgBouncer mode transaction di depan primary, dengan pool server terbatas dan jitter
+
+**Kebutuhan.** PRD v5 menulis tidak berhenti dan tidak kehilangan uang ([[t5-prd]]). [[t5-m46]] menunjukkan, menurut naskah (Ilustrasi), latihan failover yang menghabiskan koneksi: 180 koneksi pod lawan 97 tersedia (Hitungan atas Asumsi). Pemicu PgBouncer di ADR 45 ([[t4-adr-45]]) terpenuhi pada 257%.
+
+**Status:** diterima sesudah M46 ([[t5-m46]]). Naskah tidak menulis tanggal ADR.
+
+| | A. Naikkan `max_connections` | B. Kecilkan pool tiap pod | C. Pooler bawaan database terkelola | D. PgBouncer mode transaction |
+|---|---|---|---|---|
+| Cara kerja | `max_connections` dinaikkan melewati koneksi yang mungkin dibuka pod | Pool pod diturunkan dari 10 ke 5 | Penyedia database menjalankan pooler sendiri | Dua instance PgBouncer di depan primary, dengan batas pool server dan client |
+| Kelebihan | Tanpa komponen baru | Tanpa komponen baru, dan 90 koneksi muat di 97 | Penyedia mengambil pemeliharaan pooler [perlu verifikasi] | 120 client dilayani paling banyak 20 koneksi ke PostgreSQL (`pooler.txt` bagian B) |
+| Kekurangan | PostgreSQL mengalokasikan sumber daya menurut nilainya, termasuk shared memory, dan standby harus bernilai sama atau lebih tinggi (dokumentasi PostgreSQL 17) | 5 pod tiap service sudah 150 koneksi, lebih dari 97, jadi penambahan pod membatalkannya (Hitungan atas Asumsi) | Fitur pooler bisa berbeda dari PgBouncer: pooler bersama Supabase tidak mendukung prepared statement di mode transaction | Fitur sesi tidak berjalan, satu komponen baru, dan satu lompatan tambahan |
+| Biaya operasional | Memori database lebih besar | Queue di pool pod lebih cepat terbentuk (penalaran) | Biaya penyedia, belum dihitung | Dua instance, alert client menunggu, dan patch tiap rilis |
+| Bukti | Tidak dijalankan: dokumentasi PostgreSQL 17 | Hitungan atas Asumsi, dan Tidak dijalankan | Tidak dijalankan: penyedia belum dipilih ([[t5-onprem]]) | Rekaman lab `pooler.txt` bagian A dan B, satu role dan satu instance |
+
+**Keputusan: opsi D.** Sembilan aturan:
+
+1. PgBouncer 1.26.1 di mode transaction, dua instance di belakang satu Service. Lab menjalankan satu container.
+2. Koneksi ke PostgreSQL dibatasi 60 dari 97 tersedia (Asumsi naskah). Aturannya `max_db_connections` 30 per instance (Asumsi desain). Pengaturan `default_pool_size` berlaku per pasangan user dan database, dan enam role membuka sampai 240.
+3. Pool tiap pod tetap 10. `max_client_conn` dinaikkan dari bawaan 100 ke 400 per instance (Asumsi), supaya 180 client muat di satu instance bila instance lain mati.
+4. Query yang melebihi 60 koneksi server menunggu sampai `query_wait_timeout`, bawaan 120 detik, lalu client diputus.
+5. pgx v5.11.0 memakai statement cache bawaan, dengan `max_prepared_statements` lebih dari 0. Mode `QueryExecModeDescribeExec` dan `PREPARE` tingkat SQL tidak dipakai.
+6. Service tidak memakai `SET`, `LISTEN`, dan advisory lock tingkat sesi. `set_config` tingkat transaction di `kartu.go` dan `pg_advisory_xact_lock` di `audit.go` dites lewat PgBouncer sebelum cutover (Tidak dijalankan).
+7. Service yang memakai `pgxpool` mengisi `MaxConnLifetimeJitter` 5 menit (Asumsi). Penyambungan ulang memakai backoff dengan jitter.
+8. Latihan failover [[t5-m46]] diulang sesudah pemasangan. Alert memantau `cl_waiting` di `SHOW POOLS`.
+9. Versi PgBouncer dikunci di image dan dibandingkan dengan catatan rilis tiap rilis.
+
+**Kenapa D, bukan A, B, atau C.**
+
+- **A ditolak** karena memindahkan batas tanpa mengurangi koneksi yang dibuka. Dokumentasi PostgreSQL 17 menulis bahwa kenaikannya menambah alokasi sumber daya, termasuk shared memory. Dokumentasi itu juga menulis bahwa banyak sesi bisa memakai `work_mem` bersamaan. Batas baru tetap bisa dilewati badai yang sama (penalaran).
+- **B tidak cukup** karena ia bergantung pada jumlah pod. Dengan pool 5, tiga pod memakai 90 koneksi dan lima pod memakai 150. Autoscaling menambah pod ([[t5-service]]), jadi batasnya berubah tanpa ada yang memutuskan.
+- **C tidak dipilih untuk lab** karena tidak bisa direkam, bukan karena salah. Dokumentasi Supabase menulis bahwa pooler bersamanya tidak mendukung prepared statement di mode transaction, sedangkan pooler khususnya mendukung. Produksi database sendiri atau terkelola menunggu pemilik ([[t5-onprem]]).
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Enam role terpasang tanpa `max_db_connections`. Kedua instance boleh membuka 240 koneksi server, dan PgBouncer tidak melindungi apa pun. Pencegahannya aturan 2 dan alert bila jumlah koneksi role pooler mendekati 97.
+2. Satu instance PgBouncer mati. Pool server tinggal 30, dan rata-rata terpakai 27,8 ÷ 30 = 92,7% (Hitungan atas Asumsi), sedangkan semua client pindah ke instance yang tersisa. Pencegahannya alert `cl_waiting` dan latihan mematikan satu instance (Tidak dijalankan).
+3. Fitur sesi masuk diam-diam lewat kode baru, dan kesalahannya muncul sebagai perilaku aneh. Pencegahannya daftar periksa review kode dan pemindai kata kunci (Asumsi desain, belum ada di lab).
+
+**Kapan keputusan ini salah.**
+
+- Saat service butuh `SET`, `LISTEN`, advisory lock tingkat sesi, atau `PREPARE` tingkat SQL. Service itu perlu koneksi langsung atau pooler mode session.
+- Saat pooler menjadi titik gagal tunggal. Catatan rilis 1.26.1 menulis satu client tanpa autentikasi bisa membuat PgBouncer berhenti melayani semua client pada 1.20.0 sampai 1.26.0, dengan syarat `ignore_startup_parameters` tidak kosong.
+- Saat client menunggu server lebih dari `query_wait_timeout` 120 detik dan diputus, sehingga badai koneksi menjadi badai timeout. Isu pgx#1687 melaporkan pool menumpuk bersama `query_wait_timeout`. Pelapor memakai pgx v5.4.1, dan isu itu terbuka sejak 2023-07-14. Pemilik pgx menjawab agar pelapor mencoba v5.4.2, yang menurutnya memperbaiki sebagian masalah koneksi yang tidak dibersihkan dengan benar. Apakah masalah itu ada di v5.11.0 belum diperiksa [perlu verifikasi].
+- Saat koneksi pod melewati `max_client_conn`: 8 pod tiap service memberi 480 client lawan 400 per instance (Hitungan atas Asumsi). Pembanding naskah: 180 lawan 400.
+- Saat p95 lompatan tambahan melewati 50 ms, anggaran satu lompatan di [[t4-modul]] (Asumsi). Lab memakai satu mesin dan tidak mengukurnya (Tidak dijalankan).
+
+**Yang akan merevisinya.** [[t5-onprem]] menimbang database dijalankan sendiri atau terkelola. Pilihan itu menentukan apakah pooler dipasang sendiri atau bawaan penyedia (opsi C).
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Dua instance PgBouncer di belakang satu Service | Lab menjalankan satu container | Belum dijadwalkan |
+| `max_prepared_statements` bernilai 0 | Rekaman memakai 100, dan nilai 0 tidak dijalankan | Belum dijadwalkan |
+| Satu instance PgBouncer dimatikan saat beban | Lab tidak mematikannya, dan 92,7% adalah Hitungan atas Asumsi | Belum dijadwalkan |
+| Lompatan tambahan p95 lewat PgBouncer | Lab berjalan di satu mesin dan tidak mengukurnya | Belum dijadwalkan |
+| Pooler bawaan database terkelola | Penyedia belum dipilih | [[t5-onprem]] |
+| Pemindai fitur sesi di kode service | Belum ada di lab | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Dua belas client dengan pool pod 10 meminta 120 koneksi. Apa yang terjadi bila mereka langsung ke PostgreSQL, dan apa bila lewat PgBouncer?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Langsung ke PostgreSQL, sebagian ditolak dengan kode 53300 dan role `t5_app` tidak melewati 97 koneksi (`pooler.txt` bagian A). Lewat PgBouncer, 120 koneksi berhasil, 2.400 query selesai, dan paling banyak 20 koneksi sampai ke PostgreSQL (bagian B).
+
+</details>
+
+**2.** Dokumentasi PgBouncer menulis `SET` tidak berjalan di mode transaction. Kode lab memakai apa yang tabel itu tidak sebut, dan apa statusnya?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+`kartu.go` memakai `set_config('lock_timeout', ..., true)` di dalam transaction, dan `audit.go` memakai `pg_advisory_xact_lock`. Tabel dokumentasi tidak menyebut keduanya. Lab tidak menjalankannya lewat PgBouncer, jadi keduanya dites sebelum cutover (Tidak dijalankan).
+
+</details>
+
+**3.** Dua instance PgBouncer, enam role, `default_pool_size` 20, dan `max_db_connections` kosong. Berapa koneksi server paling banyak, dan berapa setelah `max_db_connections` 30 per instance?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+2 × 6 × 20 = 240 koneksi, lebih dari 97 tersedia. Dengan 30 per instance, 2 × 30 = 60 koneksi (Hitungan atas Asumsi dan dokumentasi, Tidak dijalankan).
+
+</details>
+
+**4.** Tiap service naik ke 5 pod, pool pod tetap 10. Berapa koneksi pod, berapa yang ditolak tanpa pooler, dan apakah 400 client per instance cukup?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+6 × 5 × 10 = 300 koneksi. Tanpa pooler, 300 − 97 = 203 koneksi ditolak. 300 client muat di 400 per instance (75%), tetapi 8 pod tiap service memberi 480 dan melewati batas itu (Hitungan atas Asumsi).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Service yang lewat PgBouncer tidak memakai `SET`, `LISTEN`, `PREPARE` tingkat SQL, atau advisory lock tingkat sesi. `set_config(..., true)` dan `pg_advisory_xact_lock` dites lewat PgBouncer.
+- [ ] `max_prepared_statements` bukan 0 selama pgx memakai statement cache, dan mode eksekusi tidak diganti ke `QueryExecModeDescribeExec`.
+- [ ] `max_db_connections` terisi, dan jumlah instance × nilainya tidak melewati `max_connections` dikurangi cadangan.
+- [ ] `max_client_conn` per instance cukup untuk semua pod bila satu instance mati, dan penambahan pod dihitung ulang.
+- [ ] Service `pgxpool` mengisi `MaxConnLifetimeJitter`, dan service `database/sql` tahu bahwa pustaka itu tidak punya jitter.
+- [ ] Versi PgBouncer dikunci, dibandingkan dengan catatan rilis, dan alert `cl_waiting` ada.
+
+### Bacaan lanjut
+
+- [PgBouncer: features](https://www.pgbouncer.org/features.html)
+- [PgBouncer: configuration](https://www.pgbouncer.org/config.html)
+- [PgBouncer: usage](https://www.pgbouncer.org/usage.html)
+- [PgBouncer: changelog](https://www.pgbouncer.org/changelog.html)
+- [PostgreSQL 17: connections and authentication](https://www.postgresql.org/docs/17/runtime-config-connection.html)
+- [PostgreSQL 17: resource consumption](https://www.postgresql.org/docs/17/runtime-config-resource.html)
+- [PostgreSQL 17: error codes](https://www.postgresql.org/docs/17/errcodes-appendix.html)
+- [pgx v5.11.0: conn.go](https://github.com/jackc/pgx/blob/v5.11.0/conn.go)
+- [pgx v5.11.0: pgxpool](https://github.com/jackc/pgx/blob/v5.11.0/pgxpool/pool.go)
+- [pgx isu 1687](https://github.com/jackc/pgx/issues/1687)
+- [Go 1.27.3: database/sql](https://github.com/golang/go/blob/go1.27.3/src/database/sql/sql.go)
+- [Postgres.js](https://github.com/porsager/postgres)
+- [node-postgres: pooling](https://node-postgres.com/apis/pool)
+- [Laravel 13.x: Database](https://laravel.com/docs/13.x/database)
+- [Django 5.2: Databases](https://docs.djangoproject.com/en/5.2/ref/databases/)
+- [Serverpod: database connection](https://docs.serverpod.dev/concepts/data-and-the-database/database/connection)
+- [Supabase: Connect to your database](https://supabase.com/docs/guides/database/connecting-to-postgres)
+- [Supabase: connection management](https://supabase.com/docs/guides/database/connection-management)
+
+</Blok>

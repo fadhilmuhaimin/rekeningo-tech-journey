@@ -171,6 +171,15 @@
   "h": "/istilah/alert/"
  },
  {
+  "t": "Alert TLS",
+  "d": "Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required.",
+  "b": "t5-mtls",
+  "n": "5.19 mTLS antar service",
+  "u": "/tahap-5/mtls-antar-service/",
+  "s": "istilah-alert-tls",
+  "h": null
+ },
+ {
   "t": "Allowlist",
   "d": "Daftar tujuan yang diizinkan; yang tidak ada di daftar ditolak.",
   "b": "t4-ssrf",
@@ -1197,6 +1206,15 @@
   "h": null
  },
  {
+  "t": "mTLS (mutual TLS)",
+  "d": "TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.",
+  "b": "t5-mtls",
+  "n": "5.19 mTLS antar service",
+  "u": "/tahap-5/mtls-antar-service/",
+  "s": "istilah-mtls",
+  "h": "/istilah/mtls/"
+ },
+ {
   "t": "MVCC (Multi-Version Concurrency Control)",
   "d": "Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis.",
   "b": "t2-isolation-level",
@@ -1726,6 +1744,15 @@
   "u": "/tahap-2/saldo-bukan-kolom/",
   "s": "istilah-saldo-cache",
   "h": "/istilah/saldo-cache/"
+ },
+ {
+  "t": "SAN (Subject Alternative Name)",
+  "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
+  "b": "t5-mtls",
+  "n": "5.19 mTLS antar service",
+  "u": "/tahap-5/mtls-antar-service/",
+  "s": "istilah-san",
+  "h": "/istilah/san/"
  },
  {
   "t": "Secret manager",
