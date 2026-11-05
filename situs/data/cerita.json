@@ -5088,8 +5088,9 @@
         "t5-jembatan",
         "t5-onprem"
       ],
-      "ada": false,
-      "nomor": "6.1"
+      "ada": true,
+      "nomor": "6.1",
+      "menit": 17
     },
     {
       "id": "t6-fitur-teknis",
