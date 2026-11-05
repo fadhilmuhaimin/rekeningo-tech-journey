@@ -19,7 +19,7 @@
   ],
   "stack": null,
   "jebakan": [
-    "Mengira kuorum selalu berarti mayoritas. Di PostgreSQL, n bisa berapa pun yang ditulis di `ANY`, mis. 1 dari dua standby.",
+    "Mengira kuorum selalu berarti mayoritas. Di PostgreSQL, n adalah angka yang ditulis di `ANY`, mis. 1 dari dua standby, yang bukan mayoritas.",
     "Mengira semua standby dalam kuorum memegang commit terakhir yang sama. Halaman 5.9 menulis bahwa dengan `ANY 1` dari dua standby, kedua standby bisa memegang commit terakhir yang berbeda (penalaran di halaman itu, Tidak dijalankan)."
   ],
   "terkait": [

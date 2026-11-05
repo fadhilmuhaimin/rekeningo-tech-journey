@@ -1846,7 +1846,7 @@
  },
  {
   "t": "Residensi data",
-  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.",
+  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup. Rumusan penulis, [perlu verifikasi].",
   "b": "t6-residensi",
   "n": "6.8 Keamanan 13",
   "u": null,

@@ -1,6 +1,6 @@
 {
   "istilah": "Data mesh",
-  "sehari_hari": "Data mesh adalah pendekatan untuk data analitik yang bertumpu pada empat prinsip: data dimiliki tim domain, data diperlakukan sebagai produk, infrastruktur data tersedia self-serve, dan tata kelola dijalankan secara federasi dengan aturan yang dieksekusi komputer. Zhamak Dehghani merumuskannya pada 3 Desember 2020.",
+  "sehari_hari": "Data mesh adalah pendekatan untuk data analitik yang bertumpu pada empat prinsip: data dimiliki tim domain, data diperlakukan sebagai produk, infrastruktur data tersedia self-serve, dan tata kelola dijalankan secara federasi dengan aturan yang dieksekusi komputer. Zhamak Dehghani menulis keempat prinsip itu pada 3 Desember 2020, sesudah tulisan pertamanya tentang data mesh.",
   "cerita": [
     {
       "rujukan": "t5-jembatan",

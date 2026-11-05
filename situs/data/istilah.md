@@ -374,8 +374,8 @@
 *[Repeatable Read]: Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001.
 *[Replication lag]: Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.
 *[replication lag]: Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.
-*[Residensi data]: Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.
-*[residensi data]: Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.
+*[Residensi data]: Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup. Rumusan penulis, [perlu verifikasi].
+*[residensi data]: Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup. Rumusan penulis, [perlu verifikasi].
 *[Retry]: Mengirim ulang request yang gagal atau tidak dijawab.
 *[retry]: Mengirim ulang request yang gagal atau tidak dijawab.
 *[Reverse proxy]: Server di depan aplikasi yang menerima request dari internet lalu meneruskannya, sambil mengurus hal bersama seperti TLS dan kompresi.

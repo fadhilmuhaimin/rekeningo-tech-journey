@@ -1879,7 +1879,7 @@ window.ISTILAH = {
  },
  "Residensi data": {
   "b": "t6-residensi",
-  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.",
+  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup. Rumusan penulis, [perlu verifikasi].",
   "h": "istilah/residensi-data/",
   "n": "6.8 Keamanan 13",
   "s": "istilah-residensi-data",
@@ -3700,7 +3700,7 @@ window.ISTILAH = {
  },
  "residensi data": {
   "b": "t6-residensi",
-  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.",
+  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup. Rumusan penulis, [perlu verifikasi].",
   "h": "istilah/residensi-data/",
   "n": "6.8 Keamanan 13",
   "s": "istilah-residensi-data",

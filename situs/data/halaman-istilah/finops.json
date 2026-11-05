@@ -4,7 +4,7 @@
   "cerita": [
     {
       "rujukan": "t5-onprem",
-      "teks": "Halaman 5.28 membandingkan biaya tiga tahun antara cloud dan perangkat sendiri. Semua masukannya Ilustrasi."
+      "teks": "Halaman 5.28 membandingkan biaya tiga tahun antara cloud dan perangkat sendiri. Masukannya Ilustrasi, kecuali 6 orang platform dan SRE (Asumsi)."
     },
     {
       "rujukan": "t6-m57",

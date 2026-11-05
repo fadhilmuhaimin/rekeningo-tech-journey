@@ -1,6 +1,6 @@
 {
   "istilah": "Pseudonim",
-  "sehari_hari": "Pseudonim adalah pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi. Pseudonim bukan anonim. Pemetaan kembali ke identitas asli masih mungkin selama tabel pemetaan atau kunci pembuatnya ada.",
+  "sehari_hari": "Pseudonim adalah pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi. Dalam pemakaian NISTIR 8053, pseudonim bukan anonim. Pemetaan kembali ke identitas asli masih mungkin selama tabel pemetaan atau kunci pembuatnya ada.",
   "cerita": [
     {
       "rujukan": "t6-residensi",
@@ -15,7 +15,7 @@
   ],
   "stack": null,
   "jebakan": [
-    "Menyebut data berpseudonim anonim. ISO/TS 25237, yang dikutip NISTIR 8053, menulis bahwa anonimisasi tidak memberi cara menghubungkan data ke orang yang sama antar rekaman, dan tidak bisa dibalik.",
+    "Menyebut data berpseudonim anonim. ISO/TS 25237, yang dikutip NISTIR 8053, menulis bahwa anonimisasi tidak memberi cara menghubungkan data ke orang yang sama antar rekaman, dan tidak bisa dibalik. NISTIR 8053 juga mencatat bahwa standar itu tidak selalu jelas dan bahwa sebagian penulis memakai de-identification dan anonymization secara bergantian.",
     "Menyimpan tabel pemetaan atau kunci pembuatnya bersama datanya. NISTIR 8053 menulis bahwa pseudonim bisa dibalik selama pemetaannya terjaga atau bisa dibangkitkan ulang."
   ],
   "terkait": [
