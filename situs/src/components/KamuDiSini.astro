@@ -11,8 +11,11 @@ const sini = urlDariId(Astro.locals.starlightRoute.entry.id);
 const h = dariUrl(d, sini);
 // Halaman istilah (G-istilah, keputusan 688) tidak ada di registry: jalurnya Alat › Glosarium › Istilah.
 const istilah = !h && sini.startsWith("/istilah/") ? String(Astro.locals.starlightRoute.entry.data.title ?? "") : null;
-type Tahap = { no: number; nama: string; rekap: string; sebelumnya: string; versi?: string; naskah?: string; bagian?: { no: number | string; nama: string }[] };
-const t: Tahap | undefined = h && Number.isInteger(h.tahap) ? d.tahap.find((x: Tahap) => x.no === h.tahap) : undefined;
+type Tahap = { no: number; nama: string; rekap?: string; sebelumnya?: string; versi?: string; naskah?: string; bagian?: { no: number | string; nama: string }[] };
+// Tahap 6 hanya ada di `proyeksi` (tanpa rekap dan asumsi), tetapi halamannya mendapat jalur yang sama (keputusan 1760).
+const t: Tahap | undefined = h && Number.isInteger(h.tahap)
+  ? (d.tahap.find((x: Tahap) => x.no === h.tahap) ?? d.proyeksi?.find((x: Tahap) => x.no === h.tahap))
+  : undefined;
 const NAMA: Record<string, string> = { pembuka: "Pembuka", sampingan: "Studi sampingan", alat: "Alat" };
 const kelompok = h ? (t?.bagian?.find((b) => b.no === h.bagian)?.nama ?? h.kelompok) : undefined;
 // Tahap bernaskah dengan data tahap versi lama (Tahap 2 sejak keputusan 450): "(versi lama)" hanya di halaman lama.
