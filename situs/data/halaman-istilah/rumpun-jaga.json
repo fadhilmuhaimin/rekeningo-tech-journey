@@ -14,7 +14,7 @@
   "mekanisme": [
     "Mulai dari batas waktu. Buku SRE Google menulis bahwa tidak lebih dari 25% waktu seorang SRE dipakai untuk jaga.",
     "Hitung jumlah orang. Dengan dua penjaga sekaligus, primer dan sekunder, dan giliran satu minggu, satu tim satu lokasi butuh paling sedikit delapan engineer. Untuk tim dengan dua lokasi, buku itu menulis enam orang per tim sebagai ukuran minimum yang wajar.",
-    "Bila satu tim lebih kecil dari angka itu, anggotanya bisa digabung dengan tim lain dalam satu rotasi. Buku SRE menulis bahwa umum bagi dua tim yang berkaitan untuk menjadi sekunder satu sama lain.",
+    "Bila satu tim lebih kecil dari angka itu, anggotanya bisa digabung dengan tim lain dalam satu rotasi. Buku SRE menulis bahwa, pada tim yang tidak mutlak butuh rotasi sekunder khusus, umum bagi dua tim yang berkaitan untuk menjadi sekunder satu sama lain.",
     "Rumpun biasanya mengelompokkan tim yang berdekatan domainnya, supaya penjaga masih mengenal service yang dijaganya (pilihan Rekeningo)."
   ],
   "stack": null,
@@ -32,7 +32,7 @@
       "riset": "R6-174",
       "judul": "Google SRE book, bab 11: Being On-Call",
       "url": "https://sre.google/sre-book/being-on-call/",
-      "catatan": "Edisi 2017, dibuka 2026-11-06. Tidak lebih dari 25% waktu untuk jaga. Dengan primer dan sekunder, minimum delapan engineer untuk satu lokasi dan enam per tim untuk dua lokasi. Banyak tim punya rotasi primer dan sekunder, dan umum bagi dua tim yang berkaitan menjadi sekunder satu sama lain."
+      "catatan": "Edisi 2017, dibuka 2026-11-06. Tidak lebih dari 25% waktu untuk jaga. Dengan primer dan sekunder, minimum delapan engineer untuk satu lokasi dan enam per tim untuk dua lokasi. Banyak tim punya rotasi primer dan sekunder. Pada tim yang tidak mutlak butuh rotasi sekunder khusus, umum bagi dua tim yang berkaitan menjadi sekunder satu sama lain."
     }
   ]
 }
