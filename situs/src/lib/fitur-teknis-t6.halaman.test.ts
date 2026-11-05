@@ -13,11 +13,12 @@ import { describe, expect, test } from "vitest";
 import cerita from "../../data/cerita.json";
 import diagramMentah from "../../data/diagram/t6-fitur-inti.json";
 import kalkulatorMentah from "../../data/widget/t6-fitur-kalkulator.json";
+import kalkulator5Mentah from "../../data/widget/t5-m51-kalkulator.json";
 import { DataKalkulator } from "../widgets/kalkulator/skema";
-import { hitung as hitungKalkulator, siapkan } from "../widgets/kalkulator/logika";
+import { duaAngka, hitung as hitungKalkulator, siapkan } from "../widgets/kalkulator/logika";
 import { DataRantai } from "./rantai";
 import { cekTemplat, daftarBlok } from "./blok";
-import { BARIS_MDX, BARIS_RISET, BENTUK_MDX, NILAI_RANTAI, PROSA } from "./fitur-teknis-t6.halaman.nilai";
+import { BARIS_MDX, BARIS_RISET, BENTUK_MDX, NILAI_RANTAI } from "./fitur-teknis-t6.halaman.nilai";
 
 const akar = path.resolve(__dirname, "../../..");
 const terlacak: Set<string> | null = (() => {
@@ -150,6 +151,17 @@ describe("registry, meta, dan susunan blok", () => {
     expect(hitungKata(badan, "<Rantai "), "jumlah Rantai").toBe(1);
     expect(blokMdx("Mulai")).toContain("<Rantai data={inti} ringkas />");
   });
+  test("impor mdx: tiap jalur ada di disk, dan data Rantai, kalkulator, dan registry diimpor dari berkas Tahap 6 yang tepat", () => {
+    const impor = [...badan.matchAll(/^import (\w+) from "([^"]+)";$/gm)].map((m) => [m[1]!, m[2]!] as const);
+    expect(impor.map((x) => x[0])).toEqual(["Blok", "Rantai", "Snippet", "ErdHalaman", "Kalkulator", "dataKalkulator", "cerita", "inti"]);
+    for (const [nama, rel] of impor) expect(fs.existsSync(path.join(akar, "situs/src/content/docs/tahap-6", rel)), `${nama}: ${rel}`).toBe(true);
+    expect(impor.find((x) => x[0] === "dataKalkulator")![1]).toBe("../../../../data/widget/t6-fitur-kalkulator.json");
+    expect(impor.find((x) => x[0] === "inti")![1]).toBe("../../../../data/diagram/t6-fitur-inti.json");
+    expect(impor.find((x) => x[0] === "cerita")![1]).toBe("../../../../data/cerita.json");
+    expect(impor.find((x) => x[0] === "Kalkulator")![1]).toBe("../../../widgets/kalkulator/Kalkulator.tsx");
+    expect(badan).toContain("<Rantai data={inti} ringkas />");
+    expect(badan).toContain("data={dataKalkulator}");
+  });
   test("tingkat heading: satu '## Inti' di blok Mulai, selebihnya label tebal; frontmatter tanpa heading", () => {
     expect(badan.match(/^#{1,6} .*$/gm)).toEqual(["## Inti"]);
     expect(blokMdx("Mulai")).toContain("\n## Inti\n");
@@ -211,6 +223,28 @@ describe("blok Mulai: Inti hasil-dulu dan diagram Rantai t6-fitur-inti.json", ()
     expect(paragraf[2]).toContain("punya tujuh kejadian dan tiga hal, jadi 21 sel, dan 7 sel Rusak");
     expect(rantai.sumber.jenis).toBe("ilustrasi");
   });
+  test("paragraf kedua: versi pertama minggu 2 dan lima pelaku dari naskah; sub simpul Rantai menyebut minggu yang sama", () => {
+    expect(paragraf[2]).toContain("Baris bawah Rantai adalah versi pertama minggu 2: Arga, Kirana, Nadia, Bayu, dan tim Pelaporan menulis tiap bagian seolah semua negara, wilayah, dan tim sama.");
+    expect(naskah).toContain("**Versi pertama (minggu 2).**");
+    expect(paragraf[2]).toContain("Aturan di atas lahir dari sel yang Rusak itu, sebelum satu baris kode ditulis.");
+    expect(rantai.baris[1]!.simpul[0]!.sub).toBe("versi pertama, minggu 2");
+  });
+  test("Rantai: semua teks terkunci literal (id, judul, sumber, label, simpul, sub, nada, catatan); sub baris atas dari kalimat tiga hal di naskah", () => {
+    expect(diagramMentah).toEqual({
+      id: "t6-fitur-inti",
+      judul: "Tiga hal dan tujuh kejadian",
+      sumber: { jenis: "ilustrasi", teks: "Ilustrasi: rancangan penulis. Jumlah sel: Hitungan atas Ilustrasi." },
+      baris: [
+        { label: "Aturan", simpul: [{ teks: "Ledger", sub: "seimbang per mata uang", nada: "system" }, { teks: "Satu rumah", sub: "satu negara, satu wilayah", nada: "system" }, { teks: "Satu pemilik", sub: "service, data, jaga", nada: "system" }], sub: "tiga hal yang selalu benar" },
+        { label: "Tabel", simpul: [{ teks: "7 kejadian", sub: "versi pertama, minggu 2", nada: "old" }, { teks: "21 sel", sub: "kejadian × tiga hal" }, { teks: "7 Rusak", sub: "2 + 1 + 4", nada: "warn" }], sub: "dihitung dari tabel" },
+      ],
+      catatan: "Biru: tiga hal yang harus selalu benar. Abu-abu: versi pertama. Kuning: sel yang Rusak, yaitu kejadian yang melanggar satu hal.",
+    });
+    const hal3 = bagian(bagian3, "Tiga hal harus selalu benar.", "**Versi pertama");
+    expect(hal3).toContain("jurnal seimbang per mata uang");
+    expect(hal3).toContain("Data satu negara punya satu rumah, yaitu wilayah negara itu");
+    expect(hal3).toContain("Tiap service, data, dan giliran jaga punya satu pemilik");
+  });
   test("Rantai ringkas: dua baris pendek, tiga simpul, teks simpul tanpa angka di luar hitungan tabel, tanpa ID internal", () => {
     expect(rantai.baris).toHaveLength(2);
     for (const b of rantai.baris) {
@@ -219,7 +253,8 @@ describe("blok Mulai: Inti hasil-dulu dan diagram Rantai t6-fitur-inti.json", ()
       for (const s of b.simpul) expect(s.teks.length, s.teks).toBeLessThanOrEqual(14);
     }
     expect(rantai.judul.length).toBeLessThanOrEqual(30);
-    expect(rantai.sumber.teks).toBe("rancangan penulis; jumlah sel adalah Hitungan atas Ilustrasi.");
+    expect(rantai.sumber.teks).toBe("Ilustrasi: rancangan penulis. Jumlah sel: Hitungan atas Ilustrasi.");
+    expect(rantai.sumber.teks.startsWith("Ilustrasi: ")).toBe(true);
     expect(JSON.stringify(diagramMentah)).not.toMatch(/\bR\d-\d{2,3}\b|keputusan \d|PR #?\d/);
   });
 });
@@ -271,6 +306,33 @@ describe("blok Coba dulu: kalkulator, tebakan, dan jawaban yang tidak bocor", ()
     expect(t.alasan).toContain(`60% dari ${fmt(puncak[1]!, 1)}`);
     expect(kalkulator.label.lanjut).toBe("Sekarang pilih skenario “Negara pertama” di atas tabel.");
     expect(kalkulator.label.kesimpulan).toContain("{puncak}");
+  });
+  test("prosa blok Coba: angka masukan dari naskah, registry, dan logika kalkulator; pembulatan dua angka penting", () => {
+    expect(coba).toContain(`*Puncak* adalah laju request di jam paling ramai, yaitu rata-rata harian dikali faktor puncak ${asumsi[4]!.puncak}.`);
+    expect(coba).toContain(`Angka ${titik(U)} user dan pembagian ${gabung(bagi.map((x) => `${Math.round(x * 100)}%`))} per negara adalah Asumsi cerita.`);
+    expect(coba).toContain("Persen aktif, request per user, dan faktor puncak diteruskan dari Tahap 5 ([[t5-prd]]).");
+    expect(dari("t5-prd").tahap).toBe(5);
+    expect(cerita.tahap[4]!.no).toBe(5);
+    expect(coba).toContain(`Widget membulatkan ke dua angka penting, jadi puncak ${fmt(puncak[0]!, 1)} tampil ${duaAngka(puncak[0]!)}.`);
+    expect(duaAngka(puncak[0]!)).toBe("1.400");
+    expect(naskah).toContain("Isinya 10.000.000 user terdaftar, aktif 20%, 60 request per user aktif per hari, faktor puncak 10");
+  });
+  test("teks widget: id dan judul dari 5.29, label sama dengan kalkulator 5.29 kecuali lanjut dan kesimpulan, tebakan dan alasan dari angka yang dihitung ulang", () => {
+    expect(kalkulatorMentah.id).toBe("t6-fitur-kalkulator");
+    expect(kalkulatorMentah.judul).toBe(kalkulator5Mentah.judul);
+    const { lanjut: l6, kesimpulan: k6, ...tetap6 } = kalkulatorMentah.label;
+    const { lanjut: l5, kesimpulan: k5, ...tetap5 } = kalkulator5Mentah.label;
+    expect(tetap6).toEqual(tetap5);
+    expect([l6, l5].every((x) => x.startsWith("Sekarang pilih skenario “"))).toBe(true);
+    expect(k5).toBe("Di jam paling ramai, satu request datang kira-kira tiap {jarak}.");
+    expect(k6).toBe("Di jam paling ramai, puncaknya kira-kira {puncak} request per detik, satu request tiap {jarak}.");
+    expect(kalkulatorMentah.sumber).toEqual({ jenis: "asumsi", teks: `Asumsi naskah dari cerita.json. Angka ${titik(U)} user dan negara pertama ${titik(skenario[3]!.user)} user (${Math.round(bagi[0]! * 100)}%) adalah Asumsi cerita, bukan pengukuran.` });
+    const t = kalkulator.tebak;
+    const rasio = Math.round(puncak[3]! / puncak[0]!);
+    expect(t.q).toBe(`Tahap 5 punya ${titik(skenario[0]!.user)} user dan puncak ${fmt(puncak[0]!, 1)} request per detik. Negara pertama punya ${titik(skenario[3]!.user)} dari ${titik(U)} user di Tahap 6, dan persen aktif, request per user, dan faktor puncaknya sama dengan Tahap 5. Berapa kali puncak Tahap 5 yang ia hasilkan sendiri?`);
+    expect(t.pilihan).toEqual([`${Math.round(puncak[1]! / puncak[0]!)} kali`, `${rasio / 2} kali`, `${rasio} kali`, `${String(bagi[0]).replace(".", ",")} kali`]);
+    expect(t.alasan).toBe(`Negara pertama punya ${titik(skenario[3]!.user)} user, ${rasio} kali Tahap 5. Persen aktif, request per user, dan faktor puncak tetap, jadi puncaknya ${rasio} kali Tahap 5: ${fmt(puncak[3]!, 1)} request per detik, yaitu ${Math.round(bagi[0]! * 100)}% dari ${fmt(puncak[1]!, 1)} di Tahap 6. Database per negara membagi beban, tetapi negara terbesar tetap ${rasio} kali beban Tahap 5.`);
+    expect(Object.keys(kalkulatorMentah).sort()).toEqual(["awal", "id", "judul", "label", "skenario", "sumber", "tebak"]);
   });
   test("jawaban tebakan tidak ada di teks sebelum pembaca memilih: description, aman, prosa di blok Coba, kalimat pembuka, dan Inti", () => {
     const aman = coba.match(/aman="([^"]*)"/)![1]!;
@@ -327,6 +389,11 @@ describe("blok Dari fitur ke pekerjaan: tabel delapan baris sama dengan naskah b
     expect(tabel[8]![0]).toBe("53 developer, 11 tim");
     expect(naskah).toContain("jadi 53 (Hitungan atas Asumsi cerita)");
   });
+  test("kalimat pembuka blok: tabel ditulis sebelum satu baris kode Tahap 6, dan tahap halaman ini adalah 6", () => {
+    expect(blok).toContain("Ini tabel yang tim tulis sebelum satu baris kode Tahap 6 ada.");
+    expect(dari("t6-fitur-teknis").tahap).toBe(6);
+    expect(naskah).toContain("lahir pertanyaan pertama Tahap 6, sebelum satu baris kode");
+  });
   test("kolom Di app terbagi 3 + 3 + 2 dihitung dari tabel: tampil atau kirim, rilis, dan tanpa perubahan terlihat", () => {
     const app = tabel.slice(1).map((r) => r[1]!);
     const tanpa = app.filter((c) => c === "Tidak ada perubahan yang terlihat");
@@ -374,6 +441,16 @@ describe("blok Pertanyaan sebelum kode: tiga hal, versi pertama, tujuh kejadian,
     expect(prd5).toContain("Angka yang saya tanda tangani harus dibaca dari catatan yang sama dengan yang menggerakkan uang. Salinan boleh untuk dilihat, bukan untuk memutuskan.");
     expect(naskah).toContain("Selisih pembulatan harus punya akun, dan tidak boleh ada saldo yang berubah tanpa kejadian.");
     expect(blok).toContain("Selisih pembulatan masuk akun sendiri, sesuai syarat Pak Hadi di [[t6-prd]].");
+  });
+  test("tiga hal bernomor 1, 2, dan 3, dan kolom 1, 2, dan 3 di tabel kejadian menunjuk nomor yang sama", () => {
+    expect([...blok.matchAll(/^(\d)\. /gm)].map((m) => m[1])).toEqual(["1", "2", "3"]);
+    expect(blok).toContain("\n2. Data satu negara punya satu rumah, yaitu wilayah negara itu dan pasangan yang diizinkan.");
+    expect(blok).toContain("\n3. Tiap service, data, dan giliran jaga punya satu pemilik yang tercatat.");
+    expect(tabel[0]!.slice(1).map((c) => c.slice(0, 3))).toEqual(["1. ", "2. ", "3. "]);
+    expect(blok).toContain("Kolom 1, 2, dan 3 adalah tiga hal di atas, bukan nomor halaman.");
+    expect(bagian3).toContain("1. Uang bergerak hanya lewat ledger");
+    expect(bagian3).toContain("2. Data satu negara punya satu rumah");
+    expect(bagian3).toContain("3. Tiap service, data, dan giliran jaga");
   });
   test("wilayah pasangan diberi arti; versi pertama minggu 2: kalimat naskah muncul dan adegan berlabel Ilustrasi", () => {
     expect(blok).toContain("*Wilayah pasangan* adalah wilayah kedua yang menyimpan salinan sinkron data itu bila daftar izin negara mengizinkannya.");
@@ -465,6 +542,17 @@ describe("blok Angka beban Tahap 6: 17 baris dihitung ulang dari masukan naskah 
     expect(blok).toContain("Masukan tabel ini semuanya Asumsi: 10.000.000 user terdaftar, aktif 20%, 60 request per user aktif per hari, faktor puncak 10, dan 86.400 detik per hari.");
     expect([U, AKTIF, REQ, PUNCAK, D]).toEqual([10_000_000, 0.2, 60, 10, 86_400]);
     expect(t5).toMatchObject({ user: 1_000_000, aktif: 20, req: 60, puncak: 10, trx: 2 });
+  });
+  test("kolom Rumus sama dengan naskah (trx ditulis transaksi); masukan yang tidak dihitung ulang di tes lain sama dengan naskah", () => {
+    tabel.slice(1).forEach((r, i) => expect(r[1], r[0]).toBe(polos(naskahBeban[i]![1]!).replace(/trx/g, "transaksi")));
+    const naskahBaris = (nama: string): string[] => naskahBeban.find((r) => polos(r[0]!) === nama)!;
+    for (const nama of ["SLO berantai", "Hilang satu wilayah", "Frekuensi rilis", "Orang per tim"]) expect(polos(baris(nama)[2]!), nama).toBe(polos(naskahBaris(nama)[2]!).replace(/trx/g, "transaksi"));
+    const ang = (slo: number): number => (1 - slo) * 43_200;
+    expect(baris("SLO berantai")[2]).toBe("4 service di jalur bayar, masing-masing 99,9%, kegagalan independen (Asumsi)");
+    expect(baris("SLO berantai")[3]).toContain("0,999^4");
+    expect(baris("Hilang satu wilayah")[2]).toBe(`47 menit (Ilustrasi, [[t6-m55\\|M55]]) ÷ ${fmt(ang(0.999), 1)}`);
+    expect(naskahBaris("Hilang satu wilayah")[2]).toContain("47 menit (Ilustrasi, M55) ÷ 43,2");
+    expect(dari("t6-m55").judul).toContain("47 menit");
   });
   test("tiga atau dua transaksi: dasar 3 dan angka dalam kurung 2 (registry Tahap 5), asal ditaut ke PRD v5; pembulatan dan Asumsi dijelaskan", () => {
     expect(blok).toContain("Dasar hitungan transaksi uang adalah 3 per user aktif per hari, seperti Tahap 2 sampai 5. Angka dalam kurung memakai 2 transaksi, angka registry Tahap 5 ([[t5-prd]]).");
@@ -778,6 +866,17 @@ describe("blok Konsep yang akan dibutuhkan: konsep naskah kolom kelima jadi taut
     expect(tabel[0]).toEqual(["Fitur", "Konsep"]);
     expect(tabel.slice(1)).toHaveLength(8);
     expect(tabel.slice(1).map((r) => r[0])).toEqual(naskahFitur.map((r) => polos(r[0]!)));
+    const peta = tabel.slice(1).map((r) => [...r[1]!.matchAll(/\[\[([^\]|\\]+)\\?\|([^\]]+)\]\]/g)].map((x) => `${x[2]}=${x[1]}`));
+    expect(peta).toEqual([
+      ["Database per negara dan residensi data=t6-residensi"],
+      ["Ledger multi-mata uang, saga, dan minor unit=t6-m56"],
+      ["Residensi data, kunci per wilayah, dan kebijakan sebagai kode=t6-residensi"],
+      ["Multi-region aktif-pasif, RPO dan RTO, dan akun panas=t6-m55"],
+      ["Fraud sebagai fungsi engineering=t6-residensi", "biaya per transaksi=t6-m57"],
+      ["Platform sebagai produk dan golden path=t6-m52", "kepemilikan domain=t6-m53", "FinOps=t6-m57"],
+      ["Error budget dan chaos testing=t6-m54", "data mesh sederhana=t6-m53"],
+      ["On-call, SLO, dan DORA=t6-tim-infra"],
+    ]);
     for (const r of tabel.slice(1)) {
       const t = [...r[1]!.matchAll(/\[\[([^\]|\\]+)\\?\|([^\]]+)\]\]/g)];
       expect(t.length, r[0]).toBeGreaterThan(0);
@@ -942,6 +1041,14 @@ describe("baris riset R6-115 sampai R6-119: ada, urut, tanpa ganda, dan memuat k
     expect(konsep.slice(i - 1, i + 4).every((n, k, a) => k === 0 || n > a[k - 1]!)).toBe(true);
     expect(riset6.split("\n").findIndex((b) => b.startsWith("| R6-119 "))).toBeGreaterThan(riset6.split("\n").findIndex((b) => b.startsWith("| R6-38 ")));
   });
+  test("R6-115 sampai R6-118 terkunci literal: fakta dari luar repo (kode PostgreSQL, SRE Book, GitHub API) dan rujukan rekaman t5-gabung", () => {
+    expect(baris.slice(0, 4)).toEqual([
+      "| R6-115 | Lock ditahan selama commit menunggu standby sinkron (6.2, baris Akun panas) | PostgreSQL 17.11 (tag REL_17_11, commit 083ac033), `src/backend/access/transam/xact.c`, fungsi `RecordTransactionCommit` (baris 1304), komentar baris 1536 sampai 1544 sebelum `SyncRepWaitForLSN` (baris 1546): \"Note that at this stage we have marked clog, but still show as running in the procarray and continue to hold locks.\" (raw.githubusercontent.com/postgres/postgres/REL_17_11/src/backend/access/transam/xact.c, teks mentah dibuka dengan curl 2026-11-06). Kode tidak menyebut baris atau laju per baris, jadi batas 1 ÷ RTT per baris adalah penalaran halaman | 6.2: baris Akun panas (Tidak dijalankan untuk komentar kodenya; batas 1 ÷ RTT per baris [perlu verifikasi]) | Menggantikan [perlu verifikasi] R6-35 untuk bagian \"lock ditahan\", dicek 2026-11-06; bagian batas per baris tetap belum terukur |",
+      "| R6-116 | On-call: batas 25% dan dua orang jaga (6.2, baris Giliran jaga) | Google SRE Book, bab 11 \"Being On-Call\" (sre.google/sre-book/being-on-call/, teks dibuka dengan curl 2026-11-06): \"of the remainder, no more than 25% can be spent on-call\"; \"Assuming that there are always two people on-call (primary and secondary, with different duties), the minimum number of engineers needed for on-call duty from a single-site team is eight\". Batas 25% ditulis untuk waktu SRE; halaman memakainya untuk semua orang di rotasi sebagai Asumsi | 6.2: baris Giliran jaga | Tidak berubah dari R6-15, dicek 2026-11-06 |",
+      "| R6-117 | Versi spesifikasi OpenFeature (6.2, butir 12 ADR 60) | GitHub Releases `open-feature/spec` (API `repos/open-feature/spec/releases`, dibaca 2026-11-06): rilis terbaru v0.9.0, terbit 2026-07-29T17:35:02Z, bukan prerelease; sebelumnya v0.8.0 (2024-03-11). Entri `specification/assets/provider-tck/v0.1.0` (2026-10-16) adalah aset TCK, bukan rilis spesifikasi | 6.2: baris butir 12 tabel pemicu (v0.9.0, belum 1.0) | Tidak berubah sejak naskah, dicek 2026-11-06 lewat API |",
+      "| R6-118 | Rekaman t5-gabung yang dikutip 6.2 (baris Skor risiko) | `labs/t5-gabung/output/panggilan.txt` baris 17 sampai 23 (bagian B: 0 panggilan pada satu proses dan 6 pada tiga proses, 400 dari 400 transaksi) dan baris 50 (620,14 byte per transaksi, tidak dikutip 6.2); `latensi.txt` baris 11 sampai 15 (bagian A: jeda 10 ms, batas bawah 60 ms) dan baris 19 sampai 23 (bagian B: 50 ms ÷ 6 = 8,33 ms; jeda 10 ms: 500 dari 500 transaksi di atas 50 ms). `labs/t5-gabung/README.md`: jeda adalah jeda buatan di broker tiruan (Asumsi, lab tidak mengukur jaringan antar host) dan skor adalah peraga | 6.2: Snippet dan baris Skor risiko | Rekaman Tahap 5, tidak dijalankan ulang di Tahap 6 |",
+    ]);
+  });
   test("R6-116 dan R6-117: kutipan Inggris, URL, tanggal akses, dan lingkup sama dengan halaman", () => {
     const r116 = baris[1]!;
     expect(r116).toContain("sre.google/sre-book/being-on-call/");
@@ -974,6 +1081,10 @@ describe("baris riset R6-115 sampai R6-119: ada, urut, tanpa ganda, dan memuat k
   test("R6-119: hitungan ulang menyebut tiga catatan pembulatan, dan angkanya sama dengan hitungan tes ini", () => {
     const r119 = baris[4]!;
     expect(r119).toContain("17 dari 17 baris sama dengan naskah");
+    expect(r119).toContain("masukan seperti naskah: 10.000.000 user, aktif 20%, 60 request, puncak 10, 3 dan 2 transaksi, 86.400 detik");
+    expect(r119).toContain("rumus per baris seperti naskah bagian 3");
+    expect(r119).toContain("(skrip hitung ulang, 2026-11-06)");
+    expect(sel(r119)[4]).toBe("R6-30 sampai R6-38");
     expect(r119).toContain("SLO berantai 172,5 ÷ 43,2 = 3,99 kali (naskah: empat kali)");
     expect(r119).toContain("akun panas 2 transaksi 23,148 dari nilai tepat 462,963, bukan 23,15 dari 463,0");
     expect(r119).toContain("0,6 × 694,4 = 416,6 dari angka dibulatkan, 416,7 dari nilai tepat");
@@ -984,6 +1095,60 @@ describe("baris riset R6-115 sampai R6-119: ada, urut, tanpa ganda, dan memuat k
 
 // ---- kalimat prosa terkunci per paragraf --------------------------------------------------------------------------------
 describe("kalimat prosa terkunci per paragraf", () => {
+  // Daftar ini milik tes, bukan sidik: dibangkitkan tangan dari mdx (tmp/gen62.py, sementara) dan dibaca diff-nya saat isi halaman diubah sengaja.
+  const PROSA: string[] = [
+  // PROSA-AWAL
+    "## Inti",
+    "Aturan pertama Tahap 6: tiap data punya satu rumah, dan tiap rumah punya satu pemilik.",
+    "*Rumah* adalah satu-satunya tempat data boleh disimpan dan diubah. Untuk data satu negara, rumahnya adalah wilayah negara itu, ditambah wilayah pasangannya bila daftar izin negara itu mengizinkan ([Asumsi produk](/cara-pakai/#label-sumber)). *Wilayah* adalah satu lokasi geografis dengan pusat data, dan *negara* adalah satu pasar dengan satu mata uang. Kalau app Flutter-mu pernah menampilkan harga dalam dua mata uang, kamu sudah tahu bahwa jumlah dan mata uangnya tidak boleh dipisahkan.",
+    "Baris bawah Rantai adalah versi pertama minggu 2: Arga, Kirana, Nadia, Bayu, dan tim Pelaporan menulis tiap bagian seolah semua negara, wilayah, dan tim sama. Tabelnya di blok Pertanyaan sebelum kode punya tujuh kejadian dan tiga hal, jadi 21 sel, dan 7 sel Rusak, yaitu kejadian itu melanggar hal tersebut. Jumlah sel itu *Hitungan*, yaitu hasil menghitung yang tertulis di tabel, dan labelnya ikut masukan terlemahnya, di sini Ilustrasi. Aturan di atas lahir dari sel yang Rusak itu, sebelum satu baris kode ditulis.",
+    "Tebak dulu, lalu ganti skenario dan lihat baris mana yang berubah. *Puncak* adalah laju request di jam paling ramai, yaitu rata-rata harian dikali faktor puncak 10. Lima masukannya adalah user terdaftar, persen aktif, request per user aktif per hari, faktor puncak, dan 86.400 detik per hari.",
+    "Semua masukan Asumsi ([Label sumber](/cara-pakai/#label-sumber)). Angka 10.000.000 user dan pembagian 60%, 25%, dan 15% per negara adalah Asumsi cerita. Persen aktif, request per user, dan faktor puncak diteruskan dari Tahap 5 ([[t5-prd]]).",
+    "Tanpa JavaScript tebakan dan pilihan skenario tidak berjalan. Jawaban tebakan adalah 6 kali. Puncak request per detik: Tahap 5 1.388,9, Tahap 6 13.888,9, Aktif 10% 6.944,4, dan Negara pertama 8.333,3 (Hitungan atas Asumsi).",
+    "Widget membulatkan ke dua angka penting, jadi puncak 1.388,9 tampil 1.400. Pilih **Tahap 6** dan **Aktif 10%** untuk melihat baris yang berubah: user naik 10 kali, lalu persen aktif turun separuh. Skenario **Negara pertama** membuka jawaban tebakanmu.",
+    "Kalkulator hanya menghitung request per detik. Ia tidak menilai apakah satu primary, yaitu database utama yang menerima semua tulisan, sanggup menerimanya. Kapasitas itu belum pernah diukur di repo ini: lab `api-t5` hanya memberi batas di satu laptop ([[t5-m51]]).",
+    "Ini tabel yang tim tulis sebelum satu baris kode Tahap 6 ada. Tim yang mengerjakannya berjumlah 53 orang dalam 11 tim, seperti di [[t6-prd]] (Asumsi cerita).",
+    "Isi tabel adalah rencana kerja tim (Asumsi cerita), bukan hasil ukur. Tahap 6 tanpa lab, jadi halaman ini tidak menjalankan satu pun isi tabel.",
+    "Untuk kamu yang memegang app, kolom Di app terbagi dua. Tiga baris mengubah apa yang app tampilkan atau kirim: mata uang dan bahasa per negara, jumlah dalam unit terkecil, dan sinyal perangkat. Tiga baris lain mengubah cara app dirilis: pipeline dari template, rilis bertahap, dan paket per tim. Dua baris sisanya tidak mengubah app yang terlihat.",
+    "*Unit terkecil* adalah satuan paling kecil sebuah mata uang. Rupiah memakai eksponen 0, jadi Rp100.000 tetap bilangan bulat 100000 di ledger (Asumsi desain). Konversi bentuk hanya terjadi di batas dengan pihak luar, dan [[t6-m56|M56]] membahasnya.",
+    "Tiga hal harus selalu benar di Tahap 6. Dua pertama melanjutkan Tahap 2 dan 5, dan yang ketiga baru:",
+    "1. Uang bergerak hanya lewat [[t2-ledger|ledger]], dan jurnal seimbang per mata uang. Satu jurnal tidak pernah menjumlahkan dua mata uang. Tukar adalah dua jurnal yang terhubung. Selisih pembulatan masuk akun sendiri, sesuai syarat Pak Hadi di [[t6-prd]].",
+    "2. Data satu negara punya satu rumah, yaitu wilayah negara itu dan pasangan yang diizinkan. Uang tidak dibaca dari salinan di luar primary ([[t4-adr-45|ADR 45]] aturan 2). Salinan, ringkasan, dan sinyal hanya untuk dilihat, bukan untuk memutuskan (syarat Pak Hadi di [[t5-prd]]), dengan jarak ketertinggalan dan batas wilayah yang disebut.",
+    "3. Tiap service, data, dan giliran jaga punya satu pemilik yang tercatat. Perubahan oleh pemilik itu lewat jalur yang sama, dan tim lain membaca lewat API atau event, bukan lewat tabel.",
+    "*Wilayah pasangan* adalah wilayah kedua yang menyimpan salinan sinkron data itu bila daftar izin negara mengizinkannya.",
+    "**Versi pertama (minggu 2).** Arga menulis tiga database negara sebagai tiga salinan schema yang sama. Kirana mengusulkan satu graf akun-perangkat di wilayah pusat, yaitu daftar akun yang terhubung lewat perangkat yang sama.",
+    "Nadia mengusulkan aktif-aktif supaya tidak ada failover, yaitu dua wilayah sama-sama menerima tulis. Bayu memasang portal developer dan menganggap platform sudah ada. Pelaporan membaca langsung tabel tim lain supaya laporan cepat selesai. Di staging dengan tiga negara kecil tiap bagian tampak cukup (adegan dan angka cerita: Ilustrasi).",
+    "Tabel ini menunjukkan akibatnya. Kolom 1, 2, dan 3 adalah tiga hal di atas, bukan nomor halaman. Terjaga berarti hal itu tetap benar saat kejadian terjadi, Rusak berarti hal itu dilanggar, dan Tidak berlaku berarti kejadian itu tidak menyentuhnya. Isi tiap sel adalah *penalaran*, yaitu kesimpulan dari kalimat yang sudah tertulis di halaman ini dan dari dokumentasi, tanpa menjalankan apa pun (Tidak dijalankan).",
+    "Kejadian di tabel adalah Ilustrasi, yaitu rancangan penulis. Tak satu pun baris direkam di Tahap 6.",
+    "Baris skor risiko bersandar pada rekaman lab Tahap 5 untuk jumlah panggilan dan batas bawah p95, yaitu waktu jawab yang dilewati 5% transaksi paling lambat. Rekamannya dikutip di blok Angka beban. Kata \"tidak punya pemilik\" di baris itu tetap penalaran.",
+    "Cara pertama itu memperlakukan semua negara, wilayah, dan tim seperti satu. Dari 21 sel tabelnya, 7 Rusak: dua di kolom 1, satu di kolom 2, dan empat di kolom 3. Sel yang Terjaga ada 4, dan 10 sel Tidak berlaku.",
+    "Halaman ini juga menanam tiga pertanyaan. Di minggu 1 Pak Hadi bertanya angka mana yang ia tanda tangani bila satu laporan memuat dua mata uang. Laras bertanya siapa yang boleh membuka data negara kedua. Dewi bertanya siapa yang dibangunkan bila pembayaran negara ketiga gagal pukul 03.10.",
+    "Jawaban Pak Hadi ada di [[t6-m56|M56]], jawaban Laras di [[t6-residensi|Keamanan 13]], dan jawaban Dewi di [[t6-tim-infra|Tim dan infra Tahap 6]].",
+    "Masukan tabel ini semuanya Asumsi: 10.000.000 user terdaftar, aktif 20%, 60 request per user aktif per hari, faktor puncak 10, dan 86.400 detik per hari. Pembagian per negara 60%, 25%, dan 15% adalah Asumsi cerita. Dasar hitungan transaksi uang adalah 3 per user aktif per hari, seperti Tahap 2 sampai 5. Angka dalam kurung memakai 2 transaksi, angka registry Tahap 5 ([[t5-prd]]).",
+    "Hasil rumus memakai label masukan terlemahnya, jadi seluruh tabel berlabel Asumsi. Hasil dihitung dari nilai tepat dan dibulatkan setengah ke atas. Mengalikan ulang angka yang sudah dibulatkan bisa selisih 0,1.",
+    "Dua istilah di tabel perlu arti dulu. *RTT* (round-trip time) adalah waktu satu pesan pergi dan pulang antara dua tempat. *Akun panas* adalah akun yang menerima banyak transaksi bersamaan, seperti merchant besar.",
+    "Rekaman di baris Skor risiko dikutip di sini, dan jeda 10 ms-nya adalah jeda buatan di lab. Satu transaksi di tiga proses melewati 6 panggilan, dan satu proses melewati 0:",
+    "Rekaman itu menghitung panggilan lewat penghitung di kode dan memeriksa p95 terhadap batas bawah 6 × jeda. Jeda 10 ms adalah Asumsi lab, bukan jaringan antar host dan bukan RTT antar wilayah. Bentuk lain, satu pemanggil yang memanggil tiga service tanpa queue, Tidak dijalankan di lab. Skor di lab adalah peraga, bukan model risiko.",
+    "Tiga angka di tabel punya dua arti, jadi tiap pemakaiannya menyebut artinya. Angka 1.388,9 adalah rata-rata Tahap 6 dan puncak Tahap 5: user naik 10 kali dan faktor puncaknya 10. Angka 10 ms adalah RTT pada 1.000 km di baris Latensi, dan jeda buatan per panggilan di baris Skor risiko. Angka 50 ms adalah anggaran total satu skor, bukan tambahan p95 satu lompatan HTTP antar host di butir 7 tabel berikutnya.",
+    "Asal masukan dari halaman lain: top-up 0,25 per user aktif per hari dari [[t5-m51|M51]], dan jendela makan siang 80% dalam 90 menit dari [[t5-m45|M45]]. W 0,02 detik berasal dari [[t5-prd]], dan 97 koneksi tersedia dari [[t5-pooler]]. Anggaran skor 50 ms berasal dari [[t5-m51|M51]], dan SLO 99,9% dari [[t5-tim-infra]].",
+    "Baris Akun panas bersandar pada satu komentar kode. Di PostgreSQL 17.11, fungsi `RecordTransactionCommit` memuat satu komentar. Saat commit menunggu replikasi sinkron, transaksi masih tampak berjalan dan `continue to hold locks`, yaitu tetap menahan lock (`src/backend/access/transam/xact.c`, dibuka 2026-11-06, Tidak dijalankan). Standby adalah salinan database yang menerima perubahan dari primary.",
+    "Bila transaksi berikutnya ke baris yang sama menunggu lock itu, laju satu baris dibatasi 1 ÷ RTT. Batas itu penalaran atas kode dan Asumsi RTT, dan belum diukur [perlu verifikasi].",
+    "**Tiga kesimpulan.** Pertama, beban 13.888,9 request per detik naik 10 kali, tetapi yang melewati batasnya lebih dulu bukan request. Yang melewatinya adalah batas yang bergantung pada jarak (30 ms dan 33,3 per detik), pada orang (40% jaga), dan pada kegagalan beruntun (99,6%).",
+    "Kedua, tidak ada hitungan di tabel ini yang menunjukkan satu primary tidak sanggup menulis 416,7 transaksi uang per detik di negara terbesar. Itu tidak pernah diukur di repo ini, dan Tahap 6 tidak punya lab untuk mengukurnya.",
+    "Ketiga, yang berbahaya adalah batas yang tidak punya pemilik dan jarak yang tidak dihitung, bukan banyaknya request. Dasarnya sama dengan Tahap 2 sampai 5: Little's Law (L = λ × W) untuk koneksi, dan apa yang tidak diketahui sesudah sesuatu gagal.",
+    "**Pemicu ADR 60 dibaca ulang dengan angka di atas.** Terpenuhi berarti halaman Tahap 6 menulis keadaan yang sama dengan pemicunya, bukan bahwa komponennya terbukti perlu. Kolom Tahap 5 menyalin kata dari kolom Dibaca di [[t5-adr-60|ADR 60]]: Belum terpenuhi, Belum terukur, Tidak diminta, dan Menunggu PRD v6.",
+    "Dari dua belas butir, dua terpenuhi dan dikerjakan sebagian. Butir 1 hanya untuk identitas di template (ADR 61, tanpa mesh penuh). Butir 2 hanya untuk aktif-pasif (ADR 64, tanpa aktif-aktif).",
+    "Sepuluh butir tetap tidak dikerjakan. Enam belum terukur (butir 3, 4, 5, 7, 8, 9), tiga tidak diminta (butir 6, 10, 11), dan satu belum terpenuhi (butir 12). Di Tahap 5, kolom Dibaca di 5.30 menulis dua belum terpenuhi (butir 1 dan 12), satu menunggu PRD v6 (butir 2), dan sisanya sama. Sepuluh butir itu dibahas ulang dengan pemicunya di [[t6-adr-69]].",
+    "Tahap 6 tidak membangun skema dari database, jadi tidak ada ERD Tahap 6. ERD di bawah adalah skema akhir Tahap 5, 30 tabel dalam enam schema service, dibaca dari database lab `api-t5` ([[t5-skema]]). Ia hanya keadaan awal. Tombol Bandingkan dengan Tahap 4 menambahkan skema Tahap 4 di sebelahnya, dan halaman ini tidak memakainya.",
+    "Tabel di bawah menulis apa yang berubah secara konseptual. Semuanya Ilustrasi: tak satu baris pun dicocokkan dengan skema lab.",
+    "Pertumbuhan database memakai rumus naskah Tahap 2. Posting per tahun = transaksi per hari × 2 × 365, dengan ±250 byte per posting.",
+    "Tabel ini menulis ukuran Tahap 6 ±1 TB, dan blok Angka beban menulis 1.095 GB atau ±1,1 TB. Itu satu nilai, 1.095 GB, dengan dua pembulatan (Hitungan atas Asumsi).",
+    "Pola yang ditanam: di Tahap 6 database tumbuh karena batas, bukan karena fitur atau salinan. Tabel baru hanya dua, `kurs` dan `sinyal_risiko`. Tabel lama memperoleh negara, mata uang, dan pemilik.",
+    "Tabel ini menyebut konsep untuk tiap fitur. Tahap 6 membahasnya satu per satu, saat masalahnya muncul.",
+    "Aturannya sama di tiap batas: setiap data diberi rumah, pemilik, dan jarak ketertinggalan, dan salinan tidak boleh memutuskan uang.",
+    "Halaman berikutnya, [[t6-m52|M52]], membahas service baru yang menunggu template dari Platform.",
+  // PROSA-AKHIR
+  ];
   const prosa = badan.split("\n").filter((b) => b.trim() !== "" && !/^\s*(\||<|import )/.test(b));
   test("tiap paragraf prosa ada di halaman tepat satu kali, dan semua baris prosa halaman ada di daftar", () => {
     expect(PROSA).toHaveLength(prosa.length);
