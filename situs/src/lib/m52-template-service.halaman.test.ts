@@ -251,7 +251,7 @@ describe("opsi dan aturan ADR 61: lima opsi dari naskah, tujuh aturan, tiga peny
 describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R6-120 sampai R6-124", () => {
   const ids = ["R6-120", "R6-121", "R6-122", "R6-123", "R6-124"];
   const url = (s: string): string[] => [...s.matchAll(/\]\((https?:\/\/[^)]+)\)/g)].map((m) => m[1]!);
-  test("lima baris riset berurutan, lima kolom, tanpa ID ganda, disisip di antara R6-39 dan R6-170", () => {
+  test("lima baris riset berurutan, lima kolom, tanpa ID ganda, dan tetangganya bernomor di bawah 120 dan di atas 124", () => {
     const baris = riset6.split("\n");
     const idx = ids.map((id) => baris.findIndex((b) => b.startsWith(`| ${id} |`)));
     for (let i = 1; i < idx.length; i++) expect(idx[i]).toBe(idx[i - 1]! + 1);
@@ -259,8 +259,10 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R6-120 sam
       expect(baris.filter((b) => b.startsWith(`| ${id} |`))).toHaveLength(1);
       expect(pecahBaris(barisRiset(id))).toHaveLength(5);
     }
-    expect(baris[idx[0]! - 1]!.startsWith("| R6-39 |")).toBe(true);
-    expect(baris[idx[4]! + 1]!.startsWith("| R6-170 |")).toBe(true);
+    // tetangga dikunci dengan rentang nomor, bukan dengan baris tertentu: halaman lain menyisip baris riset di antaranya
+    const nomor = (b: string): number => Number(cari(/^\| R6-(\d+) \|/, b, "nomor riset")[1]);
+    expect(nomor(baris[idx[0]! - 1]!)).toBeLessThan(120);
+    expect(nomor(baris[idx[4]! + 1]!)).toBeGreaterThan(124);
   });
   test("tiap tautan luar di halaman ada di salah satu baris riset (host dan jalur), dibuka 2026-11-06, dan jumlahnya terkunci", () => {
     const luar = url(halaman).filter((u) => !u.startsWith("/"));
@@ -378,7 +380,7 @@ describe("registry, tautan, template blok, widget, kartu, tebakan, dan kata", ()
     const hitung: Record<string, number> = {};
     for (const id of semua) hitung[id] = (hitung[id] ?? 0) + 1;
     expect(hitung).toEqual({ "t6-fitur-teknis": 2, "t5-tim-infra": 4, "t6-prd": 2, "t5-mtls": 5, "t5-adr-60": 2, "t6-adr-69": 3, "t6-m53": 1, "t6-m54": 1, "t6-tim-infra": 1 });
-    expect(dari("t6-prd").ada).toBe(false);
+    expect(dari("t6-prd").nomor).toBe("6.1");
     expect(dari("t6-fitur-teknis").prasyarat).toContain("t6-prd");
   });
   test("template konsep: lima blok dalam urutan, dua pertama terbuka; Cek diri empat soal; tanpa details.question; noscript; SkripLama di akhir", () => {
