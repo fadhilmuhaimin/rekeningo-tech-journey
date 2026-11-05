@@ -503,7 +503,11 @@ describe("struktur: heading, label, sumber ingatan, tanpa ID internal, dan kata 
     expect(new Set(id).size).toBe(id.length);
     for (let i = 1; i < id.length; i++) expect(id[i]!).toBeGreaterThan(id[i - 1]!);
     const i260 = id.indexOf(260);
-    expect(id.slice(i260 - 1, i260 + 6)).toEqual([259, 260, 261, 262, 263, 264, 275]);
+    expect(id.slice(i260 - 1, i260 + 5)).toEqual([259, 260, 261, 262, 263, 264]);
+    // Baris sesudah R5-264 diberi rentang, bukan nomor tunggal: halaman 5.32 menyisip R5-265 sampai R5-269 di sini (keputusan 1626).
+    // Rentang tetap menolak baris sisipan di luar R5-265 sampai R5-275 dan baris yang hilang (R5-264 langsung diikuti R5-299 gagal).
+    expect(id[i260 + 5]!).toBeGreaterThan(264);
+    expect(id[i260 + 5]!).toBeLessThanOrEqual(275);
     const baris = riset5.split("\n").filter((b) => /^\| R5-26[0-4] \|/.test(b));
     expect(baris.length).toBe(5);
     baris.forEach((b) => expect(b.split(/(?<!\\)\|/).length - 2, b.slice(0, 10)).toBe(5));
