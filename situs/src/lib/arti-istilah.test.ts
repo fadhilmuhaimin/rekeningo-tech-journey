@@ -18,6 +18,7 @@ const htmlHalaman = (h: string) => fs.readFileSync(path.join(DIST, h, "index.htm
 const LSN = "Token LSN";
 const TRAFFIC = "Traffic router";
 const BASIS_DATA = "Router database";
+const PERANGKAT = "Token perangkat";
 
 describe("entri glosarium per arti", () => {
   test("tiga entri baru ada di glosarium.mdx, glosarium.json, dan istilah.md dengan definisi yang sama, tiap definisi berbeda dari arti bawaan", () => {
@@ -79,6 +80,11 @@ describe("berkas arti-istilah.json", () => {
     const entri = (a: ArtiIstilah[string][string]) => (typeof a === "string" ? a : a.arti);
     const sekarang = Object.fromEntries(Object.entries(aturan).map(([h, kata]) => [h, Object.fromEntries(Object.entries(kata).map(([k, a]) => [k, entri(a)]))]));
     const kunci: Record<string, Record<string, string>> = {
+      "tahap-3/at-least-once": { token: PERANGKAT },
+      "tahap-3/fitur-ke-teknis": { token: PERANGKAT },
+      "tahap-3/fitur-notifikasi": { token: PERANGKAT },
+      "tahap-3/m19-tidak-diberi-tahu": { token: PERANGKAT },
+      "tahap-3/skema-data": { token: PERANGKAT },
       "tahap-5/m41-riwayat-belum-memuat": { token: LSN },
       "tahap-5/modul-ke-service": { router: TRAFFIC },
       "tahap-5/pintu-mitra-waf": { router: TRAFFIC },

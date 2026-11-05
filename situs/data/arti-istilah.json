@@ -26,5 +26,30 @@
         "token tanpa hak"
       ]
     }
+  },
+  "tahap-3/at-least-once": {
+    "token": "Token perangkat"
+  },
+  "tahap-3/m19-tidak-diberi-tahu": {
+    "token": "Token perangkat"
+  },
+  "tahap-3/fitur-ke-teknis": {
+    "token": "Token perangkat"
+  },
+  "tahap-3/fitur-notifikasi": {
+    "token": {
+      "arti": "Token perangkat",
+      "kecuali": [
+        "access token"
+      ]
+    }
+  },
+  "tahap-3/skema-data": {
+    "token": {
+      "arti": "Token perangkat",
+      "kecuali": [
+        "token CSRF"
+      ]
+    }
   }
 }
