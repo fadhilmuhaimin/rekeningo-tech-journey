@@ -568,8 +568,11 @@ describe("registry cerita.json", () => {
     expect(antrean).not.toMatch(/^### (lab-t6|ERD6|W6-)/m);
     expect(blok("EVAL-6")).toContain("dengan prompt khusus tanpa lab");
     for (const s of ["URUT_BACA", "situs/tools/registri.mjs", "tools/registri.py"]) expect(blok("6.1"), `6.1 menyebut ${s}`).toContain(s);
+    // Baris Skor risiko naskah (bagian 3 dan 4) mengutip rekaman t5-gabung: 6.2, 6.9, dan 6.11 menyebutnya, bukan hanya 6.9.
     expect(blok("6.9")).toContain("(Rekaman lab Tahap 5)");
-    expect(blok("6.9")).toContain("`labs/t5-gabung/output/panggilan.txt`");
+    expect(blok("6.9")).not.toContain("Satu-satunya halaman Tahap 6 yang mengutip rekaman");
+    for (const no of ["6.2", "6.9", "6.11"]) expect(blok(no), `rekaman ${no}`).toContain("`labs/t5-gabung/output/panggilan.txt`");
+    for (const berkas of ["panggilan.txt", "latensi.txt"]) expect(fs.existsSync(path.join(akar, "labs/t5-gabung/output", berkas)), berkas).toBe(true);
     // BRIEF-HALAMAN menulis keadaan registry yang sama: tanpa `asumsi` Tahap 6 selama `tahap` hanya memuat Tahap 1 sampai 5.
     const brief = teks("plan/BRIEF-HALAMAN.md");
     expect(brief).toContain("- Tahap 6: tanpa lab, ERD, dan widget baru");
