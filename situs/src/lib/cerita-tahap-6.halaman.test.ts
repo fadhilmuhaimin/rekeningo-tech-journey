@@ -6,6 +6,7 @@ import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { BARIS_MDX } from "./cerita-tahap-6.halaman.nilai";
+import { muat, urutanBaca, url as urlHalaman } from "../../tools/registri.mjs";
 
 const akar = path.resolve(__dirname, "../../..");
 const baca = (rel: string) => fs.readFileSync(path.join(akar, rel), "utf8");
@@ -464,8 +465,10 @@ describe("rujukan, kata, dan label di seluruh halaman", () => {
 });
 
 describe("sidik: tiap baris halaman terkunci (kata yang berubah tanpa menggeser angka atau klaim)", () => {
-  test("BARIS_MDX sama dengan berkas halaman", () => {
-    expect(MDX.split("\n").filter((b) => b.trim() !== "")).toEqual(BARIS_MDX);
+  test("BARIS_MDX sama dengan berkas halaman, tanpa isi tabel daftar-tahap (itu turunan registry yang berubah tiap halaman 6.n ditulis, dijaga tes di atas)", () => {
+    const tanpaDaftar = MDX.replace(/(\{\/\* daftar-tahap \*\/\}\n)[\s\S]*?(\n\{\/\* \/daftar-tahap \*\/\})/, "$1$2");
+    expect(tanpaDaftar.split("\n").filter((b) => b.trim() !== "")).toEqual(BARIS_MDX);
+    expect(BARIS_MDX.filter((b) => b.includes("daftar-tahap"))).toEqual(["{/* daftar-tahap */}", "{/* /daftar-tahap */}"]);
   });
 });
 
@@ -515,7 +518,9 @@ describe.runIf(fs.existsSync(distBeranda))("hasil build di dist: peta beranda da
     expect(tab).toContain("peta__pilih is-proyeksi");
     expect(/<button[^>]*id="tab-tahap-5"[^>]*>/.exec(html)![0]!).not.toContain("is-proyeksi");
     const panel = /<div role="tabpanel" id="panel-tahap-6"[\s\S]*?<\/div><\/div>/.exec(html)![0]!;
-    expect(panel).toContain('<a class="peta__buka" href="/cerita/tahap-6/">Buka Tahap 6 →</a>');
+    // Tautan menuju halaman pertama Tahap 6 di urutan baca bila Tahap 6 sudah di `URUT_BACA` (tugas 6.1), kalau belum halaman Cerita.
+    const awal6 = urutanBaca(muat()).find((h: { tahap: unknown }) => h.tahap === 6);
+    expect(panel).toContain(`<a class="peta__buka" href="${awal6 ? urlHalaman(awal6) : "/cerita/tahap-6/"}">Buka Tahap 6 →</a>`);
     const ada = nomorT6.filter((h) => h.ada).length;
     expect(panel).toContain(`Proyeksi konseptual, tanpa lab. Sedang ditulis: ${ada} dari ${nomorT6.length} halaman`);
     expect(panel).not.toContain("belum ditulis");
