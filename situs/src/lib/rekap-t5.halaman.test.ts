@@ -333,7 +333,7 @@ describe("angka dan batas di enam belas kalimat: dari rekaman lab dan halaman as
     }
     expect(Math.round((1388.9 * 10 * 10) / 10) / 10).toBeCloseTo(1388.9, 1);
     expect(butir(8).teks).toContain("1.388,9 × 0,02 = 27,8 (Hitungan atas Asumsi)");
-    expect(butir(8).teks).toContain("sedangkan tersedia 100 − 3 = 97");
+    expect(butir(8).teks).toContain("tersedia 100 − 3 = 97");
     expect(butir(16).teks).toContain("Puncak 1.388,9 request per detik menjadi 13.888,9");
     expect(butir(16).teks).toContain("69,4 menjadi 694,4");
     expect(butir(16).teks).toContain("46,3 dan 463,0");
@@ -437,7 +437,11 @@ describe("kartu tebak lalu buka t5-rekap-kartu.json", () => {
     const turunan = kartuSemua.filter((k) => k.halaman === "t5-rekap");
     expect(turunan.length).toBe(5);
     turunan.forEach((k, i) => expect(k.id).toBe(`t5-rekap-${i + 1}`));
-    expect(mdx).toContain('<WidgetLama nama="kartu" src="data/t5-rekap-kartu.json" />');
+    expect(mdx).toContain(`<WidgetLama nama="kartu" src="data/t5-rekap-kartu.json" data-maks="${kartu.length}" />`);
+    // MAKS_SESI widget kartu = 15: tanpa data-maks, kartu ke-16 tidak tampil di sesi pertama.
+    expect(baca("situs/lama/widgets/kartu.js")).toMatch(/var MAKS_SESI = 15;/);
+    expect(baca("situs/lama/widgets/kartu.js")).toContain("parseInt(host.dataset.maks, 10) || MAKS_SESI");
+    expect(kartu.length).toBeGreaterThan(15);
   });
   test("teks kartu dan diagram dikunci per nilai", () => {
     const kumpul = (x: unknown, out: string[]): string[] => {
@@ -664,7 +668,7 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
     const KATA_ANGKA: Record<string, string> = { 3: "tiga", 6: "Enam" };
     expect(kunci).toContain(`**3.** ${KATA_ANGKA[h[1]!]} service punya ${KATA_ANGKA[h[2]!]} pod tiap service dengan pool ${h[3]}`);
     expect(kunci).toContain(`Diminta ${h[1]} × ${h[2]} × ${h[3]} = ${h[4]} dan tersedia 100 − 3 = 97`);
-    expect(butir(8).teks).toContain("sedangkan tersedia 100 − 3 = 97 (100 koneksi, 3 di antaranya cadangan)");
+    expect(butir(8).teks).toContain("Yang tersedia 100 − 3 = 97 (100 koneksi, 3 di antaranya cadangan)");
     expect(kunci).toContain("**5.** Rollout tanpa traffic router memakai tiga replika dan `setWeight: 5`.");
     expect(kunci).toContain("Satu pod versi baru, yaitu 25,0% dari pod yang menjawab, bukan 5%");
     expect(mdx).toContain('<SkripLama daftar={["cerita","kartu"]} />');
@@ -701,7 +705,7 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
     expect(butir(11).teks).toContain("Dengan tiga replika bagiannya 25,0% atau 33,3% menurut `maxSurge`, dan dengan 20 replika 5,0%.");
     expect(bagianRekaman("t5-rollout", "tanpa-router.txt", "A")).toMatch(/Pod v1: 19, pod v2: 1; replika yang diminta 20/);
     expect(rekamanTahap5).toContain("20 replika: 1 pod canary dan 19 pod stabil menjawab; bagian pod v2 5.0%");
-    expect(butir(16).teks).toContain("2.115 pembayaran, jadi pembayaran di rekaman datang 2.115 ÷ 15 = 141 per detik (Hitungan dari rekaman)");
+    expect(butir(16).teks).toContain("2.115 pembayaran, jadi pembayaran datang 2.115 ÷ 15 = 141 per detik (Hitungan dari rekaman)");
     expect(bagianRekaman("api-t5", "beban.txt", "A")).toMatch(/201 x2115/);
     expect(bagianRekaman("api-t5", "beban.txt", "A")).toMatch(/15 detik/);
     expect(Math.round(2115 / 15)).toBe(141);
@@ -710,7 +714,7 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
     expect(24 * 30).toBe(720);
     expect(butir(15).teks).toContain("480 × 3 = 1.440 (480 per orang per tahun, tiga tahun)");
     expect(butir(4).teks).toContain("Di run lab terpisah dengan 28.000 posting per bulan");
-    expect(butir(6).teks).toContain("karena batas bawahnya 6 × 10 = 60 ms (`latensi.txt` bagian B)");
+    expect(butir(6).teks).toContain("Batas bawahnya 6 × 10 = 60 ms (`latensi.txt` bagian B)");
     expect(bagianRekaman("t5-gabung", "latensi.txt", "B")).toMatch(/jeda 10 ms: batas bawah 60 ms[^\n]*500 dari 500/);
     const KATA: Record<number, string> = { 15: "Lima belas", 16: "enam belas" };
     const tanpaRekaman = butirSemua.filter((b) => kutipan(b.teks).length === 0).map((b) => b.no);
@@ -718,6 +722,114 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
     expect(blok("Paham")).toContain(`${KATA[butirSemua.length - tanpaRekaman.length]} dari ${KATA[butirSemua.length]} kalimat punya rekaman lab yang dijalankan di mesin lokal`);
     expect(blok("Paham")).toContain(`Butir ${tanpaRekaman[0]} hanya punya model Ilustrasi tanpa lab.`);
     expect(blok("Kunci")).toContain("database menerima 100 koneksi dengan 3 di antaranya cadangan");
+  });
+  // Kata kartu (4 huruf atau lebih) yang boleh tidak ada di butirnya atau di tabel ADR: pertanyaan baku, penghubung, dan parafrase kartu.
+  const LONGGAR = new Set([
+    "batasnya", "berjalan", "biayanya", "dalam", "dibuka", "dipilih", "diputus", "galat", "kalimat", "kapan", "kill", "kode", "kolom", "lahir",
+    "lalu", "memuat", "menerima", "menggabungkan", "menjalankan", "menjawab", "menurut", "menyetujui", "replay", "sedangkan", "switch", "yang",
+  ]);
+  // Klaim kunci per butir: kalimat di butir dan kalimat sumbernya (halaman asal atau rekaman). Tes ini menjaga kalimat naratif dan angka kecil
+  // yang lolos penjaga angka (angka yang sama ada di tempat lain). Tiap sumber dibaca saat tinjauan 5.31 (keputusan 1623).
+  const norm = (s: string): string => s.toLowerCase().replace(/`/g, "").replace(/\s+/g, " ");
+  const H = (id: string) => ({ jenis: "halaman" as const, id });
+  const R = (pola: string | RegExp) => ({ jenis: "rekaman" as const, pola });
+  const KLAIM: [number, string, ReturnType<typeof H> | ReturnType<typeof R>, string | RegExp][] = [
+    [1, "Standby menolak UPDATE", R("cannot execute UPDATE in a read-only transaction"), ""],
+    [1, "selama 10 detik", R("-detik 10 "), ""],
+    [3, "RTO 15 menit", H("t5-prd"), "RTO 15 menit"],
+    [3, "primary tetap menerima pembayaran", R("Primary terus menerima pembayaran"), ""],
+    [3, "tiga jurnal yang dijawab 201 ada di node baru", R(/IN \(10201, 10202, 10203\)\n jurnal_ada\n-+\n 3\n/), ""],
+    [3, "Latihan failover bulanan adalah aturan ADR 48, bukan rekaman", H("t5-rpo-rto"), "latihan bulanan SRE (ADR 48)"],
+    [4, "Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001", H("t5-m43"), "Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001"],
+    [4, "lab memilih 150.000 posting per bulan", H("t5-m43"), "Lab memilih 150.000 posting per bulan"],
+    [4, "tetapi tidak menambah kapasitas tulis satu primary", H("t5-partisi"), "partisi tidak menambahnya"],
+    [5, "Lab memecah 30 tabel ke enam schema", H("t5-m44"), "memecah 30 tabel ke enam schema"],
+    [5, "rekaman memecah data, bukan proses", H("t5-m44"), "Rekaman memecah data, bukan proses"],
+    [5, "Role ledger membaca `id`, `tingkat`, dan `status` tabel `akun`, sedangkan `nama` ditolak", R("SELECT id, tingkat, status FROM t5_akun.akun LIMIT 1   -- berhasil"), ""],
+    [6, "satu alur skor untuk 400 transaksi", R("400 transaksi diproses"), ""],
+    [6, "tiga proses dengan queue melakukan 6", R("panggilan per transaksi (dibawa pesan): 6 pada 400 dari 400"), ""],
+    [6, "jeda buatan 10 ms per panggilan membuat 500 dari 500", R("jeda 10 ms: batas bawah 60 ms"), ""],
+    [6, "tidak membuktikan ledger Rekeningo harus digabung", H("t5-service"), "tidak membuktikan bahwa ledger Rekeningo harus digabung"],
+    [6, "ditulis karyawannya sendiri", H("t5-service"), "penulisnya karyawan perusahaan yang menulis tentang sistemnya sendiri"],
+    [7, "Notifikasi uang tidak lewat Kafka", H("t5-fanout"), "uang tetap di outbox"],
+    [8, "12 client dengan pool 10 meminta 120 koneksi", R("koneksi diminta: 120"), ""],
+    [8, "Lewat PgBouncer, 120 koneksi berhasil", R("koneksi diminta: 120, berhasil: 120"), ""],
+    [8, "rekaman bukan latihan failover", H("t5-m46"), "Rekaman ini bukan latihan failover"],
+    [9, "empat sertifikat yang salah ditolak saat handshake dan jurnal tetap 0", R(/jurnal_sesudah\n-+\n 0\n/), ""],
+    [9, "mTLS membuktikan siapa yang memanggil, bukan niatnya", H("t5-mtls"), "mTLS membuktikan siapa yang memanggil, bukan niatnya"],
+    [9, "Key baru dengan akun dan jumlah yang sama tetap menghasilkan jurnal kedua", H("t5-mtls"), "dengan akun dan jumlah yang sama, menghasilkan jurnal kedua"],
+    [10, "versi pertama tidak menagih ganda, tetapi angsurannya tetap `menunggu`", H("t5-m48"), "tidak menagih ganda, tetapi angsurannya tetap menunggu"],
+    [11, "Rasio tolak 31% di cerita", H("t5-m49"), "31%"],
+    [11, "Flag di memori hanya mengubah pod yang menerima permintaannya", R("Yang menolak hanya pod yang diubah; pod 2 dan pod 3 tetap menyetujui otorisasi baru"), ""],
+    [11, "Dengan Gateway API, plugin menulis bobot 95 dan 5 ke HTTPRoute", R('HTTPRoute kartu-route, bobot sekarang: {"kartu-stable": 95, "kartu-canary": 5}'), ""],
+    [11, "Rollout tanpa traffic router, yaitu komponen yang menggeser lalu lintas antar versi", H("t5-rollout"), "komponen yang menggeser lalu lintas antar versi"],
+    [12, "satu bucket 100 per detik dipakai semua mitra", R("satu bucket 100 untuk 620 permintaan"), ""],
+    [12, "mitra B 20 dalam satu detik", R("mitra B: 20 permintaan"), ""],
+    [12, "jam bucket dibekukan, jadi itu hitungan token, bukan laju sungguhan", R("Jam bucket dibekukan"), ""],
+    [12, "dan celah itu tidak ditutup di lab", H("t5-waf"), "Belum ada penahan untuk permintaan yang diputar ulang di dalam jendela dengan key lain"],
+    [12, "dan kapasitas server belum diukur", H("t5-m50"), "kapasitas server tidak diukur"],
+    [13, "Satu bit yang dibalik membuat pemeriksaan keaslian AES-GCM gagal", H("t5-kms"), "membalik satu bit di lima posisi file"],
+    [13, "OpenBao dan folder arsip di lab berada di satu mesin, dan pemisahan tempat Tidak dijalankan", H("t5-kms"), "OpenBao dan folder arsip berada di satu mesin, dan pemisahan tempat Tidak dijalankan"],
+    [14, "11 dari 11 trace berkesalahan", R("trace berkesalahan tersimpan   : 11 dari 11"), ""],
+    [14, "Lab merekam satu Collector, dan kapasitasnya tidak diukur", H("t5-tim-infra"), "Kapasitas satu Collector tidak diukur"],
+    [14, "Alert burn rate 14,4 selama 1 jam menghabiskan", H("t5-tim-infra"), "| 1 jam | 5 menit | 14,4 | 2% |"],
+    [15, "ADR 59 tetap di cloud milik PT dan menjaga jalan keluar", H("t5-onprem"), "tetap di cloud milik PT dan menjaga jalan keluarnya"],
+    [15, "sehingga urutannya terbalik", H("t5-onprem"), "urutannya terbalik"],
+    [16, "Satu rekaman beban di satu laptop", H("t5-m51"), "di satu laptop"],
+    [16, "dalam 15 detik", R("15 detik pada 1388.9"), ""],
+    [16, "Tiga hal yang diminta PRD v6 belum pernah diuji", H("t5-m51"), "Tiga hal yang belum pernah diuji"],
+    [16, "skor risiko real-time dalam 50 ms antar host", H("t5-m51"), "Skor risiko real-time dalam 50 ms"],
+    [16, "28 orang menjadi lebih dari 50", H("t5-m51"), "28 orang menjadi lebih dari 50"],
+  ];
+  test("klaim kunci: kalimat di butir dan kalimat sumbernya (halaman asal atau rekaman Tahap 5)", () => {
+    for (const [no, kalimat, sumber, frasa] of KLAIM) {
+      expect(norm(butir(no).teks), `butir ${no}: ${kalimat}`).toContain(norm(kalimat));
+      if (sumber.jenis === "halaman") expect(norm(fileHalaman(sumber.id)), `${sumber.id}: ${frasa}`).toContain(norm(String(frasa)));
+      else if (typeof sumber.pola === "string") expect(rekamanTahap5, `rekaman: ${sumber.pola}`).toContain(sumber.pola);
+      else expect(rekamanTahap5, `rekaman: ${sumber.pola}`).toMatch(sumber.pola);
+    }
+    expect((bagianRekaman("t5-service", "mtls.txt", "B").match(/alert dari server/g) ?? []).length).toBe(4);
+    expect(per("t5-rekap").jenis).toBe("konsep");
+    expect(per("t5-rekap").masalah ?? "").toContain("enam belas konsep Tahap 5");
+  });
+  test("kutipan di Cek diri dan 'Di [[halaman]]' pertama tiap butir cocok dengan peta dan rekaman", () => {
+    expect(kutipan(blok("Kunci"))).toEqual(["baca.txt:B", "promosi.txt:A", "promosi.txt:B", "crash.txt:C", "tanpa-router.txt:A"]);
+    for (const b of butirSemua) {
+      const m = b.teks.match(/\bDi \[\[([A-Za-z0-9.\-]+)\]\]/);
+      if (m) expect(m[1], `butir ${b.no}`).toBe(kejadianId(b.no));
+    }
+    expect(blok("Putuskan")).toContain("ADR 59 menambah batas bentuk pada ADR 39 tanpa membatalkannya.");
+    expect(fileHalaman("t5-onprem")).toContain("ADR ini tidak membatalkan ADR 39");
+    const PERIKSA: [string, string][] = [
+      ["Keputusan uang dibaca dari primary", "t5-read-replica"], ["Jawaban tulisan membawa token", "t5-lag"], ["Panggilan antar service", "t5-mtls"],
+      ["Job berulang punya referensi unik", "t5-batch"], ["Kuota dihitung per mitra", "t5-waf"], ["Kapasitas satu primary", "t5-m51"],
+    ];
+    const periksa = blok("Kunci").split("\n").filter((b) => b.startsWith("- [ ] "));
+    PERIKSA.forEach(([awal, id], i) => {
+      expect(periksa[i], `periksa ${i + 1}`).toContain(awal);
+      expect(idDalam(periksa[i]!), `periksa ${i + 1}`).toEqual([id]);
+    });
+  });
+  test("sumber ingatan: tautan PubMed, volume, dan nomor terbitan di halaman sama dengan baris riset R5-260", () => {
+    const r260 = riset5.split("\n").find((b) => b.startsWith("| R5-260 |")) ?? "";
+    expect([...mdx.matchAll(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)\//g)].map((x) => x[1]).sort()).toEqual(["16507066", "16507066", "16719566"]);
+    for (const s of ["Psychological Science 17(3)", "Psychological Bulletin 132(3)"]) {
+      expect(mdx, s).toContain(s);
+      expect(r260, s).toContain(s);
+    }
+    expect(r260).toContain("PMID 16507066 = Roediger");
+    expect(r260).toContain("PMID 16719566 = Cepeda");
+  });
+  test("kartu: kata di tanya dan jawab ada di butirnya, dan label per kartu dikunci", () => {
+    const KARTU_LABEL: Record<number, Record<string, number>> = { 1: { TD: 1 }, 5: { I: 1 }, 7: { HA: 1 }, 8: { HA: 1 }, 9: { TD: 1 }, 10: { TD: 1 }, 14: { TD: 1 }, 15: { I: 2 } };
+    kartu.forEach((k, i) => {
+      const teks = `${k.tanya} ${k.jawab}`;
+      const tabelAdr = blok("Putuskan").split("\n").filter((x) => /^\| \d+ \|/.test(x)).join("\n");
+      const kataButir = new Set(norm(`${butir(i + 1).teks} ${tabelAdr}`).match(/[a-z]{4,}/g)!);
+      const asing = (norm(teks).match(/[a-z]{4,}/g) ?? []).filter((w) => !kataButir.has(w) && !LONGGAR.has(w));
+      expect(asing, `${k.id}: kata yang tidak ada di butir`).toEqual([]);
+      expect(hitungLabel(teks), k.id).toEqual(KARTU_LABEL[i + 1] ?? {});
+    });
   });
   test("baris riset R5-260 sampai R5-264: nilai yang dipakai halaman ada di barisnya", () => {
     const baris = (id: string): string => riset5.split("\n").find((b) => b.startsWith(`| ${id} |`)) ?? "";
