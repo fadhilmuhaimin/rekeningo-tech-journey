@@ -103,7 +103,7 @@ describe("frontmatter, meta, dan Inti", () => {
   const inti = paragraf(bagian(MDX, "Inti"));
   const MAKS = Number(/^MAKS_INTI = (\d+)/m.exec(baca("tools/sinkron_cerita.py"))![1]);
   test("Inti: paragraf pertama muat layar pertama (batas sinkron_cerita), menyebut empat batas dan proyeksi tanpa lab", () => {
-    expect(inti).toHaveLength(2);
+    expect(inti).toHaveLength(3);
     expect(inti[0]!.length).toBeLessThanOrEqual(MAKS);
     expect(inti[0]).toBe("Rekeningo melewati batas mata uang, negara, wilayah, dan tim. Tahap 6 adalah proyeksi tanpa lab, jadi tak satu pun angka di halaman ini direkam.");
   });
@@ -111,9 +111,23 @@ describe("frontmatter, meta, dan Inti", () => {
     const naskah = NASKAH.replace(/"/g, "");
     const arti = "Wilayah berarti region, yaitu satu lokasi geografis dengan pusat data. Negara berarti satu pasar dengan satu mata uang.";
     expect(naskah).toContain(arti);
-    expect(inti[1]).toBe(arti);
+    expect(inti[2]).toBe(arti);
     expect(MDX.split("Wilayah berarti").length - 1).toBe(1);
     expect(MDX.split("Negara berarti").length - 1).toBe(1);
+  });
+  test("figur Inti: enam tahap dengan nama dan urutan sama dengan figur halaman Cerita, hanya Regional bertanda baru, dan nomor 6 sama dengan proyeksi", () => {
+    const f = /<figure[\s\S]*?<\/figure>/.exec(inti[1]!)![0]!;
+    const butir = [...f.matchAll(/<li class="(is-old|is-new)">([^<]+)<\/li>/g)].map((m) => [m[1], m[2]]);
+    const indeks = baca("situs/src/content/docs/cerita/index.mdx");
+    const nama = [...indeks.matchAll(/<li class="is-(?:old|new)">([^<]+)<\/li>/g)].map((m) => m[1]);
+    expect(nama).toHaveLength(6);
+    expect(butir.map((b) => b[1])).toEqual(nama);
+    expect(nama[5]).toBe(P.nama);
+    expect(butir.filter((b) => b[0] === "is-new")).toEqual([["is-new", P.nama]]);
+    expect(f).toContain(`role="img" aria-label="Enam tahap cerita: 1 satu gedung, 2 seluruh kampus, 3 enam kota, 4 dibuka ke publik, 5 nasional, ${P.no} regional (proyeksi). Kamu di tahap ${P.no}."`);
+    expect(indeks).toContain(`${P.no} regional (proyeksi)`);
+    expect(f).toContain(`<figcaption>Enam tahap. Kamu di Tahap ${P.no} (biru), yang masih proyeksi.</figcaption>`);
+    expect(inti[0]).not.toContain("<figure");
   });
   test("klaim 'tak satu pun angka direkam' berlingkup halaman ini: tanpa Rekaman lab, tanpa jalur labs/, tanpa widget atau import", () => {
     expect(MDX).not.toMatch(/rekaman lab/i);
@@ -378,7 +392,7 @@ describe("rujukan, kata, dan label di seluruh halaman", () => {
     const LABEL = /Asumsi|Ilustrasi|Hitungan atas|Tidak dijalankan|\[perlu verifikasi\]/;
     const tanpa: string[] = [];
     blok.forEach((b, i) => {
-      if (b.startsWith("<p class=\"meta\">") || b.startsWith("## ")) return;
+      if (b.startsWith("<p class=\"meta\">") || b.startsWith("## ") || b.startsWith("<figure")) return;
       const bukanTabel = !b.startsWith("|");
       const baris = bukanTabel ? [b] : b.split("\n").slice(2);
       const pengantar = blok[i - 1] ?? "";
@@ -439,5 +453,28 @@ describe.runIf(fs.existsSync(distHtml))("hasil build di dist: tabel, tooltip, ja
     expect(sidebar).not.toContain("versi lama");
     expect(sidebar).toContain('href="/cerita/tahap-6/"');
     expect((sidebar.match(/<details/g) ?? []).length).toBe(5);
+  });
+});
+
+// ---- beranda dan aset peta (hanya bila dist ada) --------------------------------------------------------------------------
+const distBeranda = path.join(akar, "situs/dist/index.html");
+describe.runIf(fs.existsSync(distBeranda))("hasil build di dist: peta beranda dan data peta cerita memuat Tahap 6 dari proyeksi", () => {
+  const html = fs.readFileSync(distBeranda, "utf8");
+  const nomorT6 = REG.halaman.filter((h) => h.tahap === 6 && !/^T\d$/.test(h.id));
+  test("tab dan panel Tahap 6: bertanda proyeksi, menaut ke halaman Cerita, status dari hitungan halaman registry", () => {
+    const tab = /<button[^>]*id="tab-tahap-6"[^>]*>/.exec(html)![0]!;
+    expect(tab).toContain("peta__pilih is-proyeksi");
+    expect(/<button[^>]*id="tab-tahap-5"[^>]*>/.exec(html)![0]!).not.toContain("is-proyeksi");
+    const panel = /<div role="tabpanel" id="panel-tahap-6"[\s\S]*?<\/div><\/div>/.exec(html)![0]!;
+    expect(panel).toContain('<a class="peta__buka" href="/cerita/tahap-6/">Buka Tahap 6 →</a>');
+    const ada = nomorT6.filter((h) => h.ada).length;
+    expect(panel).toContain(`Proyeksi konseptual, tanpa lab. Sedang ditulis: ${ada} dari ${nomorT6.length} halaman`);
+    expect(panel).not.toContain("belum ditulis");
+  });
+  const aset = path.join(akar, "situs/public/widgets/data/cerita.json");
+  test.runIf(fs.existsSync(aset))("data peta cerita yang dibangkitkan memberi Tahap 6 jalur_inti dari halaman registry (siapkan-aset)", () => {
+    const d = JSON.parse(fs.readFileSync(aset, "utf8")) as { proyeksi: { no: number; jalur_inti?: { halaman: number; menit: number } }[] };
+    const inti = REG.halaman.filter((h) => h.tahap === 6 && h.ada && (h as { inti?: boolean }).inti);
+    expect(d.proyeksi[0]!.jalur_inti).toEqual({ halaman: inti.length, menit: inti.reduce((n, h) => n + (h.menit ?? 0), 0) });
   });
 });
