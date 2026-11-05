@@ -1,0 +1,52 @@
+{
+  "id": "t6-fitur-inti",
+  "judul": "Tiga hal dan tujuh kejadian",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "rancangan penulis; jumlah sel adalah Hitungan atas Ilustrasi."
+  },
+  "baris": [
+    {
+      "label": "Aturan",
+      "simpul": [
+        {
+          "teks": "Ledger",
+          "sub": "seimbang per mata uang",
+          "nada": "system"
+        },
+        {
+          "teks": "Satu rumah",
+          "sub": "satu negara, satu wilayah",
+          "nada": "system"
+        },
+        {
+          "teks": "Satu pemilik",
+          "sub": "service, data, jaga",
+          "nada": "system"
+        }
+      ],
+      "sub": "tiga hal yang selalu benar"
+    },
+    {
+      "label": "Tabel",
+      "simpul": [
+        {
+          "teks": "7 kejadian",
+          "sub": "versi pertama, minggu 2",
+          "nada": "old"
+        },
+        {
+          "teks": "21 sel",
+          "sub": "kejadian × tiga hal"
+        },
+        {
+          "teks": "7 Rusak",
+          "sub": "2 + 1 + 4",
+          "nada": "warn"
+        }
+      ],
+      "sub": "dihitung dari tabel"
+    }
+  ],
+  "catatan": "Biru: tiga hal yang harus selalu benar. Abu-abu: versi pertama. Kuning: sel yang Rusak, yaitu kejadian yang melanggar satu hal."
+}
