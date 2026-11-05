@@ -4,9 +4,9 @@ export const SIDIK_BENTUK_MDX = "a302e1e01e07f4a1";
 export const SIDIK_PILAH = "473b99cc3fb92bdb";
 export const SIDIK_DIAGRAM_INTI = "5b579f1250feaf7a";
 export const SIDIK_DIAGRAM_PIPELINE = "832660f91fc1c89b";
-export const SIDIK_ISTILAH: Record<string, string> = {"alert": "1ccb24f3272b14d0", "on-call": "aead6bec18ac7d9e", "staging": "452f89700ce54461"};
+export const SIDIK_ISTILAH: Record<string, string> = {"alert": "1ccb24f3272b14d0", "on-call": "95b87a1f6453dbe7", "staging": "452f89700ce54461"};
 export const SIDIK_RISET: Record<string, string> = {"R3-230": "a4ba30d997dc0368", "R3-231": "6040fa87778758f4", "R3-232": "bd6423c2c956688c", "R3-233": "60961a4c021846c6"};
-export const BARIS_GLOSARIUM: string[] = ["| **Alert** | Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang. | [[t3-tim-infra]] |", "| **On-call** | Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. | [[t3-tim-infra]] |", "| **Staging** | Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya. | [[t3-tim-infra]] |"];
+export const BARIS_GLOSARIUM: string[] = ["| **Alert** | Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang. | [[t3-tim-infra]] |", "| **On-call** | Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. Rotasi bisa memakai dua penjaga sekaligus, primer dan sekunder. | [[t3-tim-infra]] |", "| **Staging** | Lingkungan uji yang dibuat semirip mungkin dengan produksi, tempat perubahan dicoba sebelum user sungguhan menyentuhnya. | [[t3-tim-infra]] |"];
 export const KALIMAT_TERKUNCI: string[] = [
  "import Blok from \"../../../components/Blok.astro\";",
  "import Rantai from \"../../../components/Rantai.astro\";",
