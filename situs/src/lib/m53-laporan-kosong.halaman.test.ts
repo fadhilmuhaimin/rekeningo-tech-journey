@@ -368,11 +368,15 @@ describe("rekaman Tahap 4 dan Tahap 5 dan kode lab: rentang Snippet, huruf bagia
 describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R6-125 sampai R6-129", () => {
   const baris = ["R6-125", "R6-126", "R6-127", "R6-128", "R6-129"].map(barisRiset);
   const tautan = [...badan.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((m) => m[1]!);
-  test("lima baris berurutan di antara R6-39 dan R6-170, lima kolom, tanpa ID ganda, dan semuanya tertanggal 2026-11-06 atau berisi sumber internal", () => {
+  test("lima baris berurutan R6-125 sampai R6-129 (rentang, bukan tetangga: PR halaman lain menyisip baris), ID naik tanpa ganda, lima kolom, dan semuanya tertanggal 2026-11-06", () => {
     const urutan = riset6.split("\n").map((b) => b.match(/^\| (R6-\d+) \|/)?.[1]).filter((x): x is string => !!x);
     expect(new Set(urutan).size).toBe(urutan.length);
-    const i39 = urutan.indexOf("R6-39");
-    expect(urutan.slice(i39, i39 + 7)).toEqual(["R6-39", "R6-125", "R6-126", "R6-127", "R6-128", "R6-129", "R6-170"]);
+    const nomor = urutan.map((x) => Number(x.slice(3)));
+    expect([...nomor].sort((x, y) => x - y)).toEqual(nomor);
+    const i = urutan.indexOf("R6-125");
+    expect(urutan.slice(i, i + 5)).toEqual(["R6-125", "R6-126", "R6-127", "R6-128", "R6-129"]);
+    expect(urutan.indexOf("R6-39")).toBeLessThan(i);
+    expect(urutan.indexOf("R6-170")).toBeGreaterThan(i + 4);
     for (const b of baris) {
       expect(b).not.toBe("");
       expect(pecahBaris(b)).toHaveLength(5);
