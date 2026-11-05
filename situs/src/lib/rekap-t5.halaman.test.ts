@@ -38,7 +38,7 @@ const kartu = JSON.parse(baca("situs/lama/widgets/data/t5-rekap-kartu.json")) as
 const kartuSemua = JSON.parse(baca("situs/lama/widgets/data/kartu.json")) as Kartu[];
 const riset5 = baca("plan/RISET-TAHAP-5.md");
 
-interface H { id: string; judul: string; tahap: number; path: string; nomor?: string; ada?: boolean; adr?: number[]; jenis?: string; prasyarat?: string[]; menit?: number; label?: string }
+interface H { id: string; judul: string; tahap: number; path: string; nomor?: string; ada?: boolean; adr?: number[]; jenis?: string; prasyarat?: string[]; menit?: number; label?: string; masalah?: string }
 const HALAMAN = cerita.halaman as unknown as H[];
 const per = (id: string): H => {
   const h = HALAMAN.find((x) => x.id === id);
@@ -775,6 +775,7 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
     [14, "Alert burn rate 14,4 selama 1 jam menghabiskan", H("t5-tim-infra"), "| 1 jam | 5 menit | 14,4 | 2% |"],
     [15, "ADR 59 tetap di cloud milik PT dan menjaga jalan keluar", H("t5-onprem"), "tetap di cloud milik PT dan menjaga jalan keluarnya"],
     [15, "sehingga urutannya terbalik", H("t5-onprem"), "urutannya terbalik"],
+    [15, "Tanpa orang tambahan, on-prem lebih hemat 1.150", H("t5-onprem"), "on-prem lebih hemat 1.150"],
     [16, "Satu rekaman beban di satu laptop", H("t5-m51"), "di satu laptop"],
     [16, "dalam 15 detik", R("15 detik pada 1388.9"), ""],
     [16, "Tiga hal yang diminta PRD v6 belum pernah diuji", H("t5-m51"), "Tiga hal yang belum pernah diuji"],
@@ -790,6 +791,8 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
     }
     expect((bagianRekaman("t5-service", "mtls.txt", "B").match(/alert dari server/g) ?? []).length).toBe(4);
     expect(per("t5-rekap").jenis).toBe("konsep");
+    expect(kartu[11]!.jawab).toContain("jam bucket dibekukan");
+    expect(butir(12).teks).toContain("jam bucket dibekukan");
     expect(per("t5-rekap").masalah ?? "").toContain("enam belas konsep Tahap 5");
   });
   test("kutipan di Cek diri dan 'Di [[halaman]]' pertama tiap butir cocok dengan peta dan rekaman", () => {
