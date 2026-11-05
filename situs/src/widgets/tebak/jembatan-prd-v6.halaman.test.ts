@@ -209,7 +209,7 @@ describe("registry, naskah, blok, dan tautan", () => {
     expect(frontmatter).toContain('title: "5.32 Jembatan: pratinjau PRD v6"');
     expect(hal.filter((h) => h.nomor === "5.32").map((h) => h.id)).toEqual(["t5-jembatan"]);
     expect(hal.filter((h) => h.tahap === 5 && h.jenis === "prd").map((h) => h.id)).toEqual(["t5-prd", "t5-jembatan"]);
-    expect(r.masalah).toContain("mana yang pecah lebih dulu");
+    expect(r.masalah).toBe("Keputusan Tahap 5 mana yang pecah lebih dulu saat PRD v6 datang?");
     expect(dari("t5-adr-60").prasyarat).toEqual(["t5-m51"]);
     expect(dari("t5-m51").masalah).toContain("PRD v6 datang");
   });
@@ -237,9 +237,9 @@ describe("registry, naskah, blok, dan tautan", () => {
     expect(badan).toContain('import dataTebak from "../../../../data/widget/t5-jembatan-tebak.json";');
     expect(badan).toContain('import Tebak from "../../../widgets/tebak/Tebak.tsx";');
     expect(hitung(badan, "<Tebak client:visible data={dataTebak} tautan={tautanTebak} />")).toBe(1);
-    expect(dari("t5-adr-60")).toMatchObject({ nomor: "5.30", adr: [60] });
-    expect(dari("t5-onprem")).toMatchObject({ nomor: "5.28", adr: [59] });
-    expect(dari("t5-tim-infra")).toMatchObject({ nomor: "5.27", adr: [58] });
+    expect(dari("t5-adr-60")).toMatchObject({ nomor: "5.30", adr: [60], ada: true });
+    expect(dari("t5-onprem")).toMatchObject({ nomor: "5.28", adr: [59], ada: true });
+    expect(dari("t5-tim-infra")).toMatchObject({ nomor: "5.27", adr: [58], ada: true });
   });
   test("tautan [[id]]: himpunan, jumlah pemakaian, nomor, dan judul diturunkan dari registry dan peta naskah", () => {
     const id = [...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!);
@@ -444,7 +444,13 @@ describe("pilihan tebakan: kalimat alasan dikutip dari halaman ADR 52, 56, 58, 5
     expect(butir).toHaveLength(5);
     ada(nol.alasan, `Halaman ${dari("t5-pooler").nomor} menulis ${KATA[butir.length]} syarat salah ADR 52.`, "alasan");
     for (const b of butir) expect(b, "butir ADR 52").not.toMatch(kataLarang);
-    for (const kata of ["`SET`", "`LISTEN`", "advisory lock tingkat sesi", "`PREPARE` tingkat SQL"]) ada(butir[0]!, kata, "butir 1");
+    // Kalimat pertama tiap butir dibaca persis (tanpa tanda kutip balik), supaya satu "tidak" yang disisip di halaman ADR menggagalkan tes ini.
+    const awal = (b: string) => b.replace(/`/g, "");
+    expect(awal(butir[0]!).startsWith("Saat service butuh SET, LISTEN, advisory lock tingkat sesi, atau PREPARE tingkat SQL. ")).toBe(true);
+    expect(awal(butir[1]!).startsWith("Saat pooler menjadi titik gagal tunggal. ")).toBe(true);
+    expect(awal(butir[2]!).startsWith("Saat client menunggu server lebih dari query_wait_timeout 120 detik dan diputus, sehingga badai koneksi menjadi badai timeout. ")).toBe(true);
+    expect(awal(butir[3]!).startsWith("Saat koneksi pod melewati max_client_conn: 8 pod tiap service memberi 480 client lawan 400 per instance (Hitungan atas Asumsi). ")).toBe(true);
+    expect(awal(butir[4]!).startsWith("Saat p95 lompatan tambahan melewati 50 ms, anggaran satu lompatan di ")).toBe(true);
     ada(butir[1]!, "titik gagal tunggal", "butir 2");
     ada(butir[2]!, "`query_wait_timeout` 120 detik", "butir 3");
     ada(butir[3]!, "`max_client_conn`: 8 pod tiap service memberi 480 client lawan 400 per instance (Hitungan atas Asumsi)", "butir 4");
@@ -461,6 +467,12 @@ describe("pilihan tebakan: kalimat alasan dikutip dari halaman ADR 52, 56, 58, 5
     expect(butir).toHaveLength(6);
     ada(satu.alasan, `Halaman ${dari("t5-waf").nomor} menulis ${KATA[butir.length]} syarat salah ADR 56.`, "alasan");
     for (const b of butir) expect(b, "butir ADR 56").not.toMatch(kataLarang);
+    expect(butir[0]!.startsWith("Saat jumlah kuota melebihi kapasitas terukur. 50 mitra × 100 per detik")).toBe(true);
+    expect(butir[1]!.startsWith("Saat 20 permintaan berjalan lebih dulu tercapai daripada 100 per detik, yaitu bila satu permintaan memakan lebih dari 0,2 detik (Hitungan atas Asumsi).")).toBe(true);
+    expect(butir[2]!.startsWith("Saat WAF menolak permintaan POS yang sah. ")).toBe(true);
+    expect(butir[3]!.startsWith("Saat mitra menuntut mTLS atau skema tanda tangan lain, misalnya HTTP Message Signatures (RFC 9421). ")).toBe(true);
+    expect(butir[4]!.startsWith("Saat Coraza kehilangan pemelihara. ")).toBe(true);
+    expect(butir[5]!.startsWith("Saat serangan volumetrik lapisan 3 dan 4 datang. ")).toBe(true);
     ada(butir[0]!, `50 mitra × 100 per detik = ${titik(50 * 100)} per detik, yaitu ${koma((50 * 100) / 1388.9, 1)} kali puncak 1.388,9 (Hitungan atas Asumsi: 5.000 ÷ 1.388,9 = ${koma((50 * 100) / 1388.9, 5)}).`, "butir 1");
     expect(a5.puncak * (a5.user * a5.aktif / 100 * a5.req / 86400)).toBeCloseTo(1388.9, 1);
     ada(butir[0]!, "Kapasitas satu server belum diukur", "butir 1");
