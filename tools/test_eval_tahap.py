@@ -1,15 +1,19 @@
 """Uji tools/eval_tahap.py dengan salinan repo kecil yang diubah: pelanggaran harus menggagalkan, bukan lolos palsu (EVAL-3).
 
-`eval_tahap.py` menjadi bukti W1, W6, dan W8 di kartu evaluasi, dan `rantai` ada di gerbang (keputusan 1164). Sebelum
-uji ini, hanya satu mutasi `rantai` yang pernah dicoba tangan (EVAL-2 putaran 2). Di sini repo kecil Tahap 9 ditulis ke
-direktori sementara (naskah, registry, MDX, situs/dist, data widget) dan dibaca lewat EVAL_AKAR. Kasus dasar harus lolos
-di semua perintah; tiap mutasi mengubah satu hal dan perintahnya harus gagal (exit 1) dengan kata kunci di keluaran.
+`eval_tahap.py` menjadi bukti W1, W3, W6, dan W8 di kartu evaluasi; `rantai` dan `gejala` untuk tahap yang lengkap ada
+di gerbang (keputusan 1164, 1696). Sebelum uji ini, hanya satu mutasi `rantai` yang pernah dicoba tangan (EVAL-2 putaran 2).
+Di sini repo kecil Tahap 9 ditulis ke direktori sementara (naskah, registry, MDX, situs/dist, data widget) dan dibaca
+lewat EVAL_AKAR. Kasus dasar harus lolos di semua perintah; tiap mutasi mengubah satu hal dan perintahnya harus gagal
+(exit 1) dengan kata kunci di keluaran. Mutasi rantai mencakup tautan Berikutnya (hilang, melompat, ke tahap lain, 404, tautan
+akhir blok beda, jembatan) dan registry (nomor tertukar, prasyarat menunjuk halaman yang dilalui sesudahnya). Bagian
+terakhir memeriksa bahwa `tools/cek_situs.sh` benar-benar memanggil perintah itu untuk Tahap 1 sampai 5.
 
     python3 tools/test_eval_tahap.py
 """
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -29,8 +33,8 @@ NASKAH = """# Naskah uji
 
 REGISTRY = {"halaman": [
     {"id": "t9-a", "judul": "PRD uji", "tahap": N, "path": "tahap-9/a.md", "jenis": "prd", "ada": True, "nomor": "9.1", "inti": True},
-    {"id": "t9-b", "judul": "Konsep uji", "tahap": N, "path": "tahap-9/b.md", "jenis": "konsep", "ada": True, "nomor": "9.2", "inti": True, "lab": ["lab-x"]},
-    {"id": "t9-c", "judul": "ADR uji", "tahap": N, "path": "tahap-9/c.md", "jenis": "adr", "ada": True, "nomor": "9.3"},
+    {"id": "t9-b", "judul": "Konsep uji", "tahap": N, "path": "tahap-9/b.md", "jenis": "konsep", "ada": True, "nomor": "9.2", "inti": True, "lab": ["lab-x"], "prasyarat": ["t9-a"]},
+    {"id": "t9-c", "judul": "ADR uji", "tahap": N, "path": "tahap-9/c.md", "jenis": "adr", "ada": True, "nomor": "9.3", "prasyarat": ["t9-b"]},
     {"id": "T10", "judul": "Tahap 10 · Ceritanya", "tahap": 10, "path": "cerita/tahap-10.md", "ada": True, "diganti_oleh": "t10-prd"},
     {"id": "t10-prd", "judul": "PRD 10", "tahap": 10, "path": "tahap-10/prd.md", "ada": False, "nomor": "10.1"},
 ]}
@@ -121,7 +125,8 @@ def hapus(akar, rel):
 
 def jalankan(akar, perintah):
     env = dict(os.environ, EVAL_AKAR=str(akar))
-    p = subprocess.run([sys.executable, str(ALAT), perintah, str(N)], capture_output=True, text=True, env=env)
+    argumen = [] if perintah == "lengkap" else [str(N)]  # `lengkap` tidak menerima nomor tahap
+    p = subprocess.run([sys.executable, str(ALAT), perintah, *argumen], capture_output=True, text=True, env=env)
     return p.returncode, p.stdout + p.stderr
 
 
@@ -153,6 +158,17 @@ def tandai(d, id_, **kv):
             h.update(kv)
 
 
+def tahap10_ada(akar, tautan_c):
+    """Halaman 10.1 sudah ditulis (`ada`), halaman lama Tahap 10 tidak lagi menunjuk penggantinya, dan Berikutnya dari 9.3 menuju `tautan_c`."""
+    def u(d):
+        tandai(d, "t10-prd", ada=True)
+        for h in d["halaman"]:
+            h.pop("diganti_oleh", None)
+    registry_ubah(akar, u)
+    tulis(akar, "situs/dist/tahap-10/prd/index.html", halaman_html("PRD 10", "/tahap-9/a/"))
+    tulis(akar, "situs/dist/tahap-9/c/index.html", halaman_html("Halaman c", tautan_c))
+
+
 ADR_PM = "**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:"
 
 KASUS = [
@@ -178,9 +194,31 @@ KASUS = [
      lambda a: registry_ubah(a, lambda d: tandai(d, "t10-prd", ada=True)), 1, ["halaman lama (penggantinya ada)=True"]),
     ("rantai: jembatan menuju halaman yang tidak ada", "rantai", lambda a: hapus(a, "situs/dist/cerita/tahap-10/index.html"), 1, ["ada=False"]),
     ("rantai: berhenti sebelum halaman terakhir", "rantai", lambda a: tulis(a, "situs/dist/tahap-9/b/index.html", halaman_html("b", "/tahap-9/a/")), 1, ["rantai berhenti atau berputar"]),
+    ("rantai: Berikutnya di tengah menuju halaman tahap lain", "rantai", lambda a: tulis(a, "situs/dist/tahap-9/a/index.html", halaman_html("a", "/cerita/tahap-10/")), 1, ["URUTAN SALAH"]),
+    ("rantai: nomor dua halaman tertukar di registry", "rantai",
+     lambda a: registry_ubah(a, lambda d: (tandai(d, "t9-b", nomor="9.3"), tandai(d, "t9-c", nomor="9.2"))), 1, ["URUTAN SALAH"]),
+    ("rantai: prasyarat menunjuk halaman yang baru dilalui sesudahnya", "rantai",
+     lambda a: registry_ubah(a, lambda d: tandai(d, "t9-b", prasyarat=["t9-c"])), 1, ["PRASYARAT BELUM DILALUI: 9.2 menyebut prasyarat 9.3"]),
+    ("rantai: prasyarat menunjuk halaman itu sendiri", "rantai",
+     lambda a: registry_ubah(a, lambda d: tandai(d, "t9-b", prasyarat=["t9-b"])), 1, ["PRASYARAT BELUM DILALUI: 9.2 menyebut prasyarat 9.2"]),
+    ("rantai: prasyarat di tahap lain tidak dihitung", "rantai",
+     lambda a: registry_ubah(a, lambda d: tandai(d, "t9-b", prasyarat=["t10-prd"])), 0, ["langkah dari 9.1 sampai 9.3: 3; 404 atau tautan hilang: 0"]),
+    ("rantai: prasyarat tak dikenal bukan urusan rantai (sinkron_cerita.py menolaknya)", "rantai",
+     lambda a: registry_ubah(a, lambda d: tandai(d, "t9-b", prasyarat=["tidak-ada"])), 0, ["langkah dari 9.1 sampai 9.3: 3; 404 atau tautan hilang: 0"]),
+    ("rantai: jembatan menuju halaman pertama tahap berikutnya yang sudah ada", "rantai",
+     lambda a: tahap10_ada(a, "/tahap-10/prd/"), 0, ["langkah dari 9.1 sampai 9.3: 3; 404 atau tautan hilang: 0"]),
+    ("rantai: jembatan menuju halaman lain padahal halaman pertama tahap berikutnya sudah ada", "rantai",
+     lambda a: tahap10_ada(a, "/cerita/tahap-10/"), 1, ["JEMBATAN TIDAK MENUJU 10.1"]),
+    ("lengkap: tahap 9 lengkap, tahap 10 baru sebagian", "lengkap", None, 0, ["tahap lengkap: 9 | tahap sebagian: 10 (0 dari 1 halaman ada)"]),
+    ("lengkap: satu halaman tahap 9 masih segera, tahap 9 tidak dilaporkan lengkap", "lengkap",
+     lambda a: registry_ubah(a, lambda d: tandai(d, "t9-b", ada=False)), 0, ["tahap lengkap: - | tahap sebagian: 9 (2 dari 3 halaman ada), 10 (0 dari 1 halaman ada)"]),
+    ("lengkap: tahap 10 ikut begitu semua halaman bernomornya ada", "lengkap",
+     lambda a: registry_ubah(a, lambda d: tandai(d, "t10-prd", ada=True)), 0, ["tahap lengkap: 9 10 | tahap sebagian: -"]),
     ("gejala: adegan bersih, catatan label dengan kata penanda dilewati", "gejala", lambda a: masalah(a), 0, ["9.2 | Konsep uji | 2 paragraf adegan", "| ok"]),
     ("gejala: kalimat definisi di dalam adegan", "gejala", lambda a: masalah(a, "Pemeriksaan password adalah saat server membandingkan hash.\n\n"), 1, ["DEFINISI: Pemeriksaan password adalah"]),
     ("gejala: halaman bukan masalah tidak diperiksa", "gejala", lambda a: (masalah(a, "Pemeriksaan password adalah saat server membandingkan hash.\n\n"), registry_ubah(a, lambda d: tandai(d, "t9-b", jenis="konsep"))), 0, ["| ok"] if False else []),
+    ("gejala: halaman masalah tanpa blok Gejala tidak lolos diam-diam", "gejala",
+     lambda a: (masalah(a), ganti(a, "situs/src/content/docs/tahap-9/b.mdx", 'nama="Gejala"', 'nama="Kejadian"')), 1, ["TANPA BLOK Gejala"]),
     ("gejala: penanda yaitu di dalam adegan", "gejala", lambda a: masalah(a, "Timeout, yaitu batas waktu tunggu, lewat.\n\n"), 1, ["DEFINISI: Timeout, yaitu"]),
     ("bocor: jawaban tebakan sudah tertulis sebelum blok Coba", "bocor", None, 0, ["tertulis sebelum blok Coba: ['Rp0']"]),
     ("bocor: jawaban tidak tertulis sebelum blok Coba", "bocor",
@@ -200,5 +238,49 @@ for nama, perintah, mutasi, harap, wajib in KASUS:
     gagal += not ok
     print(f"{'OK  ' if ok else 'GAGAL'} exit {kode} (harap {harap}) {nama}"
           + (f"; tidak ada di keluaran: {hilang}\n{keluar[-700:]}" if not ok else ""))
-print(f"{len(KASUS) - gagal}/{len(KASUS)} kasus uji eval_tahap lolos")
+
+
+def periksa_gerbang(teks):
+    """Kekurangan di tools/cek_situs.sh: tanpa ini semua kasus di atas lolos walau gerbang kembali ke `for T in 1 2 3`."""
+    salah = []
+    m = re.search(r'^\s*TAHAP_WAJIB="([0-9 ]+)"$', teks, re.M)
+    if not m or not {"1", "2", "3", "4", "5"} <= set(m.group(1).split()):
+        salah.append("TAHAP_WAJIB tidak memuat Tahap 1 sampai 5")
+    if "$($PY tools/eval_tahap.py lengkap)" not in teks:
+        salah.append("gerbang tidak menjalankan eval_tahap.py lengkap")
+    if not re.search(r'for T in \$TAHAP_WAJIB; do\n[^\n]*case " \$TAHAP_LENGKAP " in [^\n]*exit 1', teks):
+        salah.append("gerbang tidak menolak Tahap wajib yang tidak lengkap")
+    loop = re.findall(r'for T in \$TAHAP_LENGKAP; do\n(.*?)\n  done', teks, re.S)
+    gagal_keras = {"rantai": 'echo "GAGAL: rantai Berikutnya Tahap $T"; exit 1', "gejala": 'echo "GAGAL: gejala Tahap $T"; exit 1'}
+    for perintah, penutup in gagal_keras.items():
+        if not any(f'$PY tools/eval_tahap.py {perintah} "$T"' in b and penutup in b for b in loop):
+            salah.append(f"gerbang tidak menjalankan eval_tahap.py {perintah} untuk tiap tahap lengkap dan gagal keras bila ada yang salah")
+    return salah
+
+
+GERBANG = pathlib.Path(__file__).resolve().parent / "cek_situs.sh"
+teks_gerbang = GERBANG.read_text(encoding="utf-8")
+# nama, teks gerbang setelah mutasi (None = apa adanya), apakah periksa_gerbang harus menemukan kekurangan
+MUTASI_GERBANG = [
+    ("gerbang: apa adanya", None, False),
+    ("gerbang: Tahap 5 hilang dari daftar wajib", teks_gerbang.replace('TAHAP_WAJIB="1 2 3 4 5"', 'TAHAP_WAJIB="1 2 3 4"'), True),
+    ("gerbang: Tahap 1 hilang dari daftar wajib", teks_gerbang.replace('TAHAP_WAJIB="1 2 3 4 5"', 'TAHAP_WAJIB="2 3 4 5"'), True),
+    ("gerbang: daftar lengkap tidak dibaca", teks_gerbang.replace("$($PY tools/eval_tahap.py lengkap)", "1 2 3 4 5"), True),
+    ("gerbang: tahap wajib yang tidak lengkap tidak menggagalkan", teks_gerbang.replace("for T in $TAHAP_WAJIB; do", "for T in; do"), True),
+    ("gerbang: rantai kembali ke daftar tetap", teks_gerbang.replace("for T in $TAHAP_LENGKAP; do\n    LOG=$(mktemp)\n    if $PY tools/eval_tahap.py rantai", "for T in 1 2 3; do\n    LOG=$(mktemp)\n    if $PY tools/eval_tahap.py rantai"), True),
+    ("gerbang: gejala tidak dijalankan", teks_gerbang.replace('$PY tools/eval_tahap.py gejala "$T"', '$PY tools/eval_tahap.py peta "$T"'), True),
+    ("gerbang: gejala yang gagal tidak menghentikan gerbang", teks_gerbang.replace('echo "GAGAL: gejala Tahap $T"; exit 1', 'echo "GAGAL: gejala Tahap $T"'), True),
+    ("gerbang: rantai yang gagal tidak menghentikan gerbang", teks_gerbang.replace('echo "GAGAL: rantai Berikutnya Tahap $T"; exit 1', 'echo "GAGAL: rantai Berikutnya Tahap $T"'), True),
+]
+for nama, teks, harap_salah in MUTASI_GERBANG:
+    if teks is not None and teks == teks_gerbang:
+        print(f"GAGAL kasus uji rusak: mutasi tidak mengubah cek_situs.sh: {nama}")
+        gagal += 1
+        continue
+    salah = periksa_gerbang(teks if teks is not None else teks_gerbang)
+    ok = bool(salah) == harap_salah
+    gagal += not ok
+    print(f"{'OK  ' if ok else 'GAGAL'} {nama}" + (f"; kekurangan: {salah}" if salah and not harap_salah else "" if ok else "; tidak terdeteksi"))
+jumlah = len(KASUS) + len(MUTASI_GERBANG)
+print(f"{jumlah - gagal}/{jumlah} kasus uji eval_tahap lolos")
 sys.exit(1 if gagal else 0)

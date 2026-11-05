@@ -116,12 +116,26 @@ if [ "$MODE" != "--ukur" ]; then
   echo "== uji pemeriksa ID internal (lolos palsu, keputusan 1170, 1180)"; $PY tools/test_cek_id_tampil.py | tail -1
   echo "== tautan internal di dist: path, anchor, data widget (P6, keputusan 318)"; $PY tools/cek_tautan.py
   echo "== uji pemeriksa tautan (lolos palsu, keputusan 318)"; $PY tools/test_cek_tautan.py | tail -1
-  echo "== uji pemeriksa rantai dan ADR (lolos palsu, keputusan 1129)"; $PY tools/test_eval_tahap.py | tail -1
-  echo "== rantai Berikutnya Tahap 1 sampai 3 di dist: urutan sama dengan nomor, tanpa 404, tanpa halaman lama sesudah jembatan (keputusan 1164, 1129)"
-  for T in 1 2 3; do
+  echo "== uji pemeriksa rantai, ADR, gejala, dan daftar tahap gerbang (lolos palsu, keputusan 1129, 1696)"; $PY tools/test_eval_tahap.py | tail -1
+  # Tahap 1 sampai 5 wajib lengkap (semua halaman bernomornya ada); tahap sesudahnya (Tahap 6) ikut diperiksa begitu lengkap,
+  # tanpa ada yang perlu mengingat daftar ini. Tahap yang baru sebagian tidak diperiksa dan tidak menggagalkan (keputusan 1696).
+  TAHAP_WAJIB="1 2 3 4 5"
+  echo "== tahap lengkap yang dijaga rantai dan gejala (Tahap 1 sampai 5 wajib)"
+  TAHAP_LENGKAP=$($PY tools/eval_tahap.py lengkap)
+  for T in $TAHAP_WAJIB; do
+    case " $TAHAP_LENGKAP " in *" $T "*) ;; *) echo "GAGAL: Tahap $T tidak lengkap (ada halaman bernomor yang belum ada), jadi rantai dan gejalanya tidak bisa diperiksa"; exit 1 ;; esac
+  done
+  echo "== rantai Berikutnya per tahap lengkap di dist: urutan sama dengan nomor, prasyarat dilalui lebih dulu, tanpa 404, jembatan menuju halaman pertama tahap berikutnya atau tanpa halaman lama (keputusan 1164, 1129, 1696)"
+  for T in $TAHAP_LENGKAP; do
     LOG=$(mktemp)
     if $PY tools/eval_tahap.py rantai "$T" >"$LOG" 2>&1; then tail -1 "$LOG"; rm -f "$LOG"
     else cat "$LOG"; rm -f "$LOG"; echo "GAGAL: rantai Berikutnya Tahap $T"; exit 1; fi
+  done
+  echo "== gejala per tahap lengkap: tiap halaman Masalah punya blok Gejala, adegannya tanpa kalimat definisi (keputusan 1696)"
+  for T in $TAHAP_LENGKAP; do
+    LOG=$(mktemp)
+    if $PY tools/eval_tahap.py gejala "$T" >"$LOG" 2>&1; then echo "gejala Tahap $T: $(wc -l <"$LOG" | tr -d ' ') halaman Masalah bersih"; rm -f "$LOG"
+    else cat "$LOG"; rm -f "$LOG"; echo "GAGAL: gejala Tahap $T"; exit 1; fi
   done
   echo "== kontras dua mode";          $PY tools/contrast.py | tail -1
   echo "== uji pemeriksa kontras (lolos palsu, keputusan 262)"; $PY tools/test_contrast.py | tail -1
