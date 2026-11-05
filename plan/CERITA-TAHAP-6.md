@@ -192,7 +192,7 @@ Penulis halaman juga membaca ulang enam ADR Tahap 5 terhadap PRD v6, dengan pola
 
 | Fitur | Di app | Di backend | Di database | Konsep yang akan dibutuhkan |
 | --- | --- | --- | --- | --- |
-| Tiga negara | Satu app, mata uang dan bahasa per negara | Request diarahkan ke wilayah negara user | Tiga database dengan schema yang sama | Database per wilayah, residensi data |
+| Tiga negara | Satu app, mata uang dan bahasa per negara | Request diarahkan ke wilayah negara user | Tiga database dengan schema yang sama | Database per negara, residensi data |
 | Multi-mata uang | Jumlah dalam unit terkecil, tampil sesuai mata uang | Tukar sebagai dua jurnal terhubung, kurs berversi | Ledger per mata uang, akun likuiditas, akun selisih pembulatan | Ledger multi-mata uang, saga, minor unit |
 | Data per negara | Tidak ada perubahan yang terlihat | Aturan per negara dari kebijakan, akses staf tercatat | KEK per wilayah, `audit_log` per negara | Residensi data, kunci per wilayah, kebijakan sebagai kode |
 | Tidak berhenti saat satu wilayah hilang | Tidak ada perubahan yang terlihat | Failover wilayah yang dilatih | Standby sinkron di wilayah pasangan | Multi-region aktif-pasif, RPO dan RTO, akun panas |
@@ -300,7 +300,7 @@ Tahap 6 tidak membangun skema dari database, jadi tidak ada ERD6, dan `tools/erd
 | (tidak ada) | `kurs` (pasangan mata uang, pembilang, penyebut, berlaku dari, sumber), buku jenis likuiditas dan selisih pembulatan | Kurs berversi, selisih punya akun | M56 |
 | `akun` | `akun` + negara | Rumah data ditentukan negara | Keamanan 13 |
 | (tidak ada) | `sinyal_risiko` (hash perangkat, rujukan akun pseudonim, waktu) dan salinan fitur baca-saja untuk skor | Skor dalam satu proses | M57, ADR 66 |
-| `sakelar` (satu primary) | `sakelar` per database negara | Kill switch per wilayah | ADR 63 |
+| `sakelar` (satu primary) | `sakelar` per database negara | Kill switch per negara | ADR 63 |
 | `audit_log` (Tahap 4) | `audit_log` per negara, akses staf lintas negara tercatat | Residensi dan akses | ADR 66 |
 | Katalog di luar database | Service catalog: pemilik, on-call, SLO, produk data | Kepemilikan domain | M52, M53 |
 
@@ -309,7 +309,7 @@ Pertumbuhan skala database Tahap 5 dan 6 memakai rumus naskah Tahap 2: *posting 
 | Tahap | User | Tabel inti | Baris terbesar per tahun | Ukuran per tahun | Perubahan skema penting |
 | --- | --- | --- | --- | --- | --- |
 | 5 | 1 juta | 30, dibagi per service | `posting` ±440 juta (438 juta), dipartisi per bulan | ±110 GB (109,5 GB) | Partisi, snapshot saldo, read replica, cicilan, API untuk POS |
-| 6 (proyeksi) | 10 juta | ±30 per negara, tiga database | `posting` ±4,4 miliar (4,38 miliar) | ±1 TB (1.095 GB) | Multi-mata uang dan kurs, database per negara, data per wilayah |
+| 6 (proyeksi) | 10 juta | ±30 per negara, tiga database | `posting` ±4,4 miliar (4,38 miliar) | ±1 TB (1.095 GB) | Multi-mata uang dan kurs, database per negara, data per negara |
 
 Tabel 3b menulis ukuran Tahap 6 ±1 TB, seperti tabel naskah Tahap 2 dan halaman 5.3. Bagian 3 menulis 1.095 GB atau ±1,1 TB. Itu satu nilai dengan dua pembulatan (Hitungan atas Asumsi).
 
