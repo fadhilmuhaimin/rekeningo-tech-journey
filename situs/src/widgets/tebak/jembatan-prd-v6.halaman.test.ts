@@ -667,3 +667,36 @@ describe("struktur halaman dan dunia angka tertutup", () => {
     expect(new Set([...teksWidget.matchAll(/Tahap \d+/g)].map((m) => m[0]))).toEqual(new Set(["Tahap 5", "Tahap 6"]));
   });
 });
+
+// ---- Penjaga tanpa kunci baris: unik, kata negasi dan kata penuh, token versi -----------------------------------------------------
+describe("penjaga tanpa kunci baris: kalimat unik, kata negasi dan kata penuh dihitung, token versi dan tahap dihitung", () => {
+  const kata = (teks: string, k: string): number => (teks.match(new RegExp(`\\b${k}\\b`, "gi")) ?? []).length;
+  test("tiap baris isi halaman unik, dan tiap kalimat panjang (25 karakter ke atas) muncul sekali di halaman dan sekali di widget", () => {
+    const baris = badan.split("\n").map((b) => b.trim()).filter((b) => b.length >= 40 && !b.startsWith("<") && !b.startsWith("|---"));
+    expect(baris.filter((b, i) => baris.indexOf(b) !== i), "baris ganda").toEqual([]);
+    const kalimat = badan.split("\n").filter((b) => !/^(import|export|  \.|<)/.test(b.trim())).flatMap((b) => b.split(/(?<=[.?])\s+/)).map((k) => k.trim()).filter((k) => k.length >= 25);
+    expect(kalimat.filter((k, i) => kalimat.indexOf(k) !== i), "kalimat ganda di halaman").toEqual([]);
+    const kW = teksWidget.split("\n").flatMap((b) => b.split(/(?<=[.?])\s+/)).map((k) => k.trim()).filter((k) => k.length >= 25);
+    expect(kW.filter((k, i) => kW.indexOf(k) !== i), "kalimat ganda di widget").toEqual([]);
+  });
+  test("kata negasi dan kata penuh: jumlah di halaman dan di widget (ubah angka ini hanya sesudah membaca kalimat yang berubah)", () => {
+    // Nilai dihitung dari halaman dan widget saat penjaga ditulis (keputusan 1625). Satu "tidak" yang disisip atau satu kalimat negatif
+    // yang dihapus mengubah angkanya. Klaim negatif berlingkup dijaga tes lain; ini menjaga kalimat bebas di antaranya.
+    const harapanHalaman: Record<string, number> = { tidak: 13, belum: 5, bukan: 7, hanya: 5, semua: 2, setiap: 0, selalu: 0 };
+    const harapanWidget: Record<string, number> = { tidak: 6, belum: 2, bukan: 1, hanya: 1, semua: 1, setiap: 0, selalu: 0 };
+    for (const [k, n] of Object.entries(harapanHalaman)) expect(kata(badan, k), `halaman: ${k}`).toBe(n);
+    for (const [k, n] of Object.entries(harapanWidget)) expect(kata(teksWidget, k), `widget: ${k}`).toBe(n);
+  });
+  test("token versi PRD dan Tahap: jumlah dan nilai; hanya v5 dan v6, dan Tahap 4, 5, 6", () => {
+    expect([...new Set([...badan.matchAll(/PRD v(\d+)/g)].map((m) => m[1]))].sort()).toEqual([String(N5), String(N6)]);
+    expect(hitung(badan, `PRD v${N5}`)).toBe(5);
+    expect(hitung(badan, `PRD v${N6}`)).toBe(16);
+    expect(hitung(teksWidget, `PRD v${N5}`)).toBe(1);
+    expect(hitung(teksWidget, `PRD v${N6}`)).toBe(7);
+    expect([N4, N5, N6].map((n) => hitung(badan, `Tahap ${n}`))).toEqual([1, 11, 8]);
+    expect([N4, N5, N6].map((n) => hitung(teksWidget, `Tahap ${n}`))).toEqual([0, 6, 1]);
+    expect(hitung(badan, "ADR ")).toBe(12);
+    expect(hitung(teksWidget, "ADR ")).toBe(17);
+    expect([...badan.matchAll(/\bv(\d+)\b/g)].map((m) => m[1]).filter((x) => x !== "5" && x !== "6")).toEqual([]);
+  });
+});
