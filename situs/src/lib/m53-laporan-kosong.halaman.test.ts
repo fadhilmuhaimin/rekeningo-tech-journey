@@ -155,7 +155,7 @@ const lLuar = nomorBaris(runBaris, /^    luar = \{\}/);
 const lHarapKontrak = nomorBaris(runBaris, /^    harap\(luar, kontrak,/);
 const kodeBawaan = cari(/SQLSTATE (\d+)/, skemaBaris[lMerchant]!, "kode penolakan")[1]!;
 const kodeKolom = cari(/\((\d{5})\)$/, batasBaris[lSebelumRename - 1]!, "kode kolom tidak ada")[1]!;
-const schemaLayanan = cari(/^SCHEMA_LAYANAN = \[([^\]]+)\]/m, dasarT5, "SCHEMA_LAYANAN")[1]!.split(",").map((x) => x.trim());
+const schemaLayanan = cari(/^SCHEMA_LAYANAN = \[([^\]]+)\]/m, dasarT5, "SCHEMA_LAYANAN")[1]!.split(",").map((x) => x.trim().replace(/"/g, ""));
 const versi = {
   pg: cari(/PostgreSQL (\d+\.\d+)/, batasBaris[1]!, "PostgreSQL batas")[1]!,
   pgT5: cari(/PostgreSQL (\d+\.\d+)/, skemaBaris[1]!, "PostgreSQL skema")[1]!,
@@ -174,6 +174,7 @@ describe("angka cerita dan hitungan: diturunkan dari naskah, halaman ADR, dan re
     expect(badan).toContain("Jumat pukul 06.00 laporan tutup buku negara kedua kosong. Pak Hadi menunda tanda tangannya satu hari.");
     expect(badan).toContain("*Angka cerita (Ilustrasi):* hari, jam, dan tim berasal dari naskah, bukan dari rekaman.");
     expect(hitung(badan, "satu hari")).toBe(1);
+    expect(badan).toContain("Hak baca sementara ke schema tim Pembayaran tidak masuk contract mana pun, dan tidak ada tes yang menjalankannya (Ilustrasi).");
   });
   test("dugaan: pengumuman migration dan rapat sinkronisasi tiap minggu antar sebelas tim, sama dengan kolom 'Yang dikira' naskah", () => {
     expect(dikiraM53).toContain("Pelaporan tidak membaca pengumuman migration");
@@ -232,6 +233,8 @@ describe("angka cerita dan hitungan: diturunkan dari naskah, halaman ADR, dan re
     const m = cari(/<p class="meta">Baca (\d+) menit · coba (\d+) menit · Prasyarat: \[\[t6-m52\]\], \[\[t5-service\]\] · Jalur inti<\/p>/, halaman, "meta");
     expect(h.menit).toBe(Number(m[1]) + Number(m[2]));
     expect(kolomM53[5]).toContain("Kepemilikan domain");
+    expect(sebenarnyaM53).toContain("laporan resmi adalah produk milik tim Ledger");
+    expect(frontmatter).toContain("dan laporan resmi Keuangan ke tim Ledger.");
     expect(kolomAdr62[0]).toBe("62");
     expect(dari("t6-m52").nomor).toBe("6.3");
     expect(dari("t6-m54").nomor).toBe("6.5");
@@ -292,6 +295,24 @@ describe("halaman ADR yang dikutip: kalimat, hitungan aturan, dan klaim negatif 
     expect(badan).toContain("yaitu data tiap service terbuka hanya lewat API service itu, tanpa memisahkan database");
     expect(badan).toContain("pemicunya di [[t5-adr-60]] belum terukur");
   });
+  test("tahap dan nomor ADR dari registry dan judul halaman (peninjau): Tahap 5 memberi schema per service, ADR 50 di 5.13, ADR 17 di 2.22, ADR 49 di 5.11, ADR 46 di 5.5", () => {
+    const adrDi = (src: string): string => cari(/^title: "[\d.]+ .*ADR (\d+)"/m, src, "ADR di judul")[1]!;
+    expect(badan).toContain(`Tahap ${dari("t5-service").tahap} memberi tiap service satu schema dan satu role, dan menghapus foreign key lintas service (ADR ${adrDi(hal513)}, [[t5-service]]).`);
+    expect(badan).toContain(`ADR ${adrDi(hal222)} memecah perubahan skema`);
+    expect(badan).toContain(`snapshot saldo ADR ${adrDi(hal511)}`);
+    expect(badan).toContain(`ADR ${adrDi(hal511)} menulis snapshot saldo`);
+    expect(badan).toContain(`Replica sudah ada di ADR ${adrDi(hal55)}.`);
+    expect(badan).toContain(`Penalaran dari ADR ${adrDi(hal55)}, Tidak dijalankan`);
+  });
+  test("bacaan lanjut: tanggal terbit sama dengan teks dan baris riset (Datamation April 1968, 3 Desember 2020, 5 Agustus 2017)", () => {
+    const lanjut = badan.slice(badan.indexOf("### Bacaan lanjut"));
+    expect(lanjut).toContain("(Datamation, April 1968)");
+    expect(lanjut).toContain("(3 Desember 2020)");
+    expect(lanjut).toContain("(5 Agustus 2017)");
+    expect(riset6.split("\n").find((b) => b.startsWith("| R6-125 |"))).toContain("Datamation, April 1968");
+    expect(riset6.split("\n").find((b) => b.startsWith("| R6-126 |"))).toContain("terbit 2020-12-03");
+    expect(riset6.split("\n").find((b) => b.startsWith("| R6-128 |"))).toContain("2017-08-05");
+  });
   test("aturan Pak Hadi v5: kutipan sama persis dengan baris v5 di halaman 5.1, dan dipakai dua kali (Paham dan ADR)", () => {
     const kutipan = cari(/\| v5 \| Aturan v4 tetap berlaku, ditambah: "([^"]+)" \|/, hal51, "aturan v5")[1]!;
     expect(kutipan).toBe("Angka yang saya tanda tangani harus dibaca dari catatan yang sama dengan yang menggerakkan uang. Salinan boleh untuk dilihat, bukan untuk memutuskan.");
@@ -336,6 +357,13 @@ describe("rekaman Tahap 4 dan Tahap 5 dan kode lab: rentang Snippet, huruf bagia
     expect(badan).toContain(`<Snippet file="labs/api-t5/output/skema.txt" lines="${lMerchant}:${lMerchant + 1}"`);
     expect(badan).toContain(`<Snippet file="labs/api-t5/output/skema.txt" lines="${lKontrakKolom}:${lNamaDitolak + 1}"`);
     expect(hitung(badan, "bagian F")).toBe(2);
+    // peninjau: judul Snippet menurunkan tahap dari folder lab (api-t5 = 5, t4-modul = 4) dan jenis dari ekstensi
+    const snippet = [...badan.matchAll(/<Snippet file="(labs\/[^"]+)"[^>]* title="([^"]+)"/g)].map((m) => ({ file: m[1]!, title: m[2]! }));
+    expect(snippet).toHaveLength(4);
+    for (const s of snippet) {
+      const tahap = cari(/^labs\/(?:api-)?t(\d)/, s.file, "tahap dari folder lab")[1]!;
+      expect(s.title.startsWith(s.file.endsWith(".txt") ? `Rekaman lab Tahap ${tahap}: ${s.file}` : `Kode lab: ${s.file}`), `judul Snippet: ${s.title}`).toBe(true);
+    }
     expect(skema).toContain("hanya t5_ledger yang punya, yaitu USAGE schema akun dan SELECT atas");
     expect(versi.pg).toBe("17.11");
     expect(versi.pgT5).toBe("17.11");
@@ -354,6 +382,26 @@ describe("rekaman Tahap 4 dan Tahap 5 dan kode lab: rentang Snippet, huruf bagia
     expect(runPy).toContain("has_table_privilege");
     expect(badan).toContain(`<Snippet file="labs/api-t5/run.py" lines="${lLuar}:${lHarapKontrak}" lang="python"`);
     expect(badan).toContain("Pemeriksaan itu berjalan atas enam role service saja. Role ketujuh, misalnya role tim Pelaporan, tidak ada di daftarnya.");
+  });
+  test("role proses mewarisi (peninjau): layanan.sql memberi t5_app keenam role service dan batas.txt memberi t4m_monolit lima role modul; hak lintas schema role service hanya kontrak ledger", () => {
+    const layanan = baca("labs/api-t5/layanan.sql");
+    const warisan = cari(/^GRANT ([a-z0-9_, ]+) TO t5_app;/m, layanan, "GRANT ke t5_app")[1]!.split(",").map((x) => x.trim());
+    expect(warisan).toEqual(schemaLayanan);
+    const modul = cari(/t4m_monolit anggota (\w+) role modul/, batas, "t4m_monolit")[1]!;
+    expect(modul).toBe(kata(5));
+    expect(badan).toContain(`satu role proses mewarisi ${modul} role modul`);
+    expect(badan).toContain(`satu role proses mewarisi ke${kata(warisan.length)} role service`);
+    expect(badan).toContain(`Di antara ke${kata(schemaLayanan.length)} role service, satu-satunya hak lintas schema adalah kontrak kolom`);
+    expect(badan).toContain(`Role proses lab, \`t5_app\`, mewarisi ke${kata(warisan.length)} role itu, jadi ia membaca ke${kata(warisan.length)} schema.`);
+    expect(skema).toContain("t5_app: SELECT count(*) FROM akun a JOIN buku b ... JOIN produk p ... JOIN perangkat g ...   -- berhasil, tanpa awalan schema");
+  });
+  test("klaim negatif 'tidak ada di lab mana pun' (peninjau): tak satu berkas terlacak di labs/ menyebut tim, role, atau schema Pelaporan", () => {
+    expect(terlacak, "git ls-files tidak tersedia").not.toBeNull();
+    const berkas = [...terlacak!].filter((f) => f.startsWith("labs/") && /(\.(go|py|sql|sh|txt|md|yaml|yml|mk|json|toml)|Makefile)$/.test(f) && fs.existsSync(path.join(akar, f)));
+    expect(berkas.length).toBeGreaterThan(300);
+    const kena = berkas.filter((f) => /\b(tim|role|schema) Pelaporan\b|\bt\d_pelaporan\b/i.test(fs.readFileSync(path.join(akar, f), "utf8")));
+    expect(kena).toEqual([]);
+    expect(badan).toContain("Hak sementara, role Pelaporan, dan query Pelaporan tidak ada di lab mana pun.");
   });
   test("klaim negatif berlingkup: run.py membaca hak dari katalog, bukan isi query, dan labs/api-t5 tidak punya lint query lintas schema", () => {
     const pyApi = fs.readdirSync(path.join(akar, "labs/api-t5")).filter((f) => f.endsWith(".py")).map((f) => baca(`labs/api-t5/${f}`)).join("\n");
@@ -430,6 +478,9 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R6-125 sam
     expect(badan).toContain("Tulisan itu menulis tentang data analitik, yaitu pandangan data yang teragregasi dan temporal untuk laporan analitik.");
     expect(badan).toContain("Ia membedakannya dari data operasional, yaitu keadaan sekarang di database di balik fungsi bisnis.");
     expect(badan).toContain("contoh tulisan itu adalah perusahaan media rekaan, bukan kasus satu perusahaan");
+    expect(badan).toContain("Tabel schema pembayaran adalah data operasional, dan contoh tulisan itu");
+    expect(b).toContain("operational data");
+    expect(badan).toContain("ADR 62 mencabut hak baca lintas schema. Tim lain meminta data lewat API atau event berversi milik pemilik, dan laporan resmi Keuangan dibaca dari API tutup buku tim Ledger.");
     expect(badan).toContain("Pemilik produk data bertanggung jawab atas ukuran seperti kualitas data dan lama user mendapat data.");
   });
   test("PostgreSQL 17: RENAME tidak mengubah data tersimpan, hak harus diberikan, dan hanya pemilik atau superuser memberi dan mencabut, sama dengan baris R6-127", () => {
@@ -514,6 +565,20 @@ describe("ID registry, tautan, template blok, tebakan, rantai, kartu, dan istila
     expect(opsi).toHaveLength(7);
     expect(opsi[0]!.slice(1)).toHaveLength(5);
     expect(opsi[0]![0]).toBe("");
+    expect(opsi[0]!.slice(1)).toEqual(["A. Replica lintas schema", "B. Data warehouse pusat", "C. Rapat sinkronisasi migration", "D. Database terpisah per service", "E. API atau event berversi, hak dicabut"]);
+    expect(opsi[4]![1]).toContain("Replica memutar ulang rekaman perubahan primary");
+    expect(opsi[4]![3]).toContain(`${pasangTim} pasang tim`);
+    expect(opsi[4]![4]).toContain("pemicunya belum terukur");
+    expect(opsi[4]![5]).toContain("Pemilik menanggung versi lama");
+    expect(opsi[6]![3]).toContain(`${jumlahTim} × ${jumlahTim - 1} ÷ 2 = ${pasangTim}`);
+    expect(opsi[6]![4]).toContain("butir 3 ADR 60");
+    expect(kolomAdr62[2]).toMatch(/replica lintas schema \(ditolak:/);
+    expect(kolomAdr62[2]).toMatch(/rapat sinkronisasi migration \(ditolak:/);
+    expect(badan).toContain("- **A ditolak** karena");
+    expect(badan).toContain("- **C ditolak** karena");
+    expect(badan).toContain("- **B belum** karena");
+    expect(badan).toContain("- **D belum** karena");
+    expect(badan).toContain("| Database terpisah per service | Pemicu di ADR 60 belum terukur | [[t6-adr-69]] |");
     const kepala = opsi[0]!.slice(1).map((x) => x.replace(/^[A-E]\. /, "").toLowerCase());
     for (const o of adr62Opsi) expect(kepala.some((k) => k.startsWith(o)), `opsi tidak ada di tabel: ${o}`).toBe(true);
     for (const o of adr62Opsi) expect(kolomAdr62[2]!.toLowerCase()).toContain(o);
@@ -525,6 +590,8 @@ describe("ID registry, tautan, template blok, tebakan, rantai, kartu, dan istila
     const preMortem = badan.slice(badan.indexOf("**Pre-mortem.**"), badan.indexOf("**Kapan keputusan ini salah.**")).split("\n").filter((b) => /^\d+\. /.test(b));
     expect(preMortem).toHaveLength(3);
     expect(badan).toContain("Tiga penyebab yang paling mungkin:");
+    expect(preMortem[2]).toContain(`dengan batas ${kata(batasProduk)} produk per tim (Asumsi)`);
+    expect(badan).toContain("Isinya Penalaran, Tidak dijalankan, kecuali sel yang menyebut rekaman.");
   });
   test("keputusan di naskah: aturan 62 sesuai kalimat naskah (API atau event berversi, hak SELECT dicabut, lint, API tutup buku Ledger, tiga prinsip, tanpa alat)", () => {
     const k = kolomAdr62[1]!;
@@ -565,6 +632,19 @@ describe("ID registry, tautan, template blok, tebakan, rantai, kartu, dan istila
     expect(skenario.langkah[3]!.kirim).toContain(`(${kodeKolom})`);
     expect(skenario.varian.langkah[2]!.kirim).toContain(`(${kodeBawaan})`);
     expect(skenario.varian.langkah[2]!.kirim).toContain("permission denied for schema t5_pembayaran");
+    // peninjau: label komponen, nada, pengantar, dan huruf bagian rekaman diturunkan, bukan hanya dikunci
+    expect(skenario.komponen.map((k) => k.label)).toEqual(["Tim Pembayaran", "Database negara kedua", "Tim Pelaporan", "Pak Hadi, Keuangan"]);
+    expect(skenario.pengantar).toContain(`centang 'Ubah satu hal'`);
+    expect(skenario.langkah.map((l) => `${l.dari}>${l.ke ?? ""}`)).toEqual(["pelaporan>db", "pembayaran>db", "pembayaran>", "pelaporan>db", "pelaporan>hadi"]);
+    expect(skenario.varian.langkah.map((l) => `${l.dari}>${l.ke ?? ""}`)).toEqual(["pembayaran>pelaporan", "pembayaran>db", "pelaporan>db", "pelaporan>hadi"]);
+    expect(skenario.predict.q).toContain("Jumat 06.00 job laporan menjalankan query yang menyebut nama lama");
+    expect(gejalaM53).toContain("Jumat 06.00");
+    expect(skenario.langkah.map((l) => l.nada)).toEqual([undefined, undefined, undefined, undefined, "warn"]);
+    expect(skenario.varian.langkah.map((l) => l.nada)).toEqual([undefined, undefined, undefined, "good"]);
+    expect(skenario.varian.langkah[2]!.jelas).toContain(`skema.txt bagian ${bagianDi(skemaBaris, lMerchant)}`);
+    expect(skenario.varian.langkah[1]!.jelas).toContain(`Rekaman Tahap 4, bagian ${bagianDi(batasBaris, lNama)}`);
+    expect(skenario.sumber.catatan).toContain(`batas.txt bagian ${bagianDi(batasBaris, lSebelumRename)}`);
+    expect(skenario.sumber.catatan).toContain(`skema.txt bagian ${bagianDi(skemaBaris, lMerchant)}`);
   });
   test("tebakan skenario: empat pilihan, tepat satu benar di posisi kedua dan bukan pilihan terpanjang; jawaban tidak di prosa sebelum widget, description, atau paragraf aman", () => {
     const p = skenario.predict;
@@ -590,6 +670,9 @@ describe("ID registry, tautan, template blok, tebakan, rantai, kartu, dan istila
     const aman = cari(/<Blok nama="Coba" buka aman="([^"]+)">/, badan, "aman")[1]!;
     for (const j of jawab) expect(aman.toLowerCase()).not.toContain(j);
     expect(p.q).toContain("Apa jawaban PostgreSQL?");
+    expect(p.options[3]).toContain("milik role lain");
+    const noscript = cari(/<noscript>([\s\S]*?)<\/noscript>/, badan, "noscript")[1]!;
+    expect(noscript).toContain(`galat kolom tidak ada (${kodeKolom}), bukan hasil kosong, pada rekaman Tahap 4 bagian ${bagianDi(batasBaris, lSebelumRename)} (batas.txt)`);
     expect(skenario.langkah[3]!.judul).toBe("Jumat 06.00: job Pelaporan menyebut nama lama");
   });
   test("diagram Rantai: ringkas, dua baris tiga simpul, sumber Ilustrasi, simpul akhir terbaca tanpa sub, dan jalur ADR 62 sama dengan keputusan", () => {
@@ -601,6 +684,9 @@ describe("ID registry, tautan, template blok, tebakan, rantai, kartu, dan istila
     expect(d.baris[0]!.simpul.map((s) => s.teks)).toEqual(["Hak baca sementara", "Rename kolom", "Laporan kosong"]);
     expect(d.baris[1]!.simpul.map((s) => s.teks)).toEqual(["API atau event", "Hak lintas dicabut", "Laporan dari Ledger"]);
     expect(d.baris[1]!.label).toBe("ADR 62");
+    expect(d.sumber.teks).toBe("Ilustrasi dan Asumsi desain ADR 62");
+    expect(d.baris[0]!.simpul.map((s) => s.sub)).toEqual(["tim Pelaporan, schema pembayaran", "migration tim Pembayaran", "Jumat 06.00, negara kedua"]);
+    expect(d.baris[1]!.simpul.map((s) => s.sub)).toEqual(["berversi, milik pemilik", "schema, lint di pipeline", "API tutup buku"]);
     expect(d.baris[0]!.simpul.map((s) => s.nada)).toEqual(["biasa", "warn", "warn"]);
     expect(d.baris[1]!.simpul.map((s) => s.nada)).toEqual(["good", "good", "good"]);
     expect(d.baris.flatMap((b) => b.simpul.map((s) => s.teks.length)).every((n) => n <= 24)).toBe(true);
@@ -639,6 +725,8 @@ describe("ID registry, tautan, template blok, tebakan, rantai, kartu, dan istila
     expect(baris.length).toBeGreaterThan(0);
     for (const b of baris) expect(b, `Rekaman lab tanpa tahap: ${b.slice(0, 80)}`).toMatch(/Tahap 4|Tahap 5|\[Label sumber\]|\(Rekaman lab\)|\[\[A0\]\]/);
     expect(badan).not.toMatch(/Rekaman lab[^.]*(Rabu|Kamis|Jumat|06\.00)/);
+    // peninjau: per kalimat, bukan per baris; satu kalimat berlabel rekaman tanpa tahap atau bagian rekaman adalah label yang lebih kuat dari sumbernya
+    for (const b of baris) for (const k of b.split(SPLIT).filter((x) => x.includes("Rekaman lab"))) expect(k, `kalimat Rekaman lab tanpa tahap, bagian, atau tautan label: ${k.slice(0, 90)}`).toMatch(/Tahap [45]|bagian [AB]|\[Label sumber\]|\[\[A0\]\]/);
     expect(badan).not.toMatch(/\[perlu verifikasi\]/);
   });
   test("adegan Gejala tanpa kalimat definisi: tiga paragraf adegan dan satu catatan berawalan bintang yang memuat angka cerita", () => {
