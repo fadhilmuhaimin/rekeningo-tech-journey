@@ -523,7 +523,7 @@ describe("registry, tautan, template blok, widget, kartu, tebakan, dan kata", ()
 });
 
 // --- lapis 2: kunci per baris, sidik kata penentu, struktur, angka, dan label
-const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling lama", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "atau", "dan", "kecuali", "saja", "baru", "masih", "kurang", "cukup", "ya", "karena", "jadi", "bila", "saat", "bisa", "boleh", "harus", "mungkin", "terpenuhi", "terbukti", "memendek", "memendekkan", "menunggu", "dibaca", "diukur", "dijalankan", "ditolak", "ditunda", "di atas", "di bawah", "tepat", "ambang", "syarat", "pemicu", "hampir pasti", "cenderung", "bisa bermasalah", "menyesatkan", "otomatis", "mandiri", "spotify", "cncf", "backstage", "istio", "linkerd", "dora", "niemen", "harvey", "platform", "pipeline", "golden path", "service catalog", "service mesh", "tiket", "queue", "adopsi", "lead time", "template", "orang", "hari", "minggu"];
+const KATA = ["tidak", "bukan", "belum", "hanya", "tanpa", "sesudah", "sebelum", "juga", "setiap", "semua", "lebih dari", "paling lama", "selalu", "sama", "sampai", "tetap", "tiap", "satu", "dua", "tiga", "empat", "lima", "enam", "atau", "dan", "kecuali", "saja", "baru", "masih", "kurang", "cukup", "ya", "karena", "jadi", "bila", "saat", "bisa", "boleh", "harus", "mungkin", "terpenuhi", "terbukti", "memendek", "memendekkan", "menunggu", "dibaca", "diukur", "dijalankan", "ditolak", "ditunda", "di atas", "di bawah", "tepat", "ambang", "syarat", "pemicu", "hampir pasti", "cenderung", "bisa bermasalah", "menyesatkan", "otomatis", "mandiri", "spotify", "cncf", "backstage", "istio", "linkerd", "dora", "niemen", "nathen", "harvey", "platform", "pipeline", "golden path", "service catalog", "service mesh", "tiket", "queue", "adopsi", "lead time", "template", "orang", "hari", "minggu"];
 const sidikKata = (teks: string, kata: string[]): Record<string, number> =>
   Object.fromEntries(kata.map((k) => [k, (teks.toLowerCase().match(new RegExp(`(?<![\\w-])${k}(?![\\w-])`, "g")) ?? []).length]));
 const nilaiString = (x: unknown, keluar: string[] = []): string[] => {
@@ -567,7 +567,7 @@ const sidikSekarang = {
   },
   halaman: sidikKata(halaman, KATA), skenario: sidikKata(nilaiString(skenario).join("\n"), KATA),
   blok: rantaiBlok.map((b) => sidikKata(b, KATA)),
-  struktur: struktur.join(" "), awalan: h16(prosa.map((b) => b.trim().split(/\s+/).slice(0, 3).join(" ")).join("|")), angka: prosa.flatMap((b) => angkaDari(b)).join(" "),
+  struktur: struktur.join(" "), awalan: h16(prosa.map((b) => b.trim().split(/\s+/).slice(0, 6).join(" ")).join("|")), angka: prosa.flatMap((b) => angkaDari(b)).join(" "),
   angkaSkenario: nilaiString(skenario).flatMap((b) => angkaDari(b)).join(" "),
   tabel: badan.split("\n").filter((b) => b.startsWith("|")).map(h16),
   riset: ["R6-120", "R6-121", "R6-122", "R6-123", "R6-124"].map((id) => h16(barisRiset(id))),
