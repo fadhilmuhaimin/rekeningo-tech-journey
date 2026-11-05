@@ -1,0 +1,312 @@
+---
+title: "6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63"
+description: Minggu 9. Pembayaran negara kedua gagal 2,0% selama 22 menit, dan sembilan perubahan dari lima tim tidak punya satu garis waktu. ADR 63 menimbang lima cara lain dan menulis kapan pilihan ini salah.
+---
+import Blok from "../../../components/Blok.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+
+<p class="meta">Baca 17 menit · coba 3 menit · Prasyarat: [[t6-m53]], [[t5-rollout]], [[t5-tim-infra]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+Minggu 9 Tahap 6. Kamis pukul 10.00 sebanyak 2,0% pembayaran di negara kedua gagal. Kegagalan itu berlangsung 22 menit.
+
+Dewi dari tim SRE bertanya apa yang berubah dalam 30 menit terakhir. Lima tim menjawab satu per satu, dan jumlahnya sembilan: dua deploy, tiga flag, satu aturan skor, satu migration, dan dua perubahan konfigurasi.
+
+Tidak ada satu daftar yang memuat kesembilannya, dan tidak ada yang tahu mana penyebabnya. Pada hari ke-19 dari 30 hari, anggaran kegagalan 43,2 menit sudah terpakai 46 menit.
+
+*Angka cerita (Ilustrasi):* hari, jam, 2,0%, 22 menit, sembilan perubahan, dan 46 menit berasal dari naskah, bukan dari rekaman. Anggaran 43,2 menit berasal dari SLO 99,9% per 30 hari (Asumsi produk, [[t6-prd]]). Arti kelima label sumber ada di [Label sumber](/cara-pakai/#label-sumber).
+
+*Tiga istilah di cerita:* flag adalah penanda yang menyalakan atau mematikan satu fitur tanpa deploy ([[t5-rollout]]). Aturan skor adalah aturan yang dipakai tim Risiko untuk memberi skor pada tiap pembayaran ([[t6-prd]]). Anggaran kegagalan adalah waktu gagal yang masih diterima dalam satu periode ([[t5-tim-infra]]).
+
+Pertanyaan Dewi menyentuh pertanyaan ketiga di PRD v6, yaitu siapa yang tahu perubahan mana yang merusak ([[t6-prd]]). Halaman ini menjawabnya.
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah tahu: untuk tiap jenis perubahan, tanyakan simpul mana yang menangkapnya.">
+
+Tebak dulu apa yang dijangkau rapat persetujuan rilis harian. Lalu pilih satu jenis perubahan di widget perbandingan, dan lihat simpul mana yang menangkapnya di kedua cara kerja.
+
+Halaman ini tidak punya Rekaman lab baru, karena Tahap 6 tidak punya lab. Dua label turunan dipakai, dan masing-masing berdampingan dengan salah satu dari lima label sumber:
+
+- **Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah.
+- **Penalaran:** kesimpulan dari sumber atau angka di halaman, bukan hasil ukuran.
+
+<details class="question">
+<summary>Tebak dulu: rapat persetujuan rilis harian menyetujui deploy sebelum dirilis. Dari sembilan perubahan Kamis itu, berapa yang tidak pernah masuk rapat itu?</summary>
+
+Tujuh: tiga flag, satu aturan skor, satu migration, dan dua perubahan konfigurasi. Itu 7 ÷ 9 = 77,8% dari semua perubahan (Hitungan atas Ilustrasi), dan tidak satu pun dari tujuh itu deploy (Penalaran).
+
+Dua deploy masuk rapat. Rapat menyetujuinya sebelum rilis dan tidak mengukur dampaknya sesudahnya (Penalaran).
+
+</details>
+
+<WidgetLama nama="banding" src="data/t6-m54-banding.json" />
+
+**Ubah satu hal:** pilih jenis perubahan lain di widget. Simpul yang tersorot berpindah, dan kamu melihat jenis mana yang ditangkap rapat, ditangkap canary, atau hanya tercatat di garis waktu.
+
+<noscript>
+<p>Tanpa JavaScript widget perbandingan tidak tampil. Rilis biasa: rapat menyetujui deploy sebelum rilis dan tidak mengukur sesudahnya. ADR 63 memulai deploy dari 1% lalu lintas dan menggagalkannya lewat analisis atas SLO (rancangan, Tidak dijalankan).</p>
+<p>Aturan skor dan flag: rapat dan pembekuan tidak menyentuhnya (Penalaran, Ilustrasi). ADR 63 mencatat keduanya di garis waktu negara dan memberi flag pemilik, tanggal kedaluwarsa, dan satu sakelar per database negara (rancangan, Tidak dijalankan).</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Yang dikira
+
+Dua dugaan muncul di minggu itu (Ilustrasi). Bayu mengusulkan rapat persetujuan rilis harian dengan wakil tiap tim. Nadia mengusulkan membekukan rilis tiap Kamis.
+
+Kedua usul menambah kehati-hatian di depan rilis. Rapat menambah orang yang melihat, dan pembekuan mengurangi hari yang berisiko.
+
+### Yang sebenarnya
+
+Tiga hal dibaca dari angka cerita. Kejadian Kamis itu kecil terhadap anggaran, rapat menjadi queue baru, dan SLO tiap tim harus lebih ketat dari SLO produk. Lima paragraf berikut memuat hitungannya.
+
+**Kejadian Kamis kecil.** Gagal 2,0% selama 22 menit setara 22 × 0,02 = 0,44 menit henti penuh, yaitu 0,44 ÷ 43,2 = 1,0% anggaran (Hitungan atas Ilustrasi). Pada hari ke-19, 46 menit terpakai: 46 ÷ 43,2 = 106,5% anggaran (Hitungan atas Ilustrasi). Anggaran habis oleh banyak kejadian kecil yang penyebabnya tidak tercatat.
+
+**Alert sudah ada, penyebabnya belum.** [[t5-tim-infra]] memasang alert burn rate, yaitu alert atas laju habisnya anggaran. Pada hari ke-19 laju itu 46 ÷ 43,2 ÷ (19 ÷ 30) = 1,7 kali laju yang pas menghabiskannya di akhir periode (Hitungan atas Ilustrasi). Alert seperti itu memberi tahu bahwa anggaran terbakar, bukan perubahan mana yang membakarnya (Penalaran).
+
+**Rapat menjadi queue.** Tiap tim merilis 4 kali per hari (Asumsi cerita). Jadi 11 × 4 = 44 rilis per hari, atau 44 ÷ 8 jam kerja = 5,5 per jam (Hitungan atas Asumsi cerita).
+
+Rapat yang berlangsung sekali sehari menahan rilis yang tiba sesudahnya sampai rapat berikutnya. Rilis yang menunggu itu membentuk queue, seperti tiket Platform di [[t6-m52]] (Penalaran).
+
+**Pembekuan memindahkan rilis.** Pembekuan hari Kamis memindahkan rilis ke hari lain dan tidak mengurangi risiko tiap rilis (Penalaran). Ia juga hanya berlaku bagi perubahan yang dihitung sebagai rilis. Flag, aturan skor, dan konfigurasi baru ikut bila tim menghitungnya begitu.
+
+**Empat service berurutan.** Jalur bayar memanggil beberapa service berurutan. SLO berantai adalah ketersediaan gabungan service yang dipanggil berurutan, dan kegagalan yang saling bebas membuatnya hasil kali SLO tiap service. Empat service dengan SLO 99,9% memberi 0,999 dipangkatkan 4 = 0,9960, atau 99,6% (Hitungan atas Asumsi: empat service di jalur bayar, kegagalan bebas).
+
+Itu 172,5 menit per 30 hari, yaitu 172,5 ÷ 43,2 = 4,0 kali anggaran satu service. Agar jalur itu memenuhi 99,9%, tiap service butuh akar keempat dari 0,999 = 99,975%. Anggaran tiap service jadi (1 − 0,99975) × 43.200 = 10,8 menit (Hitungan atas Asumsi).
+
+**Yang kurang.** Tiga hal belum ada di M54:
+
+1. Satu garis waktu yang memuat semua jenis perubahan, dengan pemilik tiap perubahan.
+2. Rilis bertahap dengan analisis otomatis atas SLO dan rollback otomatis.
+3. Kebijakan error budget yang ditulis sebelum anggaran habis, dan yang bukan hukuman.
+
+### Canary: paparan sebanding dengan bobot
+
+SRE Workbook mendefinisikan canary sebagai deployment sebagian dan sementara atas satu perubahan, beserta evaluasinya. Evaluasi itu menentukan lanjut atau tidak. Bagian yang menerima perubahan disebut canary, dan sisanya kontrol ([SRE Workbook: Canarying Releases](https://sre.google/workbook/canarying-releases/), dibuka 2026-11-06, Tidak dijalankan).
+
+Dalam model sederhananya, dampak canary pada anggaran sebanding dengan lalu lintas yang terkena cacat. Model itu mengandaikan beban merata. Contohnya di bab itu: kegagalan 20% pada canary 5% memberi kegagalan keseluruhan 1% (sumber yang sama).
+
+Dengan angka M54, andai satu deploy membawa kegagalan 2,0%, langkah 1% membuat 2,0% × 1% = 0,02% pembayaran gagal. Dua puluh dua menit di langkah itu setara 0,44 × 0,01 = 0,0044 menit henti penuh (Hitungan atas Ilustrasi).
+
+Tanpa canary, satu-satunya pembanding adalah sebelum dan sesudah. Bab yang sama menulis bahwa evaluasi sebelum dan sesudah berisiko, karena waktu adalah salah satu sumber perubahan metrik yang terbesar. Pertanyaan Dewi, apa yang berubah dalam 30 menit terakhir, adalah evaluasi sebelum dan sesudah (Penalaran).
+
+Bab itu menyarankan canary bertahap. Tahap kecil memakai metrik yang paling jelas menunjukkan masalah, misalnya permintaan yang gagal, dan tahap lebih besar menambah keyakinan. Bab itu juga menyarankan SLI, yaitu ukuran mutu yang sudah dipakai untuk menilai SLO, sebagai titik mulai metrik canary. SLO dipakai sebagai ukuran mutlak, karena canary dan kontrol bisa berubah bersama (sumber yang sama).
+
+**Bobot datang dari Gateway API, bukan dari jumlah pod.** [[t5-m49]] merekam bahwa tanpa pengatur lalu lintas, `setWeight: 5` dengan tiga replika memberi 25,0% atau 33,3% pod versi baru. Rekaman lab Tahap 5 untuk satu service, yaitu service kartu, menunjukkan ADR 55 dengan Gateway API:
+
+<Snippet file="labs/t5-rollout/output/gateway.txt" lines="7:11" title="Rekaman lab: labs/t5-rollout/output/gateway.txt, bagian B (bobot 95 dan 5 dengan 3 replika)" />
+
+Satu pod dari empat tetap 25,0% pod, tetapi bobot di HTTPRoute 5. HTTPRoute adalah objek Gateway API yang memuat bobot tiap Service ([[t5-rollout]]). Di Tahap 6, 13.888,9 request per detik memakai 30 pod tiap service (Asumsi desain, [[t6-prd]]). Satu pod adalah 1 ÷ 30 = 3,3% dari 30 pod, jadi rasio pod tidak bisa memberi langkah 1% (Hitungan atas Asumsi desain).
+
+Rekaman berikutnya memerankan versi baru yang salah. Analisis menggagalkannya, bobot kembali ke versi lama, dan 100 dari 100 permintaan berikutnya dijawab versi lama:
+
+<Snippet file="labs/t5-rollout/output/analisis.txt" lines="11:18" title="Rekaman lab: labs/t5-rollout/output/analisis.txt, bagian C (analisis gagal membalik rollout)" />
+
+Lab merekam analisis atas rasio tolak otorisasi untuk satu service, bukan atas SLO. Angka 31% memerankan naskah Tahap 5 (Ilustrasi). Analisis atas SLO, langkah 1% dan 25%, dan jalur pembayaran Tidak dijalankan.
+
+Selama canary berjalan, pod tambahan membawa pool koneksinya sendiri ke pooler koneksi. Syarat jumlah koneksi ADR 52 sudah terlewati pada 8 pod tiap service, yaitu 2,7 kali beban Tahap 5 ([[t6-prd]], [[t5-pooler]], Penalaran atas Asumsi desain).
+
+### Pagar di luar deploy: flag, garis waktu, dan aturan skor
+
+Tujuh dari sembilan perubahan M54 bukan deploy. Canary menjaga deploy. Perubahan lain butuh pagar sendiri: flag yang punya pemilik dan tanggal kedaluwarsa, dan satu garis waktu yang memuat semuanya.
+
+[[t5-rollout]] menulis satu sakelar, yaitu baris `kartu_aktif` di tabel `sakelar`, dan menunda OpenFeature selama flag aktif hanya satu. Di M54 tiga flag berubah dalam 30 menit, jadi syarat "flag aktif lebih dari satu" di butir 12 ADR 60 terpenuhi (Ilustrasi, [[t5-adr-60]]).
+
+Syarat satunya lagi belum: spesifikasi OpenFeature mencapai 1.0. Tag rilis spesifikasi yang bernomor versi masih v0.9.0, terbit 2026-07-29. Tag yang lebih baru, `provider-tck/v0.1.0` (2026-10-16), adalah aset uji provider ([OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases), dibuka 2026-11-06, Tidak dijalankan). Satu syarat dari dua tidak cukup, jadi pemicunya dibaca ulang di [[t6-adr-69]].
+
+Database dipisah per negara, dan alasannya dibahas di [[t6-residensi]]. Tabel `sakelar` ikut dipisah, jadi satu sakelar per database mematikan satu fitur di satu negara tanpa menyentuh negara lain (Penalaran, rancangan).
+
+Garis waktu per negara adalah daftar berurut waktu yang memuat deploy, flag, migration, dan konfigurasi, masing-masing dengan pemilik. Aturan skor dihitung sebagai konfigurasi (Asumsi desain). Dengan daftar itu, pertanyaan Dewi dijawab dengan membaca 30 menit terakhir, bukan dengan menanyai lima tim (Penalaran).
+
+### Kebijakan error budget
+
+Contoh kebijakan di SRE Workbook, Appendix B, ditulis untuk satu layanan contoh ([SRE Workbook: Example Error Budget Policy](https://sre.google/workbook/error-budget-policy/), dibuka 2026-11-06, Tidak dijalankan). Latarnya menulis bahwa perubahan adalah salah satu sumber besar ketidakstabilan, sekitar 70% dari outage penulis contoh itu. Angka itu dari satu organisasi dan tidak dipakai sebagai angka Rekeningo.
+
+Bila layanan melewati anggaran kegagalan jendela empat minggu terakhir, semua perubahan dan rilis berhenti kecuali masalah P0, yaitu masalah berprioritas tertinggi, dan perbaikan keamanan. Penghentian itu berlaku sampai layanan kembali di dalam SLO (sumber yang sama).
+
+Contoh yang sama menulis bahwa kebijakan itu bukan hukuman. Ia memberi tim izin untuk fokus sepenuhnya pada keandalan bila data menunjukkan itu lebih penting daripada fitur.
+
+SLO Rekeningo dihitung per 30 hari, jadi jendela kebijakan mengikuti 30 hari, bukan empat minggu (Asumsi desain). Di M54 anggaran sudah terlampaui pada hari ke-19, 46 lawan 43,2 menit, dan Rekeningo belum punya kebijakan itu (Ilustrasi).
+
+### Chaos testing
+
+Chaos testing adalah percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi. Principles of Chaos Engineering menulis empat langkah ([Principles of Chaos Engineering](https://principlesofchaos.org/), pembaruan terakhir Maret 2019, dibuka 2026-11-06, Tidak dijalankan):
+
+- Tentukan steady state, yaitu keluaran sistem yang terukur dan menandakan perilaku normal.
+- Buat hipotesis bahwa steady state bertahan di kelompok kontrol dan di kelompok percobaan.
+- Masukkan kejadian nyata, misalnya server mati atau koneksi jaringan terputus.
+- Cari selisih steady state antara kedua kelompok.
+
+Prinsip lanjutannya menggambarkan percobaan yang ideal: langsung di lalu lintas produksi, otomatis dan terus-menerus, dengan dampak yang dijaga sekecil mungkin. ADR 63 mengambil langkah yang lebih kecil. Percobaannya satu per tim per kuartal, di staging lebih dulu, dan di produksi hanya dengan paparan paling banyak 1% lalu lintas (Asumsi). Paparan itu 1% × 694,4 = 6,944 transaksi per detik di puncak, dibulatkan 6,9 (Hitungan atas Asumsi).
+
+Satu laporan di pelacak Chaos Mesh menulis bahwa pemulihan otomatis NetworkChaos gagal saat pod restart di tengah percobaan. Versi yang dilaporkan v2.7.x, dan pod tertahan dalam restart berulang. Laporan itu ditutup 2026-04-16 oleh pull request perbaikan yang digabung hari itu ([isu chaos-mesh #4827](https://github.com/chaos-mesh/chaos-mesh/issues/4827), dibuka 2026-11-06, Tidak dijalankan). Itu satu laporan dari satu user, dan rilis yang memuat perbaikannya tidak diperiksa [perlu verifikasi].
+
+### Untuk app Flutter
+
+Server tidak bisa mengembalikan app yang sudah terpasang di HP user (Penalaran). Dokumentasi kedua toko menulis:
+
+- **Apple:** rilis bertahap tujuh hari untuk perangkat dengan pembaruan otomatis, dengan 1%, 2%, 5%, 10%, 20%, 50%, dan 100% user pada hari 1 sampai 7. Siapa pun tetap bisa mengunduh manual, dan rilis boleh dijeda sampai 30 hari ([Apple: Release a version update in phases](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/), dibuka 2026-11-06, Tidak dijalankan).
+- **Google Play:** rilis bertahap bernama staged rollout, dan persentasenya tidak naik otomatis. Sesudah rilis dihentikan, user yang sudah menerimanya tetap di versi itu ([Google Play: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149), dibuka 2026-11-06, Tidak dijalankan).
+
+Karena itu rilis app bertahap menjaga paparan dan tidak mengembalikan app. Server tetap harus melayani versi app lama ([[E1]]), dan sakelar di server mematikan fitur tanpa rilis app (Penalaran).
+
+### Yang tidak dijalankan
+
+| Pernyataan | Kenapa tidak direkam | Label |
+|---|---|---|
+| Canary 1%, 5%, 25%, 100% dengan analisis atas SLO di jalur pembayaran | Lab `t5-rollout` merekam satu langkah 5% dan analisis rasio tolak untuk service kartu, tanpa Prometheus | Rekaman lab Tahap 5 (sebagian), sisanya Tidak dijalankan |
+| Garis waktu per negara dan pemilik tiap perubahan | Tahap 6 tanpa lab | Tidak dijalankan |
+| Percobaan gangguan dengan paparan 1% dan tombol hentikan | Tahap 6 tanpa lab, dan Chaos Mesh tidak dijalankan | Tidak dijalankan |
+| Kebijakan error budget menghentikan perubahan | Tahap 6 tanpa lab, dan organisasinya fiktif | Asumsi |
+| Rilis app bertahap di dua toko | Tahap 6 tanpa lab dan tanpa app yang dirilis | Tidak dijalankan |
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 63: SLO per service, canary dengan analisis SLO, flag berpemilik, garis waktu, kebijakan error budget, dan percobaan gangguan kecil
+
+**Kebutuhan.** PRD v6 menaruh SLO per tim sebagai P0 dan perubahan aman di skala sebagai P1 ([[t6-prd]]). M54 memuat sembilan perubahan dari lima tim dalam 30 menit tanpa garis waktu, dan anggaran 46 menit lawan 43,2 menit pada hari ke-19 (Ilustrasi). Rilis berjalan 5,5 per jam (Hitungan atas Asumsi cerita). Puncak transaksi 694,4 per detik, atau 463,0 bila tiap user aktif melakukan 2 transaksi per hari (Hitungan atas Asumsi).
+
+**Status:** diterima sesudah M54, dan melanjutkan ADR 55 ([[t5-rollout]]) dan ADR 58 ([[t5-tim-infra]]). Naskah tidak menulis tanggal ADR.
+
+Ada dua keputusan, jadi ada dua tabel. Tabel pertama membandingkan cara membatasi risiko perubahan:
+
+| | A. Rapat persetujuan rilis harian | B. Pembekuan rilis hari tertentu | C. Rilis bebas dengan peringatan | D. Flag saja tanpa canary | E. Canary berbasis SLO, garis waktu, kebijakan error budget |
+|---|---|---|---|---|---|
+| Cara kerja | Wakil tiap tim menyetujui rilis hari itu sebelum dirilis | Rilis dibekukan tiap hari Kamis (usul Nadia) | Tim merilis kapan saja, dan alert burn rate memperingatkan bila anggaran terbakar ([[t5-tim-infra]]) | Perubahan dibungkus flag yang dinyalakan bertahap, tanpa pengatur bobot lalu lintas | Langkah 1%, 5%, 25%, 100% dengan bobot Gateway API, analisis atas SLO dan rollback otomatis, ditambah garis waktu dan kebijakan |
+| Kelebihan | Tanpa alat baru, dan tim lain melihat rilis lebih dulu | Sederhana, dan satu hari tanpa rilis | Tidak menahan rilis, dan alert sudah ada | Membatasi paparan fitur yang menyala | Paparan sebanding bobot: cacat 2,0% di langkah 1% menggagalkan 0,02% pembayaran (Hitungan atas Ilustrasi) |
+| Kekurangan | 44 rilis per hari menunggu satu rapat, dan 7 dari 9 perubahan M54 bukan deploy (Penalaran) | Frekuensi turun, risiko tiap rilis sama (Penalaran) | Alert menyebut kapan anggaran terbakar, bukan perubahan mana, dan anggaran habis di hari ke-19 (M54) | Kode versi baru tetap berjalan di semua pod, dan flag tidak mengukur dampaknya (Penalaran) | Langkah 1% butuh sampel, dan dua canary yang bertumpuk mencampur sinyal (SRE Workbook) |
+| Biaya operasional | Waktu 11 wakil tiap hari (Penalaran) | Rilis menumpuk di hari lain (Penalaran) | Sama dengan alert yang sudah berjalan | Flag berkumpul tanpa pemilik bila tidak dikelola (Penalaran) | Plugin Gateway API yang masih alpha ([[t5-rollout]]), analisis, dan pemeliharaan garis waktu per negara |
+| Bukti | Penalaran atas M54, Tidak dijalankan | Penalaran atas M54, Tidak dijalankan | M54 dan burn rate 1,7 (Hitungan atas Ilustrasi) | Penalaran, Tidak dijalankan | Rekaman lab Tahap 5 `gateway.txt` bagian B dan `analisis.txt` bagian C untuk satu service. Sisanya Tidak dijalankan |
+
+Tabel kedua membandingkan pengelolaan flag:
+
+| | F. OpenFeature dan flagd | G. Flag berpemilik, kedaluwarsa, satu sakelar per database negara |
+|---|---|---|
+| Cara kerja | Aplikasi memakai SDK OpenFeature, dan flagd mengevaluasi flag | Tiap flag punya pemilik dan tanggal kedaluwarsa di katalog, dan satu baris `sakelar` per database negara mematikan satu fitur |
+| Kelebihan | Satu API evaluasi flag dengan nilai default per pemanggilan (spesifikasi v0.9.0) | Tanpa komponen baru, dan memakai pola ADR 55 |
+| Kekurangan | Spesifikasi belum 1.0 | Pemilik dan tanggal ditulis tangan dan perlu diperiksa pipeline, dan pod lain tertinggal sampai cache habis |
+| Biaya operasional | Penyedia dan mesin evaluasi yang dijalankan dan dipantau di tiap negara (Penalaran) | Satu tabel dan satu cache per pod di tiap database negara |
+| Bukti | Tidak dijalankan: rilis spesifikasi v0.9.0, dibuka 2026-11-06 | Rekaman lab Tahap 5 `sakelar.txt` bagian D untuk satu primary. Pemilik dan kedaluwarsa Tidak dijalankan |
+
+**Keputusan: opsi E untuk perubahan dan opsi G untuk flag.** Enam aturan:
+
+1. SLO per service ditulis pemiliknya di katalog dari metrik penjaga. SLO pembayaran 99,9% per negara dimiliki tim Pembayaran, dan SLO service di jalurnya lebih ketat: untuk empat service berurutan, 99,975% tiap service (Hitungan atas Asumsi).
+2. Tiap rilis lewat canary golden path ([[t6-m52]]) dengan langkah 1%, 5%, 25%, dan 100%. Bobot lalu lintas datang dari Gateway API seperti ADR 55 dan bukan dari rasio pod (pelajaran [[t5-m49]]). Analisis atas SLO dan rollback otomatis menyertai tiap langkah.
+3. Flag punya pemilik dan tanggal kedaluwarsa, dan ada satu sakelar per database negara.
+4. Deploy, flag, migration, dan konfigurasi ditulis ke satu garis waktu per negara. Aturan skor dihitung sebagai konfigurasi (Asumsi desain).
+5. Kebijakan error budget ditulis sebelum anggaran habis. Bila anggaran terlampaui, perubahan berhenti kecuali P0 dan perbaikan keamanan, tanpa menghukum tim. Jendela kebijakan mengikuti jendela SLO 30 hari (Asumsi desain), sedangkan contoh SRE Workbook memakai empat minggu.
+6. Chaos testing berjalan satu percobaan per tim per kuartal, di staging lebih dulu, lalu di produksi dengan paparan paling banyak 1% lalu lintas (Asumsi). Hipotesis steady state tertulis, dan percobaan punya tombol hentikan.
+
+**Kenapa E dan G, bukan yang lain.**
+
+- **A ditolak** karena M54: 44 rilis per hari menunggu satu rapat, dan 7 dari 9 perubahan bukan deploy (Penalaran).
+- **B ditolak** karena pembekuan menurunkan frekuensi dan tidak mengurangi risiko tiap rilis (Penalaran).
+- **C ditolak** karena anggaran sudah habis di hari ke-19 walau alert tersedia. Alert menyebut kapan, bukan apa (M54, Ilustrasi).
+- **D ditolak** karena flag membatasi paparan fitur tetapi tidak mengukur, dan ADR 55 sudah memilih canary berbobot (Penalaran).
+- **F ditunda** karena spesifikasi belum 1.0, satu dari dua syarat butir 12 ADR 60 ([[t5-adr-60]]). Opsi ini Tidak dijalankan.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Analisis lolos padahal versi salah, karena langkah 1% hanya melihat 6,9 transaksi per detik di puncak dan lebih sedikit di jam sepi. Pencegahannya jeda tiap langkah yang menunggu jumlah sampel seperti aturan 3 ADR 55, dan SLO sebagai ukuran mutlak di samping perbandingan dengan kontrol.
+2. Perubahan masuk lewat jalan yang tidak menulis garis waktu, misalnya flag diubah dari konsol, dan Dewi kembali ke pertanyaan awal. Pencegahannya garis waktu yang diisi pipeline dan tabel sakelar, bukan tangan, dengan hak mengubah di luar keduanya dicabut (Asumsi desain).
+3. Dua canary berjalan bersamaan di service yang sama dan sinyalnya bercampur. SRE Workbook menyarankan satu canary pada satu waktu. Pencegahannya satu canary aktif per service per negara, dan rilis berikutnya menunggu hasilnya (rancangan, Tidak dijalankan).
+
+**Kapan keputusan ini salah.**
+
+- Saat SLO 99,9% terlalu ketat untuk rilis hampir harian. Tiap kegagalan sepanjang RTO 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran, dan tiga kegagalan melewatinya ([[t5-tim-infra]], Hitungan atas Asumsi).
+- Saat canary 1% kekurangan sampel. Langkah 1% menerima 1% × 694,4 = 6,944 transaksi per detik di puncak (dengan 2 transaksi: 4,630) dan lebih sedikit di jam sepi. Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi. Di puncak itu 1.000 ÷ 6,944 = 144 detik per langkah, dan dengan 2 transaksi 216 detik (Hitungan atas Asumsi).
+- Saat percobaan gangguan merusak produksi. Satu laporan di pelacak Chaos Mesh menulis pemulihan gagal saat pod restart di tengah percobaan [perlu verifikasi: dibaca dari isu]. Paparan 1% berarti 6,944 transaksi per detik di puncak ikut terkena.
+- Saat kebijakan dipakai sebagai hukuman. Tim lalu menunda mencatat perubahan, dan garis waktu bolong. Contoh SRE Workbook menulis tujuan sebaliknya.
+
+**Yang akan merevisinya.** [[t6-residensi]] memakai canary ini untuk aturan per negara (ADR 66). [[t6-adr-69]] membaca ulang pemicu OpenFeature dan flagd.
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| OpenFeature dan flagd | Spesifikasi v0.9.0 belum 1.0, dan flag aktif banyak hanya satu dari dua syarat | [[t6-adr-69]] |
+| Percobaan gangguan yang berjalan otomatis dan terus-menerus | ADR 63 memulai dengan satu percobaan per tim per kuartal (Asumsi) | Belum dijadwalkan |
+| Canary untuk migration dan konfigurasi | ADR 63 hanya menulis keduanya ke garis waktu (Penalaran) | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Kejadian Kamis gagal 2,0% selama 22 menit, dan anggaran kegagalan 43,2 menit. Berapa persen anggaran yang dipakai kejadian itu, dan kenapa itu bukan penyebab anggaran habis?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+22 × 0,02 = 0,44 menit henti penuh, yaitu 0,44 ÷ 43,2 = 1,0% anggaran (Hitungan atas Ilustrasi). Pada hari ke-19 sudah terpakai 46 menit. Sisanya datang dari banyak kejadian kecil yang penyebabnya tidak tercatat.
+
+</details>
+
+**2.** Empat service berurutan di jalur bayar masing-masing 99,9%, dan kegagalannya bebas. Berapa ketersediaan jalur itu, dan berapa SLO tiap service agar jalur memenuhi 99,9%?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+0,999 dipangkatkan 4 = 99,6%, atau 172,5 menit per 30 hari (Hitungan atas Asumsi). Agar jalur memenuhi 99,9%, tiap service butuh akar keempat dari 0,999 = 99,975%, dengan anggaran 10,8 menit tiap service.
+
+</details>
+
+**3.** Satu deploy membawa kegagalan 2,0%. Berapa persen semua pembayaran gagal di langkah canary 1%, dan kenapa langkah itu butuh jeda?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+2,0% × 1% = 0,02% pembayaran gagal (Hitungan atas Ilustrasi). Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi canary, yaitu 144 detik di puncak 694,4 transaksi per detik (Hitungan atas Asumsi). Jeda yang lebih pendek meloloskan versi yang salah.
+
+</details>
+
+**4.** Nadia mengusulkan membekukan rilis tiap Kamis. Kenapa itu tidak menurunkan risiko satu rilis?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Pembekuan memindahkan rilis ke hari lain, dan risiko tiap rilis sama (Penalaran). Ia juga hanya berlaku bagi perubahan yang dihitung sebagai rilis, jadi flag dan konfigurasi bisa tetap berubah.
+
+</details>
+
+**5.** Kenapa rilis app bertahap tidak sama dengan rollback?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Sesudah rilis dihentikan, user yang sudah menerima versi baru tetap di versi itu (dokumentasi Google Play, Tidak dijalankan). Server tetap harus melayani app lama, dan sakelar mematikan fitur tanpa rilis app (Penalaran).
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Rilis service di jalur bayar memakai bobot dari Gateway API, bukan dari jumlah replika.
+- [ ] Analisis memakai SLO sebagai ukuran mutlak dan punya jumlah sampel minimum sebelum langkah naik.
+- [ ] Tiap flag punya pemilik dan tanggal kedaluwarsa, dan pipeline menolak flag tanpa keduanya.
+- [ ] Deploy, flag, migration, aturan skor, dan konfigurasi menulis satu baris ke garis waktu negara.
+- [ ] Kebijakan error budget ditulis sebelum anggaran habis dan tidak menyebut sanksi untuk tim.
+- [ ] Percobaan gangguan punya hipotesis steady state, paparan paling banyak 1%, dan cara menghentikan yang sudah dicoba di staging.
+- [ ] Rilis app tidak mengandalkan rollback: server tetap melayani versi app lama.
+
+### Bacaan lanjut
+
+- [SRE Workbook: Canarying Releases](https://sre.google/workbook/canarying-releases/)
+- [SRE Workbook: Example Error Budget Policy](https://sre.google/workbook/error-budget-policy/)
+- [Principles of Chaos Engineering](https://principlesofchaos.org/)
+- [Chaos Mesh: isu #4827](https://github.com/chaos-mesh/chaos-mesh/issues/4827)
+- [OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases)
+- [Apple: Release a version update in phases](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/)
+- [Google Play: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149)
+
+</Blok>
+
+<SkripLama daftar={["cerita","banding"]} />

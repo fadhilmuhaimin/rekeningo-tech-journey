@@ -4496,6 +4496,46 @@
   "jawab": "Dengan fan-out saat baca, promo hilang dari semua feed begitu dihapus dari tabel promo. Dengan fan-out saat tulis, baris di setiap feed pengikut juga harus dihapus, dan push yang sudah terkirim tidak bisa ditarik. Ini alasan lain untuk menunda push promo beberapa menit."
  },
  {
+  "id": "t6-m54-1",
+  "halaman": "t6-m54",
+  "judul": "6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing)",
+  "url": "tahap-6/m54-sembilan-perubahan/",
+  "tanya": "Kejadian Kamis gagal 2,0% selama 22 menit, dan anggaran kegagalan 43,2 menit. Berapa persen anggaran yang dipakai kejadian itu, dan kenapa itu bukan penyebab anggaran habis?",
+  "jawab": "22 × 0,02 = 0,44 menit henti penuh, yaitu 0,44 ÷ 43,2 = 1,0% anggaran (Hitungan atas Ilustrasi). Pada hari ke-19 sudah terpakai 46 menit. Sisanya datang dari banyak kejadian kecil yang penyebabnya tidak tercatat."
+ },
+ {
+  "id": "t6-m54-2",
+  "halaman": "t6-m54",
+  "judul": "6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing)",
+  "url": "tahap-6/m54-sembilan-perubahan/",
+  "tanya": "Empat service berurutan di jalur bayar masing-masing 99,9%, dan kegagalannya bebas. Berapa ketersediaan jalur itu, dan berapa SLO tiap service agar jalur memenuhi 99,9%?",
+  "jawab": "0,999 dipangkatkan 4 = 99,6%, atau 172,5 menit per 30 hari (Hitungan atas Asumsi). Agar jalur memenuhi 99,9%, tiap service butuh akar keempat dari 0,999 = 99,975%, dengan anggaran 10,8 menit tiap service."
+ },
+ {
+  "id": "t6-m54-3",
+  "halaman": "t6-m54",
+  "judul": "6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing)",
+  "url": "tahap-6/m54-sembilan-perubahan/",
+  "tanya": "Satu deploy membawa kegagalan 2,0%. Berapa persen semua pembayaran gagal di langkah canary 1%, dan kenapa langkah itu butuh jeda?",
+  "jawab": "2,0% × 1% = 0,02% pembayaran gagal (Hitungan atas Ilustrasi). Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi canary, yaitu 144 detik di puncak 694,4 transaksi per detik (Hitungan atas Asumsi). Jeda yang lebih pendek meloloskan versi yang salah."
+ },
+ {
+  "id": "t6-m54-4",
+  "halaman": "t6-m54",
+  "judul": "6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing)",
+  "url": "tahap-6/m54-sembilan-perubahan/",
+  "tanya": "Nadia mengusulkan membekukan rilis tiap Kamis. Kenapa itu tidak menurunkan risiko satu rilis?",
+  "jawab": "Pembekuan memindahkan rilis ke hari lain, dan risiko tiap rilis sama (Penalaran). Ia juga hanya berlaku bagi perubahan yang dihitung sebagai rilis, jadi flag dan konfigurasi bisa tetap berubah."
+ },
+ {
+  "id": "t6-m54-5",
+  "halaman": "t6-m54",
+  "judul": "6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing)",
+  "url": "tahap-6/m54-sembilan-perubahan/",
+  "tanya": "Kenapa rilis app bertahap tidak sama dengan rollback?",
+  "jawab": "Sesudah rilis dihentikan, user yang sudah menerima versi baru tetap di versi itu (dokumentasi Google Play, Tidak dijalankan). Server tetap harus melayani app lama, dan sakelar mematikan fitur tanpa rilis app (Penalaran)."
+ },
+ {
   "id": "D4c-1",
   "halaman": "D4c",
   "judul": "Studi desain: laporan lapangan offline",

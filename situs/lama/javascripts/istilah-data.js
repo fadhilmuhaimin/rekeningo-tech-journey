@@ -422,7 +422,7 @@ window.ISTILAH = {
   "n": "6.5 M54",
   "s": "istilah-chaos-testing",
   "t": "Chaos testing",
-  "u": null
+  "u": "tahap-6/m54-sembilan-perubahan/"
  },
  "Checksum": {
   "b": "t4-storage",
@@ -1993,7 +1993,7 @@ window.ISTILAH = {
   "n": "6.5 M54",
   "s": "istilah-slo-berantai",
   "t": "SLO berantai",
-  "u": null
+  "u": "tahap-6/m54-sembilan-perubahan/"
  },
  "SSE": {
   "b": "E4",
@@ -2661,7 +2661,7 @@ window.ISTILAH = {
   "n": "6.5 M54",
   "s": "istilah-chaos-testing",
   "t": "Chaos testing",
-  "u": null
+  "u": "tahap-6/m54-sembilan-perubahan/"
  },
  "checksum": {
   "b": "t4-storage",

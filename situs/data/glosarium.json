@@ -445,7 +445,7 @@
   "d": "Percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi: gangguan diberikan sengaja, lalu keadaan normal yang terukur diperiksa.",
   "b": "t6-m54",
   "n": "6.5 M54",
-  "u": null,
+  "u": "/tahap-6/m54-sembilan-perubahan/",
   "s": "istilah-chaos-testing",
   "h": "/istilah/chaos-testing/"
  },
@@ -2110,7 +2110,7 @@
   "d": "Ketersediaan gabungan beberapa service yang dipanggil berurutan. Bila kegagalannya saling bebas, hasilnya hasil kali SLO tiap service.",
   "b": "t6-m54",
   "n": "6.5 M54",
-  "u": null,
+  "u": "/tahap-6/m54-sembilan-perubahan/",
   "s": "istilah-slo-berantai",
   "h": null
  },
