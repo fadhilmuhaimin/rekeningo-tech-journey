@@ -2790,12 +2790,30 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan ole
 - selesai bila: `plan/EVALUASI-TAHAP-5.md` sesuai skill evaluasi-tahap oleh subagent yang tidak menulis halaman Tahap 5: kartu W1–W8 dengan satu baris bukti yang bisa diulang, tiga pertanyaan pembaca di tiga halaman acak (seed 5), uji baca oleh subagent segar (5 hal membingungkan). Ada TIDAK: paling banyak 3 tugas perbaikan disisipkan tepat sesudah tugas ini, lalu `EVAL-5-ulang` sekali; sisa TIDAK dan 5 hal membingungkan ke `plan/TINJAUAN-PEMILIK.md`.
 - catatan: W1–W4 wajib YA. Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. ALOKASI: keputusan 1690–1692 (cadangan pengatur Tahap 5); tanpa ID riset. Hidupkan Docker lebih dulu (`docker info`): W2 dan ulang `make cek` lab sampel butuh Docker.
 
-### DIRI-5 · Perbaikan diri sesudah Tahap 5
+### EVAL5-F1 · Tooltip istilah salah arti di halaman Tahap 5
 
 - jenis: perbaikan
 - status: antre
 - percobaan: 0
 - bergantung: EVAL-5
+- selesai bila: di HTML build (`situs/dist/tahap-5/*/index.html`, di dalam `<main>`) tooltip `<abbr title>` untuk "token" tidak lagi memakai arti "bukti siapa pengirimnya" pada token LSN di 5.6 (`m41-riwayat-belum-memuat`), 5.7 (`replication-lag`), dan 5.31 (`rekap`, hanya kemunculan yang berarti token LSN), dan tooltip "router" tidak lagi memakai arti "router framework (method dan path)" di 5.22 (`m49-canary-sepertiga`), 5.23 (`progressive-delivery`), 5.25 (`pintu-mitra-waf`), 5.31, 5.13 (`modul-ke-service`) untuk traffic router dan di 5.5 (`read-replica`) dan 5.7 untuk router database; caranya satu entri glosarium per arti di `situs/data/glosarium.json` ("Token LSN", "Traffic router", "Router database"; entri yang lebih panjang menang atas entri pendek seperti "Alert TLS" menang atas "alert" di 5.19) dan `python3 tools/build_istilah.py` dijalankan; arti "token" dan "router" di halaman Tahap 1 sampai 4 dan di 5.19, 5.24, 5.25, 5.26 (token akses, token bucket, token OpenBao) tidak berubah; satu tes (Vitest atau skrip di gerbang) menyapu `<abbr>` "token" dan "router" di HTML build halaman Tahap 5 dan gagal bila tooltip arti lama muncul di halaman yang memakai arti baru, dengan uji mutasi sendiri (hapus satu entri baru: tes gagal); halaman istilah baru lolos `cek_id_tampil.py`, `cek_tautan.py`, audit bahasa 0 error; gerbang lolos.
+- catatan: Dari EVAL-5 (keputusan 1691), kategori rusak (informasi salah di depan pembaca). Bukti: `plan/EVALUASI-TAHAP-5.md` bagian "Pemeriksaan tambahan (a)": token 128 tooltip di 8 halaman (5.7 punya 78, 5.6 punya 4, 5.31 punya 13 dengan tiga arti), router 34 tooltip di 7 halaman. Plugin tooltip memasang satu arti di tiap kemunculan istilah. Label turunan (Hitungan, penalaran, dibaca dari kode) dan "replika" Kubernetes tidak termasuk tugas ini: keputusan pemilik (TINJAUAN-PEMILIK Tahap 5 butir 8). Tidak mengubah `tools/` selain `build_istilah.py` bila perlu. ALOKASI: nomor keputusan dari cadangan pengatur.
+
+### EVAL-5-ulang · Evaluasi ulang Tahap 5
+
+- jenis: crosscheck
+- status: antre
+- percobaan: 0
+- bergantung: EVAL5-F1
+- selesai bila: subagent yang bukan penulis halaman Tahap 5 dan bukan pelaksana EVAL5-F1 menambah bagian "Putaran 2" ke `plan/EVALUASI-TAHAP-5.md` dengan seed 5 yang sama: sapuan `<abbr>` "token" dan "router" atas `dist` Tahap 5 (0 tooltip arti lama di halaman yang memakai arti lain), W3 (`gejala 5`, audit bahasa), W4 (`ukur-axe.mjs --semua --awalan /tahap-5/`, `contrast.py`), W8 (`rantai 5`, `cek_tautan.py`), W5 dinilai ulang; tahap dinyatakan selesai. Lab, ERD, dan uji baca dilewati bila `git diff --name-only 58d1e65d HEAD -- labs situs/data/erd tools/erd.py` kosong.
+- catatan: Dari EVAL-5 (keputusan 1691). Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. ALOKASI: nomor keputusan dari cadangan pengatur.
+
+### DIRI-5 · Perbaikan diri sesudah Tahap 5
+
+- jenis: perbaikan
+- status: antre
+- percobaan: 0
+- bergantung: EVAL-5-ulang
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-5.md` dan pelajaran MEMORI Tahap 5, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 5, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 5 selesai".
 - catatan: Langkah penutup alur tahap. ALOKASI: keputusan 1693–1695 (cadangan pengatur Tahap 5); skill yang diubah dicatat sebagai keputusan satu per satu.
 
