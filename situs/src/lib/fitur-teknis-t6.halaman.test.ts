@@ -1080,6 +1080,7 @@ describe("baris riset R6-115 sampai R6-119: ada, urut, tanpa ganda, dan memuat k
   });
   test("R6-119: hitungan ulang menyebut tiga catatan pembulatan, dan angkanya sama dengan hitungan tes ini", () => {
     const r119 = baris[4]!;
+    expect(sel(r119)[0]).toBe("R6-119 Hitung ulang tabel angka beban 6.2");
     expect(r119).toContain("17 dari 17 baris sama dengan naskah");
     expect(r119).toContain("masukan seperti naskah: 10.000.000 user, aktif 20%, 60 request, puncak 10, 3 dan 2 transaksi, 86.400 detik");
     expect(r119).toContain("rumus per baris seperti naskah bagian 3");
