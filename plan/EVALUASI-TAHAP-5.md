@@ -340,7 +340,7 @@ Popover di browser (Chrome sistem, 1366×657, `<details>` dibuka dan tab "Di sta
 
 | Halaman | Sasaran | Hover | Keyboard (Tab) |
 | --- | --- | --- | --- |
-| 5.7 | "token" | Token LSN, tautan ke glosarium | Token LSN, `aria-describedby=istilah-pop` |
+| 5.7 | "token" | Token LSN, tautan ke glosarium | Token LSN, istilah menunjuk popover lewat `aria-describedby` |
 | 5.7 | "router" | Router database, tautan 5.5 dan glosarium | Router database |
 | 5.31 | "token" | Token LSN, tautan 5.7 dan glosarium | Token LSN |
 | 5.31 | "traffic router" (frasa, dua kali) | Traffic router, tautan 5.23 | Traffic router |
