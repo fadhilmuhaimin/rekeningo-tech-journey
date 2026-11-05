@@ -832,7 +832,7 @@
   "d": "Jalur yang diutamakan dan didukung untuk membangun sesuatu, mis. satu service baru. Halaman 5.27 menyebutnya jalan beraspal.",
   "b": "t6-m52",
   "n": "6.3 M52",
-  "u": null,
+  "u": "/tahap-6/m52-template-service/",
   "s": "istilah-golden-path",
   "h": "/istilah/golden-path/"
  },
@@ -2047,7 +2047,7 @@
   "d": "Sistem terpusat yang mencatat pemilik dan metadata semua software di satu organisasi, mis. service, website, library, dan data pipeline.",
   "b": "t6-m52",
   "n": "6.3 M52",
-  "u": null,
+  "u": "/tahap-6/m52-template-service/",
   "s": "istilah-service-catalog",
   "h": "/istilah/service-catalog/"
  },

@@ -5137,9 +5137,9 @@
         "t6-fitur-teknis",
         "t5-tim-infra"
       ],
-      "menit": 20,
-      "ada": false,
-      "nomor": "6.3"
+      "ada": true,
+      "nomor": "6.3",
+      "menit": 23
     },
     {
       "id": "t6-m53",

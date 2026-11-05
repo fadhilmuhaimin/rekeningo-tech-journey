@@ -43,8 +43,8 @@ export const KATA_UMUM = ["wilayah", "negara", "region"] as const;
  */
 export const PEMAKAI_TOOLTIP: Record<string, string[]> = {
   "multi-region": ["alat/indeks-topik", "cerita/tahap-4", "cerita/tahap-5", "tahap-5/jembatan-prd-v6", "tahap-5/m51-prd-v6", "tahap-5/on-prem-lawan-cloud", "tahap-5/prd-v5", "tahap-5/sengaja-belum"],
-  "golden path": ["alat/indeks-topik", "tahap-5/jembatan-prd-v6"],
-  "service catalog": ["alat/indeks-topik", "tahap-5/jembatan-prd-v6"],
+  "golden path": ["tahap-5/jembatan-prd-v6"],
+  "service catalog": ["tahap-5/jembatan-prd-v6"],
   "chaos testing": ["alat/indeks-topik", "tahap-5/jembatan-prd-v6"],
   "data mesh": ["alat/glosarium", "tahap-5/jembatan-prd-v6"],
   finops: ["alat/indeks-topik"],

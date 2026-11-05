@@ -4496,6 +4496,38 @@
   "jawab": "Dengan fan-out saat baca, promo hilang dari semua feed begitu dihapus dari tabel promo. Dengan fan-out saat tulis, baris di setiap feed pengikut juga harus dihapus, dan push yang sudah terkirim tidak bisa ditarik. Ini alasan lain untuk menunda push promo beberapa menit."
  },
  {
+  "id": "t6-m52-1",
+  "halaman": "t6-m52",
+  "judul": "6.3 M52: Template service menunggu 17 hari + ADR 61 (platform sebagai produk, golden path, service catalog)",
+  "url": "tahap-6/m52-template-service/",
+  "tanya": "Platform ditambah dari 6 menjadi 9 orang, dan permintaan tetap lewat tiket. Berapa hari waktu tunggu 17 hari menjadi bila dianggap berbanding terbalik dengan jumlah orang, dan kenapa itu belum cukup?",
+  "jawab": "17 × 6 ÷ 9 = 11,3 hari. Hasilnya masih di atas syarat satu minggu di ADR 58 dan jauh di atas target satu hari di ADR 61. Anggapan berbanding terbalik adalah penyederhanaan, bukan model queue (Hitungan atas Ilustrasi dan Asumsi). Menambah orang memendekkan queue tanpa mengubah bentuknya (Penalaran)."
+ },
+ {
+  "id": "t6-m52-2",
+  "halaman": "t6-m52",
+  "judul": "6.3 M52: Template service menunggu 17 hari + ADR 61 (platform sebagai produk, golden path, service catalog)",
+  "url": "tahap-6/m52-template-service/",
+  "tanya": "Apa beda lead time di ADR 61 dengan change lead time DORA?",
+  "jawab": "Lead time di ADR 61 mengukur lama dari permintaan service baru sampai pipeline hijau pertama, dengan target paling lama satu hari (Asumsi). Change lead time DORA mengukur waktu satu perubahan dari commit ke version control sampai berjalan di produksi (dokumentasi DORA, Tidak dijalankan)."
+ },
+ {
+  "id": "t6-m52-3",
+  "halaman": "t6-m52",
+  "judul": "6.3 M52: Template service menunggu 17 hari + ADR 61 (platform sebagai produk, golden path, service catalog)",
+  "url": "tahap-6/m52-template-service/",
+  "tanya": "Pemicu service mesh di ADR 60 terpenuhi untuk identitas, tetapi ADR 61 tidak memasang mesh. Kenapa?",
+  "jawab": "Terpenuhi berarti keadaan M52 sama dengan pemicu yang ditulis, yaitu lebih dari satu tujuan kritis yang butuh identitas yang sama, bukan bahwa mesh terbukti perlu. ADR 61 memenuhi kebutuhan identitas di template dengan satu cara mengikuti ADR 53, dan mesh dibuka lagi di ADR 69 bila template tidak cukup (Penalaran)."
+ },
+ {
+  "id": "t6-m52-4",
+  "halaman": "t6-m52",
+  "judul": "6.3 M52: Template service menunggu 17 hari + ADR 61 (platform sebagai produk, golden path, service catalog)",
+  "url": "tahap-6/m52-template-service/",
+  "tanya": "Sebut tiga ambang berangka yang membuat ADR 61 salah.",
+  "jawab": "Adopsi golden path di bawah 50% selama dua kuartal. Lead time sampai pipeline hijau pertama lebih dari satu hari. Permintaan perubahan template menunggu lebih dari satu minggu. Ketiganya Asumsi, dan satu minggu berasal dari ADR 58."
+ },
+ {
   "id": "D4c-1",
   "halaman": "D4c",
   "judul": "Studi desain: laporan lapangan offline",
