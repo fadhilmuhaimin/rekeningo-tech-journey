@@ -216,7 +216,7 @@ Anggap jumlah pod tumbuh sebanding beban (Asumsi desain). Tahap 5 memakai 3 pod 
 
 Batas itu sudah terlewati jauh sebelum beban naik 10 kali. 400 ÷ (6 × 10) = 6,7, jadi 7 pod tiap service sudah memberi 6 × 7 × 10 = 420 client. Tujuh pod berarti 7 ÷ 3 = 2,3 kali beban Tahap 5. Contoh 8 pod di ADR 52 berarti 8 ÷ 3 = 2,7 kali.
 
-Perbaikannya mengubah nilai, yaitu menaikkan `max_client_conn` atau menambah instance PgBouncer, bukan mengganti mode transaction (penalaran, Tidak dijalankan). Syarat itu terlewati karena jumlah pod, bukan karena isi PRD v6.
+Perbaikannya mengubah nilai, yaitu menaikkan `max_client_conn` atau menambah instance PgBouncer, bukan mengganti mode transaction (penalaran, Tidak dijalankan). Halaman ADR 52 tidak menulis keadaan yang sama dengan satu isi PRD v6. Syarat itu terlewati lewat jumlah pod, yang naik bersama beban (Asumsi desain).
 
 **ADR 56.** Halaman [[t5-waf]] menulis keputusan ini salah saat jumlah kuota melebihi kapasitas terukur. Contohnya 50 mitra × 100 per detik = 5.000 per detik, yaitu 3,6 kali puncak 1.388,9. PRD v6 tidak menulis jumlah mitra.
 

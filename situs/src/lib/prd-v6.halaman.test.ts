@@ -460,7 +460,7 @@ describe("dua urutan 'pecah lebih dulu' dan label penalaran", () => {
     harus('Pecah berarti halaman ADR itu sendiri menulis keadaan yang sama dengan satu isi PRD v6. Penalaran berarti kesimpulan dari kalimat yang sudah tertulis, tanpa menjalankan apa pun, jadi labelnya Tidak dijalankan. Urutan "lebih dulu" di bagian ini adalah penalaran, bukan urutan kejadian yang direkam.');
     harus('Tebakan "ADR 52" di [[t5-jembatan]] benar tentang beban dan belum benar tentang mode transaction. Halaman itu tidak perlu dikoreksi, karena ia membandingkan kalimat halaman ADR dengan isi PRD v6, bukan dengan beban.');
     harus("Perbaikannya mengubah nilai, yaitu menaikkan `max_client_conn` atau menambah instance PgBouncer, bukan mengganti mode transaction (penalaran, Tidak dijalankan).");
-    harus("Syarat itu terlewati karena jumlah pod, bukan karena isi PRD v6.");
+    harus("Halaman ADR 52 tidak menulis keadaan yang sama dengan satu isi PRD v6. Syarat itu terlewati lewat jumlah pod, yang naik bersama beban (Asumsi desain).");
     di(dataTebak.pilihan[0]!.alasan, "kunci 5.32", "Halaman ini tidak menghitung jumlah pod untuk 10 juta user (penalaran).");
     di(dataTebak.pilihan[1]!.alasan, "kunci 5.32", "Pratinjau PRD v6 di halaman ini tidak menulis jumlah mitra.");
     di(bag1, "naskah", "Tebakan \"ADR 52\" di 5.32 benar tentang beban dan belum benar tentang mode transaction");
@@ -556,6 +556,193 @@ describe("label sumber, klaim negatif berlingkup, dan kata yang tidak dipakai", 
   });
 });
 
+// Hitungan kata negasi, kata penuh, penghubung, dan kata bilangan di badan halaman (huruf kecil, tanpa rujukan [[id]]).
+const KATA_HITUNG = {"tidak": 37, "belum": 13, "bukan": 11, "hanya": 1, "semua": 4, "setiap": 2, "selalu": 1, "atau": 13, "dan": 94, "satu": 53, "dua": 11, "tiga": 19, "empat": 0, "lima": 3, "enam": 3, "tujuh": 1, "delapan": 2, "sebelas": 1, "sepuluh": 0, "tiap": 24, "lebih": 11, "jadi": 8, "yaitu": 8, "dari": 25};
+describe("tujuan, user, lingkup, metrik, batasan, tokoh, risiko, dan pertanyaan diturunkan dari naskah dan halaman Tahap 5", () => {
+  const lc = (s: string): string => s.charAt(0).toLowerCase() + s.slice(1);
+  const minggu = Number(cocok(latar, /(\d+) minggu \(Asumsi cerita\)/)[1]);
+  const blokIsi = (nama: string): string => badan.split(`<Blok nama="${nama}"`)[1]!.split("</Blok>")[0]!;
+  const butir = (teks: string): string[] => teks.split("\n").filter((b) => /^(\d+\.|-) /.test(b)).map((b) => b.replace(/^(\d+\.|-) /, ""));
+  test("kepala dokumen, description, dan paragraf pembuka Latar: minggu, tim, dan hari uji coba dari naskah dan 5.29", () => {
+    expect(minggu).toBe(24);
+    harus(`<dd>Tiga negara: ${id(userV6)} user terdaftar</dd>`);
+    harus(`<dd>${minggu} minggu, ${jumlahTim} engineer dalam ${timNaskah.length} tim</dd>`);
+    expect(front).toContain(`${jumlahTim} engineer dalam ${timNaskah.length} tim punya ${minggu} minggu`);
+    const m16 = Number(cocok(latar, /minggu (\d+) Tahap 5/)[1]);
+    const h14 = Number(cocok(latar, /selama (\d+) hari berturut-turut/)[1]);
+    harus(`Uji coba nasional lolos di minggu ke-${m16} Tahap 5 ([[t5-m51]]).`);
+    harus(`Itu berlangsung ${h14} hari berturut-turut (target Tahap 5, [Asumsi](/cara-pakai/#label-sumber)).`);
+    di(teksHalaman("t5-m51"), "5.29", `minggu ${m16}, 1.000.000 user terdaftar, ${h14} hari berturut-turut`);
+    di(latar, "naskah", "dengan satu sampai dua orang baru tiap minggu");
+    harus("dengan satu sampai dua orang baru tiap minggu.");
+    harus(`Tim naik dari ${orang5} menjadi ${jumlahTim} orang`);
+    harus(`<p class="meta">Baca ${dari("t6-prd").menit} menit`);
+  });
+  test("tiga hal berubah: judul tebal dari naskah, dan butir keadaan awal menaut halaman yang registry-nya memuat nomor ADR yang sama", () => {
+    const tebal = [...latar.split("Tiga hal berubah sekaligus.")[1]!.split("\n")[0]!.matchAll(/\*\*([^*]+)\*\*/g)].map((m) => m[1]!);
+    expect(tebal).toEqual(["uang melewati mata uang", "data punya alamat", "koordinasi menjadi beban utama"]);
+    const itemLatar = butir(badan.split("Tiga hal berubah sekaligus.")[1]!.split("Tahap 6 tidak punya lab.")[0]!);
+    expect(itemLatar.map((x) => x.match(/^\*\*([^*]+)\.\*\*/)![1])).toEqual(tebal.map((x) => x.charAt(0).toUpperCase() + x.slice(1)));
+    di(latar, "naskah", "transfer antar negara membutuhkan kurs");
+    di(teksHalaman("t2-ledger"), "2.7", "jurnal");
+    const keadaan = butir(badan.split("Tahap 6 berangkat dari keadaan akhir Tahap 5, belum dari sistem yang sudah dibereskan:")[1]!.split("</Blok>")[0]!);
+    expect(keadaan).toHaveLength(6);
+    di(latar, "naskah", "Tahap 6 berangkat dari keadaan akhir Tahap 5 seperti ditulis halaman 5.1 sampai 5.32, bukan dari sistem yang sudah dibereskan:");
+    // Tiap butir yang menulis "ADR a, b, dan c" menaut halaman yang registry-nya memuat a, b, c berurutan, dan judul ADR-nya memuat kata kunci butir.
+    const adrBaris = (s: string): number[] => [...(s.match(/\(ADR ([\d, dan]+)/)?.[1] ?? "").matchAll(/\d+/g)].map((m) => Number(m[0]));
+    const KATA: Record<number, string> = { 46: "read replica", 48: "replica sinkron", 52: "PgBouncer", 51: "outbox", 53: "mTLS", 55: "sakelar", 50: "enam service", 58: "jalan beraspal" };
+    const semuaT5 = hal.filter((h) => h.tahap === 5 && h.adr);
+    for (const b of [keadaan[0]!, keadaan[1]!, keadaan[2]!, keadaan[3]!]) {
+      const nomor = adrBaris(b);
+      expect(nomor.length, b).toBeGreaterThan(0);
+      for (const n of nomor) {
+        const h = semuaT5.find((x) => x.adr!.includes(n));
+        expect(h, `ADR ${n}`).toBeDefined();
+        expect(baca(berkasHalaman(h!.id)), `judul ADR ${n}`).toMatch(new RegExp(`### ADR ${n}: [^\\n]*${KATA[n]}`, "i"));
+      }
+    }
+    expect(adrBaris(keadaan[1]!)).toEqual([46, 48, 52]);
+    expect(adrBaris(keadaan[2]!)).toEqual([51, 53, 55]);
+    expect(adrBaris(keadaan[0]!)).toEqual([50]);
+    expect(adrBaris(keadaan[3]!)).toEqual([58]);
+    const tautKeadaan = (b: string) => [...b.matchAll(/\[\[([a-z0-9-]+)\]\]/g)].map((m) => m[1]!);
+    expect(tautKeadaan(keadaan[1]!).map((x) => dari(x).adr![0])).toEqual([46, 48, 52]);
+    expect(dari(tautKeadaan(keadaan[0]!)[0]!).adr).toEqual([50]);
+    expect(dari(tautKeadaan(keadaan[3]!)[0]!).adr).toEqual([58]);
+    expect(tautKeadaan(keadaan[4]!)).toEqual(["t5-m51"]);
+    expect(tautKeadaan(keadaan[5]!)).toEqual(["t5-adr-60"]);
+    const p = (nama: string) => tim51.find((m) => m[1] === nama)![2];
+    expect(keadaan[3]).toContain(`Tim Platform ${p("Platform")} orang, SRE ${p("SRE")} orang, SLO pembayaran 99,9% per 30 hari`);
+    di(hal51, "5.1", "Ketersediaan pembayaran 99,9% per 30 hari");
+    expect(keadaan[0]).toMatch(/^Enam service di Kubernetes/);
+    di(latar, "naskah", "Enam service di Kubernetes, satu cluster PostgreSQL dengan schema dan role per service, tanpa foreign key lintas service (ADR 50)");
+  });
+  test("tujuan, user, ruang lingkup, bukan lingkup, dan pertanyaan sama dengan naskah (dengan penyesuaian yang tertulis di sini)", () => {
+    const tujuanNaskah = [...bag1.split("**Tujuan.**")[1]!.split("\n")[0]!.matchAll(/\(\d\) ([^()]*?(?:\(Asumsi produk\))?\.)(?= \(\d\)|$)/g)].map((m) => m[1]!);
+    expect(tujuanNaskah).toHaveLength(5);
+    expect(butir(blokIsi("Tujuan dan user").split("**User dan kebutuhan barunya.**")[0]!)).toEqual(tujuanNaskah);
+    const userPage = tabel(blokIsi("Tujuan dan user"), "| User |").slice(1);
+    const userNaskah = tabel(bag1, "| User | Kebutuhan baru |").slice(1);
+    expect(userPage).toEqual(userNaskah);
+    expect(userPage).toHaveLength(6);
+    di(bag1, "naskah", "Tim risk (Ratih) dan tim Risiko (Kirana)");
+    di(latar, "naskah", "Tim risk milik Ratih adalah tim bisnis yang memakai back office, bukan tim engineering ini.");
+    harus("Tim risk (Ratih) adalah tim bisnis yang memakai back office. Tim Risiko (Kirana) adalah tim engineering yang membangun skor risiko, dan keduanya berbeda.");
+    // Lingkup: kolom Keterangan = sel naskah dengan penyesuaian yang disebut.
+    const lingkup = tabel(blokIsi("Ruang lingkup"), "| Prioritas |").slice(1);
+    const lingkupNaskah = tabel(bag1, "| Prioritas |").slice(1);
+    const ubah: Array<[string, string]>[] = [
+      [["6.000.000, 2.500.000, dan 1.500.000 user (Asumsi cerita). ", ""]],
+      [["Setiap satuan di setiap mata uang tertelusur ke kejadian", "Tiap satuan uang di tiap mata uang harus tertelusur ke kejadiannya"]],
+      [],
+      [["Multi-region aktif-pasif untuk ledger.", "Multi-region aktif-pasif untuk ledger: satu wilayah melayani, dan wilayah pasangan menunggu sampai failover."]],
+      [["(Asumsi naskah dari M51)", "(Asumsi naskah dari [[t5-m51]])"], ["Graf akun-perangkat dibangun tim Risiko", "Graf akun-perangkat, yaitu hubungan antara akun dan perangkat yang dipakainya, dibangun tim Risiko"]],
+      [],
+      [],
+      [["(data mesh sederhana)", "(data mesh sederhana: data dimiliki tim domain)"]],
+    ];
+    lingkupNaskah.forEach((r, i) => {
+      let ket = r[2]!;
+      for (const [a, b] of ubah[i]!) {
+        expect(ket, `naskah baris ${i} memuat: ${a}`).toContain(a);
+        ket = ket.replace(a, b);
+      }
+      expect(lingkup[i]![2], `keterangan baris lingkup ${i + 1}`).toBe(ket);
+    });
+    const bukan = cocok(bag1, /\*\*Bukan lingkup v6\.\*\* ([^\n]*)/)[1]!;
+    expect(bukan.startsWith("Negara keempat, kartu fisik, pinjaman atau bunga, dan pindah ke aktif-aktif.")).toBe(true);
+    harus("**Bukan lingkup v6:** negara keempat, kartu fisik, pinjaman atau bunga, dan pindah ke aktif-aktif.");
+    harus("Hal yang sengaja belum dikerjakan ditulis di [[t6-adr-69]] dengan pemicunya.");
+    expect(dari("t6-adr-69").jenis).toBe("adr");
+    // Pertanyaan terbuka: tepat tiga butir naskah, dan tiap butir menaut halaman yang judul registry-nya memuat kata topiknya.
+    const tanya = butir(blokIsi("Pertanyaan terbuka").split("Tidak ada yang menjawabnya")[0]!).filter((x) => x.endsWith("?"));
+    const tanyaNaskah = bag1.split("**Pertanyaan terbuka di PRD.**")[1]!.split("Ketiganya tidak dijawab")[0]!.split("\n").filter((b) => b.startsWith("- ")).map((b) => b.slice(2));
+    expect(tanya).toEqual(tanyaNaskah);
+    const ke = [...blokIsi("Pertanyaan terbuka").matchAll(/\[\[([a-z0-9-]+)\]\]/g)].map((m) => m[1]!);
+    expect(ke).toEqual(["t6-m55", "t6-residensi", "t6-m54"]);
+    expect([dari(ke[0]!).judul, dari(ke[1]!).judul, dari(ke[2]!).judul]).toEqual([expect.stringContaining("wilayah hilang"), expect.stringContaining("Data per negara"), expect.stringContaining("perubahan")]);
+    expect(tanya[0]).toContain("satu wilayah hilang");
+    expect(tanya[1]).toContain("aturan data berbeda");
+    expect(tanya[2]).toContain("merilis tiap jam");
+    harus("Jawabannya dimulai di [[t6-m55]] untuk pertanyaan pertama, [[t6-residensi]] untuk yang kedua, dan [[t6-m54]] untuk yang ketiga.");
+    const t6 = hal.filter((h) => h.tahap === 6 && h.nomor).sort((x, y) => Number(x.nomor!.split(".")[1]) - Number(y.nomor!.split(".")[1]));
+    expect(t6[1]!.id).toBe("t6-fitur-teknis");
+    expect(t6.find((h) => /^M\d+/.test(h.judul))!.id).toBe("t6-m52");
+    harus("[[t6-fitur-teknis]] menurunkan PRD ini menjadi pekerjaan di app, backend, dan database. Masalah pertama datang di [[t6-m52]].");
+  });
+  test("metrik, batasan, tokoh baru, tokoh lama, dan risiko Sinta diturunkan dari naskah", () => {
+    const sekarang = badan.split("**Metrik keberhasilan (target, Asumsi)**")[1]!.split("Error budget, atau anggaran kegagalan")[0]!;
+    const metrikPage = butir(sekarang);
+    const metrikNaskah = bag1.split("**Metrik keberhasilan (target, Asumsi).**")[1]!.split("**Batasan.**")[0]!.split("\n").filter((b) => b.startsWith("- ")).map((b) => b.slice(2));
+    expect(metrikPage).toHaveLength(metrikNaskah.length);
+    const ketersediaan = cocok(metrikNaskah[1]!, /^(\d+,\d)% pembayaran tersedia per (\d+) hari di tiap negara \((\d+,\d) menit anggaran kegagalan\), RPO nol, RTO satu mesin (\d+) menit, RTO satu wilayah (\d+) menit\.$/);
+    expect(metrikPage[0]).toBe(`${id(aktif)} user aktif per hari (${aktifPersen}% dari ${id(userV6)}).`);
+    expect(metrikNaskah[0]).toBe(`${id(aktif)} user aktif per hari (${aktifPersen}% dari ${id(userV6)}).`);
+    expect(metrikPage[1]).toBe(`${ketersediaan[1]}% pembayaran tersedia per ${ketersediaan[2]} hari di tiap negara, RPO nol, RTO satu mesin ${ketersediaan[4]} menit, dan RTO satu wilayah ${ketersediaan[5]} menit. RTO wilayah baru di PRD v6.`);
+    expect(ketersediaan[3]).toBe(id(0.001 * 30 * 24 * 60, 1));
+    expect(metrikPage[2]).toBe(metrikNaskah[2]!.replace(": 0 jurnal dengan jumlah posting bukan nol per mata uang.", ", sehingga 0 jurnal punya jumlah posting bukan nol per mata uang."));
+    expect(metrikPage[3]).toBe(metrikNaskah[3]);
+    expect(metrikPage[4]).toBe(metrikNaskah[4]!.replace("Service baru dari permintaan sampai pipeline hijau pertama dalam satu hari (Asumsi), dan", "Service baru sampai pipeline hijau pertama dalam satu hari sejak permintaan, dan"));
+    expect(metrikPage[5]).toBe(metrikNaskah[5]!.replace(" (Asumsi).", "."));
+    expect(metrikPage[6]!.startsWith("Satu orang jaga paling banyak 25% waktunya.")).toBe(true);
+    expect(metrikNaskah[6]!.startsWith("Satu orang jaga paling banyak 25% waktunya")).toBe(true);
+    di(metrikNaskah[5]!, "naskah", "Biaya infrastruktur per transaksi dilaporkan tiap bulan per tim dari label biaya platform");
+    const batasNaskah = cocok(bag1, /\*\*Batasan\.\*\* ([^\n]*)/)[1]!;
+    const bt = blokIsi("Metrik dan batasan").split("**Batasan**")[1]!.split("Aturan Pak Hadi")[0]!;
+    const batas = butir(bt);
+    expect(batas[0]).toBe(`${jumlahTim} developer dalam ${timNaskah.length} tim selama ${minggu} minggu (Asumsi cerita).`);
+    di(batasNaskah, "naskah", `${jumlahTim} developer dalam ${timNaskah.length} tim selama ${minggu} minggu.`);
+    di(batasNaskah, "naskah", "Semua pihak ketiga fiktif atau tiruan.");
+    di(batasNaskah, "naskah", "Security review Laras lolos sebelum tiap negara dibuka.");
+    expect(batas.slice(1, 3)).toEqual(["Semua pihak ketiga fiktif atau tiruan.", "Security review Laras lolos sebelum tiap negara dibuka."]);
+    expect(batas[3]).toBe("Tahap ini tanpa lab. Kapasitas satu primary, jaringan antar wilayah, dan jaringan antar host tetap belum terukur ([[t5-m51]], [[t5-adr-60]]).");
+    di(batasNaskah, "naskah", "kapasitas satu primary, jaringan antar wilayah, dan jaringan antar host tetap belum terukur");
+    // Tokoh baru dan lama.
+    const tokoh = tabel(naskah.split("### Tokoh baru")[1]!, "| Tokoh |").slice(1);
+    const [kirana, arga] = tokoh;
+    const [sKirana, sArga] = [kirana![1]!.split(". "), arga![1]!.split(". ")];
+    const [a1, a2] = sKirana[1]!.replace(/\.$/, "").split(", belum ");
+    harus(`- **Kirana** memimpin tim Risiko. Ia ${lc(a1!)} dan belum ${a2}.`);
+    expect(a2).toBe("pernah memikirkan di mana data boleh tinggal");
+    harus(`Ia ingin ${lc(kirana![2]!)}, tetapi menganggap ${lc(kirana![3]!.split(",")[0]!.replace(/^Menganggap /, ""))}.`);
+    harus(`- **Arga** memimpin tim Wilayah dan ${lc(sArga[1]!.replace(/\.$/, ""))}.`);
+    harus(`Ia ingin ${lc(arga![2]!).replace(/^setiap /, "tiap ")}, tetapi ${lc(arga![3]!)}.`);
+    const pemimpin = (n: string) => timNaskah.find((x) => x.pemimpin.startsWith(n))!.tim;
+    const lama = ["Raka", "Nadia", "Hendra", "Wulan", "Bayu", "Dewi", "Laras"].map((n) => `${n} memimpin ${pemimpin(n)}`);
+    harus(`Tokoh lama tetap ada, dengan kelemahan yang sama. ${lama.slice(0, 6).join(", ")}, dan ${lama[6]}.`);
+    di(latar, "naskah", "**Budi** dan **Citra** memakai Rekeningo, dan Citra pindah ke negara kedua.");
+    harus("Budi dan Citra memakai Rekeningo, dan Citra pindah ke negara kedua.");
+    di(latar, "naskah", "tetap tidak dikenal, dan di Tahap 6 mencoba perbedaan antar negara");
+    harus("Pihak yang mencoba tetap tidak dikenal, dan di Tahap 6 ia mencoba perbedaan antar negara.");
+    const risiko = cocok(bag1, /\*\*Risiko yang ditulis Sinta\.\*\* Rekeningo pertama kali punya (.+?) dan (.+?)\. Organisasinya juga lebih besar dari (.+?)\./);
+    const butirRisiko = butir(blokIsi("Tim dan risiko").split("Sinta menulis tiga risiko:")[1]!);
+    expect(butirRisiko).toEqual([`Rekeningo pertama kali punya ${risiko[1]}.`, `Rekeningo pertama kali punya ${risiko[2]}.`, `Organisasinya lebih besar dari ${risiko[3]}.`]);
+  });
+  test("kata negasi, kata penuh, penghubung, dan kata bilangan dihitung per kemunculan (kemunculan baru atau hilang menggagalkan tes)", () => {
+    const polos = badan.toLowerCase().replace(/\[\[[^\]]+\]\]/g, "");
+    const n = (k: string): number => (polos.match(new RegExp(`\\b${k}\\b`, "g")) ?? []).length;
+    expect(Object.fromEntries(["tidak", "belum", "bukan", "hanya", "semua", "setiap", "selalu", "atau", "dan", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sebelas", "sepuluh", "tiap", "lebih", "jadi", "yaitu", "dari"].map((k) => [k, n(k)]))).toEqual(KATA_HITUNG);
+    expect(badan.match(/\d{4}-\d{2}-\d{2}/g)).toEqual(Array(4).fill(cocok(barisAwal(riset6, "| R6-112 |"), /[Dd]ibaca (\d{4}-\d{2}-\d{2})/)[1]));
+  });
+});
+
+describe("baris riset memuat tiap persamaan yang ditulis halaman", () => {
+  test("tiap ruas kiri persamaan di halaman ada di R6-110", () => {
+    const r110 = barisAwal(riset6, "| R6-110 |");
+    const kiri = [...badan.matchAll(/(\d[\d.,]*(?: [×÷+] [\d.,]+%?| × \([^)]*\))+) = [\d.,]+/g)].map((m) => m[1]!);
+    expect(kiri.length).toBeGreaterThanOrEqual(18);
+    const lewat = ["30 × 24 × 60", "0,001 × 43.200"];
+    for (const k of new Set(kiri)) {
+      if (lewat.includes(k)) continue;
+      expect(r110, `R6-110 memuat ruas kiri: ${k}`).toContain(`${k} =`);
+    }
+  });
+});
+
+function minggu24(): number {
+  return Number(cocok(latar, /(\d+) minggu \(Asumsi cerita\)/)[1]);
+}
+
 describe("diagram Rantai t6-prd-sebelum-sesudah.json", () => {
   test("ilustrasi, dua baris, empat simpul, dan nilai diturunkan dari naskah, registry, dan 5.1", () => {
     expect(rantai.id).toBe("t6-prd-sebelum-sesudah");
@@ -570,6 +757,17 @@ describe("diagram Rantai t6-prd-sebelum-sesudah.json", () => {
     expect(rantai.baris[1]!.sub).toBe("tiga negara, 24 minggu");
     expect(t(1, 2).teks).toBe(`Pulih dalam ${cocok(bag1, /RTO wilayah (\d+) menit/)[1]} menit`);
     expect(t(0, 2).teks).toBe(`RTO ${cocok(hal51, /pulih dalam (\d+) menit \(RTO\)/)[1]} menit, satu mesin`);
+    expect(rantai.baris[0]!.label).toBe(`Sesudah Tahap ${cerita.tahap[4]!.no}`);
+    expect(rantai.baris[1]!.label).toBe("Rekeningo v6");
+    expect(rantai.catatan).toBe("Kotak biru adalah fitur dan kondisi di PRD v6. Kotak hijau adalah target pulih, Asumsi produk.");
+    // Tiap kata dan angka di diagram ada di naskah, 5.1, registry, atau halaman ini; angka hanya dari nilai turunan.
+    const semuaTeks = rantai.baris.flatMap((b) => [b.label, b.sub ?? "", ...b.simpul.flatMap((s) => [s.teks, s.sub ?? ""])]);
+    const sumber = (naskah + hal51 + badan + JSON.stringify(cerita.tahap[4])).toLowerCase();
+    for (const s of semuaTeks) for (const w of s.toLowerCase().match(/[a-z]{3,}/g) ?? []) expect(sumber, `kata diagram: ${w}`).toContain(w);
+    const angkaBoleh = new Set([id(a5.user), String(orang5), String(jumlahTim), String(timNaskah.length), id(userV6), String(cerita.tahap[4]!.no), "6", String(minggu24()), cocok(bag1, /RTO wilayah (\d+) menit/)[1], cocok(hal51, /pulih dalam (\d+) menit \(RTO\)/)[1]]);
+    const angkaDiagram = semuaTeks.flatMap((s) => s.match(/\d[\d.]*\d|\d/g) ?? []);
+    expect(angkaDiagram.length).toBe(10);
+    for (const n of angkaDiagram) expect(angkaBoleh.has(n), `angka diagram: ${n}`).toBe(true);
     expect(t(1, 2).nada).toBe("good");
     expect(t(0, 2).nada).toBe("warn");
     di(bag1, "naskah", "24 minggu");
