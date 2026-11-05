@@ -584,6 +584,9 @@ describe("ID registry, tautan, template blok, tebakan, rantai, kartu, dan istila
     for (const j of jawab) expect(sebelumWidget.toLowerCase(), `jawaban tebakan sebelum widget: ${j}`).not.toContain(j);
     expect(frontmatter).not.toContain(kodeKolom);
     expect(frontmatter.toLowerCase()).not.toContain("galat");
+    const tanyaMulai = cari(/<details class="question">([\s\S]*?)<\/details>/, badan, "Sudah tahu")[1]!;
+    expect(tanyaMulai).toContain("1. Query yang masih menyebut nama kolom lama dijalankan sesudah rename. Apa jawaban PostgreSQL di rekaman Tahap 4?\n");
+    expect(tanyaMulai.toLowerCase()).not.toContain("kosong");
     const aman = cari(/<Blok nama="Coba" buka aman="([^"]+)">/, badan, "aman")[1]!;
     for (const j of jawab) expect(aman.toLowerCase()).not.toContain(j);
     expect(p.q).toContain("Apa jawaban PostgreSQL?");
