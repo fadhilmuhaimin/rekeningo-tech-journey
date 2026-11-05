@@ -19,7 +19,8 @@ Yang diperiksa (--check, juga dijalankan tools/cek_situs.sh):
   - angka asumsi beban di tabel halaman mana pun cocok dengan hitungan dari cerita.json (toleransi 5%)
     Baris tabel dikenali dari kolom pertama: "User terdaftar", "DAU"/"User aktif harian",
     "Request per hari", "Puncak ...", "Data transaksi per tahun", "File ... per tahun".
-    Tahapnya: "(Tahap N)" di label, kalau tidak ada, data-tahap halaman.
+    Tahapnya: "(Tahap N)" di label, kalau tidak ada, data-tahap halaman. Tahap tanpa `asumsi` di registry (proyeksi,
+    Tahap 6) dilewati.
 
     python tools/sinkron_cerita.py           # tulis ulang
     python tools/sinkron_cerita.py --check   # exit 1 kalau ada yang tidak sinkron atau angka berbeda
@@ -90,7 +91,8 @@ def cek_angka(tahap):
                 continue
             mt = re.search(r"\(Tahap (\d)\)", lab)
             t = int(mt.group(1)) if mt else tahap_hal
-            if t is None or kunci not in nilai[t]:
+            # Tahap proyeksi (Tahap 6) tidak punya `asumsi` di registry (keputusan 1800): barisnya dilewati, bukan KeyError.
+            if t is None or t not in nilai or kunci not in nilai[t]:
                 continue
             v = angka(sel[1])
             harus = nilai[t][kunci]
@@ -264,7 +266,8 @@ def main():
 
     tulis[CERITA] = json.dumps(d, ensure_ascii=False, indent=2) + "\n"
     tulis[INDEKS] = indeks(hs, INDEKS.read_text())
-    for t in d["tahap"]:
+    # Tahap proyeksi (Tahap 6) ikut: tabel daftar-tahap halaman Cerita-nya disinkronkan seperti tahap lain (keputusan 1761).
+    for t in d["tahap"] + d.get("proyeksi", []):
         hal = next((h for h in hs if h["id"] == f"T{t['no']}" and h["ada"]), None)
         if not hal:
             continue

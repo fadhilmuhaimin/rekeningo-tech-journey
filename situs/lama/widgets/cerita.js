@@ -113,7 +113,9 @@
     Promise.all([load(), BB.domSiap]).then(function (x) {
       var d = x[0];
       var wrap = BB.el("div", { class: "bb-peta" });
-      d.tahap.forEach(function (t) {
+      // Satu bagian per tahap. Tahap proyeksi (registry "proyeksi", Tahap 6) memakai bentuk yang sama, tanpa diagram
+      // arsitektur (belum digambar) dan dengan catatan "proyeksi tanpa lab" (keputusan 1760).
+      function bagianTahap(t, proyeksi) {
         var hs = d.halaman.filter(function (h) { return h.tahap === t.no && !/^T\d/.test(h.id); });
         var ada = hs.filter(function (h) { return h.ada; });
         var done = ada.filter(selesai);
@@ -139,19 +141,15 @@
         var tahapHal = d.halaman.filter(function (h) { return h.id === "T" + t.no; })[0];
         var judul = tahapHal && tahapHal.ada ? BB.el("a", { href: urlOf(tahapHal), text: "Tahap " + t.no + " · " + t.nama })
           : BB.el("span", { text: "Tahap " + t.no + " · " + t.nama });
-        wrap.appendChild(BB.el("section", { class: "bb-peta__tahap" }, [
+        var prd = proyeksi && t.skala && t.skala.prd ? t.skala.prd.replace(/^PRD v\d+ \(proyeksi\): /, "") : "";
+        wrap.appendChild(BB.el("section", { class: "bb-peta__tahap" + (proyeksi ? " is-proyeksi" : "") }, [
           BB.el("h3", null, [judul]),
-          BB.el("p", { class: "bb-muted bb-peta__user", text: t.user + " · " + done.length + " dari " + hs.length + " halaman selesai · " + jalurInti(t) }),
-          bar, archFig(t), BB.el("details", null, [BB.el("summary", { text: "Daftar halaman (" + ada.length + " ada)" }), ul])]));
-      });
-      // Tahap proyeksi (registry "proyeksi", Tahap 6): belum ada halaman dan diagram, jadi hanya skala dan PRD-nya.
-      (d.proyeksi || []).forEach(function (t) {
-        var prd = t.skala && t.skala.prd ? t.skala.prd.replace(/^PRD v\d+ \(proyeksi\): /, "") : "";
-        wrap.appendChild(BB.el("section", { class: "bb-peta__tahap is-proyeksi" }, [
-          BB.el("h3", null, [BB.el("span", { text: "Tahap " + t.no + " · " + t.nama })]),
-          BB.el("p", { class: "bb-muted bb-peta__user", text: t.user + " · proyeksi, belum ditulis" }),
-          prd ? BB.el("p", { class: "bb-peta__prd", text: "PRD v" + t.no + ": " + prd }) : null]));
-      });
+          BB.el("p", { class: "bb-muted bb-peta__user", text: t.user + " · " + done.length + " dari " + hs.length + " halaman selesai · " + jalurInti(t) + (proyeksi ? " · proyeksi tanpa lab" : "") }),
+          prd ? BB.el("p", { class: "bb-peta__prd", text: "PRD v" + t.no + ": " + prd }) : null,
+          bar, t.arsitektur ? archFig(t) : null, BB.el("details", null, [BB.el("summary", { text: "Daftar halaman (" + ada.length + " ada)" }), ul])]));
+      }
+      d.tahap.forEach(function (t) { bagianTahap(t, false); });
+      (d.proyeksi || []).forEach(function (t) { bagianTahap(t, true); });
       host.appendChild(wrap);
     }).catch(function (e) { host.textContent = "Peta gagal dimuat: " + e.message; });
   };

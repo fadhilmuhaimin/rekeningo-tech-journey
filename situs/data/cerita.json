@@ -5371,6 +5371,16 @@
       "nomor": "6.12"
     },
     {
+      "id": "T6",
+      "judul": "Tahap 6 · Ceritanya",
+      "tahap": 6,
+      "path": "cerita/tahap-6.md",
+      "bagian": 1,
+      "diganti_oleh": "t6-prd",
+      "ada": true,
+      "menit": 7
+    },
+    {
       "id": "D4c",
       "judul": "Studi desain: laporan lapangan offline",
       "tahap": "sampingan",
@@ -5432,6 +5442,37 @@
       "nama": "Regional",
       "user": "10 juta user, 3 negara",
       "catatan": "Proyeksi konseptual tanpa lab penuh (PROPOSAL, System design final).",
+      "naskah": "plan/CERITA-TAHAP-6.md",
+      "bagian": [
+        {
+          "no": 1,
+          "nama": "PRD"
+        },
+        {
+          "no": 2,
+          "nama": "Dari fitur ke pekerjaan teknis"
+        },
+        {
+          "no": 3,
+          "nama": "Tiap data punya satu rumah"
+        },
+        {
+          "no": "3b",
+          "nama": "Skema data"
+        },
+        {
+          "no": 4,
+          "nama": "Masalah yang muncul"
+        },
+        {
+          "no": 5,
+          "nama": "Yang dibawa keluar"
+        },
+        {
+          "no": 6,
+          "nama": "Jembatan keluar dari enam tahap"
+        }
+      ],
       "skala": {
         "lingkup": "Regional, beberapa negara",
         "user": "10 juta user, multi-mata uang",

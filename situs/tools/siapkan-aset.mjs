@@ -41,7 +41,8 @@ salinDir(path.join(LAMA, "widgets"), path.join(PUB, "widgets"), (n) => n.endsWit
 // jalur_inti per tahap tidak disimpan di situs/data/cerita.json (keputusan 727: nilai tunggal yang bentrok di tiap
 // merge halaman); dihitung di sini dari field per halaman (ada, inti, menit) yang sama dengan hitungan lama.
 const cerita = JSON.parse(fs.readFileSync(CERITA, "utf8"));
-for (const t of cerita.tahap) {
+// Tahap proyeksi (Tahap 6, `proyeksi` di registry) ikut: peta cerita membaca jalur_inti dari keduanya (keputusan 1760).
+for (const t of [...cerita.tahap, ...(cerita.proyeksi ?? [])]) {
   const inti = cerita.halaman.filter((h) => h.tahap === t.no && h.ada && h.inti);
   t.jalur_inti = { menit: inti.reduce((s, h) => s + (h.menit || 0), 0), halaman: inti.length };
 }
