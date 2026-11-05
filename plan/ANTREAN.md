@@ -2806,16 +2806,16 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan ole
 - percobaan: 1
 - bergantung: EVAL5-F1
 - selesai bila: subagent yang bukan penulis halaman Tahap 5 dan bukan pelaksana EVAL5-F1 menambah bagian "Putaran 2" ke `plan/EVALUASI-TAHAP-5.md` dengan seed 5 yang sama: sapuan `<abbr>` "token" dan "router" atas `dist` Tahap 5 (0 tooltip arti lama di halaman yang memakai arti lain), W3 (`gejala 5`, audit bahasa), W4 (`ukur-axe.mjs --semua --awalan /tahap-5/`, `contrast.py`), W8 (`rantai 5`, `cek_tautan.py`), W5 dinilai ulang; tahap dinyatakan selesai. Lab, ERD, dan uji baca dilewati bila `git diff --name-only 58d1e65d HEAD -- labs situs/data/erd tools/erd.py` kosong.
-- catatan: Dari EVAL-5 (keputusan 1691). Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. ALOKASI: nomor keputusan dari cadangan pengatur. Selesai 2026-11-05 di PR `catat/eval-5-ulang` (keputusan 1889–1890; `plan/EVALUASI-TAHAP-5.md` bagian Putaran 2): W1–W4 dan W6–W8 YA (W2, W6, W7 dilewati karena diff `labs situs/data/erd tools/erd.py` dan halaman Tahap 5 kosong), W5 TIDAK (tetap enam dari 30, keputusan pemilik); sapuan token dan router: 0 tooltip arti lama; tidak ada TIDAK baru; Tahap 5 dinyatakan selesai (keputusan 1691). DIRI-5 berikutnya.
+- catatan: Dari EVAL-5 (keputusan 1691). Sesudah evaluasi ulang tahap dinyatakan selesai apa pun hasilnya. ALOKASI: nomor keputusan dari cadangan pengatur. Selesai 2026-11-05 di PR #534 (branch `catat/eval-5-ulang-b`; #533 ditutup karena gitleaks; keputusan 1889–1890; `plan/EVALUASI-TAHAP-5.md` bagian Putaran 2): W1–W4 dan W6–W8 YA (W2, W6, W7 dilewati karena diff `labs situs/data/erd tools/erd.py` dan halaman Tahap 5 kosong), W5 TIDAK (tetap enam dari 30, keputusan pemilik); sapuan token dan router: 0 tooltip arti lama; tidak ada TIDAK baru; Tahap 5 dinyatakan selesai (keputusan 1691). DIRI-5 berikutnya.
 
 ### DIRI-5 · Perbaikan diri sesudah Tahap 5
 
 - jenis: perbaikan
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: EVAL-5-ulang
 - selesai bila: Satu subagent membaca `plan/EVALUASI-TAHAP-5.md` dan pelajaran MEMORI Tahap 5, lalu boleh mengubah skill gaya-bahasa, visualisasi, analisis-kritis, riset-tahap, evaluasi-tahap hanya dengan bukti dari Tahap 5, paling banyak 10 baris per skill, masing-masing dicatat sebagai keputusan dengan teks sebelum/sesudah; CLAUDE.md, PROPOSAL, dan CERITA-TAHAP-1/2 tidak disentuh (usulan ke `plan/USULAN-PERBAIKAN.md`); STATUS menulis "Tahap 5 selesai".
-- catatan: Langkah penutup alur tahap. ALOKASI: keputusan 1693–1695 (cadangan pengatur Tahap 5); skill yang diubah dicatat sebagai keputusan satu per satu.
+- catatan: Langkah penutup alur tahap. ALOKASI: keputusan 1693–1695 (cadangan pengatur Tahap 5); skill yang diubah dicatat sebagai keputusan satu per satu. Selesai 2026-11-05 di PR #535 (keputusan 1693–1695; satu skill per keputusan: 1693 gaya-bahasa dan visualisasi, 1694 analisis-kritis dan riset-tahap, 1695 evaluasi-tahap): lima skill berubah, baris R4-251 di `plan/RISET-TAHAP-4.md` dikoreksi (Istio 1.31.3 di kaki halaman), STATUS menulis Tahap 5 selesai, dua belas butir di luar wewenang ada di `plan/USULAN-PERBAIKAN.md` bagian "Dari DIRI-5".
 
 ## Tahap 6
 
