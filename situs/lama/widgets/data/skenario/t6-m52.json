@@ -18,14 +18,14 @@
   "predict": {
     "q": "Bayu meminta tiga orang untuk Platform, dari enam menjadi sembilan, dan permintaan service baru tetap masuk sebagai tiket ke Platform. Apa yang paling mungkin benar sesudah itu?",
     "options": [
-      "Permintaan service baru selesai dalam satu hari, karena tiket dikerjakan sembilan orang dan bukan enam",
+      "Permintaan service baru selesai dalam satu hari, karena tiket dikerjakan sembilan orang",
       "Waktu tunggu tiket memendek, tetapi tiap permintaan service baru tetap menunggu giliran di Platform",
       "Tim Wilayah dan Risiko berhenti menyalin pipeline, karena Platform tidak lagi menjadi tempat menunggu",
       "Empat bentuk pipeline menyatu menjadi satu, karena Platform punya cukup orang untuk menyeragamkannya"
     ],
     "answer": 1,
     "varian": false,
-    "explain": "Orang tambahan mempercepat tiket, tetapi tiap permintaan tetap satu tiket yang menunggu giliran, jadi tim yang butuh sekarang tetap punya alasan menyalin (Penalaran). Bila waktu tunggu dianggap berbanding terbalik dengan jumlah orang, 17 hari menjadi 17 × 6 ÷ 9 = 11,3 hari. Itu masih di atas satu minggu dan jauh di atas satu hari (Hitungan atas Ilustrasi dan Asumsi). Angka 17 hari adalah Ilustrasi, dan anggapan berbanding terbalik adalah penyederhanaan, bukan model antrean."
+    "explain": "Orang tambahan mempercepat tiket, tetapi tiap permintaan tetap satu tiket yang menunggu giliran, jadi tim yang butuh sekarang tetap punya alasan menyalin (Penalaran). Bila waktu tunggu dianggap berbanding terbalik dengan jumlah orang, 17 hari menjadi 17 × 6 ÷ 9 = 11,3 hari. Itu masih di atas satu minggu dan jauh di atas satu hari (Hitungan atas Ilustrasi dan Asumsi). Angka 17 hari adalah Ilustrasi, dan anggapan berbanding terbalik adalah penyederhanaan, bukan model queue."
   },
   "langkah": [
     {
