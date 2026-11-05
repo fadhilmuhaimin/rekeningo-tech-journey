@@ -148,10 +148,10 @@ describe("angka cerita dan hitungan: diturunkan dari naskah, halaman ADR, dan re
     expect(PLATFORM).toBe(6);
     expect(SEMBILAN).toBe(9);
     expect(badan).toContain(`Platform punya ${PLATFORM} orang (Asumsi cerita), dan Bayu meminta ${TAMBAH} lagi, jadi ${PLATFORM} + ${TAMBAH} = ${SEMBILAN} orang.`);
-    expect(badan).toContain(`${HARI} × ${PLATFORM} = ${HARI_ORANG} hari-orang per tiket, dan ${HARI_ORANG} ÷ ${SEMBILAN} = ${koma(TERBALIK)} hari.`);
+    expect(badan).toContain(`Dengan anggapan itu hasil kali waktu tunggu dan jumlah orang tetap: ${HARI} × ${PLATFORM} = ${HARI_ORANG}. Jadi ${HARI_ORANG} ÷ ${SEMBILAN} = ${koma(TERBALIK)} hari.`);
     expect(badan).toContain(`${koma(TERBALIK)} − ${SYARAT_MINGGU} = ${koma(bulat(TERBALIK, 1) - SYARAT_MINGGU)} hari di atas satu minggu (Hitungan atas Ilustrasi dan Asumsi).`);
     const butuhMinggu = Math.ceil(HARI_ORANG / SYARAT_MINGGU);
-    expect(badan).toContain(`${HARI_ORANG} ÷ ${SYARAT_MINGGU} = ${koma(HARI_ORANG / SYARAT_MINGGU)} membutuhkan ${butuhMinggu} orang, dan untuk turun ke satu hari, ${HARI_ORANG} ÷ ${SATU_HARI} = ${HARI_ORANG / SATU_HARI} orang.`);
+    expect(badan).toContain(`${HARI_ORANG} ÷ ${SYARAT_MINGGU} = ${koma(HARI_ORANG / SYARAT_MINGGU)} menuntut ${butuhMinggu} orang. Untuk turun ke satu hari, ${HARI_ORANG} ÷ ${SATU_HARI} = ${HARI_ORANG / SATU_HARI} orang.`);
     expect(koma(TERBALIK)).toBe("11,3");
     expect(butuhMinggu).toBe(15);
     expect(badan).toContain("Anggapan itu penyederhanaan, bukan model queue, dan Asumsi.");
@@ -303,7 +303,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R6-120 sam
     expect(badan).toContain("White paper CNCF Platforms menulis bahwa platform ada untuk melayani kebutuhan user-nya dan dirancang dari kebutuhan itu, seperti produk software lain.");
     expect(badan).toContain("Tim platform meneliti kebutuhan user, merencanakan roadmap fitur, dan memimpin pertemuan roadmap.");
     expect(badan).toContain("User juga harus bisa meminta dan menerima kemampuan platform secara mandiri dan otomatis (self-service) (");
-    expect(badan).toContain("Yang pertama lama dari permintaan sampai terpenuhi, dan yang kedua lama membangun dan merilis satu service baru ke produksi.");
+    expect(badan).toContain("Yang pertama mengukur lama dari permintaan sampai terpenuhi, dan yang kedua mengukur lama membangun dan merilis satu service baru ke produksi.");
     expect(badan).toContain("Tim platform yang merilis tanpa masukan user, atau memaksa adopsi dari atas, hampir pasti menemui penolakan.");
     expect(badan).toContain("White paper CNCF menyebut user aktif dan retensi sebagai ukuran, tanpa mendefinisikan adopsi golden path.");
     expect(badan).toContain("halaman tanpa nomor versi, dibuka 2026-11-06, Tidak dijalankan");
@@ -326,7 +326,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R6-120 sam
     for (const k of ["an open source framework for building developer portals", "a centralized system that keeps track of ownership and metadata", "metadata YAML files stored together with the code", "backstage/backstage#34765", "performStitching", "DO want this behavior", "author_association MEMBER", "github-actions[bot]", "not_planned", "2026-09-30", "Isu tidak dipakai sebagai bukti kerusakan Backstage"]) expect(r, k).toContain(k);
     expect(badan).toContain("Backstage adalah kerangka untuk portal developer dengan katalog, template, dan dokumentasi (");
     expect(badan).toContain("Dokumentasi Backstage menulis katalog itu sebagai sistem terpusat yang dibangun dari file metadata YAML di samping kode (");
-    expect(badan).toContain("Isu Backstage 34765 tidak dipakai sebagai alasan. Pelapornya menyimulasikan galat dengan melempar error. Seorang anggota organisasi Backstage menjawab bahwa percobaan ulang tanpa henti memang diinginkan untuk galat sementara, dan GitHub menutupnya otomatis pada 2026-09-30 (GitHub API, dibuka 2026-11-06, [perlu verifikasi]).");
+    expect(badan).toContain("Isu Backstage 34765 tidak dipakai sebagai alasan. Pelapornya menyimulasikan galat dengan melempar error. Seorang anggota organisasi Backstage menjawab bahwa percobaan ulang tanpa henti memang diinginkan untuk galat sementara, dan bot repositori menutupnya otomatis pada 2026-09-30 (GitHub API, dibuka 2026-11-06, [perlu verifikasi]).");
     expect(badan).not.toContain("pengelola menjawab");
   });
   test("R6-124: isu Istio 58514 pada versi 1.28.1, masih terbuka, tidak membuktikan 1.31.3; Linkerd tanpa stable release dari proyek sejak Februari 2024", () => {
