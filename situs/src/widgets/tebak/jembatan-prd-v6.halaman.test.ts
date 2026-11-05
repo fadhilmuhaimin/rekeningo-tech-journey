@@ -245,7 +245,7 @@ describe("registry, naskah, blok, dan tautan", () => {
     const id = [...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!);
     const hitungId: Record<string, number> = {};
     for (const x of id) hitungId[x] = (hitungId[x] ?? 0) + 1;
-    expect(hitungId).toEqual({ A0: 1, "t4-jembatan": 1, "t4-modul": 1, "t5-m51": 7, "t5-prd": 7, "t5-rekap": 1, "t5-rpo-rto": 1, "t5-service": 1 });
+    expect(hitungId).toEqual({ A0: 1, "t4-jembatan": 1, "t4-modul": 1, "t5-m51": 7, "t5-prd": 6, "t5-rekap": 1, "t5-rpo-rto": 1, "t5-service": 1 });
     for (const x of Object.keys(hitungId)) expect(hal.some((h) => h.id === x), `[[${x}]] tidak ada di registry`).toBe(true);
     const sesuai: [string, string, string][] = [
       ["t4-jembatan", "4.31", "Jembatan: pratinjau PRD v5"], ["t4-modul", "4.13", "Modular monolith"], ["t5-prd", "5.1", "PRD v5"], ["t5-service", "5.13", "Dari modul ke service"],
@@ -353,7 +353,7 @@ describe("jejak riset: lima baris R5-265 sampai R5-269, urut, lima kolom, tangga
     const [, pod, client, batas] = cocok(isi("t5-pooler"), /(\d+) pod tiap service memberi (\d+) client lawan (\d+) per instance/);
     ada(h, `${pod} pod memberi ${client} client lawan ${batas} per instance`, "R5-265");
     expect(Math.round((50 * 100) / 1388.9 * 10) / 10).toBe(3.6);
-    expect(baris("R5-265")[3]).toContain("Halaman tidak menghitung beban komponen untuk 10 juta user");
+    ada(baris("R5-265")[2]!, "Halaman tidak menghitung beban komponen untuk 10 juta user", "R5-265");
   });
   test("R5-266 dan R5-267: berkas yang dibaca ada, dan kalimat yang dikutip ada di halamannya", () => {
     const b266 = baris("R5-266")[2]!;
@@ -462,7 +462,7 @@ describe("pilihan tebakan: kalimat alasan dikutip dari halaman ADR 52, 56, 58, 5
     ada(satu.alasan, `Halaman ${dari("t5-waf").nomor} menulis ${KATA[butir.length]} syarat salah ADR 56.`, "alasan");
     for (const b of butir) expect(b, "butir ADR 56").not.toMatch(kataLarang);
     ada(butir[0]!, `50 mitra × 100 per detik = ${titik(50 * 100)} per detik, yaitu ${koma((50 * 100) / 1388.9, 1)} kali puncak 1.388,9 (Hitungan atas Asumsi: 5.000 ÷ 1.388,9 = ${koma((50 * 100) / 1388.9, 5)}).`, "butir 1");
-    expect(a5.puncak * (a5.user * a5.aktif / 100 * a5.req / 86400)).toBeCloseTo(13888.9, 0);
+    expect(a5.puncak * (a5.user * a5.aktif / 100 * a5.req / 86400)).toBeCloseTo(1388.9, 1);
     ada(butir[0]!, "Kapasitas satu server belum diukur", "butir 1");
     ada(satu.alasan, `Syarat pertama membandingkan jumlah kuota dengan kapasitas terukur: 50 mitra × 100 per detik = ${titik(5000)} per detik, ${koma((50 * 100) / 1388.9, 1)} kali puncak 1.388,9 (Hitungan atas Asumsi), dan kapasitas satu server belum diukur.`, "alasan");
     ada(butir[1]!, "20 permintaan berjalan", "butir 2");
@@ -533,10 +533,12 @@ describe("pilihan tebakan: kalimat alasan dikutip dari halaman ADR 52, 56, 58, 5
     expect(data.adegan[0]).toBe("Sinta membagikan PRD v6. Raka membuka ADR 46 sampai 60 yang lahir di Tahap 5.");
   });
   test("jawaban tidak ditulis di luar widget: nomor ADR 58, 59, dan 60 hanya muncul di noscript, tautan tebak, dan kartu Cek diri tanpa nomor", () => {
-    const baris = badan.split("\n").filter((b) => /ADR (58|59|60)|\[\[t5-(adr-60|onprem|tim-infra)\]\]/.test(b));
-    expect(baris.map((b) => b.trim())).toEqual([
-      "<p>Tanpa JavaScript tebakan tidak berjalan. Tebakan membandingkan lima ADR Tahap 5, yaitu ADR 52, 56, 58, 59, dan 60, dengan kalimat halaman ADR-nya sendiri. Jawabannya dibuka di halaman pertama Tahap 6.</p>",
-    ]);
+    const baris = badan.split("\n").filter((b) => /ADR.*\b(58|59|60)\b|\[\[t5-(adr-60|onprem|tim-infra)\]\]/.test(b));
+    // Baris pertama menulis rentang ADR 46 sampai 60 (bukan pilihan); baris kedua noscript menyebut lima nomor yang dibandingkan.
+    expect(baris).toHaveLength(2);
+    expect(baris[0]!.startsWith(`Tahap ${N5} menghasilkan ADR 46 sampai 60. Sebagian dari keputusan itu akan pecah lebih dulu daripada yang lain.`)).toBe(true);
+    expect(baris[0]!).not.toMatch(/ADR (58|59)|multi-region|lokasi/);
+    expect(baris[1]!.trim()).toBe("<p>Tanpa JavaScript tebakan tidak berjalan. Tebakan membandingkan lima ADR Tahap 5, yaitu ADR 52, 56, 58, 59, dan 60, dengan kalimat halaman ADR-nya sendiri. Jawabannya dibuka di halaman pertama Tahap 6.</p>");
     expect(frontmatter).not.toMatch(/ADR \d/);
     expect(badan).not.toMatch(/pecah lebih dulu(:| adalah| ialah)? (ADR|multi-region|platform)/i);
     expect(teksWidget).not.toMatch(/Tepat\b|Jawaban yang tepat|jawabannya adalah|akan pecah lebih dulu/i);
@@ -610,8 +612,12 @@ describe("struktur halaman dan dunia angka tertutup", () => {
       expect(teks).not.toMatch(/\p{Extended_Pictographic}/u);
       expect(teks).not.toMatch(/!(?!\[)/);
       expect(teks).not.toMatch(/\b(Anda|kita|pengguna|mudah)\b|(?<!tidak )\bcukup\b/i);
-      expect(teks).not.toMatch(/terbukti|(?<!belum )terukur/i);
+      expect(teks).not.toMatch(/terbukti/i);
     }
+    expect(badan).not.toMatch(/(?<!belum )terukur/i);
+    // Satu-satunya "terukur" di widget mengutip butir ADR 56 ("kapasitas terukur"), bukan klaim halaman ini.
+    expect(teksWidget.match(/(?<!belum )terukur/gi)).toHaveLength(1);
+    ada(teksWidget, "jumlah kuota dengan kapasitas terukur:", "widget");
     expect(badan.toLowerCase()).not.toContain("naskah");
     expect(frontmatter.toLowerCase()).not.toContain("naskah");
     expect(teksWidget.match(/[^.]*naskah[^.]*\./gi)).toEqual([
@@ -625,17 +631,23 @@ describe("struktur halaman dan dunia angka tertutup", () => {
     expect([...new Set([...badan.matchAll(/\d+(?:\.\d{3})*,\d+/g)].map((m) => m[0]))]).toEqual(["1.388,9"]);
     expect([...new Set([...badan.matchAll(/\d{1,3}(?:\.\d{3})+/g)].map((m) => m[0]))].sort()).toEqual([titik(a5.user), titik(user6), "200.000", "1.388"].sort());
     expect(badan).not.toMatch(/\d+(?:,\d+)?%/);
-    expect(new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set([String(adrTahap5[0]), "52", "56", "58", "59", "60"]));
+    expect(new Set([...badan.matchAll(/ADR (\d+)/g)].map((m) => m[1]))).toEqual(new Set([String(adrTahap5[0]), "52"]));
+    ada(badan, "yaitu ADR 52, 56, 58, 59, dan 60, dengan", "noscript");
     expect(new Set([...badan.matchAll(/Tahap \d+/g)].map((m) => m[0]))).toEqual(new Set([`Tahap ${N4}`, `Tahap ${N5}`, `Tahap ${N6}`]));
     const bersih = badan.replace(/\[\[[^\]]+\]\]/g, "").split("\n").filter((b) => !/^(import|export|  \.)/.test(b) && !b.startsWith("<Tebak") && !b.startsWith("<Blok") && !b.startsWith("<p class=\"meta\"")).join("\n").replace(/\d{1,3}(?:[.,]\d+)+/g, "");
     const bulat = [...new Set([...bersih.matchAll(/(?<![\d,.])\d+(?![\d,.%])/g)].map((m) => m[0]))].sort((x, y) => Number(x) - Number(y));
+    // Bilangan bulat yang boleh ada, dengan asalnya. Nomor ADR dalam daftar "52, 56, 58, 59, dan 60" diperiksa di tes noscript (diikuti koma).
+    const minggu = cocok(isi("t5-m51"), /^Minggu (\d+) Tahap 5\./m)[1]!;
+    const sre = cocok(prd5, /^\| SRE: (\d+) orang, dipimpin/m)[1]!;
+    const platform = cocok(prd5, /^\| Platform: (\d+) orang, dipimpin/m)[1]!;
+    const riset268 = baca("plan/RISET-TAHAP-5.md").split("\n").filter((x) => x.startsWith("| R5-268 |"))[0]!;
+    for (const t of ["17 Agustus 2020", "3 Desember 2020", "Last Update: 2019 March", "2026-11-05"]) ada(riset268, t, "R5-268"); // halaman menulis "Maret 2019" untuk "2019 March"
     const harapan = [
-      "1", // kolom konsekuensi: Platform 4 orang dan SRE 2 orang, Security 2 orang
-      "2", "4", String(N4), String(N5), String(N6), "10", // rasio dan nomor tahap; Platform 4 orang
-      "16", // Minggu 16 Tahap 5
-      "28", "46", "50", "52", "56", "58", "59", "60", // tim, ADR
-      String(adrTahap5.length > 15 ? 0 : 5), // "lima belas" ditulis kata; 5 = ADR dalam daftar tidak dipakai
-    ].filter((x) => x !== "0");
+      sre, platform, String(N4), String(N5), String(N6), // tim, nomor tahap
+      String(rasio), // 10 kali; juga "lebih dari 10 tim" dari naskah
+      timNaskah[3]!, minggu, tim5[1]!, timNaskah[2]!, String(adrTahap5[0]), // tim, Minggu 16, 28 orang, 50 developer, ADR 46
+      "3", "17", "11", "2019", "2020", "2026", // tanggal sumber di blok Ruang lingkup (R5-268): 17 Agustus 2020, 3 Desember 2020, Maret 2019, 2026-11-05
+    ];
     expect(bulat, "bilangan bulat di halaman yang tidak diturunkan dari sumber").toEqual([...new Set(harapan)].sort((x, y) => Number(x) - Number(y)));
     const tokenW = [...teksWidget.matchAll(/\d+(?:\.\d{3})*,\d+/g)].map((m) => m[0]);
     expect([...new Set(tokenW)].sort()).toEqual(["1.388,9", "3,6"]);
