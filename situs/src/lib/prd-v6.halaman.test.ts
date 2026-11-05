@@ -565,6 +565,7 @@ describe("tujuan, user, lingkup, metrik, batasan, tokoh, risiko, dan pertanyaan 
   const butir = (teks: string): string[] => teks.split("\n").filter((b) => /^(\d+\.|-) /.test(b)).map((b) => b.replace(/^(\d+\.|-) /, ""));
   test("kepala dokumen, description, dan paragraf pembuka Latar: minggu, tim, dan hari uji coba dari naskah dan 5.29", () => {
     expect(minggu).toBe(24);
+    expect(front).toContain(`description: Dokumen produk keenam Rekeningo. Sinta menulisnya untuk tiga negara, Pak Hadi menambah satu syarat, dan ${jumlahTim} engineer dalam ${timNaskah.length} tim punya ${minggu} minggu. Blok terakhir membuka jawaban tebakan 5.32.`);
     harus(`<dd>Tiga negara: ${id(userV6)} user terdaftar</dd>`);
     harus(`<dd>${minggu} minggu, ${jumlahTim} engineer dalam ${timNaskah.length} tim</dd>`);
     expect(front).toContain(`${jumlahTim} engineer dalam ${timNaskah.length} tim punya ${minggu} minggu`);
@@ -726,6 +727,70 @@ describe("tujuan, user, lingkup, metrik, batasan, tokoh, risiko, dan pertanyaan 
   });
 });
 
+describe("rujukan antar halaman, judul tabel, penomoran daftar, dan nada diagram", () => {
+  const rtoWilayah = Number(cocok(bag1, /RTO wilayah (\d+) menit/)[1]);
+  test("kalimat yang menaut halaman: nomor ADR dan judul halaman tujuan cocok dengan registry", () => {
+    harus("Pratinjaunya sudah tampil di [[t5-jembatan]].");
+    expect(dari("t5-jembatan").judul).toContain("pratinjau PRD v6");
+    harus("Di [[t5-jembatan]] kamu menebak ADR Tahap 5 mana yang pecah lebih dulu saat PRD v6 datang.");
+    harus("Halaman [[t5-waf]] menulis keputusan ini salah saat jumlah kuota melebihi kapasitas terukur.");
+    expect([dari("t5-waf").adr, dari("t5-pooler").adr]).toEqual([[56], [52]]);
+    harus("Jurnal di ledger ([[t2-ledger]]) berisi posting yang berjumlah nol, dan dua mata uang tidak bisa dijumlahkan menjadi satu angka.");
+    expect(dari("t2-ledger").judul).toMatch(/ledger/i);
+    expect(dari("t2-ledger").tahap).toBe(2);
+    harus("Pembagian per negara dan besaran lain dihitung di [[t6-fitur-teknis]].");
+    di(naskah, "naskah", "| 6.2 | 2, 3, 3b | Dari fitur ke pekerjaan teknis v6 dan inti");
+    expect(jumlahService).toBe(6);
+    harus(`${timNaskah.length} tim merilis ke enam service Tahap ${cerita.tahap[4]!.no} dan service baru.`);
+    const tPecah = tabel(badan, "| ADR | Kalimat di halaman Tahap 5 |");
+    expect(tPecah.slice(1)).toHaveLength(3);
+    harus("Tabel ini menaruh tiap ADR di samping isi PRD v6 yang memenuhinya. Ketiga kalimatnya sudah tertulis di halaman ADR sebelum PRD v6 ada");
+    expect(tPecah[0]).toEqual(tabel(bag1, "| ADR | Kalimat di halaman Tahap 5 |")[0]);
+    expect(tPecah[3]![2]).toBe(`Platform internal untuk ${jumlahTim} developer dalam ${timNaskah.length} tim: golden path, service catalog, dan SLO per tim`);
+    const tEnam = tabel(badan, "| ADR | Yang tertulis di halaman Tahap 5 |");
+    expect(tEnam[0]).toEqual(["ADR", "Yang tertulis di halaman Tahap 5", "Yang diminta PRD v6", "Dilanjutkan di"]);
+    expect(tEnam[1]![2]).toBe(`RPO nol dan RTO wilayah ${rtoWilayah} menit saat satu wilayah hilang`);
+  });
+  test("judul kolom tabel diturunkan dari naskah dan 5.1", () => {
+    expect(tabel(badan, "| Besaran | Nilai |")[0]).toEqual(tabel(hal51, "| Besaran | Nilai | Cara hitung | Dengan 2 transaksi |")[0]);
+    expect(tabel(badan, "| Tim | Memegang |")[0]).toEqual(tabel(hal51, "| Tim | Memegang |")[0]);
+    expect(tabel(badan, "| User | Kebutuhan baru |")[0]).toEqual(tabel(bag1, "| User | Kebutuhan baru |")[0]);
+    expect(tabel(badan, "| Prioritas |")[0]).toEqual(tabel(bag1, "| Prioritas |")[0]);
+    expect(tabel(badan, "| PRD | Aturan Pak Hadi |")[0]).toEqual(tabel(hal51, "| PRD | Aturan Pak Hadi |")[0]);
+    expect(tabel(badan, "| Urutan | Dasar |")[0]).toEqual(["Urutan", "Dasar", "ADR yang pecah", "Label"]);
+    expect((badan.match(/^\|---/gm) ?? []).length).toBe(8);
+  });
+  test("daftar bernomor dimulai dari 1 dan berurutan, dan tiap tabel punya jumlah kolom yang sama di tiap baris", () => {
+    const baris = badan.split("\n");
+    let kini = 0;
+    let jumlahDaftar = 0;
+    for (const b of baris) {
+      const m = b.match(/^(\d+)\. /);
+      if (m) {
+        kini = kini === 0 ? 1 : kini + 1;
+        expect(Number(m[1]), `nomor daftar di: ${b.slice(0, 40)}`).toBe(kini);
+        if (kini === 1) jumlahDaftar++;
+      } else if (b.trim() !== "" && !/^\s*- /.test(b)) kini = 0;
+      else if (b.trim() === "") continue;
+    }
+    expect(jumlahDaftar).toBe(4);
+    let kolom = -1;
+    for (const b of baris) {
+      if (b.startsWith("|")) {
+        const n = sel(b).length;
+        if (kolom === -1) kolom = n;
+        expect(n, `kolom tabel: ${b.slice(0, 40)}`).toBe(kolom);
+      } else kolom = -1;
+    }
+  });
+  test("nada diagram: kotak hijau satu-satunya yang menulis target pulih, kotak biru fitur v6, dan keadaan lama tanpa nada kecuali yang belum ada", () => {
+    expect(rantai.baris[0]!.simpul.map((s) => s.nada)).toEqual(["biasa", "biasa", "warn", "biasa"]);
+    expect(rantai.baris[1]!.simpul.map((s) => s.nada)).toEqual(["system", "system", "good", "system"]);
+    expect(rantai.baris[1]!.simpul[2]!.teks).toContain("Pulih");
+    expect(rantai.baris[0]!.simpul[2]!.sub).toContain("belum");
+  });
+});
+
 describe("baris riset memuat tiap persamaan yang ditulis halaman", () => {
   test("tiap ruas kiri persamaan di halaman ada di R6-110", () => {
     const r110 = barisAwal(riset6, "| R6-110 |");
@@ -742,6 +807,60 @@ describe("baris riset memuat tiap persamaan yang ditulis halaman", () => {
 function minggu24(): number {
   return Number(cocok(latar, /(\d+) minggu \(Asumsi cerita\)/)[1]);
 }
+
+describe("baris riset R6-111 sampai R6-114: nomor halaman, nomor ADR, nomor aturan, dan angka diturunkan dari halaman ADR, naskah, dan halaman ini", () => {
+  const r = (x: string) => barisAwal(riset6, `| ${x} |`);
+  const nomor61 = dari("t6-prd").nomor!;
+  test("R6-111 dan R6-112: judul, ADR, dan aturan tiap berkas yang dibaca", () => {
+    expect(r("R6-111")).toContain(`dikutip halaman ${nomor61} dibaca ke halaman ADR-nya`);
+    expect(r("R6-111")).toContain(`Blok ADR 52, ADR 56, dan Koneksi database di ${nomor61};`);
+    expect(r("R6-111")).toContain(`ADR 52: aturan 2, server pool ${serverPool} dari ${tersedia} tersedia; aturan 3, \`max_client_conn\` ${batasClient} per instance dan pool tiap pod ${poolPod}`);
+    expect(r("R6-111")).toContain(`${podContoh} pod tiap service memberi ${clientContoh} client lawan ${batasClient}; tabel Angka: ${jumlahService} × ${podContoh} × ${poolPod} = ${clientContoh}`);
+    expect(r("R6-111")).toContain(`ADR 56: Kapan keputusan ini salah, butir pertama: ${mitra} mitra × ${perMitra} per detik = ${id(mitra * perMitra)} per detik, ${id((mitra * perMitra) / reqPuncak5, 1)} kali puncak ${id(reqPuncak5, 1)}`);
+    expect(r("R6-111")).toContain(`${podTahap5} pod tiap service dan ${id(lamaQuery, 2)} detik per request memegang koneksi`);
+    expect(r("R6-112")).toContain(`| Kalimat halaman ADR Tahap ${cerita.tahap[4]!.no} yang dikutip halaman ${nomor61} (ADR 58, 59, 60 dan enam ADR yang dibaca ulang; Asumsi) |`);
+    const FILES: Array<[string, string, number]> = [
+      ["tim-infra.mdx", "t5-tim-infra", 58], ["on-prem-lawan-cloud.mdx", "t5-onprem", 59], ["sengaja-belum.mdx", "t5-adr-60", 60], ["rpo-rto-failover.mdx", "t5-rpo-rto", 48],
+      ["modul-ke-service.mdx", "t5-service", 50], ["progressive-delivery.mdx", "t5-rollout", 55], ["arsip-envelope-encryption.mdx", "t5-kms", 57], ["batch-tahan-crash.mdx", "t5-batch", 54],
+    ];
+    for (const [f, idh, n] of FILES) {
+      expect(dari(idh).path.endsWith(f.replace(".mdx", ".md")), `${idh} path`).toBe(true);
+      expect(dari(idh).adr).toEqual([n]);
+      expect(r("R6-112"), `${f} ADR ${n}`).toContain(`\`tahap-5/${f}\` (ADR ${n}:`);
+    }
+    const aturanKe = (idh: string, frasa: string): number => {
+      const b = baca(berkasHalaman(idh)).split("\n").find((x) => /^\d+\. /.test(x) && x.includes(frasa));
+      expect(b, frasa).toBeDefined();
+      return Number(b!.match(/^(\d+)\./)![1]);
+    };
+    expect(r("R6-112")).toContain(`(ADR 48: aturan ${aturanKe("t5-rpo-rto", "ANY 1 (r1, r2)")} \`ANY 1 (r1, r2)\``);
+    expect(r("R6-112")).toContain(`(ADR 50: aturan ${aturanKe("t5-service", "tanpa foreign key lintas service")}`);
+    expect(r("R6-112")).toContain(`(ADR 55: aturan ${aturanKe("t5-rollout", "satu sakelar `kartu_aktif`")}, satu sakelar di tabel di primary`);
+    expect(r("R6-112")).toContain(`(ADR 54: aturan ${aturanKe("t5-batch", "adalah kunci bisnis")}, kunci bisnis`);
+    const multi = teksHalamanMentah("t5-adr-60").split("\n").find((x) => x.startsWith("| 2. Multi-region"))!;
+    expect(r("R6-112")).toContain(`baris ${multi.match(/^\| (\d+)\./)![1]} Multi-region`);
+    expect(r("R6-112")).toContain("(benar: ADR 58, 59, 60; ADR 52 dan 56 belum cocok)");
+    const adrLanjut = [...badan.matchAll(/ADR (\d+) di \[\[/g)].map((m) => Number(m[1]));
+    expect(adrLanjut).toHaveLength(6);
+    expect(r("R6-112")).toContain(`halaman ADR ${Math.min(...adrLanjut)} sampai ${Math.max(...adrLanjut)} hanya disebut`);
+  });
+  test("R6-113 dan R6-114: bab SRE Book, batas jaga, ukuran tim, persen negara, dan kutipan 5.32 sama dengan halaman dan sumbernya", () => {
+    const bab = Number(cocok(badan, /Google SRE Book bab (\d+)/)[1]);
+    const persenJaga = Number(cocok(badan, /Satu orang jaga paling banyak (\d+)% waktunya/)[1]);
+    expect(r("R6-113")).toContain(`Google SRE Book, bab ${bab} "Being On-Call"`);
+    expect(r("R6-113")).toContain(`"no more than ${persenJaga}% can be spent on-call"`);
+    expect(r("R6-113")).toContain(`dan satu orang jaga paling banyak ${persenJaga}% waktunya`);
+    expect(r("R6-113")).toContain("lima metrik, tiga untuk throughput");
+    expect(r("R6-114")).toContain(`| Jembatan ${dari("t5-jembatan").nomor}, ukuran tim PRD v6,`);
+    const k = cocok(teksHalaman("t5-jembatan"), /<dd>Lebih dari (\d+) developer dalam lebih dari (\d+) tim<\/dd>/);
+    expect(r("R6-114")).toContain(`"lebih dari ${k[1]} developer dalam lebih dari ${k[2]} tim"; angka ±${k[1]} developer tanpa sumber primer`);
+    di(draf, "naskah", "1. **Tiga negara, tidak dinamai.**");
+    di(draf, "naskah", "2. **Pembagian user 60%, 25%, 15%.**");
+    di(draf, "naskah", "3. **Tim: 53 orang dalam 11 tim");
+    expect(r("R6-114")).toContain(`naskah Tahap 6 pilihan draf 1, 2, dan 3 (tiga negara tanpa nama; ${persenNegara[0]}%, ${persenNegara[1]}%, ${persenNegara[2]}%; ${jumlahTim} orang dalam ${timNaskah.length} tim: ${orangProduk} dan ${orangFungsi})`);
+    expect(r("R6-114")).toContain(`blok Yang dibuka lagi dari Tahap ${cerita.tahap[4]!.no} di ${nomor61}`);
+  });
+});
 
 describe("diagram Rantai t6-prd-sebelum-sesudah.json", () => {
   test("ilustrasi, dua baris, empat simpul, dan nilai diturunkan dari naskah, registry, dan 5.1", () => {
@@ -779,6 +898,7 @@ describe("diagram Rantai t6-prd-sebelum-sesudah.json", () => {
   });
 });
 
+const PERSAMAAN_RISET = 36;
 describe("baris riset R6-110 sampai R6-114: ada, urut, lima kolom, tanggal baca, dan memuat hitungan dan sumber yang dipakai halaman", () => {
   const baris = riset6.split("\n").filter((b) => /^\| R6-\d+ \|/.test(b));
   const idRiset = baris.map((b) => b.split("|")[1]!.trim());
@@ -797,7 +917,7 @@ describe("baris riset R6-110 sampai R6-114: ada, urut, lima kolom, tanggal baca,
     const r110 = barisAwal(riset6, "| R6-110 |");
     const PERSAMAAN = /(\d+(?:[.,]\d+)*(?: [×÷+−] \d+(?:[.,]\d+)*%?)+) = (\d+(?:[.,]\d+)*)/g;
     const pers = [...r110.matchAll(PERSAMAAN)];
-    expect(pers.length).toBe(33);
+    expect(pers.length).toBe(PERSAMAAN_RISET);
     for (const m of pers) {
       const ekspresi = m[1]!.replace(/(\d+(?:\.\d{3})*(?:,\d+)?)/g, (x) => String(num(x))).replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-").replace(/(\d+(?:\.\d+)?)%/g, "($1/100)");
       const hasil = Function(`"use strict"; return (${ekspresi});`)() as number;
