@@ -800,7 +800,7 @@ window.ISTILAH = {
   "n": "6.3 M52",
   "s": "istilah-golden-path",
   "t": "Golden path",
-  "u": null
+  "u": "tahap-6/m52-template-service/"
  },
  "Golden signals": {
   "b": "t3-observability",
@@ -2087,7 +2087,7 @@ window.ISTILAH = {
   "n": "6.3 M52",
   "s": "istilah-service-catalog",
   "t": "Service catalog",
-  "u": null
+  "u": "tahap-6/m52-template-service/"
  },
  "Service mesh": {
   "b": "t5-adr-60",
@@ -2930,7 +2930,7 @@ window.ISTILAH = {
   "n": "6.3 M52",
   "s": "istilah-golden-path",
   "t": "Golden path",
-  "u": null
+  "u": "tahap-6/m52-template-service/"
  },
  "golden signals": {
   "b": "t3-observability",
@@ -3840,7 +3840,7 @@ window.ISTILAH = {
   "n": "6.3 M52",
   "s": "istilah-service-catalog",
   "t": "Service catalog",
-  "u": null
+  "u": "tahap-6/m52-template-service/"
  },
  "service mesh": {
   "b": "t5-adr-60",

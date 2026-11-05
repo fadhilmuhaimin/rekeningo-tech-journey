@@ -1,0 +1,100 @@
+{
+  "versi": 2,
+  "judul": "Template service menunggu 17 hari",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "catatan": "Jalur utama dan varian adalah Ilustrasi: 17 hari, 4 bentuk pipeline, 3 cara memuat sertifikat, dan sebelas tim berasal dari cerita, bukan dari rekaman. Syarat satu minggu dibaca dari halaman ADR 58, dan target satu hari adalah Asumsi ADR 61. Tidak ada lab di Tahap 6: template, pipeline, dan service catalog tidak dijalankan."
+  },
+  "pengantar": "Tim Notifikasi meminta service baru, dan Platform menjawab dengan tenggat. Tebak dulu apa yang terjadi bila Platform ditambah tiga orang, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "notif", "label": "Tim Notifikasi" },
+    { "id": "plat", "label": "Platform" },
+    { "id": "wil", "label": "Tim Wilayah dan Risiko" },
+    { "id": "pipe", "label": "Pipeline" },
+    { "id": "sre", "label": "SRE (Dewi)" }
+  ],
+  "perangkat": [],
+  "layarAwal": {},
+  "predict": {
+    "q": "Bayu meminta tiga orang untuk Platform, dari enam menjadi sembilan, dan permintaan service baru tetap masuk sebagai tiket ke Platform. Apa yang paling mungkin benar sesudah itu?",
+    "options": [
+      "Permintaan service baru selesai dalam satu hari, karena tiket dikerjakan sembilan orang dan bukan enam",
+      "Waktu tunggu tiket memendek, tetapi tiap permintaan service baru tetap menunggu giliran di Platform",
+      "Tim Wilayah dan Risiko berhenti menyalin pipeline, karena Platform tidak lagi menjadi tempat menunggu",
+      "Empat bentuk pipeline menyatu menjadi satu, karena Platform punya cukup orang untuk menyeragamkannya"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Orang tambahan mempercepat tiket, tetapi tiap permintaan tetap satu tiket yang menunggu giliran, jadi tim yang butuh sekarang tetap punya alasan menyalin (Penalaran). Bila waktu tunggu dianggap berbanding terbalik dengan jumlah orang, 17 hari menjadi 17 × 6 ÷ 9 = 11,3 hari. Itu masih di atas satu minggu dan jauh di atas satu hari (Hitungan atas Ilustrasi dan Asumsi). Angka 17 hari adalah Ilustrasi, dan anggapan berbanding terbalik adalah penyederhanaan, bukan model antrean."
+  },
+  "langkah": [
+    {
+      "dari": "notif",
+      "ke": "plat",
+      "judul": "Tim Notifikasi meminta service baru",
+      "kirim": "Selasa, minggu 3: service baru untuk pengumuman per negara (Ilustrasi)",
+      "jelas": "Permintaan masuk sebagai tiket ke Platform, dan template service baru jadi sesudah 17 hari (Ilustrasi)."
+    },
+    {
+      "dari": "plat",
+      "judul": "Template baru jadi sesudah 17 hari",
+      "kirim": "template: 17 hari (Ilustrasi)\nsyarat salah ADR 58: satu minggu (Asumsi naskah)",
+      "jelas": "17 − 7 = 10 hari di atas syarat itu (Hitungan atas Ilustrasi dan Asumsi). ADR 58 ada di halaman 5.27."
+    },
+    {
+      "dari": "wil",
+      "ke": "pipe",
+      "judul": "Tim Wilayah dan Risiko menyalin pipeline",
+      "kirim": "salinan pipeline tim lain, diubah sampai jalan (Ilustrasi)",
+      "jelas": "Dua tim itu tidak menunggu 17 hari. Salinan tidak punya pemilik jalur: perubahan di pipeline asal tidak ikut ke salinannya (Penalaran)."
+    },
+    {
+      "dari": "sre",
+      "ke": "pipe",
+      "judul": "Dewi menghitung pipeline di sebelas tim",
+      "kirim": "4 bentuk pipeline\n3 cara memuat sertifikat mTLS\n(Ilustrasi; sebelas tim: Asumsi cerita)",
+      "jelas": "Satu perbaikan keamanan di langkah pipeline yang sama dikerjakan 4 kali, sekali untuk tiap bentuk (Hitungan atas Ilustrasi, dengan anggapan tiap bentuk diperbaiki sendiri)."
+    },
+    {
+      "dari": "sre",
+      "ke": "plat",
+      "judul": "Hitungan dibawa ke Bayu dan Nadia",
+      "kirim": "Platform: 6 orang, tiket menunggu\nBayu meminta 3 orang tambahan (Asumsi cerita)",
+      "jelas": "Bayu menghitung 6 + 3 = 9 orang bila permintaannya dikabulkan. Nadia mengusulkan arah lain: tiap tim membuat pipeline sendiri (Ilustrasi).",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "tim yang sama memakai golden path (rancangan ADR 61)",
+    "mulai": 1,
+    "langkah": [
+      {
+        "dari": "notif",
+        "ke": "pipe",
+        "judul": "Tim Notifikasi mengisi service.yaml",
+        "kirim": "service baru dari template golden path, tanpa tiket (rancangan ADR 61, Ilustrasi)",
+        "jelas": "Template memuat pipeline, dashboard, alert, dan satu cara memuat sertifikat mTLS. Isi service.yaml tidak ditulis di halaman ini (Tidak dijalankan)."
+      },
+      {
+        "dari": "pipe",
+        "judul": "Pipeline hijau pertama paling lama satu hari",
+        "kirim": "lead time: permintaan sampai pipeline hijau pertama, paling lama 1 hari (target, Asumsi)",
+        "jelas": "Pembandingnya 17 hari, jadi 17 ÷ 1 = 17 kali lebih lama (Hitungan atas Ilustrasi dan Asumsi)."
+      },
+      {
+        "dari": "plat",
+        "judul": "Service catalog mencatat pemilik, giliran jaga, dan SLO",
+        "kirim": "service catalog: satu baris per service (rancangan ADR 61, Tidak dijalankan)",
+        "jelas": "Pertanyaan siapa memegang service itu punya satu tempat jawaban."
+      },
+      {
+        "dari": "sre",
+        "ke": "pipe",
+        "judul": "Perbaikan keamanan ditulis sekali",
+        "kirim": "1 perbaikan di template, bukan 4 di empat bentuk pipeline (Hitungan atas Ilustrasi)",
+        "jelas": "Bagaimana service yang sudah berjalan menerima perubahan template tidak ditulis di ADR 61.",
+        "nada": "good"
+      }
+    ]
+  }
+}
