@@ -86,3 +86,18 @@ test("muatArti: entri yang tidak ada di glosarium menggagalkan, dan bentuk strin
   assert.deepEqual(peta.get("tahap-5/x").get("token"), { arti: "Token LSN", kecuali: ["hitungan token"] });
   assert.deepEqual(peta.get("tahap-5/x").get("router"), { arti: "Traffic router", kecuali: [] });
 });
+
+test("dijalankan dua kali atas pohon yang sama: hasil identik, tak ada abbr bersarang atau atribut ganda", () => {
+  const pohon = para(teks("Token dan router, token LSN, hitungan token."));
+  remarkAbbr()(pohon, berkas("tahap-5/rekap"));
+  const satu = JSON.stringify(pohon);
+  remarkAbbr()(pohon, berkas("tahap-5/rekap"));
+  assert.equal(JSON.stringify(pohon), satu);
+  assert.ok(abbr(pohon).length >= 4);
+});
+
+test("kata di dalam teks tebal atau miring tetap diatur, kata di dalam kata lain tidak", () => {
+  const pohon = para({ type: "strong", children: [teks("token")] }, teks(" tokenisasi routers token-nya"));
+  remarkAbbr()(pohon, berkas("tahap-5/replication-lag"));
+  assert.deepEqual(abbr(pohon).map((x) => [x.teks, x["data-arti"]]), [["token", "Token LSN"]]);
+});

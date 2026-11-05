@@ -5,7 +5,7 @@
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { ArtiIstilah, abbrDiMain, bacaDefinisi, dalamKecuali, periksaAturan, periksaHalaman } from "./arti-istilah";
+import { ArtiIstilah, abbrDiMain, bacaDefinisi, dalamKecuali, periksaAturan, periksaCampuran, periksaHalaman } from "./arti-istilah";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const baca = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
@@ -47,6 +47,16 @@ describe("entri glosarium per arti", () => {
     expect(def["token perangkat"]).toMatch(/^Pengenal satu HP/);
   });
 
+  // Teks tiga definisi dikunci utuh (peninjau, keputusan 1891): definisinya yang dibaca pembaca di tooltip, dan sumbernya sudah dibuka.
+  // Token LSN: tipe pg_lsn adalah pointer ke posisi di WAL (PostgreSQL 17, datatype-pg-lsn), kepala X-Lsn-Tulis dari labs/t5-replika/README.md.
+  // Traffic router: Argo Rollouts, "Traffic Management": ingress controller dan service mesh. Router database: Django, "Multiple
+  // databases", "Automatic database routing" (db_for_read, db_for_write).
+  test("teks tiga definisi dikunci utuh", () => {
+    expect(def[LSN]).toBe("Posisi primary di WAL sesudah satu COMMIT. Server mengirimnya ke app di kepala X-Lsn-Tulis, dan app mengembalikannya di bacaan berikutnya. Isinya posisi di log, bukan bukti siapa pengirimnya.");
+    expect(def[TRAFFIC]).toBe("Komponen yang menggeser lalu lintas antar versi aplikasi menurut bobot, mis. 5% ke versi baru. Di Kubernetes, ingress controller atau service mesh menjalankan peran itu.");
+    expect(def[BASIS_DATA]).toBe("Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.");
+  });
+
   test("definisi baru menjelaskan arti, bukan jawaban masalah di halaman lain", () => {
     // gaya-bahasa: tooltip menjelaskan arti istilah. Keputusan ADR 47 (replica dipakai bila sudah menyusul) dan penyebab M49
     // (bobot jadi jumlah pod) ditulis di halamannya, bukan di tooltip yang tampil di halaman masalahnya.
@@ -61,12 +71,23 @@ describe("berkas arti-istilah.json", () => {
     expect(periksaAturan(aturan, def, adaHalaman)).toEqual([]);
   });
 
-  test("hanya halaman Tahap 5 yang memakai arti lain untuk token dan router (halaman Tahap 1 sampai 4 tetap arti bawaan)", () => {
-    expect(Object.keys(aturan).filter((h) => !h.startsWith("tahap-5/"))).toEqual([]);
-    expect(Object.keys(aturan).sort()).toEqual([
-      "tahap-5/m41-riwayat-belum-memuat", "tahap-5/modul-ke-service", "tahap-5/pintu-mitra-waf", "tahap-5/progressive-delivery",
-      "tahap-5/read-replica", "tahap-5/rekap", "tahap-5/replication-lag",
-    ]);
+  // Pin literal (keputusan 1891): tes lain menurunkan arti yang diharapkan dari berkas ini sendiri, jadi menukar entri antar halaman
+  // (token jadi Token perangkat, router database jadi traffic router) lolos semuanya. Baris di sini ditulis sesudah membaca tiap
+  // kemunculan kata itu di halamannya. Halaman baru (mis. Tahap 6) boleh mendaftar tanpa menambah baris di sini, selama
+  // periksaAturan dan sapuan HTML lolos; tambahkan barisnya bila artinya perlu dikunci.
+  test("arti per halaman dikunci: tiap halaman yang dikenal menunjuk entri yang benar untuk kata token dan router", () => {
+    const entri = (a: ArtiIstilah[string][string]) => (typeof a === "string" ? a : a.arti);
+    const sekarang = Object.fromEntries(Object.entries(aturan).map(([h, kata]) => [h, Object.fromEntries(Object.entries(kata).map(([k, a]) => [k, entri(a)]))]));
+    const kunci: Record<string, Record<string, string>> = {
+      "tahap-5/m41-riwayat-belum-memuat": { token: LSN },
+      "tahap-5/modul-ke-service": { router: TRAFFIC },
+      "tahap-5/pintu-mitra-waf": { router: TRAFFIC },
+      "tahap-5/progressive-delivery": { router: TRAFFIC },
+      "tahap-5/read-replica": { router: BASIS_DATA },
+      "tahap-5/rekap": { token: LSN },
+      "tahap-5/replication-lag": { token: LSN, router: BASIS_DATA },
+    };
+    for (const [h, k] of Object.entries(kunci)) expect(sekarang[h], h).toEqual(k);
   });
 
   // Uji mutasi di tingkat data: bila satu entri baru dihapus, atau satu aturan menunjuk entri yang tak ada, tes di atas gagal.
@@ -104,6 +125,16 @@ describe("sapuan HTML: pemeriksa", () => {
     expect(a).toHaveLength(3);
     expect(dalamKecuali(a[2]!, ["hitungan token"])).toBe(false);
     expect(dalamKecuali(a[2]!, ["token biasa"])).toBe(true);
+  });
+
+  test("periksaCampuran: frasa utuh bersama kata sendirian bertooltip arti bawaan dilaporkan, frasa saja atau kata dengan arti halaman tidak", () => {
+    const pasangan = [["token", LSN], ["router", TRAFFIC]] as const;
+    const frasa = abbr(def[LSN]!, "token LSN");
+    expect(periksaCampuran(html(`${frasa} dan ${abbr(def["token"]!, "token")}`), "tahap-6/x", def, pasangan)).toHaveLength(1);
+    expect(periksaCampuran(html(frasa), "tahap-6/x", def, pasangan)).toEqual([]);
+    expect(periksaCampuran(html(`${frasa} ${abbr(def[LSN]!, "token", LSN)}`), "tahap-6/x", def, pasangan)).toEqual([]);
+    expect(periksaCampuran(html(`${abbr(def[TRAFFIC]!, "traffic router")} ${abbr(def["router"]!, "router")}`), "tahap-6/x", def, pasangan)).toHaveLength(1);
+    expect(periksaCampuran(html(abbr(def["token"]!, "token")), "tahap-6/x", def, pasangan)).toEqual([]);
   });
 
   test("aturan yang tidak dipakai satu kemunculan pun dilaporkan, dan halaman tanpa aturan tidak diperiksa", () => {
@@ -149,13 +180,13 @@ describe.runIf(fs.existsSync(path.join(DIST, "tahap-5/replication-lag/index.html
     expect(sisa["tahap-5/rekap"]!.some((s) => s.includes("token tanpa hak"))).toBe(true);
   });
 
-  test("pemakaian lain tetap arti bawaan: token akses, token bucket, dan token OpenBao di 5.4, 5.19, 5.24, 5.25, 5.26, dan semua kata token atau router di halaman Tahap 1 sampai 4", () => {
+  test("pemakaian lain tetap arti bawaan: token akses, token bucket, dan token OpenBao di 5.4, 5.19, 5.24, 5.25, 5.26, dan semua kata token atau router di setiap halaman yang tidak terdaftar di arti-istilah.json", () => {
     for (const h of ["tahap-5/m40-pembayaran-melambat", "tahap-5/mtls-antar-service", "tahap-5/m50-satu-pos", "tahap-5/pintu-mitra-waf", "tahap-5/arsip-envelope-encryption"]) {
       const a = abbrDiMain(htmlHalaman(h)).filter((x) => x.teks.toLowerCase() === "token");
       expect(a.length, h).toBeGreaterThan(0);
       for (const x of a) expect([x.judul, x.arti], h).toEqual([def["token"], null]);
     }
-    const lama = semua().filter((h) => !h.startsWith("tahap-5/"));
+    const lama = semua().filter((h) => !(h in aturan));
     let diperiksa = 0;
     for (const h of lama) {
       for (const x of abbrDiMain(htmlHalaman(h))) {
@@ -166,6 +197,16 @@ describe.runIf(fs.existsSync(path.join(DIST, "tahap-5/replication-lag/index.html
       }
     }
     expect(diperiksa).toBeGreaterThan(100);
+  });
+
+  test("halaman yang tidak terdaftar tidak menulis frasa utuh (token LSN, traffic router, router database) lalu memakai kata token atau router sendirian bertooltip arti bawaan", () => {
+    const pasangan = [["token", LSN], ["router", TRAFFIC], ["router", BASIS_DATA]] as const;
+    const campur: string[] = [];
+    for (const h of semua()) {
+      if (h in aturan || h.startsWith("alat/")) continue; // alat/glosarium dan indeks memuat semua arti sekaligus
+      campur.push(...periksaCampuran(htmlHalaman(h), h, def, pasangan));
+    }
+    expect(campur).toEqual([]);
   });
 
   // Uji mutasi: arti lama dikembalikan di HTML asli. Tiap mutasi harus membuat pemeriksa melaporkan pelanggaran.

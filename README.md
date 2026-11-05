@@ -64,7 +64,9 @@ Plugin tooltip memasang satu definisi di setiap kemunculan sebuah kata, di halam
 
 1. Tambah satu entri glosarium per arti (langkah 1 di atas), mis. "Token LSN". Kalau frasa utuh ditulis di teks ("token LSN"), kunci terpanjang menang dan tak ada langkah lain.
 2. Kalau teks halaman memakai kata sendirian ("token berisi posisi WAL"), daftarkan halamannya di `situs/data/arti-istilah.json`: path di `src/content/docs` tanpa ekstensi, kata, entri yang benar. Frasa yang tetap memakai arti bawaan di halaman itu ditulis di `kecuali`. Jalankan `python3 tools/build_istilah.py` lalu build.
-3. `src/lib/arti-istilah.test.ts` membaca HTML hasil build dan gagal bila kata yang diatur masih bertooltip arti lain.
+3. `src/lib/arti-istilah.test.ts` membaca HTML hasil build dan gagal bila kata yang diatur masih bertooltip arti lain. Halaman baru (mis. Tahap 6) cukup mendaftar di `arti-istilah.json`; tes tidak perlu diubah, kecuali kamu ingin mengunci artinya di daftar `kunci` tes "arti per halaman dikunci". Halaman yang tidak terdaftar tetapi menulis frasa utuh ("token LSN") dan juga kata `token` sendirian ditolak sapuan yang sama, dengan nama halamannya.
+4. Entri yang namanya memuat huruf besar di tengah ("Token LSN") tidak otomatis punya kunci huruf kecil. Tambahkan `"token LSN"` ke `EXTRA` di `tools/build_istilah.py`, atau frasa yang ditulis kecil tidak bertooltip entri itu.
+5. Popover yang dilihat pembaca dibuka `situs/lama/javascripts/istilah.js` dari atribut `data-arti`, bukan dari `title`; `tests/istilah-popover.test.mjs` menjaganya.
 
 ## Pemeriksaan
 

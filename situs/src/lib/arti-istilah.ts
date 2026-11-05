@@ -100,3 +100,19 @@ export function periksaHalaman(html: string, halaman: string, aturan: ArtiIstila
   for (const k of Object.keys(atur)) if (!terpakai.has(k)) masalah.push(`${halaman}: aturan "${k}" tidak dipakai satu kemunculan pun`);
   return masalah;
 }
+
+/** Pelanggaran satu halaman yang TIDAK terdaftar di arti-istilah.json: menulis frasa utuh (token LSN, traffic router, router database)
+ * lalu memakai kata sendirian (token, router) yang bertooltip arti bawaan. Pola itu persis cacat EVAL-5: halaman memakai arti baru
+ * tetapi tak memberi tahu plugin. Halaman yang memang mencampur arti mendaftar di arti-istilah.json dengan `kecuali`. */
+export function periksaCampuran(html: string, halaman: string, def: Peta, pasangan: ReadonlyArray<readonly [kata: string, arti: string]>): string[] {
+  const abbr = abbrDiMain(html);
+  const masalah: string[] = [];
+  for (const [kata, arti] of pasangan) {
+    const frasa = abbr.filter((x) => x.judul === def[arti] && x.teks.toLowerCase() !== kata);
+    const sendiri = abbr.filter((x) => x.teks.toLowerCase() === kata && x.judul === def[kata] && x.arti === null);
+    if (frasa.length && sendiri.length) {
+      masalah.push(`${halaman}: kata "${kata}" sendirian (${sendiri.length}x) bertooltip arti bawaan, padahal halaman menulis frasa "${frasa[0]!.teks}" (${arti}); daftarkan halaman di situs/data/arti-istilah.json`);
+    }
+  }
+  return masalah;
+}
