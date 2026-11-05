@@ -434,7 +434,7 @@ describe("angka beban dan hitungan ADR 52 dan ADR 56 dihitung ulang dari angka y
     di(bag1, "naskah", `L = λ × W = ${id(reqPuncak, 1)} × 0,02 = ${id(L, 1)} koneksi tertahan`);
     di(bag1, "naskah", `Untuk negara terbesar (60%) hasilnya ${id(besar * lamaQuery, 1)}`);
     di(hal51, "5.1", "1.388,9 request per detik × 0,02 detik lama satu request memegang koneksi");
-    harus("Bila semua request ke satu primary, koneksi yang tertahan rata-rata sama dengan request per detik dikali lama satu request memegang koneksi (hukum Little).");
+    harus("Bila semua request ke satu primary, koneksi yang tertahan rata-rata sama dengan request per detik dikali lama satu request memegang koneksi (Little's Law).");
     harus("Bacaan lewat replica dan jumlah koneksi sebenarnya belum dihitung dan belum terukur.");
   });
   test("tiga hal yang belum diuji dan kapasitas satu primary ditulis seperti 5.29, 5.30, dan naskah", () => {
