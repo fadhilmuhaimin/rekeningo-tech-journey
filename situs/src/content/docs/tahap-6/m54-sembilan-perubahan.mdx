@@ -102,7 +102,7 @@ Bab itu menyarankan canary bertahap. Tahap kecil memakai metrik yang paling jela
 
 <Snippet file="labs/t5-rollout/output/gateway.txt" lines="7:11" title="Rekaman lab: labs/t5-rollout/output/gateway.txt, bagian B (bobot 95 dan 5 dengan 3 replika)" />
 
-Satu pod dari empat tetap 25,0% pod, tetapi bobot di HTTPRoute 5. HTTPRoute adalah objek Gateway API yang memuat bobot tiap Service ([[t5-rollout]]). Di Tahap 6, 13.888,9 request per detik memakai 30 pod tiap service (Asumsi desain, [[t6-prd]]). Satu pod di antara 30 adalah 1 ÷ 30 = 3,3%, jadi langkah 1% hanya bisa datang dari bobot (Hitungan atas Asumsi desain).
+Satu pod dari empat tetap 25,0% pod, tetapi bobot di HTTPRoute 5. HTTPRoute adalah objek Gateway API yang memuat bobot tiap Service ([[t5-rollout]]). Di Tahap 6, 13.888,9 request per detik memakai 30 pod tiap service (Asumsi desain, [[t6-prd]]). Satu pod adalah 1 ÷ 30 = 3,3% dari 30 pod, jadi rasio pod tidak bisa memberi langkah 1% (Hitungan atas Asumsi desain).
 
 Rekaman berikutnya memerankan versi baru yang salah. Analisis menggagalkannya, bobot kembali ke versi lama, dan 100 dari 100 permintaan berikutnya dijawab versi lama:
 
