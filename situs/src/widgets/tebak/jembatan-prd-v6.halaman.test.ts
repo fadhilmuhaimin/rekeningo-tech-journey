@@ -433,6 +433,7 @@ describe("pilihan tebakan: kalimat alasan dikutip dari halaman ADR 52, 56, 58, 5
   });
   test("ADR 58: butir pertama 'Kapan keputusan ini salah' menulis template menunggu lebih dari satu minggu dan delapan tim merilis hampir tiap hari", () => {
     const butir = kapanSalah(adr58);
+    expect(butir).toHaveLength(6);
     expect(butir[0]).toBe("Saat permintaan template menunggu lebih dari satu minggu (Asumsi naskah). Naskah menulis delapan tim merilis hampir tiap hari, jadi menunggu satu minggu memperlambat rilis.");
     ada(dua.alasan, "ADR 58 salah bila permintaan template menunggu lebih dari satu minggu (Asumsi naskah), dan naskah menulis delapan tim merilis hampir tiap hari.", "alasan benar");
     ada(dua.alasan, `Tim yang naik dari ${timNaskah[1]} orang menjadi lebih dari ${timNaskah[2]} developer membuat tunggu itu mungkin (penalaran).`, "alasan benar");
@@ -686,6 +687,27 @@ describe("penjaga tanpa kunci baris: kalimat unik, kata negasi dan kata penuh di
     const harapanWidget: Record<string, number> = { tidak: 6, belum: 2, bukan: 1, hanya: 1, semua: 1, setiap: 0, selalu: 0 };
     for (const [k, n] of Object.entries(harapanHalaman)) expect(kata(badan, k), `halaman: ${k}`).toBe(n);
     for (const [k, n] of Object.entries(harapanWidget)) expect(kata(teksWidget, k), `widget: ${k}`).toBe(n);
+  });
+  test("dunia angka tertutup dengan jumlah kemunculan: tiap bilangan, angka ribuan, angka berkoma, P dan v di halaman dan di widget", () => {
+    // Nilai dihitung dari halaman dan widget saat penjaga ditulis (keputusan 1625). Himpunan angka yang boleh ada dan asalnya diperiksa di tes
+    // "dunia angka tertutup"; di sini jumlah kemunculannya, supaya satu angka yang berubah menjadi angka lain yang sah (10 menjadi 11,
+    // P2 menjadi P3, v5 menjadi v6) tetap gagal.
+    const hitungToken = (teks: string, re: RegExp): Record<string, number> => {
+      const h: Record<string, number> = {};
+      for (const m of teks.matchAll(re)) h[m[0]] = (h[m[0]] ?? 0) + 1;
+      return Object.fromEntries(Object.entries(h).sort(([x], [y]) => (x < y ? -1 : 1)));
+    };
+    const urut = (h: Record<string, number>) => Object.fromEntries(Object.entries(h).sort(([x], [y]) => (x < y ? -1 : 1)));
+    const bersih = badan.replace(/\[\[[^\]]+\]\]/g, "").split("\n").filter((b) => !/^(import|export|  \.)/.test(b) && !b.startsWith("<Tebak") && !b.startsWith("<Blok") && !b.startsWith('<p class="meta"')).join("\n").replace(/\d{1,3}(?:[.,]\d+)+/g, "");
+    expect(hitungToken(bersih, /(?<![\d,.])\d+(?![\d,.%])/g)).toEqual(urut({ "2": 7, "3": 1, "4": 1, "5": 12, "6": 18, "10": 13, "11": 1, "16": 1, "17": 1, "28": 4, "46": 1, "50": 8, "2019": 1, "2020": 1, "2026": 1 }));
+    expect(hitungToken(badan, /\d{1,3}(?:\.\d{3})+/g)).toEqual(urut({ "1.000.000": 5, "10.000.000": 3, "200.000": 2, "1.388": 1 }));
+    expect(hitungToken(badan, /\d+(?:\.\d{3})*,\d+/g)).toEqual({ "1.388,9": 1 });
+    expect(hitungToken(badan, /\bP\d\b/g)).toEqual({ P2: 5 });
+    expect(hitungToken(badan.replace(/PRD v\d/g, ""), /\bv\d+\b/g)).toEqual({ v5: 1, v6: 4 });
+    const wBersih = teksWidget.replace(/\d{1,3}(?:[.,]\d+)+/g, "");
+    expect(hitungToken(wBersih, /(?<![\d,.])\d+(?![\d,.%])/g)).toEqual(urut({ "5": 4, "6": 4, "8": 1, "10": 4, "15": 1, "20": 1, "28": 2, "46": 1, "50": 4, "52": 1, "56": 1, "58": 1, "59": 1, "60": 4, "95": 1, "100": 1, "120": 1, "400": 1, "480": 1 }));
+    expect(hitungToken(teksWidget, /\d{1,3}(?:\.\d{3})+/g)).toEqual(urut({ "5.000": 1, "1.388": 1 }));
+    expect(hitungToken(teksWidget, /\d+(?:\.\d{3})*,\d+/g)).toEqual(urut({ "3,6": 1, "1.388,9": 1 }));
   });
   test("token versi PRD dan Tahap: jumlah dan nilai; hanya v5 dan v6, dan Tahap 4, 5, 6", () => {
     expect([...new Set([...badan.matchAll(/PRD v(\d+)/g)].map((m) => m[1]))].sort()).toEqual([String(N5), String(N6)]);
