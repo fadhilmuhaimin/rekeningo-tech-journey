@@ -147,6 +147,15 @@ describe("nilai turunan: sumber dan hitungan itu sendiri", () => {
     expect(pertama[6]![1]).toBe(`${tim5[1]} orang dalam delapan tim (Asumsi cerita)`);
     expect(pertama.map((x) => x[0])).toEqual(["", "Skala", "Wilayah", "Risiko", "Platform", "Uang dan data", "Tim"]);
   });
+  test("tabel Ruang lingkup: header dan sel pertama tiap baris (menukar sel antar kolom gagal)", () => {
+    const baris = badan.split("\n").filter((b) => b.startsWith("| ") && /^\| (Isi PRD v6|10 juta user|Multi-region aktif-pasif|Skor risiko real-time dan graf|Platform internal, chaos|Multi-mata uang dengan kurs|Lebih dari 50 developer)/.test(b)).map((b) => b.split("|").slice(1, -1).map((x) => x.trim()));
+    expect(baris.map((x) => x[0])).toEqual([
+      "Isi PRD v6", "10 juta user", "Multi-region aktif-pasif", "Skor risiko real-time dan graf akun-perangkat", "Platform internal, chaos testing, dan data mesh sederhana",
+      "Multi-mata uang dengan kurs, data per negara, dan database per wilayah", `Lebih dari ${timNaskah[2]} developer dalam lebih dari ${timNaskah[3]} tim`,
+    ]);
+    expect(baris[0]![1]).toBe(`Keadaan terdekat di Tahap ${N5}`);
+    expect(baris.slice(1).every((x) => x.length === 2)).toBe(true);
+  });
   test("PRD v5: empat isi P2 yang ditunda ke v6, dan multi-mata uang bukan lingkup; isi lain PRD v6 tidak ada di baris P2 itu", () => {
     const p2 = barisTabel(prd5, "| P2 |");
     expect(p2).toEqual(["P2", "Ditunda ke v6", "Multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, 10 juta user"]);
@@ -498,6 +507,7 @@ describe("pilihan tebakan: kalimat alasan dikutip dari halaman ADR 52, 56, 58, 5
     expect(panjang[j]!).toBeLessThan(Math.max(...panjang));
     expect(panjang[j]!).toBeGreaterThan(Math.min(...panjang));
     for (const p of data.pilihan) expect(p.teks.startsWith("ADR "), p.teks).toBe(true);
+    for (const p of data.pilihan) for (const t of [p.teks, p.alasan]) expect(t, "kalimat penutup pilihan").toMatch(/[a-z)0-9]\.$/);
     for (const [i, p] of data.pilihan.entries()) {
       expect(nilai(data, i).benar).toBe(i === j);
       if (i !== j) expect(nilai(data, i).alasan[1]).toBe(data.pilihan[j]!.alasan);
@@ -648,7 +658,7 @@ describe("struktur halaman dan dunia angka tertutup", () => {
     ada(badan, "yaitu ADR 52, 56, 58, 59, dan 60, dengan", "noscript");
     expect(new Set([...badan.matchAll(/Tahap \d+/g)].map((m) => m[0]))).toEqual(new Set([`Tahap ${N4}`, `Tahap ${N5}`, `Tahap ${N6}`]));
     const bersih = badan.replace(/\[\[[^\]]+\]\]/g, "").split("\n").filter((b) => !/^(import|export|  \.)/.test(b) && !b.startsWith("<Tebak") && !b.startsWith("<Blok") && !b.startsWith("<p class=\"meta\"")).join("\n").replace(/\d{1,3}(?:[.,]\d+)+/g, "");
-    const bulat = [...new Set([...bersih.matchAll(/(?<![\d,.])\d+(?![\d,.%])/g)].map((m) => m[0]))].sort((x, y) => Number(x) - Number(y));
+    const bulat = [...new Set([...bersih.matchAll(/(?<![\d,.])\d+(?![\d,%]|\.\d)/g)].map((m) => m[0]))].sort((x, y) => Number(x) - Number(y));
     // Bilangan bulat yang boleh ada, dengan asalnya. Nomor ADR dalam daftar "52, 56, 58, 59, dan 60" diperiksa di tes noscript (diikuti koma).
     const minggu = cocok(isi("t5-m51"), /^Minggu (\d+) Tahap 5\./m)[1]!;
     const sre = cocok(prd5, /^\| SRE: (\d+) orang, dipimpin/m)[1]!;
@@ -659,7 +669,8 @@ describe("struktur halaman dan dunia angka tertutup", () => {
       sre, platform, String(N4), String(N5), String(N6), // tim, nomor tahap
       String(rasio), // 10 kali; juga "lebih dari 10 tim" dari naskah
       timNaskah[3]!, minggu, tim5[1]!, timNaskah[2]!, String(adrTahap5[0]), // tim, Minggu 16, 28 orang, 50 developer, ADR 46
-      "3", "17", "11", "2019", "2020", "2026", // tanggal sumber di blok Ruang lingkup (R5-268): 17 Agustus 2020, 3 Desember 2020, Maret 2019, 2026-11-05
+      "3", "17", "11", "05", "2019", "2020", "2026", // tanggal sumber di blok Ruang lingkup (R5-268): 17 Agustus 2020, 3 Desember 2020, Maret 2019, 2026-11-05
+      "1", String(adrTahap5[adrTahap5.length - 1]), // nomor soal Cek diri 1; ADR 46 sampai 60 (angka akhir kalimat)
     ];
     expect(bulat, "bilangan bulat di halaman yang tidak diturunkan dari sumber").toEqual([...new Set(harapan)].sort((x, y) => Number(x) - Number(y)));
     const tokenW = [...teksWidget.matchAll(/\d+(?:\.\d{3})*,\d+/g)].map((m) => m[0]);
@@ -699,13 +710,13 @@ describe("penjaga tanpa kunci baris: kalimat unik, kata negasi dan kata penuh di
     };
     const urut = (h: Record<string, number>) => Object.fromEntries(Object.entries(h).sort(([x], [y]) => (x < y ? -1 : 1)));
     const bersih = badan.replace(/\[\[[^\]]+\]\]/g, "").split("\n").filter((b) => !/^(import|export|  \.)/.test(b) && !b.startsWith("<Tebak") && !b.startsWith("<Blok") && !b.startsWith('<p class="meta"')).join("\n").replace(/\d{1,3}(?:[.,]\d+)+/g, "");
-    expect(hitungToken(bersih, /(?<![\d,.])\d+(?![\d,.%])/g)).toEqual(urut({ "2": 7, "3": 1, "4": 1, "5": 12, "6": 18, "10": 13, "11": 1, "16": 1, "17": 1, "28": 4, "46": 1, "50": 8, "2019": 1, "2020": 1, "2026": 1 }));
+    expect(hitungToken(bersih, /(?<![\d,.])\d+(?![\d,%]|\.\d)/g)).toEqual(urut({ "1": 1, "2": 8, "3": 2, "4": 2, "5": 16, "05": 1, "6": 23, "10": 13, "11": 1, "16": 1, "17": 1, "28": 4, "46": 1, "50": 9, "60": 1, "2019": 1, "2020": 2, "2026": 1 }));
     expect(hitungToken(badan, /\d{1,3}(?:\.\d{3})+/g)).toEqual(urut({ "1.000.000": 5, "10.000.000": 3, "200.000": 2, "1.388": 1 }));
     expect(hitungToken(badan, /\d+(?:\.\d{3})*,\d+/g)).toEqual({ "1.388,9": 1 });
     expect(hitungToken(badan, /\bP\d\b/g)).toEqual({ P2: 5 });
     expect(hitungToken(badan.replace(/PRD v\d/g, ""), /\bv\d+\b/g)).toEqual({ v5: 1, v6: 4 });
     const wBersih = teksWidget.replace(/\d{1,3}(?:[.,]\d+)+/g, "");
-    expect(hitungToken(wBersih, /(?<![\d,.])\d+(?![\d,.%])/g)).toEqual(urut({ "5": 4, "6": 4, "8": 1, "10": 4, "15": 1, "20": 1, "28": 2, "46": 1, "50": 4, "52": 1, "56": 1, "58": 1, "59": 1, "60": 4, "95": 1, "100": 1, "120": 1, "400": 1, "480": 1 }));
+    expect(hitungToken(wBersih, /(?<![\d,.])\d+(?![\d,%]|\.\d)/g)).toEqual(urut({ "5": 5, "6": 7, "8": 1, "10": 4, "15": 1, "20": 1, "28": 2, "46": 1, "50": 4, "52": 2, "56": 2, "58": 1, "59": 1, "60": 4, "95": 1, "100": 1, "120": 1, "400": 1, "480": 1 }));
     expect(hitungToken(teksWidget, /\d{1,3}(?:\.\d{3})+/g)).toEqual(urut({ "5.000": 1, "1.388": 1 }));
     expect(hitungToken(teksWidget, /\d+(?:\.\d{3})*,\d+/g)).toEqual(urut({ "3,6": 1, "1.388,9": 1 }));
   });
