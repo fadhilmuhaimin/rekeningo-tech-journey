@@ -168,7 +168,7 @@ describe("nilai turunan: sumber dan hitungan itu sendiri", () => {
     expect(p2).toEqual(["P2", "Ditunda ke v6", "Multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, 10 juta user"]);
     ada(prd5, "**Bukan lingkup v5:** pembayaran offline, pencairan merchant otomatis lewat bank (tetap file), tarik tunai, kartu fisik, dan multi-mata uang.", "5.1");
     for (const x of ["graf akun-perangkat", "chaos testing", "data mesh", "multi-mata uang", "per negara", "database per wilayah"]) expect(p2.join(" ").toLowerCase(), x).not.toContain(x);
-    harus("PRD v5 sudah menulis empat isi PRD v6 sebagai P2 yang ditunda ke v6 ([[t5-prd]]). Keempatnya multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, dan 10 juta user.");
+    harus("PRD v5 sudah menulis empat isi PRD v6 sebagai P2 yang ditunda ke v6 ([[t5-prd]]). Keempatnya adalah multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, dan 10 juta user.");
     expect(hitung(prd5.toLowerCase(), "per negara")).toBe(0);
     expect(hitung(prd5, "mata uang")).toBe(1);
     expect(hitung(prd5.toLowerCase(), "database per wilayah")).toBe(0);
@@ -261,7 +261,7 @@ describe("registry, naskah, blok, dan tautan", () => {
     const id = [...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!);
     const hitungId: Record<string, number> = {};
     for (const x of id) hitungId[x] = (hitungId[x] ?? 0) + 1;
-    expect(hitungId).toEqual({ A0: 1, "t4-jembatan": 1, "t4-modul": 1, "t5-m51": 7, "t5-prd": 6, "t5-rekap": 1, "t5-rpo-rto": 1, "t5-service": 1 });
+    expect(hitungId).toEqual({ A0: 1, "t4-jembatan": 1, "t4-modul": 1, "t5-m51": 7, "t5-prd": 7, "t5-rekap": 1, "t5-rpo-rto": 1, "t5-service": 1 });
     for (const x of Object.keys(hitungId)) expect(hal.some((h) => h.id === x), `[[${x}]] tidak ada di registry`).toBe(true);
     const sesuai: [string, string, string][] = [
       ["t4-jembatan", "4.31", "Jembatan: pratinjau PRD v5"], ["t4-modul", "4.13", "Modular monolith"], ["t5-prd", "5.1", "PRD v5"], ["t5-service", "5.13", "Dari modul ke service"],
@@ -393,12 +393,14 @@ describe("jejak riset: lima baris R5-265 sampai R5-269, urut, lima kolom, tangga
     const b = baris("R5-268");
     for (const u of [
       "engineering.atspotify.com/2020/08/how-we-use-golden-paths-to-solve-fragmentation-in-our-software-ecosystem/ (17 Agustus 2020",
-      "backstage.io/docs/features/software-catalog/ (tanpa nomor versi, dibuka 2026-11-05)",
+      "backstage.io/docs/features/software-catalog/ (header halaman menulis Stable v1.56.0, dibuka 2026-11-05)",
       'principlesofchaos.org ("Last Update: 2019 March", dibuka 2026-11-05)',
-      "martinfowler.com/articles/data-mesh-principles.html (3 Desember 2020, dibuka 2026-11-05)",
+      "martinfowler.com/articles/data-mesh-principles.html (3 Desember 2020, dibuka 2026-11-05; byline Zhamak Dehghani, halaman itu ada di situs Martin Fowler tetapi penulisnya Dehghani)",
     ]) ada(b[2]!, u, "R5-268");
     for (const t of ["17 Agustus 2020", "dibuka 2026-11-05", "Maret 2019", "3 Desember 2020"]) harus(t);
-    ada(b[2]!, "Domain Ownership, Data as a product, Self-serve data platform, Federated computational governance", "R5-268");
+    ada(b[2]!, "Domain-oriented decentralized data ownership and architecture, Data as a product, Self-serve data infrastructure as a platform, Federated computational governance", "R5-268");
+    harus("menurut Zhamak Dehghani dalam artikel di martinfowler.com (3 Desember 2020).");
+    expect(badan).not.toContain("Martin Fowler"); // penulis artikel data mesh itu Zhamak Dehghani, bukan Fowler (peninjau 5.32)
     harus("yang pertama kepemilikan data oleh domain");
     expect(hitung(badan, '"opinionated and supported"')).toBe(1);
     expect(b[3]).toContain("tanpa kutipan lebih dari tiga kata");
@@ -414,8 +416,11 @@ describe("jejak riset: lima baris R5-265 sampai R5-269, urut, lima kolom, tangga
     ada(b[2]!, "4 × 6 + 2 × 2 = 28 orang", "R5-269");
     ada(T4("modular-monolith.mdx"), "Pencarian 2026-10-29 tidak menemukan sumber primer", "4.13");
     ada(b[2]!, "tanpa sumber primer [perlu verifikasi]", "R5-269");
-    ada(b[3]!, "perbedaan satuan 28 dan 50", "R5-269");
-    harus("Angka 28 menghitung orang, termasuk SRE dan Security, sedangkan angka 50 menghitung developer.");
+    ada(b[3]!, "PRD v6 tidak menyebut apakah tim fungsi ikut terhitung dalam 50", "R5-269");
+    ada(b[2]!, "5.1 juga menulis 28 engineer untuk orang yang sama", "R5-269");
+    ada(prd5, "PRD v5 punya 28 engineer dalam delapan tim", "5.1");
+    harus("Angka 28 menghitung orang di delapan tim, termasuk SRE dan Security ([[t5-prd]]). PRD v6 menulis lebih dari 50 developer dan tidak menyebut apakah tim fungsi ikut terhitung, jadi halaman ini memakai kedua angka apa adanya.");
+    expect(badan).not.toContain("Satuannya tidak sama"); // satuan 28 lawan 50 tidak terbukti beda (peninjau 5.32)
     harus("tidak menemukan sumber primer untuk angka itu [perlu verifikasi], jadi halaman ini tidak memakainya.");
     expect(badan).not.toMatch(/orang per tim|per tim:? \d/);
   });
@@ -717,7 +722,7 @@ describe("penjaga tanpa kunci baris: kalimat unik, kata negasi dan kata penuh di
     };
     const urut = (h: Record<string, number>) => Object.fromEntries(Object.entries(h).sort(([x], [y]) => (x < y ? -1 : 1)));
     const bersih = badan.replace(/\[\[[^\]]+\]\]/g, "").split("\n").filter((b) => !/^(import|export|  \.)/.test(b) && !b.startsWith("<Tebak") && !b.startsWith("<Blok") && !b.startsWith('<p class="meta"')).join("\n").replace(/\d{1,3}(?:[.,]\d+)+/g, "");
-    expect(hitungToken(bersih, /(?<![\d,.])\d+(?![\d,%]|\.\d)/g)).toEqual(urut({ "1": 1, "2": 8, "3": 2, "4": 2, "5": 16, "05": 1, "6": 23, "10": 13, "11": 1, "16": 1, "17": 1, "28": 4, "46": 1, "50": 9, "60": 1, "2019": 1, "2020": 2, "2026": 1 }));
+    expect(hitungToken(bersih, /(?<![\d,.])\d+(?![\d,%]|\.\d)/g)).toEqual(urut({ "1": 1, "2": 8, "3": 2, "4": 2, "5": 16, "05": 1, "6": 24, "10": 13, "11": 1, "16": 1, "17": 1, "28": 4, "46": 1, "50": 9, "60": 1, "2019": 1, "2020": 2, "2026": 1 }));
     expect(hitungToken(badan, /\d{1,3}(?:\.\d{3})+/g)).toEqual(urut({ "1.000.000": 5, "10.000.000": 3, "200.000": 2, "1.388": 1 }));
     expect(hitungToken(badan, /\d+(?:\.\d{3})*,\d+/g)).toEqual({ "1.388,9": 1 });
     expect(hitungToken(badan, /\bP\d\b/g)).toEqual({ P2: 5 });
@@ -730,7 +735,7 @@ describe("penjaga tanpa kunci baris: kalimat unik, kata negasi dan kata penuh di
   test("token versi PRD dan Tahap: jumlah dan nilai; hanya v5 dan v6, dan Tahap 4, 5, 6", () => {
     expect([...new Set([...badan.matchAll(/PRD v(\d+)/g)].map((m) => m[1]))].sort()).toEqual([String(N5), String(N6)]);
     expect(hitung(badan, `PRD v${N5}`)).toBe(5);
-    expect(hitung(badan, `PRD v${N6}`)).toBe(16);
+    expect(hitung(badan, `PRD v${N6}`)).toBe(17);
     expect(hitung(teksWidget, `PRD v${N5}`)).toBe(1);
     expect(hitung(teksWidget, `PRD v${N6}`)).toBe(7);
     expect([N4, N5, N6].map((n) => hitung(badan, `Tahap ${n}`))).toEqual([1, 11, 8]);
