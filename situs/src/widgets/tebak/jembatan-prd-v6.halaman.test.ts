@@ -745,3 +745,109 @@ describe("penjaga tanpa kunci baris: kalimat unik, kata negasi dan kata penuh di
     expect([...badan.matchAll(/\bv(\d+)\b/g)].map((m) => m[1]).filter((x) => x !== "5" && x !== "6")).toEqual([]);
   });
 });
+
+// ---- Penjaga tanpa kunci baris untuk prosa yang lolos mutasi peninjau (keputusan 1627) -----------------------------------------------
+// Peninjau 5.32 menemukan 14 mutan prosa yang lolos bila kunci baris dilepas: nomor dokumen, unit penulis, bentuk multi-region, empat gloss
+// tabel, definisi Hitungan dan Penalaran, satu negara, empat prinsip data mesh, dan sistem terpusat. Tiap asersi di bawah menurunkan nilainya
+// dari halaman sumbernya (5.1, ADR 60, naskah, baris riset R5-268) atau mengunci kalimat dengan kata sumbernya.
+describe("prosa yang tak terkunci tanpa kunci baris: nomor dokumen, bentuk multi-region, gloss, definisi, dan kata sumber", () => {
+  const riset268 = baca("plan/RISET-TAHAP-5.md").split("\n").filter((x) => x.startsWith("| R5-268 |"))[0]!;
+  const urutan = ["", "pertama", "kedua", "ketiga", "keempat", "kelima", "keenam"];
+  test("dokumen keenam dari nomor PRD v6, dan penulis serta unitnya sama dengan 5.1", () => {
+    harus(`dokumen ${urutan[N6]} yang Sinta tulis untuk Rekeningo`);
+    expect(N6).toBe(N5 + 1);
+    ada(prd5, "<dd>Sinta, unit Inisiatif Digital</dd>", "5.1");
+    expect(hitung(badan, "<dd>Sinta, unit Inisiatif Digital</dd>")).toBe(1);
+  });
+  test("multi-region aktif-pasif: bentuk dan artinya sama dengan ADR 60, tanpa aktif-aktif", () => {
+    ada(isi("t5-adr-60"), "Pada bentuk aktif-pasif, satu region melayani traffic dan region lain menunggu sampai failover.", "ADR 60");
+    expect(hitung(badan, "multi-region aktif-pasif")).toBe(1);
+    expect(hitung(badan, "Multi-region aktif-pasif: satu wilayah pusat data melayani, wilayah lain menunggu sampai failover")).toBe(1);
+    expect(hitung(badan, "<dd>10 juta user, multi-region aktif-pasif</dd>")).toBe(1);
+    expect(badan).not.toMatch(/aktif-aktif|active\/active/i);
+  });
+  test("satu negara adalah lingkup PRD v5, dan proyeksi Tahap 6 konseptual menurut naskah dan PROPOSAL", () => {
+    ada(prd5, "Lingkupnya satu negara:", "5.1");
+    harus("PRD v5 menulis multi-mata uang sebagai bukan lingkup, dan satu negara sebagai lingkupnya");
+    ada(bag6, "Tahap 6 adalah proyeksi konseptual", "naskah 5 bagian 6");
+    harus("Tahap 6 adalah proyeksi konseptual tanpa klaim rekaman, jadi seluruh isi PRD v6 di halaman ini berlabel Ilustrasi.");
+  });
+  test("empat gloss tabel dikunci per istilah, dan tiap gloss muncul sekali", () => {
+    for (const g of [
+      "golden path (jalur bawaan untuk service baru)",
+      "service catalog (daftar pemilik service)",
+      "chaos testing (percobaan gangguan)",
+      "data mesh sederhana (data dimiliki tim domain)",
+    ]) expect(hitung(badan, g), g).toBe(1);
+    // PROPOSAL baris Tahap 6 menyebut keempat istilah itu, jadi gloss tidak menambah istilah baru.
+    for (const k of ["Golden path", "service catalog", "chaos testing", "data mesh sederhana"]) ada(proposal, k, "PROPOSAL");
+  });
+  test("definisi Hitungan dan Penalaran ditulis satu kali, dan Penalaran ada sebelum widget pertama memakainya", () => {
+    expect(hitung(badan, "Hitungan berarti rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya.")).toBe(1);
+    expect(hitung(badan, "Penalaran berarti kesimpulan dari kalimat yang sudah tertulis, tanpa menjalankan apa pun.")).toBe(1);
+    expect(badan.indexOf("Penalaran berarti")).toBeLessThan(badan.indexOf("<Tebak"));
+    expect(badan.indexOf("Penalaran berarti")).toBeLessThan(badan.indexOf("penalaran dari kalimat halaman ADR"));
+  });
+  test("definisi istilah memakai kata sumbernya: opinionated and supported, sistem terpusat, membangun keyakinan, empat prinsip", () => {
+    ada(riset268, "opinionated and supported", "R5-268");
+    ada(riset268, "sistem terpusat yang melacak kepemilikan dan metadata", "R5-268");
+    ada(riset268, "untuk membangun keyakinan", "R5-268");
+    ada(riset268, "empat prinsip", "R5-268");
+    harus("Golden path adalah jalur \"opinionated and supported\" untuk membangun sesuatu, menurut tulisan Spotify");
+    harus("Service catalog adalah sistem terpusat yang mencatat pemilik dan metadata semua software, menurut dokumentasi Backstage");
+    harus("Chaos testing adalah percobaan pada sistem untuk membangun keyakinan bahwa sistem tahan gangguan di produksi");
+    harus("Data mesh bertumpu pada empat prinsip, dan yang pertama kepemilikan data oleh domain");
+    expect(badan).not.toMatch(/terdistribusi|tiga prinsip|lima prinsip|mengukur kecepatan/);
+  });
+});
+
+// Urutan paragraf, teks pilihan tebakan, dan urutan kepala dokumen: mutan peninjau yang menukar dua paragraf berdampingan, mengubah satu
+// kata di teks pilihan, atau menukar dua blok kepala lolos tanpa kunci baris (keputusan 1627).
+describe("urutan paragraf, teks pilihan, dan kepala dokumen tanpa kunci baris", () => {
+  test("paragraf prosa muncul dalam urutan yang sama, dan tiap awalnya unik", () => {
+    const awal = [
+      "Ini pratinjau PRD v6, dokumen",
+      "Minggu 16 Tahap 5. Uji coba nasional lolos",
+      "PRD v6 mengubah enam hal dari PRD v5:",
+      "Isi PRD v6 adalah rencana cerita (Ilustrasi)",
+      "Tahap 5 menghasilkan ADR 46 sampai 60.",
+      "PRD v5 sudah menulis empat isi PRD v6",
+      "Empat istilah di tabel PRD v5 dan PRD v6 punya sumber.",
+      "Chaos testing adalah percobaan pada sistem",
+      "Halaman ini tidak memuat klaim izin",
+      "Jawaban tebakan dibuka di halaman pertama Tahap 6, di blok",
+      "Di halaman ini \"pecah lebih dulu\" adalah penalaran",
+      "Tebakan membandingkan lima dari lima belas ADR Tahap 5",
+      "Angka 28 menghitung orang di delapan tim",
+      "Satu heuristik praktisi menyebut",
+      "[[t5-m51]] mencatat tiga hal yang diminta PRD v6",
+      "**1.** Jumlah user naik 10 kali di PRD v6.",
+      "10.000.000 ÷ 1.000.000 = 10 (Hitungan atas Asumsi cerita)",
+      "**2.** Kenapa \"pecah lebih dulu\" di halaman ini",
+      "Tidak ada lab yang menjalankan PRD v6.",
+      "**3.** Di mana jawaban tebakan dibuka",
+      "Di halaman pertama Tahap 6, di blok \"Yang dibuka lagi dari Tahap 5\". Halaman ini hanya menaruh",
+      "Tahap 5 selesai di sini.",
+    ];
+    const indeks = awal.map((a) => {
+      expect(hitung(badan, `\n${a}`) + (badan.startsWith(a) ? 1 : 0), `awal paragraf tidak unik atau tidak ada: ${a}`).toBe(1);
+      return badan.indexOf(a);
+    });
+    for (let i = 1; i < indeks.length; i++) expect(indeks[i]!, `paragraf ${i + 1} harus sesudah paragraf ${i}: ${awal[i]}`).toBeGreaterThan(indeks[i - 1]!);
+  });
+  test("kepala dokumen: dua kelompok dl berurutan, Penulis dan Status dulu, Lingkup dan Tim kedua", () => {
+    const dl = [...badan.matchAll(/<dl>(.*?)<\/dl>/g)].map((m) => [...m[1]!.matchAll(/<dt>(.*?)<\/dt>/g)].map((x) => x[1]));
+    expect(dl).toEqual([["Penulis", "Status"], ["Lingkup", "Tim"]]);
+  });
+  test("teks tiga pilihan tebakan dikunci utuh, dan tiap pilihan menyebut nomor ADR dan isi PRD v6 yang dibandingkan", () => {
+    expect(data.pilihan.map((p) => p.teks)).toEqual([
+      "ADR 52: PgBouncer mode transaction tidak cukup lagi, karena 10 juta user membuat koneksi dari semua pod jauh lebih banyak daripada yang bisa dilayani pooler.",
+      "ADR 56: kuota per mitra tidak cukup lagi, karena mitra POS bertambah mengikuti jumlah user.",
+      "ADR 58, ADR 59, dan ADR 60: platform untuk tim yang lebih besar, data yang harus tinggal di lokasi tertentu, dan multi-region.",
+    ]);
+    // Pilihan ketiga memakai tiga keadaan dari halaman ADR-nya: platform (ADR 58), lokasi data (ADR 59), dan multi-region (ADR 60).
+    ada(isi("t5-onprem"), "Data harus tinggal di lokasi tertentu", "ADR 59");
+    ada(isi("t5-adr-60"), "| 2. Multi-region |", "ADR 60");
+    ada(isi("t5-tim-infra"), "Platform menjadi penghambat", "ADR 58");
+  });
+});
