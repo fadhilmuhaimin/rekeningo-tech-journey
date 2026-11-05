@@ -1,0 +1,130 @@
+[
+  {
+    "id": "t5-rekap-k1",
+    "halaman": "t5-m40",
+    "judul": "5.4 M40: Pembayaran melambat saat merchant membuka laporan",
+    "url": "tahap-5/m40-pembayaran-melambat/",
+    "tanya": "M40: laporan merchant menjumlah posting di primary yang sama dengan pembayaran. Di rekaman, 1.000 dari 1.000 pembayaran dan 6.667 dari 6.667 laporan dijawab tanpa galat. Standby menolak UPDATE dengan kode 25006. Kalimat apa yang lahir?",
+    "jawab": "Salinan hanya untuk dilihat: yang memutuskan uang dibaca dari tempat yang menggerakkannya (ADR 46: satu read replica asinkron untuk laporan, uang tetap dari primary). Dipersempit: rekaman mencakup bayar dan kirim, tutup buku resmi Tidak dijalankan, dan selisih p95 pembayaran tidak direkam."
+  },
+  {
+    "id": "t5-rekap-k2",
+    "halaman": "t5-m41",
+    "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
+    "url": "tahap-5/m41-riwayat-belum-memuat/",
+    "tanya": "M41: jawaban bayar Budi memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000. Sesudah Budi membayar Rp12.000 dan menerima token posisi WAL, bacaan tanpa token menjawab Rp215.000 dan bacaan dengan token menjawab Rp203.000. Kalimat apa yang lahir?",
+    "jawab": "Replica bisa tertinggal, jadi apa yang baru kamu tulis dibaca dari primary sampai replica menyusul (ADR 47: tiga kelas baca, dan token posisi WAL). Dipersempit: naskah menulis replica selalu sedikit tertinggal, sedangkan jeda alami di lab di bawah 1 detik."
+  },
+  {
+    "id": "t5-rekap-k3",
+    "halaman": "t5-m42",
+    "judul": "5.8 M42: Database utama mati, dua top-up hilang",
+    "url": "tahap-5/m42-database-utama-mati/",
+    "tanya": "M42: koneksi WAL replica asinkron diputus dan lima pembayaran dijawab 201. Replica dipromosikan dan tidak memuat satu pun dari lima jurnal itu. Dengan standby sinkron, tiga jurnal 201 ada di node baru. Kalimat apa yang lahir?",
+    "jawab": "Pulih cepat belum cukup: tulis berapa transaksi yang boleh hilang, lalu buktikan dengan latihan (ADR 48: replica sinkron kuorum dan failover dengan fencing). Batas: lab memerankan kegagalan tanpa mematikan primary, dan latihan bulanan adalah aturan, bukan rekaman."
+  },
+  {
+    "id": "t5-rekap-k4",
+    "halaman": "t5-m43",
+    "judul": "5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20",
+    "url": "tahap-5/m43-pemeriksaan-saldo/",
+    "tanya": "M43: pemeriksaan malam membaca 1.800.000 dari 1.800.000 posting. Dari snapshot terakhir ia membaca 150.000. Ledger menolak DELETE atas posting dengan kode 23001. Kalimat apa yang lahir?",
+    "jawab": "Ukuran jarang jadi masalah. Pekerjaan yang membaca semuanya tiap malam, dan data yang tidak boleh dihapus, yang jadi masalah (ADR 49: partisi per bulan dan snapshot saldo). Dipersempit: 8,3% dipilih lab, dan partisi tidak menambah kapasitas tulis."
+  },
+  {
+    "id": "t5-rekap-k5",
+    "halaman": "t5-m44",
+    "judul": "5.12 M44: Rilis Kamis menunggu lima tim",
+    "url": "tahap-5/m44-rilis-menunggu-lima-tim/",
+    "tanya": "M44: lima tim produk menunggu satu merge queue (Ilustrasi). Lab memecah 30 tabel ke enam schema: foreign key lintas schema turun dari 18 ke 0, dan kolom nama ditolak dengan kode 42501. Kalimat apa yang lahir?",
+    "jawab": "Pecah karena jadwal rilis, bukan karena ukuran, dan siapkan konsistensi yang tidak lagi satu transaction (ADR 50: enam service di Kubernetes). Batas: rekaman memecah data, bukan proses."
+  },
+  {
+    "id": "t5-rekap-k6",
+    "halaman": "t5-service",
+    "judul": "5.13 Dari modul ke service, Kubernetes, kapan menggabungkan kembali + ADR 50",
+    "url": "tahap-5/modul-ke-service/",
+    "tanya": "ADR 50 dan kasus industri: satu alur skor berjalan dalam satu proses dengan 0 panggilan antar proses, dan dalam tiga proses dengan 6 panggilan. Tim di Prime Video memindahkan komponen ke satu proses dan biayanya turun lebih dari 90%. Kalimat apa yang lahir?",
+    "jawab": "Komponen yang bertukar data besar dan sering rugi bila dipisah lewat jaringan (ADR 50, bagian kapan menggabungkan kembali). Batas: lab hanya mengirim 620,14 byte per transaksi, dan kasus industri adalah satu service milik satu tim."
+  },
+  {
+    "id": "t5-rekap-k7",
+    "halaman": "t5-m45",
+    "judul": "5.14 M45: Pengumuman ke satu juta HP, notifikasi uang terlambat",
+    "url": "tahap-5/m45-pengumuman-satu-juta/",
+    "tanya": "M45: notifikasi uang datang 96,3 per detik dan worker mengirim 13,33 per detik (Hitungan atas Asumsi). Satu pengumuman ke 10.281 perangkat menulis satu baris outbox dan enam rekaman Kafka. Kalimat apa yang lahir?",
+    "jawab": "Satu kejadian untuk banyak penerima ditulis sekali, dan penerima yang membaginya (ADR 51: Kafka per partisi untuk pengumuman, uang tetap outbox). Dipersempit: pengiriman tepat satu kali tidak dijamin."
+  },
+  {
+    "id": "t5-rekap-k8",
+    "halaman": "t5-m46",
+    "judul": "5.16 M46: Latihan failover membuat semua service error",
+    "url": "tahap-5/m46-failover-semua-error/",
+    "tanya": "M46: 12 client dengan pool 10 meminta 120 koneksi dan batasnya 97, sehingga sebagian ditolak dengan kode 53300. Enam service dengan tiga pod dan pool 10 meminta 180 koneksi. Kalimat apa yang lahir?",
+    "jawab": "Yang dihitung adalah koneksi yang mungkin dipakai saat semua pod menyambung bersamaan, bukan rata-ratanya (ADR 52: PgBouncer mode transaction). Batas: rekaman bukan latihan failover, dan 180 adalah Hitungan atas Asumsi."
+  },
+  {
+    "id": "t5-rekap-k9",
+    "halaman": "t5-m47",
+    "judul": "5.18 M47: Pod notifikasi membuat jurnal",
+    "url": "tahap-5/m47-pod-membuat-jurnal/",
+    "tanya": "M47: pemanggil tanpa sertifikat membuat jurnal top-up Rp1.000 dengan Idempotency-Key baru. Dengan mTLS, sertifikat notifikasi dijawab 403 untuk jenis topup_bank. Kalimat apa yang lahir?",
+    "jawab": "Idempotency-Key mencegah pemrosesan ganda, bukan pemanggil yang tidak berhak (ADR 53: mTLS dan daftar jenis jurnal per identitas). Batas: NetworkPolicy Tidak dijalankan."
+  },
+  {
+    "id": "t5-rekap-k10",
+    "halaman": "t5-m48",
+    "judul": "5.20 M48: Angsuran Budi terdebit dua kali",
+    "url": "tahap-5/m48-angsuran-dua-kali/",
+    "tanya": "M48: batch angsuran yang mati sesudah jurnal ditulis diulang 25 jam kemudian. Saldo Budi turun dari Rp250.000 ke Rp50.000. Versi benar memakai referensi unik di jurnal. Kalimat apa yang lahir?",
+    "jawab": "Key yang kedaluwarsa tidak boleh menjadi satu-satunya penahan jurnal ganda (ADR 54: referensi unik dan status per langkah). Batas: pengulangan +25 jam untuk versi benar Tidak dijalankan."
+  },
+  {
+    "id": "t5-rekap-k11",
+    "halaman": "t5-m49",
+    "judul": "5.22 M49: Rilis kartu 5% ternyata sepertiga",
+    "url": "tahap-5/m49-canary-sepertiga/",
+    "tanya": "M49: Rollout tanpa traffic router dengan tiga replika dan setWeight 5 menjalankan satu pod versi baru. Satu pod yang menerima kill switch menolak, dua pod lain tetap menyetujui. Kalimat apa yang lahir?",
+    "jawab": "5% hanya 5% bila ada traffic router, dan sakelar yang tidak lintas pod bukan sakelar (ADR 55: Argo Rollouts dengan Gateway API, dan sakelar di satu tabel). Dipersempit: 5,8 otorisasi yang lolos adalah batas atas."
+  },
+  {
+    "id": "t5-rekap-k12",
+    "halaman": "t5-m50",
+    "judul": "5.24 M50: Satu POS mengirim 3.000 permintaan per detik",
+    "url": "tahap-5/m50-satu-pos/",
+    "tanya": "M50: satu bucket 100 per detik dipakai semua mitra. Mitra A mengirim 600 permintaan dan mitra B 20, lalu 520 dari 620 mendapat 429 dan B ikut tertolak. Kalimat apa yang lahir?",
+    "jawab": "Kuota per mitra, bukan satu batas bersama (ADR 56: gerbang dengan WAF, kunci per mitra, dan Idempotency-Key wajib). Dipersempit: jam bucket dibekukan, dan replay dalam 5 menit tidak ditutup di lab."
+  },
+  {
+    "id": "t5-rekap-k13",
+    "halaman": "t5-kms",
+    "judul": "5.26 Keamanan 12: Arsip dan cadangan, envelope encryption + ADR 57",
+    "url": "tahap-5/arsip-envelope-encryption/",
+    "tanya": "ADR 57: file arsip 28.000 baris dibuka dengan token yang tidak punya hak decrypt dan dijawab 403. Satu bit yang dibalik membuat pemeriksaan keaslian AES-GCM gagal. Kalimat apa yang lahir?",
+    "jawab": "File yang keluar dari database dienkripsi dengan kunci yang tidak ikut keluar (ADR 57: satu data key per file arsip, dibungkus kunci di OpenBao). Batas: OpenBao dan arsip di lab berada di satu mesin."
+  },
+  {
+    "id": "t5-rekap-k14",
+    "halaman": "t5-tim-infra",
+    "judul": "5.27 Tim dan infra Tahap 5: platform, GitOps, OpenTelemetry, SLO + ADR 58",
+    "url": "tahap-5/tim-infra/",
+    "tanya": "ADR 58: SLO 99,9% per 30 hari memberi anggaran 43,2 menit. Alert burn rate 14,4 selama 1 jam menghabiskan 2% anggaran. Collector menyimpan 11 dari 11 trace berkesalahan. Kalimat apa yang lahir?",
+    "jawab": "Tentukan anggaran kegagalan, lalu beri alert dari laju habisnya (ADR 58: jalan beraspal Platform, tail sampling, dan SLO). Batas: pipeline dan Argo CD sungguhan Tidak dijalankan."
+  },
+  {
+    "id": "t5-rekap-k15",
+    "halaman": "t5-onprem",
+    "judul": "5.28 On-prem lawan cloud + ADR 59",
+    "url": "tahap-5/on-prem-lawan-cloud/",
+    "tanya": "ADR 59: model biaya tiga tahun dengan masukan Ilustrasi. Dengan dua orang operasi tambahan, cloud lebih hemat 1.730 juta rupiah. Tanpa orang tambahan, on-prem lebih hemat 1.150. Kalimat apa yang lahir?",
+    "jawab": "Pilih dengan rumus tiga tahun dan jalan keluar, bukan dengan selera (ADR 59: tetap di cloud milik PT dan menjaga jalan keluar). Batas: semua angka Ilustrasi, bukan harga penyedia."
+  },
+  {
+    "id": "t5-rekap-k16",
+    "halaman": "t5-m51",
+    "judul": "5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6",
+    "url": "tahap-5/m51-prd-v6/",
+    "tanya": "M51: puncak 1.388,9 request per detik menjadi 13.888,9 di Tahap 6 menurut hitungan. Rekaman beban satu laptop menyelesaikan 20.833 permintaan dengan p95 di bawah batas lab. Kalimat apa yang lahir?",
+    "jawab": "Masalah Tahap 5 adalah salinan yang tertinggal dan pekerjaan yang diulang, bukan jumlah request per detik. Kapasitas satu primary belum terukur. Batas: tiga hal yang diminta PRD v6 belum pernah diuji."
+  }
+]

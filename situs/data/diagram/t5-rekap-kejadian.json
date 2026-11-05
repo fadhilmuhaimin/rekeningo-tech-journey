@@ -1,0 +1,72 @@
+{
+  "id": "t5-rekap-kejadian",
+  "judul": "Kejadian Tahap 5 dalam urutan minggu",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Naskah Tahap 5 · urutan kejadian"
+  },
+  "baris": [
+    {
+      "label": "Minggu 2 sampai 7",
+      "sub": "laporan, replica, partisi, service",
+      "simpul": [
+        {
+          "teks": "M40 laporan",
+          "sub": "laporan dan primary"
+        },
+        {
+          "teks": "M41 riwayat",
+          "sub": "replica tertinggal"
+        },
+        {
+          "teks": "M42 promosi",
+          "sub": "primary mati"
+        },
+        {
+          "teks": "M43 saldo",
+          "sub": "pemeriksaan harian"
+        },
+        {
+          "teks": "M44 rilis",
+          "sub": "rilis dan service"
+        },
+        {
+          "teks": "M45 fan-out",
+          "sub": "pengumuman"
+        }
+      ]
+    },
+    {
+      "label": "Minggu 8 sampai 16",
+      "sub": "koneksi, identitas, rilis, estimasi",
+      "simpul": [
+        {
+          "teks": "M46 pool",
+          "sub": "koneksi database"
+        },
+        {
+          "teks": "M47 mTLS",
+          "sub": "identitas service"
+        },
+        {
+          "teks": "M48 batch",
+          "sub": "angsuran ganda"
+        },
+        {
+          "teks": "M49 canary",
+          "sub": "canary dan sakelar"
+        },
+        {
+          "teks": "M50 kuota",
+          "sub": "satu POS"
+        },
+        {
+          "teks": "M51 PRD v6",
+          "sub": "PRD v6 dan estimasi",
+          "nada": "system"
+        }
+      ]
+    }
+  ],
+  "catatan": "Dua belas kalimat lahir dari PRD v5 dan M40 sampai M51, dan PRD v5 bersama M40 melahirkan satu; empat kalimat lahir dari ADR 50, 57, 58, dan 59."
+}

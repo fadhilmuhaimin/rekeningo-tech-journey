@@ -51,6 +51,8 @@
   function hariIni() { return new Date().toISOString().slice(0, 10); }
 
   BB.mounts.kartu = function (host) {
+    // Halaman rekap dengan lebih dari MAKS_SESI kartu memberi data-maks (jumlah kartu halaman itu), supaya satu sesi menampilkan semuanya.
+    var maks = parseInt(host.dataset.maks, 10) || MAKS_SESI;
     // Saringan memanggil BB.halamanSelesai dari skrip modul DataSelesai; kartu baru tampil sesudah DOMContentLoaded,
     // saat skrip modul sudah berjalan, supaya saringan yang dicentang cepat tidak jatuh ke penanda lama (keputusan 320).
     Promise.all([BB.fetchJSON(host.dataset.src), BB.domSiap]).then(function (x) {
@@ -87,10 +89,10 @@
       }
 
       function mulai() {
-        antre = core.antre(pool(), states, hariIni(), MAKS_SESI);
+        antre = core.antre(pool(), states, hariIni(), maks);
         i = 0;
         info.textContent = pool().length + " kartu dari " + new Set(pool().map(function (c) { return c.halaman; })).size +
-          " halaman · sesi ini " + antre.length + " kartu (maks " + MAKS_SESI + ")";
+          " halaman · sesi ini " + antre.length + " kartu (maks " + maks + ")";
         tampil();
       }
 
@@ -109,10 +111,12 @@
         if (c.kode) card.appendChild(BB.el("pre", null, [BB.el("code", { text: c.kode })]));
         var buka = BB.el("button", { type: "button", class: "bb-btn bb-btn--primary", text: "Tunjukkan jawaban", onclick: function () {
           buka.remove();
-          card.appendChild(BB.el("div", { class: "bb-kartu__a", text: c.jawab }));
+          var jawaban = BB.el("div", { class: "bb-kartu__a", tabindex: "-1", text: c.jawab });
+          card.appendChild(jawaban);
           card.appendChild(BB.el("div", { class: "bb-row" }, [
             BB.el("button", { type: "button", class: "bb-btn", text: "Ingat", onclick: function () { nilai(c, true); } }),
             BB.el("button", { type: "button", class: "bb-btn", text: "Belum ingat", onclick: function () { nilai(c, false); } })]));
+          jawaban.focus();
         } });
         card.appendChild(buka);
       }
@@ -122,6 +126,10 @@
         BB.store.set("kartu:" + c.id, states[c.id]);
         i++;
         tampil();
+        // Tombol yang diklik sudah dilepas dari DOM: fokus pindah ke tombol kartu berikutnya, atau ke pesan akhir sesi, bukan ke body.
+        var lanjut = card.querySelector("button");
+        if (!lanjut) { lanjut = card.querySelector("p"); if (lanjut) lanjut.setAttribute("tabindex", "-1"); }
+        if (lanjut) lanjut.focus();
       }
       mulai();
     }).catch(function (e) { host.textContent = "Kartu gagal dimuat: " + e.message; });
