@@ -89,7 +89,7 @@ Kedelapan aturan di halaman itu tidak menulis siapa yang boleh memberi hak baca 
 
 **Yang sudah ada di lab Tahap 5.** Untuk kebanyakan objek, dokumentasi PostgreSQL 17 menulis bahwa hak harus diberikan agar role lain memakainya. Biasanya hanya pemilik objek, atau superuser, yang bisa memberi atau mencabut hak itu ([Privileges](https://www.postgresql.org/docs/17/ddl-priv.html), dibuka 2026-11-06, Tidak dijalankan). Hak yang sudah diberikan dicabut dengan REVOKE, jadi hak sementara berlaku sampai ada yang menjalankannya (Penalaran, Tidak dijalankan).
 
-Di rekaman, PostgreSQL menolak role service lain membaca schema pembayaran secara bawaan. Satu-satunya hak lintas schema adalah kontrak kolom: ledger membaca tiga kolom tabel akun.
+Di rekaman lab Tahap 5, PostgreSQL menolak role service lain membaca schema pembayaran. Satu-satunya hak lintas schema di lab itu adalah kontrak kolom: ledger membaca tiga kolom tabel akun.
 
 <Snippet file="labs/api-t5/output/skema.txt" lines="194:195" title="Rekaman lab Tahap 5: labs/api-t5/output/skema.txt, bagian F (role merchant ditolak membaca schema pembayaran)" />
 
@@ -105,9 +105,9 @@ Pemeriksaan itu berjalan atas enam role service saja. Role ketujuh, misalnya rol
 
 <Snippet file="labs/t4-modul/output/batas.txt" lines="81:85" title="Rekaman lab Tahap 4: labs/t4-modul/output/batas.txt, bagian B (rename kolom nama dan kolom kontrak)" />
 
-Tes itu menjalankan query pembaca, dan komentar di kodenya menulis tujuannya: tim yang mengubah kolom tahu sebelum rilis (`batas_test.go`, Dibaca dari kode). Hak baca sementara Pelaporan tidak punya baris kontrak, jadi query-nya tidak ada di pipeline Pembayaran.
+Tes itu menjalankan query pembaca, dan komentar di kodenya menulis tujuannya: tim yang mengubah kolom tahu sebelum rilis (Tidak dijalankan: dibaca dari komentar di `batas_test.go`). Hak baca sementara Pelaporan tidak punya baris kontrak, jadi query-nya tidak ada di pipeline Pembayaran.
 
-**Kenapa ADR 17 tidak cukup.** ADR 17 memecah perubahan skema menjadi tiga rilis, expand, migrate, dan contract, untuk tabel akun, buku, jurnal, dan posting ([[t2-skema-tanpa-downtime]]). Syarat contract di aturan 6 menyebut dua hal: cek data lulus dan server hanya memakai ledger. Pembaca di tim lain tidak disebut.
+**Kenapa ADR 17 tidak cukup.** ADR 17 memecah perubahan skema menjadi tiga rilis, expand, migrate, dan contract, untuk tabel akun, buku, jurnal, dan posting ([[t2-skema-tanpa-downtime]]). Syarat contract di aturan 6 menyebut cek yang lulus, server yang hanya memakai ledger, salinan tabel v1, dan app 1.0 dan 1.1 yang masih beredar. Pembaca di tim lain tidak disebut.
 
 Bila migration M53 memakai tiga rilis, nama lama bertahan sampai langkah contract, dan laporan Pelaporan baru patah di langkah itu. Itu terjadi kecuali pemilik tahu bahwa Pelaporan membaca kolomnya (Penalaran, Tidak dijalankan).
 
@@ -117,7 +117,7 @@ Dokumentasi PostgreSQL 17 menulis bahwa RENAME tidak mengubah data tersimpan, da
 
 **Struktur tim dan struktur sistem.** Menurut Melvin Conway, organisasi yang merancang sistem terpaksa menghasilkan rancangan yang menyalin "communication structures" organisasi itu. Sumbernya makalah di Datamation, April 1968 ([How Do Committees Invent?](https://www.melconway.com/Home/Committees_Paper.html), dibuka 2026-11-06, Tidak dijalankan). Ia juga menulis bahwa tiap delegasi mempersempit pilihan rancangan yang bisa ditempuh, dan bahwa usaha merancang sebaiknya diatur menurut kebutuhan komunikasi.
 
-Kebutuhan komunikasi Pelaporan dengan Pembayaran ada di satu tempat: kolom yang dibaca. Tempat itu tidak ada di sistem, jadi kebutuhan itu pindah ke rapat dan pengumuman (Penalaran, Tidak dijalankan). Makalah itu membahas struktur rancangan pada umumnya, dan kata schema dan database tidak muncul di teksnya.
+Kebutuhan komunikasi Pelaporan dengan Pembayaran ada di satu tempat: kolom yang dibaca. Tempat itu tidak ada di sistem, jadi kebutuhan itu pindah ke rapat dan pengumuman (Penalaran, Tidak dijalankan). Makalah itu membahas struktur rancangan pada umumnya, dan kata schema dan database tidak muncul di teksnya (dicari 2026-11-06).
 
 **Data yang dipakai tim lain adalah produk.** Empat prinsip data mesh menurut Zhamak Dehghani adalah kepemilikan domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer. Sumbernya tulisan 3 Desember 2020 ([Data Mesh Principles and Logical Architecture](https://martinfowler.com/articles/data-mesh-principles.html), dibuka 2026-11-06, Tidak dijalankan). Pemilik produk data bertanggung jawab atas ukuran seperti kualitas data dan lama user mendapat data.
 
