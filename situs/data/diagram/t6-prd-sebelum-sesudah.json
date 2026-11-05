@@ -1,0 +1,28 @@
+{
+  "id": "t6-prd-sebelum-sesudah",
+  "judul": "Sesudah Tahap 5 dan yang diminta PRD v6",
+  "sumber": { "jenis": "ilustrasi", "teks": "Ringkasan PRD v6" },
+  "baris": [
+    {
+      "label": "Sesudah Tahap 5",
+      "sub": "yang belum ada",
+      "simpul": [
+        { "teks": "Satu negara, satu mata uang", "sub": "1.000.000 user" },
+        { "teks": "Satu cluster database", "sub": "semua data di satu tempat" },
+        { "teks": "RTO 15 menit, satu mesin", "sub": "satu wilayah belum", "nada": "warn" },
+        { "teks": "28 engineer, delapan tim", "sub": "enam service" }
+      ]
+    },
+    {
+      "label": "Rekeningo v6",
+      "sub": "tiga negara, 24 minggu",
+      "simpul": [
+        { "teks": "Tiga negara", "sub": "10.000.000 user, kurs tercatat", "nada": "system" },
+        { "teks": "Data per negara", "sub": "tiap data punya satu rumah", "nada": "system" },
+        { "teks": "Pulih dalam 30 menit", "sub": "satu wilayah hilang, RPO nol", "nada": "good" },
+        { "teks": "53 engineer, 11 tim", "sub": "golden path dan SLO per tim", "nada": "system" }
+      ]
+    }
+  ],
+  "catatan": "Kotak biru adalah fitur dan kondisi di PRD v6. Kotak hijau adalah target pulih, Asumsi produk."
+}

@@ -17,7 +17,7 @@ LAMA = ROOT / "situs/lama"                       # widget lama, data widget, ven
 SITUS = ROOT / "situs/src/content/docs"
 CERITA = ROOT / "situs/data/cerita.json"
 TOKEN = re.compile(r"\[\[([A-Za-z0-9.\-]+)(?:\|([^\]]+))?\]\]")
-URUT_BACA = ("pembuka", 1, 2, 3, 4, 5, "sampingan")   # "alat" di luar urutan baca
+URUT_BACA = ("pembuka", 1, 2, 3, 4, 5, 6, "sampingan")   # "alat" di luar urutan baca
 
 
 def muat():
