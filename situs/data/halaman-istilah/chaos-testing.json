@@ -1,0 +1,40 @@
+{
+  "istilah": "Chaos testing",
+  "sehari_hari": "Chaos testing adalah percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi. Sistem diberi gangguan yang sengaja dipilih, lalu keadaan normalnya yang terukur dibandingkan dengan sebelumnya. Bila keadaan itu berubah, percobaan menemukan kelemahan sebelum gangguan sungguhan datang.",
+  "cerita": [
+    {
+      "rujukan": "t5-jembatan",
+      "teks": "Pratinjau PRD v6 menulis chaos testing sebagai percobaan gangguan, bersama platform internal dan data mesh sederhana."
+    },
+    {
+      "rujukan": "t6-m54",
+      "teks": "Halaman M54 memakai istilah ini bersama SLO per tim, error budget, dan canary."
+    }
+  ],
+  "mekanisme": [
+    "Tentukan steady state, yaitu keluaran sistem yang terukur dan menandakan perilaku normal, mis. throughput, tingkat error, atau persentil latensi.",
+    "Tulis hipotesis bahwa steady state itu bertahan, baik di kelompok kontrol maupun di kelompok percobaan.",
+    "Beri variabel yang mencerminkan kejadian nyata, mis. server mati, respons rusak, atau lonjakan lalu lintas.",
+    "Cari selisih steady state antara kedua kelompok. Makin sulit mengganggu steady state, makin besar keyakinan pada sistem.",
+    "Otomatiskan percobaan dan batasi blast radius, yaitu dampak yang bisa dirasakan pelanggan."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira chaos testing berarti merusak sesuatu secara acak. Principles of Chaos meminta hipotesis atas steady state yang terukur lebih dulu.",
+    "Tidak membatasi dampak. Principles of Chaos menulis bahwa percobaan di produksi berpotensi menyakiti pelanggan tanpa perlu, dan penguji wajib menjaga dampaknya kecil dan terkendali.",
+    "Menjalankan percobaan dengan tangan terus-menerus. Dokumen yang sama menulis bahwa percobaan manual padat kerja dan pada akhirnya tidak berkelanjutan."
+  ],
+  "terkait": [
+    "Canary",
+    "Kill switch",
+    "SLO (service level objective)"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-17",
+      "judul": "Principles of Chaos Engineering (pembaruan terakhir Maret 2019)",
+      "url": "https://principlesofchaos.org/",
+      "catatan": "Teks HTML dibuka 2026-11-06. Chaos Engineering adalah disiplin bereksperimen pada sistem untuk membangun keyakinan pada kemampuannya menghadapi kondisi bergolak di produksi. Lima praktik: steady state, hipotesis, variabel dari kejadian nyata, otomatisasi, dan blast radius minimal."
+    }
+  ]
+}

@@ -945,7 +945,7 @@ describe("label kejujuran dan arti istilah", () => {
     const g = (nama: string) => barisAwal(glosarium, `| **${nama}**`);
     expect(g("RPO")).toBe("| **RPO** (recovery point objective) | Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang. | [[t5-prd]] |");
     expect(g("RTO")).toBe("| **RTO** (recovery time objective) | Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan. | [[t5-prd]] |");
-    expect(g("Error budget")).toBe("| **Error budget** | Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. | [[t5-prd]] |");
+    expect(g("Error budget")).toBe("| **Error budget** | Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. Anggaran kegagalan adalah nama lain untuk hal yang sama. | [[t5-prd]] |");
     di(g("RPO"), "glosarium", "Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang.");
     di(g("RTO"), "glosarium", "Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan.");
     di(g("Error budget"), "glosarium", "100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.");

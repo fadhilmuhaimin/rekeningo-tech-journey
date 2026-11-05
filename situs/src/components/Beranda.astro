@@ -43,7 +43,7 @@ const statusTahap = (no: number) => {
   if (ada === semua.length) return `Selesai: ${semua.length} halaman`;
   return `Sedang ditulis: ${ada} dari ${semua.length} halaman` + (lama ? `; ${lama} versi lama bisa dibaca` : "");
 };
-type Peta = { no: number; nama: string; skala?: Skala; diagram?: { baris: Node[][]; caption?: string }; status: string; lama: boolean; href?: string };
+type Peta = { no: number; nama: string; skala?: Skala; diagram?: { baris: Node[][]; caption?: string }; status: string; lama: boolean; proyeksi?: boolean; href?: string };
 const tahap: Peta[] = [
   ...d.tahap.map((t: T) => ({
     no: t.no, nama: t.nama, skala: t.skala, diagram: t.arsitektur,
@@ -51,7 +51,16 @@ const tahap: Peta[] = [
     lama: t.versi === "lama",
     href: awalTahap(t.no) ? url(awalTahap(t.no)!) : undefined,
   })),
-  ...d.proyeksi.map((t: T) => ({ no: t.no, nama: t.nama, skala: t.skala, diagram: undefined, status: "Proyeksi, belum ditulis", lama: false, href: undefined })),
+  // Tahap proyeksi (Tahap 6) tanpa diagram. Begitu punya halaman, ia tertaut ke halaman pertamanya di urutan baca, atau ke
+  // halaman Cerita-nya selama urutan baca belum memuat Tahap 6 (keputusan 1760).
+  ...d.proyeksi.map((t: T) => {
+    const awal = awalTahap(t.no) ?? cari(`T${t.no}`);
+    return {
+      no: t.no, nama: t.nama, skala: t.skala, diagram: undefined, proyeksi: true, lama: false,
+      status: awal ? `Proyeksi konseptual, tanpa lab. ${statusTahap(t.no)}` : "Proyeksi, belum ditulis",
+      href: awal ? url(awal) : undefined,
+    };
+  }),
 ];
 
 const diagramTahap = tahap.map((t) => ({ no: t.no, data: t.diagram ? Arsitektur.parse(t.diagram) : null, lama: t.lama }));
@@ -135,7 +144,7 @@ const cara = hs.find((h) => h.id === "A0");
     <div class="peta__tab" role="tablist" aria-label="Enam tahap" data-tahap={tahap[0]!.no}>
       {tahap.map((t, i) => (
         <button type="button" role="tab" data-no={t.no} id={`tab-tahap-${t.no}`} aria-controls={`panel-tahap-${t.no}`} aria-selected={i === 0 ? "true" : "false"} tabindex={i === 0 ? 0 : -1}
-          class:list={["peta__pilih", { "is-lama": t.lama, "is-proyeksi": !t.href }]}>
+          class:list={["peta__pilih", { "is-lama": t.lama, "is-proyeksi": !!t.proyeksi }]}>
           <span class="peta__no">{t.no}</span>
           <span class="peta__nama">{t.skala?.pendek ?? t.nama}</span>
           {t.skala && <span class="peta__user">{t.skala.user.split(",")[0]}</span>}

@@ -91,7 +91,10 @@ const digantiAda = (x) => [x.lebur_ke, x.diganti_oleh].some((k) => k && by[k]?.a
 const nomor = (n) => urut.findIndex((x) => x.nomor === n);
 
 test("registry: halaman masuk urutan baca tepat bila penggantinya belum ada (dibaca langsung dari data)", () => {
-  const punyaPengganti = d.halaman.filter((x) => x.ada && (x.lebur_ke || x.diganti_oleh));
+  // Hanya tahap yang sudah punya halaman di urutan baca: Tahap 6 baru masuk `URUT_BACA` saat 6.1 ditulis (keputusan 1805), jadi
+  // halaman Cerita-nya (T6, diganti_oleh t6-prd) belum bisa "masuk" atau "dilewati" selama itu (keputusan 1760).
+  const tahapUrut = new Set(urut.map((u) => u.tahap));
+  const punyaPengganti = d.halaman.filter((x) => x.ada && (x.lebur_ke || x.diganti_oleh) && tahapUrut.has(x.tahap));
   assert.ok(punyaPengganti.length > 0, "registry tanpa halaman lama: tes ini tidak lagi membuktikan apa pun, hapus atau ganti");
   const salah = punyaPengganti.filter((x) => urut.some((u) => u.id === x.id) === digantiAda(x)).map((x) => x.id);
   assert.deepEqual(salah, []);

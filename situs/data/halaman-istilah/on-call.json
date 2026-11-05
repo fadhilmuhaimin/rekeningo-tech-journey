@@ -1,6 +1,6 @@
 {
   "istilah": "On-call",
-  "sehari_hari": "On-call adalah giliran jaga: satu orang dalam tim bertugas menerima alert dan menanganinya selama giliran itu. Setelah giliran selesai, orang berikutnya menggantikan.",
+  "sehari_hari": "On-call adalah giliran jaga: satu orang dalam tim bertugas menerima alert dan menanganinya selama giliran itu. Setelah giliran selesai, orang berikutnya menggantikan. Rotasi bisa memakai dua penjaga sekaligus, primer dan sekunder, yang tugasnya berbeda.",
   "cerita": [
     {
       "rujukan": "t3-tim-infra",
@@ -11,6 +11,7 @@
     "Tim menetapkan siapa yang menjaga dan berapa lama satu giliran, mis. satu minggu.",
     "Alert hanya sampai ke penjaga. Bila orang lain ikut dipanggil untuk hal yang sama, buku SRE menilai satu panggilan tidak perlu.",
     "Buku SRE menulis bahwa tidak lebih dari 25% waktu seorang SRE dipakai untuk jaga. Dari batas itu buku menghitung paling sedikit delapan engineer di satu lokasi untuk rotasi 24 jam dengan dua penjaga.",
+    "Banyak tim punya rotasi primer dan sekunder, dan pembagian tugasnya berbeda antar tim. Satu tim memakai sekunder sebagai cadangan untuk panggilan yang terlewat primer. Tim lain membiarkan primer menangani panggilan mendesak saja, sedangkan sekunder menangani pekerjaan produksi yang tidak mendesak.",
     "Bila satu orang tidak bisa jaga, giliran jatuh ke orang lain dan persentase tiap orang naik."
   ],
   "stack": null,
@@ -18,13 +19,17 @@
     "Menganggap batas 25% berlaku sama untuk semua tim. Angka itu dari tim SRE Google dengan rotasi 24 jam, dan tidak menyebut tim kecil dengan jam jaga yang lebih pendek.",
     "Menghitung rotasi dengan semua anggota tim, padahal tidak semua bisa memegang jalur yang sedang dijaga. Di Rekeningo, Raka memegang app dan Wulan memegang dasbor web."
   ],
-  "terkait": ["Alert", "Golden signals", "Staging"],
+  "terkait": [
+    "Alert",
+    "Golden signals",
+    "Staging"
+  ],
   "sumber": [
     {
       "riset": "R3-231",
       "judul": "Google SRE book, bab 11: Being On-Call",
       "url": "https://sre.google/sre-book/being-on-call/",
-      "catatan": "Edisi 2017, dibuka 2026-10-27. Batas 25% waktu untuk jaga, dan paling sedikit delapan engineer di satu lokasi untuk rotasi 24 jam dengan primer dan sekunder."
+      "catatan": "Edisi 2017, dibuka 2026-10-27 dan dibuka ulang 2026-11-06. Batas 25% waktu untuk jaga, dan paling sedikit delapan engineer di satu lokasi untuk rotasi 24 jam dengan primer dan sekunder. Banyak tim punya rotasi primer dan sekunder, dan pembagian tugasnya berbeda antar tim."
     }
   ]
 }

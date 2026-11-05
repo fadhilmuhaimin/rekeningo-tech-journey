@@ -1,0 +1,36 @@
+{
+  "istilah": "Service catalog",
+  "sehari_hari": "Service catalog adalah sistem terpusat yang mencatat pemilik dan metadata semua software di satu organisasi, mis. service, website, library, dan data pipeline. Dengan catatan itu, pertanyaan siapa memegang satu service punya satu tempat jawaban.",
+  "cerita": [
+    {
+      "rujukan": "t5-jembatan",
+      "teks": "Pratinjau PRD v6 menulis service catalog sebagai daftar pemilik service, bersama golden path dan SLO per tim."
+    },
+    {
+      "rujukan": "t6-m52",
+      "teks": "Halaman M52 memakai istilah ini bersama golden path."
+    }
+  ],
+  "mekanisme": [
+    "Tiap software mendapat satu catatan metadata. Di Backstage catatan itu berupa file YAML yang disimpan bersama kodenya.",
+    "Catatan dikumpulkan dan ditampilkan dalam satu sistem, sehingga service bisa dicari bersama pemiliknya.",
+    "Backstage menulis bahwa katalog membuat satu tim bisa mengelola 10 service dan membuat satu perusahaan bisa mengelola ribuan."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira katalog hanya berisi service. Backstage menyebut service, website, library, dan data pipeline.",
+    "Menulis catatan di tempat yang terpisah dari kode. Backstage membangun katalog dari file YAML yang disimpan bersama kode."
+  ],
+  "terkait": [
+    "Golden path",
+    "On-call"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-03",
+      "judul": "Backstage: Software Catalog Overview",
+      "url": "https://backstage.io/docs/features/software-catalog/",
+      "catatan": "Dokumentasi tanpa nomor versi di halaman, dibuka 2026-11-06. Katalog adalah sistem terpusat yang melacak pemilik dan metadata semua software, dibangun dari file YAML di samping kode."
+    }
+  ]
+}
