@@ -1,0 +1,122 @@
+---
+title: "5.32 Jembatan: pratinjau PRD v6"
+description: Minggu 16. Uji coba nasional lolos, lalu Sinta membagikan PRD v6 dengan enam perubahan dan tim yang naik. Dari ADR Tahap 5, tebak mana yang pecah lebih dulu.
+---
+import Blok from "../../../components/Blok.astro";
+import Tebak from "../../../widgets/tebak/Tebak.tsx";
+import dataTebak from "../../../../data/widget/t5-jembatan-tebak.json";
+import { muat, label, url as urlHalaman } from "../../../../tools/registri.mjs";
+
+export const hs = muat().halaman;
+export const tautanTebak = ["t5-adr-60", "t5-onprem", "t5-tim-infra"]
+  .map((id) => hs.find((h) => h.id === id && h.ada))
+  .filter(Boolean)
+  .map((h) => ({ label: label(h), href: urlHalaman(h) }));
+
+<p class="meta">Baca 6 menit · coba 1 menit · Prasyarat: [[t5-rekap]] · Jalur inti</p>
+
+Ini pratinjau PRD v6, dokumen keenam yang Sinta tulis untuk Rekeningo. Halaman ini hanya menampilkan apa yang diminta; menjalankannya adalah isi Tahap 6.
+
+<div class="prd-kepala" role="group" aria-label="Kepala dokumen PRD v6">
+  <dl><div><dt>Penulis</dt><dd>Sinta, unit Inisiatif Digital</dd></div><div><dt>Status</dt><dd>Pratinjau: rencana cerita (Ilustrasi), bukan PRD lengkap</dd></div></dl>
+  <dl><div><dt>Lingkup</dt><dd>10 juta user, multi-region aktif-pasif</dd></div><div><dt>Tim</dt><dd>Lebih dari 50 developer dalam lebih dari 10 tim</dd></div></dl>
+</div>
+
+<Blok nama="Pratinjau PRD v6" buka>
+
+Minggu 16 Tahap 5. Uji coba nasional lolos ([[t5-m51]]). Sinta lalu membagikan PRD v6 untuk 10 juta user.
+
+PRD v6 mengubah enam hal dari PRD v5:
+
+| | PRD v5 | PRD v6 (Ilustrasi) |
+|---|---|---|
+| Skala | 1.000.000 user terdaftar dan ±200.000 merchant (Asumsi) | 10.000.000 user terdaftar |
+| Wilayah | Multi-region ditunda ke v6 (P2) | Multi-region aktif-pasif: satu wilayah pusat data melayani, wilayah lain menunggu sampai failover |
+| Risiko | Skor risiko real-time ditunda ke v6 (P2) | Skor risiko real-time dan graf akun-perangkat, dibangun tim fraud dan compliance engineering |
+| Platform | Platform internal untuk lebih dari 50 developer ditunda ke v6 (P2) | Platform internal dengan golden path (jalur bawaan untuk service baru), service catalog (daftar pemilik service), dan SLO per tim, ditambah chaos testing (percobaan gangguan) dan data mesh sederhana (data dimiliki tim domain) |
+| Uang dan data | Multi-mata uang bukan lingkup v5 | Multi-mata uang dengan kurs, dan data yang disimpan per negara |
+| Tim | 28 orang dalam delapan tim (Asumsi cerita) | Lebih dari 50 developer dalam lebih dari 10 tim (Asumsi cerita) |
+
+Isi PRD v6 adalah rencana cerita (Ilustrasi): contoh, bukan hasil sistem. Hitungan berarti rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya. Arti label sumber ada di [[A0]].
+
+Tahap 5 menghasilkan ADR 46 sampai 60. Sebagian dari keputusan itu akan pecah lebih dulu daripada yang lain. Pecah berarti halaman ADR itu menulis keadaan yang sama dengan satu isi PRD v6. Keadaan itu bisa berupa syarat salah, pemicu, atau hal yang direvisi tahap berikutnya.
+
+<Tebak client:visible data={dataTebak} tautan={tautanTebak} />
+
+<noscript>
+<p>Tanpa JavaScript tebakan tidak berjalan. Tebakan membandingkan lima ADR Tahap 5, yaitu ADR 52, 56, 58, 59, dan 60, dengan kalimat halaman ADR-nya sendiri. Jawabannya dibuka di halaman pertama Tahap 6.</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Ruang lingkup">
+
+PRD v5 sudah menulis empat isi PRD v6 sebagai P2 yang ditunda ke v6 ([[t5-prd]]). Keempatnya multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, dan 10 juta user. Graf akun-perangkat, chaos testing, data mesh sederhana, multi-mata uang, dan data per negara tidak ada di daftar P2 itu. Tabel ini menaruh tiap isi di samping keadaan terdekatnya di Tahap 5.
+
+| Isi PRD v6 | Keadaan terdekat di Tahap 5 |
+|---|---|
+| 10 juta user | 1.000.000 user terdaftar, 200.000 aktif per hari, dan 1.388,9 request per detik di puncak (Asumsi, [[t5-prd]]). Beban Tahap 6 adalah 10 kali menurut hitungan, dan kapasitas satu primary belum terukur ([[t5-m51]]) |
+| Multi-region aktif-pasif | Replica sinkron hanya dijalankan di satu mesin, dan jeda antar wilayah Tidak dijalankan ([[t5-m51]], [[t5-rpo-rto]]) |
+| Skor risiko real-time dan graf akun-perangkat | Lab `t5-gabung` memperagakan alur skor delapan aturan poin. Satu transaksi di tiga proses melewati enam panggilan, dan jaringan antar host tidak diukur ([[t5-m51]], [[t5-service]]) |
+| Platform internal, chaos testing, dan data mesh sederhana | Delapan tim: lima tim produk, Platform 4 orang, SRE 2 orang, dan Security 2 orang ([[t5-prd]]) |
+| Multi-mata uang dengan kurs, dan data per negara | PRD v5 menulis multi-mata uang sebagai bukan lingkup, dan satu negara sebagai lingkupnya ([[t5-prd]]) |
+| Lebih dari 50 developer dalam lebih dari 10 tim | 28 orang dalam delapan tim (Asumsi cerita, [[t5-prd]]) |
+
+Empat istilah di tabel PRD v5 dan PRD v6 punya sumber. Golden path adalah jalur "opinionated and supported" untuk membangun sesuatu, menurut tulisan Spotify tanggal 17 Agustus 2020. Service catalog adalah sistem terpusat yang mencatat pemilik dan metadata semua software, menurut dokumentasi Backstage yang dibuka 2026-11-05.
+
+Chaos testing adalah percobaan pada sistem untuk membangun keyakinan bahwa sistem tahan gangguan di produksi, menurut Principles of Chaos Engineering (pembaruan terakhir Maret 2019). Data mesh bertumpu pada empat prinsip, dan yang pertama kepemilikan data oleh domain, menurut Martin Fowler (3 Desember 2020).
+
+Halaman ini tidak memuat klaim izin, lisensi, atau kepatuhan regulasi apa pun. Semua isi PRD v6 di atas adalah rencana cerita.
+
+</Blok>
+
+<Blok nama="Menuju Tahap 6">
+
+Jawaban tebakan dibuka di halaman pertama Tahap 6, di blok "Yang dibuka lagi dari Tahap 5". Blok itu mengikuti pola [[t5-prd]], yang membuka jawaban tebakan [[t4-jembatan]] dengan bukti yang sudah tertulis di halaman ADR Tahap 4. Halaman ini hanya mencatat apa yang sudah tertulis di halaman ADR Tahap 5.
+
+Di halaman ini "pecah lebih dulu" adalah penalaran dari kalimat halaman ADR (Asumsi), bukan urutan kejadian yang direkam. Halaman ini juga tidak menghitung beban tiap komponen untuk 10 juta user, yang 10 kali 1.000.000 (Hitungan: 10.000.000 ÷ 1.000.000). Hitungan beban Tahap 6 ada di [[t5-m51]] (Hitungan atas Asumsi), dan tabel itu tidak membandingkannya dengan batas komponen.
+
+Tebakan membandingkan lima dari lima belas ADR Tahap 5, jadi ADR lain tidak dinilai di sini. Tahap 6 adalah proyeksi konseptual tanpa klaim rekaman, jadi seluruh isi PRD v6 di halaman ini berlabel Ilustrasi.
+
+Angka 28 menghitung orang, termasuk SRE dan Security, sedangkan angka 50 menghitung developer. Satuannya tidak sama, dan halaman ini memakai kalimat naskah apa adanya.
+
+Satu heuristik praktisi menyebut bahwa microservices baru masuk akal di atas ±50 developer. [[t4-modul]] tidak menemukan sumber primer untuk angka itu [perlu verifikasi], jadi halaman ini tidak memakainya.
+
+[[t5-m51]] mencatat tiga hal yang diminta PRD v6 dan belum pernah diuji di Tahap 5. Ketiganya skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan tim yang naik dari 28 menjadi lebih dari 50. Kapasitas satu primary juga belum terukur.
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Jumlah user naik 10 kali di PRD v6. Kenapa halaman ini tidak memakai kenaikan itu untuk memilih ADR yang pecah lebih dulu?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+10.000.000 ÷ 1.000.000 = 10 (Hitungan atas Asumsi cerita). Menghitung tiap komponen untuk 10 juta user adalah hitungan beban, dan [[t5-m51]] menulisnya tanpa membandingkannya dengan batas komponen, karena kapasitas satu primary belum terukur. Halaman ini hanya membandingkan kalimat halaman ADR.
+
+</details>
+
+**2.** Kenapa "pecah lebih dulu" di halaman ini berlabel Asumsi, bukan Rekaman lab?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Tidak ada lab yang menjalankan PRD v6. Penentuannya penalaran dari kalimat halaman ADR (Asumsi), dan urutan "lebih dulu" belum diuji.
+
+</details>
+
+**3.** Di mana jawaban tebakan dibuka, dan kenapa bukan di halaman ini?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Di halaman pertama Tahap 6, di blok "Yang dibuka lagi dari Tahap 5". Halaman ini hanya menaruh pilihan dan kalimat halaman ADR yang sudah tertulis, dan jawabannya menjadi isi halaman itu.
+
+</details>
+
+Tahap 5 selesai di sini.
+
+</Blok>

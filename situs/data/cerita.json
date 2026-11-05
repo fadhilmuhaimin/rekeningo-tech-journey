@@ -4993,8 +4993,9 @@
       "prasyarat": [
         "t5-rekap"
       ],
-      "ada": false,
-      "nomor": "5.32"
+      "ada": true,
+      "nomor": "5.32",
+      "menit": 7
     },
     {
       "id": "T5",

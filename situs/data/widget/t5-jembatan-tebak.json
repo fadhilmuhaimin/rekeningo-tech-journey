@@ -1,0 +1,39 @@
+{
+  "id": "t5-jembatan-tebak",
+  "judul": "ADR Tahap 5 yang pecah lebih dulu",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Penalaran dari kalimat halaman ADR Tahap 5 (ADR 52, 56, 58, 59, dan 60); tidak ada rekaman atau lab untuk PRD v6"
+  },
+  "adegan": [
+    "Sinta membagikan PRD v6. Raka membuka ADR 46 sampai 60 yang lahir di Tahap 5.",
+    "PRD v6 meminta 10 juta user, multi-region aktif-pasif, skor risiko real-time, platform internal, multi-mata uang dengan kurs, dan data per negara (Ilustrasi). Tim naik dari 28 orang menjadi lebih dari 50 developer (Asumsi cerita)."
+  ],
+  "pertanyaan": "Dari ADR Tahap 5, mana yang pecah lebih dulu?",
+  "pilihan": [
+    {
+      "teks": "ADR 52: PgBouncer mode transaction tidak cukup lagi, karena 10 juta user membuat koneksi dari semua pod jauh lebih banyak daripada yang bisa dilayani pooler.",
+      "benar": false,
+      "alasan": "Halaman 5.17 menulis lima syarat salah ADR 52. Syarat pertama: service butuh SET, LISTEN, advisory lock tingkat sesi, atau PREPARE tingkat SQL. Empat lainnya: pooler menjadi titik gagal tunggal, client menunggu server lebih dari query_wait_timeout 120 detik, koneksi pod melewati max_client_conn, dan p95 lompatan tambahan melewati 50 ms. Tak satu pun dari lima syarat itu menulis multi-region, data per negara, platform, atau jumlah tim. Syarat max_client_conn bergantung pada jumlah pod: 8 pod tiap service memberi 480 client lawan 400 per instance (Hitungan atas Asumsi). Halaman ini tidak menghitung jumlah pod untuk 10 juta user (penalaran)."
+    },
+    {
+      "teks": "ADR 56: kuota per mitra tidak cukup lagi, karena mitra POS bertambah mengikuti jumlah user.",
+      "benar": false,
+      "alasan": "Halaman 5.25 menulis enam syarat salah ADR 56. Syarat pertama membandingkan jumlah kuota dengan kapasitas terukur: 50 mitra × 100 per detik = 5.000 per detik, 3,6 kali puncak 1.388,9 (Hitungan atas Asumsi), dan kapasitas satu server belum diukur. Lima lainnya: 20 permintaan berjalan, WAF yang menolak permintaan sah, mitra yang menuntut mTLS atau tanda tangan lain, pemelihara Coraza, dan serangan volumetrik. Tak satu pun dari enam syarat itu menulis multi-region, data per negara, platform, atau jumlah tim. Pratinjau PRD v6 di halaman ini tidak menulis jumlah mitra."
+    },
+    {
+      "teks": "ADR 58, ADR 59, dan ADR 60: platform untuk tim yang lebih besar, data yang harus tinggal di lokasi tertentu, dan multi-region.",
+      "benar": true,
+      "alasan": "Tiga halaman ADR menulis keadaan yang sama dengan isi pratinjau PRD v6. ADR 60 menulis multi-region sebagai menunggu PRD v6, dengan syarat salah \"Satu region mati lebih lama dari RTO 15 menit, atau PRD v6 memintanya\" (Ilustrasi). ADR 59 menulis \"Data harus tinggal di lokasi tertentu\" sebagai syarat salah, dan PRD v5 tidak memintanya. ADR 58 salah bila permintaan template menunggu lebih dari satu minggu (Asumsi naskah), dan naskah menulis delapan tim merilis hampir tiap hari. Tim yang naik dari 28 orang menjadi lebih dari 50 developer membuat tunggu itu mungkin (penalaran). Ini bacaan dari halaman Tahap 5 (Asumsi), bukan hitungan beban untuk 10 juta user."
+    }
+  ],
+  "penutup": "Jawabannya dibuka di halaman pertama Tahap 6. Di sini hanya terlihat apa yang sudah tertulis di halaman ADR Tahap 5, dan urutan \"lebih dulu\" belum diuji.",
+  "label": {
+    "sumber": "Asumsi · penalaran dari halaman ADR Tahap 5",
+    "tebakDulu": "Tebak dulu:",
+    "benar": "Cocok dengan halaman ADR",
+    "belum": "Belum cocok dengan halaman ADR",
+    "ulang": "Coba pilihan lain",
+    "jawaban": "Yang cocok dengan halaman ADR"
+  }
+}

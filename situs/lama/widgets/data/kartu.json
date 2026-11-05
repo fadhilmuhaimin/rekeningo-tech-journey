@@ -4360,6 +4360,30 @@
   "jawab": "Aturan 5 membaca pemicu yang bergantung pada PRD dari PRD yang disetujui. Pratinjau PRD v6 berlabel Ilustrasi dan belum menjadi PRD yang dikerjakan. Pemicu kedua, satu region mati lebih lama dari RTO 15 menit, juga belum terjadi."
  },
  {
+  "id": "t5-jembatan-1",
+  "halaman": "t5-jembatan",
+  "judul": "5.32 Jembatan: pratinjau PRD v6",
+  "url": "tahap-5/jembatan-prd-v6/",
+  "tanya": "Jumlah user naik 10 kali di PRD v6. Kenapa halaman ini tidak memakai kenaikan itu untuk memilih ADR yang pecah lebih dulu?",
+  "jawab": "10.000.000 ÷ 1.000.000 = 10 (Hitungan atas Asumsi cerita). Menghitung tiap komponen untuk 10 juta user adalah hitungan beban, dan 5.29 M51 menulisnya tanpa membandingkannya dengan batas komponen, karena kapasitas satu primary belum terukur. Halaman ini hanya membandingkan kalimat halaman ADR."
+ },
+ {
+  "id": "t5-jembatan-2",
+  "halaman": "t5-jembatan",
+  "judul": "5.32 Jembatan: pratinjau PRD v6",
+  "url": "tahap-5/jembatan-prd-v6/",
+  "tanya": "Kenapa \"pecah lebih dulu\" di halaman ini berlabel Asumsi, bukan Rekaman lab?",
+  "jawab": "Tidak ada lab yang menjalankan PRD v6. Penentuannya penalaran dari kalimat halaman ADR (Asumsi), dan urutan \"lebih dulu\" belum diuji."
+ },
+ {
+  "id": "t5-jembatan-3",
+  "halaman": "t5-jembatan",
+  "judul": "5.32 Jembatan: pratinjau PRD v6",
+  "url": "tahap-5/jembatan-prd-v6/",
+  "tanya": "Di mana jawaban tebakan dibuka, dan kenapa bukan di halaman ini?",
+  "jawab": "Di halaman pertama Tahap 6, di blok \"Yang dibuka lagi dari Tahap 5\". Halaman ini hanya menaruh pilihan dan kalimat halaman ADR yang sudah tertulis, dan jawabannya menjadi isi halaman itu."
+ },
+ {
   "id": "D2-1",
   "halaman": "D2",
   "judul": "Scaling",
