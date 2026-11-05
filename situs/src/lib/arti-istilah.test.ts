@@ -77,20 +77,20 @@ describe("berkas arti-istilah.json", () => {
   // kemunculan kata itu di halamannya. Halaman baru (mis. Tahap 6) boleh mendaftar tanpa menambah baris di sini, selama
   // periksaAturan dan sapuan HTML lolos; tambahkan barisnya bila artinya perlu dikunci.
   test("arti per halaman dikunci: tiap halaman yang dikenal menunjuk entri yang benar untuk kata token dan router", () => {
-    const entri = (a: ArtiIstilah[string][string]) => (typeof a === "string" ? a : a.arti);
+    const entri = (a: ArtiIstilah[string][string]) => (typeof a === "string" ? a : { arti: a.arti, kecuali: a.kecuali });
     const sekarang = Object.fromEntries(Object.entries(aturan).map(([h, kata]) => [h, Object.fromEntries(Object.entries(kata).map(([k, a]) => [k, entri(a)]))]));
-    const kunci: Record<string, Record<string, string>> = {
+    const kunci: Record<string, Record<string, ReturnType<typeof entri>>> = {
       "tahap-3/at-least-once": { token: PERANGKAT },
       "tahap-3/fitur-ke-teknis": { token: PERANGKAT },
-      "tahap-3/fitur-notifikasi": { token: PERANGKAT },
+      "tahap-3/fitur-notifikasi": { token: { arti: PERANGKAT, kecuali: ["access token"] } },
       "tahap-3/m19-tidak-diberi-tahu": { token: PERANGKAT },
-      "tahap-3/skema-data": { token: PERANGKAT },
+      "tahap-3/skema-data": { token: { arti: PERANGKAT, kecuali: ["token CSRF"] } },
       "tahap-5/m41-riwayat-belum-memuat": { token: LSN },
       "tahap-5/modul-ke-service": { router: TRAFFIC },
       "tahap-5/pintu-mitra-waf": { router: TRAFFIC },
       "tahap-5/progressive-delivery": { router: TRAFFIC },
       "tahap-5/read-replica": { router: BASIS_DATA },
-      "tahap-5/rekap": { token: LSN },
+      "tahap-5/rekap": { token: { arti: LSN, kecuali: ["hitungan token", "token tanpa hak"] } },
       "tahap-5/replication-lag": { token: LSN, router: BASIS_DATA },
     };
     for (const [h, k] of Object.entries(kunci)) expect(sekarang[h], h).toEqual(k);
