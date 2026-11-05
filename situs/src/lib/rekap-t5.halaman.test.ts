@@ -380,7 +380,7 @@ describe("angka dan batas di enam belas kalimat: dari rekaman lab dan halaman as
     ];
     for (const re of LAMA) expect(mdx, String(re)).not.toMatch(re);
     expect(mdx).toContain("replica asinkron tidak menjamin RPO nol");
-    expect(mdx).toContain("bacaan tanpa token dijawab replica dengan saldo Rp215.000");
+    expect(mdx).toContain("Bacaan tanpa token dijawab replica dengan saldo Rp215.000");
     expect(mdx).toContain("tetap dilayani replica dan bisa melihat saldo lama");
     expect(mdx).toContain("celah itu tidak ditutup di lab");
     expect(mdx).toContain("Batas uji 50 ms di lab berbeda dari anggaran lompatan 50 ms di ADR 37");
@@ -530,5 +530,206 @@ describe("struktur: heading, label, sumber ingatan, tanpa ID internal, dan kata 
   test("kata-kata halaman dikunci per baris", () => {
     expect(barisMdx.length).toBe(BARIS_MDX.length);
     barisMdx.forEach((b, i) => expect(b, `baris ${i + 1}`).toBe(BARIS_MDX[i]));
+  });
+});
+
+// ---- lapisan tanpa kunci baris (tinjauan 5.31, keputusan 1623) -----------------------------------------------------------------
+// Tes di bawah tidak membaca BARIS_MDX atau TEKS_KARTU: halaman yang dibangkitkan ulang dengan kunci baru tetap harus lolos. Angka
+// diturunkan dari halaman asal dan rekaman, label dan kutipan rekaman per butir dikunci dalam tabel tulisan tangan di bawah (ubah
+// sengaja = ubah tabel ini), dan kartu, tabel ADR, serta Mulai dan Kunci dibandingkan dengan butir yang mereka ringkas.
+const bersih = (s: string): string =>
+  s.replace(/\[\[[^\]]*\]\]/g, " ").replace(/`[^`]*`/g, " ").replace(/\(https?:[^)]*\)/g, " ").replace(/\b(?:api-t5|t5-[a-z0-9-]+)\b/g, " ");
+const angkaDari = (s: string): string[] => [...bersih(s).matchAll(/\d+(?:[.,]\d+)*/g)].map((m) => m[0]);
+const varian = (a: string): string[] => [a, a.replace(/\./g, ""), a.replace(/\./g, "").replace(",", "."), a.replace(",", ".")];
+const rekamanTahap5 = ((): string => {
+  const hasil: string[] = [];
+  for (const lab of fs.readdirSync(path.join(akar, "labs")).filter((l) => l === "api-t5" || l.startsWith("t5-"))) {
+    const dir = path.join(akar, "labs", lab, "output");
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".txt"))) hasil.push(baca(`labs/${lab}/output/${f}`));
+  }
+  return hasil.join("\n");
+})();
+const gudangAngka = (teks: string): Set<string> => new Set(angkaDari(teks).flatMap(varian));
+const kutipan = (teks: string): string[] => {
+  let berkas = "";
+  const hasil: string[] = [];
+  for (const p of teks.split(/(?=`[a-z0-9-]+\.txt`)/)) {
+    const f = p.match(/^`([a-z0-9-]+\.txt)`/);
+    if (f) berkas = f[1]!;
+    for (const h of p.matchAll(/bagian ([A-Z])\b/g)) hasil.push(`${berkas}:${h[1]}`);
+  }
+  return hasil;
+};
+const hitungLabel = (s: string): Record<string, number> => {
+  const n = (re: RegExp): number => (s.match(re) ?? []).length;
+  const r: Record<string, number> = {};
+  r.HAD = n(/Hitungan atas Asumsi dan dokumentasi/g);
+  r.HA = n(/Hitungan atas Asumsi/g) - r.HAD!;
+  r.HI = n(/Hitungan atas Ilustrasi/g);
+  r.HR = n(/Hitungan dari rekaman/g);
+  r.AP = n(/Asumsi produk/g);
+  r.A = n(/Asumsi/g) - r.HA! - r.HAD! - r.AP!;
+  r.I = n(/Ilustrasi/g) - r.HI!;
+  r.TD = n(/Tidak dijalankan/g);
+  r.PV = n(/\[perlu verifikasi\]/g);
+  r.DK = n(/dibaca dari kode/g);
+  r.RL = n(/Rekaman lab/g);
+  return Object.fromEntries(Object.entries(r).filter(([, v]) => v > 0));
+};
+// Label per butir: HA = Hitungan atas Asumsi, HAD = Hitungan atas Asumsi dan dokumentasi, HI = Hitungan atas Ilustrasi, HR = Hitungan dari
+// rekaman, AP = Asumsi produk, A = Asumsi, I = Ilustrasi, TD = Tidak dijalankan, PV = [perlu verifikasi], DK = dibaca dari kode.
+// Tiap label dibaca ke halaman asalnya dan ke kode lab saat tinjauan 5.31 (butir 1: tutup buku resmi; butir 8: 2 × 6 × 20 dari dokumentasi;
+// butir 16: 141 = 2.115 ÷ 15 dari rekaman beban).
+const LABEL: Record<number, Record<string, number>> = {
+  1: { HA: 1, TD: 1 }, 2: {}, 3: { AP: 1, I: 1, TD: 1 }, 4: { A: 1, I: 1 }, 5: { I: 1, TD: 1 }, 6: { TD: 1 }, 7: { HA: 2 },
+  8: { HAD: 1, HA: 2, TD: 1 }, 9: { TD: 1, PV: 1 }, 10: { I: 1, TD: 1 }, 11: { HA: 1, I: 1, TD: 1, DK: 1 }, 12: { HI: 1, A: 1, I: 1 },
+  13: { HA: 1, TD: 1 }, 14: { HA: 1, AP: 1, TD: 1 }, 15: { I: 2, PV: 1 }, 16: { HA: 2, HR: 1, I: 1 },
+};
+const CITASI: Record<number, string[]> = {
+  1: ["laporan.txt:B", "replika.txt:B", "baca.txt:A"], 2: ["baca.txt:A", "baca.txt:B", "jeda.txt:A"], 3: ["promosi.txt:A", "promosi.txt:B"],
+  4: ["snapshot.txt:A", "snapshot.txt:C", "lepas.txt:B", "lepas.txt:F"], 5: ["skema.txt:E", "skema.txt:F"],
+  6: ["panggilan.txt:B", "latensi.txt:B", "panggilan.txt:D"], 7: ["aliran.txt:A", "grup.txt:A", "antrean.txt:B"], 8: ["pooler.txt:A", "pooler.txt:B"],
+  9: ["rentan.txt:A", "mtls.txt:B", "mtls.txt:C", "idempoten.txt:C"], 10: ["crash.txt:A", "crash.txt:B", "crash.txt:C"],
+  11: ["tanpa-router.txt:A", "gateway.txt:B", "sakelar.txt:D"], 12: ["kuota.txt:C", "kuota.txt:A", "tandatangan.txt:A", "testing.txt:A"],
+  13: ["arsip.txt:C", "arsip.txt:D"], 14: ["jejak.txt:A", "jejak.txt:B"], 15: [], 16: ["beban.txt:A"],
+};
+// Angka butir yang tidak tertulis di halaman asal atau rekaman: hasil hitungan dari angka yang tertulis di butir itu sendiri.
+const BEBAS: Record<number, string[]> = {};
+
+describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Kunci, kartu, baris riset", () => {
+  test("tiap angka di tiap butir ada di halaman asal butir itu, halaman PRD, atau rekaman Tahap 5", () => {
+    for (const b of butirSemua) {
+      const gudang = gudangAngka([...new Set([...b.ids, "t5-prd"])].map((id) => fileHalaman(id)).join("\n") + "\n" + rekamanTahap5);
+      for (const a of angkaDari(b.teks)) {
+        if (BEBAS[b.no]?.includes(a)) continue;
+        expect(varian(a).some((v) => gudang.has(v)), `butir ${b.no}: angka ${a}`).toBe(true);
+      }
+    }
+  });
+  test("label sumber per butir: jumlah tiap label dikunci, dan 'Rekaman lab' tidak dipakai sebagai label di badan butir", () => {
+    for (const b of butirSemua) expect(hitungLabel(b.teks), `butir ${b.no}`).toEqual(LABEL[b.no]);
+  });
+  test("kutipan rekaman per butir: berkas dan huruf bagian dikunci, dan mencakup tiap fakta yang dijaga FAKTA", () => {
+    for (const b of butirSemua) expect(kutipan(b.teks), `butir ${b.no}`).toEqual(CITASI[b.no]);
+    for (const [no, kalimat, sumber, huruf] of FAKTA) {
+      const berkas = sumber.split("/")[1]!;
+      expect(kutipan(butir(no).teks), `butir ${no}: ${kalimat}`).toContain(`${berkas}:${huruf}`);
+    }
+  });
+  test("tabel ADR: keputusan memuat kata penanda yang juga ada di halaman ADR-nya, dan kejadian M cocok dengan peta", () => {
+    const PENANDA: Record<number, string> = {
+      46: "asinkron", 47: "Tiga kelas baca", 48: "kuorum", 49: "per bulan", 50: "Enam service", 51: "Kafka", 52: "PgBouncer", 53: "mTLS",
+      54: "Referensi unik", 55: "Argo Rollouts", 56: "WAF", 57: "data key per file arsip", 58: "tail sampling", 59: "cloud milik PT", 60: "Dua belas butir",
+    };
+    const tabel = blok("Putuskan").split("\n").filter((b) => /^\| \d+ \|/.test(b));
+    expect(tabel.length).toBe(15);
+    tabel.forEach((baris, i) => {
+      const n = 46 + i;
+      const sel = baris.split("|").map((x) => x.trim());
+      expect(sel[2]!, `ADR ${n} di tabel`).toContain(PENANDA[n]!);
+      expect(fileHalaman(idAdr(n)).toLowerCase(), `ADR ${n} di halaman`).toContain(PENANDA[n]!.toLowerCase());
+      const m = sel[3]!.match(/^M(\d+),/);
+      const diPeta = n === 60 ? 51 : PETA.find((p) => p[1] === n && p[0])?.[0];
+      if (diPeta) expect(Number(m?.[1]), `ADR ${n} lahir dari`).toBe(diPeta);
+      else expect(m, `ADR ${n} tanpa M`).toBeNull();
+    });
+    expect(blok("Putuskan")).toContain("ADR 50 menjalankan jadwal Kubernetes dari ADR 12");
+    expect(fileHalaman("t5-service")).toContain("ADR 12 menjadwalkan Kubernetes di Tahap 5");
+    expect(blok("Putuskan")).not.toMatch(/merevisi ADR 12|60 koneksi/);
+  });
+  test("Mulai: Rantai ringkas, tiga pertanyaan diturunkan dari butir 3, 10, dan 11, dan kalimat hitungan kalimat", () => {
+    const mulai = blok("Mulai");
+    const KATA: Record<number, string> = { 15: "Lima belas", 16: "Enam belas" };
+    expect(mulai).toContain("<Rantai data={kejadian} ringkas />");
+    expect((mulai.match(/<details class="question">/g) ?? []).length).toBe(1);
+    expect(mulai).toContain(`Tahap 5 meninggalkan ${KATA[butirSemua.length]!.toLowerCase()} kalimat, satu per konsep.`);
+    const tanya = mulai.split("\n").filter((b) => /^\d\. /.test(b));
+    expect(tanya.length).toBe(3);
+    expect(mulai).toContain(`<summary>Sudah tahu? Cek ${tanya.length} pertanyaan</summary>`);
+    expect(mulai).toContain("Yakin dengan ketiganya? Lompat ke [[berikutnya]].");
+    expect(butir(3).teks).toContain("Lima pembayaran dijawab 201, dan nol dari lima");
+    expect(tanya[0]).toContain("Lima pembayaran dijawab 201, lalu replica asinkron dipromosikan. Kenapa tak satu pun ada di node baru?");
+    expect(butir(11).teks).toContain("tiga replika dan `setWeight: 5`");
+    expect(tanya[1]).toContain("Satu pod versi baru dari tiga pod diberi bobot 5. Kenapa bagiannya bukan 5%?");
+    expect(butir(10).teks).toContain("diulang 25 jam kemudian, saat key 24 jam");
+    expect(tanya[2]).toContain("Angsuran Budi dijalankan lagi 25 jam sesudah job mati. Kenapa jurnalnya dua?");
+    expect(blok("Putuskan")).toContain(`### ${KATA[tabelNaskah.filter((x) => x.kalimat).length - 1]} keputusan Tahap 5`);
+    expect(blok("Paham")).toContain(`### ${KATA[butirSemua.length]} kalimat`);
+  });
+  test("Kunci: lima Jawaban, Cek diri 3 dan 5 diturunkan dari butir 8 dan 11, dan skrip dan label widget kartu ada", () => {
+    const kunci = blok("Kunci");
+    expect((kunci.match(/<summary>Jawaban<\/summary>/g) ?? []).length).toBe(5);
+    const h = butir(8).teks.match(/meminta (\d+) × (\d+) × (\d+) = (\d+) koneksi/)!;
+    const KATA_ANGKA: Record<string, string> = { 3: "tiga", 6: "Enam" };
+    expect(kunci).toContain(`**3.** ${KATA_ANGKA[h[1]!]} service punya ${KATA_ANGKA[h[2]!]} pod tiap service dengan pool ${h[3]}`);
+    expect(kunci).toContain(`Diminta ${h[1]} × ${h[2]} × ${h[3]} = ${h[4]} dan tersedia 100 − 3 = 97`);
+    expect(butir(8).teks).toContain("sedangkan tersedia 100 − 3 = 97 (100 koneksi, 3 di antaranya cadangan)");
+    expect(kunci).toContain("**5.** Rollout tanpa traffic router memakai tiga replika dan `setWeight: 5`.");
+    expect(kunci).toContain("Satu pod versi baru, yaitu 25,0% dari pod yang menjawab, bukan 5%");
+    expect(mdx).toContain('<SkripLama daftar={["cerita","kartu"]} />');
+    expect(baca("situs/lama/widgets/kartu.js")).toContain("Ingat");
+    expect(blok("Coba")).toContain("Kartu yang kamu tandai **Ingat** baru muncul lagi");
+  });
+  test("kartu: angka dan label di tanya dan jawab berasal dari butirnya, dan tanya tidak memuat empat kata berurutan dari kalimat butir", () => {
+    kartu.forEach((k, i) => {
+      const b = butir(i + 1);
+      const teks = `${k.tanya} ${k.jawab}`;
+      const gudang = gudangAngka(b.teks);
+      for (const a of angkaDari(teks.replace(/\bM\d+\b/g, " "))) expect(varian(a).some((v) => gudang.has(v)), `${k.id}: angka ${a}`).toBe(true);
+      for (const label of ["Tidak dijalankan", "Ilustrasi", "Hitungan atas Asumsi", "Asumsi produk"]) {
+        if (teks.includes(label)) expect(b.teks, `${k.id}: ${label}`).toContain(label);
+      }
+      expect(k.jawab.includes("Rekaman lab"), `${k.id}: Rekaman lab`).toBe(false);
+      if (k.jawab.includes("Batas:")) expect(b.teks, `${k.id}: Batas`).toContain("*Batas:*");
+      if (k.jawab.includes("Dipersempit:")) expect(b.teks, `${k.id}: Dipersempit`).toContain("*Dipersempit:*");
+      const kata = b.kalimat.split(/\s+/);
+      for (let j = 0; j + 4 <= kata.length; j++) {
+        const jendela = kata.slice(j, j + 4).join(" ");
+        expect(k.tanya.includes(jendela), `${k.id}: tanya memuat "${jendela}"`).toBe(false);
+      }
+    });
+  });
+  test("koreksi tinjauan: bentuk lama tidak kembali (keduanya dari replica, merevisi ADR 12, qr tanpa lingkup, 25% untuk dua replika)", () => {
+    expect(mdx).not.toMatch(/Keduanya dibaca dari replica|merevisi ADR 12|pada service kedua dan seterusnya|bagiannya 25,0% atau 33,3% menurut `maxSurge`\./);
+    expect(butir(2).teks).toContain("Saldo tampil dan riwayat dibaca dari replica yang pemutaran ulangnya ditahan");
+    expect(fileHalaman("t5-m41")).toContain("GET saldo masih menjawab Rp250.000 dan GET riwayat masih satu baris. Keduanya membawa `X-Dibaca-Dari: replika`");
+    expect(butir(2).teks).toContain("jawaban bayar membawa token, yaitu posisi primary di WAL sesudah COMMIT");
+    expect(butir(12).teks).toMatch(/Di mode rentan, tempat Idempotency-Key opsional seperti di Tahap 4, dua POST yang sama tanpa key membuat dua baris `qr`\. Gerbang versi benar menjawab 400 tanpa key/);
+    expect(bagianRekaman("t5-waf", "tandatangan.txt", "A")).toMatch(/POST tanpa Idempotency-Key\n\s+-> 400 idempotency-key-wajib/);
+    expect(bagianRekaman("t5-waf", "tandatangan.txt", "A")).toMatch(/Mode rentan tanpa-idempoten-wajib[^\n]*\n[^\n]*qr milik merchant 30001: 2/);
+    expect(butir(11).teks).toContain("Dengan tiga replika bagiannya 25,0% atau 33,3% menurut `maxSurge`, dan dengan 20 replika 5,0%.");
+    expect(bagianRekaman("t5-rollout", "tanpa-router.txt", "A")).toMatch(/Pod v1: 19, pod v2: 1; replika yang diminta 20/);
+    expect(rekamanTahap5).toContain("20 replika: 1 pod canary dan 19 pod stabil menjawab; bagian pod v2 5.0%");
+    expect(butir(16).teks).toContain("2.115 pembayaran, jadi pembayaran di rekaman datang 2.115 ÷ 15 = 141 per detik (Hitungan dari rekaman)");
+    expect(bagianRekaman("api-t5", "beban.txt", "A")).toMatch(/201 x2115/);
+    expect(bagianRekaman("api-t5", "beban.txt", "A")).toMatch(/15 detik/);
+    expect(Math.round(2115 / 15)).toBe(141);
+    expect(butir(8).teks).toContain("Pada puncak 1.388,9 request per detik dengan 0,02 detik per request");
+    expect(butir(14).teks).toContain("dengan 720 jam dalam 30 hari");
+    expect(24 * 30).toBe(720);
+    expect(butir(15).teks).toContain("480 × 3 = 1.440 (480 per orang per tahun, tiga tahun)");
+    expect(butir(4).teks).toContain("Di run lab terpisah dengan 28.000 posting per bulan");
+    expect(butir(6).teks).toContain("karena batas bawahnya 6 × 10 = 60 ms (`latensi.txt` bagian B)");
+    expect(bagianRekaman("t5-gabung", "latensi.txt", "B")).toMatch(/jeda 10 ms: batas bawah 60 ms[^\n]*500 dari 500/);
+    const KATA: Record<number, string> = { 15: "Lima belas", 16: "enam belas" };
+    const tanpaRekaman = butirSemua.filter((b) => kutipan(b.teks).length === 0).map((b) => b.no);
+    expect(tanpaRekaman).toEqual([15]);
+    expect(blok("Paham")).toContain(`${KATA[butirSemua.length - tanpaRekaman.length]} dari ${KATA[butirSemua.length]} kalimat punya rekaman lab yang dijalankan di mesin lokal`);
+    expect(blok("Paham")).toContain(`Butir ${tanpaRekaman[0]} hanya punya model Ilustrasi tanpa lab.`);
+    expect(blok("Kunci")).toContain("database menerima 100 koneksi dengan 3 di antaranya cadangan");
+  });
+  test("baris riset R5-260 sampai R5-264: nilai yang dipakai halaman ada di barisnya", () => {
+    const baris = (id: string): string => riset5.split("\n").find((b) => b.startsWith(`| ${id} |`)) ?? "";
+    const r260 = baris("R5-260");
+    for (const s of [
+      "dibuka 2026-11-05", "id=16507066,16719566", "PMID 16507066 = Roediger & Karpicke",
+      "Psychological Science 17(3), pubdate 2006 Mar, halaman 249-55", "Psychological Bulletin 132(3), pubdate 2006 May, halaman 354-80",
+      "Test-enhanced learning: taking memory tests improves long-term retention", "Distributed practice in verbal recall tasks: A review and quantitative synthesis",
+      "tes akhir 5 menit lawan 2 hari dan 1 minggu",
+    ]) expect(r260, s).toContain(s);
+    expect(baris("R5-261")).toContain("Enam belas kalimat naskah bagian 5");
+    expect(baris("R5-262")).toContain("1.800.000 dari 1.800.000 posting di bagian A");
+    expect(baris("R5-264")).toContain("Kolny, 22 Maret 2023");
   });
 });
