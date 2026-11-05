@@ -43,6 +43,10 @@ test("sidebar: halaman Tahap 6 dikelompokkan per bagian naskah, urut registry, d
   const cerita = g.items.filter((x) => !x.items);
   assert.deepEqual(cerita.map((x) => x.link), ["/cerita/tahap-6/"]);
   assert.ok(subgrup.every((x) => x.collapsed === true), "semua subgrup terlipat (keputusan 202)");
+  // Grup tahap juga terlipat (mutan tinjauan: collapsed false di grupTahap lolos semua tes): Tahap 1 sampai 6 sama.
+  const tahapGrup = sidebar().filter((x) => /^Tahap \d/.test(x.label));
+  assert.equal(tahapGrup.length, d.tahap.length + d.proyeksi.length);
+  assert.ok(tahapGrup.every((x) => x.collapsed === true), "grup Tahap 1 sampai 6 terlipat (keputusan 202)");
 });
 
 test("sidebar: halaman Cerita Tahap 6 tidak bertanda versi lama; T5 yang penggantinya ada tetap bertanda (kontrol)", () => {
