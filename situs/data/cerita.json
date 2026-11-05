@@ -5072,6 +5072,305 @@
       "menit": 7
     },
     {
+      "id": "t6-prd",
+      "judul": "PRD v6: Rekeningo untuk tiga negara, dan jawaban tebakan 5.32",
+      "tahap": 6,
+      "path": "tahap-6/prd-v6.md",
+      "topik": "Gambaran besar",
+      "jenis": "prd",
+      "bagian": 1,
+      "inti": true,
+      "peran": [
+        "mobile"
+      ],
+      "masalah": "Rekeningo harus melayani user di tiga negara dengan uang dan aturan mereka, tetap hidup bila satu wilayah hilang, dan diubah 53 orang tanpa saling menunggu",
+      "prasyarat": [
+        "t5-jembatan",
+        "t5-onprem"
+      ],
+      "ada": false,
+      "nomor": "6.1"
+    },
+    {
+      "id": "t6-fitur-teknis",
+      "judul": "Dari fitur ke pekerjaan teknis v6 dan inti: tiap data punya satu rumah",
+      "tahap": 6,
+      "path": "tahap-6/fitur-ke-teknis.md",
+      "topik": "Gambaran besar",
+      "jenis": "fitur",
+      "bagian": 2,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "masalah": "Dari PRD v6, apa yang berubah di app, backend, dan database, dan kenapa tiap data punya satu rumah dan satu pemilik?",
+      "pendek": "Fitur ke pekerjaan teknis v6",
+      "prasyarat": [
+        "t6-prd",
+        "t5-skema"
+      ],
+      "ada": false,
+      "nomor": "6.2"
+    },
+    {
+      "id": "t6-m52",
+      "judul": "M52: Template service menunggu 17 hari + ADR 61 (platform sebagai produk, golden path, service catalog)",
+      "tahap": 6,
+      "path": "tahap-6/m52-template-service.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        61
+      ],
+      "label": "Masalah 52 · minggu 3",
+      "masalah": "Service baru menunggu template dari Platform, dan tim lain menyalin pipeline yang tidak punya pemilik jalur",
+      "prasyarat": [
+        "t6-fitur-teknis",
+        "t5-tim-infra"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.3"
+    },
+    {
+      "id": "t6-m53",
+      "judul": "M53: Laporan tutup buku kosong sesudah migration + ADR 62 (kepemilikan domain, data sebagai produk)",
+      "tahap": 6,
+      "path": "tahap-6/m53-laporan-kosong.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "security",
+        "backend"
+      ],
+      "adr": [
+        62
+      ],
+      "label": "Masalah 53 · minggu 6",
+      "masalah": "Migration satu tim mengosongkan laporan tim lain, karena hak baca lintas schema adalah contract yang tidak tertulis",
+      "prasyarat": [
+        "t6-m52",
+        "t5-service"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.4"
+    },
+    {
+      "id": "t6-m54",
+      "judul": "M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing)",
+      "tahap": 6,
+      "path": "tahap-6/m54-sembilan-perubahan.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        63
+      ],
+      "label": "Masalah 54 · minggu 9",
+      "masalah": "Pembayaran gagal sesudah banyak perubahan dari beberapa tim, dan tak ada garis waktu atau ukuran yang menunjuk penyebabnya",
+      "prasyarat": [
+        "t6-m53",
+        "t5-rollout",
+        "t5-tim-infra"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.5"
+    },
+    {
+      "id": "t6-m55",
+      "judul": "M55: Satu wilayah hilang 47 menit + ADR 64 (multi-region aktif-pasif)",
+      "tahap": 6,
+      "path": "tahap-6/m55-wilayah-hilang.md",
+      "topik": "Operasional",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "security",
+        "backend"
+      ],
+      "adr": [
+        64
+      ],
+      "label": "Masalah 55 · minggu 12",
+      "masalah": "Satu wilayah hilang lebih lama dari RTO wilayah, dan transaksi yang sudah dijawab sukses tidak ada di pasangannya",
+      "prasyarat": [
+        "t6-m54",
+        "t5-rpo-rto"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.6"
+    },
+    {
+      "id": "t6-m56",
+      "judul": "M56: Jurnal tukar yang jumlah postingnya bukan nol + ADR 65 (multi-mata uang)",
+      "tahap": 6,
+      "path": "tahap-6/m56-jurnal-tukar.md",
+      "topik": "Data",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "backend"
+      ],
+      "adr": [
+        65
+      ],
+      "label": "Masalah 56 · minggu 15",
+      "masalah": "Jurnal tukar antar mata uang tidak berjumlah nol, dan selisih pembulatannya tidak punya akun",
+      "prasyarat": [
+        "t6-m55",
+        "t2-ledger"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.7"
+    },
+    {
+      "id": "t6-residensi",
+      "judul": "Keamanan 13: Data per negara, kunci per wilayah, fraud lintas negara + ADR 66",
+      "tahap": 6,
+      "path": "tahap-6/keamanan-13-data-per-negara.md",
+      "topik": "Keamanan",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "mobile",
+        "security",
+        "backend"
+      ],
+      "adr": [
+        66
+      ],
+      "label": "Keamanan 13 · minggu 17",
+      "masalah": "Satu graf akun-perangkat butuh data identitas dari tiga negara, padahal data satu negara harus tinggal di wilayahnya",
+      "prasyarat": [
+        "t6-m56",
+        "t5-kms"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.8"
+    },
+    {
+      "id": "t6-m57",
+      "judul": "M57: Biaya per transaksi naik 1,85 kali + ADR 67 (FinOps, skor risiko satu proses)",
+      "tahap": 6,
+      "path": "tahap-6/m57-biaya-per-transaksi.md",
+      "topik": "Desain sistem",
+      "jenis": "konsep",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "security",
+        "backend"
+      ],
+      "adr": [
+        67
+      ],
+      "label": "Masalah 57 · minggu 19",
+      "masalah": "Biaya per transaksi naik lebih cepat dari jumlah transaksi, dan skor risiko yang dipecah menjadi tiga service melewati anggaran latensinya",
+      "prasyarat": [
+        "t6-residensi",
+        "t5-service"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.9"
+    },
+    {
+      "id": "t6-tim-infra",
+      "judul": "Tim dan infra Tahap 6: giliran jaga lintas tim, pemilik service, DORA + ADR 68",
+      "tahap": 6,
+      "path": "tahap-6/tim-infra.md",
+      "topik": "Operasional",
+      "jenis": "tim-infra",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "backend"
+      ],
+      "adr": [
+        68
+      ],
+      "masalah": "Giliran jaga per tim membebani tim kecil, dan 53 orang di 11 tim butuh pemilik service yang tercatat dan ukuran yang sama",
+      "prasyarat": [
+        "t6-m57",
+        "t5-tim-infra"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.10"
+    },
+    {
+      "id": "t6-adr-69",
+      "judul": "Estimasi Tahap 6 dan ADR 69: Sengaja belum dilakukan",
+      "tahap": 6,
+      "path": "tahap-6/sengaja-belum.md",
+      "topik": "Desain sistem",
+      "jenis": "adr",
+      "bagian": 4,
+      "inti": true,
+      "peran": [
+        "devops",
+        "security",
+        "backend"
+      ],
+      "adr": [
+        69
+      ],
+      "masalah": "Beban Tahap 6 dihitung dari angka Tahap 5 sebelum memilih komponen, dan dua belas butir yang ditunda ditulis dengan pemicu dan alat ukurnya",
+      "prasyarat": [
+        "t6-tim-infra",
+        "t5-adr-60"
+      ],
+      "menit": 20,
+      "ada": false,
+      "nomor": "6.11"
+    },
+    {
+      "id": "t6-penutup",
+      "judul": "Penutup: yang dibawa keluar dari enam tahap",
+      "tahap": 6,
+      "path": "tahap-6/penutup.md",
+      "topik": "Gambaran besar",
+      "jenis": "konsep",
+      "bagian": 5,
+      "inti": true,
+      "peran": [
+        "mobile"
+      ],
+      "masalah": "Yang dibawa pembaca keluar dari enam tahap, yang sengaja tidak diceritakan, dan yang belum diukur",
+      "prasyarat": [
+        "t6-adr-69"
+      ],
+      "ada": false,
+      "nomor": "6.12"
+    },
+    {
       "id": "D4c",
       "judul": "Studi desain: laporan lapangan offline",
       "tahap": "sampingan",

@@ -370,6 +370,215 @@ describe("registry cerita.json", () => {
     }
   });
 
+  // Penjaga peninjau T6-siap (keputusan 1806). Uji mutasi atas registry `t6-*`, RINGKAS, dan ANTREAN Tahap 6: 45 dari 56 mutan
+  // lolos semua gerbang sebelum tes berikut (judul, ADR, label minggu, peran, prasyarat, id, path, peta dan angka RINGKAS,
+  // alokasi nomor, dan `bergantung`). Nilai diturunkan dari naskah, bukan dari berkas yang dijaga. Tes ini tidak membaca `ada`,
+  // `menit`, atau `status`, supaya tetap benar selama halaman Tahap 6 ditulis satu per satu.
+  const naskah6 = () => teks("plan/CERITA-TAHAP-6.md");
+  const hal6 = () => Registry.parse(baca()).halaman.filter((h) => h.tahap === 6 && h.nomor);
+  // Jenis registry menurut jenis naskah ("Catatan untuk `T6-siap`"): Masalah + ADR dan Keamanan + ADR ditulis `konsep` karena
+  // templat.json mengunci urutan blok `masalah` dan `adr`, "Konsep + ADR" (6.11) ditulis `adr`.
+  const JENIS6: Record<string, string> = {
+    PRD: "prd", "Fitur → teknis": "fitur", "Masalah + ADR": "konsep", "Keamanan + ADR": "konsep", "Tim dan infra": "tim-infra", "Konsep + ADR": "adr", Konsep: "konsep",
+  };
+  const peta6 = () => {
+    const peta = naskah6().split("## Peta halaman Tahap 6")[1]!.split("\n## ")[0]!;
+    return [...peta.matchAll(/^\| (6\.\d+) \| ([\w, ]+?) \| (.+?) \| (.+?) \| (★?) *\| (.+?) \| (.+?) \|$/gm)].map((m) => ({
+      nomor: m[1]!, bagian: m[2]!.split(", ")[0]!, judul: m[3]!, jenis: m[4]!, bintang: m[5]!, lab: m[6]!,
+    }));
+  };
+
+  it("Tahap 6 punya 12 halaman yang cocok dengan peta halaman naskah, tanpa lab", () => {
+    const harap = peta6().map((p) => ({
+      nomor: p.nomor, bagian: /^\d+$/.test(p.bagian) ? Number(p.bagian) : p.bagian, judul: p.judul, jenis: JENIS6[p.jenis],
+      inti: p.bintang === "★", lab: p.lab === "–" ? [] : p.lab.split(", "),
+    }));
+    expect(harap).toHaveLength(12);
+    expect(harap.every((p) => p.lab.length === 0)).toBe(true);
+    expect(hal6().map((h) => ({ nomor: h.nomor, bagian: h.bagian, judul: h.judul, jenis: h.jenis, inti: !!h.inti, lab: h.lab ?? [] }))).toEqual(harap);
+  });
+
+  it("Tahap 6: ADR 61 sampai 69, label masalah dan minggu, peran, dan prasyarat sesuai naskah", () => {
+    const naskah = naskah6();
+    const semua = Registry.parse(baca()).halaman;
+    const hal = hal6();
+    // ADR: tabel "ADR yang lahir di Tahap 6" memuat sembilan nomor, satu halaman tiap nomor, dan judul peta menyebut "+ ADR n".
+    const tabelAdr = naskah.split("### ADR yang lahir di Tahap 6")[1]!.split("\n### ")[0]!;
+    const adr = [...tabelAdr.matchAll(/^\| (\d+) \| /gm)].map((m) => Number(m[1]));
+    expect(adr).toEqual([61, 62, 63, 64, 65, 66, 67, 68, 69]);
+    expect(hal.flatMap((h) => h.adr ?? [])).toEqual(adr);
+    for (const p of peta6()) {
+      const dariJudul = [...p.judul.matchAll(/\bADR (\d+)/g)].map((m) => Number(m[1]));
+      expect(hal.find((h) => h.nomor === p.nomor)!.adr ?? [], `ADR halaman ${p.nomor}`).toEqual(dariJudul);
+    }
+    // Label "Masalah N · minggu W": minggu dari tabel masalah naskah; halaman Keamanan 13 dari kalimat "minggu 17".
+    const minggu = Object.fromEntries([...naskah.matchAll(/^\| M(\d+) \| (\d+) \| /gm)].map((m) => [m[1]!, m[2]!]));
+    expect(Object.keys(minggu)).toEqual(["52", "53", "54", "55", "56", "57"]);
+    for (const h of hal) {
+      const m = h.judul.match(/^M(\d+):/);
+      if (!m) continue;
+      expect(h.id, `id ${h.nomor}`).toBe(`t6-m${m[1]}`);
+      expect(h.path.startsWith(`tahap-6/m${m[1]}-`), `path ${h.nomor}`).toBe(true);
+      expect(h.label, `label ${h.nomor}`).toBe(`Masalah ${m[1]} · minggu ${minggu[m[1]!]}`);
+    }
+    const k13 = naskah.match(/Halaman Keamanan 13 membuka dengan satu kejadian, minggu (\d+)\./)![1];
+    expect(hal.find((h) => h.judul.startsWith("Keamanan 13:"))!.label).toBe(`Keamanan 13 · minggu ${k13}`);
+    // Peran: "Jalur per peran" naskah. Mobile, DevOps, dan Security persis; Backend "hampir semua, terutama ..." memuat yang disebut.
+    const jalur = naskah.split("Jalur per peran:")[1]!;
+    const dariNaskah = (nama: string) => [...jalur.split(`**${nama}**`)[1]!.split("\n")[0]!.matchAll(/\b6\.\d+\b/g)].map((m) => m[0]);
+    const urut = (a: string[]) => [...a].sort((x, y) => Number(x.split(".")[1]) - Number(y.split(".")[1]));
+    const peran = (p: string) => hal.filter((h) => h.peran?.includes(p as never)).map((h) => h.nomor!);
+    for (const [nama, kunci] of [["Mobile", "mobile"], ["DevOps", "devops"], ["Security", "security"]] as const) {
+      expect(peran(kunci), `peran ${nama}`).toEqual(urut(dariNaskah(nama)));
+    }
+    expect(peran("backend")).toEqual(expect.arrayContaining(dariNaskah("Backend")));
+    // Prasyarat: halaman pertama menunggu jembatan 5.32; tiap halaman menunggu pendahulunya; semua id ada dan lebih awal di registry.
+    const posisi = new Map(semua.map((h, i) => [h.id, i]));
+    expect(hal[0]!.prasyarat).toContain("t5-jembatan");
+    hal.forEach((h, i) => {
+      for (const p of h.prasyarat ?? []) {
+        expect(posisi.has(p), `${h.nomor} prasyarat ${p} ada`).toBe(true);
+        expect(posisi.get(p)!, `${h.nomor} prasyarat ${p} lebih awal`).toBeLessThan(posisi.get(h.id)!);
+      }
+      if (i > 0) expect(h.prasyarat, `${h.nomor} menunggu ${hal[i - 1]!.nomor}`).toContain(hal[i - 1]!.id);
+    });
+  });
+
+  it("Tahap 6: id halaman dibekukan, path di tahap-6, dan id serta path tidak ganda", () => {
+    const semua = Registry.parse(baca()).halaman;
+    const hal = hal6();
+    expect(hal.map((h) => h.id)).toEqual([
+      "t6-prd", "t6-fitur-teknis", "t6-m52", "t6-m53", "t6-m54", "t6-m55", "t6-m56", "t6-residensi", "t6-m57", "t6-tim-infra", "t6-adr-69", "t6-penutup",
+    ]);
+    for (const h of hal) expect(h.path, `path ${h.nomor}`).toMatch(/^tahap-6\/[a-z0-9-]+\.md$/);
+    for (const kunci of ["id", "path"] as const) {
+      const nilai = semua.map((h) => h[kunci]);
+      expect(nilai.filter((n, i) => nilai.indexOf(n) !== i), `${kunci} ganda`).toEqual([]);
+    }
+  });
+
+  it("URUT_BACA di registri.mjs dan registri.py sama, dan memuat 6 begitu halaman 6.1 ada", () => {
+    const mjs = teks("situs/tools/registri.mjs").match(/const URUT_BACA = \[(.+?)\];/)![1]!.replaceAll('"', "").split(", ");
+    const py = teks("tools/registri.py").match(/URUT_BACA = \((.+?)\)/)![1]!.replaceAll('"', "").split(", ");
+    expect(py).toEqual(mjs);
+    const pertama = hal6()[0]!;
+    if (fs.existsSync(path.join(akar, "situs/src/content/docs", pertama.path.replace(/\.md$/, ".mdx")))) expect(mjs).toContain("6");
+  });
+
+  it("RINGKAS Tahap 6: peta, peran, pasangan masalah dan ADR ke halaman, dan angka cocok dengan naskah dan registry", () => {
+    const ringkas = teks("plan/RINGKAS.md");
+    const naskah = naskah6();
+    const bagian = ringkas.split("\n## Tahap 6 · ")[1]!;
+    // Sesudah 6.12 merge pengatur melipat peta jadi satu baris per kelompok; tes ini lalu hanya meminta baris lipatnya.
+    if (!bagian.includes("### Peta halaman Tahap 6")) {
+      expect(bagian).toMatch(/6\.1–6\.12 selesai/);
+      return;
+    }
+    const hal = hal6();
+    // Peta: "nomor judul · jenis · ★ · lab", baris demi baris dari tabel naskah.
+    const jenis = (j: string) => j.replace(/\s+/g, "").replace("Timdaninfra", "Tim-infra");
+    const harap = peta6().map((p) => `${p.nomor} ${p.judul} · ${jenis(p.jenis)} · ${p.bintang} · ${p.lab}`);
+    expect(harap).toHaveLength(12);
+    expect([...bagian.matchAll(/^(6\.\d+ .+)$/gm)].map((m) => m[1])).toEqual(harap);
+    // Peran di kepala peta (rentang "6.9–6.11" dibuka) sama dengan peran registry.
+    const kepala = bagian.match(/^### Peta halaman Tahap 6 \(.*?; peran: (.+)\)$/m)![1]!.split("; ");
+    expect(kepala.map((s) => s.split(" ")[0])).toEqual(["mobile", "devops", "security", "backend"]);
+    for (const seg of kepala) {
+      const [nama, ...daftar] = seg.split(" ");
+      const nomor = daftar.join(" ").split(", ").flatMap((x) => {
+        const [a, b] = x.split("–");
+        if (!b) return [a!];
+        const dari = Number(a!.split(".")[1]);
+        return Array.from({ length: Number(b.split(".").pop()) - dari + 1 }, (_, i) => `6.${dari + i}`);
+      });
+      expect(nomor, `peran ${nama}`).toEqual(hal.filter((h) => h.peran?.includes(nama as never)).map((h) => h.nomor));
+    }
+    // Pasangan "M52 6.3" dan "6.3 template service ... (ADR 61" menunjuk halaman yang memuatnya; ADR 69 ditulis "ADR 69 ... 6.11".
+    const masalah = [...bagian.matchAll(/\bM(\d+) (6\.\d+)/g)].map((m) => [m[1]!, m[2]!] as const);
+    expect(masalah.map(([n]) => n)).toEqual(["52", "53", "54", "55", "56", "57"]);
+    for (const [n, no] of masalah) expect(hal.find((h) => h.judul.startsWith(`M${n}:`))?.nomor, `M${n}`).toBe(no);
+    const adr = [...bagian.matchAll(/\b(6\.\d+) (?:(?!6\.\d+)[^·(\n])*\(ADR (\d+)\b/g)].map((m) => [m[2]!, m[1]!] as const);
+    expect(adr.map(([n]) => n)).toEqual(["61", "62", "63", "64", "65", "66", "67", "68"]);
+    for (const [n, no] of adr) expect(hal.find((h) => h.adr?.includes(Number(n)))?.nomor, `ADR ${n}`).toBe(no);
+    expect(bagian).toContain(`ADR 69 "Sengaja belum" ${hal.find((h) => h.adr?.includes(69))!.nomor}`);
+    // Angka berformat Indonesia tertulis di naskah; tim, pembagian user, RTO wilayah, dan minggu dari tabel dan kalimat naskah.
+    const angka = [...bagian.matchAll(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+,\d+|\d+%/g)].map((m) => m[0]);
+    expect(angka.length).toBeGreaterThan(20);
+    for (const a of new Set(angka)) expect(naskah, `angka ${a} di RINGKAS`).toContain(a);
+    const { tim, jumlah } = timNaskah(naskah);
+    expect([tim, jumlah]).toEqual([11, 53]);
+    expect(bagian).toContain(`${jumlah} orang dalam ${tim} tim`);
+    const bagi = naskah.match(/Pembagian user (\d+)%, (\d+)%, (\d+)%\./)!;
+    expect(bagian).toContain(`tiga negara ${bagi[1]}/${bagi[2]}/${bagi[3]}`);
+    // Tiap kemunculan RTO wilayah memakai nilai naskah (toContain puas dengan satu kemunculan: mutan 45 menit lolos tanpa ini).
+    const rto = [...bagian.matchAll(/RTO wilayah (\d+) menit/g)].map((m) => m[1]);
+    expect(rto.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(rto)).toEqual(new Set([naskah.match(/RTO wilayah (\d+) menit/)![1]]));
+    // Ukuran tim dibandingkan dengan PROPOSAL Tahap 6 ("50+ (10+ tim, ...)"), bukan dengan baris Tahap 5 ("20–40").
+    const proposal = teks("plan/PROPOSAL.md").match(/^\| 6 \(proyeksi\) \| [^|]+ \| (\d+)\+ \((\d+)\+ tim/m)!;
+    expect(bagian).toContain(`PROPOSAL: ${proposal[1]}+ developer dalam ${proposal[2]}+ tim`);
+    expect(bagian).not.toContain("20–40");
+    expect(bagian).toContain(`${naskah.match(/(\d+) minggu \(Asumsi cerita\)/)![1]} minggu`);
+    expect(bagian).toContain(`${titik(Number(naskah.match(/dengan (\d{1,3}(?:\.\d{3})+) user terdaftar/)![1]!.replaceAll(".", "")))} user terdaftar`);
+    // Dua belas butir ADR 60: dua terpenuhi sebagian dan sepuluh tidak dikerjakan, dengan ADR 69 menulis dua belas baris.
+    expect(naskah).toContain("Dari dua belas butir, dua terpenuhi dan dikerjakan sebagian.");
+    expect(naskah).toContain("Sepuluh butir tetap tidak dikerjakan.");
+    expect(naskah).toContain("ADR 69 memuat dua belas baris");
+    expect(bagian).toContain("dua belas butir ADR 60 dua terpenuhi sebagian");
+    expect(bagian).toContain("sepuluh tidak dikerjakan; ADR 69 menulis dua belas baris");
+  });
+
+  it("ANTREAN Tahap 6: alokasi nomor, ketergantungan, judul, dan syarat tanpa lab mengikuti keputusan 1800 sampai 1805", () => {
+    const antrean = teks("plan/ANTREAN.md");
+    const hal = hal6();
+    const blok = (id: string) => {
+      const awal = antrean.indexOf(`\n### ${id} · `);
+      expect(awal, `tugas ${id}`).toBeGreaterThan(-1);
+      const akhir = antrean.indexOf("\n### ", awal + 5);
+      return antrean.slice(awal, akhir < 0 ? undefined : akhir);
+    };
+    const dep = (id: string) => blok(id).match(/\n- bergantung: (.*)/)![1]!.split(", ");
+    const kep = (a: number, b: number) => `ALOKASI: keputusan ${a}–${b} (`;
+    // Rentang Tahap 6 di kepala bagian: 1700–1899, dan LAPORAN-AKHIR di atasnya.
+    const kepala = antrean.split("\n## Tahap 6\n")[1]!.split("\n## ")[0]!.match(/Nomor keputusan: (\d+)–(\d+)/)!;
+    expect([Number(kepala[1]), Number(kepala[2])]).toEqual([1700, 1899]);
+    // Alokasi: halaman 6.n 1710 + 4(n−1) dan R6-110 + 5(n−1) (kepala bagian Tahap 6); tugas lain tetap.
+    for (const h of hal) {
+      const n = Number(h.nomor!.split(".")[1]);
+      expect(blok(h.nomor!), `alokasi ${h.nomor}`).toContain(kep(1710 + 4 * (n - 1), 1713 + 4 * (n - 1)));
+      expect(blok(h.nomor!), `riset ${h.nomor}`).toContain(`ID riset R6-${110 + 5 * (n - 1)} sampai R6-${114 + 5 * (n - 1)}.`);
+      expect(antrean, `judul tugas ${h.nomor}`).toContain(`\n### ${h.nomor} · ${h.judul}\n`);
+      // situs/public/widgets/ dibangkitkan tiap build dan diabaikan git: data widget halaman tidak boleh ditulis ke sana.
+      expect(blok(h.nomor!), `data widget ${h.nomor}`).not.toContain("`situs/public/widgets/data/`");
+      expect(dep(h.nomor!), `${h.nomor} butuh T6-siap`).toContain("T6-siap");
+      if (n > 1) expect(dep(h.nomor!), `${h.nomor} menunggu 6.${n - 1}`).toContain(`6.${n - 1}`);
+    }
+    for (const [id, a, b] of [["cerita-tahap-6", 1760, 1763], ["istilah-tahap-6", 1764, 1767], ["EVAL-6", 1770, 1772], ["DIRI-6", 1775, 1777], ["T6-siap", 1800, 1809], ["LAPORAN-AKHIR", 1900, 1905]] as const) {
+      expect(blok(id), `alokasi ${id}`).toContain(kep(a, b));
+    }
+    expect(blok("istilah-tahap-6")).toContain("ID riset bila perlu R6-170 sampai R6-174.");
+    // Ketergantungan: tugas Cerita dan istilah menunggu T6-siap; 6.1 menunggu keduanya (tanpa Cerita, breadcrumb halaman 6.1 hanya "6").
+    expect(dep("cerita-tahap-6")).toEqual(["T6-siap"]);
+    expect(dep("istilah-tahap-6")).toEqual(["T6-siap"]);
+    expect(dep("6.1")).toEqual(expect.arrayContaining(["istilah-tahap-6", "cerita-tahap-6"]));
+    expect(dep("EVAL-6")).toEqual(expect.arrayContaining(["6.12", "cerita-tahap-6", "istilah-tahap-6"]));
+    expect(dep("DIRI-6")).toEqual(["EVAL-6"]);
+    expect(dep("LAPORAN-AKHIR")).toEqual(["DIRI-6"]);
+    // Tahap 6 tanpa lab, ERD, dan widget baru; 6.1 mencatat kedua URUT_BACA; 6.9 satu-satunya yang mengutip rekaman Tahap 5.
+    expect(antrean).not.toMatch(/^### (lab-t6|ERD6|W6-)/m);
+    expect(blok("EVAL-6")).toContain("dengan prompt khusus tanpa lab");
+    for (const s of ["URUT_BACA", "situs/tools/registri.mjs", "tools/registri.py"]) expect(blok("6.1"), `6.1 menyebut ${s}`).toContain(s);
+    // Baris Skor risiko naskah (bagian 3 dan 4) mengutip rekaman t5-gabung: 6.2, 6.9, dan 6.11 menyebutnya, bukan hanya 6.9.
+    expect(blok("6.9")).toContain("(Rekaman lab Tahap 5)");
+    expect(blok("6.9")).not.toContain("Satu-satunya halaman Tahap 6 yang mengutip rekaman");
+    for (const no of ["6.2", "6.9", "6.11"]) expect(blok(no), `rekaman ${no}`).toContain("`labs/t5-gabung/output/panggilan.txt`");
+    for (const berkas of ["panggilan.txt", "latensi.txt"]) expect(fs.existsSync(path.join(akar, "labs/t5-gabung/output", berkas)), berkas).toBe(true);
+    // BRIEF-HALAMAN menulis keadaan registry yang sama: tanpa `asumsi` Tahap 6 selama `tahap` hanya memuat Tahap 1 sampai 5.
+    const brief = teks("plan/BRIEF-HALAMAN.md");
+    expect(brief).toContain("- Tahap 6: tanpa lab, ERD, dan widget baru");
+    if (Registry.parse(baca()).tahap.length === 5) expect(brief).toContain("Registry Tahap 6 tidak punya `asumsi`");
+  });
+
   it("nomor tampilan tidak dipakai dua halaman", () => {
     const nomor = Registry.parse(baca()).halaman.flatMap((h) => (h.nomor ? [h.nomor] : []));
     expect(nomor.filter((n, i) => nomor.indexOf(n) !== i)).toEqual([]);
