@@ -1773,6 +1773,15 @@
   "h": null
  },
  {
+  "t": "Router database",
+  "d": "Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.",
+  "b": "t5-read-replica",
+  "n": "5.5 Read replica dan model baca",
+  "u": "/tahap-5/read-replica/",
+  "s": "istilah-router-database",
+  "h": null
+ },
+ {
   "t": "RPO (recovery point objective)",
   "d": "Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang.",
   "b": "t5-prd",
@@ -2070,6 +2079,15 @@
   "h": null
  },
  {
+  "t": "Token LSN",
+  "d": "Posisi primary di WAL sesudah satu COMMIT. Server mengirimnya ke app di kepala X-Lsn-Tulis, dan app mengembalikannya di bacaan berikutnya. Isinya posisi di log, bukan bukti siapa pengirimnya.",
+  "b": "t5-lag",
+  "n": "5.7 Replication lag dan read-your-writes",
+  "u": "/tahap-5/replication-lag/",
+  "s": "istilah-token-lsn",
+  "h": null
+ },
+ {
   "t": "Token perangkat",
   "d": "Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.",
   "b": "t3-notifikasi",
@@ -2104,6 +2122,15 @@
   "u": "/tahap-3/observability/",
   "s": "istilah-traceparent",
   "h": "/istilah/traceparent/"
+ },
+ {
+  "t": "Traffic router",
+  "d": "Komponen yang menggeser lalu lintas antar versi aplikasi menurut bobot, mis. 5% ke versi baru. Di Kubernetes, ingress controller atau service mesh menjalankan peran itu.",
+  "b": "t5-rollout",
+  "n": "5.23 Progressive delivery dan kill switch",
+  "u": "/tahap-5/progressive-delivery/",
+  "s": "istilah-traffic-router",
+  "h": null
  },
  {
   "t": "TTL (Time To Live)",

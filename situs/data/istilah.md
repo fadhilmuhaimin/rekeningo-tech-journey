@@ -359,6 +359,10 @@
 *[round trip]: Satu kali bolak-balik request dan response antara app dan server. Di jaringan seluler, setiap round trip menambah latency.
 *[Router]: Bagian framework yang mencocokkan method dan path request dengan handler yang tepat.
 *[router]: Bagian framework yang mencocokkan method dan path request dengan handler yang tepat.
+*[Router database]: Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.
+*[router database]: Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.
+*[Database router]: Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.
+*[database router]: Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.
 *[RPO]: Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang.
 *[RTO]: Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan.
 *[Saga]: Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.
@@ -417,6 +421,8 @@
 *[token]: String yang dibawa request sebagai bukti siapa pengirimnya, mis. token login di header Authorization; siapa pun yang memegangnya bisa memakainya. Di token bucket, token berarti satu jatah request.
 *[Token bucket]: Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.
 *[token bucket]: Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.
+*[Token LSN]: Posisi primary di WAL sesudah satu COMMIT. Server mengirimnya ke app di kepala X-Lsn-Tulis, dan app mengembalikannya di bacaan berikutnya. Isinya posisi di log, bukan bukti siapa pengirimnya.
+*[token LSN]: Posisi primary di WAL sesudah satu COMMIT. Server mengirimnya ke app di kepala X-Lsn-Tulis, dan app mengembalikannya di bacaan berikutnya. Isinya posisi di log, bukan bukti siapa pengirimnya.
 *[Token perangkat]: Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.
 *[token perangkat]: Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu.
 *[Token passthrough]: Pola yang dilarang di server MCP: menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir.
@@ -424,6 +430,8 @@
 *[Trace]: Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.
 *[trace]: Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian.
 *[traceparent]: Header HTTP standar W3C yang membawa trace-id perjalanan satu request, supaya komponen yang berbeda bisa menyambung trace yang sama.
+*[Traffic router]: Komponen yang menggeser lalu lintas antar versi aplikasi menurut bobot, mis. 5% ke versi baru. Di Kubernetes, ingress controller atau service mesh menjalankan peran itu.
+*[traffic router]: Komponen yang menggeser lalu lintas antar versi aplikasi menurut bobot, mis. 5% ke versi baru. Di Kubernetes, ingress controller atau service mesh menjalankan peran itu.
 *[TTL]: Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.
 *[Time To Live]: Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa.
 *[Tutup buku]: Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang.

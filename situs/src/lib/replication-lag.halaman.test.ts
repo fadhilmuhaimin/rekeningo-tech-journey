@@ -135,6 +135,16 @@ describe("registry, templat konsep, dan kepala halaman", () => {
   });
 });
 
+describe("arti kata token di halaman ini (keputusan 1893)", () => {
+  test("baris glosarium Token LSN menuju halaman ini, dan arti-istilah.json memasangnya untuk kata token dan Router database untuk kata router di halaman ini", () => {
+    const glos = baca("situs/src/content/docs/alat/glosarium.mdx");
+    const b = baris(glos).filter((x) => x.startsWith("| **Token LSN** |"));
+    expect(b).toHaveLength(1);
+    expect(b[0]!.endsWith("| [[t5-lag]] |")).toBe(true);
+    expect(JSON.parse(baca("situs/data/arti-istilah.json"))["tahap-5/replication-lag"]).toEqual({ token: "Token LSN", router: "Router database" });
+  });
+});
+
 describe("naskah Tahap 5: ADR 47 dan M41 yang dibaca halaman, dan selisihnya dengan kode", () => {
   const adr47 = naskah.split("\n").find((b) => b.startsWith("| 47 |")) ?? "";
   const m41 = naskah.split("\n").find((b) => b.startsWith("| M41 |")) ?? "";
@@ -1028,6 +1038,9 @@ describe.skipIf(tanpaKunci)("lapis 2: kata-kata halaman dan JSON dikunci", () =>
   test("setiap nilai JSON Rantai sama dengan yang terkunci", () => {
     expect(sekarang().json).toEqual(KUNCI_JSON);
   });
+  // Sidik glosarium diperbarui 2026-11-05 (keputusan 1893): baris "Token LSN" ditambah dan menuju [[t5-lag]]. Empat baris yang menuju
+  // halaman ini sekarang LSN, Read-your-writes, Replication lag, dan Token LSN; tiga baris pertama tidak berubah (diperiksa di tes
+  // "tiga baris glosarium" di atas). Sidik halaman, struktur, dan riset tidak berubah.
   test("sidik: jumlah kata kunci, label, struktur, baris riset milik halaman ini, dan baris glosarium yang menuju halaman ini", () => {
     const s = sidikSekarang();
     expect(s.halaman).toEqual(SIDIK.halaman);
