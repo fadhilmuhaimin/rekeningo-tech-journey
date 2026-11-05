@@ -6,7 +6,7 @@ import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { abbrDiMain, bacaDefinisi } from "./arti-istilah";
-import { ISTILAH_TAMBAHAN, ISTILAH_UTAMA, PEMAKAI_TOOLTIP, periksaIstilahT6, type Masukan } from "./istilah-tahap-6";
+import { ISTILAH_TAMBAHAN, ISTILAH_UTAMA, PEMAKAI_TOOLTIP, periksaIstilahT6, sidikSekarang, teksTampil, type Masukan } from "./istilah-tahap-6";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const baca = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
@@ -225,6 +225,79 @@ describe("istilah Tahap 6: mutasi (penjaga harus gagal karena sebab yang diuji)"
     const a = salin();
     a.halaman["residensi-data"] = JSON.parse(JSON.stringify(a.halaman["residensi-data"]).replaceAll("[perlu verifikasi]", "terverifikasi"));
     gagal(a, /Residensi data: label \[perlu verifikasi\]/);
+  });
+});
+
+// Tinjauan PR istilah-tahap-6 (keputusan 1767): 75 mutan kalimat bebas (arah kata, angka, tahun, atribusi, versi, tanggal rilis, ID
+// riset di satu sumber) hanya tertangkap 3 oleh bagian 1 sampai 7 penjaga. Bagian 8 mengunci teks yang sudah dibaca ke sumber primer
+// dengan sidik; blok ini membuktikan bahwa sisipan kata "tidak" di tiap kalimat, tiap definisi, dan tiap baris riset tertangkap.
+describe("istilah Tahap 6: kunci teks (sidik) dan sisip kata tidak", () => {
+  const kalimatDi = (s: string) => s.split(/(?<=[.!?])\s+/).filter((k) => k.split(" ").length > 3);
+  const sisip = (k: string) => {
+    const i = k.indexOf(" ");
+    return `${k.slice(0, i)} tidak${k.slice(i)}`;
+  };
+  const esc = (s: string) => JSON.stringify(s).slice(1, -1);
+
+  test("sidik data nyata lengkap: 12 halaman istilah, 20 definisi, 5 baris riset, dan semua cocok", () => {
+    const s = sidikSekarang(nyata);
+    expect(Object.keys(s.halaman)).toHaveLength(12);
+    expect(Object.keys(s.definisi)).toHaveLength(20);
+    expect(Object.keys(s.riset)).toHaveLength(5);
+    expect(periksaIstilahT6(nyata).filter((x) => /teks berubah dari yang ditinjau/.test(x))).toEqual([]);
+  });
+
+  test("sisip tidak di tiap kalimat tiap halaman istilah menggagalkan sidik halaman itu", () => {
+    let n = 0;
+    for (const { slug } of ISTILAH_UTAMA) {
+      const json = JSON.stringify(nyata.halaman[slug]);
+      for (const s of teksTampil(nyata.halaman[slug])) {
+        for (const k of kalimatDi(s)) {
+          if (json.split(esc(k)).length !== 2) continue; // kalimat harus unik di JSON
+          const m = salin();
+          m.halaman[slug] = JSON.parse(json.replace(esc(k), esc(sisip(k))));
+          gagal(m, new RegExp(`halaman ${slug}: teks berubah`));
+          n++;
+        }
+      }
+    }
+    expect(n, "jumlah kalimat yang diuji").toBeGreaterThan(120);
+  });
+
+  test("sisip tidak di tiap definisi glosarium baru menggagalkan sidik definisi itu", () => {
+    for (const nama of [...ISTILAH_UTAMA.map((x) => x.nama), ...ISTILAH_TAMBAHAN.map((x) => x.nama)] as string[]) {
+      const d = nyata.glosMdx.split("\n").find((l) => l.startsWith(`| **${nama}**`))!.split(" | ")[1]!;
+      const m = salin();
+      m.glosMdx = m.glosMdx.replace(d, sisip(d));
+      gagal(m, new RegExp(`definisi ${nama}: teks berubah`));
+    }
+  });
+
+  test("ubah tahun, versi, tanggal, atau sisip tidak di tiap baris riset R6-170 sampai R6-174 menggagalkan sidik baris itu", () => {
+    for (const id of ["R6-170", "R6-171", "R6-172", "R6-173", "R6-174"]) {
+      const baris = nyata.risetT6.split("\n").find((l) => l.startsWith(`| ${id} |`))!;
+      for (const ubah of [(b: string) => b.replace("2026-11-06", "2026-11-05"), (b: string) => b.replace("dibuka", "tidak dibuka"), (b: string) => b.replace(/(\d)(\d)(?=\D*$)/, "$2$1")]) {
+        const baru = ubah(baris);
+        if (baru === baris) continue;
+        const m = salin();
+        m.risetT6 = m.risetT6.replace(baris, baru);
+        m.riset[id] = baru;
+        gagal(m, new RegExp(`riset ${id}: teks berubah`));
+      }
+    }
+  });
+
+  test("pasangan sumber ditukar, atribusi diganti, dan label dihapus di satu halaman menggagalkan sidik halaman itu", () => {
+    const a = salin();
+    const s = (a.halaman["multi-region"] as { sumber: { url: string }[] }).sumber;
+    [s[0]!.url, s[1]!.url] = [s[1]!.url, s[0]!.url];
+    gagal(a, /halaman multi-region: teks berubah/);
+    const b = salin();
+    (b.halaman["data-mesh"] as { sumber: { judul: string }[] }).sumber[0]!.judul = (b.halaman["data-mesh"] as { sumber: { judul: string }[] }).sumber[0]!.judul.replace("Zhamak Dehghani", "Martin Fowler");
+    gagal(b, /halaman data-mesh: teks berubah/);
+    const c = salin();
+    (c.halaman["kuorum"] as { terkait: string[] }).terkait = (c.halaman["kuorum"] as { terkait: string[] }).terkait.filter((x) => x !== "Fencing");
+    gagal(c, /halaman kuorum: teks berubah/);
   });
 });
 

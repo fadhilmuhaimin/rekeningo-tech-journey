@@ -1,7 +1,9 @@
 // Penjaga istilah Tahap 6 (tugas istilah-tahap-6, keputusan 1764 sampai 1766). Logika murni tanpa DOM dan tanpa membaca berkas:
 // istilah-tahap-6.test.ts membacakan data nyata, lalu memutasi salinannya untuk membuktikan penjaga ini gagal. Nilai yang
 // dibandingkan diturunkan dari sumbernya (baris riset, halaman Tahap 5, registry), bukan dari berkas yang dimutasi.
+import { createHash } from "node:crypto";
 import { HalamanIstilah } from "./istilah";
+import { SIDIK } from "./istilah-tahap-6.sidik";
 
 /** 12 istilah yang wajib punya halaman istilah: slug, nama di glosarium, dan halaman cerita pertama yang memakainya. */
 export const ISTILAH_UTAMA = [
@@ -127,6 +129,25 @@ const NAMA_SUMBER: Record<string, string> = {
   "finops.org": "FinOps",
 };
 const kalimat = (s: string) => s.replace(/\bmis\./g, "mis").split(/(?<=[.!?])\s+/).filter(Boolean);
+
+/** Sidik 16 heksadesimal dari satu teks (SHA-256), sama dengan pola sidik di halaman Tahap 3 dan 5. */
+export const sidik = (t: string): string => createHash("sha256").update(t).digest("hex").slice(0, 16);
+
+const NAMA_DEFINISI = [...ISTILAH_UTAMA.map((x) => x.nama), ...ISTILAH_TAMBAHAN.map((x) => x.nama)] as string[];
+
+/** Sidik tiap halaman istilah (JSON utuh), definisi glosarium baru (kolom definisi), dan baris riset R6-170 sampai R6-174. */
+export function sidikSekarang(m: Masukan): { halaman: Record<string, string>; definisi: Record<string, string>; riset: Record<string, string> } {
+  const halaman: Record<string, string> = {};
+  for (const { slug } of ISTILAH_UTAMA) halaman[slug] = sidik(JSON.stringify(m.halaman[slug] ?? null));
+  const definisi: Record<string, string> = {};
+  for (const nama of NAMA_DEFINISI) {
+    const br = barisGlos(m.glosMdx, nama);
+    definisi[nama] = sidik(br ? (kolom(br)[1] ?? "") : "");
+  }
+  const riset: Record<string, string> = {};
+  for (const id of ID_RISET_BARU) riset[id] = sidik(m.risetT6.split("\n").find((l) => l.startsWith(`| ${id} |`)) ?? "");
+  return { halaman, definisi, riset };
+}
 
 /** Semua pelanggaran istilah Tahap 6; larik kosong berarti lolos. */
 export function periksaIstilahT6(m: Masukan): string[] {
@@ -301,6 +322,16 @@ export function periksaIstilahT6(m: Masukan): string[] {
     }
     if (kalimat(d).length > 2) p.push(`${nama}: definisi lebih dari dua kalimat`);
     if (/\bM5[2-7]\b|ADR 6[1-9]/.test(d)) p.push(`${nama}: definisi menyebut masalah atau ADR Tahap 6 (jawaban halaman lain)`);
+  }
+
+  // 8. Kunci teks: kalimat yang dibaca ke sumber primernya 2026-11-06 tidak berubah diam-diam (istilah-tahap-6.sidik.ts). Bagian 1 sampai 7
+  // menjaga yang diturunkan dari sumber (angka, versi, tanggal akses, rujukan, label); bagian ini menjaga kalimat bebasnya.
+  const kini = sidikSekarang(m);
+  for (const bagian of ["halaman", "definisi", "riset"] as const) {
+    const harap: Record<string, string> = SIDIK[bagian];
+    for (const k of new Set([...Object.keys(harap), ...Object.keys(kini[bagian])])) {
+      if (kini[bagian][k] !== harap[k]) p.push(`${bagian} ${k}: teks berubah dari yang ditinjau ke sumber primer 2026-11-06 (sidik ${kini[bagian][k]}, harapan ${harap[k]}); baca ulang ke sumber, lalu perbarui istilah-tahap-6.sidik.ts`);
+    }
   }
   return p;
 }
