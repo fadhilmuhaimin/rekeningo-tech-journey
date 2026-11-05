@@ -12,7 +12,7 @@
     "halaman": "t5-m41",
     "judul": "5.6 M41: Riwayat belum memuat pembayaran yang baru dibuat",
     "url": "tahap-5/m41-riwayat-belum-memuat/",
-    "tanya": "M41: jawaban bayar Budi memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000. Sesudah Budi membayar Rp12.000, bacaan tanpa token menjawab Rp215.000 dan bacaan dengan token menjawab Rp203.000. Kalimat apa yang lahir?",
+    "tanya": "M41: jawaban bayar Budi memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000. Sesudah Budi membayar Rp12.000 dan menerima token posisi WAL, bacaan tanpa token menjawab Rp215.000 dan bacaan dengan token menjawab Rp203.000. Kalimat apa yang lahir?",
     "jawab": "Replica bisa tertinggal, jadi apa yang baru kamu tulis dibaca dari primary sampai replica menyusul (ADR 47: tiga kelas baca, dan token posisi WAL). Dipersempit: naskah menulis replica selalu sedikit tertinggal, sedangkan jeda alami di lab di bawah 1 detik."
   },
   {

@@ -4364,7 +4364,7 @@
   "halaman": "t5-rekap",
   "judul": "5.31 Yang dibawa keluar dari Tahap 5",
   "url": "tahap-5/rekap/",
-  "tanya": "Replica asinkron ditahan, lalu Budi membayar Rp12.000. Saldo apa yang dijawab bacaan tanpa token, dan saldo apa yang dijawab bacaan dengan token?",
+  "tanya": "Replica asinkron ditahan, lalu Budi membayar Rp12.000 dan jawaban bayarnya membawa token posisi WAL. Saldo apa yang dijawab bacaan tanpa token, dan saldo apa yang dijawab bacaan dengan token?",
   "jawab": "Tanpa token, replica menjawab Rp215.000, saldo lama. Dengan token, server membaca primary dan menjawab Rp203.000 (`baca.txt` bagian B)."
  },
  {
@@ -4380,7 +4380,7 @@
   "halaman": "t5-rekap",
   "judul": "5.31 Yang dibawa keluar dari Tahap 5",
   "url": "tahap-5/rekap/",
-  "tanya": "Enam service punya tiga pod tiap service dengan pool 10. Berapa koneksi yang diminta bila semua pool penuh, dan berapa yang tersedia?",
+  "tanya": "Enam service punya tiga pod tiap service dengan pool 10, dan database menerima 100 koneksi dengan 3 di antaranya cadangan. Berapa koneksi yang diminta bila semua pool penuh, dan berapa yang tersedia?",
   "jawab": "Diminta 6 × 3 × 10 = 180 dan tersedia 100 − 3 = 97, jadi 83 tidak bisa dibuka bila tidak ada koneksi lain (Hitungan atas Asumsi, halaman M46)."
  },
  {

@@ -61,7 +61,7 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Dipersempit:* aturan ADR 46 mencakup bayar dan kirim di rekaman dan kode lab, sedangkan tutup buku resmi Tidak dijalankan. Lab menjalankan bacaan riwayat dan saldo tampil dari replica, bukan laporan. Selisih p95 pembayaran dengan dan tanpa laporan tidak direkam, jadi perlambatan di M40 tetap Hitungan atas Asumsi.
 
-2. **Replica bisa tertinggal, jadi apa yang baru kamu tulis dibaca dari primary sampai replica menyusul.** Di [[t5-m41]], Budi membayar Rp35.000 dan jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000. Keduanya dibaca dari replica yang pemutaran ulangnya ditahan (`baca.txt` bagian A). Sesudah Budi membayar Rp12.000, bacaan tanpa token dijawab replica dengan saldo Rp215.000, dan bacaan yang membawa token dijawab primary dengan Rp203.000 (bagian B). Konsep dan ADR 47: [[t5-lag]].
+2. **Replica bisa tertinggal, jadi apa yang baru kamu tulis dibaca dari primary sampai replica menyusul.** Di [[t5-m41]], Budi membayar Rp35.000 dan jawaban bayar memuat saldo Rp215.000, tetapi saldo tampil sesudahnya masih Rp250.000. Saldo tampil dan riwayat dibaca dari replica yang pemutaran ulangnya ditahan (`baca.txt` bagian A). Sesudah Budi membayar Rp12.000, jawaban bayar membawa token, yaitu posisi primary di WAL sesudah COMMIT. Bacaan tanpa token dijawab replica dengan saldo Rp215.000, dan bacaan yang membawa token dijawab primary dengan Rp203.000 (bagian B). Konsep dan ADR 47: [[t5-lag]].
 
    *Dipersempit:* naskah menulis replica "selalu sedikit tertinggal". Di rekaman jeda alami tertinggi di bawah 1 detik pada 100 pembayaran per detik (`jeda.txt` bagian A), dan jeda ±2 detik di cerita dibuat lab dengan menahan pemutaran ulang. App yang tidak mengirim token tetap dilayani replica dan bisa melihat saldo lama.
 
@@ -71,7 +71,7 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* lab memerankan kegagalan tanpa mematikan primary, dan fencing tidak ada di lab. Latihan failover bulanan adalah aturan ADR 48, bukan rekaman. Gangguan 23 menit di cerita adalah Ilustrasi.
 
-4. **Ukuran jarang jadi masalah. Pekerjaan yang membaca semuanya tiap malam, dan data yang tidak boleh dihapus, yang jadi masalah.** Di [[t5-m43]], pemeriksaan malam tanpa snapshot membaca 1.800.000 dari 1.800.000 posting (`snapshot.txt` bagian A, lab t5-partisi). Dari snapshot terakhir ia membaca 150.000, yaitu 8,3% (bagian C). Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B). Sesudah satu bulan dilepas dari tabel, pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, dan pemeriksaan dari snapshot menandai 0 (bagian F). Konsep dan ADR 49: [[t5-partisi]].
+4. **Ukuran jarang jadi masalah. Pekerjaan yang membaca semuanya tiap malam, dan data yang tidak boleh dihapus, yang jadi masalah.** Di [[t5-m43]], pemeriksaan malam tanpa snapshot membaca 1.800.000 dari 1.800.000 posting (`snapshot.txt` bagian A, lab t5-partisi). Dari snapshot terakhir ia membaca 150.000, yaitu 8,3% (bagian C). Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B). Di run lab terpisah dengan 28.000 posting per bulan, sesudah satu bulan dilepas dari tabel, pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, dan pemeriksaan dari snapshot menandai 0 (bagian F). Konsep dan ADR 49: [[t5-partisi]].
 
    *Dipersempit:* lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3%, jadi angka itu bukan temuan lab. Partisi memangkas bacaan dan memudahkan retensi, tetapi tidak menambah kapasitas tulis satu primary.
 
@@ -81,7 +81,7 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* rekaman memecah data, bukan proses. `api-t5` adalah satu proses dengan satu role, jadi pipeline per service, rilis sendiri, dan putusnya transaction lintas service tidak direkam. Pernyataan itu dibaca dari ADR 12 (Tidak dijalankan).
 
-6. **Komponen yang bertukar data besar dan sering rugi bila dipisah lewat jaringan.** Di [[t5-service]], lab t5-gabung menjalankan satu alur skor untuk 400 transaksi. Satu proses melakukan 0 panggilan antar proses per transaksi, dan tiga proses dengan queue melakukan 6 (`panggilan.txt` bagian B, lab t5-gabung). Dengan jeda buatan 10 ms per panggilan, 500 dari 500 transaksi tiga proses melewati batas uji 50 ms (`latensi.txt` bagian B). Marcin Kolny menulis pada 22 Maret 2023 bahwa tim Video Quality Analysis di Prime Video memindahkan komponen ke satu proses, dan biaya infrastruktur turun lebih dari 90% (kasus industri, dibaca di halaman asal).
+6. **Komponen yang bertukar data besar dan sering rugi bila dipisah lewat jaringan.** Di [[t5-service]], lab t5-gabung menjalankan satu alur skor untuk 400 transaksi. Satu proses melakukan 0 panggilan antar proses per transaksi, dan tiga proses dengan queue melakukan 6 (`panggilan.txt` bagian B, lab t5-gabung). Di rekaman latensi, dengan jeda buatan 10 ms per panggilan, 500 dari 500 transaksi tiga proses melewati batas uji 50 ms, karena batas bawahnya 6 × 10 = 60 ms (`latensi.txt` bagian B). Marcin Kolny menulis pada 22 Maret 2023 bahwa tim Video Quality Analysis di Prime Video memindahkan komponen ke satu proses, dan biaya infrastruktur turun lebih dari 90% (kasus industri, dibaca di halaman asal).
 
    *Batas:* lab hanya mengirim 620,14 byte per transaksi tiap arah (`panggilan.txt` bagian D), jadi data besar tidak diperagakan. Kasus Prime Video adalah satu service pemantau milik satu tim, ditulis karyawannya sendiri, dan tidak membuktikan ledger Rekeningo harus digabung. Batas uji 50 ms di lab berbeda dari anggaran lompatan 50 ms di ADR 37, dan p95 satu lompatan antar host belum diukur (Tidak dijalankan).
 
@@ -91,7 +91,7 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* 96,3 per detik dan 83 per detik adalah Hitungan atas Asumsi. Lab tidak mengirim pengumuman ke 1.000.000 HP, dan jumlah 429 tidak direkam sebagai nilai, hanya batasnya (`antrean.txt` bagian B).
 
-8. **Yang dihitung adalah koneksi yang mungkin dipakai saat semua pod menyambung bersamaan, bukan rata-ratanya.** Di [[t5-m46]], 12 client dengan pool 10 meminta 120 koneksi langsung ke PostgreSQL, dan sebagian ditolak dengan kode 53300 pada batas 97 (`pooler.txt` bagian A, lab api-t5). Lewat PgBouncer, 120 koneksi berhasil dan paling banyak 20 sampai ke PostgreSQL (bagian B). Enam service dengan tiga pod dan pool 10 meminta 6 × 3 × 10 = 180 koneksi, sedangkan tersedia 100 − 3 = 97. Yang sibuk rata-rata 1.388,9 × 0,02 = 27,8 (Hitungan atas Asumsi). Konsep dan ADR 52: [[t5-pooler]].
+8. **Yang dihitung adalah koneksi yang mungkin dipakai saat semua pod menyambung bersamaan, bukan rata-ratanya.** Di [[t5-m46]], 12 client dengan pool 10 meminta 120 koneksi langsung ke PostgreSQL, dan sebagian ditolak dengan kode 53300 pada batas 97 (`pooler.txt` bagian A, lab api-t5). Lewat PgBouncer, 120 koneksi berhasil dan paling banyak 20 sampai ke PostgreSQL (bagian B). Enam service dengan tiga pod dan pool 10 meminta 6 × 3 × 10 = 180 koneksi, sedangkan tersedia 100 − 3 = 97 (100 koneksi, 3 di antaranya cadangan). Pada puncak 1.388,9 request per detik dengan 0,02 detik per request, yang sibuk rata-rata 1.388,9 × 0,02 = 27,8 (Hitungan atas Asumsi). Konsep dan ADR 52: [[t5-pooler]].
 
    *Batas:* rekaman bukan latihan failover. Ia memakai satu proses dengan 12 pool, tanpa replica atau pod, dan 180 serta 27,8 adalah Hitungan atas Asumsi. Dua instance PgBouncer dengan enam role dan `default_pool_size` 20 bisa membuka 2 × 6 × 20 = 240 koneksi, sehingga ADR 52 membatasinya dengan `max_db_connections` (Hitungan atas Asumsi dan dokumentasi, Tidak dijalankan).
 
@@ -105,13 +105,13 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* lab memakai angsuran Rp100.000 dan saldo Rp250.000. Angka 312 angsuran dan Rp200.000 adalah Ilustrasi, dan satu proses yang mati di lab meninggalkan paling banyak satu angsuran dalam keadaan itu.
 
-11. **5% hanya 5% bila ada traffic router, dan sakelar yang tidak lintas pod bukan sakelar.** Di [[t5-m49]], Rollout tanpa traffic router dengan tiga replika dan `setWeight: 5` menjalankan satu pod versi baru, yaitu 25,0% dari pod yang menjawab. Dengan 20 replika bagiannya 1 dari 20 (`tanpa-router.txt` bagian A, lab t5-rollout). Dengan Gateway API, plugin menulis bobot 95 dan 5 ke HTTPRoute (`gateway.txt` bagian B). Flag di memori hanya mengubah pod yang menerima permintaannya. Satu tabel sakelar yang dibaca semua pod membuat pod pertama menolak seketika, dan dua pod lain menolak sesudah cache mereka habis (`sakelar.txt` bagian D). Konsep dan ADR 55: [[t5-rollout]].
+11. **5% hanya 5% bila ada traffic router, dan sakelar yang tidak lintas pod bukan sakelar.** Di [[t5-m49]], Rollout tanpa traffic router, yaitu komponen yang menggeser lalu lintas antar versi, memakai tiga replika dan `setWeight: 5`. Hasilnya satu pod versi baru, yaitu 25,0% dari pod yang menjawab. Dengan 20 replika bagiannya 1 dari 20 (`tanpa-router.txt` bagian A, lab t5-rollout). Dengan Gateway API, plugin menulis bobot 95 dan 5 ke HTTPRoute (`gateway.txt` bagian B). Flag di memori hanya mengubah pod yang menerima permintaannya. Satu tabel sakelar yang dibaca semua pod membuat pod pertama menolak seketika, dan dua pod lain menolak sesudah cache mereka habis (`sakelar.txt` bagian D). Konsep dan ADR 55: [[t5-rollout]].
 
-   *Dipersempit:* untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 menyisakan satu pod baru (dibaca dari kode), dan bagiannya 25,0% atau 33,3% menurut `maxSurge`. Angka 5,8 otorisasi yang lolos sesudah sakelar dimatikan adalah batas atas, Hitungan atas Asumsi.
+   *Dipersempit:* untuk bobot 5 dan dua replika atau lebih, kode v1.10.1 menyisakan satu pod baru (dibaca dari kode). Dengan tiga replika bagiannya 25,0% atau 33,3% menurut `maxSurge`, dan dengan 20 replika 5,0%. Angka 5,8 otorisasi yang lolos sesudah sakelar dimatikan adalah batas atas, Hitungan atas Asumsi.
 
    *Batas:* bagian user dan hitungan permintaan tepat per versi tidak direkam. Rasio tolak 31% di cerita adalah Ilustrasi, dan Argo CD Tidak dijalankan.
 
-12. **Kuota per mitra, bukan satu batas bersama.** Di [[t5-m50]], satu bucket 100 per detik dipakai semua mitra. Mitra A mengirim 600 permintaan dan mitra B 20 dalam satu detik, 520 dari 620 mendapat 429, dan mitra B ikut tertolak (`kuota.txt` bagian C, lab t5-waf). Dengan bucket per mitra, A mendapat 100 jawaban 200 dan 500 jawaban 429, sedangkan B tetap 20 dari 20 (bagian A). Dua POST yang sama tanpa Idempotency-Key membuat dua baris `qr`, dan dengan key yang sama satu baris (`tandatangan.txt` bagian A). Konsep dan ADR 56: [[t5-waf]].
+12. **Kuota per mitra, bukan satu batas bersama.** Di [[t5-m50]], satu bucket 100 per detik dipakai semua mitra. Mitra A mengirim 600 permintaan dan mitra B 20 dalam satu detik, 520 dari 620 mendapat 429, dan mitra B ikut tertolak (`kuota.txt` bagian C, lab t5-waf). Dengan bucket per mitra, A mendapat 100 jawaban 200 dan 500 jawaban 429, sedangkan B tetap 20 dari 20 (bagian A). Di mode rentan, tempat Idempotency-Key opsional seperti di Tahap 4, dua POST yang sama tanpa key membuat dua baris `qr`. Gerbang versi benar menjawab 400 tanpa key, dan dengan key yang sama membuat satu baris (`tandatangan.txt` bagian A). Konsep dan ADR 56: [[t5-waf]].
 
    *Dipersempit:* jam bucket dibekukan, jadi itu hitungan token, bukan laju sungguhan. Tes Go gerbang menerima lagi permintaan sah yang diputar ulang dalam jendela 5 menit dengan Idempotency-Key lain (`testing.txt` bagian A), dan celah itu tidak ditutup di lab.
 
@@ -121,21 +121,21 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* OpenBao dan folder arsip di lab berada di satu mesin, dan pemisahan tempat Tidak dijalankan. Angka 9,8 tahun adalah jarak rotasi per versi kunci bila tiap posting punya data key sendiri, bukan umur kunci (Hitungan atas Asumsi).
 
-14. **Tentukan anggaran kegagalan, lalu beri alert dari laju habisnya.** Di [[t5-tim-infra]], SLO 99,9% per 30 hari memberi anggaran 43,2 menit (Asumsi produk). Alert burn rate 14,4 selama 1 jam menghabiskan 14,4 × 1 ÷ 720 = 2% anggaran (Hitungan atas Asumsi). Satu permintaan notifikasi ke ledger yang dijawab 403 menghasilkan satu trace dengan tiga span di dua service (`jejak.txt` bagian A, lab t5-service). Collector menerima 211 trace dan menyimpan 16, termasuk 11 dari 11 trace berkesalahan (bagian B). Konsep dan ADR 58: [[t5-tim-infra]].
+14. **Tentukan anggaran kegagalan, lalu beri alert dari laju habisnya.** Di [[t5-tim-infra]], SLO 99,9% per 30 hari memberi anggaran 43,2 menit (Asumsi produk). Alert burn rate 14,4 selama 1 jam menghabiskan 14,4 × 1 ÷ 720 = 2% anggaran, dengan 720 jam dalam 30 hari (Hitungan atas Asumsi). Satu permintaan notifikasi ke ledger yang dijawab 403 menghasilkan satu trace dengan tiga span di dua service (`jejak.txt` bagian A, lab t5-service). Collector menerima 211 trace dan menyimpan 16, termasuk 11 dari 11 trace berkesalahan (bagian B). Konsep dan ADR 58: [[t5-tim-infra]].
 
    *Batas:* template, pipeline per service, dan Argo CD sungguhan Tidak dijalankan. Lab merekam satu Collector, dan kapasitasnya tidak diukur.
 
-15. **Pilih dengan rumus tiga tahun dan jalan keluar, bukan dengan selera.** Di [[t5-onprem]], model biaya tiga tahun memakai masukan Ilustrasi dalam juta rupiah. Dengan dua orang operasi tambahan di on-prem, cloud lebih hemat 1.730 (20.420 − 18.690). Tanpa orang tambahan, on-prem lebih hemat 1.150, dan satu orang menambah 480 × 3 = 1.440, sehingga urutannya terbalik. ADR 59 tetap di cloud milik PT dan menjaga jalan keluar: manifest tanpa ekstensi satu penyedia dan PostgreSQL dalam bentuk standar.
+15. **Pilih dengan rumus tiga tahun dan jalan keluar, bukan dengan selera.** Di [[t5-onprem]], model biaya tiga tahun memakai masukan Ilustrasi dalam juta rupiah. Dengan dua orang operasi tambahan di on-prem, cloud lebih hemat 1.730 (20.420 − 18.690). Tanpa orang tambahan, on-prem lebih hemat 1.150, dan satu orang menambah 480 × 3 = 1.440 (480 per orang per tahun, tiga tahun), sehingga urutannya terbalik. ADR 59 tetap di cloud milik PT dan menjaga jalan keluar: manifest tanpa ekstensi satu penyedia dan PostgreSQL dalam bentuk standar.
 
    *Batas:* semua angka itu Ilustrasi, bukan harga penyedia. Latihan pindah dan izin dari penyedia [perlu verifikasi], dan database dijalankan sendiri atau terkelola belum diputuskan.
 
-16. **Masalah Tahap 5 adalah salinan yang tertinggal dan pekerjaan yang diulang, bukan jumlah request per detik. Kapasitas satu primary belum terukur.** Di [[t5-m51]], uji coba nasional lolos, lalu Sinta datang dengan PRD v6 (Ilustrasi). Puncak 1.388,9 request per detik menjadi 13.888,9 di Tahap 6, dan transaksi uang 69,4 menjadi 694,4 per detik (Hitungan atas Asumsi). Satu rekaman beban di satu laptop menyelesaikan 20.833 permintaan dengan p95 di bawah batas lab 5.000 ms, dan pembayaran di rekaman datang 141 per detik, bukan 694,4 (`beban.txt` bagian A, lab api-t5).
+16. **Masalah Tahap 5 adalah salinan yang tertinggal dan pekerjaan yang diulang, bukan jumlah request per detik. Kapasitas satu primary belum terukur.** Di [[t5-m51]], uji coba nasional lolos, lalu Sinta datang dengan PRD v6 (Ilustrasi). Puncak 1.388,9 request per detik menjadi 13.888,9 di Tahap 6, dan transaksi uang 69,4 menjadi 694,4 per detik (Hitungan atas Asumsi). Satu rekaman beban di satu laptop menyelesaikan 20.833 permintaan dalam 15 detik, dengan p95 di bawah batas lab 5.000 ms. Di antaranya 2.115 pembayaran, jadi pembayaran di rekaman datang 2.115 ÷ 15 = 141 per detik (Hitungan dari rekaman), bukan 694,4 (`beban.txt` bagian A, lab api-t5).
 
    *Batas:* rekaman memeriksa batas lab, bukan kapasitas satu primary. Tiga hal yang diminta PRD v6 belum pernah diuji: skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50. Dengan 2 transaksi per user aktif, angkanya 46,3 dan 463,0 (Hitungan atas Asumsi).
 
 ### Yang belum diuji
 
-Enam belas kalimat itu diuji lewat rekaman lab di mesin lokal, bukan di server sungguhan. Hal yang ditulis terbuka di halamannya belum diuji.
+Lima belas dari enam belas kalimat punya rekaman lab yang dijalankan di mesin lokal, bukan di server sungguhan. Butir 15 hanya punya model Ilustrasi tanpa lab. Hal yang ditulis terbuka di halamannya belum diuji.
 
 - Kapasitas satu primary dan load test di server sungguhan: [[t5-m51]].
 - Latihan failover dengan fencing, dan `ANY 1` dari dua kandidat sinkron: [[t5-rpo-rto]].
@@ -164,7 +164,7 @@ Keputusan di balik kalimat-kalimat itu tertulis di ADR 46 sampai 60. Alasan dan 
 | 49 | Posting dipartisi per bulan, snapshot saldo, dan bulan lama dilepas | M43, [[t5-partisi]] |
 | 50 | Enam service di Kubernetes, dan digabung kembali bila syarat salahnya terpenuhi | M44, [[t5-service]] |
 | 51 | Pengumuman lewat Kafka per partisi, uang tetap lewat outbox | M45, [[t5-fanout]] |
-| 52 | PgBouncer mode transaction di depan PostgreSQL | M46, [[t5-pooler]] |
+| 52 | PgBouncer mode transaction di depan PostgreSQL, dengan pool server terbatas | M46, [[t5-pooler]] |
 | 53 | mTLS dengan identitas dari sertifikat dan daftar jenis jurnal per identitas | M47, [[t5-mtls]] |
 | 54 | Referensi unik di jurnal, status per langkah, dan tabel langkah buatan | M48, [[t5-batch]] |
 | 55 | Rilis bertahap lewat Argo Rollouts dan Gateway API, dan sakelar di satu tabel | M49, [[t5-rollout]] |
@@ -174,7 +174,7 @@ Keputusan di balik kalimat-kalimat itu tertulis di ADR 46 sampai 60. Alasan dan 
 | 59 | Tetap di cloud milik PT, menjaga jalan keluar, dan mengisi model biaya dengan tagihan PT | Pertanyaan biaya di PRD v5, [[t5-onprem]] |
 | 60 | Dua belas butir sengaja belum dipasang, masing-masing dengan pemicu dan alat ukur | M51, [[t5-adr-60]] |
 
-ADR 50 merevisi ADR 12 pada service kedua dan seterusnya, dan ADR 59 menambah batas bentuk pada ADR 39 tanpa membatalkannya. Angka di kolom Keputusan adalah pilihan tiap ADR, dan batas 60 koneksi di ADR 52 berlabel Asumsi di halamannya.
+ADR 50 menjalankan jadwal Kubernetes dari ADR 12, dan ADR 59 menambah batas bentuk pada ADR 39 tanpa membatalkannya.
 
 </Blok>
 
@@ -182,7 +182,7 @@ ADR 50 merevisi ADR 12 pada service kedua dan seterusnya, dan ADR 59 menambah ba
 
 ### Cek diri
 
-**1.** Replica asinkron ditahan, lalu Budi membayar Rp12.000. Saldo apa yang dijawab bacaan tanpa token, dan saldo apa yang dijawab bacaan dengan token?
+**1.** Replica asinkron ditahan, lalu Budi membayar Rp12.000 dan jawaban bayarnya membawa token posisi WAL. Saldo apa yang dijawab bacaan tanpa token, dan saldo apa yang dijawab bacaan dengan token?
 
 <details class="success">
 <summary>Jawaban</summary>
@@ -200,7 +200,7 @@ Nol dari lima untuk replica asinkron (`promosi.txt` bagian A). Dengan standby si
 
 </details>
 
-**3.** Enam service punya tiga pod tiap service dengan pool 10. Berapa koneksi yang diminta bila semua pool penuh, dan berapa yang tersedia?
+**3.** Enam service punya tiga pod tiap service dengan pool 10, dan database menerima 100 koneksi dengan 3 di antaranya cadangan. Berapa koneksi yang diminta bila semua pool penuh, dan berapa yang tersedia?
 
 <details class="success">
 <summary>Jawaban</summary>
