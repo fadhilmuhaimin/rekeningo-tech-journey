@@ -24,7 +24,7 @@ export const BARIS_MDX: string[] = [
  "</div>",
  "<Blok nama=\"Pratinjau PRD v6\" buka>",
  "Minggu 16 Tahap 5. Uji coba nasional lolos ([[t5-m51]]). Sinta lalu membagikan PRD v6 untuk 10 juta user.",
- "PRD v6 mengubah enam hal dari PRD v5:",
+ "PRD v6 mengubah enam hal dari PRD v5 ([[t5-prd]]):",
  "| | PRD v5 | PRD v6 (Ilustrasi) |",
  "|---|---|---|",
  "| Skala | 1.000.000 user terdaftar dan ±200.000 merchant (Asumsi) | 10.000.000 user terdaftar |",

@@ -261,7 +261,7 @@ describe("registry, naskah, blok, dan tautan", () => {
     const id = [...badan.matchAll(/\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/g)].map((m) => m[1]!);
     const hitungId: Record<string, number> = {};
     for (const x of id) hitungId[x] = (hitungId[x] ?? 0) + 1;
-    expect(hitungId).toEqual({ A0: 1, "t4-jembatan": 1, "t4-modul": 1, "t5-m51": 7, "t5-prd": 7, "t5-rekap": 1, "t5-rpo-rto": 1, "t5-service": 1 });
+    expect(hitungId).toEqual({ A0: 1, "t4-jembatan": 1, "t4-modul": 1, "t5-m51": 7, "t5-prd": 8, "t5-rekap": 1, "t5-rpo-rto": 1, "t5-service": 1 });
     for (const x of Object.keys(hitungId)) expect(hal.some((h) => h.id === x), `[[${x}]] tidak ada di registry`).toBe(true);
     const sesuai: [string, string, string][] = [
       ["t4-jembatan", "4.31", "Jembatan: pratinjau PRD v5"], ["t4-modul", "4.13", "Modular monolith"], ["t5-prd", "5.1", "PRD v5"], ["t5-service", "5.13", "Dari modul ke service"],
@@ -808,7 +808,7 @@ describe("urutan paragraf, teks pilihan, dan kepala dokumen tanpa kunci baris", 
     const awal = [
       "Ini pratinjau PRD v6, dokumen",
       "Minggu 16 Tahap 5. Uji coba nasional lolos",
-      "PRD v6 mengubah enam hal dari PRD v5:",
+      "PRD v6 mengubah enam hal dari PRD v5 ([[t5-prd]]):",
       "Isi PRD v6 adalah rencana cerita (Ilustrasi)",
       "Tahap 5 menghasilkan ADR 46 sampai 60.",
       "PRD v5 sudah menulis empat isi PRD v6",
