@@ -7,7 +7,7 @@
   },
   "adegan": [
     "Sinta membagikan PRD v6. Raka membuka ADR 46 sampai 60 yang lahir di Tahap 5.",
-    "PRD v6 meminta 10 juta user, multi-region aktif-pasif, skor risiko real-time, platform internal, multi-mata uang dengan kurs, dan data per negara (Ilustrasi). Tim naik dari 28 orang menjadi lebih dari 50 developer (Asumsi cerita)."
+    "PRD v6 meminta 10 juta user, multi-region aktif-pasif, skor risiko real-time, platform internal, multi-mata uang dengan kurs, data per negara, dan database per wilayah (Ilustrasi). Tim naik dari 28 orang menjadi lebih dari 50 developer (Asumsi cerita)."
   ],
   "pertanyaan": "Dari ADR Tahap 5, mana yang pecah lebih dulu?",
   "pilihan": [

@@ -34,7 +34,7 @@ PRD v6 mengubah enam hal dari PRD v5:
 | Wilayah | Multi-region ditunda ke v6 (P2) | Multi-region aktif-pasif: satu wilayah pusat data melayani, wilayah lain menunggu sampai failover |
 | Risiko | Skor risiko real-time ditunda ke v6 (P2) | Skor risiko real-time dan graf akun-perangkat, dibangun tim fraud dan compliance engineering |
 | Platform | Platform internal untuk lebih dari 50 developer ditunda ke v6 (P2) | Platform internal dengan golden path (jalur bawaan untuk service baru), service catalog (daftar pemilik service), dan SLO per tim, ditambah chaos testing (percobaan gangguan) dan data mesh sederhana (data dimiliki tim domain) |
-| Uang dan data | Multi-mata uang bukan lingkup v5 | Multi-mata uang dengan kurs, dan data yang disimpan per negara |
+| Uang dan data | Multi-mata uang bukan lingkup v5 | Multi-mata uang dengan kurs, data yang disimpan per negara, dan database yang dipisah per wilayah |
 | Tim | 28 orang dalam delapan tim (Asumsi cerita) | Lebih dari 50 developer dalam lebih dari 10 tim (Asumsi cerita) |
 
 Isi PRD v6 adalah rencana cerita (Ilustrasi): contoh, bukan hasil sistem. Hitungan berarti rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya. Arti label sumber ada di [[A0]].
@@ -51,7 +51,7 @@ Tahap 5 menghasilkan ADR 46 sampai 60. Sebagian dari keputusan itu akan pecah le
 
 <Blok nama="Ruang lingkup">
 
-PRD v5 sudah menulis empat isi PRD v6 sebagai P2 yang ditunda ke v6 ([[t5-prd]]). Keempatnya multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, dan 10 juta user. Graf akun-perangkat, chaos testing, data mesh sederhana, multi-mata uang, dan data per negara tidak ada di daftar P2 itu. Tabel ini menaruh tiap isi di samping keadaan terdekatnya di Tahap 5.
+PRD v5 sudah menulis empat isi PRD v6 sebagai P2 yang ditunda ke v6 ([[t5-prd]]). Keempatnya multi-region, skor risiko real-time, platform internal untuk lebih dari 50 developer, dan 10 juta user. Graf akun-perangkat, chaos testing, data mesh sederhana, multi-mata uang, data per negara, dan database per wilayah tidak ada di daftar P2 itu. Tabel ini menaruh tiap isi di samping keadaan terdekatnya di Tahap 5.
 
 | Isi PRD v6 | Keadaan terdekat di Tahap 5 |
 |---|---|
@@ -59,7 +59,7 @@ PRD v5 sudah menulis empat isi PRD v6 sebagai P2 yang ditunda ke v6 ([[t5-prd]])
 | Multi-region aktif-pasif | Replica sinkron hanya dijalankan di satu mesin, dan jeda antar wilayah Tidak dijalankan ([[t5-m51]], [[t5-rpo-rto]]) |
 | Skor risiko real-time dan graf akun-perangkat | Lab `t5-gabung` memperagakan alur skor delapan aturan poin. Satu transaksi di tiga proses melewati enam panggilan, dan jaringan antar host tidak diukur ([[t5-m51]], [[t5-service]]) |
 | Platform internal, chaos testing, dan data mesh sederhana | Delapan tim: lima tim produk, Platform 4 orang, SRE 2 orang, dan Security 2 orang ([[t5-prd]]) |
-| Multi-mata uang dengan kurs, dan data per negara | PRD v5 menulis multi-mata uang sebagai bukan lingkup, dan satu negara sebagai lingkupnya ([[t5-prd]]) |
+| Multi-mata uang dengan kurs, data per negara, dan database per wilayah | PRD v5 menulis multi-mata uang sebagai bukan lingkup, dan satu negara sebagai lingkupnya ([[t5-prd]]) |
 | Lebih dari 50 developer dalam lebih dari 10 tim | 28 orang dalam delapan tim (Asumsi cerita, [[t5-prd]]) |
 
 Empat istilah di tabel PRD v5 dan PRD v6 punya sumber. Golden path adalah jalur "opinionated and supported" untuk membangun sesuatu, menurut tulisan Spotify tanggal 17 Agustus 2020. Service catalog adalah sistem terpusat yang mencatat pemilik dan metadata semua software, menurut dokumentasi Backstage yang dibuka 2026-11-05.
@@ -78,7 +78,7 @@ Di halaman ini "pecah lebih dulu" adalah penalaran dari kalimat halaman ADR (Asu
 
 Tebakan membandingkan lima dari lima belas ADR Tahap 5, jadi ADR lain tidak dinilai di sini. Tahap 6 adalah proyeksi konseptual tanpa klaim rekaman, jadi seluruh isi PRD v6 di halaman ini berlabel Ilustrasi.
 
-Angka 28 menghitung orang, termasuk SRE dan Security, sedangkan angka 50 menghitung developer. Satuannya tidak sama, dan halaman ini memakai kalimat naskah apa adanya.
+Angka 28 menghitung orang, termasuk SRE dan Security, sedangkan angka 50 menghitung developer. Satuannya tidak sama, dan halaman ini memakai kedua angka apa adanya.
 
 Satu heuristik praktisi menyebut bahwa microservices baru masuk akal di atas ±50 developer. [[t4-modul]] tidak menemukan sumber primer untuk angka itu [perlu verifikasi], jadi halaman ini tidak memakainya.
 
