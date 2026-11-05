@@ -964,3 +964,152 @@ describe("kalimat prosa dan sidik teks halaman", () => {
     expect(riset6.split("\n").filter((b) => /^\| R6-11[0-4] \|/.test(b))).toEqual(BARIS_RISET);
   });
 });
+
+// Penjaga tambahan peninjau (keputusan 1713). Uji mutasi peninjau (142 mutan baru, TANPA tes sidik) menemukan kelas yang lolos:
+// isi butir keadaan awal Tahap 5 (tanpa foreign key, mode transaction), kalimat contoh ADR 52 yang tidak dibandingkan dengan batas di
+// halaman 5.17, kesimpulan ADR 56, definisi KEK dan Rekonsiliasi, tampilnya diagram Rantai, judul tebal, kepala dokumen, dan label
+// Asumsi per kalimat. Tiap nilai diturunkan dari halaman Tahap 5, glosarium, naskah, registry, atau berkas komponen.
+describe("peninjau: isi kalimat keadaan awal dan ADR dibaca ke halaman asalnya, bukan hanya nomornya", () => {
+  const keadaanHalaman = (): string[] =>
+    badan
+      .split("Tahap 6 berangkat dari keadaan akhir Tahap 5, belum dari sistem yang sudah dibereskan:")[1]!
+      .split("</Blok>")[0]!
+      .split("\n")
+      .filter((b) => b.startsWith("- "))
+      .map((b) => b.slice(2));
+  const idAdr = (n: number): string => {
+    const h = hal.find((x) => x.tahap === 5 && x.adr?.includes(n));
+    expect(h, `ADR ${n} ada di registry Tahap 5`).toBeDefined();
+    return h!.id;
+  };
+  test("tiap frasa butir keadaan awal ada di butir itu dan di halaman ADR yang dirujuknya", () => {
+    const k = keadaanHalaman();
+    expect(k).toHaveLength(6);
+    const pasangan: [number, string, string][] = [
+      [0, idAdr(50), "tanpa foreign key lintas service"],
+      [0, idAdr(50), "satu schema dan satu role"],
+      [0, idAdr(50), "Ledger tetap satu-satunya tempat uang bergerak"],
+      [1, idAdr(46), "replica asinkron untuk laporan"],
+      [1, idAdr(48), "sinkron kuorum"],
+      [1, idAdr(52), "PgBouncer mode transaction"],
+      [2, idAdr(51), "outbox"],
+      [2, idAdr(51), "event streaming"],
+      [2, idAdr(53), "mTLS"],
+      [2, idAdr(55), "satu sakelar"],
+      [2, idAdr(55), "Argo Rollouts"],
+      [3, idAdr(58), "jalan beraspal"],
+    ];
+    for (const [i, idh, frasa] of pasangan) {
+      expect(k[i]!.toLowerCase(), `butir ${i} memuat: ${frasa}`).toContain(frasa.toLowerCase());
+      expect(teksHalaman(idh).toLowerCase(), `${idh} memuat: ${frasa}`).toContain(frasa.toLowerCase());
+    }
+  });
+  test("kalimat contoh ADR 52 di 5.17 menulis batas yang sama dengan aturan 3 yang dipakai hitungan halaman ini", () => {
+    expect(Number(contoh[3])).toBe(batasClient);
+    di(t517, "5.17", `Saat koneksi pod melewati \`max_client_conn\`: ${podContoh} pod tiap service memberi ${clientContoh} client lawan ${batasClient} per instance`);
+  });
+  test("kesimpulan ADR 56: rasio sama untuk 50 dan 500 mitra menurut hitungan, jadi syaratnya bergantung pada mitra dan bukan user", () => {
+    expect(id((mitraV6 * perMitra) / reqPuncak, 1)).toBe(id((mitra * perMitra) / reqPuncak5, 1));
+    expect(id((mitra * perMitra) / reqPuncak, 2)).not.toBe(id((mitra * perMitra) / reqPuncak5, 2));
+    harus("Syarat itu bergantung pada jumlah mitra, bukan jumlah user");
+  });
+  test("KEK dan Rekonsiliasi didefinisikan seperti halaman 5.26 dan glosarium", () => {
+    di(teksHalaman("t5-kms"), "5.26", "KEK (kunci pembungkus) mengunci data key itu");
+    harus("KEK adalah kunci yang membungkus kunci data.");
+    const glosarium = baca("situs/src/content/docs/alat/glosarium.mdx");
+    di(glosarium, "glosarium", "| **Rekonsiliasi** | Mencocokkan catatan sendiri dengan catatan pihak lain,");
+    harus("Rekonsiliasi, yaitu mencocokkan catatan sendiri dengan catatan pihak lain,");
+  });
+});
+
+describe("peninjau: diagram Rantai tampil, judul tebal, kepala dokumen, dan label Asumsi per kalimat", () => {
+  test("diagram Rantai dipasang tepat satu kali dari berkas yang ada", () => {
+    expect(hitung(mdx, "<Rantai data={prdDiagram} />")).toBe(1);
+    expect(hitung(mdx, 'import Rantai from "../../../components/Rantai.astro";')).toBe(1);
+    expect(hitung(mdx, 'import prdDiagram from "../../../../data/diagram/t6-prd-sebelum-sesudah.json";')).toBe(1);
+    expect(fs.existsSync(path.join(akar, "situs/src/components/Rantai.astro"))).toBe(true);
+    expect(fs.existsSync(path.join(akar, "situs/data/diagram/t6-prd-sebelum-sesudah.json"))).toBe(true);
+  });
+  test("judul tebal ADR 52 dan ADR 56 memakai nomor dari registry, dan judul Tujuan dan Batasan tepat satu kali", () => {
+    harus(`**ADR ${dari("t5-pooler").adr![0]}.** Halaman [[t5-pooler]]`);
+    harus(`**ADR ${dari("t5-waf").adr![0]}.** Halaman [[t5-waf]]`);
+    expect(hitung(badan, "**Tujuan**\n")).toBe(1);
+    expect(hitung(badan, "**Batasan**\n")).toBe(1);
+  });
+  test("kepala dokumen: versi PRD dari registry dan jabatan Pak Hadi dari 5.1", () => {
+    const versi = cocok(dari("t6-prd").judul, /^PRD (v\d+):/)[1];
+    harus(`aria-label="Kepala dokumen PRD ${versi}"`);
+    di(hal51, "5.1", "Kepala Divisi Keuangan");
+    harus("<dt>Syarat baru</dt><dd>Pak Hadi, Kepala Divisi Keuangan</dd>");
+  });
+  test("diagram: simpul 53 engineer memuat golden path dan SLO per tim dari naskah, dan baris pertama menulis yang belum ada", () => {
+    const simpul = rantai.baris[1]!.simpul.find((s) => s.teks.startsWith("53 engineer"))!;
+    for (const kata of ["golden path", "SLO per tim"]) {
+      expect(simpul.sub!.toLowerCase(), `sub simpul memuat ${kata}`).toContain(kata.toLowerCase());
+      expect(naskah.toLowerCase(), `naskah memuat ${kata}`).toContain(kata.toLowerCase());
+    }
+    expect(rantai.baris[0]!.sub).toBe("yang belum ada");
+    expect(rantai.baris[1]!.sub).toBe(`tiga negara, ${naskah.match(/(\d+) minggu \(Asumsi cerita\)/)![1]} minggu`);
+  });
+  test("label Asumsi per kalimat sama dengan naskah untuk kalimat yang punya padanan", () => {
+    const pasangan: [string, string][] = [
+      ["harus tinggal di tempat tertentu (Asumsi produk)", "harus tinggal di tempat tertentu (Asumsi produk)"],
+      ["RTO wilayah 30 menit (Asumsi produk)", "RTO wilayah 30 menit (Asumsi produk)"],
+      ["dikerjakan dalam 24 minggu (Asumsi cerita)", "24 minggu (Asumsi cerita)"],
+      ["(Asumsi naskah dari [[t5-m51]])", "(Asumsi naskah dari M51)"],
+      ["Itu 11 × 4 = 44 rilis per hari (Asumsi cerita", "44 per hari, 5,5 per jam (Asumsi cerita)"],
+    ];
+    for (const [halamanIni, padanan] of pasangan) {
+      expect(badan.toLowerCase(), `halaman: ${halamanIni}`).toContain(halamanIni.toLowerCase());
+      expect(naskah.toLowerCase(), `naskah: ${padanan}`).toContain(padanan.toLowerCase());
+    }
+  });
+});
+
+describe("peninjau: kolom 'isi PRD v6 yang memenuhinya', kalimat rekonsiliasi, penutup, judul koneksi, dan definisi dua tim", () => {
+  const pecah = tabel(badan, "| ADR | Kalimat di halaman Tahap 5 |").slice(1);
+  const enam = tabel(badan, "| ADR | Yang tertulis di halaman Tahap 5 |").slice(1);
+  const tabelNaskah = tabel(bag1, "| ADR | Kalimat di halaman Tahap 5 |").slice(1);
+  test("tabel pecah: kolom isi PRD v6 baris 60 sama dengan naskah, baris 58 memuat frasa fitur platform naskah dengan jumlah dari tabel tim", () => {
+    expect(pecah[0]![2]).toBe(tabelNaskah[0]![2]);
+    expect(pecah[2]![2]).toBe(`Platform internal untuk ${jumlahTim} developer dalam ${timNaskah.length} tim: golden path, service catalog, dan SLO per tim`);
+    for (const frasa of ["Golden path, service catalog, label biaya per tim, dan SLO per tim untuk 11 tim"]) di(naskah, "naskah", frasa);
+    expect(naskah.match(/53 developer dalam 11 tim/g)!.length).toBeGreaterThan(0);
+  });
+  test("tabel enam ADR: kolom 'yang diminta PRD v6' memuat frasa yang tertulis di naskah", () => {
+    const diminta = enam.map((r) => r[2]!);
+    expect(diminta).toEqual([
+      "RPO nol dan RTO wilayah 30 menit saat satu wilayah hilang",
+      "Data yang dipakai tim lain disediakan sebagai produk dengan pemilik",
+      "Database dipisah per negara, jadi ada tiga primary",
+      "Data satu negara tinggal di wilayah negara itu",
+      "Tukar antar negara melewati dua ledger di database berbeda",
+      "Biaya infrastruktur per transaksi dilaporkan tiap bulan per tim",
+    ]);
+    di(naskah, "naskah", "RTO wilayah 30 menit");
+    di(naskah, "naskah", "Tidak berhenti saat satu wilayah hilang");
+    di(naskah, "naskah", "Data yang dipakai tim lain disediakan sebagai produk dengan pemilik");
+    di(naskah, "naskah", "Database dipisah per negara");
+    di(naskah, "naskah", "Tiga database dengan schema yang sama");
+    di(naskah, "naskah", "Data satu negara tinggal di wilayah yang ditetapkan untuk negara itu");
+    di(naskah, "naskah", "tukar adalah dua jurnal yang terhubung");
+    di(naskah, "naskah", "Biaya infrastruktur per transaksi dilaporkan tiap bulan per tim dari label biaya platform");
+  });
+  test("kalimat rekonsiliasi, penutup pertanyaan terbuka, dan judul koneksi database mengikuti naskah, 5.1, dan nomor tahap registry", () => {
+    di(latar, "naskah", "selisih Rp0 atau insiden tertutup dalam satu hari kerja");
+    di(hal51, "5.1", "selisih Rp0 tiap hari, atau insiden yang muncul sudah tertutup dalam satu hari kerja");
+    harus("menunjukkan selisih Rp0 atau insiden yang sudah tertutup dalam satu hari kerja.");
+    di(bag1, "naskah", `menjadi isi Tahap ${dari("t6-prd").tahap}`);
+    harus(`Ketiganya jadi isi Tahap ${dari("t6-prd").tahap}.`);
+    di(bag3, "naskah", "| Koneksi database | λ × W |");
+    expect(hitung(badan, "**Koneksi database.** Hitungan terakhir memberi satu pertanyaan, bukan jawaban.")).toBe(1);
+  });
+  test("definisi residensi data, tim Risiko, dan tim risk mengikuti naskah", () => {
+    di(naskah, "naskah", "yang ditetapkan untuk negara itu");
+    harus("Residensi data berarti data satu negara tinggal di tempat yang ditetapkan untuk negara itu.");
+    di(naskah, "naskah", "Tim risk milik Ratih adalah tim bisnis");
+    di(naskah, "naskah", "tim fraud dan compliance engineering");
+    harus("Tim Risiko adalah tim engineering yang membangun skor penipuan");
+    harus("Tim risk milik Ratih adalah tim bisnis, bukan tim engineering ini.");
+  });
+});
