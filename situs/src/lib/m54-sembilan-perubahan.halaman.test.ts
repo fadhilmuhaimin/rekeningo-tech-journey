@@ -347,7 +347,15 @@ describe("hitungan diturunkan dari angka naskah dan halaman, dibulatkan setengah
     expect(t61).toContain("memakai 3 × 10 = 30 pod tiap service");
     expect(t61).toContain("Contoh 8 pod di ADR 52 berarti 8 ÷ 3 = 2,7 kali");
     expect(t517).toContain("8 pod tiap service memberi 480 client lawan 400 per instance");
-    harus("Syarat jumlah koneksi ADR 52 sudah terlewati pada 8 pod tiap service, yaitu 2,7 kali beban Tahap 5 ([[t6-prd]], [[t5-pooler]], Penalaran atas Asumsi desain).");
+    // pod pertama yang melewati 400 per instance: 6 service × n pod × pool 10 > 400 (halaman 6.1: 7 pod, 420 client, 2,3 kali beban Tahap 5)
+    const batasKoneksi = 400, layanan = 6, poolPod = 10;
+    const podPertama = Math.floor(batasKoneksi / (layanan * poolPod)) + 1;
+    expect(podPertama).toBe(7);
+    expect(layanan * (podPertama - 1) * poolPod).toBeLessThanOrEqual(batasKoneksi);
+    expect(layanan * podPertama * poolPod).toBeGreaterThan(batasKoneksi);
+    expect(t61).toContain(`jadi ${podPertama} pod tiap service sudah memberi ${layanan} × ${podPertama} × ${poolPod} = ${layanan * podPertama * poolPod} client`);
+    expect(t61).toContain(`Tujuh pod berarti ${podPertama} ÷ 3 = ${id(podPertama / 3, 1)} kali beban Tahap 5`);
+    harus(`Syarat jumlah koneksi ADR 52 sudah terlewati pada ${podPertama} pod tiap service. Jumlahnya ${layanan} service × ${podPertama} pod × pool ${poolPod} = ${layanan * podPertama * poolPod} koneksi dari pod ke pooler, lawan batas ${batasKoneksi} per instance. Itu ${podPertama} ÷ 3 = ${id(podPertama / 3, 1)} kali beban Tahap 5 ([[t6-prd]], [[t5-pooler]], Penalaran atas Asumsi desain).`);
   });
   test("RTO 15 menit memakai 34,7% anggaran dan tiga kegagalan melewatinya, dibaca ke halaman 5.27", () => {
     expect(id(rtoPersen, 1)).toBe("34,7");
@@ -453,6 +461,7 @@ describe("sumber primer: tautan, tanggal buka, dan nilai di baris riset R6-130 s
     expect(unik.sort()).toEqual([
       "https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/",
       "https://github.com/chaos-mesh/chaos-mesh/issues/4827",
+      "https://github.com/chaos-mesh/chaos-mesh/releases/tag/v2.8.3",
       "https://github.com/open-feature/spec/releases",
       "https://principlesofchaos.org/",
       "https://sre.google/workbook/canarying-releases/",
@@ -490,15 +499,16 @@ describe("sumber primer: tautan, tanggal buka, dan nilai di baris riset R6-130 s
   });
   test("chaos testing: empat langkah, prinsip lanjutan, isu Chaos Mesh #4827 ditutup 2026-04-16 oleh perbaikan, v2.7.x, [perlu verifikasi]", () => {
     const r132 = baris[2]!;
-    for (const k of ["Last Update: 2019 March", "v2.7.x", "ditutup 2026-04-16 oleh PR #4829", "CrashLoopBackOff", "v2.8.7 (2026-10-28)", "[perlu verifikasi]"]) expect(r132, k).toContain(k);
+    for (const k of ["Last Update: 2019 March", "v2.7.x", "ditutup 2026-04-16 oleh PR #4829", "CrashLoopBackOff", "v2.8.7 (2026-10-28)", "catatan rilis v2.8.3", "terbit 2026-06-10", "dengan rujukan PR #4829", "v2.8.2 (2026-03-25) terbit sebelum PR digabung", "tidak dibuktikan dari riwayat git"]) expect(r132, k).toContain(k);
+    expect(r132).not.toContain("[perlu verifikasi]");
     harus("pembaruan terakhir Maret 2019");
     harus("Versi yang dilaporkan v2.7.x, dan pod tertahan dalam restart berulang.");
     harus("Laporan itu ditutup 2026-04-16 oleh pull request perbaikan yang digabung hari itu");
-    harus("Itu satu laporan dari satu user, dan rilis yang memuat perbaikannya tidak diperiksa [perlu verifikasi].");
-    expect(hitung(badan, "[perlu verifikasi")).toBe(2);
+    harus("Itu satu laporan dari satu user, dan catatan rilis v2.8.3 (2026-06-10) menyebut perbaikan yang sama ([catatan rilis Chaos Mesh v2.8.3](https://github.com/chaos-mesh/chaos-mesh/releases/tag/v2.8.3), dibuka 2026-11-06, Tidak dijalankan).");
+    expect(hitung(badan, "[perlu verifikasi")).toBe(0);
     expect(kapanSalah).toContain("v2.7.x, ditutup 2026-04-16");
     expect(kapanSalah).toContain("[perlu verifikasi: dibaca dari isu]");
-    harus("[perlu verifikasi: dibaca dari isu]");
+    harus("menulis pemulihan gagal saat pod restart di tengah percobaan (Tidak dijalankan).");
     expect(hitung(badan, "empat langkah")).toBe(1);
     expect(hitung(badan.split("Principles of Chaos Engineering menulis empat langkah")[1]!.split("\n\n")[1]!, "\n- ")).toBe(3); // butir 2 sampai 4 di dalam daftar sesudah baris pembuka
   });
@@ -756,7 +766,8 @@ describe("kunci kemunculan, tautan, judul bagian, sel tabel, dan catatan widget 
     kali(`13.888,9 request per detik memakai ${pod30} pod tiap service (Asumsi desain, [[t6-prd]])`, 1);
     expect(id(reqPuncak, 1)).toBe("13.888,9");
     expect(id(reqPuncak, 1)).toBe(id(((aktif * reqPerUser) / detikHari) * puncakFaktor, 1));
-    kali(`yaitu ${id(8 / 3, 1)} kali beban Tahap 5`, 1);
+    kali(`Itu 7 ÷ 3 = ${id(7 / 3, 1)} kali beban Tahap 5`, 1);
+    kali("2,7 kali", 0);
     kali(`1 ÷ ${pod30} = ${id(100 / pod30, 1)}%`, 1);
     kali(`Paparan itu 1% × ${id(puncak3, 1)} = ${id(sampel3, 3)} transaksi per detik di puncak, dibulatkan ${id(sampel3, 1)} (Hitungan atas Asumsi).`, 1);
     kali("Alert seperti itu memberi tahu bahwa anggaran terbakar, bukan perubahan mana yang membakarnya (Penalaran).", 1);
@@ -769,12 +780,13 @@ describe("kunci kemunculan, tautan, judul bagian, sel tabel, dan catatan widget 
       "Principles of Chaos Engineering": "https://principlesofchaos.org/",
       "isu chaos-mesh #4827": "https://github.com/chaos-mesh/chaos-mesh/issues/4827",
       "Chaos Mesh: isu #4827": "https://github.com/chaos-mesh/chaos-mesh/issues/4827",
+      "catatan rilis Chaos Mesh v2.8.3": "https://github.com/chaos-mesh/chaos-mesh/releases/tag/v2.8.3",
       "OpenFeature: rilis spesifikasi": "https://github.com/open-feature/spec/releases",
       "Apple: Release a version update in phases": "https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/",
       "Google Play: staged rollouts": "https://support.google.com/googleplay/android-developer/answer/6346149",
     };
     const semua = [...badan.matchAll(/\[([^\]]+)\]\((https:\/\/[^)]+)\)/g)];
-    expect(semua.length).toBe(7 + 7); // tujuh di prosa Paham, tujuh di Bacaan lanjut
+    expect(semua.length).toBe(8 + 7); // delapan di prosa Paham, tujuh di Bacaan lanjut
     for (const m of semua) {
       expect(LINK[m[1]!], `teks tautan tidak dikenal: ${m[1]}`).toBe(m[2]);
       const noIsu = m[1]!.match(/#(\d+)/);
@@ -821,7 +833,7 @@ describe("kunci kemunculan, tautan, judul bagian, sel tabel, dan catatan widget 
     const d = bandingMentah as { fitur: { label: string; catatan: Record<string, string> }[] };
     const kunciWidget: [string, string[], string[]][] = [
       ["Rilis biasa (deploy)", ["menyetujui atau menunda deploy sebelum rilis", "rapat tidak mengukur dampaknya", "(Penalaran, Ilustrasi)"], ["bobot Gateway API", "Analisis memeriksa SLO", "bobot kembali ke versi lama", "(rancangan, Tidak dijalankan)"]],
-      ["Aturan skor", ["bukan deploy", "catatan tim Risiko", "(Penalaran, Ilustrasi)"], ["garis waktu negara", "pemilik, dan versi", "canary yang sama", "(Asumsi desain)"]],
+      ["Aturan skor", ["bukan deploy", "catatan tim Risiko", "(Penalaran, Ilustrasi)"], ["garis waktu negara", "pemilik, dan versi", "tidak melewati canary di ADR 63", "(Asumsi desain)"]],
       ["Flag", ["Tiga flag berubah dalam 30 menit", "tanpa pemilik dan tanpa tanggal berakhir", "(Penalaran, Ilustrasi)"], ["pemilik dan tanggal kedaluwarsa", "masuk garis waktu", "satu sakelar per database negara", "(rancangan, Tidak dijalankan)"]],
     ];
     expect(d.fitur.map((f) => f.label)).toEqual(kunciWidget.map((k) => k[0]));
@@ -888,7 +900,7 @@ const KLAIM: { p: string; s: [string, string][] }[] = [
   { p: "Satu pod dari empat tetap 25,0% pod, tetapi bobot di HTTPRoute 5. HTTPRoute adalah objek Gateway API yang memuat bobot tiap Service ([[t5-rollout]]). Di Tahap 6, 13.888,9 request per detik memakai 30 pod tiap service (Asumsi desain, [[t6-prd]]). Satu pod adalah 1 ÷ 30 = 3,3% dari 30 pod, jadi rasio pod tidak bisa memberi langkah 1% (Hitungan atas Asumsi desain).", s: [["gateway", "Pod v1: 3, pod v2: 1"], ["p61", "memakai 3 × 10 = 30 pod tiap service"]] },
   { p: "Rekaman berikutnya memerankan versi baru yang salah. Analisis menggagalkannya, bobot kembali ke versi lama, dan 100 dari 100 permintaan berikutnya dijawab versi lama:", s: [["analisis", "100 permintaan sesudah rollback: v1 menjawab 100"], ["analisis", "Angka 31% memerankan naskah M49 (Ilustrasi)"]] },
   { p: "Lab merekam analisis atas rasio tolak otorisasi untuk satu service, bukan atas SLO. Angka 31% memerankan naskah Tahap 5 (Ilustrasi). Analisis atas SLO, langkah 1% dan 25%, dan jalur pembayaran Tidak dijalankan.", s: [["analisis", "AnalysisRun rasio-tolak"], ["p523", "Langkah 1% dan 25% dan promosi manual Tidak dijalankan"]] },
-  { p: "Selama canary berjalan, pod tambahan membawa pool koneksinya sendiri ke pooler koneksi. Syarat jumlah koneksi ADR 52 sudah terlewati pada 8 pod tiap service, yaitu 2,7 kali beban Tahap 5 ([[t6-prd]], [[t5-pooler]], Penalaran atas Asumsi desain).", s: [["p517", "8 pod tiap service memberi 480 client lawan 400 per instance"], ["p61", "Contoh 8 pod di ADR 52 berarti 8 ÷ 3 = 2,7 kali"]] },
+  { p: "Selama canary berjalan, pod tambahan membawa pool koneksinya sendiri ke pooler koneksi. Syarat jumlah koneksi ADR 52 sudah terlewati pada 7 pod tiap service. Jumlahnya 6 service × 7 pod × pool 10 = 420 koneksi dari pod ke pooler, lawan batas 400 per instance. Itu 7 ÷ 3 = 2,3 kali beban Tahap 5 ([[t6-prd]], [[t5-pooler]], Penalaran atas Asumsi desain).", s: [["p517", "8 pod tiap service memberi 480 client lawan 400 per instance"], ["p61", "jadi 7 pod tiap service sudah memberi 6 × 7 × 10 = 420 client"], ["p61", "Tujuh pod berarti 7 ÷ 3 = 2,3 kali beban Tahap 5"]] },
   { p: "Tujuh dari sembilan perubahan M54 bukan deploy. Canary menjaga deploy. Perubahan lain butuh pagar sendiri: flag yang punya pemilik dan tanggal kedaluwarsa, dan satu garis waktu yang memuat semuanya.", s: [["adr63", "Flag punya pemilik dan tanggal kedaluwarsa"], ["adr63", "satu garis waktu per negara"], ["m54", "tiga flag"]] },
   { p: "[[t5-rollout]] menulis satu sakelar, yaitu baris `kartu_aktif` di tabel `sakelar`, dan menunda OpenFeature selama flag aktif hanya satu. Di M54 tiga flag berubah dalam 30 menit, jadi syarat \"flag aktif lebih dari satu\" di butir 12 ADR 60 terpenuhi (Ilustrasi, [[t5-adr-60]]).", s: [["p523", "Kill switch kartu adalah satu sakelar `kartu_aktif`"], ["p530", "Flag aktif ada satu: sakelar `kartu_aktif`"], ["p530", "Spesifikasi OpenFeature mencapai 1.0 dan flag aktif lebih dari satu"], ["m54", "tiga flag"]] },
   { p: "Syarat satunya lagi belum: spesifikasi OpenFeature mencapai 1.0. Tag rilis spesifikasi yang bernomor versi masih v0.9.0, terbit 2026-07-29. Tag yang lebih baru, `provider-tck/v0.1.0` (2026-10-16), adalah aset uji provider ([OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases), dibuka 2026-11-06, Tidak dijalankan). Satu syarat dari dua tidak cukup, jadi pemicunya dibaca ulang di [[t6-adr-69]].", s: [["r134", "v0.9.0 terbit 2026-07-29"], ["p530", "Spesifikasi OpenFeature mencapai 1.0"]] },
@@ -901,7 +913,7 @@ const KLAIM: { p: string; s: [string, string][] }[] = [
   { p: "Chaos testing adalah percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi. Principles of Chaos Engineering menulis empat langkah ([Principles of Chaos Engineering](https://principlesofchaos.org/), pembaruan terakhir Maret 2019, dibuka 2026-11-06, Tidak dijalankan):", s: [["glos", "tahan gangguan di produksi"], ["r132", "Last Update: 2019 March"]] },
   { p: "- Tentukan steady state, yaitu keluaran sistem yang terukur dan menandakan perilaku normal.\n- Buat hipotesis bahwa steady state bertahan di kelompok kontrol dan di kelompok percobaan.\n- Masukkan kejadian nyata, misalnya server mati atau koneksi jaringan terputus.\n- Cari selisih steady state antara kedua kelompok.", s: [["r132", "steady state sebagai keluaran terukur"], ["r132", "hipotesis bahwa steady state bertahan di kelompok kontrol dan percobaan"], ["r132", "variabel dari kejadian nyata seperti server crash dan koneksi jaringan terputus"], ["r132", "cari selisih steady state antara kelompok"]] },
   { p: "Prinsip lanjutannya menggambarkan percobaan yang ideal: langsung di lalu lintas produksi, otomatis dan terus-menerus, dengan dampak yang dijaga sekecil mungkin. ADR 63 mengambil langkah yang lebih kecil. Percobaannya satu per tim per kuartal, di staging lebih dulu, dan di produksi hanya dengan paparan paling banyak 1% lalu lintas (Asumsi). Paparan itu 1% × 694,4 = 6,944 transaksi per detik di puncak, dibulatkan 6,9 (Hitungan atas Asumsi).", s: [["r132", "percobaan di produksi, otomatis dan terus-menerus, dampak dijaga sekecil mungkin"], ["adr63", "satu percobaan per tim per kuartal, di staging lebih dulu, lalu produksi dengan paparan paling banyak 1% lalu lintas (Asumsi)"]] },
-  { p: "Satu laporan di pelacak Chaos Mesh menulis bahwa pemulihan otomatis NetworkChaos gagal saat pod restart di tengah percobaan. Versi yang dilaporkan v2.7.x, dan pod tertahan dalam restart berulang. Laporan itu ditutup 2026-04-16 oleh pull request perbaikan yang digabung hari itu ([isu chaos-mesh #4827](https://github.com/chaos-mesh/chaos-mesh/issues/4827), dibuka 2026-11-06, Tidak dijalankan). Itu satu laporan dari satu user, dan rilis yang memuat perbaikannya tidak diperiksa [perlu verifikasi].", s: [["r132", "NetworkChaos tidak pulih saat pod restart di tengah percobaan"], ["r132", "v2.7.x"], ["r132", "CrashLoopBackOff"], ["r132", "ditutup 2026-04-16 oleh PR #4829"], ["adr63", "satu laporan di pelacak Chaos Mesh (v2.7.x, ditutup 2026-04-16)"]] },
+  { p: "Satu laporan di pelacak Chaos Mesh menulis bahwa pemulihan otomatis NetworkChaos gagal saat pod restart di tengah percobaan. Versi yang dilaporkan v2.7.x, dan pod tertahan dalam restart berulang. Laporan itu ditutup 2026-04-16 oleh pull request perbaikan yang digabung hari itu ([isu chaos-mesh #4827](https://github.com/chaos-mesh/chaos-mesh/issues/4827), dibuka 2026-11-06, Tidak dijalankan). Itu satu laporan dari satu user, dan catatan rilis v2.8.3 (2026-06-10) menyebut perbaikan yang sama ([catatan rilis Chaos Mesh v2.8.3](https://github.com/chaos-mesh/chaos-mesh/releases/tag/v2.8.3), dibuka 2026-11-06, Tidak dijalankan).", s: [["r132", "NetworkChaos tidak pulih saat pod restart di tengah percobaan"], ["r132", "v2.7.x"], ["r132", "CrashLoopBackOff"], ["r132", "ditutup 2026-04-16 oleh PR #4829"], ["r132", "Fixed NetworkChaos recovery failure when target container is in CrashLoopBackOff"], ["r132", "terbit 2026-06-10"], ["adr63", "satu laporan di pelacak Chaos Mesh (v2.7.x, ditutup 2026-04-16)"]] },
   { p: "Server tidak bisa mengembalikan app yang sudah terpasang di HP user (Penalaran). Dokumentasi kedua toko menulis:", s: [["r133", "tetap di versi itu"], ["r133", "tujuh hari"]] },
   { p: "- **Apple:** rilis bertahap tujuh hari untuk perangkat dengan pembaruan otomatis, dengan 1%, 2%, 5%, 10%, 20%, 50%, dan 100% user pada hari 1 sampai 7. Siapa pun tetap bisa mengunduh manual, dan rilis boleh dijeda sampai 30 hari ([Apple: Release a version update in phases](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/), dibuka 2026-11-06, Tidak dijalankan).\n- **Google Play:** rilis bertahap bernama staged rollout, dan persentasenya tidak naik otomatis. Sesudah rilis dihentikan, user yang sudah menerimanya tetap di versi itu ([Google Play: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149), dibuka 2026-11-06, Tidak dijalankan).", s: [["r133", "1%, 2%, 5%, 10%, 20%, 50%, 100%"], ["r133", "dijeda sampai 30 hari"], ["r133", "tidak naik otomatis"], ["r133", "tetap di versi itu"]] },
   { p: "Karena itu rilis app bertahap menjaga paparan dan tidak mengembalikan app. Server tetap harus melayani versi app lama ([[E1]]), dan sakelar di server mematikan fitur tanpa rilis app (Penalaran).", s: [["r133", "tetap di versi itu"], ["e1", "10"]] },
@@ -916,14 +928,14 @@ const KLAIM: { p: string; s: [string, string][] }[] = [
   { p: "**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:", s: [] },
   { p: "1. Analisis lolos padahal versi salah, karena langkah 1% hanya melihat 6,9 transaksi per detik di puncak dan lebih sedikit di jam sepi. Pencegahannya jeda tiap langkah yang menunggu jumlah sampel seperti aturan 3 ADR 55, dan SLO sebagai ukuran mutlak di samping perbandingan dengan kontrol.\n2. Perubahan masuk lewat jalan yang tidak menulis garis waktu, misalnya flag diubah dari konsol, dan Dewi kembali ke pertanyaan awal. Pencegahannya garis waktu yang diisi pipeline dan tabel sakelar, bukan tangan, dengan hak mengubah di luar keduanya dicabut (Asumsi desain).\n3. Dua canary berjalan bersamaan di service yang sama dan sinyalnya bercampur. SRE Workbook menyarankan satu canary pada satu waktu. Pencegahannya satu canary aktif per service per negara, dan rilis berikutnya menunggu hasilnya (rancangan, Tidak dijalankan).", s: [["p523", "jeda tiap langkah harus cukup panjang untuk sampelnya"], ["r130", "We strongly advise running only one canary deployment at a time"]] },
   { p: "**Kapan keputusan ini salah.**", s: [] },
-  { p: "- Saat SLO 99,9% terlalu ketat untuk rilis hampir harian. Tiap kegagalan sepanjang RTO 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran, dan tiga kegagalan melewatinya ([[t5-tim-infra]], Hitungan atas Asumsi).\n- Saat canary 1% kekurangan sampel. Langkah 1% menerima 1% × 694,4 = 6,944 transaksi per detik di puncak (dengan 2 transaksi: 4,630) dan lebih sedikit di jam sepi. Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi. Di puncak itu 1.000 ÷ 6,944 = 144 detik per langkah, dan dengan 2 transaksi 216 detik (Hitungan atas Asumsi).\n- Saat percobaan gangguan merusak produksi. Satu laporan di pelacak Chaos Mesh menulis pemulihan gagal saat pod restart di tengah percobaan [perlu verifikasi: dibaca dari isu]. Paparan 1% berarti 6,944 transaksi per detik di puncak ikut terkena.\n- Saat kebijakan dipakai sebagai hukuman. Tim lalu menunda mencatat perubahan, dan garis waktu bolong. Contoh SRE Workbook menulis tujuan sebaliknya.", s: [["adr63", "tiap kegagalan sepanjang RTO 15 menit memakai 34,7% anggaran, tiga kegagalan melewatinya"], ["adr63", "Canary 1% kekurangan sampel"], ["adr63", "Percobaan gangguan merusak produksi"], ["adr63", "Kebijakan dipakai sebagai hukuman"]] },
+  { p: "- Saat SLO 99,9% terlalu ketat untuk rilis hampir harian. Tiap kegagalan sepanjang RTO 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran, dan tiga kegagalan melewatinya ([[t5-tim-infra]], Hitungan atas Asumsi).\n- Saat canary 1% kekurangan sampel. Langkah 1% menerima 1% × 694,4 = 6,944 transaksi per detik di puncak (dengan 2 transaksi: 4,630) dan lebih sedikit di jam sepi. Pada kegagalan 0,1%, yaitu batas SLO 99,9%, satu kegagalan rata-rata butuh 1.000 transaksi. Di puncak itu 1.000 ÷ 6,944 = 144 detik per langkah, dan dengan 2 transaksi 216 detik (Hitungan atas Asumsi).\n- Saat percobaan gangguan merusak produksi. Satu laporan di pelacak Chaos Mesh menulis pemulihan gagal saat pod restart di tengah percobaan (Tidak dijalankan). Paparan 1% berarti 6,944 transaksi per detik di puncak ikut terkena.\n- Saat kebijakan dipakai sebagai hukuman. Tim lalu menunda mencatat perubahan, dan garis waktu bolong. Contoh SRE Workbook menulis tujuan sebaliknya.", s: [["adr63", "tiap kegagalan sepanjang RTO 15 menit memakai 34,7% anggaran, tiga kegagalan melewatinya"], ["adr63", "Canary 1% kekurangan sampel"], ["adr63", "Percobaan gangguan merusak produksi"], ["adr63", "Kebijakan dipakai sebagai hukuman"]] },
   { p: "**Yang akan merevisinya.** [[t6-residensi]] memakai canary ini untuk aturan per negara (ADR 66). [[t6-adr-69]] membaca ulang pemicu OpenFeature dan flagd.", s: [["adr63", "Chaos Mesh"], ["b1", "ADR 55 (satu sakelar per primary) dilanjutkan ADR 63"]] },
   { p: "**1.** Kejadian Kamis gagal 2,0% selama 22 menit, dan anggaran kegagalan 43,2 menit. Berapa persen anggaran yang dipakai kejadian itu, dan kenapa itu bukan penyebab anggaran habis?", s: [["m54", "gagal 2,0% selama 22 menit"]] },
   { p: "22 × 0,02 = 0,44 menit henti penuh, yaitu 0,44 ÷ 43,2 = 1,0% anggaran (Hitungan atas Ilustrasi). Pada hari ke-19 sudah terpakai 46 menit. Sisanya datang dari banyak kejadian kecil yang penyebabnya tidak tercatat.", s: [["m54", "22 × 0,02 = 0,44 menit henti penuh (Hitungan atas Ilustrasi)"]] },
   { p: "**2.** Empat service berurutan di jalur bayar masing-masing 99,9%, dan kegagalannya bebas. Berapa ketersediaan jalur itu, dan berapa SLO tiap service agar jalur memenuhi 99,9%?", s: [["b3", "0,999^4 = 0,9960"]] },
   { p: "0,999 dipangkatkan 4 = 99,6%, atau 172,5 menit per 30 hari (Hitungan atas Asumsi). Agar jalur memenuhi 99,9%, tiap service butuh akar keempat dari 0,999 = 99,975%, dengan anggaran 10,8 menit tiap service.", s: [["b3", "172,5 menit per 30 hari, empat kali anggaran satu service"]] },
   { p: "**3.** Satu deploy membawa kegagalan 2,0%. Berapa persen semua pembayaran gagal di langkah canary 1%, dan kenapa langkah itu butuh jeda?", s: [["r130", "kegagalan 20% pada canary 5% memberi kegagalan keseluruhan 1%"]] },
-  { p: "2,0% × 1% = 0,02% pembayaran gagal (Hitungan atas Ilustrasi). Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi canary, yaitu 144 detik di puncak 694,4 transaksi per detik (Hitungan atas Asumsi). Jeda yang lebih pendek meloloskan versi yang salah.", s: [["r130", "sebanding dengan lalu lintas yang terkena cacat"], ["p523", "jeda tiap langkah harus cukup panjang untuk sampelnya"]] },
+  { p: "2,0% × 1% = 0,02% pembayaran gagal (Hitungan atas Ilustrasi). Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi canary, yaitu 144 detik di puncak 694,4 transaksi per detik (Hitungan atas Asumsi). Jeda yang lebih pendek lebih sering meloloskan versi yang salah.", s: [["r130", "sebanding dengan lalu lintas yang terkena cacat"], ["p523", "jeda tiap langkah harus cukup panjang untuk sampelnya"]] },
   { p: "**4.** Nadia mengusulkan membekukan rilis tiap Kamis. Kenapa itu tidak menurunkan risiko satu rilis?", s: [["m54", "Nadia: bekukan rilis tiap Kamis"]] },
   { p: "Pembekuan memindahkan rilis ke hari lain, dan risiko tiap rilis sama (Penalaran). Ia juga hanya berlaku bagi perubahan yang dihitung sebagai rilis, jadi flag dan konfigurasi bisa tetap berubah.", s: [["m54", "pembekuan hanya menurunkan frekuensi tanpa mengurangi risiko tiap rilis (penalaran)"]] },
   { p: "**5.** Kenapa rilis app bertahap tidak sama dengan rollback?", s: [["r133", "tetap di versi itu"]] },

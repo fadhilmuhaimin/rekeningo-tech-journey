@@ -4517,7 +4517,7 @@
   "judul": "6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing)",
   "url": "tahap-6/m54-sembilan-perubahan/",
   "tanya": "Satu deploy membawa kegagalan 2,0%. Berapa persen semua pembayaran gagal di langkah canary 1%, dan kenapa langkah itu butuh jeda?",
-  "jawab": "2,0% × 1% = 0,02% pembayaran gagal (Hitungan atas Ilustrasi). Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi canary, yaitu 144 detik di puncak 694,4 transaksi per detik (Hitungan atas Asumsi). Jeda yang lebih pendek meloloskan versi yang salah."
+  "jawab": "2,0% × 1% = 0,02% pembayaran gagal (Hitungan atas Ilustrasi). Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi canary, yaitu 144 detik di puncak 694,4 transaksi per detik (Hitungan atas Asumsi). Jeda yang lebih pendek lebih sering meloloskan versi yang salah."
  },
  {
   "id": "t6-m54-4",

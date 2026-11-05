@@ -110,7 +110,7 @@ Rekaman berikutnya memerankan versi baru yang salah. Analisis menggagalkannya, b
 
 Lab merekam analisis atas rasio tolak otorisasi untuk satu service, bukan atas SLO. Angka 31% memerankan naskah Tahap 5 (Ilustrasi). Analisis atas SLO, langkah 1% dan 25%, dan jalur pembayaran Tidak dijalankan.
 
-Selama canary berjalan, pod tambahan membawa pool koneksinya sendiri ke pooler koneksi. Syarat jumlah koneksi ADR 52 sudah terlewati pada 8 pod tiap service, yaitu 2,7 kali beban Tahap 5 ([[t6-prd]], [[t5-pooler]], Penalaran atas Asumsi desain).
+Selama canary berjalan, pod tambahan membawa pool koneksinya sendiri ke pooler koneksi. Syarat jumlah koneksi ADR 52 sudah terlewati pada 7 pod tiap service. Jumlahnya 6 service × 7 pod × pool 10 = 420 koneksi dari pod ke pooler, lawan batas 400 per instance. Itu 7 ÷ 3 = 2,3 kali beban Tahap 5 ([[t6-prd]], [[t5-pooler]], Penalaran atas Asumsi desain).
 
 ### Pagar di luar deploy: flag, garis waktu, dan aturan skor
 
@@ -145,7 +145,7 @@ Chaos testing adalah percobaan pada sistem untuk membangun keyakinan bahwa ia ta
 
 Prinsip lanjutannya menggambarkan percobaan yang ideal: langsung di lalu lintas produksi, otomatis dan terus-menerus, dengan dampak yang dijaga sekecil mungkin. ADR 63 mengambil langkah yang lebih kecil. Percobaannya satu per tim per kuartal, di staging lebih dulu, dan di produksi hanya dengan paparan paling banyak 1% lalu lintas (Asumsi). Paparan itu 1% × 694,4 = 6,944 transaksi per detik di puncak, dibulatkan 6,9 (Hitungan atas Asumsi).
 
-Satu laporan di pelacak Chaos Mesh menulis bahwa pemulihan otomatis NetworkChaos gagal saat pod restart di tengah percobaan. Versi yang dilaporkan v2.7.x, dan pod tertahan dalam restart berulang. Laporan itu ditutup 2026-04-16 oleh pull request perbaikan yang digabung hari itu ([isu chaos-mesh #4827](https://github.com/chaos-mesh/chaos-mesh/issues/4827), dibuka 2026-11-06, Tidak dijalankan). Itu satu laporan dari satu user, dan rilis yang memuat perbaikannya tidak diperiksa [perlu verifikasi].
+Satu laporan di pelacak Chaos Mesh menulis bahwa pemulihan otomatis NetworkChaos gagal saat pod restart di tengah percobaan. Versi yang dilaporkan v2.7.x, dan pod tertahan dalam restart berulang. Laporan itu ditutup 2026-04-16 oleh pull request perbaikan yang digabung hari itu ([isu chaos-mesh #4827](https://github.com/chaos-mesh/chaos-mesh/issues/4827), dibuka 2026-11-06, Tidak dijalankan). Itu satu laporan dari satu user, dan catatan rilis v2.8.3 (2026-06-10) menyebut perbaikan yang sama ([catatan rilis Chaos Mesh v2.8.3](https://github.com/chaos-mesh/chaos-mesh/releases/tag/v2.8.3), dibuka 2026-11-06, Tidak dijalankan).
 
 ### Untuk app Flutter
 
@@ -191,7 +191,7 @@ Tabel kedua membandingkan pengelolaan flag:
 | | F. OpenFeature dan flagd | G. Flag berpemilik, kedaluwarsa, satu sakelar per database negara |
 |---|---|---|
 | Cara kerja | Aplikasi memakai SDK OpenFeature, dan flagd mengevaluasi flag | Tiap flag punya pemilik dan tanggal kedaluwarsa di katalog, dan satu baris `sakelar` per database negara mematikan satu fitur |
-| Kelebihan | Satu API evaluasi flag dengan nilai default per pemanggilan (spesifikasi v0.9.0) | Tanpa komponen baru, dan memakai pola ADR 55 |
+| Kelebihan | Satu antarmuka evaluasi flag dengan nilai default per pemanggilan (spesifikasi v0.9.0) | Tanpa komponen baru, dan memakai pola ADR 55 |
 | Kekurangan | Spesifikasi belum 1.0 | Pemilik dan tanggal ditulis tangan dan perlu diperiksa pipeline, dan pod lain tertinggal sampai cache habis |
 | Biaya operasional | Penyedia dan mesin evaluasi yang dijalankan dan dipantau di tiap negara (Penalaran) | Satu tabel dan satu cache per pod di tiap database negara |
 | Bukti | Tidak dijalankan: rilis spesifikasi v0.9.0, dibuka 2026-11-06 | Rekaman lab Tahap 5 `sakelar.txt` bagian D untuk satu primary. Pemilik dan kedaluwarsa Tidak dijalankan |
@@ -222,8 +222,8 @@ Tabel kedua membandingkan pengelolaan flag:
 **Kapan keputusan ini salah.**
 
 - Saat SLO 99,9% terlalu ketat untuk rilis hampir harian. Tiap kegagalan sepanjang RTO 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran, dan tiga kegagalan melewatinya ([[t5-tim-infra]], Hitungan atas Asumsi).
-- Saat canary 1% kekurangan sampel. Langkah 1% menerima 1% × 694,4 = 6,944 transaksi per detik di puncak (dengan 2 transaksi: 4,630) dan lebih sedikit di jam sepi. Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi. Di puncak itu 1.000 ÷ 6,944 = 144 detik per langkah, dan dengan 2 transaksi 216 detik (Hitungan atas Asumsi).
-- Saat percobaan gangguan merusak produksi. Satu laporan di pelacak Chaos Mesh menulis pemulihan gagal saat pod restart di tengah percobaan [perlu verifikasi: dibaca dari isu]. Paparan 1% berarti 6,944 transaksi per detik di puncak ikut terkena.
+- Saat canary 1% kekurangan sampel. Langkah 1% menerima 1% × 694,4 = 6,944 transaksi per detik di puncak (dengan 2 transaksi: 4,630) dan lebih sedikit di jam sepi. Pada kegagalan 0,1%, yaitu batas SLO 99,9%, satu kegagalan rata-rata butuh 1.000 transaksi. Di puncak itu 1.000 ÷ 6,944 = 144 detik per langkah, dan dengan 2 transaksi 216 detik (Hitungan atas Asumsi).
+- Saat percobaan gangguan merusak produksi. Satu laporan di pelacak Chaos Mesh menulis pemulihan gagal saat pod restart di tengah percobaan (Tidak dijalankan). Paparan 1% berarti 6,944 transaksi per detik di puncak ikut terkena.
 - Saat kebijakan dipakai sebagai hukuman. Tim lalu menunda mencatat perubahan, dan garis waktu bolong. Contoh SRE Workbook menulis tujuan sebaliknya.
 
 **Yang akan merevisinya.** [[t6-residensi]] memakai canary ini untuk aturan per negara (ADR 66). [[t6-adr-69]] membaca ulang pemicu OpenFeature dan flagd.
@@ -265,7 +265,7 @@ Tabel kedua membandingkan pengelolaan flag:
 <details class="success">
 <summary>Jawaban</summary>
 
-2,0% × 1% = 0,02% pembayaran gagal (Hitungan atas Ilustrasi). Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi canary, yaitu 144 detik di puncak 694,4 transaksi per detik (Hitungan atas Asumsi). Jeda yang lebih pendek meloloskan versi yang salah.
+2,0% × 1% = 0,02% pembayaran gagal (Hitungan atas Ilustrasi). Pada kegagalan 0,1%, satu kegagalan rata-rata butuh 1.000 transaksi canary, yaitu 144 detik di puncak 694,4 transaksi per detik (Hitungan atas Asumsi). Jeda yang lebih pendek lebih sering meloloskan versi yang salah.
 
 </details>
 

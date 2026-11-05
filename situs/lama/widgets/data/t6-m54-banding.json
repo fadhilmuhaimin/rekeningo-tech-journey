@@ -50,7 +50,7 @@
       "sorot": { "dugaan": ["catat"], "adr63": ["garis"] },
       "catatan": {
         "dugaan": "Aturan skor bukan deploy, jadi rapat dan pembekuan tidak menyentuhnya. Hanya catatan tim Risiko yang tahu aturan itu berubah (Penalaran, Ilustrasi).",
-        "adr63": "Aturan skor ditulis ke garis waktu negara dengan waktu, pemilik, dan versi, jadi pertanyaan Dewi dijawab satu daftar. Aturan itu dirilis lewat canary yang sama bila ia dibawa pipeline (Asumsi desain)."
+        "adr63": "Aturan skor ditulis ke garis waktu negara dengan waktu, pemilik, dan versi, jadi pertanyaan Dewi dijawab satu daftar. Sebagai konfigurasi, ia tidak melewati canary di ADR 63 (Asumsi desain)."
       },
       "nada": { "dugaan": "warn" }
     },
