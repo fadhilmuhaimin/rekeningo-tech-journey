@@ -69,7 +69,7 @@ Query Pelaporan sendiri tidak direkam di repo ini. Widget ini tidak punya layar 
 
 ### Kenapa ini ada
 
-Tahap 5 memberi tiap service satu schema dan satu role, dan menghapus foreign key lintas service (ADR 50, [[t5-service]]). Di Tahap 6 ada sebelas tim yang memegang service itu (Asumsi cerita, [[t6-prd]]). Tim Pelaporan adalah tim yang butuh data dari tim lain untuk satu laporan.
+Tahap 5 memberi tiap service satu schema dan satu role, dan menghapus foreign key lintas service (ADR 50, [[t5-service]]). Di Tahap 6 ada sebelas tim yang merilis ke service itu (Asumsi cerita, [[t6-prd]]). Tim Pelaporan adalah tim yang butuh data dari tim lain untuk satu laporan.
 
 ### Yang dikira
 
@@ -89,7 +89,7 @@ Kedelapan aturan di halaman itu tidak menulis siapa yang boleh memberi hak baca 
 
 **Yang sudah ada di lab Tahap 5.** Untuk kebanyakan objek, dokumentasi PostgreSQL 17 menulis bahwa hak harus diberikan agar role lain memakainya. Biasanya hanya pemilik objek, atau superuser, yang bisa memberi atau mencabut hak itu ([Privileges](https://www.postgresql.org/docs/17/ddl-priv.html), dibuka 2026-11-06, Tidak dijalankan). Hak yang sudah diberikan dicabut dengan REVOKE, jadi hak sementara berlaku sampai ada yang menjalankannya (Penalaran, Tidak dijalankan).
 
-Di rekaman lab Tahap 5, PostgreSQL menolak role service lain membaca schema pembayaran. Satu-satunya hak lintas schema di lab itu adalah kontrak kolom: ledger membaca tiga kolom tabel akun.
+Di rekaman lab Tahap 5, PostgreSQL menolak role service lain membaca schema pembayaran. Di antara keenam role service, satu-satunya hak lintas schema adalah kontrak kolom: ledger membaca tiga kolom tabel akun. Role proses lab, `t5_app`, mewarisi keenam role itu, jadi ia membaca keenam schema.
 
 <Snippet file="labs/api-t5/output/skema.txt" lines="194:195" title="Rekaman lab Tahap 5: labs/api-t5/output/skema.txt, bagian F (role merchant ditolak membaca schema pembayaran)" />
 
@@ -107,7 +107,7 @@ Pemeriksaan itu berjalan atas enam role service saja. Role ketujuh, misalnya rol
 
 Tes itu menjalankan query pembaca, dan komentar di kodenya menulis tujuannya: tim yang mengubah kolom tahu sebelum rilis (Tidak dijalankan: dibaca dari komentar di `batas_test.go`). Hak baca sementara Pelaporan tidak punya baris kontrak, jadi query-nya tidak ada di pipeline Pembayaran.
 
-**Kenapa ADR 17 tidak cukup.** ADR 17 memecah perubahan skema menjadi tiga rilis, expand, migrate, dan contract, untuk tabel akun, buku, jurnal, dan posting ([[t2-skema-tanpa-downtime]]). Syarat contract di aturan 6 menyebut cek yang lulus, server yang hanya memakai ledger, salinan tabel v1, dan app 1.0 dan 1.1 yang masih beredar. Pembaca di tim lain tidak disebut.
+**Kenapa ADR 17 tidak cukup.** ADR 17 memecah perubahan skema menjadi tiga rilis, expand, migrate, dan contract, untuk tabel akun, buku, jurnal, dan posting ([[t2-skema-tanpa-downtime]]). Di ADR itu contract adalah rilis ketiga yang menghapus kolom lama, bukan kesepakatan seperti di blok Mulai. Syarat contract di aturan 6 menyebut cek yang lulus, server yang hanya memakai ledger, salinan tabel v1, dan app 1.0 dan 1.1 yang masih beredar. Pembaca di tim lain tidak disebut.
 
 Bila migration M53 memakai tiga rilis, nama lama bertahan sampai langkah contract, dan laporan Pelaporan baru patah di langkah itu. Itu terjadi kecuali pemilik tahu bahwa Pelaporan membaca kolomnya (Penalaran, Tidak dijalankan).
 
