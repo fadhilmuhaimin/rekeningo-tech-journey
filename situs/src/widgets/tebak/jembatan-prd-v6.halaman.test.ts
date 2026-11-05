@@ -112,7 +112,7 @@ describe("nilai turunan: sumber dan hitungan itu sendiri", () => {
     expect(a5.user).toBe(1_000_000);
     expect(rasio).toBe(10);
     ada(badan, `${titik(user6)} ÷ ${titik(a5.user)} = ${rasio} (Hitungan atas Asumsi cerita)`, "halaman");
-    ada(badan, `(Hitungan: ${titik(user6)} ÷ ${titik(a5.user)})`, "halaman");
+    ada(badan, `(Hitungan atas Asumsi cerita: ${titik(user6)} ÷ ${titik(a5.user)})`, "halaman");
     expect(4 * 6 + 2 * 2).toBe(Number(tim5[1]));
     expect([timNaskah[1], timNaskah[2], timNaskah[3]]).toEqual(["28", "50", "10"]);
     expect(Number(timNaskah[1])).toBe(Number(tim5[1]));
