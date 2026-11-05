@@ -34,7 +34,7 @@ export const BARIS_MDX: string[] = [
  "- Satu primary ledger dengan replica sinkron kuorum, replica asinkron untuk laporan, dan PgBouncer mode transaction di depannya (ADR 46, 48, dan 52; [[t5-read-replica]], [[t5-rpo-rto]], [[t5-pooler]]).",
  "- Notifikasi lewat outbox dan event streaming, mTLS antar service, satu sakelar kill switch, dan rilis bertahap lewat Argo Rollouts (ADR 51, 53, dan 55).",
  "- Tim Platform 4 orang, SRE 2 orang, SLO pembayaran 99,9% per 30 hari, dan template service yang [[t5-tim-infra]] sebut jalan beraspal (ADR 58).",
- "- [[t5-m51]] menulis tiga hal yang belum pernah diuji. Ketiganya skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50. Kapasitas satu primary untuk 69,4 transaksi uang per detik juga belum pernah diukur.",
+ "- [[t5-m51]] menulis tiga hal yang belum pernah diuji. Ketiganya adalah skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50. Kapasitas satu primary untuk 69,4 transaksi uang per detik juga belum pernah diukur.",
  "- ADR 60 menunda dua belas butir, masing-masing dengan pemicu tertulis, dan menulis multi-region sebagai menunggu PRD v6 ([[t5-adr-60]]).",
  "</Blok>",
  "<Blok nama=\"Tujuan dan user\">",

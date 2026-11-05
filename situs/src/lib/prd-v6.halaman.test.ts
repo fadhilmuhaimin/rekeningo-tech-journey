@@ -441,7 +441,7 @@ describe("angka beban dan hitungan ADR 52 dan ADR 56 dihitung ulang dari angka y
     const m51 = teksHalaman("t5-m51");
     di(m51, "5.29", "Skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50.");
     di(teksHalaman("t5-adr-60"), "5.30", `Satu primary tidak menampung tulis ${id(trxPuncak5, 1)} transaksi uang per detik`);
-    harus("Ketiganya skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50.");
+    harus("Ketiganya adalah skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50.");
     harus(`Kapasitas satu primary untuk ${id(trxPuncak5, 1)} transaksi uang per detik juga belum pernah diukur.`);
     di(latar, "naskah", `Kapasitas satu primary untuk ${id(trxPuncak5, 1)} transaksi uang per detik juga belum pernah diukur.`);
     harus("ADR 60 menunda dua belas butir, masing-masing dengan pemicu tertulis, dan menulis multi-region sebagai menunggu PRD v6");
