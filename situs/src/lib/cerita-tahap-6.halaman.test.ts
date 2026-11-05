@@ -377,6 +377,50 @@ describe("Yang diminta PRD v6: baris dan label sama dengan naskah bagian 1", () 
     expect(halBaris("Perubahan aman di skala")).toContain("chaos testing (percobaan gangguan)");
     expect(halBaris("Data antar domain")).toContain("data mesh sederhana");
   });
+  test("frasa pembawa arti di keterangan tiap baris: ada di sumbernya (baris naskah, naskah, atau 5.32) dan di baris halaman, supaya arti yang berubah tanpa menggeser angka atau label tertangkap tanpa sidik", () => {
+    // Tinjauan (keputusan 1763): 13 dari 70 mutan teks bebas di tabel ini lolos tes tanpa sidik (aktif-pasif jadi aktif-aktif, satu
+    // mata uang jadi dua, top-up bank lokal jadi kartu, dua jurnal jadi satu, satu wilayah melayani jadi semua wilayah). Frasa di
+    // bawah dibaca dari sumbernya, bukan dari halaman; kata di halaman boleh berbeda dari naskah hanya bila pasangannya tertulis.
+    const j = baca("situs/src/content/docs/tahap-5/jembatan-prd-v6.mdx").toLowerCase();
+    const naskahBaris = (nama: string) => PRD_N.isi.find((r) => r[1] === nama)![2]!.toLowerCase();
+    const halBaris = (nama: string) => PRD_H.isi.find((r) => r[1] === nama)![2]!.toLowerCase();
+    const PASANGAN: [string, "baris" | "naskah" | "5.32", string, string][] = [
+      ["Tiga negara", "baris", "satu app", "satu app"],
+      ["Tiga negara", "baris", "satu mata uang per negara", "satu mata uang tiap negara"],
+      ["Tiga negara", "baris", "top-up lewat integrasi bank lokal", "top-up lewat integrasi bank lokal"],
+      ["Multi-mata uang dengan kurs", "baris", "transfer antar negara memakai kurs yang disimpan", "transfer antar negara memakai kurs yang disimpan"],
+      ["Multi-mata uang dengan kurs", "baris", "tukar adalah dua jurnal yang terhubung", "tukar adalah dua jurnal yang terhubung"],
+      ["Multi-mata uang dengan kurs", "naskah", "selisih pembulatan harus punya akun", "selisih pembulatan punya akun sendiri"],
+      ["Data per negara", "baris", "data identitas dan saldo satu negara", "data identitas dan saldo satu negara"],
+      ["Data per negara", "baris", "wilayah negara itu", "wilayah negara itu"],
+      ["Data per negara", "baris", "pasangan yang diizinkan", "wilayah pasangannya yang diizinkan"],
+      ["Data per negara", "baris", "database dipisah per negara", "database dipisah per negara"],
+      ["Data per negara", "5.32", "wilayah lain menunggu sampai failover", "wilayah lain yang menunggu sampai failover"],
+      ["Tidak berhenti saat satu wilayah hilang", "baris", "multi-region aktif-pasif untuk ledger", "ledger memakai multi-region aktif-pasif"],
+      ["Tidak berhenti saat satu wilayah hilang", "5.32", "satu wilayah pusat data melayani", "satu wilayah melayani"],
+      ["Tidak berhenti saat satu wilayah hilang", "baris", "rpo nol", "rpo nol"],
+      ["Tidak berhenti saat satu wilayah hilang", "baris", "rto wilayah 30 menit", "rto satu wilayah 30 menit"],
+      ["Tidak berhenti saat satu wilayah hilang", "baris", "rto 15 menit untuk satu mesin tetap", "rto satu mesin tetap 15 menit"],
+      ["Skor risiko real-time", "baris", "tiap pembayaran dan transfer mendapat skor", "tiap pembayaran dan transfer mendapat skor"],
+      ["Skor risiko real-time", "baris", "graf akun-perangkat dibangun tim risiko", "tim risiko membangun graf akun-perangkat"],
+      ["Platform internal", "baris", "label biaya per tim", "label biaya per tim"],
+      ["Perubahan aman di skala", "baris", "rilis bertahap berbasis slo dengan rollback otomatis", "rilis bertahap berbasis slo dengan rollback otomatis"],
+      ["Perubahan aman di skala", "baris", "berskala kecil", "berskala kecil"],
+      ["Data antar domain", "baris", "disediakan sebagai produk dengan pemilik", "disediakan sebagai produk dengan pemilik"],
+    ];
+    for (const [nama, dari, s, h] of PASANGAN) {
+      const sumber = dari === "baris" ? naskahBaris(nama) : dari === "naskah" ? NASKAH.toLowerCase() : j;
+      expect(sumber, `${dari}: ${s}`).toContain(s);
+      expect(halBaris(nama), `${nama}: ${h}`).toContain(h);
+    }
+    // Keterangan graf: arti buatan halaman, jadi hanya kata istilahnya yang dijaga (akun dan perangkat ada di artinya).
+    const arti = /graf akun-perangkat, yaitu ([^|]*)$/.exec(halBaris("Skor risiko real-time"))![1]!;
+    for (const k of "akun-perangkat".split("-")) expect(arti, k).toContain(k);
+    // "aktif-aktif" hanya dua kali di halaman: kelemahan Nadia (tokoh) dan "Bukan lingkup v6". Baris P0 menulis aktif-pasif.
+    const badan = MDX.replace(/\{\/\* daftar-tahap \*\/\}[\s\S]*\{\/\* \/daftar-tahap \*\/\}/, "");
+    expect(badan.split("aktif-aktif").length - 1).toBe(2);
+    expect(badan.split("aktif-pasif").length - 1).toBe(1);
+  });
   test("tabel diawali kalimat yang memberi label Ilustrasi, dan 'Bukan lingkup v6' sama dengan daftar naskah tanpa klaim izin", () => {
     const sec = paragraf(bagian(MDX, "Yang diminta PRD v6"));
     expect(sec[0]).toBe("Isi PRD v6 adalah rencana cerita (Ilustrasi), dan [[t6-prd]] memuat dokumen lengkapnya. Ringkasannya:");
