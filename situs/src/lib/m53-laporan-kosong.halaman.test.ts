@@ -416,6 +416,8 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R6-125 sam
     expect(b).toContain("sits in databases behind business capabilities");
     expect(b).toContain("is a temporal and aggregated view of the facts of the business over time");
     expect(b).toContain("a digital media company");
+    expect(b).toContain("Data mesh, at core, is founded in decentralization and distribution of responsibility to people who are closest to the data");
+    expect(badan).toContain("Kepemilikan domain berarti, menurut tulisan itu, tanggung jawab atas data dipegang orang yang paling dekat dengan data itu.");
     expect(b).toContain("data quality, decreased lead time of data consumption");
     expect(badan).toContain("Empat prinsip data mesh menurut Zhamak Dehghani adalah kepemilikan domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer.");
     expect(badan).toContain("Sumbernya tulisan 3 Desember 2020");
@@ -676,6 +678,7 @@ const struktur = prosa.map((b) => {
   return `p:${n}`;
 });
 const kartuM53 = kartuSemua.filter((x) => x.halaman === "t6-m53");
+const NAMA = ["pak hadi", "bayu", "tim ledger", "tim pembayaran", "tim pelaporan", "tim risiko", "conway", "dehghani", "leach", "stripe", "datamation", "postgresql", "replica", "contract", "kontrak", "katalog", "pipeline", "ledger", "event", "api"];
 const sidikSekarang = {
   label: {
     rekamanLab: (halaman.match(/Rekaman lab/g) ?? []).length, tidakDijalankan: (halaman.match(/Tidak dijalankan/g) ?? []).length, asumsi: (halaman.match(/Asumsi/g) ?? []).length,
@@ -683,6 +686,9 @@ const sidikSekarang = {
     penalaran: (halaman.match(/Penalaran/g) ?? []).length, dibuka: (halaman.match(/dibuka 2026-11-06/g) ?? []).length, tanggal: (halaman.match(/2026-11-06/g) ?? []).length,
   },
   halaman: sidikKata(halaman, KATA), rantai: sidikKata(nilaiString(rantaiMentah).join("\n"), KATA), skenario: sidikKata(nilaiString(skenario).join("\n"), KATA),
+  nama: sidikKata(halaman, NAMA),
+  kode: [...badan.matchAll(/`([^`]+)`/g)].map((m) => m[1]!),
+  snippet: badan.split("\n").filter((b) => b.startsWith("<Snippet")).map(h16),
   struktur: struktur.join(" "), angka: prosa.flatMap((b) => angkaDari(b)).join(" "),
   tabel: badan.split("\n").filter((b) => b.startsWith("|")).map(h16),
   riset: ["R6-125", "R6-126", "R6-127", "R6-128", "R6-129"].map((id) => h16(barisRiset(id))),
@@ -720,6 +726,9 @@ describe("penutup celah mutasi tanpa kunci: label, kata penentu, struktur, angka
     expect(sidikSekarang.skenario).toEqual(SIDIK.skenario);
   });
   (tanpaSidik ? test.skip : test)("sidik struktur, angka prosa, tabel per baris, baris riset, dan berkas JSON serta frontmatter", () => {
+    expect(sidikSekarang.nama).toEqual(SIDIK.nama);
+    expect(sidikSekarang.kode).toEqual(SIDIK.kode);
+    expect(sidikSekarang.snippet).toEqual(SIDIK.snippet);
     expect(sidikSekarang.struktur).toBe(SIDIK.struktur);
     expect(sidikSekarang.angka).toBe(SIDIK.angka);
     expect(sidikSekarang.tabel).toEqual(SIDIK.tabel);

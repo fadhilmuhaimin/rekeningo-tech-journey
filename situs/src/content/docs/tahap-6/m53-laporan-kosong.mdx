@@ -121,7 +121,7 @@ Kebutuhan komunikasi Pelaporan dengan Pembayaran ada di satu tempat: kolom yang 
 
 **Data yang dipakai tim lain adalah produk.** Empat prinsip data mesh menurut Zhamak Dehghani adalah kepemilikan domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer. Sumbernya tulisan 3 Desember 2020 ([Data Mesh Principles and Logical Architecture](https://martinfowler.com/articles/data-mesh-principles.html), dibuka 2026-11-06, Tidak dijalankan). Pemilik produk data bertanggung jawab atas ukuran seperti kualitas data dan lama user mendapat data.
 
-ADR 62 meminjam tiga prinsip pertama dan menukar tata kelola terfederasi dengan tinjauan manusia atas daftar produk data. Penulisnya menulis bahwa keempat prinsip dimaksudkan "collectively necessary and sufficient". Jadi ADR 62 bukan data mesh menurut tulisan itu.
+Kepemilikan domain berarti, menurut tulisan itu, tanggung jawab atas data dipegang orang yang paling dekat dengan data itu. ADR 62 meminjam tiga prinsip pertama dan menukar tata kelola terfederasi dengan tinjauan manusia atas daftar produk data. Penulisnya menulis bahwa keempat prinsip dimaksudkan "collectively necessary and sufficient". Jadi ADR 62 bukan data mesh menurut tulisan itu.
 
 Tulisan itu menulis tentang data analitik, yaitu pandangan data yang teragregasi dan temporal untuk laporan analitik. Ia membedakannya dari data operasional, yaitu keadaan sekarang di database di balik fungsi bisnis.
 
@@ -162,7 +162,7 @@ Tabel ini membandingkan dua cara Pelaporan mendapat data. Isinya Penalaran, Tida
 |---|---|---|---|---|---|
 | Cara kerja | Pelaporan memakai role baca-saja di replica ([[t5-read-replica]]) | Semua tabel domain disalin ke satu data warehouse pusat, dan laporan dibaca dari sana | Wakil sebelas tim bertemu tiap minggu untuk membahas migration yang akan datang | Tiap service punya database sendiri, dan datanya hanya terbuka lewat API service itu | Pemilik menyediakan API atau event berversi. Hak SELECT lintas schema dicabut, dan pipeline menolak query lintas schema |
 | Kelebihan | Tidak menambah beban primary, dan replica sudah ada | Pembaca tidak menyentuh database service | Tanpa komponen baru | Hak lintas service tidak bisa ada, karena databasenya berbeda | Pemilik tahu pembacanya dan menjaga versi, di satu cluster yang sama |
-| Kekurangan | Replica memutar ulang rekaman perubahan primary, jadi nama kolom dan hak yang sama ikut ke sana. Salinan juga tertinggal | Ketergantungan pindah ke pipeline yang menyalin tabel tiap domain, dan salinan tidak boleh memutuskan uang | Tidak terbaca di sistem. Sebelas tim berarti 55 pasang tim | Enam database tambahan untuk dijaga, padahal pemicunya belum terukur | Pemilik menanggung versi lama, dan tiap produk data butuh perawatan |
+| Kekurangan | Replica memutar ulang rekaman perubahan primary, jadi nama kolom dan hak yang sama ikut ke sana. Salinan juga tertinggal | Ketergantungan pindah ke pipeline yang menyalin tabel tiap domain, dan salinan tidak boleh memutuskan uang | Tidak terbaca di sistem. Sebelas tim berarti 55 pasang tim | Enam database untuk dijaga, padahal pemicunya belum terukur | Pemilik menanggung versi lama, dan tiap produk data butuh perawatan |
 | Biaya operasional | Tidak ada komponen baru, dan M53 terulang | Satu sistem baru dan orang yang menjaganya | Waktu wakil tiap tim tiap minggu | Operasi database bertambah dari satu cluster menjadi enam | Katalog, tes contract, lint, dan pemilik per produk data |
 | Bukti | Penalaran dari ADR 46, Tidak dijalankan | Tidak dijalankan | Hitungan atas Asumsi cerita: 11 × 10 ÷ 2 = 55 | Tidak dijalankan: butir 3 ADR 60 menulis pemicunya belum terukur | Rekaman lab Tahap 4 dan Tahap 5 untuk batas dan kontrak. Event dan API Tidak dijalankan |
 
@@ -189,7 +189,7 @@ Batasnya: itu API publik untuk pengembang di luar perusahaan, ditulis karyawan t
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
-1. Versi lama menumpuk, karena pembaca tidak pernah pindah. Pencegahannya katalog mencatat pembaca tiap versi dan tanggal akhirnya, dan versi tanpa pembaca dimatikan.
+1. Versi lama menumpuk, karena pembaca tidak pernah pindah. Pencegahannya katalog mencatat pembaca tiap versi dan tanggal akhirnya, dan versi tanpa pembaca dimatikan (Asumsi desain).
 2. Hak sementara kembali lewat jalan lain, misalnya role baru yang mewarisi role lain. Di lab Tahap 4 satu role proses mewarisi lima role modul ([[t4-modul]]), dan di Tahap 5 satu role proses mewarisi keenam role service ([[t5-m44]]). Pencegahannya aturan 3 dan aturan 7.
 3. Produk data bertambah lebih cepat daripada pemilik yang merawatnya. Pencegahannya katalog menolak produk data tanpa pemilik, skema, dan kesegaran, dengan batas tiga produk per tim (Asumsi).
 
