@@ -58,6 +58,14 @@ Setiap istilah di Glosarium bisa punya halaman `/istilah/<slug>/` dengan delapan
 6. Di teks: `` `kode` `` jadi kode, `[[id]]` jadi tautan ke halaman registry (halaman yang belum ditulis tampil "segera"), `[teks](url)` jadi tautan biasa.
 7. Jalankan `python3 tools/build_istilah.py`, lalu `bun run --cwd situs test`. Tes menolak bagian yang hilang, stack yang kurang dari enam, rekaman yang tidak ada, dan ID riset yang tidak tercatat.
 
+### Satu kata dengan dua arti
+
+Plugin tooltip memasang satu definisi di setiap kemunculan sebuah kata, di halaman mana pun. Kalau halamanmu memakai kata yang sudah punya entri dengan arti lain (di Tahap 5, "token" untuk token LSN dan "router" untuk traffic router atau router database), tooltipnya menjelaskan arti yang salah (keputusan 1893). Caranya:
+
+1. Tambah satu entri glosarium per arti (langkah 1 di atas), mis. "Token LSN". Kalau frasa utuh ditulis di teks ("token LSN"), kunci terpanjang menang dan tak ada langkah lain.
+2. Kalau teks halaman memakai kata sendirian ("token berisi posisi WAL"), daftarkan halamannya di `situs/data/arti-istilah.json`: path di `src/content/docs` tanpa ekstensi, kata, entri yang benar. Frasa yang tetap memakai arti bawaan di halaman itu ditulis di `kecuali`. Jalankan `python3 tools/build_istilah.py` lalu build.
+3. `src/lib/arti-istilah.test.ts` membaca HTML hasil build dan gagal bila kata yang diatur masih bertooltip arti lain.
+
 ## Pemeriksaan
 
 ```bash

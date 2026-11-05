@@ -1,0 +1,30 @@
+{
+  "tahap-5/m41-riwayat-belum-memuat": {
+    "token": "Token LSN"
+  },
+  "tahap-5/replication-lag": {
+    "token": "Token LSN",
+    "router": "Router database"
+  },
+  "tahap-5/read-replica": {
+    "router": "Router database"
+  },
+  "tahap-5/progressive-delivery": {
+    "router": "Traffic router"
+  },
+  "tahap-5/modul-ke-service": {
+    "router": "Traffic router"
+  },
+  "tahap-5/pintu-mitra-waf": {
+    "router": "Traffic router"
+  },
+  "tahap-5/rekap": {
+    "token": {
+      "arti": "Token LSN",
+      "kecuali": [
+        "hitungan token",
+        "token tanpa hak"
+      ]
+    }
+  }
+}

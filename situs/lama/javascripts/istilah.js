@@ -169,13 +169,15 @@
 
     var seen = new Map();
     article.querySelectorAll("abbr[title]").forEach(function (ab) {
-      var key = ab.textContent;
+      var teks = ab.textContent;
+      // data-arti: entri glosarium yang dipilih untuk halaman ini (situs/data/arti-istilah.json), bukan arti bawaan kata itu
+      var key = ab.dataset.arti || teks;
       var info = window.ISTILAH[key];
       var skip = !info || onGlossary || ab.closest("h1,h2,h3,h4,h5,h6,a,figcaption,.md-typeset__table th");
       var sec = skip ? null : sectionOf(ab);
       var done = sec && seen.get(sec);
       if (skip || (done && done.has(info.s))) {
-        ab.replaceWith(document.createTextNode(key));
+        ab.replaceWith(document.createTextNode(teks));
         return;
       }
       if (!done) { done = new Set(); seen.set(sec, done); }
