@@ -2757,8 +2757,8 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan ole
 ### 5.31 · Yang dibawa keluar dari Tahap 5
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 5.30, 5.29, T5-siap
 - selesai bila: halaman Konsep 5.31 sesuai `plan/CERITA-TAHAP-5.md` bagian 5 dan peta halaman Tahap 5; tanpa lab; enam belas kalimat naskah bagian 5 masing-masing terikat ke kejadian dan rekaman (dalam versi halaman asal yang sudah merge); kartu (tebak lalu buka) dan Cek diri gabungan lima soal; daftar ADR 46 sampai 60; satu kalimat per konsep, tanpa konsep baru; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama. Aturan terbukti Tahap 3 dan 4 (`plan/BRIEF-HALAMAN.md`, dibaca seluruhnya): angka hanya dari rekaman atau dihitung dari angka yang tertulis di halaman, dengan label tidak lebih kuat dari rekaman dan dari kode lab yang memerankannya; klaim negatif dan universal berlingkup; penjaga angka Vitest yang menurunkan nilai dari rekaman, registry, dan naskah dengan uji mutasi sendiri (tabel di badan PR); ID riset dan nomor keputusan tidak tampil (`cek_id_tampil.py`); Snippet `lines=` dari rentang fungsi; hasil tanpa JavaScript (noscript); tabel tidak meluap di 320 px. Aturan DIRI-4: angka masukan yang asalnya di halaman lain diberi satu kalimat asal atau tautan di pemakaian pertama; rujukan "di atas" dan "bagian G" hanya bila elemennya memang lebih dulu di halaman; satu kata per konsep (hitung di halaman tetangga; naskah Tahap 5: replica, secret, pembeli, pengumuman, angsuran, service, dan "layanan" hanya untuk pihak ketiga tiruan); tabel GFM punya jumlah kolom sama di header, pemisah, dan tiap baris (hitung `<table>` di `dist`). Naskah Tahap 5 menulis 3 transaksi per user aktif per hari sebagai dasar dan hasil dengan 2 di sebelahnya (registry `trx` 2 tidak diubah): halaman menulis keduanya dengan label Asumsi.
 - catatan: Pola 4.30. Bergantung pada 5.29 dan 5.30 (tidak pada daftar halaman tanpa lab saja): kalimat rekap terikat ke rekaman halaman asal, jadi halamannya harus ada (keputusan 1412). ALOKASI: keputusan 1620–1623 (1620–1622 pelaksana, 1623 peninjau), ID riset R5-260 sampai R5-264.
@@ -2766,8 +2766,8 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan ole
 ### 5.32 · Jembatan: pratinjau PRD v6
 
 - jenis: konten
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 5.31, T5-siap
 - selesai bila: halaman PRD 5.32 sesuai `plan/CERITA-TAHAP-5.md` bagian 6 dan peta halaman Tahap 5; tanpa lab; pratinjau PRD v6 (10 juta user, multi-region aktif-pasif, skor risiko real-time dan graf akun-perangkat, platform internal, chaos testing dan data mesh sederhana, multi-mata uang dan kurs, data per negara; tim 28 menjadi lebih dari 50 developer dalam lebih dari 10 tim; semuanya Ilustrasi karena Tahap 6 adalah proyeksi konseptual); widget tebak (dari ADR Tahap 5, mana yang pecah lebih dulu?) dengan bukti dari kalimat halaman ADR Tahap 5 yang sudah tertulis (ADR 58, 59, dan 60) tanpa isi Tahap 6, dan dua pilihan lain (ADR 52 dan 56) tidak cocok; "pecah lebih dulu" ditulis sebagai penalaran (Asumsi); jawaban dibuka di halaman pertama Tahap 6, bukan di sini; rencana jawaban dibaca dari kalimat halaman ADR dan dicocokkan dengan teks yang sudah jadi; "uang elektronik" tanpa klaim izin atau regulasi; registry berubah dari "segera" ke halaman jadi; Definisi selesai bersama. Aturan terbukti Tahap 3 dan 4 (`plan/BRIEF-HALAMAN.md`, dibaca seluruhnya): angka hanya dari rekaman atau dihitung dari angka yang tertulis di halaman, dengan label tidak lebih kuat dari rekaman dan dari kode lab yang memerankannya; klaim negatif dan universal berlingkup; penjaga angka Vitest yang menurunkan nilai dari rekaman, registry, dan naskah dengan uji mutasi sendiri (tabel di badan PR); ID riset dan nomor keputusan tidak tampil (`cek_id_tampil.py`); Snippet `lines=` dari rentang fungsi; hasil tanpa JavaScript (noscript); tabel tidak meluap di 320 px. Aturan DIRI-4: angka masukan yang asalnya di halaman lain diberi satu kalimat asal atau tautan di pemakaian pertama; rujukan "di atas" dan "bagian G" hanya bila elemennya memang lebih dulu di halaman; satu kata per konsep (hitung di halaman tetangga; naskah Tahap 5: replica, secret, pembeli, pengumuman, angsuran, service, dan "layanan" hanya untuk pihak ketiga tiruan); tabel GFM punya jumlah kolom sama di header, pemisah, dan tiap baris (hitung `<table>` di `dist`). Naskah Tahap 5 menulis 3 transaksi per user aktif per hari sebagai dasar dan hasil dengan 2 di sebelahnya (registry `trx` 2 tidak diubah): halaman menulis keduanya dengan label Asumsi.
 - catatan: Jawaban tebakan dibuka di halaman pertama Tahap 6 (tugas `T6-siap` mengikat janji ini). Pola 4.31. ALOKASI: keputusan 1624–1627 (1624–1626 pelaksana, 1627 peninjau), ID riset R5-265 sampai R5-269.
@@ -2775,8 +2775,8 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 5 disisipkan ole
 ### G3-rantai · Gerbang rantai Tahap 4 dan 5
 
 - jenis: perbaikan
-- status: antre
-- percobaan: 0
+- status: selesai
+- percobaan: 1
 - bergantung: 5.32
 - selesai bila: `tools/cek_situs.sh` menjalankan pemeriksa rantai `tools/eval_tahap.py rantai` untuk tahap 1 sampai 5 (sekarang `for T in 1 2 3`, TINJAUAN-PEMILIK Tahap 4 butir 10), supaya Berikutnya dari 4.31 ke 5.1 terjaga di gerbang, dan sesudah 5.32 juga ke halaman pertama Tahap 6 bila sudah ada; bila pengatur memutuskan USULAN-PERBAIKAN DIRI-4 butir 4 (gerbang sekarang tidak menjalankan `gejala` untuk tahap mana pun), `eval_tahap.py gejala N` untuk tiap tahap yang punya halaman masalah; `tools/test_eval_tahap.py` mendapat kasus yang menggagalkan rantai bila satu prasyarat atau satu tautan Berikutnya diubah (uji mutasi sendiri: ubah satu `prasyarat` di registry salinan, rantai harus gagal); `python3 tools/eval_tahap.py peta 4` dan `peta 5` tidak memberi selisih bintang, lab, atau jenis; gerbang penuh lolos dan lamanya tidak melewati batas CI.
 - catatan: Dibuat T5-siap (keputusan 1413). JANGAN mengubah `tools/` sebelum 5.32 merge: rantai Tahap 5 butuh 32 halaman "ada" dan gagal selama ada yang "segera". Sumber: TINJAUAN-PEMILIK Tahap 4 butir 10 dan USULAN-PERBAIKAN DIRI-4 butir 4. ALOKASI: keputusan 1696–1698 (1696–1697 pelaksana, 1698 peninjau); tanpa ID riset.
@@ -2828,7 +2828,7 @@ Alur tujuh langkah (keputusan 554). Tugas lab dan halaman Tahap 6 disisipkan ole
 - percobaan: 0
 - bergantung: NASKAH-6
 - selesai bila: `plan/RINGKAS.md` (≤ 60 baris) memuat peta halaman Tahap 6 satu baris per halaman dan tahap sebelumnya diringkas; registry `situs/data/cerita.json` memuat semua halaman Tahap 6 sesuai naskah (judul, jenis, bagian, ★, peran, prasyarat, lab), yang belum ditulis tampil "segera", halaman lama tahap ini menjadi `lama` bila diganti; ANTREAN mendapat tugas lab (sebelum `ERD6`) dan tugas halaman berurutan (sesudah tugas widget) dengan `selesai bila` merujuk bagian naskah; `sinkron_cerita.py`, `cek_tautan.py`, dan gerbang lolos.
-- catatan: Sekaligus mengganti `bergantung` `EVAL-6` ke halaman terakhir Tahap 6.
+- catatan: Sekaligus mengganti `bergantung` `EVAL-6` ke halaman terakhir Tahap 6. Wajib dari 5.32 dan G3-rantai (keputusan 1625, 1697, 1895): halaman 6.1 punya prasyarat `t5-jembatan` dan blok bernama "Yang dibuka lagi dari Tahap 5" yang membuka jawaban tebakan 5.32 dengan bukti dari kalimat halaman ADR 58, 59, 60 (5.27, 5.28, 5.30) dan, bila hitungan beban berubah, ADR 52 dan 56 (5.17, 5.25), ditulis sebagai hasil hitungan atau penalaran, bukan koreksi; PR yang menambah 6.1 `ada` menambah 6 ke `URUT_BACA` di `situs/tools/registri.mjs` dan mengubah Berikutnya dari 5.32 ke 6.1, kalau tidak `eval_tahap.py rantai 5` gagal "JEMBATAN TIDAK MENUJU 6.1"; Tahap 6 memilih satu kata untuk golden path (PROPOSAL, naskah) lawan "jalan beraspal" (5.27) dan membuat halaman istilah multi-region, golden path, service catalog, chaos testing, data mesh.
 
 ### EVAL-6 · Evaluasi Tahap 6
 
