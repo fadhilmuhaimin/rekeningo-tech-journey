@@ -1,0 +1,67 @@
+{
+  "judul": "Rapat dan pembekuan lawan ADR 63: siapa menangkap tiap jenis perubahan",
+  "opsi": [
+    {
+      "id": "dugaan",
+      "nama": "A dan B · Rapat harian dan pembekuan Kamis (yang dikira)",
+      "baris": [
+        [
+          { "id": "masuk", "label": "Perubahan dari lima tim", "sub": "deploy, flag, aturan skor, migration, konfigurasi" },
+          { "id": "pintu", "label": "Rapat persetujuan rilis harian", "sub": "wakil tiap tim, dan rilis dibekukan hari Kamis" },
+          { "id": "semua", "label": "Berlaku untuk semua pembayaran", "sub": "tanpa langkah bertahap" }
+        ],
+        [
+          { "id": "ukur", "label": "Satu SLO pembayaran", "sub": "99,9% per 30 hari, tanpa pemisah per perubahan" },
+          { "id": "catat", "label": "Catatan tiap tim", "sub": "tanpa satu garis waktu" }
+        ]
+      ],
+      "judulBaris": ["", "Sesudah perubahan berjalan"]
+    },
+    {
+      "id": "adr63",
+      "nama": "ADR 63 (yang dipilih)",
+      "baris": [
+        [
+          { "id": "masuk", "label": "Perubahan dari lima tim", "sub": "deploy, flag, aturan skor, migration, konfigurasi" },
+          { "id": "canary", "label": "Canary 1%, 5%, 25%, 100%", "sub": "bobot lalu lintas dari Gateway API" },
+          { "id": "analisis", "label": "Analisis atas SLO", "sub": "gagal berarti bobot kembali ke versi lama" }
+        ],
+        [
+          { "id": "flag", "label": "Flag berpemilik", "sub": "tanggal kedaluwarsa, satu sakelar per database negara" },
+          { "id": "garis", "label": "Garis waktu per negara", "sub": "deploy, flag, migration, konfigurasi" },
+          { "id": "kebijakan", "label": "Kebijakan error budget", "sub": "ditulis sebelum anggaran habis" }
+        ]
+      ],
+      "judulBaris": ["", "Di luar jalur deploy"]
+    }
+  ],
+  "fitur": [
+    {
+      "label": "Rilis biasa (deploy)",
+      "sorot": { "dugaan": ["pintu"], "adr63": ["canary", "analisis"] },
+      "catatan": {
+        "dugaan": "Rapat menyetujui atau menunda deploy sebelum rilis. Sesudah rilis, rapat tidak mengukur dampaknya, dan risiko tiap deploy sama (Penalaran, Ilustrasi).",
+        "adr63": "Deploy mulai dari 1% lalu lintas lewat bobot Gateway API. Analisis memeriksa SLO tiap langkah, dan gagal berarti bobot kembali ke versi lama tanpa menunggu orang (rancangan, Tidak dijalankan)."
+      },
+      "nada": { "dugaan": "warn" }
+    },
+    {
+      "label": "Aturan skor",
+      "sorot": { "dugaan": ["catat"], "adr63": ["garis"] },
+      "catatan": {
+        "dugaan": "Aturan skor bukan deploy, jadi rapat dan pembekuan tidak menyentuhnya. Hanya catatan tim Risiko yang tahu aturan itu berubah (Penalaran, Ilustrasi).",
+        "adr63": "Aturan skor ditulis ke garis waktu negara dengan waktu, pemilik, dan versi, jadi pertanyaan Dewi dijawab satu daftar. Aturan itu dirilis lewat canary yang sama bila ia dibawa pipeline (Asumsi desain)."
+      },
+      "nada": { "dugaan": "warn" }
+    },
+    {
+      "label": "Flag",
+      "sorot": { "dugaan": ["catat"], "adr63": ["flag", "garis"] },
+      "catatan": {
+        "dugaan": "Tiga flag berubah dalam 30 menit tanpa pemilik dan tanpa tanggal berakhir. Flag yang menyala tidak melewati rapat rilis (Penalaran, Ilustrasi).",
+        "adr63": "Flag punya pemilik dan tanggal kedaluwarsa, perubahannya masuk garis waktu, dan satu sakelar per database negara mematikan fitur di satu negara tanpa deploy (rancangan, Tidak dijalankan)."
+      },
+      "nada": { "dugaan": "warn" }
+    }
+  ]
+}

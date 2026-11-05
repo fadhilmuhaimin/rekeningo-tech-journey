@@ -5190,9 +5190,9 @@
         "t5-rollout",
         "t5-tim-infra"
       ],
-      "menit": 20,
-      "ada": false,
-      "nomor": "6.5"
+      "ada": true,
+      "nomor": "6.5",
+      "menit": 20
     },
     {
       "id": "t6-m55",
