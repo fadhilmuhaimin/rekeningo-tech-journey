@@ -38,6 +38,8 @@ EXTRA = {
     "N+1 query": ["N+1"],
     "Span / Tracing": ["trace"],
     "Alert TLS": ["alert TLS"],
+    "Token LSN": ["token LSN"],
+    "Router database": ["Database router"],
 }
 # Kunci yang terlalu umum untuk ditandai otomatis.
 SKIP = {"Index", "index", "Package", "package", "Mount", "mount", "Fake", "fake", "Mock", "mock",

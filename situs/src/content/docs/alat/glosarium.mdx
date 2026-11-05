@@ -218,6 +218,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Rolling deploy** | Mengganti instance satu per satu, supaya selalu ada instance yang melayani request. | [[C3]] |
 | **Round trip** | Satu kali bolak-balik request dan response antara app dan server. Di jaringan seluler, setiap round trip menambah latency. | [[B11.2]] |
 | **Router** | Bagian framework yang mencocokkan method dan path request dengan handler yang tepat. | [[B1.1]] |
+| **Router database** | Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router. | [[t5-read-replica]] |
 | **RPO** (recovery point objective) | Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang. | [[t5-prd]] |
 | **RTO** (recovery time objective) | Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan. | [[t5-prd]] |
 | **Saga** | Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi. | [[D3]] |
@@ -251,10 +252,12 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Timeout** | Batas waktu menunggu sebelum sebuah panggilan dianggap gagal. | [[B11]] |
 | **Token** | String yang dibawa request sebagai bukti siapa pengirimnya, mis. token login di header `Authorization`; siapa pun yang memegangnya bisa memakainya. Di token bucket, token berarti satu jatah request. | [[B5.1]] |
 | **Token bucket** | Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token. | [[C4]] |
+| **Token LSN** | Posisi primary di WAL sesudah satu COMMIT. Server mengirimnya ke app di kepala `X-Lsn-Tulis`, dan app mengembalikannya di bacaan berikutnya. Isinya posisi di log, bukan bukti siapa pengirimnya. | [[t5-lag]] |
 | **Token perangkat** | Pengenal satu HP yang diberikan layanan push ke app. Server menyimpannya dan memakainya sebagai alamat saat mengirim pemberitahuan ke HP itu. | [[t3-notifikasi]] |
 | **Token passthrough** | Pola yang dilarang di server MCP: menerima token yang tidak diterbitkan untuknya, lalu meneruskannya ke API hilir. | [[t4-audit]] |
 | **Trace** | Rekaman perjalanan satu request melewati beberapa komponen, lengkap dengan durasi tiap bagian. | [[t3-observability]] |
 | **traceparent** | Header HTTP standar W3C yang membawa trace-id perjalanan satu request, supaya komponen yang berbeda bisa menyambung trace yang sama. | [[t3-observability]] |
+| **Traffic router** | Komponen yang menggeser lalu lintas antar versi aplikasi menurut bobot, mis. 5% ke versi baru. Di Kubernetes, ingress controller atau service mesh menjalankan peran itu. | [[t5-rollout]] |
 | **TTL** (Time To Live) | Masa berlaku sebuah data di cache sebelum dianggap kedaluwarsa. | [[B9]] |
 | **Tutup buku** | Pemeriksaan akhir periode: untuk setiap buku, saldo awal ditambah mutasi harus sama dengan saldo akhir, dan seluruh jurnal harus seimbang. | [[t2-tutup-buku]] |
 | **Umur notifikasi tertua** | Berapa detik baris tertua yang masih menunggu di queue sudah menunggu; nol bila tidak ada yang menunggu. | [[t3-m27]] |

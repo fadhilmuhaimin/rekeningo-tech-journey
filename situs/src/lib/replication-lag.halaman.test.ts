@@ -1028,6 +1028,9 @@ describe.skipIf(tanpaKunci)("lapis 2: kata-kata halaman dan JSON dikunci", () =>
   test("setiap nilai JSON Rantai sama dengan yang terkunci", () => {
     expect(sekarang().json).toEqual(KUNCI_JSON);
   });
+  // Sidik glosarium diperbarui 2026-11-05 (keputusan 1893): baris "Token LSN" ditambah dan menuju [[t5-lag]]. Empat baris yang menuju
+  // halaman ini sekarang LSN, Read-your-writes, Replication lag, dan Token LSN; tiga baris pertama tidak berubah (diperiksa di tes
+  // "tiga baris glosarium" di atas). Sidik halaman, struktur, dan riset tidak berubah.
   test("sidik: jumlah kata kunci, label, struktur, baris riset milik halaman ini, dan baris glosarium yang menuju halaman ini", () => {
     const s = sidikSekarang();
     expect(s.halaman).toEqual(SIDIK.halaman);

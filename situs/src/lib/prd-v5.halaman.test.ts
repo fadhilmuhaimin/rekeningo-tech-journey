@@ -954,7 +954,9 @@ describe("label kejujuran dan arti istilah", () => {
     for (const n of ["RPO", "RTO", "Error budget"]) expect(daftarIstilah.filter((x) => x.startsWith(n)), n).toHaveLength(1);
     const baris = (n: string) => daftarIstilah.findIndex((x) => x.startsWith(n));
     expect(baris("Error budget")).toBe(baris("ERP") + 1);
-    expect(baris("RPO")).toBe(baris("Router") + 1);
+    // Baris "Router database" (keputusan 1893) kini ada di antara Router dan RPO.
+    expect(baris("Router database")).toBe(baris("Router") + 1);
+    expect(baris("RPO")).toBe(baris("Router database") + 1);
     expect(baris("RTO")).toBe(baris("RPO") + 1);
     const glosJson = JSON.parse(baca("situs/data/glosarium.json")) as Array<{ t: string; d: string }>;
     expect(glosJson.filter((x) => /^(RPO|RTO|Error budget)/.test(x.t)).map((x) => x.t)).toEqual(["Error budget", "RPO (recovery point objective)", "RTO (recovery time objective)"]);

@@ -491,6 +491,14 @@ window.ISTILAH = {
   "t": "Database",
   "u": "tahap-1/data-modeling/"
  },
+ "Database router": {
+  "b": "t5-read-replica",
+  "d": "Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.",
+  "n": "5.5 Read replica dan model baca",
+  "s": "istilah-router-database",
+  "t": "Router database",
+  "u": "tahap-5/read-replica/"
+ },
  "Dead-letter queue": {
   "b": "t3-at-least-once",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
@@ -1782,6 +1790,14 @@ window.ISTILAH = {
   "t": "Router",
   "u": "tahap-1/http/"
  },
+ "Router database": {
+  "b": "t5-read-replica",
+  "d": "Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.",
+  "n": "5.5 Read replica dan model baca",
+  "s": "istilah-router-database",
+  "t": "Router database",
+  "u": "tahap-5/read-replica/"
+ },
  "Row Level Security": {
   "b": "B5.3",
   "d": "Fitur PostgreSQL yang menyaring baris berdasarkan aturan per user, dijalankan di dalam database.",
@@ -2075,6 +2091,14 @@ window.ISTILAH = {
   "t": "Token",
   "u": "tahap-1/authentication/"
  },
+ "Token LSN": {
+  "b": "t5-lag",
+  "d": "Posisi primary di WAL sesudah satu COMMIT. Server mengirimnya ke app di kepala X-Lsn-Tulis, dan app mengembalikannya di bacaan berikutnya. Isinya posisi di log, bukan bukti siapa pengirimnya.",
+  "n": "5.7 Replication lag dan read-your-writes",
+  "s": "istilah-token-lsn",
+  "t": "Token LSN",
+  "u": "tahap-5/replication-lag/"
+ },
  "Token bucket": {
   "b": "C4",
   "d": "Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.",
@@ -2115,6 +2139,14 @@ window.ISTILAH = {
   "s": "istilah-trade-off",
   "t": "Trade-off",
   "u": "tahap-1/kerangka-estimasi/"
+ },
+ "Traffic router": {
+  "b": "t5-rollout",
+  "d": "Komponen yang menggeser lalu lintas antar versi aplikasi menurut bobot, mis. 5% ke versi baru. Di Kubernetes, ingress controller atau service mesh menjalankan peran itu.",
+  "n": "5.23 Progressive delivery dan kill switch",
+  "s": "istilah-traffic-router",
+  "t": "Traffic router",
+  "u": "tahap-5/progressive-delivery/"
  },
  "Transaction": {
   "b": "B3.1",
@@ -2508,6 +2540,14 @@ window.ISTILAH = {
   "s": "istilah-database",
   "t": "Database",
   "u": "tahap-1/data-modeling/"
+ },
+ "database router": {
+  "b": "t5-read-replica",
+  "d": "Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.",
+  "n": "5.5 Read replica dan model baca",
+  "s": "istilah-router-database",
+  "t": "Router database",
+  "u": "tahap-5/read-replica/"
  },
  "dead-letter queue": {
   "b": "t3-at-least-once",
@@ -3416,6 +3456,14 @@ window.ISTILAH = {
   "t": "Router",
   "u": "tahap-1/http/"
  },
+ "router database": {
+  "b": "t5-read-replica",
+  "d": "Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.",
+  "n": "5.5 Read replica dan model baca",
+  "s": "istilah-router-database",
+  "t": "Router database",
+  "u": "tahap-5/read-replica/"
+ },
  "saga": {
   "b": "D3",
   "d": "Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.",
@@ -3616,6 +3664,14 @@ window.ISTILAH = {
   "t": "Token",
   "u": "tahap-1/authentication/"
  },
+ "token LSN": {
+  "b": "t5-lag",
+  "d": "Posisi primary di WAL sesudah satu COMMIT. Server mengirimnya ke app di kepala X-Lsn-Tulis, dan app mengembalikannya di bacaan berikutnya. Isinya posisi di log, bukan bukti siapa pengirimnya.",
+  "n": "5.7 Replication lag dan read-your-writes",
+  "s": "istilah-token-lsn",
+  "t": "Token LSN",
+  "u": "tahap-5/replication-lag/"
+ },
  "token bucket": {
   "b": "C4",
   "d": "Algoritma rate limit: setiap key (IP atau akun) punya bucket berisi token yang terisi ulang dengan laju tetap, dan setiap request memakai satu token.",
@@ -3665,6 +3721,14 @@ window.ISTILAH = {
   "s": "istilah-trade-off",
   "t": "Trade-off",
   "u": "tahap-1/kerangka-estimasi/"
+ },
+ "traffic router": {
+  "b": "t5-rollout",
+  "d": "Komponen yang menggeser lalu lintas antar versi aplikasi menurut bobot, mis. 5% ke versi baru. Di Kubernetes, ingress controller atau service mesh menjalankan peran itu.",
+  "n": "5.23 Progressive delivery dan kill switch",
+  "s": "istilah-traffic-router",
+  "t": "Traffic router",
+  "u": "tahap-5/progressive-delivery/"
  },
  "transaction": {
   "b": "B3.1",

@@ -1,5 +1,5 @@
 // Dihasilkan dari file saat ini oleh PERBARUI_KUNCI=1 (lihat replication-lag.halaman.test.ts). Ubah hanya sesudah membaca perbedaannya.
-export const SIDIK = {"halaman":{"tidak":66,"bukan":15,"belum":27,"hanya":18,"paling":2,"asumsi":19,"hitungan":6,"simulasi":1,"tidakDijalankan":21,"perluVerifikasi":5,"penalaran":3,"rekamanLab":11,"tanggal":10},"struktur":"e707a867f8a7aca5b13df4996ba9ab5dbafc784b","riset":["e49622b60e88b98735da345ea2dd2834f477ccb1","ef9dd85c52a260a3385d90778a6183b33d83ef44","5155bb9751d72cfb65ef7650dd04922bb682fbec","4bf33d76be694d57f8613757b4afad675e75c904","d017fe3e95a82f33d302b2b7f63e30da96a132d9"],"glosarium":"f0e55ee41dcc69c351ab67790a71981037e1320e"};
+export const SIDIK = {"halaman":{"tidak":66,"bukan":15,"belum":27,"hanya":18,"paling":2,"asumsi":19,"hitungan":6,"simulasi":1,"tidakDijalankan":21,"perluVerifikasi":5,"penalaran":3,"rekamanLab":11,"tanggal":10},"struktur":"e707a867f8a7aca5b13df4996ba9ab5dbafc784b","riset":["e49622b60e88b98735da345ea2dd2834f477ccb1","ef9dd85c52a260a3385d90778a6183b33d83ef44","5155bb9751d72cfb65ef7650dd04922bb682fbec","4bf33d76be694d57f8613757b4afad675e75c904","d017fe3e95a82f33d302b2b7f63e30da96a132d9"],"glosarium":"91cc88ca9f6fc5714d32b0eb0c7afddbcf7d6298"};
 export const KALIMAT_TERKUNCI: string[] = [
  "---",
  "title: \"5.7 Replication lag dan read-your-writes + ADR 47\"",
