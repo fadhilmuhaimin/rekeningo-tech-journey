@@ -62,7 +62,7 @@ Ini tabel yang tim tulis sebelum satu baris kode Tahap 6 ada. Tim yang mengerjak
 
 Isi tabel adalah rencana kerja tim (Asumsi cerita), bukan hasil ukur. Tahap 6 tanpa lab, jadi halaman ini tidak menjalankan satu pun isi tabel.
 
-Untuk kamu yang memegang app, kolom Di app terbagi dua. Tiga baris mengubah apa yang app tampilkan atau kirim: mata uang dan bahasa per negara, jumlah dalam unit terkecil, dan sinyal perangkat. Tiga baris lain mengubah cara app dirilis: pipeline dari template, rilis bertahap, dan paket per tim. Dua baris sisanya tidak mengubah app yang terlihat.
+Untuk kamu yang memegang app, kolom Di app menyebut dua jenis perubahan. Tiga baris mengubah apa yang app tampilkan atau kirim: mata uang dan bahasa per negara, jumlah dalam unit terkecil, dan sinyal perangkat. Tiga baris lain mengubah cara app dirilis: pipeline dari template, rilis bertahap, dan paket per tim. Dua baris sisanya tidak mengubah app yang terlihat.
 
 *Unit terkecil* adalah satuan paling kecil sebuah mata uang. Rupiah memakai eksponen 0, jadi Rp100.000 tetap bilangan bulat 100000 di ledger (Asumsi desain). Konversi bentuk hanya terjadi di batas dengan pihak luar, dan [[t6-m56|M56]] membahasnya.
 
@@ -124,11 +124,11 @@ Dua istilah di tabel perlu arti dulu. *RTT* (round-trip time) adalah waktu satu 
 | File identitas | upload × KB × 365 | 200.000 per hari × 500 KB | 100 GB per hari, 36,5 TB per tahun (Tahap 5: 10 GB dan 3,65 TB; upload naik 10 kali, Asumsi) |
 | Latensi antar wilayah | RTT = 2 × jarak ÷ kecepatan | 1.000 km dan 3.000 km; ±200.000 km per detik di serat optik (±2/3 kecepatan cahaya, Asumsi) | 10 ms dan 30 ms, batas bawah fisik tanpa peralatan jaringan |
 | RPO aktif-pasif asinkron | jeda × laju puncak | jeda 1 detik dan 5 detik (Asumsi); 694,4 (2 transaksi: 463,0) | 694 (463) dan 3.472 (2.315) transaksi bisa hilang saat failover (Tahap 5 pada jeda 1 detik: 69). Bila semua lewat satu primary, ini batas atas. Negara terbesar (60%): 416,7 (277,8) dan 2.083,3 (1.388,9) |
-| Akun panas | batas per akun 1 ÷ RTT lawan laju akun | satu merchant besar menerima 5% dari puncak transaksi uang seluruh negara (Asumsi cerita): 34,7 per detik (2 transaksi: 23,1, nilai tepat 23,148) | Batas 100 per detik pada 1.000 km dan 33,3 pada 3.000 km. Pada 3.000 km: 34,7 ÷ 33,3 = 104% (2 transaksi: 69%); pada 1.000 km 35% (2 transaksi: 23%) |
+| Akun panas | batas per akun 1 ÷ RTT lawan laju akun | satu merchant besar menerima 5% dari puncak transaksi uang ketiga negara (Asumsi cerita): 34,7 per detik (2 transaksi: 23,1, nilai tepat 23,148) | Batas 100 per detik pada 1.000 km dan 33,3 pada 3.000 km. Pada 3.000 km: 34,7 ÷ 33,3 = 104% (2 transaksi: 69%); pada 1.000 km 35% (2 transaksi: 23%) |
 | Anggaran kegagalan | (1 − SLO) × 43.200 menit | SLO 99,9%, 99,95%, dan 99,99% | 43,2, 21,6, dan 4,32 menit per 30 hari. Transaksi gagal pada 99,9%: 0,001 × 180.000.000 per bulan = 180.000 (2 transaksi: 120.000) |
 | SLO berantai | SLO^n untuk n service serial | 4 service di jalur bayar, masing-masing 99,9%, kegagalan independen (Asumsi) | 0,999^4 = 0,9960, atau 99,6%: 172,5 menit per 30 hari, 3,99 kali anggaran satu service |
 | Hilang satu wilayah | menit henti ÷ anggaran | 47 menit (Ilustrasi, [[t6-m55\|M55]]) ÷ 43,2 | 108,8% anggaran 30 hari di negara itu (30 menit RTO wilayah: 69,4%) |
-| Giliran jaga | (primer + sekunder) ÷ orang dalam rotasi | 2 ÷ 5, 2 ÷ 8, dan 2 ÷ 10; batas 25% (buku SRE Google, bab 11) | 40%, 25%, dan 20%, dengan primer dan sekunder dihitung penuh (Asumsi turunan). Rata-rata 53 ÷ 11 = 4,8 orang per tim |
+| Giliran jaga | (primer + sekunder) ÷ orang dalam rotasi | 2 ÷ 5, 2 ÷ 8, dan 2 ÷ 10; batas 25% (buku SRE Google, bab 11, ditulis untuk waktu SRE) | 40%, 25%, dan 20%, dengan primer dan sekunder dihitung penuh (Asumsi turunan). Rata-rata 53 ÷ 11 = 4,8 orang per tim |
 | Koneksi database | λ × W | 13.888,9 × 0,02 detik; negara terbesar 8.333,3 × 0,02; transaksi uang saja 694,4 × 0,02 (2 transaksi: 463,0 × 0,02) | 277,8, 166,7, dan 13,9 (2 transaksi: 9,3) koneksi tertahan lawan 97 tersedia dan server pool 60 di [[t5-pooler\|ADR 52]]. Bacaan lewat replica dan koneksi sebenarnya belum terukur |
 | Skor risiko | panggilan × laju | 6 panggilan per skor lewat rantai tiga proses dan queue (Rekaman lab Tahap 5, `panggilan.txt` bagian B) × 694,4 | 6 × 694,4 = 4.166,4 panggilan per detik (nilai tepat 4.166,7; 2 transaksi: 6 × 463,0 = 2.778,0, nilai tepat 2.777,8). Anggaran skor 50 ms ÷ 6 = 8,3 ms per panggilan. Bila tiap panggilan menambah 10 ms, 6 × 10 = 60 ms |
 | Frekuensi rilis | tim × rilis per tim per hari ÷ jam kerja | 11 × 4 ÷ 8 | 44 per hari, 5,5 per jam (Asumsi cerita) |
@@ -148,7 +148,7 @@ Baris Akun panas bersandar pada satu komentar kode. Di PostgreSQL 17.11, fungsi 
 
 Bila transaksi berikutnya ke baris yang sama menunggu lock itu, laju satu baris dibatasi 1 ÷ RTT. Batas itu penalaran atas kode dan Asumsi RTT, dan belum diukur [perlu verifikasi].
 
-**Tiga kesimpulan.** Pertama, beban 13.888,9 request per detik naik 10 kali, tetapi yang melewati batasnya lebih dulu bukan request. Yang melewatinya adalah batas yang bergantung pada jarak (30 ms dan 33,3 per detik), pada orang (40% jaga), dan pada kegagalan beruntun (99,6%).
+**Tiga kesimpulan.** Pertama, beban 13.888,9 request per detik naik 10 kali. Baris Koneksi database memang melewati batas Tahap 5: 166,7 koneksi tertahan di negara terbesar lawan 97 tersedia. Angka 97 dan pool 60 adalah ukuran Tahap 5 dan belum dihitung ulang untuk server tiap negara. Batas yang tidak ikut berubah dengan ukuran server bergantung pada jarak (30 ms dan 33,3 per detik), orang (40% jaga), dan kegagalan beruntun (99,6%).
 
 Kedua, tidak ada hitungan di tabel ini yang menunjukkan satu primary tidak sanggup menulis 416,7 transaksi uang per detik di negara terbesar. Itu tidak pernah diukur di repo ini, dan Tahap 6 tidak punya lab untuk mengukurnya.
 

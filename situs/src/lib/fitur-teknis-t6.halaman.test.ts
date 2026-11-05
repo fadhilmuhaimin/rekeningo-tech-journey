@@ -613,7 +613,7 @@ describe("blok Angka beban Tahap 6: 17 baris dihitung ulang dari masukan naskah 
     const h3 = pkTrx(3) * 0.05, h2 = pkTrx(2) * 0.05;
     const batas = (rttMs: number): number => 1000 / rttMs;
     const a = baris("Akun panas");
-    expect(a[2]).toBe(`satu merchant besar menerima 5% dari puncak transaksi uang seluruh negara (Asumsi cerita): ${fmt(h3, 1)} per detik (2 transaksi: ${fmt(h2, 1)}, nilai tepat ${fmt(h2, 3)})`);
+    expect(a[2]).toBe(`satu merchant besar menerima 5% dari puncak transaksi uang ketiga negara (Asumsi cerita): ${fmt(h3, 1)} per detik (2 transaksi: ${fmt(h2, 1)}, nilai tepat ${fmt(h2, 3)})`);
     const pct = (x: number, b: number): string => String(Math.floor((x / b) * 100 + 0.5));
     expect(a[3]).toBe(`Batas ${batas(10)} per detik pada 1.000 km dan ${fmt(batas(30), 1)} pada 3.000 km. Pada 3.000 km: ${fmt(h3, 1)} ÷ ${fmt(batas(30), 1)} = ${pct(h3, batas(30))}% (2 transaksi: ${pct(h2, batas(30))}%); pada 1.000 km ${pct(h3, batas(10))}% (2 transaksi: ${pct(h2, batas(10))}%)`);
     expect(pct(h3, batas(30))).toBe("104");
@@ -650,7 +650,7 @@ describe("blok Angka beban Tahap 6: 17 baris dihitung ulang dari masukan naskah 
     const w = baris("Hilang satu wilayah");
     expect(w[3]).toBe(`${fmt((47 / 43.2) * 100, 1)}% anggaran 30 hari di negara itu (30 menit RTO wilayah: ${fmt((30 / 43.2) * 100, 1)}%)`);
     const g = baris("Giliran jaga");
-    expect(g[2]).toBe("2 ÷ 5, 2 ÷ 8, dan 2 ÷ 10; batas 25% (buku SRE Google, bab 11)");
+    expect(g[2]).toBe("2 ÷ 5, 2 ÷ 8, dan 2 ÷ 10; batas 25% (buku SRE Google, bab 11, ditulis untuk waktu SRE)");
     expect(g[3]).toBe(`${titik((2 / 5) * 100)}%, ${titik((2 / 8) * 100)}%, dan ${titik((2 / 10) * 100)}%, dengan primer dan sekunder dihitung penuh (Asumsi turunan). Rata-rata ${TIM} ÷ ${NTIM} = ${fmt(TIM / NTIM, 1)} orang per tim`);
     const k = baris("Frekuensi rilis");
     expect(k[2]).toBe(`${NTIM} × 4 ÷ 8`);
@@ -711,7 +711,7 @@ describe("blok Angka beban Tahap 6: 17 baris dihitung ulang dari masukan naskah 
     expect(blok).toContain("Anggaran skor 50 ms berasal dari [[t5-m51|M51]], dan SLO 99,9% dari [[t5-tim-infra]].");
     expect(m51).toContain("Skor risiko real-time dalam 50 ms (Asumsi naskah)");
   });
-  test("tiga kesimpulan sama dengan naskah dan angkanya dari tabel: 30 ms, 33,3, 40%, 99,6%, 416,7 per detik, dan lingkup 'di tabel ini'", () => {
+  test("tiga kesimpulan: kesimpulan kedua dan ketiga sama dengan naskah, yang pertama diubah peninjau (1717) karena baris Koneksi database melewati 97, dan angkanya dari tabel", () => {
     for (const k of [
       "Pertama, beban 13.888,9 request per detik naik 10 kali, tetapi yang melewati batasnya lebih dulu bukan request.",
       "Yang melewatinya adalah batas yang bergantung pada jarak (30 ms, 33,3 per detik), pada orang (40% jaga), dan pada kegagalan beruntun (99,6%).",
@@ -719,7 +719,14 @@ describe("blok Angka beban Tahap 6: 17 baris dihitung ulang dari masukan naskah 
       "Itu tidak pernah diukur di repo ini, dan Tahap 6 tidak punya lab untuk mengukurnya.",
       "Ketiga, yang berbahaya adalah **batas yang tidak punya pemilik dan jarak yang tidak dihitung**, bukan banyaknya request.",
     ]) expect(bagianBeban.replace(/\n/g, " "), `naskah: ${k}`).toContain(k);
-    expect(blok).toContain("Pertama, beban 13.888,9 request per detik naik 10 kali, tetapi yang melewati batasnya lebih dulu bukan request. Yang melewatinya adalah batas yang bergantung pada jarak (30 ms dan 33,3 per detik), pada orang (40% jaga), dan pada kegagalan beruntun (99,6%).");
+    // Naskah menulis "yang melewati batasnya lebih dulu bukan request", padahal baris Koneksi database (277,8 dan 166,7 lawan 97 dan 60)
+    // melewati batas Tahap 5 dari angka yang tertulis di tabel yang sama. Halaman menulis pengecualiannya (USULAN-CERITA, keputusan 1717).
+    const k = pkReq * 0.6 * 0.02;
+    expect(fmt(k, 1)).toBe("166,7");
+    expect(k).toBeGreaterThan(97);
+    expect(k).toBeGreaterThan(60);
+    expect(blok).toContain(`Pertama, beban 13.888,9 request per detik naik 10 kali. Baris Koneksi database memang melewati batas Tahap 5: ${fmt(k, 1)} koneksi tertahan di negara terbesar lawan 97 tersedia. Angka 97 dan pool 60 adalah ukuran Tahap 5 dan belum dihitung ulang untuk server tiap negara. Batas yang tidak ikut berubah dengan ukuran server bergantung pada jarak (30 ms dan 33,3 per detik), orang (40% jaga), dan kegagalan beruntun (99,6%).`);
+    expect(blok).not.toContain("yang melewati batasnya lebih dulu bukan request");
     expect(blok).toContain("Kedua, tidak ada hitungan di tabel ini yang menunjukkan satu primary tidak sanggup menulis 416,7 transaksi uang per detik di negara terbesar. Itu tidak pernah diukur di repo ini, dan Tahap 6 tidak punya lab untuk mengukurnya.");
     expect(blok).toContain("Ketiga, yang berbahaya adalah batas yang tidak punya pemilik dan jarak yang tidak dihitung, bukan banyaknya request. Dasarnya sama dengan Tahap 2 sampai 5: Little's Law (L = λ × W) untuk koneksi, dan apa yang tidak diketahui sesudah sesuatu gagal.");
     for (const x of ["30 ms", "33,3", "40%", "99,6%", "416,7"]) expect(baris("Latensi antar wilayah").concat(baris("Akun panas"), baris("Giliran jaga"), baris("SLO berantai"), baris("Transaksi uang")).join(" "), x).toContain(x);
@@ -1056,7 +1063,7 @@ describe("baris riset R6-115 sampai R6-119: ada, urut, tanpa ganda, dan memuat k
     expect(r116).toContain("of the remainder, no more than 25% can be spent on-call");
     expect(r116).toContain("Assuming that there are always two people on-call (primary and secondary, with different duties), the minimum number of engineers needed for on-call duty from a single-site team is eight");
     expect(r116).toContain("Batas 25% ditulis untuk waktu SRE; halaman memakainya untuk semua orang di rotasi sebagai Asumsi");
-    expect(badan).toContain("batas 25% (buku SRE Google, bab 11)");
+    expect(badan).toContain("batas 25% (buku SRE Google, bab 11, ditulis untuk waktu SRE)");
     expect(badan).toContain("(Asumsi turunan)");
     const r117 = baris[2]!;
     expect(r117).toContain("open-feature/spec");
@@ -1110,7 +1117,7 @@ describe("kalimat prosa terkunci per paragraf", () => {
     "Kalkulator hanya menghitung request per detik. Ia tidak menilai apakah satu primary, yaitu database utama yang menerima semua tulisan, sanggup menerimanya. Kapasitas itu belum pernah diukur di repo ini: lab `api-t5` hanya memberi batas di satu laptop ([[t5-m51]]).",
     "Ini tabel yang tim tulis sebelum satu baris kode Tahap 6 ada. Tim yang mengerjakannya berjumlah 53 orang dalam 11 tim, seperti di [[t6-prd]] (Asumsi cerita).",
     "Isi tabel adalah rencana kerja tim (Asumsi cerita), bukan hasil ukur. Tahap 6 tanpa lab, jadi halaman ini tidak menjalankan satu pun isi tabel.",
-    "Untuk kamu yang memegang app, kolom Di app terbagi dua. Tiga baris mengubah apa yang app tampilkan atau kirim: mata uang dan bahasa per negara, jumlah dalam unit terkecil, dan sinyal perangkat. Tiga baris lain mengubah cara app dirilis: pipeline dari template, rilis bertahap, dan paket per tim. Dua baris sisanya tidak mengubah app yang terlihat.",
+    "Untuk kamu yang memegang app, kolom Di app menyebut dua jenis perubahan. Tiga baris mengubah apa yang app tampilkan atau kirim: mata uang dan bahasa per negara, jumlah dalam unit terkecil, dan sinyal perangkat. Tiga baris lain mengubah cara app dirilis: pipeline dari template, rilis bertahap, dan paket per tim. Dua baris sisanya tidak mengubah app yang terlihat.",
     "*Unit terkecil* adalah satuan paling kecil sebuah mata uang. Rupiah memakai eksponen 0, jadi Rp100.000 tetap bilangan bulat 100000 di ledger (Asumsi desain). Konversi bentuk hanya terjadi di batas dengan pihak luar, dan [[t6-m56|M56]] membahasnya.",
     "Tiga hal harus selalu benar di Tahap 6. Dua pertama melanjutkan Tahap 2 dan 5, dan yang ketiga baru:",
     "1. Uang bergerak hanya lewat [[t2-ledger|ledger]], dan jurnal seimbang per mata uang. Satu jurnal tidak pernah menjumlahkan dua mata uang. Tukar adalah dua jurnal yang terhubung. Selisih pembulatan masuk akun sendiri, sesuai syarat Pak Hadi di [[t6-prd]].",
@@ -1134,7 +1141,7 @@ describe("kalimat prosa terkunci per paragraf", () => {
     "Asal masukan dari halaman lain: top-up 0,25 per user aktif per hari dari [[t5-m51|M51]], dan jendela makan siang 80% dalam 90 menit dari [[t5-m45|M45]]. W 0,02 detik berasal dari [[t5-prd]], dan 97 koneksi tersedia dari [[t5-pooler]]. Anggaran skor 50 ms berasal dari [[t5-m51|M51]], dan SLO 99,9% dari [[t5-tim-infra]].",
     "Baris Akun panas bersandar pada satu komentar kode. Di PostgreSQL 17.11, fungsi `RecordTransactionCommit` memuat satu komentar. Saat commit menunggu replikasi sinkron, transaksi masih tampak berjalan dan `continue to hold locks`, yaitu tetap menahan lock (`src/backend/access/transam/xact.c`, dibuka 2026-11-06, Tidak dijalankan). Standby adalah salinan database yang menerima perubahan dari primary.",
     "Bila transaksi berikutnya ke baris yang sama menunggu lock itu, laju satu baris dibatasi 1 ÷ RTT. Batas itu penalaran atas kode dan Asumsi RTT, dan belum diukur [perlu verifikasi].",
-    "**Tiga kesimpulan.** Pertama, beban 13.888,9 request per detik naik 10 kali, tetapi yang melewati batasnya lebih dulu bukan request. Yang melewatinya adalah batas yang bergantung pada jarak (30 ms dan 33,3 per detik), pada orang (40% jaga), dan pada kegagalan beruntun (99,6%).",
+    "**Tiga kesimpulan.** Pertama, beban 13.888,9 request per detik naik 10 kali. Baris Koneksi database memang melewati batas Tahap 5: 166,7 koneksi tertahan di negara terbesar lawan 97 tersedia. Angka 97 dan pool 60 adalah ukuran Tahap 5 dan belum dihitung ulang untuk server tiap negara. Batas yang tidak ikut berubah dengan ukuran server bergantung pada jarak (30 ms dan 33,3 per detik), orang (40% jaga), dan kegagalan beruntun (99,6%).",
     "Kedua, tidak ada hitungan di tabel ini yang menunjukkan satu primary tidak sanggup menulis 416,7 transaksi uang per detik di negara terbesar. Itu tidak pernah diukur di repo ini, dan Tahap 6 tidak punya lab untuk mengukurnya.",
     "Ketiga, yang berbahaya adalah batas yang tidak punya pemilik dan jarak yang tidak dihitung, bukan banyaknya request. Dasarnya sama dengan Tahap 2 sampai 5: Little's Law (L = λ × W) untuk koneksi, dan apa yang tidak diketahui sesudah sesuatu gagal.",
     "**Pemicu ADR 60 dibaca ulang dengan angka di atas.** Terpenuhi berarti halaman Tahap 6 menulis keadaan yang sama dengan pemicunya, bukan bahwa komponennya terbukti perlu. Kolom Tahap 5 menyalin kata dari kolom Dibaca di [[t5-adr-60|ADR 60]]: Belum terpenuhi, Belum terukur, Tidak diminta, dan Menunggu PRD v6.",
@@ -1161,6 +1168,33 @@ describe("kalimat prosa terkunci per paragraf", () => {
     const kalimat = PROSA.flatMap((b) => b.replace(/^\d+\. /, "").split(/(?<=[.:])\s+(?=[A-Z*\[])/));
     expect(new Set(kalimat).size, "kalimat ganda").toBe(kalimat.length);
     expect(kalimat.every((k) => k.split(/\s+/).length <= 40)).toBe(true);
+  });
+});
+
+// ---- tambahan peninjau (keputusan 1717): celah yang ditemukan uji mutasi TANPA kunci baris ------------------------------------
+describe("tinjauan 1717: kata bilangan kesimpulan, urutan paragraf, definisi, dan emoji", () => {
+  const beban = blokMdx("Angka beban Tahap 6");
+  test("'Tiga kesimpulan' sama dengan jumlah paragraf Pertama, Kedua, dan Ketiga, dan urutannya naik", () => {
+    const kata = ["", "Satu", "Dua", "Tiga", "Empat", "Lima"];
+    const paras = beban.split("\n").filter((b) => /^(\*\*\w+ kesimpulan\.\*\* )?(Pertama|Kedua|Ketiga|Keempat|Kelima), /.test(b));
+    const urutan = paras.map((p) => p.replace(/^\*\*\w+ kesimpulan\.\*\* /, "").split(",")[0]);
+    expect(urutan).toEqual(["Pertama", "Kedua", "Ketiga"]);
+    expect(paras[0]!.startsWith(`**${kata[urutan.length]} kesimpulan.** Pertama, `)).toBe(true);
+  });
+  test("definisi Terjaga, Rusak, dan Tidak berlaku, definisi aktif-aktif, dan kalimat analogi memakai arti yang benar", () => {
+    expect(badan).toContain("Terjaga berarti hal itu tetap benar saat kejadian terjadi, Rusak berarti hal itu dilanggar, dan Tidak berlaku berarti kejadian itu tidak menyentuhnya.");
+    expect(badan).toContain("Nadia mengusulkan aktif-aktif supaya tidak ada failover, yaitu dua wilayah sama-sama menerima tulis.");
+    expect(badan).toContain("Kalau app Flutter-mu pernah menampilkan harga dalam dua mata uang, kamu sudah tahu bahwa jumlah dan mata uangnya tidak boleh dipisahkan.");
+    expect(badan).toContain("Untuk kamu yang memegang app, kolom Di app menyebut dua jenis perubahan.");
+    expect(badan).toContain("Tahap 6 membahasnya satu per satu, saat masalahnya muncul.");
+  });
+  test("tanpa emoji dan tanpa tanda seru di prosa mdx, dan tanpa emoji di Rantai dan kalkulator", () => {
+    const gambar = /\p{Extended_Pictographic}/u;
+    expect(mdx).not.toMatch(gambar);
+    expect(JSON.stringify(diagramMentah)).not.toMatch(gambar);
+    expect(JSON.stringify(kalkulatorMentah)).not.toMatch(gambar);
+    const prosa = badan.split("\n").filter((b) => b.trim() !== "" && !/^\s*(\||<|import )/.test(b));
+    for (const b of prosa) expect(b, "tanda seru").not.toContain("!");
   });
 });
 
