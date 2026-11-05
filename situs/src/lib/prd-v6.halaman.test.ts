@@ -187,7 +187,11 @@ describe("registry, urutan baca, dan kerangka blok", () => {
     const i = urut.findIndex((h) => h.id === "t5-jembatan");
     expect(urut[i]!.nomor).toBe("5.32");
     expect(urut[i + 1]!.nomor).toBe("6.1");
-    expect(urut.filter((h) => h.tahap === 6).map((h) => h.nomor)).toEqual(["6.1"]);
+    // Rentang, bukan daftar tetap: tiap PR halaman Tahap 6 menambah satu nomor (6.4 dan seterusnya), dan penjaga ini tidak boleh patah karenanya.
+    const tahap6 = urut.filter((h) => h.tahap === 6).map((h) => h.nomor!);
+    expect(tahap6[0]).toBe("6.1");
+    expect([...tahap6].sort((x, y) => Number(x.split(".")[1]) - Number(y.split(".")[1]))).toEqual(tahap6);
+    expect(new Set(tahap6).size).toBe(tahap6.length);
   });
   test("tujuh blok bernama, templat prd lolos, hanya blok pertama terbuka, dan blok terakhir bernama persis seperti janji 5.32", () => {
     const b = daftarBlok(badan);
