@@ -1,0 +1,41 @@
+{
+  "istilah": "Golden path",
+  "sehari_hari": "Golden path adalah jalur yang diutamakan dan didukung untuk membangun sesuatu, mis. satu service baru. Tim yang keluar dari jalur itu boleh melakukannya, tetapi tidak mendapat dukungan yang sama. Halaman 5.27 menyebut hal yang sama jalan beraspal, dan Tahap 6 memakai kata golden path.",
+  "cerita": [
+    {
+      "rujukan": "t5-tim-infra",
+      "teks": "Halaman 5.27 menulis jalan beraspal, yaitu jalur bawaan dari tim Platform untuk service baru: template service, pipeline, dashboard, dan alert. Itu hal yang sama dengan golden path, dan halaman Tahap 6 memakai kata golden path seperti sumbernya."
+    },
+    {
+      "rujukan": "t5-jembatan",
+      "teks": "Pratinjau PRD v6 menulis platform internal dengan golden path, yaitu jalur bawaan untuk service baru."
+    },
+    {
+      "rujukan": "t6-m52",
+      "teks": "Halaman M52 mulai dari tim yang menunggu template service dari Platform."
+    }
+  ],
+  "mekanisme": [
+    "Tim Platform memilih satu cara yang didukung untuk membangun satu jenis hal yang sama, mis. backend service.",
+    "Cara itu ditulis sebagai langkah yang diikuti. Di Spotify bentuknya tutorial langkah demi langkah, dan golden path backend yang pertama lahir dari satu proyek Hack Week.",
+    "Tim yang memakainya mendapat dukungan Platform. Spotify mengutip tulisan internal timnya: yang keluar dari jalur itu bebas, tetapi tidak mendapat dukungan yang sama.",
+    "Jalurnya bertambah menurut jenis pekerjaan. Spotify menyebut golden path untuk client, data engineering, data science, machine learning, web, dan audio processing."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira golden path wajib bagi semua tim. Spotify menulisnya sebagai jalur yang didukung, dan jalur lain tetap boleh dengan dukungan yang berbeda.",
+    "Mengira satu golden path berlaku untuk semua pekerjaan. Spotify punya jalur terpisah untuk backend, client, data engineering, data science, machine learning, web, dan audio processing."
+  ],
+  "terkait": [
+    "Service catalog",
+    "Service mesh"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-03",
+      "judul": "Spotify Engineering: How We Use Golden Paths to Solve Fragmentation in Our Software Ecosystem (17 Agustus 2020)",
+      "url": "https://engineering.atspotify.com/2020/08/how-we-use-golden-paths-to-solve-fragmentation-in-our-software-ecosystem",
+      "catatan": "Teks HTML dibuka 2026-11-06. Penulis mendefinisikan golden path sebagai jalur opinionated and supported untuk membangun sesuatu, dan tutorialnya berupa langkah demi langkah. Golden path backend yang pertama lahir enam tahun sebelum tulisan itu, dari satu Hack Week. Batas: satu perusahaan, tanpa angka adopsi di teks."
+    }
+  ]
+}

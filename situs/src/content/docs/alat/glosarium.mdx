@@ -39,6 +39,9 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **ACID** | Empat jaminan transaction di database relasional: atomicity, consistency, isolation, durability. | [[B3.1]] |
 | **ADR** (Architecture Decision Record) | Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya. | [[t4-modul]] |
 | **AES-GCM** | Enkripsi AES dengan mode GCM: satu pesan dikunci dan diberi tag pemeriksa keaslian, sehingga satu byte yang berubah ketahuan saat dibuka. | [[t5-kms]] |
+| **Akun likuiditas** | Akun milik penyedia likuiditas di satu ledger mata uang, yang menjadi lawan transaksi sebuah tukar. Satu tukar memakai dua akun likuiditas, satu per ledger. | [[t6-m56]] |
+| **Akun panas** | Akun yang menerima tulisan jauh lebih sering daripada akun lain, mis. akun merchant besar, sehingga banyak tulisan bersaing untuk baris yang sama. | [[t6-m55]] |
+| **Akun selisih pembulatan** | Akun yang menampung sisa pembulatan satu transaksi tukar. Ini nama pilihan Rekeningo, bukan istilah baku. | [[t6-m56]] |
 | **Alamat keluar** | Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak. | [[t4-m34]] |
 | **Alert** | Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang. | [[t3-tim-infra]] |
 | **Alert TLS** | Pesan singkat yang dikirim satu pihak TLS ke pihak lain untuk menghentikan handshake dan menyebut sebabnya, mis. certificate required. | [[t5-mtls]] |
@@ -67,6 +70,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Canary** | Rilis perubahan ke sebagian kecil lalu lintas lebih dulu, dengan penilaian baik atau buruk sebelum sisanya mendapat versi baru. | [[t3-adr-33]] |
 | **CDC** (change data capture) | Cara mengeluarkan perubahan data dengan membaca log transaksi database, sehingga urutannya sama dengan urutan commit. | [[t3-adr-33]] |
 | **Certificate pinning** | App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem. | [[t3-tls-pinning]] |
+| **Chaos testing** | Percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi: gangguan diberikan sengaja, lalu keadaan normal yang terukur diperiksa. | [[t6-m54]] |
 | **Checksum** | Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa. | [[t4-storage]] |
 | **CI** (Continuous Integration) | Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung. | [[B1.4]] |
 | **Circuit breaker** | Mekanisme yang berhenti memanggil layanan yang sedang gagal untuk sementara, lalu mencoba lagi setelah jeda. | [[t4-breaker]] |
@@ -82,10 +86,12 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **CSRF** (cross-site request forgery) | Serangan yang membuat browser user yang sedang login mengirim permintaan dari halaman lain ke situs yang sama, dengan cookie user ikut terkirim. | [[t3-xss-csrf]] |
 | **Daftar akar** (root store) | Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu. | [[t3-tls-pinning]] |
 | **Data key** | Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK. | [[t5-kms]] |
+| **Data mesh** | Pendekatan data analitik dengan empat prinsip: data dimiliki domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer. | [[t6-m53]] |
 | **Dead-letter queue** | Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya. | [[t3-at-least-once]] |
 | **Deadlock** | Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya. | [[t2-race-lock]] |
 | **Debit** | Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit. | [[t2-ledger]] |
 | **Deny-list** | Daftar yang ditolak; yang tidak ada di daftar diterima, jadi daftar itu harus memuat semua yang terlarang. | [[t4-ssrf]] |
+| **DORA** | Lima ukuran kinerja pengiriman software dari penelitian DORA: change lead time, deployment frequency, failed deployment recovery time, change fail rate, dan deployment rework rate. | [[t6-tim-infra]] |
 | **Double-entry** | Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol. | [[t2-ledger]] |
 | **Durable execution** | Cara menjalankan alur panjang dengan mencatat tiap langkah yang selesai, supaya alur dilanjutkan dari titik berhenti sesudah proses mati. | [[t5-batch]] |
 | **Eager loading** | Memuat data berelasi bersama query induknya, supaya mengakses relasi di dalam loop tidak mengirim query baru. | [[t2-n-plus-1]] |
@@ -93,7 +99,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **ERD** (Entity-Relationship Diagram) | Gambar skema database: tabel dengan kolom pentingnya, dan garis untuk setiap foreign key di antara tabel. | [[t2-skema]] |
 | **Envelope encryption** | Enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, bukan bersama file. | [[t5-kms]] |
 | **ERP** (Enterprise Resource Planning) | Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari. | [[t2-prd]] |
-| **Error budget** | Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. | [[t5-prd]] |
+| **Error budget** | Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. Anggaran kegagalan adalah nama lain untuk hal yang sama. | [[t5-prd]] |
 | **Event sourcing** | Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu. | [[t2-adr-ledger]] |
 | **Eventual consistency** | Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar. | [[D3]] |
 | **Expand-migrate-contract** | Urutan mengubah skema tanpa downtime: tambah yang baru, pindahkan data dan kode, baru hapus yang lama. | [[E1]], [[t2-skema-tanpa-downtime]] |
@@ -102,10 +108,12 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Fan-out** | Menyebarkan satu kejadian ke banyak penerima, mis. satu promo ditulis ke feed setiap pengikut. | [[D4b]], [[t5-fanout]] |
 | **FCM** (Firebase Cloud Messaging) | Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya. | [[E4]] |
 | **Fencing** | Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary. | [[t5-rpo-rto]] |
+| **FinOps** | Kerangka operasi dan praktik budaya yang memaksimalkan nilai bisnis teknologi lewat kolaborasi tim engineering, keuangan, dan bisnis. | [[t6-m57]] |
 | **Foreign key** | Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada. | [[B2.1]] |
 | **Gateway API** | Keluarga jenis API Kubernetes untuk mengatur routing lalu lintas ke service, penerus Ingress API. | [[t5-service]] |
 | **Gateway pembayaran** | Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk. | [[t3-jembatan]] |
 | **GitOps** | Cara mengelola infrastruktur: keadaan yang diinginkan ditulis di repo Git, dan alat menyamakan cluster dengannya. | [[t5-tim-infra]] |
+| **Golden path** | Jalur yang diutamakan dan didukung untuk membangun sesuatu, mis. satu service baru. Halaman 5.27 menyebutnya jalan beraspal. | [[t6-m52]] |
 | **Golden signals** | Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation. | [[t3-observability]] |
 | **Graceful shutdown** | Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar. | [[t3-dua-instance]] |
 | **gzip** | Format kompresi yang dipakai HTTP: client menyebutnya di Accept-Encoding, dan server yang memilih lalu menjawab dengan Content-Encoding: gzip. | [[t2-payload]] |
@@ -131,6 +139,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Jurnal** | Catatan satu kejadian yang memindahkan uang, berisi dua posting atau lebih (satu baris uang per buku) yang jumlahnya selalu nol. | [[t2-ledger]] |
 | **JWT** (JSON Web Token) | Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database. | [[B5.1]] |
 | **Kapasitas worker** | Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman. | [[t3-m27]] |
+| **Kebijakan sebagai kode** | Aturan yang ditulis dalam bahasa deklaratif seperti kode, dengan program yang menanyakan keputusannya ke mesin kebijakan, bukan memuat aturannya sendiri. | [[t6-residensi]] |
 | **KEK** (key encryption key) | Kunci pembungkus: kunci yang mengenkripsi data key, bukan isi file. | [[t5-kms]] |
 | **Kelas queue** | Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil. | [[t3-m27]] |
 | **Kill switch** | Feature flag yang tugasnya mematikan satu fitur seketika tanpa deploy, mis. menolak semua otorisasi kartu baru. | [[t4-kartu]] |
@@ -139,6 +148,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Kubernetes** | Sistem yang menjadwalkan pod, yaitu grup container, ke banyak mesin dalam satu cluster. | [[t5-service]] |
 | **Kunci akun** | Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya. | [[t2-m16]] |
 | **Kunci bisnis** | Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur. | [[t5-batch]] |
+| **Kuorum** | Jumlah anggota paling sedikit dari satu kelompok yang harus menjawab sebelum sebuah aksi dianggap selesai, mis. n standby pada `ANY n` di PostgreSQL. | [[t6-m55]] |
 | **Last-write-wins** | Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang. | [[t3-offline]] |
 | **Latency** | Lama waktu satu request dari dikirim sampai response diterima. | [[t3-observability]] |
 | **Lazy loading** | Memuat data berelasi baru saat kode pertama kali mengaksesnya, dengan satu query setiap akses. | [[t2-n-plus-1]] |
@@ -158,10 +168,12 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Metric** | Angka yang dihitung terus-menerus, mis. jumlah request per detik atau persentase error. | [[t3-observability]] |
 | **Microservice** | Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan. | [[B7.2]] |
 | **Middleware** | Fungsi yang dijalankan sebelum atau sesudah semua handler, mis. pemeriksa token atau pencatat log. | [[B7.1]] |
+| **Minor unit** | Satuan terkecil sebuah mata uang. Jumlah disimpan sebagai bilangan bulat dalam satuan itu, mis. 1.000 untuk 10,00 pada mata uang dua desimal. | [[t6-m56]] |
 | **MITM** (man-in-the-middle) | Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya. | [[t3-m26]] |
 | **Modular monolith** | Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas. | [[t4-modul]] |
 | **Monolith** | Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit. | [[A1]] |
 | **mTLS** (mutual TLS) | TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client. | [[t5-mtls]] |
+| **Multi-region** | Menjalankan satu sistem di lebih dari satu wilayah (region), yaitu lokasi geografis dengan pusat data. Pada aktif-pasif satu wilayah melayani dan lainnya menunggu failover; pada aktif-aktif semua melayani. | [[t6-m55]] |
 | **MVCC** (Multi-Version Concurrency Control) | Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis. | [[t2-isolation-level]] |
 | **N+1 query** | Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu. | [[t2-n-plus-1]] |
 | **NetworkPolicy** | Sumber daya Kubernetes yang mengatur pod, namespace, dan blok IP mana yang boleh menyambung ke sebuah pod, dan hanya berefek bila jaringan cluster menegakkannya. | [[t5-m47]] |
@@ -171,7 +183,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Object storage** | Layanan penyimpanan file besar per objek, diakses lewat HTTP, mis. layanan kompatibel S3. | [[B11.2]] |
 | **Offline-first** | Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada. | [[t3-offline]] |
 | **OIDC** (OpenID Connect) | Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya. | [[B5.2]] |
-| **On-call** | Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. | [[t3-tim-infra]] |
+| **On-call** | Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. Rotasi bisa memakai dua penjaga sekaligus, primer dan sekunder. | [[t3-tim-infra]] |
 | **On-prem** (on-premises) | Perangkat dan jaringan milik PT sendiri yang dijalankan di ruang milik PT. Bila ruangnya sewaan, disebut colo. | [[t5-onprem]] |
 | **OpenAPI** | Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin. | [[B1.4]] |
 | **Optimistic lock** | Cara mencegah lost update dengan mengecek nomor versi saat menulis, tanpa mengunci baris saat membaca. | [[t2-race-lock]] |
@@ -185,6 +197,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Partisi** | Satu bagian dari kumpulan data yang dibagi supaya tiap bagian dikelola terpisah. Di database: satu bagian tabel besar, mis. per bulan. Di Kafka: satu log berurutan dalam satu topik, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. | [[D2]], [[t5-fanout]] |
 | **Partisi topik** | Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu. | [[t5-fanout]] |
 | **Partitioning** | Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data. | [[D2]] |
+| **Pasangan wilayah** | Wilayah kedua yang dipasangkan dengan satu wilayah utama sebagai tempat salinan dan tujuan failover-nya. Ini nama pilihan Rekeningo, bukan istilah baku. | [[t6-m55]] |
 | **Passkey** (WebAuthn) | Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun. | [[t3-xss-csrf]] |
 | **PgBouncer** | Pooler koneksi PostgreSQL yang menampung banyak koneksi client dan meminjamkan sedikit koneksi ke database, dengan beberapa fitur sesi yang tidak berjalan di mode transaction. | [[t3-adr-33]] |
 | **Phantom read** | Anomali: query yang sama dalam satu transaction mengembalikan kumpulan baris berbeda, karena transaction lain menambah atau menghapus baris. | [[t2-isolation-level]] |
@@ -195,9 +208,11 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Primary** | Database utama yang menerima semua perintah tulis; replica menyalin perubahan dari primary. | [[t5-read-replica]] |
 | **Primary key** | Kolom yang nilainya unik dan dipakai untuk mengenali satu baris. | [[B2.1]] |
 | **Problem Details** | Format error JSON standar dari RFC 9457, dengan field seperti `type`, `title`, `status`, dan `detail`. | [[B6]] |
+| **Produk data** | Data yang disediakan satu domain untuk tim lain dan dirawat seperti produk, dengan pemakainya diperlakukan seperti pelanggan. Dalam data mesh, istilah ini untuk data analitik. | [[t6-m53]] |
 | **Promosi** | Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan `pg_promote()` atau `pg_ctl promote`. | [[t5-rpo-rto]] |
 | **Proxy** | Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request. | [[B11.2]] |
 | **Proxy keluar** (egress proxy) | Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat. | [[t4-infra-secret]] |
+| **Pseudonim** | Pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi. | [[t6-residensi]] |
 | **Pull request review** | Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung. | [[t2-tim-infra]] |
 | **QR statis dan dinamis** | QR statis dicetak sekali dan dipakai berulang dengan nominal diisi pembeli; QR dinamis dibuat per pembayaran, nominalnya terikat, dan hanya sekali bayar. | [[t4-qr]] |
 | **Query plan** | Rencana langkah yang dipilih database untuk menjalankan satu query, dilihat dengan `EXPLAIN`. | [[t2-index]] |
@@ -211,6 +226,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Rekonsiliasi** | Mencocokkan catatan sendiri dengan catatan pihak lain, order demi order, lalu mencatat selisihnya sebagai insiden bernomor, bukan mengoreksinya dengan tangan. | [[t4-rekonsiliasi]] |
 | **Repeatable Read** | Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001. | [[t2-isolation-level]] |
 | **Replication lag** | Jeda antara perubahan di database utama dan munculnya perubahan itu di replica. | [[t5-lag]] |
+| **Residensi data** | Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup. | [[t6-residensi]] |
 | **Retry** | Mengirim ulang request yang gagal atau tidak dijawab. | [[t2-idempotency]] |
 | **Reverse proxy** | Server di depan aplikasi yang menerima request dari internet lalu meneruskannya, sambil mengurus hal bersama seperti TLS dan kompresi. | [[B11.2]] |
 | **RLS** (Row Level Security) | Fitur PostgreSQL yang menyaring baris berdasarkan aturan per user, dijalankan di dalam database. | [[B5.3]] |
@@ -221,6 +237,7 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Router database** | Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router. | [[t5-read-replica]] |
 | **RPO** (recovery point objective) | Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang. | [[t5-prd]] |
 | **RTO** (recovery time objective) | Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan. | [[t5-prd]] |
+| **Rumpun jaga** | Kelompok beberapa tim yang berbagi satu rotasi on-call, jadi orang dalam rotasi lebih banyak daripada satu tim. Ini nama pilihan Rekeningo, bukan istilah baku. | [[t6-tim-infra]] |
 | **Saga** | Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi. | [[D3]] |
 | **Saldo cache** | Salinan jumlah posting satu buku di kolom `buku.saldo_cache`, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting. | [[t2-saldo-bukan-kolom]] |
 | **SAN** (Subject Alternative Name) | Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil. | [[t5-mtls]] |
@@ -231,11 +248,14 @@ Lima belas istilah yang muncul di hampir semua halaman Tahap 1. Baca sekali sebe
 | **Semaphore** | Penghitung yang membatasi berapa pekerjaan boleh berjalan bersamaan; pekerjaan berikutnya menunggu sampai ada yang selesai. | [[B8]] |
 | **Serializable** | Isolation level paling ketat: hasil transaction bersamaan harus sama dengan menjalankannya satu per satu; yang melanggar ditolak SQLSTATE 40001. | [[t2-isolation-level]] |
 | **Serialization anomaly** | Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun. | [[t2-isolation-level]] |
-| **Sharding** | Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah. | [[D2]] |
+| **Service catalog** | Sistem terpusat yang mencatat pemilik dan metadata semua software di satu organisasi, mis. service, website, library, dan data pipeline. | [[t6-m52]] |
+| **Service mesh** | Lapisan infrastruktur yang mengurus keamanan, observability, dan lalu lintas antar service lewat proxy di jalur panggilan, tanpa mengubah kode service. | [[t5-adr-60]] |
+| **Sharding** | Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah. Shard key adalah kolom yang menentukan baris masuk ke shard mana, mis. wilayah atau negara tempat akun terdaftar. | [[D2]] |
 | **Signature** | Nilai hasil perhitungan kriptografi atas data dan secret, untuk membuktikan data tidak diubah. | [[B5.1]] |
 | **Signed URL** | URL berbatas waktu yang memberi akses langsung ke satu file di object storage. | [[B11.2]] |
 | **SKIP LOCKED** | Opsi `FOR UPDATE` yang melewati baris yang sudah dikunci transaction lain, bukan menunggunya. | [[t3-klaim-baris]] |
 | **SLO** (service level objective) | Target terukur untuk satu service, misalnya ketersediaan 99,9% dalam 30 hari. Selisihnya dengan 100% adalah anggaran kegagalan. | [[t5-tim-infra]] |
+| **SLO berantai** | Ketersediaan gabungan beberapa service yang dipanggil berurutan. Bila kegagalannya saling bebas, hasilnya hasil kali SLO tiap service. | [[t6-m54]] |
 | **Snapshot** | Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang. | [[t2-isolation-level]] |
 | **Source of truth** | Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan. | [[A1]] |
 | **SSE** (Server-Sent Events) | Koneksi HTTP yang dibiarkan terbuka sehingga server bisa mengirim pesan satu arah ke client. | [[E4]] |

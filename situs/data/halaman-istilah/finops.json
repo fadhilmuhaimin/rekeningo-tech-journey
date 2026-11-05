@@ -1,0 +1,37 @@
+{
+  "istilah": "FinOps",
+  "sehari_hari": "FinOps adalah kerangka operasi dan praktik budaya yang memaksimalkan nilai bisnis teknologi lewat kolaborasi tim engineering, keuangan, dan bisnis. Tiap tim ikut memegang biaya dan pemakaian yang ditimbulkannya. Tujuannya bukan sekadar menghemat uang.",
+  "cerita": [
+    {
+      "rujukan": "t5-onprem",
+      "teks": "Halaman 5.28 membandingkan biaya tiga tahun antara cloud dan perangkat sendiri. Semua masukannya Ilustrasi."
+    },
+    {
+      "rujukan": "t6-m57",
+      "teks": "Halaman M57 melaporkan biaya infrastruktur per tim dan memakai FinOps sebagai kerangkanya."
+    }
+  ],
+  "mekanisme": [
+    "Tim engineering, keuangan, dan bisnis memakai data biaya dan pemakaian yang sama.",
+    "Tiap tim memegang biaya dan pemakaian miliknya, didukung satu kelompok praktik terbaik di pusat.",
+    "Keputusan arsitektur dan investasi menimbang kecepatan, biaya, dan kualitas bersama-sama.",
+    "Praktiknya berulang. Kematangan naik tiap kali proses diulang, dari tahap Crawl menuju Run."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira FinOps hanya soal menghemat. FinOps Foundation menulis bahwa tujuannya mendapat nilai terbesar dari teknologi.",
+    "Menyerahkannya ke satu orang atau satu tim. Dokumen yang sama menulis bahwa FinOps mengubah cara tim engineering, keuangan, dan bisnis bekerja bersama."
+  ],
+  "terkait": [
+    "On-prem (on-premises)",
+    "Kubernetes"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-16",
+      "judul": "FinOps Foundation: What is FinOps?",
+      "url": "https://www.finops.org/introduction/what-is-finops/",
+      "catatan": "Teks HTML dibuka 2026-11-06. FinOps adalah operational framework and cultural practice yang memaksimalkan nilai bisnis teknologi lewat kolaborasi engineering, finance, dan business. Halaman itu juga menulis bahwa FinOps tidak dikerjakan satu orang atau satu tim."
+    }
+  ]
+}

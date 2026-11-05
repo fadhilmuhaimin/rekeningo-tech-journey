@@ -1,0 +1,39 @@
+{
+  "istilah": "Kuorum",
+  "sehari_hari": "Kuorum adalah jumlah anggota paling sedikit dari satu kelompok yang harus menjawab sebelum sebuah aksi dianggap selesai. Pada PostgreSQL, `ANY n` membuat COMMIT dilepas begitu paling sedikit n standby dalam daftar menjawab.",
+  "cerita": [
+    {
+      "rujukan": "t5-rpo-rto",
+      "teks": "ADR 48 memilih replica sinkron kuorum untuk ledger, dengan `ANY 1` dari dua standby. Lab hanya punya satu kandidat sinkron, jadi bentuk dua standby Tidak dijalankan."
+    },
+    {
+      "rujukan": "t6-m55",
+      "teks": "Halaman M55 memakai istilah ini untuk standby di wilayah lain."
+    }
+  ],
+  "mekanisme": [
+    "Primary mengirim WAL ke beberapa standby yang tercantum di `synchronous_standby_names`.",
+    "Dengan `ANY n`, COMMIT dilepas begitu paling sedikit n standby dalam daftar menjawab. Standby mana pun boleh menjadi salah satunya.",
+    "Dengan `FIRST n`, standby dipilih menurut urutan prioritas dalam daftar. Itu bukan kuorum.",
+    "Selama kurang dari n standby yang menjawab, COMMIT tetap menunggu."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira kuorum selalu berarti mayoritas. Di PostgreSQL, n bisa berapa pun yang ditulis di `ANY`, mis. 1 dari dua standby.",
+    "Mengira semua standby dalam kuorum memegang commit terakhir yang sama. Halaman 5.9 menulis bahwa dengan `ANY 1` dari dua standby, kedua standby bisa memegang commit terakhir yang berbeda (penalaran di halaman itu, Tidak dijalankan)."
+  ],
+  "terkait": [
+    "Standby sinkron",
+    "Failover",
+    "Fencing",
+    "RPO (recovery point objective)"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-173",
+      "judul": "PostgreSQL 17: synchronous_standby_names (bagian Replication)",
+      "url": "https://www.postgresql.org/docs/17/runtime-config-replication.html",
+      "catatan": "Teks HTML dibuka 2026-11-06. Kata kunci ANY dengan num_sync menetapkan replikasi sinkron berbasis kuorum, dan commit menunggu sampai WAL-nya direplikasi ke paling sedikit num_sync standby dalam daftar."
+    }
+  ]
+}

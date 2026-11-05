@@ -162,6 +162,33 @@
   "h": null
  },
  {
+  "t": "Akun likuiditas",
+  "d": "Akun milik penyedia likuiditas di satu ledger mata uang, yang menjadi lawan transaksi sebuah tukar. Satu tukar memakai dua akun likuiditas, satu per ledger.",
+  "b": "t6-m56",
+  "n": "6.7 M56",
+  "u": null,
+  "s": "istilah-akun-likuiditas",
+  "h": null
+ },
+ {
+  "t": "Akun panas",
+  "d": "Akun yang menerima tulisan jauh lebih sering daripada akun lain, mis. akun merchant besar, sehingga banyak tulisan bersaing untuk baris yang sama.",
+  "b": "t6-m55",
+  "n": "6.6 M55",
+  "u": null,
+  "s": "istilah-akun-panas",
+  "h": null
+ },
+ {
+  "t": "Akun selisih pembulatan",
+  "d": "Akun yang menampung sisa pembulatan satu transaksi tukar. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "b": "t6-m56",
+  "n": "6.7 M56",
+  "u": null,
+  "s": "istilah-akun-selisih-pembulatan",
+  "h": null
+ },
+ {
   "t": "Alamat keluar",
   "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
   "b": "t4-m34",
@@ -414,6 +441,15 @@
   "h": "/istilah/certificate-pinning/"
  },
  {
+  "t": "Chaos testing",
+  "d": "Percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi: gangguan diberikan sengaja, lalu keadaan normal yang terukur diperiksa.",
+  "b": "t6-m54",
+  "n": "6.5 M54",
+  "u": null,
+  "s": "istilah-chaos-testing",
+  "h": "/istilah/chaos-testing/"
+ },
+ {
   "t": "Checksum",
   "d": "Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.",
   "b": "t4-storage",
@@ -549,6 +585,15 @@
   "h": null
  },
  {
+  "t": "Data mesh",
+  "d": "Pendekatan data analitik dengan empat prinsip: data dimiliki domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer.",
+  "b": "t6-m53",
+  "n": "6.4 M53",
+  "u": null,
+  "s": "istilah-data-mesh",
+  "h": "/istilah/data-mesh/"
+ },
+ {
   "t": "Dead-letter queue",
   "d": "Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.",
   "b": "t3-at-least-once",
@@ -582,6 +627,15 @@
   "n": "4.21 SSRF",
   "u": "/tahap-4/ssrf/",
   "s": "istilah-deny-list",
+  "h": null
+ },
+ {
+  "t": "DORA",
+  "d": "Lima ukuran kinerja pengiriman software dari penelitian DORA: change lead time, deployment frequency, failed deployment recovery time, change fail rate, dan deployment rework rate.",
+  "b": "t6-tim-infra",
+  "n": "6.10 Tim dan infra Tahap 6",
+  "u": null,
+  "s": "istilah-dora",
   "h": null
  },
  {
@@ -649,7 +703,7 @@
  },
  {
   "t": "Error budget",
-  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.",
+  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. Anggaran kegagalan adalah nama lain untuk hal yang sama.",
   "b": "t5-prd",
   "n": "5.1 PRD v5",
   "u": "/tahap-5/prd-v5/",
@@ -729,6 +783,15 @@
   "h": null
  },
  {
+  "t": "FinOps",
+  "d": "Kerangka operasi dan praktik budaya yang memaksimalkan nilai bisnis teknologi lewat kolaborasi tim engineering, keuangan, dan bisnis.",
+  "b": "t6-m57",
+  "n": "6.9 M57",
+  "u": null,
+  "s": "istilah-finops",
+  "h": "/istilah/finops/"
+ },
+ {
   "t": "Foreign key",
   "d": "Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.",
   "b": "B2.1",
@@ -763,6 +826,15 @@
   "u": "/tahap-5/tim-infra/",
   "s": "istilah-gitops",
   "h": null
+ },
+ {
+  "t": "Golden path",
+  "d": "Jalur yang diutamakan dan didukung untuk membangun sesuatu, mis. satu service baru. Halaman 5.27 menyebutnya jalan beraspal.",
+  "b": "t6-m52",
+  "n": "6.3 M52",
+  "u": null,
+  "s": "istilah-golden-path",
+  "h": "/istilah/golden-path/"
  },
  {
   "t": "Golden signals",
@@ -990,6 +1062,15 @@
   "h": null
  },
  {
+  "t": "Kebijakan sebagai kode",
+  "d": "Aturan yang ditulis dalam bahasa deklaratif seperti kode, dengan program yang menanyakan keputusannya ke mesin kebijakan, bukan memuat aturannya sendiri.",
+  "b": "t6-residensi",
+  "n": "6.8 Keamanan 13",
+  "u": null,
+  "s": "istilah-kebijakan-sebagai-kode",
+  "h": "/istilah/kebijakan-sebagai-kode/"
+ },
+ {
   "t": "KEK (key encryption key)",
   "d": "Kunci pembungkus: kunci yang mengenkripsi data key, bukan isi file.",
   "b": "t5-kms",
@@ -1060,6 +1141,15 @@
   "u": "/tahap-5/batch-tahan-crash/",
   "s": "istilah-kunci-bisnis",
   "h": null
+ },
+ {
+  "t": "Kuorum",
+  "d": "Jumlah anggota paling sedikit dari satu kelompok yang harus menjawab sebelum sebuah aksi dianggap selesai, mis. n standby pada ANY n di PostgreSQL.",
+  "b": "t6-m55",
+  "n": "6.6 M55",
+  "u": null,
+  "s": "istilah-kuorum",
+  "h": "/istilah/kuorum/"
  },
  {
   "t": "Last-write-wins",
@@ -1233,6 +1323,15 @@
   "h": null
  },
  {
+  "t": "Minor unit",
+  "d": "Satuan terkecil sebuah mata uang. Jumlah disimpan sebagai bilangan bulat dalam satuan itu, mis. 1.000 untuk 10,00 pada mata uang dua desimal.",
+  "b": "t6-m56",
+  "n": "6.7 M56",
+  "u": null,
+  "s": "istilah-minor-unit",
+  "h": null
+ },
+ {
   "t": "MITM (man-in-the-middle)",
   "d": "Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya.",
   "b": "t3-m26",
@@ -1267,6 +1366,15 @@
   "u": "/tahap-5/mtls-antar-service/",
   "s": "istilah-mtls",
   "h": "/istilah/mtls/"
+ },
+ {
+  "t": "Multi-region",
+  "d": "Menjalankan satu sistem di lebih dari satu wilayah (region), yaitu lokasi geografis dengan pusat data. Pada aktif-pasif satu wilayah melayani dan lainnya menunggu failover; pada aktif-aktif semua melayani.",
+  "b": "t6-m55",
+  "n": "6.6 M55",
+  "u": null,
+  "s": "istilah-multi-region",
+  "h": "/istilah/multi-region/"
  },
  {
   "t": "MVCC (Multi-Version Concurrency Control)",
@@ -1351,7 +1459,7 @@
  },
  {
   "t": "On-call",
-  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.",
+  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. Rotasi bisa memakai dua penjaga sekaligus, primer dan sekunder.",
   "b": "t3-tim-infra",
   "n": "3.27 Tim dan infra Tahap 3",
   "u": "/tahap-3/tim-infra/",
@@ -1476,6 +1584,15 @@
   "h": null
  },
  {
+  "t": "Pasangan wilayah",
+  "d": "Wilayah kedua yang dipasangkan dengan satu wilayah utama sebagai tempat salinan dan tujuan failover-nya. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "b": "t6-m55",
+  "n": "6.6 M55",
+  "u": null,
+  "s": "istilah-pasangan-wilayah",
+  "h": null
+ },
+ {
   "t": "Passkey (WebAuthn)",
   "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
   "b": "t3-xss-csrf",
@@ -1566,6 +1683,15 @@
   "h": null
  },
  {
+  "t": "Produk data",
+  "d": "Data yang disediakan satu domain untuk tim lain dan dirawat seperti produk, dengan pemakainya diperlakukan seperti pelanggan. Dalam data mesh, istilah ini untuk data analitik.",
+  "b": "t6-m53",
+  "n": "6.4 M53",
+  "u": null,
+  "s": "istilah-produk-data",
+  "h": null
+ },
+ {
   "t": "Promosi",
   "d": "Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.",
   "b": "t5-rpo-rto",
@@ -1591,6 +1717,15 @@
   "u": "/tahap-4/secret-iac-alamat-keluar/",
   "s": "istilah-proxy-keluar",
   "h": "/istilah/proxy-keluar/"
+ },
+ {
+  "t": "Pseudonim",
+  "d": "Pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi.",
+  "b": "t6-residensi",
+  "n": "6.8 Keamanan 13",
+  "u": null,
+  "s": "istilah-pseudonim",
+  "h": "/istilah/pseudonim/"
  },
  {
   "t": "Pull request review",
@@ -1710,6 +1845,15 @@
   "h": null
  },
  {
+  "t": "Residensi data",
+  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.",
+  "b": "t6-residensi",
+  "n": "6.8 Keamanan 13",
+  "u": null,
+  "s": "istilah-residensi-data",
+  "h": "/istilah/residensi-data/"
+ },
+ {
   "t": "Retry",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
   "b": "t2-idempotency",
@@ -1798,6 +1942,15 @@
   "u": "/tahap-5/prd-v5/",
   "s": "istilah-rto",
   "h": null
+ },
+ {
+  "t": "Rumpun jaga",
+  "d": "Kelompok beberapa tim yang berbagi satu rotasi on-call, jadi orang dalam rotasi lebih banyak daripada satu tim. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "b": "t6-tim-infra",
+  "n": "6.10 Tim dan infra Tahap 6",
+  "u": null,
+  "s": "istilah-rumpun-jaga",
+  "h": "/istilah/rumpun-jaga/"
  },
  {
   "t": "Saga",
@@ -1890,8 +2043,26 @@
   "h": null
  },
  {
+  "t": "Service catalog",
+  "d": "Sistem terpusat yang mencatat pemilik dan metadata semua software di satu organisasi, mis. service, website, library, dan data pipeline.",
+  "b": "t6-m52",
+  "n": "6.3 M52",
+  "u": null,
+  "s": "istilah-service-catalog",
+  "h": "/istilah/service-catalog/"
+ },
+ {
+  "t": "Service mesh",
+  "d": "Lapisan infrastruktur yang mengurus keamanan, observability, dan lalu lintas antar service lewat proxy di jalur panggilan, tanpa mengubah kode service.",
+  "b": "t5-adr-60",
+  "n": "5.30 ADR 60",
+  "u": "/tahap-5/sengaja-belum/",
+  "s": "istilah-service-mesh",
+  "h": "/istilah/service-mesh/"
+ },
+ {
   "t": "Sharding",
-  "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.",
+  "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah. Shard key adalah kolom yang menentukan baris masuk ke shard mana, mis. wilayah atau negara tempat akun terdaftar.",
   "b": "D2",
   "n": "Scaling (versi lama)",
   "u": "/d-system-design/d2-scaling/",
@@ -1932,6 +2103,15 @@
   "n": "5.27 Tim dan infra Tahap 5",
   "u": "/tahap-5/tim-infra/",
   "s": "istilah-slo",
+  "h": null
+ },
+ {
+  "t": "SLO berantai",
+  "d": "Ketersediaan gabungan beberapa service yang dipanggil berurutan. Bila kegagalannya saling bebas, hasilnya hasil kali SLO tiap service.",
+  "b": "t6-m54",
+  "n": "6.5 M54",
+  "u": null,
+  "s": "istilah-slo-berantai",
   "h": null
  },
  {

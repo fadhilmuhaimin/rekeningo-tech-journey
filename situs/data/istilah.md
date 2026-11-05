@@ -38,6 +38,12 @@
 *[ADR]: Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.
 *[Architecture Decision Record]: Catatan pendek tentang satu keputusan desain: konteks, pilihan, alasan, dan akibatnya.
 *[AES-GCM]: Enkripsi AES dengan mode GCM: satu pesan dikunci dan diberi tag pemeriksa keaslian, sehingga satu byte yang berubah ketahuan saat dibuka.
+*[Akun likuiditas]: Akun milik penyedia likuiditas di satu ledger mata uang, yang menjadi lawan transaksi sebuah tukar. Satu tukar memakai dua akun likuiditas, satu per ledger.
+*[akun likuiditas]: Akun milik penyedia likuiditas di satu ledger mata uang, yang menjadi lawan transaksi sebuah tukar. Satu tukar memakai dua akun likuiditas, satu per ledger.
+*[Akun panas]: Akun yang menerima tulisan jauh lebih sering daripada akun lain, mis. akun merchant besar, sehingga banyak tulisan bersaing untuk baris yang sama.
+*[akun panas]: Akun yang menerima tulisan jauh lebih sering daripada akun lain, mis. akun merchant besar, sehingga banyak tulisan bersaing untuk baris yang sama.
+*[Akun selisih pembulatan]: Akun yang menampung sisa pembulatan satu transaksi tukar. Ini nama pilihan Rekeningo, bukan istilah baku.
+*[akun selisih pembulatan]: Akun yang menampung sisa pembulatan satu transaksi tukar. Ini nama pilihan Rekeningo, bukan istilah baku.
 *[Alamat keluar]: Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.
 *[alamat keluar]: Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.
 *[Alert]: Pemberitahuan otomatis ke orang yang sedang jaga saat satu angka melewati ambang, supaya ia bertindak sekarang.
@@ -91,6 +97,8 @@
 *[CDC]: Cara mengeluarkan perubahan data dengan membaca log transaksi database, sehingga urutannya sama dengan urutan commit.
 *[Certificate pinning]: App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.
 *[certificate pinning]: App atau browser hanya menerima kunci server yang sudah ia simpan, walau sertifikat lain lolos validasi karena CA-nya dipercaya sistem.
+*[Chaos testing]: Percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi: gangguan diberikan sengaja, lalu keadaan normal yang terukur diperiksa.
+*[chaos testing]: Percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi: gangguan diberikan sengaja, lalu keadaan normal yang terukur diperiksa.
 *[Checksum]: Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.
 *[checksum]: Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.
 *[CI]: Pemeriksaan otomatis (build, test, lint) yang berjalan di server setiap kali kode dikirim, sebelum perubahan boleh digabung.
@@ -116,6 +124,8 @@
 *[daftar akar]: Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.
 *[Data key]: Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK.
 *[data key]: Kunci yang mengenkripsi satu file atau satu nilai, dan disimpan dalam bentuk yang sudah dibungkus KEK.
+*[Data mesh]: Pendekatan data analitik dengan empat prinsip: data dimiliki domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer.
+*[data mesh]: Pendekatan data analitik dengan empat prinsip: data dimiliki domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer.
 *[Dead-letter queue]: Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.
 *[dead-letter queue]: Tempat job yang terus gagal setelah batas retry, supaya bisa diperiksa manusia dan tidak diulang selamanya.
 *[Deadlock]: Dua transaction saling menunggu lock milik yang lain, sehingga database harus membatalkan salah satunya.
@@ -124,6 +134,7 @@
 *[debit]: Sisi kiri sebuah jurnal akuntansi; di setiap jurnal total debit sama dengan total kredit, dan akun aset bertambah di sisi debit.
 *[Deny-list]: Daftar yang ditolak; yang tidak ada di daftar diterima, jadi daftar itu harus memuat semua yang terlarang.
 *[deny-list]: Daftar yang ditolak; yang tidak ada di daftar diterima, jadi daftar itu harus memuat semua yang terlarang.
+*[DORA]: Lima ukuran kinerja pengiriman software dari penelitian DORA: change lead time, deployment frequency, failed deployment recovery time, change fail rate, dan deployment rework rate.
 *[Double-entry]: Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.
 *[double-entry]: Cara mencatat uang di dua sisi atau lebih: setiap rupiah yang keluar dari satu buku masuk ke buku lain, jadi jumlah catatan satu kejadian selalu nol.
 *[Durable execution]: Cara menjalankan alur panjang dengan mencatat tiap langkah yang selesai, supaya alur dilanjutkan dari titik berhenti sesudah proses mati.
@@ -137,8 +148,8 @@
 *[envelope encryption]: Enkripsi dengan dua kunci: data key mengunci isi file, dan KEK mengunci data key itu. KEK tinggal di KMS, bukan bersama file.
 *[ERP]: Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.
 *[Enterprise Resource Planning]: Perangkat lunak yang mengurus keuangan, pembelian, dan gaji satu perusahaan; di cerita, Nadia datang dari tim ERP Grup Lestari.
-*[Error budget]: Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.
-*[error budget]: Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.
+*[Error budget]: Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. Anggaran kegagalan adalah nama lain untuk hal yang sama.
+*[error budget]: Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. Anggaran kegagalan adalah nama lain untuk hal yang sama.
 *[Event sourcing]: Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.
 *[event sourcing]: Menyimpan setiap perubahan data sebagai event yang tidak diubah; keadaan sekarang dibangun ulang dari urutan event itu.
 *[Eventual consistency]: Data di beberapa tempat boleh berbeda sesaat, tapi akan sama setelah perubahan selesai menyebar.
@@ -154,12 +165,15 @@
 *[Firebase Cloud Messaging]: Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.
 *[Fencing]: Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary.
 *[fencing]: Menghentikan primary lama sebelum node baru menerima tulisan, supaya tidak ada dua server yang sama-sama merasa primary.
+*[FinOps]: Kerangka operasi dan praktik budaya yang memaksimalkan nilai bisnis teknologi lewat kolaborasi tim engineering, keuangan, dan bisnis.
 *[Foreign key]: Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.
 *[foreign key]: Kolom yang menunjuk primary key tabel lain, dan database menjamin rujukannya ada.
 *[Gateway API]: Keluarga jenis API Kubernetes untuk mengatur routing lalu lintas ke service, penerus Ingress API.
 *[Gateway pembayaran]: Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.
 *[gateway pembayaran]: Layanan pihak ketiga yang menerima pembayaran dari rekening bank, lalu memberi tahu penerimanya bahwa uang sudah masuk.
 *[GitOps]: Cara mengelola infrastruktur: keadaan yang diinginkan ditulis di repo Git, dan alat menyamakan cluster dengannya.
+*[Golden path]: Jalur yang diutamakan dan didukung untuk membangun sesuatu, mis. satu service baru. Halaman 5.27 menyebutnya jalan beraspal.
+*[golden path]: Jalur yang diutamakan dan didukung untuk membangun sesuatu, mis. satu service baru. Halaman 5.27 menyebutnya jalan beraspal.
 *[Golden signals]: Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.
 *[golden signals]: Empat angka yang dipantau lebih dulu pada sistem yang dipakai orang: latency, traffic, errors, dan saturation.
 *[Graceful shutdown]: Mematikan proses dengan rapi: berhenti menerima koneksi baru, lalu menunggu request yang sedang jalan selesai sebelum keluar.
@@ -203,6 +217,8 @@
 *[JSON Web Token]: Token berisi data JSON plus signature, sehingga server bisa memeriksa keasliannya tanpa query ke database.
 *[Kapasitas worker]: Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.
 *[kapasitas worker]: Jumlah baris yang bisa dikirim worker per detik: c pengirim serentak dibagi t detik per pengiriman.
+*[Kebijakan sebagai kode]: Aturan yang ditulis dalam bahasa deklaratif seperti kode, dengan program yang menanyakan keputusannya ke mesin kebijakan, bukan memuat aturannya sendiri.
+*[kebijakan sebagai kode]: Aturan yang ditulis dalam bahasa deklaratif seperti kode, dengan program yang menanyakan keputusannya ke mesin kebijakan, bukan memuat aturannya sendiri.
 *[KEK]: Kunci pembungkus: kunci yang mengenkripsi data key, bukan isi file.
 *[Kelas queue]: Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.
 *[kelas queue]: Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.
@@ -217,6 +233,8 @@
 *[kunci akun]: Penolakan login sementara pada satu akun sesudah beberapa kali gagal berturut-turut, yang menahan penebak tetapi juga pemilik akun yang sebenarnya.
 *[Kunci bisnis]: Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur.
 *[kunci bisnis]: Nilai unik yang dibentuk dari fakta bisnis, mis. jadwal dan nomor angsuran, dan dijaga constraint database tanpa batas umur.
+*[Kuorum]: Jumlah anggota paling sedikit dari satu kelompok yang harus menjawab sebelum sebuah aksi dianggap selesai, mis. n standby pada ANY n di PostgreSQL.
+*[kuorum]: Jumlah anggota paling sedikit dari satu kelompok yang harus menjawab sebelum sebuah aksi dianggap selesai, mis. n standby pada ANY n di PostgreSQL.
 *[Last-write-wins]: Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang.
 *[last-write-wins]: Aturan konflik: dari beberapa perubahan pada hal yang sama, yang tersimpan paling akhir menang dan yang lain dibuang.
 *[Latency]: Lama waktu satu request dari dikirim sampai response diterima.
@@ -252,6 +270,8 @@
 *[microservice]: Gaya arsitektur yang memecah backend jadi beberapa service kecil yang di-deploy terpisah dan saling memanggil lewat jaringan.
 *[Middleware]: Fungsi yang dijalankan sebelum atau sesudah semua handler, mis. pemeriksa token atau pencatat log.
 *[middleware]: Fungsi yang dijalankan sebelum atau sesudah semua handler, mis. pemeriksa token atau pencatat log.
+*[Minor unit]: Satuan terkecil sebuah mata uang. Jumlah disimpan sebagai bilangan bulat dalam satuan itu, mis. 1.000 untuk 10,00 pada mata uang dua desimal.
+*[minor unit]: Satuan terkecil sebuah mata uang. Jumlah disimpan sebagai bilangan bulat dalam satuan itu, mis. 1.000 untuk 10,00 pada mata uang dua desimal.
 *[MITM]: Penyerang yang berdiri di antara client dan server, lalu membaca atau mengubah lalu lintas di antara keduanya.
 *[Modular monolith]: Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.
 *[modular monolith]: Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.
@@ -259,6 +279,8 @@
 *[monolith]: Satu aplikasi backend yang memuat semua fitur dan di-deploy sebagai satu unit.
 *[mTLS]: TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.
 *[mutual TLS]: TLS dua arah: selain client memeriksa sertifikat server, server meminta dan memeriksa sertifikat dari client.
+*[Multi-region]: Menjalankan satu sistem di lebih dari satu wilayah (region), yaitu lokasi geografis dengan pusat data. Pada aktif-pasif satu wilayah melayani dan lainnya menunggu failover; pada aktif-aktif semua melayani.
+*[multi-region]: Menjalankan satu sistem di lebih dari satu wilayah (region), yaitu lokasi geografis dengan pusat data. Pada aktif-pasif satu wilayah melayani dan lainnya menunggu failover; pada aktif-aktif semua melayani.
 *[MVCC]: Cara database menyimpan beberapa versi baris, supaya pembaca tidak perlu menunggu penulis.
 *[N+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
 *[n+1 query]: Pola satu query untuk daftar lalu satu query lagi untuk setiap item di daftar itu.
@@ -275,8 +297,8 @@
 *[offline-first]: Desain app yang menyimpan perubahan di HP dulu, lalu menyinkronkannya ke server saat sinyal ada.
 *[OIDC]: Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya.
 *[OpenID Connect]: Lapisan di atas OAuth 2.0 untuk login, yang memberi tahu aplikasi siapa user-nya.
-*[On-call]: Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.
-*[on-call]: Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.
+*[On-call]: Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. Rotasi bisa memakai dua penjaga sekaligus, primer dan sekunder.
+*[on-call]: Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. Rotasi bisa memakai dua penjaga sekaligus, primer dan sekunder.
 *[On-prem]: Perangkat dan jaringan milik PT sendiri yang dijalankan di ruang milik PT. Bila ruangnya sewaan, disebut colo.
 *[on-prem]: Perangkat dan jaringan milik PT sendiri yang dijalankan di ruang milik PT. Bila ruangnya sewaan, disebut colo.
 *[OpenAPI]: Format standar untuk menulis kontrak API (endpoint, request, response) yang bisa dibaca manusia dan mesin.
@@ -301,6 +323,8 @@
 *[partisi topik]: Log berurutan di dalam satu topik Kafka, dibaca tepat satu consumer dalam tiap consumer group pada satu waktu.
 *[Partitioning]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
 *[partitioning]: Membagi satu tabel besar jadi beberapa partisi di database yang sama, mis. per bulan, supaya query dan arsip hanya menyentuh sebagian data.
+*[Pasangan wilayah]: Wilayah kedua yang dipasangkan dengan satu wilayah utama sebagai tempat salinan dan tujuan failover-nya. Ini nama pilihan Rekeningo, bukan istilah baku.
+*[pasangan wilayah]: Wilayah kedua yang dipasangkan dengan satu wilayah utama sebagai tempat salinan dan tujuan failover-nya. Ini nama pilihan Rekeningo, bukan istilah baku.
 *[Passkey]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
 *[passkey]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
 *[WebAuthn]: Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.
@@ -318,12 +342,16 @@
 *[Primary key]: Kolom yang nilainya unik dan dipakai untuk mengenali satu baris.
 *[primary key]: Kolom yang nilainya unik dan dipakai untuk mengenali satu baris.
 *[Problem Details]: Format error JSON standar dari RFC 9457, dengan field seperti type, title, status, dan detail.
+*[Produk data]: Data yang disediakan satu domain untuk tim lain dan dirawat seperti produk, dengan pemakainya diperlakukan seperti pelanggan. Dalam data mesh, istilah ini untuk data analitik.
+*[produk data]: Data yang disediakan satu domain untuk tim lain dan dirawat seperti produk, dengan pemakainya diperlakukan seperti pelanggan. Dalam data mesh, istilah ini untuk data analitik.
 *[Promosi]: Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.
 *[promosi]: Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.
 *[Proxy]: Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.
 *[proxy]: Program perantara yang meneruskan request antara client dan server. Proxy milik backend menambahkan hal yang tidak boleh dipegang client, mis. credential; proxy di laptop penguji dipakai untuk melihat dan mengubah request.
 *[Proxy keluar]: Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.
 *[proxy keluar]: Proxy dengan alamat tetap yang dilewati panggilan keluar ke vendor, supaya vendor yang memakai allowlist selalu melihat satu alamat.
+*[Pseudonim]: Pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi.
+*[pseudonim]: Pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi.
 *[Pull request review]: Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.
 *[pull request review]: Satu orang selain penulis membaca perubahan di pull request, lalu menyetujuinya atau meminta perbaikan sebelum perubahan digabung.
 *[QR statis dan dinamis]: QR statis dicetak sekali dan dipakai berulang dengan nominal diisi pembeli; QR dinamis dibuat per pembayaran, nominalnya terikat, dan hanya sekali bayar.
@@ -346,6 +374,8 @@
 *[Repeatable Read]: Isolation level yang memakai satu snapshot untuk seluruh transaction, diambil saat perintah pertama; transaction yang menulis bisa ditolak SQLSTATE 40001.
 *[Replication lag]: Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.
 *[replication lag]: Jeda antara perubahan di database utama dan munculnya perubahan itu di replica.
+*[Residensi data]: Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.
+*[residensi data]: Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.
 *[Retry]: Mengirim ulang request yang gagal atau tidak dijawab.
 *[retry]: Mengirim ulang request yang gagal atau tidak dijawab.
 *[Reverse proxy]: Server di depan aplikasi yang menerima request dari internet lalu meneruskannya, sambil mengurus hal bersama seperti TLS dan kompresi.
@@ -365,6 +395,8 @@
 *[database router]: Bagian framework web yang memilih koneksi database untuk tiap query, mis. primary untuk tulis dan replica untuk baca. Di Django namanya database router.
 *[RPO]: Titik waktu terakhir yang harus bisa dipulihkan sesudah gangguan, jadi data terakhir yang boleh hilang. RPO nol berarti transaksi yang sudah dijawab sukses tidak boleh hilang.
 *[RTO]: Lama waktu paling lama yang boleh dipakai sampai sistem pulih sesudah gangguan.
+*[Rumpun jaga]: Kelompok beberapa tim yang berbagi satu rotasi on-call, jadi orang dalam rotasi lebih banyak daripada satu tim. Ini nama pilihan Rekeningo, bukan istilah baku.
+*[rumpun jaga]: Kelompok beberapa tim yang berbagi satu rotasi on-call, jadi orang dalam rotasi lebih banyak daripada satu tim. Ini nama pilihan Rekeningo, bukan istilah baku.
 *[Saga]: Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.
 *[saga]: Pola untuk proses yang melewati beberapa service: setiap langkah punya transaction sendiri, dan kegagalan dibatalkan dengan langkah kompensasi.
 *[Saldo cache]: Salinan jumlah posting satu buku di kolom buku.saldo_cache, dibaca app supaya cepat dan dicek tiap malam terhadap jumlah posting.
@@ -384,13 +416,18 @@
 *[serializable]: Isolation level paling ketat: hasil transaction bersamaan harus sama dengan menjalankannya satu per satu; yang melanggar ditolak SQLSTATE 40001.
 *[Serialization anomaly]: Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.
 *[serialization anomaly]: Anomali: hasil beberapa transaction yang berjalan bersamaan tidak sama dengan hasil menjalankannya satu per satu dalam urutan mana pun.
-*[Sharding]: Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.
-*[sharding]: Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.
+*[Service catalog]: Sistem terpusat yang mencatat pemilik dan metadata semua software di satu organisasi, mis. service, website, library, dan data pipeline.
+*[service catalog]: Sistem terpusat yang mencatat pemilik dan metadata semua software di satu organisasi, mis. service, website, library, dan data pipeline.
+*[Service mesh]: Lapisan infrastruktur yang mengurus keamanan, observability, dan lalu lintas antar service lewat proxy di jalur panggilan, tanpa mengubah kode service.
+*[service mesh]: Lapisan infrastruktur yang mengurus keamanan, observability, dan lalu lintas antar service lewat proxy di jalur panggilan, tanpa mengubah kode service.
+*[Sharding]: Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah. Shard key adalah kolom yang menentukan baris masuk ke shard mana, mis. wilayah atau negara tempat akun terdaftar.
+*[sharding]: Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah. Shard key adalah kolom yang menentukan baris masuk ke shard mana, mis. wilayah atau negara tempat akun terdaftar.
 *[Signature]: Nilai hasil perhitungan kriptografi atas data dan secret, untuk membuktikan data tidak diubah.
 *[signature]: Nilai hasil perhitungan kriptografi atas data dan secret, untuk membuktikan data tidak diubah.
 *[Signed URL]: URL berbatas waktu yang memberi akses langsung ke satu file di object storage.
 *[SKIP LOCKED]: Opsi FOR UPDATE yang melewati baris yang sudah dikunci transaction lain, bukan menunggunya.
 *[SLO]: Target terukur untuk satu service, misalnya ketersediaan 99,9% dalam 30 hari. Selisihnya dengan 100% adalah anggaran kegagalan.
+*[SLO berantai]: Ketersediaan gabungan beberapa service yang dipanggil berurutan. Bila kegagalannya saling bebas, hasilnya hasil kali SLO tiap service.
 *[Snapshot]: Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.
 *[snapshot]: Gambaran data pada satu saat, misalnya isi database yang dilihat satu query atau transaction, dan saldo akhir periode yang disimpan supaya tidak dijumlah ulang.
 *[Source of truth]: Satu tempat yang isinya dianggap benar ketika salinan lain berbeda, mis. database backend untuk saldo; cache dan data di HP hanya salinan.

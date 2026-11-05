@@ -40,6 +40,30 @@ window.ISTILAH = {
   "t": "API gateway",
   "u": "c-operasional/c4-security-dasar/"
  },
+ "Akun likuiditas": {
+  "b": "t6-m56",
+  "d": "Akun milik penyedia likuiditas di satu ledger mata uang, yang menjadi lawan transaksi sebuah tukar. Satu tukar memakai dua akun likuiditas, satu per ledger.",
+  "n": "6.7 M56",
+  "s": "istilah-akun-likuiditas",
+  "t": "Akun likuiditas",
+  "u": null
+ },
+ "Akun panas": {
+  "b": "t6-m55",
+  "d": "Akun yang menerima tulisan jauh lebih sering daripada akun lain, mis. akun merchant besar, sehingga banyak tulisan bersaing untuk baris yang sama.",
+  "n": "6.6 M55",
+  "s": "istilah-akun-panas",
+  "t": "Akun panas",
+  "u": null
+ },
+ "Akun selisih pembulatan": {
+  "b": "t6-m56",
+  "d": "Akun yang menampung sisa pembulatan satu transaksi tukar. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "n": "6.7 M56",
+  "s": "istilah-akun-selisih-pembulatan",
+  "t": "Akun selisih pembulatan",
+  "u": null
+ },
  "Alamat keluar": {
   "b": "t4-m34",
   "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
@@ -391,6 +415,15 @@ window.ISTILAH = {
   "t": "Certificate pinning",
   "u": "tahap-3/tls-pinning/"
  },
+ "Chaos testing": {
+  "b": "t6-m54",
+  "d": "Percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi: gangguan diberikan sengaja, lalu keadaan normal yang terukur diperiksa.",
+  "h": "istilah/chaos-testing/",
+  "n": "6.5 M54",
+  "s": "istilah-chaos-testing",
+  "t": "Chaos testing",
+  "u": null
+ },
  "Checksum": {
   "b": "t4-storage",
   "d": "Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.",
@@ -467,6 +500,14 @@ window.ISTILAH = {
   "t": "Credential stuffing",
   "u": "tahap-2/m16-akun-terkunci/"
  },
+ "DORA": {
+  "b": "t6-tim-infra",
+  "d": "Lima ukuran kinerja pengiriman software dari penelitian DORA: change lead time, deployment frequency, failed deployment recovery time, change fail rate, dan deployment rework rate.",
+  "n": "6.10 Tim dan infra Tahap 6",
+  "s": "istilah-dora",
+  "t": "DORA",
+  "u": null
+ },
  "Daftar akar": {
   "b": "t3-tls-pinning",
   "d": "Daftar CA yang dipercaya app atau sistem operasi. Sertifikat server dianggap sah bila rantainya berujung di salah satu CA itu.",
@@ -482,6 +523,15 @@ window.ISTILAH = {
   "s": "istilah-data-key",
   "t": "Data key",
   "u": "tahap-5/arsip-envelope-encryption/"
+ },
+ "Data mesh": {
+  "b": "t6-m53",
+  "d": "Pendekatan data analitik dengan empat prinsip: data dimiliki domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer.",
+  "h": "istilah/data-mesh/",
+  "n": "6.4 M53",
+  "s": "istilah-data-mesh",
+  "t": "Data mesh",
+  "u": null
  },
  "Database": {
   "b": "B2.1",
@@ -621,7 +671,7 @@ window.ISTILAH = {
  },
  "Error budget": {
   "b": "t5-prd",
-  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.",
+  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. Anggaran kegagalan adalah nama lain untuk hal yang sama.",
   "n": "5.1 PRD v5",
   "s": "istilah-error-budget",
   "t": "Error budget",
@@ -685,6 +735,15 @@ window.ISTILAH = {
   "t": "Fencing",
   "u": "tahap-5/rpo-rto-failover/"
  },
+ "FinOps": {
+  "b": "t6-m57",
+  "d": "Kerangka operasi dan praktik budaya yang memaksimalkan nilai bisnis teknologi lewat kolaborasi tim engineering, keuangan, dan bisnis.",
+  "h": "istilah/finops/",
+  "n": "6.9 M57",
+  "s": "istilah-finops",
+  "t": "FinOps",
+  "u": null
+ },
  "Firebase Cloud Messaging": {
   "b": "E4",
   "d": "Layanan push notification milik Firebase. Server mengirim pesan ke token perangkat atau ke topic, lalu sistem operasi HP menampilkannya.",
@@ -733,6 +792,15 @@ window.ISTILAH = {
   "s": "istilah-gitops",
   "t": "GitOps",
   "u": "tahap-5/tim-infra/"
+ },
+ "Golden path": {
+  "b": "t6-m52",
+  "d": "Jalur yang diutamakan dan didukung untuk membangun sesuatu, mis. satu service baru. Halaman 5.27 menyebutnya jalan beraspal.",
+  "h": "istilah/golden-path/",
+  "n": "6.3 M52",
+  "s": "istilah-golden-path",
+  "t": "Golden path",
+  "u": null
  },
  "Golden signals": {
   "b": "t3-observability",
@@ -1016,6 +1084,15 @@ window.ISTILAH = {
   "t": "Kapasitas worker",
   "u": "tahap-3/m27-hari-promo/"
  },
+ "Kebijakan sebagai kode": {
+  "b": "t6-residensi",
+  "d": "Aturan yang ditulis dalam bahasa deklaratif seperti kode, dengan program yang menanyakan keputusannya ke mesin kebijakan, bukan memuat aturannya sendiri.",
+  "h": "istilah/kebijakan-sebagai-kode/",
+  "n": "6.8 Keamanan 13",
+  "s": "istilah-kebijakan-sebagai-kode",
+  "t": "Kebijakan sebagai kode",
+  "u": null
+ },
  "Kelas queue": {
   "b": "t3-m27",
   "d": "Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.",
@@ -1067,6 +1144,15 @@ window.ISTILAH = {
   "s": "istilah-kunci-bisnis",
   "t": "Kunci bisnis",
   "u": "tahap-5/batch-tahan-crash/"
+ },
+ "Kuorum": {
+  "b": "t6-m55",
+  "d": "Jumlah anggota paling sedikit dari satu kelompok yang harus menjawab sebelum sebuah aksi dianggap selesai, mis. n standby pada ANY n di PostgreSQL.",
+  "h": "istilah/kuorum/",
+  "n": "6.6 M55",
+  "s": "istilah-kuorum",
+  "t": "Kuorum",
+  "u": null
  },
  "LSN": {
   "b": "t5-lag",
@@ -1243,6 +1329,14 @@ window.ISTILAH = {
   "t": "Migration",
   "u": "tahap-1/migration/"
  },
+ "Minor unit": {
+  "b": "t6-m56",
+  "d": "Satuan terkecil sebuah mata uang. Jumlah disimpan sebagai bilangan bulat dalam satuan itu, mis. 1.000 untuk 10,00 pada mata uang dua desimal.",
+  "n": "6.7 M56",
+  "s": "istilah-minor-unit",
+  "t": "Minor unit",
+  "u": null
+ },
  "Model Context Protocol": {
   "b": "t4-audit",
   "d": "Protokol tempat sebuah client, misalnya agen berbasis model bahasa, memanggil alat milik server.",
@@ -1268,6 +1362,15 @@ window.ISTILAH = {
   "s": "istilah-monolith",
   "t": "Monolith",
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
+ },
+ "Multi-region": {
+  "b": "t6-m55",
+  "d": "Menjalankan satu sistem di lebih dari satu wilayah (region), yaitu lokasi geografis dengan pusat data. Pada aktif-pasif satu wilayah melayani dan lainnya menunggu failover; pada aktif-aktif semua melayani.",
+  "h": "istilah/multi-region/",
+  "n": "6.6 M55",
+  "s": "istilah-multi-region",
+  "t": "Multi-region",
+  "u": null
  },
  "N+1": {
   "b": "t2-n-plus-1",
@@ -1356,7 +1459,7 @@ window.ISTILAH = {
  },
  "On-call": {
   "b": "t3-tim-infra",
-  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.",
+  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. Rotasi bisa memakai dua penjaga sekaligus, primer dan sekunder.",
   "h": "istilah/on-call/",
   "n": "3.27 Tim dan infra Tahap 3",
   "s": "istilah-on-call",
@@ -1497,6 +1600,14 @@ window.ISTILAH = {
   "t": "Partitioning",
   "u": "d-system-design/d2-scaling/"
  },
+ "Pasangan wilayah": {
+  "b": "t6-m55",
+  "d": "Wilayah kedua yang dipasangkan dengan satu wilayah utama sebagai tempat salinan dan tujuan failover-nya. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "n": "6.6 M55",
+  "s": "istilah-pasangan-wilayah",
+  "t": "Pasangan wilayah",
+  "u": null
+ },
  "Passkey": {
   "b": "t3-xss-csrf",
   "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
@@ -1581,6 +1692,14 @@ window.ISTILAH = {
   "t": "Problem Details",
   "u": "tahap-1/validation-error/"
  },
+ "Produk data": {
+  "b": "t6-m53",
+  "d": "Data yang disediakan satu domain untuk tim lain dan dirawat seperti produk, dengan pemakainya diperlakukan seperti pelanggan. Dalam data mesh, istilah ini untuk data analitik.",
+  "n": "6.4 M53",
+  "s": "istilah-produk-data",
+  "t": "Produk data",
+  "u": null
+ },
  "Promosi": {
   "b": "t5-rpo-rto",
   "d": "Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.",
@@ -1605,6 +1724,15 @@ window.ISTILAH = {
   "s": "istilah-proxy-keluar",
   "t": "Proxy keluar (egress proxy)",
   "u": "tahap-4/secret-iac-alamat-keluar/"
+ },
+ "Pseudonim": {
+  "b": "t6-residensi",
+  "d": "Pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi.",
+  "h": "istilah/pseudonim/",
+  "n": "6.8 Keamanan 13",
+  "s": "istilah-pseudonim",
+  "t": "Pseudonim",
+  "u": null
  },
  "Pull request review": {
   "b": "t2-tim-infra",
@@ -1749,6 +1877,15 @@ window.ISTILAH = {
   "t": "Replication lag",
   "u": "tahap-5/replication-lag/"
  },
+ "Residensi data": {
+  "b": "t6-residensi",
+  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.",
+  "h": "istilah/residensi-data/",
+  "n": "6.8 Keamanan 13",
+  "s": "istilah-residensi-data",
+  "t": "Residensi data",
+  "u": null
+ },
  "Retry": {
   "b": "t2-idempotency",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
@@ -1806,6 +1943,15 @@ window.ISTILAH = {
   "t": "RLS (Row Level Security)",
   "u": "tahap-1/authorization/"
  },
+ "Rumpun jaga": {
+  "b": "t6-tim-infra",
+  "d": "Kelompok beberapa tim yang berbagi satu rotasi on-call, jadi orang dalam rotasi lebih banyak daripada satu tim. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "h": "istilah/rumpun-jaga/",
+  "n": "6.10 Tim dan infra Tahap 6",
+  "s": "istilah-rumpun-jaga",
+  "t": "Rumpun jaga",
+  "u": null
+ },
  "SAN": {
   "b": "t5-mtls",
   "d": "Daftar nama di sertifikat X.509 yang disahkan CA, misalnya nama DNS, dan dipakai ledger sebagai identitas pemanggil.",
@@ -1840,6 +1986,14 @@ window.ISTILAH = {
   "s": "istilah-slo",
   "t": "SLO (service level objective)",
   "u": "tahap-5/tim-infra/"
+ },
+ "SLO berantai": {
+  "b": "t6-m54",
+  "d": "Ketersediaan gabungan beberapa service yang dipanggil berurutan. Bila kegagalannya saling bebas, hasilnya hasil kali SLO tiap service.",
+  "n": "6.5 M54",
+  "s": "istilah-slo-berantai",
+  "t": "SLO berantai",
+  "u": null
  },
  "SSE": {
   "b": "E4",
@@ -1926,9 +2080,27 @@ window.ISTILAH = {
   "t": "Serialization anomaly",
   "u": "tahap-2/isolation-level/"
  },
+ "Service catalog": {
+  "b": "t6-m52",
+  "d": "Sistem terpusat yang mencatat pemilik dan metadata semua software di satu organisasi, mis. service, website, library, dan data pipeline.",
+  "h": "istilah/service-catalog/",
+  "n": "6.3 M52",
+  "s": "istilah-service-catalog",
+  "t": "Service catalog",
+  "u": null
+ },
+ "Service mesh": {
+  "b": "t5-adr-60",
+  "d": "Lapisan infrastruktur yang mengurus keamanan, observability, dan lalu lintas antar service lewat proxy di jalur panggilan, tanpa mengubah kode service.",
+  "h": "istilah/service-mesh/",
+  "n": "5.30 ADR 60",
+  "s": "istilah-service-mesh",
+  "t": "Service mesh",
+  "u": "tahap-5/sengaja-belum/"
+ },
  "Sharding": {
   "b": "D2",
-  "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.",
+  "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah. Shard key adalah kolom yang menentukan baris masuk ke shard mana, mis. wilayah atau negara tempat akun terdaftar.",
   "n": "Scaling (versi lama)",
   "s": "istilah-sharding",
   "t": "Sharding",
@@ -2233,6 +2405,30 @@ window.ISTILAH = {
   "t": "XSS (cross-site scripting)",
   "u": "tahap-3/m25-kotak-peringatan/"
  },
+ "akun likuiditas": {
+  "b": "t6-m56",
+  "d": "Akun milik penyedia likuiditas di satu ledger mata uang, yang menjadi lawan transaksi sebuah tukar. Satu tukar memakai dua akun likuiditas, satu per ledger.",
+  "n": "6.7 M56",
+  "s": "istilah-akun-likuiditas",
+  "t": "Akun likuiditas",
+  "u": null
+ },
+ "akun panas": {
+  "b": "t6-m55",
+  "d": "Akun yang menerima tulisan jauh lebih sering daripada akun lain, mis. akun merchant besar, sehingga banyak tulisan bersaing untuk baris yang sama.",
+  "n": "6.6 M55",
+  "s": "istilah-akun-panas",
+  "t": "Akun panas",
+  "u": null
+ },
+ "akun selisih pembulatan": {
+  "b": "t6-m56",
+  "d": "Akun yang menampung sisa pembulatan satu transaksi tukar. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "n": "6.7 M56",
+  "s": "istilah-akun-selisih-pembulatan",
+  "t": "Akun selisih pembulatan",
+  "u": null
+ },
  "alamat keluar": {
   "b": "t4-m34",
   "d": "Alamat IP yang dilihat server tujuan saat service memanggilnya; bila tujuan menyimpan daftar alamat yang boleh masuk, alamat keluar yang berubah membuat panggilan ditolak.",
@@ -2458,6 +2654,15 @@ window.ISTILAH = {
   "t": "Certificate pinning",
   "u": "tahap-3/tls-pinning/"
  },
+ "chaos testing": {
+  "b": "t6-m54",
+  "d": "Percobaan pada sistem untuk membangun keyakinan bahwa ia tahan gangguan di produksi: gangguan diberikan sengaja, lalu keadaan normal yang terukur diperiksa.",
+  "h": "istilah/chaos-testing/",
+  "n": "6.5 M54",
+  "s": "istilah-chaos-testing",
+  "t": "Chaos testing",
+  "u": null
+ },
  "checksum": {
   "b": "t4-storage",
   "d": "Sidik dari isi file, misalnya SHA-256. Bila satu byte berubah, sidiknya berubah, jadi checksum dipakai untuk mendeteksi file yang rusak atau ditimpa.",
@@ -2532,6 +2737,15 @@ window.ISTILAH = {
   "s": "istilah-data-key",
   "t": "Data key",
   "u": "tahap-5/arsip-envelope-encryption/"
+ },
+ "data mesh": {
+  "b": "t6-m53",
+  "d": "Pendekatan data analitik dengan empat prinsip: data dimiliki domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer.",
+  "h": "istilah/data-mesh/",
+  "n": "6.4 M53",
+  "s": "istilah-data-mesh",
+  "t": "Data mesh",
+  "u": null
  },
  "database": {
   "b": "B2.1",
@@ -2637,7 +2851,7 @@ window.ISTILAH = {
  },
  "error budget": {
   "b": "t5-prd",
-  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit.",
+  "d": "Waktu tidak tersedia yang masih diterima dalam satu periode: 100% dikurangi target ketersediaan, dikalikan lama periode. Target 99,9% per 30 hari memberi 43,2 menit. Anggaran kegagalan adalah nama lain untuk hal yang sama.",
   "n": "5.1 PRD v5",
   "s": "istilah-error-budget",
   "t": "Error budget",
@@ -2708,6 +2922,15 @@ window.ISTILAH = {
   "s": "istilah-gateway-pembayaran",
   "t": "Gateway pembayaran",
   "u": "tahap-3/jembatan-prd-v4/"
+ },
+ "golden path": {
+  "b": "t6-m52",
+  "d": "Jalur yang diutamakan dan didukung untuk membangun sesuatu, mis. satu service baru. Halaman 5.27 menyebutnya jalan beraspal.",
+  "h": "istilah/golden-path/",
+  "n": "6.3 M52",
+  "s": "istilah-golden-path",
+  "t": "Golden path",
+  "u": null
  },
  "golden signals": {
   "b": "t3-observability",
@@ -2873,6 +3096,15 @@ window.ISTILAH = {
   "t": "Kapasitas worker",
   "u": "tahap-3/m27-hari-promo/"
  },
+ "kebijakan sebagai kode": {
+  "b": "t6-residensi",
+  "d": "Aturan yang ditulis dalam bahasa deklaratif seperti kode, dengan program yang menanyakan keputusannya ke mesin kebijakan, bukan memuat aturannya sendiri.",
+  "h": "istilah/kebijakan-sebagai-kode/",
+  "n": "6.8 Keamanan 13",
+  "s": "istilah-kebijakan-sebagai-kode",
+  "t": "Kebijakan sebagai kode",
+  "u": null
+ },
  "kelas queue": {
   "b": "t3-m27",
   "d": "Kolom di baris queue yang menentukan urutan klaim: kelas lebih kecil diklaim lebih dulu, lalu nomor lebih kecil.",
@@ -2924,6 +3156,15 @@ window.ISTILAH = {
   "s": "istilah-kunci-bisnis",
   "t": "Kunci bisnis",
   "u": "tahap-5/batch-tahan-crash/"
+ },
+ "kuorum": {
+  "b": "t6-m55",
+  "d": "Jumlah anggota paling sedikit dari satu kelompok yang harus menjawab sebelum sebuah aksi dianggap selesai, mis. n standby pada ANY n di PostgreSQL.",
+  "h": "istilah/kuorum/",
+  "n": "6.6 M55",
+  "s": "istilah-kuorum",
+  "t": "Kuorum",
+  "u": null
  },
  "last-write-wins": {
   "b": "t3-offline",
@@ -3077,6 +3318,14 @@ window.ISTILAH = {
   "t": "Migration",
   "u": "tahap-1/migration/"
  },
+ "minor unit": {
+  "b": "t6-m56",
+  "d": "Satuan terkecil sebuah mata uang. Jumlah disimpan sebagai bilangan bulat dalam satuan itu, mis. 1.000 untuk 10,00 pada mata uang dua desimal.",
+  "n": "6.7 M56",
+  "s": "istilah-minor-unit",
+  "t": "Minor unit",
+  "u": null
+ },
  "modular monolith": {
   "b": "t4-modul",
   "d": "Satu aplikasi yang di-deploy sebagai satu unit, tapi kodenya dibagi ke modul dengan batas yang tegas.",
@@ -3093,6 +3342,15 @@ window.ISTILAH = {
   "s": "istilah-monolith",
   "t": "Monolith",
   "u": "tahap-1/apa-yang-dikerjakan-backend/"
+ },
+ "multi-region": {
+  "b": "t6-m55",
+  "d": "Menjalankan satu sistem di lebih dari satu wilayah (region), yaitu lokasi geografis dengan pusat data. Pada aktif-pasif satu wilayah melayani dan lainnya menunggu failover; pada aktif-aktif semua melayani.",
+  "h": "istilah/multi-region/",
+  "n": "6.6 M55",
+  "s": "istilah-multi-region",
+  "t": "Multi-region",
+  "u": null
  },
  "mutual TLS": {
   "b": "t5-mtls",
@@ -3147,7 +3405,7 @@ window.ISTILAH = {
  },
  "on-call": {
   "b": "t3-tim-infra",
-  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu.",
+  "d": "Giliran jaga: satu orang dalam tim menerima alert dan menanganinya selama satu giliran, mis. satu minggu. Rotasi bisa memakai dua penjaga sekaligus, primer dan sekunder.",
   "h": "istilah/on-call/",
   "n": "3.27 Tim dan infra Tahap 3",
   "s": "istilah-on-call",
@@ -3256,6 +3514,14 @@ window.ISTILAH = {
   "t": "Partitioning",
   "u": "d-system-design/d2-scaling/"
  },
+ "pasangan wilayah": {
+  "b": "t6-m55",
+  "d": "Wilayah kedua yang dipasangkan dengan satu wilayah utama sebagai tempat salinan dan tujuan failover-nya. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "n": "6.6 M55",
+  "s": "istilah-pasangan-wilayah",
+  "t": "Pasangan wilayah",
+  "u": null
+ },
  "passkey": {
   "b": "t3-xss-csrf",
   "d": "Nama populer untuk kredensial WebAuthn yang disimpan di sisi client dan dipakai login tanpa password: authenticator di perangkat user membuat satu pasang kunci untuk satu situs, dan situs itu mengaitkan kunci publiknya dengan akun.",
@@ -3314,6 +3580,14 @@ window.ISTILAH = {
   "t": "Primary key",
   "u": "tahap-1/data-modeling/"
  },
+ "produk data": {
+  "b": "t6-m53",
+  "d": "Data yang disediakan satu domain untuk tim lain dan dirawat seperti produk, dengan pemakainya diperlakukan seperti pelanggan. Dalam data mesh, istilah ini untuk data analitik.",
+  "n": "6.4 M53",
+  "s": "istilah-produk-data",
+  "t": "Produk data",
+  "u": null
+ },
  "promosi": {
   "b": "t5-rpo-rto",
   "d": "Mengubah standby menjadi server yang menerima tulisan, di PostgreSQL dengan pg_promote() atau pg_ctl promote.",
@@ -3338,6 +3612,15 @@ window.ISTILAH = {
   "s": "istilah-proxy-keluar",
   "t": "Proxy keluar (egress proxy)",
   "u": "tahap-4/secret-iac-alamat-keluar/"
+ },
+ "pseudonim": {
+  "b": "t6-residensi",
+  "d": "Pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi.",
+  "h": "istilah/pseudonim/",
+  "n": "6.8 Keamanan 13",
+  "s": "istilah-pseudonim",
+  "t": "Pseudonim",
+  "u": null
  },
  "pull request review": {
   "b": "t2-tim-infra",
@@ -3415,6 +3698,15 @@ window.ISTILAH = {
   "t": "Replication lag",
   "u": "tahap-5/replication-lag/"
  },
+ "residensi data": {
+  "b": "t6-residensi",
+  "d": "Penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup.",
+  "h": "istilah/residensi-data/",
+  "n": "6.8 Keamanan 13",
+  "s": "istilah-residensi-data",
+  "t": "Residensi data",
+  "u": null
+ },
  "retry": {
   "b": "t2-idempotency",
   "d": "Mengirim ulang request yang gagal atau tidak dijawab.",
@@ -3463,6 +3755,15 @@ window.ISTILAH = {
   "s": "istilah-router-database",
   "t": "Router database",
   "u": "tahap-5/read-replica/"
+ },
+ "rumpun jaga": {
+  "b": "t6-tim-infra",
+  "d": "Kelompok beberapa tim yang berbagi satu rotasi on-call, jadi orang dalam rotasi lebih banyak daripada satu tim. Ini nama pilihan Rekeningo, bukan istilah baku.",
+  "h": "istilah/rumpun-jaga/",
+  "n": "6.10 Tim dan infra Tahap 6",
+  "s": "istilah-rumpun-jaga",
+  "t": "Rumpun jaga",
+  "u": null
  },
  "saga": {
   "b": "D3",
@@ -3532,9 +3833,27 @@ window.ISTILAH = {
   "t": "Serialization anomaly",
   "u": "tahap-2/isolation-level/"
  },
+ "service catalog": {
+  "b": "t6-m52",
+  "d": "Sistem terpusat yang mencatat pemilik dan metadata semua software di satu organisasi, mis. service, website, library, dan data pipeline.",
+  "h": "istilah/service-catalog/",
+  "n": "6.3 M52",
+  "s": "istilah-service-catalog",
+  "t": "Service catalog",
+  "u": null
+ },
+ "service mesh": {
+  "b": "t5-adr-60",
+  "d": "Lapisan infrastruktur yang mengurus keamanan, observability, dan lalu lintas antar service lewat proxy di jalur panggilan, tanpa mengubah kode service.",
+  "h": "istilah/service-mesh/",
+  "n": "5.30 ADR 60",
+  "s": "istilah-service-mesh",
+  "t": "Service mesh",
+  "u": "tahap-5/sengaja-belum/"
+ },
  "sharding": {
   "b": "D2",
-  "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah.",
+  "d": "Membagi data ke beberapa database berdasarkan shard key, mis. per wilayah. Shard key adalah kolom yang menentukan baris masuk ke shard mana, mis. wilayah atau negara tempat akun terdaftar.",
   "n": "Scaling (versi lama)",
   "s": "istilah-sharding",
   "t": "Sharding",
