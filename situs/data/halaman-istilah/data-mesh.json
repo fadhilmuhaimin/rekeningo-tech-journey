@@ -1,0 +1,37 @@
+{
+  "istilah": "Data mesh",
+  "sehari_hari": "Data mesh adalah pendekatan untuk data analitik yang bertumpu pada empat prinsip: data dimiliki tim domain, data diperlakukan sebagai produk, infrastruktur data tersedia self-serve, dan tata kelola dijalankan secara federasi dengan aturan yang dieksekusi komputer. Zhamak Dehghani menulis keempat prinsip itu pada 3 Desember 2020, sesudah tulisan pertamanya tentang data mesh.",
+  "cerita": [
+    {
+      "rujukan": "t5-jembatan",
+      "teks": "Pratinjau PRD v6 menulis data mesh sederhana sebagai data yang dimiliki tim domain. Halaman itu mencatat prinsip pertama, yaitu kepemilikan data oleh domain."
+    },
+    {
+      "rujukan": "t6-m53",
+      "teks": "Halaman M53 memakai istilah ini untuk data yang dipakai tim lain."
+    }
+  ],
+  "mekanisme": [
+    "Prinsip pertama: domain yang menghasilkan data memilikinya, bukan satu tim data pusat.",
+    "Prinsip kedua: data yang disediakan domain diperlakukan sebagai produk, dan pemakainya sebagai pelanggan.",
+    "Prinsip ketiga: infrastruktur data self-serve sebagai platform, supaya domain bisa membangun dan menjalankan produk datanya sendiri.",
+    "Prinsip keempat: federated computational governance, yaitu tata kelola yang terfederasi dan dijalankan secara komputasional."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Membaca prinsip untuk data analitik sebagai aturan untuk semua data. Artikelnya menulis tentang data analitik, dan Rekeningo hanya memakai versi sederhana untuk data antar domain.",
+    "Memakai satu prinsip saja. Dehghani menulis keempatnya sebagai satu rangkaian yang menjawab masalah arsitektur data analitik sebelumnya."
+  ],
+  "terkait": [
+    "Produk data",
+    "Service catalog"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-06",
+      "judul": "Zhamak Dehghani: Data Mesh Principles and Logical Architecture (3 Desember 2020, dihosting martinfowler.com)",
+      "url": "https://martinfowler.com/articles/data-mesh-principles.html",
+      "catatan": "Teks HTML dibuka 2026-11-06; byline Zhamak Dehghani. Empat prinsip: kepemilikan data oleh domain, data sebagai produk, infrastruktur data self-serve, dan federated computational governance. Prinsip produk menulis data analitik dari domain sebagai produk dan pemakainya sebagai pelanggan."
+    }
+  ]
+}

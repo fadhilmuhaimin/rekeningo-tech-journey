@@ -1,0 +1,33 @@
+{
+  "istilah": "Kebijakan sebagai kode",
+  "sehari_hari": "Kebijakan sebagai kode berarti aturan, mis. batas harian tiap negara, ditulis dalam bahasa deklaratif yang diperlakukan seperti kode. Program tidak memuat aturannya sendiri. Ia menanyakan keputusannya ke mesin kebijakan, lalu menegakkan jawabannya.",
+  "cerita": [
+    {
+      "rujukan": "t6-residensi",
+      "teks": "Halaman Keamanan 13 memakai istilah ini untuk aturan per negara."
+    }
+  ],
+  "mekanisme": [
+    "Aturan ditulis dalam bahasa deklaratif tingkat tinggi, mis. Rego di Open Policy Agent (OPA), sebagai kode.",
+    "Program yang butuh keputusan mengirim pertanyaan ke mesin kebijakan, dengan data terstruktur seperti JSON sebagai input.",
+    "Mesin kebijakan menilai input terhadap aturan dan data, lalu mengembalikan keputusan. Keputusan tidak terbatas pada ya atau tidak, karena bisa berupa data terstruktur lain.",
+    "Program menegakkan keputusan itu sendiri. OPA memisahkan pembuatan keputusan dari penegakannya."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira mesin kebijakan menegakkan aturan sendiri. OPA memisahkan keputusan dari penegakan, jadi program tetap harus bertindak atas jawabannya.",
+    "Mengira kebijakan sebagai kode hanya untuk satu jenis aturan. OPA menyebut pemakaiannya di microservice, Kubernetes, pipeline CI/CD, dan API gateway."
+  ],
+  "terkait": [
+    "Allowlist",
+    "Kill switch"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-174",
+      "judul": "Open Policy Agent: dokumentasi",
+      "url": "https://www.openpolicyagent.org/docs",
+      "catatan": "Dokumentasi tanpa nomor versi di halaman, dibuka 2026-11-06. OPA adalah policy engine open source untuk semua lapisan, dengan bahasa deklaratif untuk menulis kebijakan sebagai kode. Rilis GitHub terbaru pada tanggal itu: v1.22.1 (2026-11-05)."
+    }
+  ]
+}

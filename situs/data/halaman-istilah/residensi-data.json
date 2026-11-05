@@ -1,0 +1,39 @@
+{
+  "istilah": "Residensi data",
+  "sehari_hari": "Residensi data adalah penetapan wilayah tempat data tertentu boleh disimpan dan diproses, termasuk salinannya seperti standby dan backup. Di Rekeningo isi penetapan per negara adalah Asumsi produk, bukan kutipan hukum.",
+  "cerita": [
+    {
+      "rujukan": "t5-onprem",
+      "teks": "Halaman 5.28 menulis bahwa data yang harus tinggal di lokasi tertentu adalah syarat yang mendahului biaya, dan model biayanya tidak menjawabnya. Halaman itu menyebut PRD v6, yang menurut naskah (Ilustrasi) menyebut data per negara."
+    },
+    {
+      "rujukan": "t6-residensi",
+      "teks": "Halaman Keamanan 13 membahas apa yang boleh melintas antar negara, dan memakai istilah ini."
+    }
+  ],
+  "mekanisme": [
+    "Produk menetapkan, per jenis data dan per negara, wilayah yang boleh menyimpan dan memprosesnya (Asumsi produk).",
+    "Penyedia cloud menyediakan pilihan wilayah saat sumber daya dibuat. Azure menulis bahwa sebagian besar layanannya memungkinkan kamu menentukan wilayah tempat data pelanggan disimpan dan diproses.",
+    "Salinan ikut menentukan. Azure menulis bahwa Microsoft dapat mereplikasi ke wilayah lain untuk ketahanan data, tetapi tidak menyimpan atau memproses data pelanggan di luar Geo yang dipilih, yaitu kelompok wilayah dalam istilah Azure.",
+    "Yang di luar penetapan ditulis sebagai pengecualian. Azure mencantumkan beberapa layanan yang menyimpan sebagian data di luar Geo yang dipilih."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Mengira residensi sama dengan izin atau kepatuhan hukum. Halaman Rekeningo hanya memakai penetapan produk sebagai Asumsi dan tidak mengklaim kepatuhan di negara mana pun.",
+    "Melupakan salinan. Standby, replica, backup, dan arsip ikut menyimpan data, dan Azure menyebut replikasi ke wilayah lain untuk ketahanan sebagai hal yang punya batas."
+  ],
+  "terkait": [
+    "Pseudonim",
+    "KMS (key management service)",
+    "KEK (key encryption key)",
+    "Multi-region"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-171",
+      "judul": "Microsoft Azure: Data residency in Azure",
+      "url": "https://azure.microsoft.com/en-us/explore/global-infrastructure/data-residency/",
+      "catatan": "Halaman produk dibuka 2026-11-06. Ia menjelaskan praktik, yaitu memilih wilayah dan batas replikasi, dan tidak mendefinisikan istilahnya. Definisi di halaman ini adalah rumusan penulis, [perlu verifikasi] karena belum ada definisi dari badan standar yang dibuka."
+    }
+  ]
+}

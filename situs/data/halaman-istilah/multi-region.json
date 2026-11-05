@@ -1,0 +1,56 @@
+{
+  "istilah": "Multi-region",
+  "sehari_hari": "Multi-region berarti satu sistem berjalan di lebih dari satu wilayah (region), yaitu lokasi geografis tempat penyedia mengelompokkan pusat data. Pada bentuk aktif-pasif, satu wilayah melayani dan wilayah lain menunggu sampai failover. Pada bentuk aktif-aktif, semua wilayah melayani.",
+  "cerita": [
+    {
+      "rujukan": "t5-adr-60",
+      "teks": "ADR 60 menulis multi-region sebagai sengaja belum. Pemicunya: satu region mati lebih lama dari RTO 15 menit, atau PRD v6 memintanya."
+    },
+    {
+      "rujukan": "t5-jembatan",
+      "teks": "Pratinjau PRD v6 menulis multi-region aktif-pasif: satu wilayah pusat data melayani, wilayah lain menunggu sampai failover."
+    },
+    {
+      "rujukan": "t6-m55",
+      "teks": "Halaman M55 memakai istilah ini untuk satu wilayah yang tidak terjangkau."
+    }
+  ],
+  "mekanisme": [
+    "Penyedia menyebut wilayah sebagai lokasi geografis tempat pusat data dikelompokkan. Sumber daya dan data di satu wilayah tidak ada di wilayah lain, kecuali ada fitur replikasi atau salinan yang dijalankan sendiri (AWS).",
+    "Pada aktif-pasif, satu wilayah melayani lalu lintas dan wilayah lain dipakai untuk pemulihan. Wilayah pasif tidak melayani sampai failover dipicu.",
+    "Pada aktif-aktif, lalu lintas dilayani dari semua wilayah tempat sistem dipasang. AWS menulis bahwa pada bentuk ini tidak ada failover, karena beban kerja sudah berjalan di lebih dari satu wilayah.",
+    "Data sampai ke wilayah lain lewat replikasi. Pada replikasi sinkron, waktu tunggu minimum tiap commit adalah round-trip time antara primary dan standby (PostgreSQL 17)."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memakai multi-region untuk satu pusat data yang rusak. AWS menulis bahwa untuk gangguan atau hilangnya satu pusat data pada beban kerja yang dirancang tersedia tinggi, backup and restore mungkin sudah cukup.",
+    "Mengira aktif-aktif sederhana. AWS menyebutnya pendekatan pemulihan bencana yang paling kompleks dan berbiaya besar, dan data yang rusak tetap membutuhkan backup."
+  ],
+  "terkait": [
+    "Failover",
+    "RPO (recovery point objective)",
+    "RTO (recovery time objective)",
+    "Standby sinkron",
+    "Kuorum"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-171",
+      "judul": "AWS Whitepaper: Disaster recovery options in the cloud",
+      "url": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html",
+      "catatan": "Whitepaper Disaster Recovery of Workloads on AWS, dibuka 2026-11-06. Strategi aktif-pasif memakai satu situs untuk melayani dan situs lain untuk pemulihan. Multi-site active/active melayani dari semua wilayah, dan AWS menulis bahwa tak ada failover pada bentuk itu."
+    },
+    {
+      "riset": "R6-171",
+      "judul": "AWS Whitepaper: Regions (AWS Fault Isolation Boundaries)",
+      "url": "https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/regions.html",
+      "catatan": "Region adalah lokasi geografis tempat pusat data dikelompokkan, dibuka 2026-11-06. Sumber daya dan data di satu region tidak ada di region lain kecuali memakai fitur replikasi atau salinan."
+    },
+    {
+      "riset": "R5-250",
+      "judul": "PostgreSQL 17: Synchronous Replication (bagian 26.2.8)",
+      "url": "https://www.postgresql.org/docs/17/warm-standby.html",
+      "catatan": "Waktu tunggu minimum commit adalah round-trip time antara primary dan standby. Teks HTML dibuka 2026-11-06."
+    }
+  ]
+}

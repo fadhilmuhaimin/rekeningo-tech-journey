@@ -1,0 +1,40 @@
+{
+  "istilah": "Pseudonim",
+  "sehari_hari": "Pseudonim adalah pengenal pengganti yang dipasang menggantikan pengenal asli seseorang atau perangkat, supaya identitas aslinya tersembunyi. Dalam pemakaian NISTIR 8053, pseudonim bukan anonim. Pemetaan kembali ke identitas asli masih mungkin selama tabel pemetaan atau kunci pembuatnya ada.",
+  "cerita": [
+    {
+      "rujukan": "t6-residensi",
+      "teks": "Halaman Keamanan 13 membahas apa yang boleh melintas antar negara, dan memakai istilah ini."
+    }
+  ],
+  "mekanisme": [
+    "Sistem memilih pengenal yang akan disembunyikan, mis. nomor perangkat.",
+    "Ia menggantinya dengan pseudonim. NIST memberi nilai yang dibangkitkan acak sebagai contoh.",
+    "Rekaman dengan pengenal yang sama mendapat pseudonim yang sama, jadi data satu orang tetap bisa dihubungkan antar rekaman, asalkan semua pengenal langsung diganti secara sistematis (NISTIR 8053).",
+    "Pembalikan mungkin bila tabel pemetaan disimpan atau parameter algoritmanya diketahui. NISTIR 8053 memberi contoh pengenal yang dienkripsi dengan kunci rahasia, yang bisa didekripsi kembali."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Menyebut data berpseudonim anonim. ISO/TS 25237, yang dikutip NISTIR 8053, menulis bahwa anonimisasi tidak memberi cara menghubungkan data ke orang yang sama antar rekaman, dan tidak bisa dibalik. NISTIR 8053 juga mencatat bahwa standar itu tidak selalu jelas dan bahwa sebagian penulis memakai de-identification dan anonymization secara bergantian.",
+    "Menyimpan tabel pemetaan atau kunci pembuatnya bersama datanya. NISTIR 8053 menulis bahwa pseudonim bisa dibalik selama pemetaannya terjaga atau bisa dibangkitkan ulang."
+  ],
+  "terkait": [
+    "Residensi data",
+    "KMS (key management service)",
+    "HMAC (hash-based message authentication code)"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-170",
+      "judul": "NIST CSRC Glossary: pseudonymization",
+      "url": "https://csrc.nist.gov/glossary/term/pseudonymization",
+      "catatan": "Dibuka 2026-11-06. Teknik de-identifikasi yang mengganti pengenal subjek data dengan pseudonim untuk menyembunyikan identitasnya (dari NIST SP 800-188, yang mengutip ISO/IEC 20889:2018). Definisi lain dari NISTIR 8053: biasanya pengenal langsung diganti dengan nilai seperti bilangan acak."
+    },
+    {
+      "riset": "R6-170",
+      "judul": "NISTIR 8053: De-Identification of Personal Information (Oktober 2015), bagian 3.2",
+      "url": "https://nvlpubs.nist.gov/nistpubs/ir/2015/NIST.IR.8053.pdf",
+      "catatan": "PDF dibuka 2026-11-06. Bagian 3.2: pseudonimisasi memungkinkan menghubungkan informasi satu orang antar rekaman, dan sering bisa dibalik bila pemetaan atau parameter algoritmanya diketahui. Bagian 1.4.1 mengutip ISO/TS 25237 tentang perbedaan pseudonimisasi dan anonimisasi."
+    }
+  ]
+}
