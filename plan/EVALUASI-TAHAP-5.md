@@ -1,6 +1,6 @@
 # Evaluasi Tahap 5 · Satu database tidak cukup
 
-Dievaluasi 2026-11-05 (mulai 11.31 WITA, dokumen selesai ±12.15 WITA) oleh subagent evaluasi (skill evaluasi-tahap) yang tidak menulis satu pun halaman Tahap 5. Seed acak: 5. Putaran: 1.
+Dievaluasi 2026-11-05 (mulai 11.31 WITA, dokumen selesai ±12.15 WITA) oleh subagent evaluasi (skill evaluasi-tahap) yang tidak menulis satu pun halaman Tahap 5. Seed acak: 5. Putaran: 1 (putaran 2 sesudah EVAL5-F1 ada di bagian "Putaran 2" di akhir berkas).
 
 Dasar yang dievaluasi: `origin/main` 58d1e65d (merge #528, halaman 5.32), 32 halaman 5.1 sampai 5.32, `situs/dist` dibangun ulang dari dasar itu (`bun run --cwd situs build` → 336 halaman, exit 0). `git fetch origin && git diff --stat 58d1e65d origin/main` kosong saat evaluasi berjalan, jadi tidak ada perubahan sesudah dasar. Skill lain yang dipakai: analisis-kritis (bukti yang bisa diulang, penelusuran angka, klaim universal), gaya-bahasa (label, kosakata, arti istilah), visualisasi (tiga tangkapan 375×667 dinilai, kontrol Coba dibaca dari DOM). Nomor keputusan: 1690 sampai 1692, dicatat di badan PR. Skrip bantu (`tmp/eval5-*.py`, `tmp/eval5-*.mjs`) ada di folder `tmp/` worktree dan tidak di-commit; perintah pentingnya ada di bagian "Cara mengulang".
 
@@ -274,3 +274,121 @@ make -C labs/t5-cicilan cek ; make -C labs/t5-partisi cek ; make -C labs/t5-gabu
 ```
 
 Preload Chrome sistem hanya untuk `layar.mjs`, `tangkap.mjs`, `ukur-axe.mjs`, `ukur-erd.mjs`, dan `eval-keyboard.mjs`, bukan untuk Vitest atau `cek_situs.sh`; ia mengimpor Playwright dari worktree sendiri. Chromium Playwright tidak diunduh. Firefox dan Safari tidak diuji.
+
+## Putaran 2
+
+Dievaluasi 2026-11-05 (mulai 14.58 WITA, selesai ±15.18 WITA) oleh subagent pelaksana EVAL-5-ulang. Ia bukan penulis halaman Tahap 5, bukan pelaksana EVAL-5, dan bukan pelaksana atau peninjau EVAL5-F1 (PR #532, merge 16595cd8). Seed acak 5, sama dengan putaran 1: `random.sample` memberi lagi 5.17, 5.23, 5.2, 5.30, 5.16 (semua halaman) dan 5.21, 5.10, 5.25, 5.13, 5.24, 5.22 (berlab). Skill: evaluasi-tahap, analisis-kritis (klaim PR #532 tidak dipercaya, dibuktikan sendiri; alat sapuan baru diuji diri), gaya-bahasa (kosakata dan arti istilah).
+
+Dasar: `origin/main` 16595cd8, `situs/dist` dibangun ulang dari dasar itu (`bun run --cwd situs build` → "336 page(s) built in 11.27s", exit 0), preview port 4323, Chrome sistem lewat `executablePath` atau preload khusus alat (bukan `NODE_OPTIONS` global; Chromium Playwright tidak diunduh). `git diff 58d1e65d HEAD` memuat 28 berkas: tooltip (`arti-istilah.json`, `remark-abbr.mjs`, `istilah.js`, tiga entri glosarium, tes, README), `tools/eval_tahap.py`, `tools/cek_situs.sh`, dan berkas `plan/`. Tidak ada berkas `situs/src/content/docs/tahap-5`, `labs`, `situs/data/erd`, atau `tools/erd.py`. Skrip bantu `tmp/eval5u-*.py` dan `tmp/eval5u-*.mjs` ada di folder `tmp/` worktree dan tidak di-commit.
+
+### Kartu nilai putaran 2
+
+W1 sampai W4 wajib YA dan YA. W5 tetap TIDAK (keputusan pemilik, bukan tugas perbaikan). Tidak ada TIDAK baru, jadi tidak ada tugas perbaikan disisipkan dan tidak ada putaran ketiga. Tahap 5 dinyatakan selesai (keputusan 1691, 1890).
+
+| Butir | Hasil | Bukti (perintah → keluaran) |
+| --- | --- | --- |
+| W1 | YA | `python3 tools/eval_tahap.py peta 5` → "naskah 32 halaman, registry 32 halaman", 32 baris `ada=True`, 0 "segera", "halaman bercatatan: 0", exit 0. `gh run list --branch main --limit 6` → enam run `cek` push terakhir semuanya success, termasuk 41983906686 untuk 16595cd8 (merge #532); lima sebelumnya 41976628465 (eb59811a), 41973759541 (dacb3baf), 41966031799 (1009e5c9), 41961984609 (58d1e65d), 41952900165 (2d3aabff). Halaman Tahap 5 tidak berubah sejak putaran 1 (`git diff --stat 58d1e65d HEAD -- situs/src/content/docs/tahap-5` kosong), jadi 32 PR halaman putaran 1 tetap bukti |
+| W2 | dilewati, YA putaran 1 tetap | `git diff --name-only 58d1e65d HEAD -- labs situs/data/erd tools/erd.py` → kosong (tanpa baris; dijalankan di `16595cd8`). Rekaman dan lab tidak berubah, jadi telusur angka dan lima `make cek` putaran 1 tidak diulang; Docker tidak disentuh. Kalimat yang menyebut angka tidak berubah sejak putaran 1 |
+| W3 | YA | `python3 tools/audit_bahasa.py --check` → "471 file · 0 error · 527 peringatan" (putaran 1: 470 file dan 527 peringatan; satu file lebih, penyebabnya tidak ditelusuri, 0 error tetap); hanya Tahap 5 (`--check situs/src/content/docs/tahap-5`) → "32 file · 0 error · 84 peringatan", sama dengan putaran 1. `python3 tools/eval_tahap.py gejala 5` → exit 0, 12 dari 12 halaman Masalah "ok" (adegan 2 sampai 4 paragraf, 35 sampai 65 kata), sama dengan putaran 1. `python3 tools/test_eval_tahap.py` → "47/47 kasus uji eval_tahap lolos" (putaran 1: 26/26; EVAL5-F1 dan G3-rantai menambah kasus). Enam blok Gejala dibaca di putaran 1 dan halamannya tidak berubah |
+| W4 | YA | `situs/tools/layar.mjs` (UKUR_HALAMAN = 32 path Tahap 5) → "LOLOS: 0 gagal, 0 margin tipis", 72 pengukuran (18 halaman × 4 ukuran), 56 baris "tanpa Inti" (14 halaman PRD dan Masalah × 4); margin terkecil 21 px (dua kali, 1366×657), 22 px, 23 px (375×667), 24 px, sama dengan putaran 1. `python3 tools/contrast.py` → "987/987 lolos" gelap dan terang. `situs/tools/ukur-axe.mjs --url http://127.0.0.1:4323 --semua --awalan /tahap-5/` → "axe 4.14.0 runOnly wcag2a, wcag2aa, wcag21aa, wcag22aa: uji diri 4/4 lolos; 32 halaman × 2 ukuran × 2 tema = 128 run; 0 halaman berpelanggaran; incomplete untuk dicek manusia: color-contrast 3594; 0 gagal lain; 30.5 s" (putaran 1: 3594 juga). Keyboard saja, `situs/tools/eval-keyboard.mjs` pada 5.7 (halaman yang paling banyak berubah tooltip-nya): 375×667 → 212 Tab, isi di Tab ke-5, Berikutnya di Tab ke-212, 8 blok dibuka dengan Enter, tanpa tanda fokus 0, kontrol terlewat 0; 1366×657 → 466 Tab, 48 blok, 0 dan 0; pada 5.31 375×667 → 368 Tab, 9 blok, 0 dan 0. Popover istilah dibuka di browser (hover dan Tab) di 5.7, 5.31, 5.23, 5.5, dan 5.6: lihat sapuan di bawah |
+| W5 | TIDAK | `python3 tools/eval_tahap.py coba 5` → 30 halaman punya satu blok Coba (5.1 dan 5.32 tidak). Kontrol dibaca dari DOM sesudah hidrasi dengan skrip putaran 1 (`tmp/eval5-coba-dom.mjs`, `tmp/eval5-coba-dom2.mjs`, 1366×657, tebakan diklik): keluaran 32 baris tiap skrip, `diff` terhadap keluaran putaran 1 kosong (identik per byte). Jadi hitungan putaran 1 berlaku: 24 dari 30 halaman punya tebakan lalu satu hal yang bisa diubah, 6 tidak: 5.9, 5.23, 5.30 (Tebak dengan "Ubah satu hal" berupa prosa), 5.25 dan 5.27 (pilah), 5.31 (rekap). `bocor 5` → 5 halaman Masalah dengan angka jawaban di teks sebelum Coba (5.6, 5.10, 5.14, 5.16, 5.20), sama. Tidak ada halaman diubah untuk mengejar angka. Keputusan pemilik: TINJAUAN-PEMILIK Tahap 5 butir 6 |
+| W6 | dilewati, YA putaran 1 tetap | Halaman ADR Tahap 5 tidak berubah (`git diff --stat 58d1e65d HEAD -- situs/src/content/docs/tahap-5` kosong), jadi tidak ada klaim halaman yang berubah untuk dicek ulang. `python3 tools/eval_tahap.py adr 5` → 14 baris "ok", satu "KURANG" (5.15, ADR 51: "opsi 0" karena satu opsi per baris; dibaca tangan di putaran 1: 6 opsi), sama. Tiga definisi baru di glosarium (bukan ADR) dicek ke sumber 2026-11-05: lihat bagian sapuan |
+| W7 | dilewati, YA putaran 1 tetap | Diff `labs situs/data/erd tools/erd.py` kosong. `python3 tools/erd.py --cek` → "erd --cek lolos: Tahap 1 5 tabel, Tahap 2 8 tabel, Tahap 3 14 tabel, Tahap 4 22 tabel, Tahap 5 30 tabel; hash sumber cocok" |
+| W8 | YA | `python3 tools/eval_tahap.py rantai 5` → "langkah dari 5.1 sampai 5.32: 32; 404 atau tautan hilang: 0", semua 200; Berikutnya dari 5.32 → `/d-system-design/d4c-laporan-lapangan-offline/` (`ada=True`, `id=D4c`, bukan halaman lama atau pengganti). `python3 tools/cek_tautan.py` → "336 HTML: 86378 tautan internal diperiksa (6666 dengan anchor); 144 JSON data widget: 626 url diperiksa; dilewati: https: 2814; rusak: 0 path, 0 anchor". `python3 tools/cek_id_tampil.py` bersih dan `python3 tools/build_istilah.py --check` → "istilah sinkron" |
+
+Pertanyaan pembaca dan uji baca segar tidak diulang: halaman 5.17, 5.23, dan 5.2 tidak berubah, dan diff `labs`, ERD, dan halaman Tahap 5 kosong (skill: evaluasi ulang boleh melewatinya). Lima hal membingungkan putaran 1 tetap seperti ditulis.
+
+### Sapuan tooltip "token" dan "router" (EVAL5-F1 dibuktikan)
+
+Yang diperiksa: klaim PR #532 bahwa sesudahnya "token LSN 93 kemunculan bertooltip Token LSN, 35 sisanya tetap arti bawaan; router 34 kemunculan bertooltip Traffic router (30) atau Router database (4), 0 router framework di Tahap 5". Tiga lapis, semuanya dari HTML build dan browser, bukan dari berkas data yang menjadi sumber tooltip:
+
+1. Sapuan statis (`tmp/eval5u-sapuan.py` → `tmp/eval5u-sapuan.txt`): setiap `<abbr>` di dalam `<main>` 32 halaman Tahap 5 yang teksnya memuat kata `token` atau `router` dikelompokkan menurut awal atribut `title`, bukan menurut `data-arti`. Awal title bawaan: "String yang dibawa request" (token), "Bagian framework yang mencocokkan" (router).
+2. Sapuan runtime di Chrome (`tmp/eval5u-popover.mjs`, bagian 1): sesudah `istilah.js` berjalan, tiap `abbr.istilah` dipetakan ke `window.ISTILAH[dataset.istilah]` dan definisinya diklasifikasi.
+3. Hover sungguhan dan Tab sungguhan (bagian 2), karena popover dibuka dari `window.ISTILAH[dataset.arti ?? teks]`, bukan dari `title`.
+
+Hasil statis per halaman (sisanya, 20 halaman, tidak punya `<abbr>` token atau router; kata itu di sana ada di kode, judul, atau tautan, dan 5.2, 5.8, 5.11, 5.15 menulis token tanpa tooltip):
+
+| Halaman | Token LSN | token bawaan | token bucket (frasa) | Traffic router | Router database | router bawaan |
+| --- | --- | --- | --- | --- | --- | --- |
+| 5.4 M40 | 0 | 1 | 0 | 0 | 0 | 0 |
+| 5.5 read-replica | 0 | 0 | 0 | 0 | 2 | 0 |
+| 5.6 M41 | 4 | 0 | 0 | 0 | 0 | 0 |
+| 5.7 replication-lag | 78 | 0 | 0 | 0 | 2 | 0 |
+| 5.13 modul-ke-service | 0 | 0 | 0 | 1 | 0 | 0 |
+| 5.19 mtls-antar-service | 0 | 7 | 0 | 0 | 0 | 0 |
+| 5.22 M49 | 0 | 0 | 0 | 7 | 0 | 0 |
+| 5.23 progressive-delivery | 0 | 0 | 0 | 18 | 0 | 0 |
+| 5.24 M50 | 0 | 5 | 1 | 0 | 0 | 0 |
+| 5.25 pintu-mitra-waf | 0 | 4 | 2 | 1 | 0 | 0 |
+| 5.26 arsip-envelope-encryption | 0 | 16 | 0 | 0 | 0 | 0 |
+| 5.31 rekap | 11 | 2 | 0 | 3 | 0 | 0 |
+| Jumlah | 93 | 35 | 3 | 30 | 4 | 0 |
+
+Angka sendiri lawan laporan EVAL5-F1: Token LSN 93, token bawaan 35, Traffic router 30, Router database 4, router bawaan 0. Semuanya sama persis. 93 + 35 = 128 dan 30 + 4 = 34 sama dengan jumlah tooltip token dan router bawaan di putaran 1 (128 dan 34); tiga "token bucket" adalah frasa dengan entri sendiri yang memang sudah menang sebelum perbaikan dan tidak termasuk 128. Rincian yang peninjau #532 laporkan juga cocok: Token LSN 91 kata sendirian (atribut `data-arti`) ditambah 2 frasa utuh; Traffic router 16 kata sendirian ditambah 14 frasa utuh. Perubahan per halaman sama dengan tabel di badan PR (5.6: 4, 5.7: 78 dan 2, 5.31: 11, 2, dan 3, 5.5: 2, 5.13: 1, 5.22: 7, 5.23: 18, 5.25: 1 dan token tak berubah).
+
+Runtime di Chrome (tooltip yang benar-benar tampil, kemunculan pertama per bagian `h2`): 10 Token LSN, 10 token bawaan, 3 token bucket, 11 Traffic router, 2 Router database, 0 router bawaan, 0 token bawaan di 5.6 dan 5.7; tidak ada `abbr[title]` bertoken atau router yang tersisa di DOM (title dibuang `istilah.js`); 0 galat konsol atau halaman di 32 halaman. Kunci `window.ISTILAH` untuk "Token LSN", "Traffic router", "Router database", "Token", "Router" ada semuanya.
+
+Konteks kalimat. Dari populasi 130 kemunculan "token" (5.7: 116, 5.31: 13, 5.5: 1) dan 54 "router" (5.22: 19, 5.23: 26, 5.31: 5, 5.5: 2, 5.7: 2) di lima halaman yang disebut tugas, `random.seed(5)` memilih 15 token dan 10 router (`tmp/eval5u-sampel.py` → `tmp/eval5u-sampel.txt`), ditambah seluruh 13 token dan 5 router di 5.31 dan 2 router di 5.5, semuanya dibaca dengan kalimat sekitarnya.
+
+- Token, 15 sampel: 11 bertooltip Token LSN dan semuanya berarti posisi WAL primary (mis. "bacaan tanpa token", "app yang mengulang tulisan tidak mendapat token baru", "token sesudah failover"); 1 bertooltip token bawaan dan berarti jatah token bucket ("hitungan token", 5.31), yang memang tercakup definisi bawaan; 3 tanpa tooltip (teks widget "tanpa token", potongan kode Go, dan satu kalimat di dalam komponen) dan berarti token LSN. Salah arti: 0 dari 15.
+- Token di 5.31, 13 dibaca penuh: 11 Token LSN, 2 token bawaan ("hitungan token" token bucket, "token tanpa hak decrypt" token OpenBao). Sama dengan pemisahan di `arti-istilah.json` (`kecuali`: "hitungan token", "token tanpa hak"). Salah arti: 0 dari 13.
+- Router, 10 sampel: 5 bertooltip Traffic router (mis. "Bobot canary datang dari router", "Tanpa traffic router, setWeight: 5 mengatur jumlah pod"), semuanya berarti komponen yang menggeser bobot; 5 tanpa tooltip (nama berkas `tanpa-router.txt` tiga kali, teks widget "Tanpa router", dan satu frasa "traffic router"), dan semuanya berarti traffic router atau berkas. Salah arti: 0 dari 10.
+- Router di 5.31 (5) dan 5.5 (2): 3 dari 5 di 5.31 bertooltip Traffic router, 2 adalah nama berkas; kedua di 5.5 bertooltip Router database ("router menentukan koneksi untuk tiap query", contoh Django). Salah arti: 0 dari 7.
+- Token bawaan di 5.4, 5.19, 5.24, 5.25, dan 5.26 (35 kemunculan dibaca satu per satu, `tmp/eval5u-bawaan.txt`): token Bearer, token bearer per service, token akses OAuth (RFC 9700, 9449), token bucket ("satu token", "hitungan token"), dan token OpenBao dengan satu hak; semuanya jenis string yang dibawa request atau jatah request, jadi arti bawaan tidak salah. Token OpenBao dan token akses OAuth terbaca lebih sempit di definisi bawaan ("bukti siapa pengirimnya"); itu kelonggaran, bukan salah arti.
+
+Popover di browser (Chrome sistem, 1366×657, `<details>` dibuka dan tab "Di stack lain" dipilih dengan klik label bila perlu): hover sungguhan dan Tab sungguhan membuka popover yang benar di sembilan sasaran:
+
+| Halaman | Sasaran | Hover | Keyboard (Tab) |
+| --- | --- | --- | --- |
+| 5.7 | "token" | Token LSN, tautan ke glosarium | Token LSN, istilah menunjuk popover lewat `aria-describedby` |
+| 5.7 | "router" | Router database, tautan 5.5 dan glosarium | Router database |
+| 5.31 | "token" | Token LSN, tautan 5.7 dan glosarium | Token LSN |
+| 5.31 | "traffic router" (frasa, dua kali) | Traffic router, tautan 5.23 | Traffic router |
+| 5.31 | "token" bawaan | Token (bawaan), tautan 1.27 | Token (bawaan) |
+| 5.23 | "Router" | Traffic router | Traffic router |
+| 5.5 | "router" | Router database | Router database |
+| 5.6 | "token" | Token LSN, tautan 5.7 | Token LSN sesudah 3 Tab |
+
+Catatan kecil pada baris terakhir: elemen yang dilewati sebelum "token" di 5.6 adalah istilah "HTTP method" yang popover-nya terbuka; Tab pertama masuk ke tautan popover itu, sesuai rancangan keyboard `istilah.js` (keputusan 702), jadi tiga Tab sampai ke "token". Ini perilaku rancangan, bukan cacat. 5.7 dan 5.31 juga lolos `eval-keyboard.mjs` (W4).
+
+Uji diri alat sapuan (skill analisis-kritis butir 8): `situs/data/arti-istilah.json` diganti `{}`, `situs` dibangun ulang, sapuan yang sama dijalankan → token bawaan 126, Token LSN 2 (hanya frasa utuh), router bawaan 20, Traffic router 14 (hanya frasa utuh). Sapuan membedakan keadaan benar (35, 93, 0, 30) dari keadaan rusak (126, 2, 20, 14). Berkas dipulihkan dari `git show HEAD:` (`cmp` identik dengan salinan asli), `situs` dibangun ulang, dan sapuan sesudahnya identik per byte dengan sapuan pertama. Tidak ada berkas repo yang berubah.
+
+Tiga definisi baru dicek ke sumber primer 2026-11-05: Token LSN, "posisi primary di WAL": PostgreSQL 17 `datatype-pg-lsn` menulis LSN sebagai penunjuk ke lokasi di WAL, bilangan 64-bit sebagai posisi byte pada aliran write-ahead log; kepala `X-Lsn-Tulis` ada di `labs/api-t5/internal/handler/handler_t5.go` (`KepalaLSNTulis`) dan `openapi.yaml` (jawaban dan parameter bacaan). Router database: dokumentasi Django 5.2 "Multiple databases" mendefinisikan Router sebagai kelas dengan sampai empat metode dan memberi contoh `PrimaryReplicaRouter` dengan `db_for_read` ke replica acak dan `db_for_write` ke `"primary"`. Traffic router: dokumentasi Argo Rollouts Traffic Management menyebut ingress controller dan service mesh (Istio, Nginx, Traefik, AWS ALB) dan memakai "traffic routers" sebagai istilah di kalimat "Not all traffic routers support all match types", tanpa definisi formal; definisi glosarium ("ingress controller atau service mesh menjalankan peran itu") sesuai pemakaian itu, dan peninjau #532 benar bahwa istilahnya tidak didefinisikan resmi. Halaman istilah menaut ke 5.7, 5.23, dan 5.5; `build_istilah.py --check` → "istilah sinkron".
+
+Satu pengamatan, bukan kegagalan: 5.22 dan 5.31 tidak punya baris `router` di `arti-istilah.json` dan bergantung pada frasa utuh "traffic router" (kunci terpanjang menang). Sapuan hari ini menemukan 0 "router" tunggal bertooltip bawaan di sana. Kata "router" tunggal yang ditulis di prosa kedua halaman itu nanti akan mendapat arti router framework; peninjau #532 menyebut `periksaCampuran` dan sapuan Vitest menolak keadaan itu, dan CI main hijau di 16595cd8. Tes itu tidak diulang di sini.
+
+Hasil bagian ini: 0 tooltip arti lama di halaman yang memakai arti lain (token: 0 di 5.6 dan 5.7, 0 salah di 5.31; router: 0 bawaan di 7 halaman). EVAL5-F1 terbukti.
+
+### Sapuan "kata dua arti" kelas baru (h)
+
+Dicatat sebagai polesan atau butir pemilik, bukan kegagalan W3 atau W4, dan tidak diperbaiki. Peninjau #532 menulisnya di badan PR (`### SETELAH-TAHAP-5`) dan di "Tidak dikerjakan"; pada `16595cd8` baris itu belum ada di `plan/SETELAH-TAHAP-5.md` (`git diff 58d1e65d HEAD -- plan/SETELAH-TAHAP-5.md` hanya menambah 27 baris dari PR lain, `grep` atas "token kartu", "lease", dan "log salah arti" kosong); `tools/lipat_masuk.py` melipatnya nanti.
+
+- Tooltip "log" (bawaan: "Catatan kejadian per request atau per peristiwa, ditulis aplikasi ..."): 28 tooltip statis di 10 dari 32 halaman Tahap 5 (`tmp/eval5u-duaarti.py` → `tmp/eval5u-duaarti.txt`). Salah arti 7: write-ahead log (WAL) di 5.5 (1), 5.6 (1), 5.7 (1, dan "LSN (log sequence number)" 1), log transaksi database di 5.30 (1), dan log berurutan Kafka di 5.15 (2). Kalimat sekitarnya dibaca satu per satu. 21 lainnya memakai arti log aplikasi, server, atau audit dan cocok: 5.18 (1), 5.19 (4), 5.25 (1), 5.26 (4), 5.27 (9, sinyal logs OpenTelemetry dan log drain), dan 2 di 5.7 ("log posisi WAL tidak terbaca" dan "Log server"). Di lima halaman yang disebut tugas ada 9 tooltip log statis dan, sesudah `istilah.js` menyisakan kemunculan pertama per bagian `h2`, 8 popover (5.5: 1, 5.6: 1, 5.7: 3, 5.15: 2, 5.30: 1).
+- "token kartu" dan sejenisnya: `tahap-4/kartu-virtual` 1 tooltip dan `tahap-4/skema-data` 1 tooltip memakai definisi token bearer ("bukti siapa pengirimnya") untuk token pengganti nomor kartu; `tahap-3/cache-invalidation` 1 tooltip untuk "lease, token terikat satu key". Jumlah: 3 tooltip salah arti.
+- Enam halaman yang #532 tidak baca satu per satu (`tahap-3/m25-kotak-peringatan`, `m26-transfer-bukan-budi`, `tls-pinning`, `xss-csrf-cookie`; `tahap-4/secret-iac-alamat-keluar`, `audit-log-back-office`) punya 142 tooltip token (5, 27, 19, 52, 14, 25). Kalimat sekitarnya dibaca (`tmp/eval5u-enam.txt`): token sesi, token bearer, refresh token, token OpenBao, dan token agen cocok dengan arti bawaan; token passthrough punya entri sendiri. Borderline: paling sedikit 19 dari itu berarti token CSRF (4 dari 5 di m25, 15 dari 52 di xss-csrf-cookie, dihitung dengan "csrf" dalam 30 karakter), yaitu string acak terikat sesi, sedangkan tooltip bawaan memakai "bukti siapa pengirimnya". PR #532 sudah memutuskan token CSRF tetap arti bawaan di dua halaman Tahap 3. Salah arti yang jelas: 0.
+- Hitungan total kelas ini: 10 tooltip salah arti (7 log, 2 token kartu, 1 token lease) dan 19 borderline. Kategori sama dengan EVAL5-F1 (informasi salah di depan pembaca, tetapi di tooltip kata umum), skalanya jauh lebih kecil dan tidak mengubah jawaban pembaca atas masalah halaman. Memperbaikinya butuh entri glosarium baru ("Write-ahead log" atau memakai entri WAL yang ada, "Log Kafka", "Token kartu", "Token lease") dengan sumber dan baris di `arti-istilah.json` untuk 8 halaman. Keputusan membuat tugas dibiarkan ke pemilik atau pengatur.
+
+### Putaran perbaikan
+
+Tidak ada TIDAK baru, jadi tidak ada tugas perbaikan disisipkan. W5 tetap TIDAK dan bukan tugas (butir pemilik). Kelas "kata dua arti" di atas dicatat sebagai polesan.
+
+### Ke TINJAUAN-PEMILIK
+
+Butir 8 bagian "Tahap 5" diperbarui: tooltip token dan router selesai oleh #532 dan dibuktikan di sini; ditambah satu kalimat kelas baru (10 tooltip salah arti, 19 borderline). Butir lain tidak berubah. Satu baris kesimpulan ditambahkan di akhir bagian itu.
+
+### Cara mengulang putaran 2
+
+```
+git fetch origin && git checkout -B catat/eval-5-ulang origin/main          # 16595cd8
+git diff --name-only 58d1e65d HEAD -- labs situs/data/erd tools/erd.py        # kosong
+bun run --cwd situs build && bun run --cwd situs preview --background --port 4323 --host 127.0.0.1
+python3 tmp/eval5u-sapuan.py ; python3 tmp/eval5u-sampel.py ; node tmp/eval5u-popover.mjs   # sapuan statis, sampel konteks, popover
+python3 tools/eval_tahap.py peta 5 ; python3 tools/eval_tahap.py gejala 5 ; python3 tools/eval_tahap.py rantai 5
+python3 tools/eval_tahap.py coba 5 ; python3 tools/eval_tahap.py bocor 5 ; python3 tools/eval_tahap.py adr 5
+python3 tools/audit_bahasa.py --check ; python3 tools/contrast.py ; python3 tools/erd.py --cek ; python3 tools/cek_tautan.py
+cd situs && UKUR_HALAMAN=<berkas 32 path> NODE_OPTIONS="--import <preload Chrome sistem>" node tools/layar.mjs --url http://127.0.0.1:4323
+cd situs && NODE_OPTIONS="--import <preload>" node tools/ukur-axe.mjs --url http://127.0.0.1:4323 --semua --awalan /tahap-5/
+cd situs && NODE_OPTIONS="--import <preload>" node tools/eval-keyboard.mjs --url http://127.0.0.1:4323 --path /tahap-5/replication-lag/ --ukuran 375x667
+```
+
+Skrip `tmp/eval5u-*.py` dan `.mjs` memakai Chrome sistem lewat `executablePath` dan path worktree `rjt-konten`; sesuaikan bila dijalankan di tempat lain.
