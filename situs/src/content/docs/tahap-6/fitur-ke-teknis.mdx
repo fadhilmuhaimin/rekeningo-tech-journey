@@ -144,7 +144,7 @@ Tiga angka di tabel punya dua arti, jadi tiap pemakaiannya menyebut artinya. Ang
 
 Asal masukan dari halaman lain: top-up 0,25 per user aktif per hari dari [[t5-m51|M51]], dan jendela makan siang 80% dalam 90 menit dari [[t5-m45|M45]]. W 0,02 detik berasal dari [[t5-prd]], dan 97 koneksi tersedia dari [[t5-pooler]]. Anggaran skor 50 ms berasal dari [[t5-m51|M51]], dan SLO 99,9% dari [[t5-tim-infra]].
 
-Baris Akun panas bersandar pada satu komentar kode. Di PostgreSQL 17.11, fungsi `RecordTransactionCommit` memuat satu komentar. Saat commit menunggu replikasi sinkron, transaksi masih tampak berjalan dan "continue to hold locks" (`src/backend/access/transam/xact.c`, dibuka 2026-11-06, Tidak dijalankan). Standby adalah salinan database yang menerima perubahan dari primary.
+Baris Akun panas bersandar pada satu komentar kode. Di PostgreSQL 17.11, fungsi `RecordTransactionCommit` memuat satu komentar. Saat commit menunggu replikasi sinkron, transaksi masih tampak berjalan dan `continue to hold locks`, yaitu tetap menahan lock (`src/backend/access/transam/xact.c`, dibuka 2026-11-06, Tidak dijalankan). Standby adalah salinan database yang menerima perubahan dari primary.
 
 Bila transaksi berikutnya ke baris yang sama menunggu lock itu, laju satu baris dibatasi 1 ÷ RTT. Batas itu penalaran atas kode dan Asumsi RTT, dan belum diukur [perlu verifikasi].
 

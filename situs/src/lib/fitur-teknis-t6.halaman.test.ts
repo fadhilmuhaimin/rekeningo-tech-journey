@@ -533,7 +533,9 @@ describe("blok Angka beban Tahap 6: 17 baris dihitung ulang dari masukan naskah 
     expect(batas(10)).toBe(100);
   });
   test("klaim lock: komentar kode PostgreSQL 17.11 dikutip dengan lingkup (Tidak dijalankan), batas 1 ÷ RTT per baris tetap [perlu verifikasi], dan R6-115 memuat kutipannya", () => {
-    expect(blok).toContain('Baris Akun panas bersandar pada satu komentar kode. Di PostgreSQL 17.11, fungsi `RecordTransactionCommit` memuat satu komentar. Saat commit menunggu replikasi sinkron, transaksi masih tampak berjalan dan "continue to hold locks" (`src/backend/access/transam/xact.c`, dibuka 2026-11-06, Tidak dijalankan).');
+    expect(blok).toContain('Baris Akun panas bersandar pada satu komentar kode. Di PostgreSQL 17.11, fungsi `RecordTransactionCommit` memuat satu komentar. Saat commit menunggu replikasi sinkron, transaksi masih tampak berjalan dan `continue to hold locks`, yaitu tetap menahan lock (`src/backend/access/transam/xact.c`, dibuka 2026-11-06, Tidak dijalankan).');
+    // Kutipan Inggris ditulis sebagai kode supaya tooltip glosarium tidak menempel pada kata "hold" (arti lain: dana yang ditahan kartu).
+    expect(badan).not.toContain("hold locks\"");
     expect(blok).toContain("Bila transaksi berikutnya ke baris yang sama menunggu lock itu, laju satu baris dibatasi 1 ÷ RTT. Batas itu penalaran atas kode dan Asumsi RTT, dan belum diukur [perlu verifikasi].");
     const r115 = riset6.split("\n").find((b) => b.startsWith("| R6-115 |"))!;
     expect(r115).toContain("PostgreSQL 17.11 (tag REL_17_11");
