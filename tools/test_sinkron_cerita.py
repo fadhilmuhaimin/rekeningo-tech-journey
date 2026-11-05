@@ -65,6 +65,16 @@ def uji_ujung_ke_ujung(kerja):
     r = cek()
     periksa("baris tabel dihapus: --check gagal", r.returncode == 1, r.stdout[-300:])
     halaman.write_text(asli, encoding="utf-8")
+    # Kontrol: tabel tahap biasa tetap disinkronkan (iterasi proyeksi menambah, bukan menggantikan, iterasi `tahap`).
+    t5 = salinan / "situs/src/content/docs/cerita/tahap-5.mdx"
+    asli5 = t5.read_text(encoding="utf-8")
+    m5 = re.search(r"\{/\* daftar-tahap \*/\}\n(.*?)\n\{/\* /daftar-tahap \*/\}", asli5, re.S)
+    baris5 = m5.group(1).split("\n")
+    t5.write_text(asli5.replace(baris5[2], baris5[2].replace("|", "| Ubahan |", 1), 1), encoding="utf-8")
+    r = cek()
+    periksa("tabel Tahap 5 diubah: --check gagal dan menyebut cerita/tahap-5.mdx",
+            r.returncode == 1 and "belum sinkron: situs/src/content/docs/cerita/tahap-5.mdx" in r.stdout, r.stdout[-300:])
+    t5.write_text(asli5, encoding="utf-8")
 
 
 (AKAR / "tmp").mkdir(exist_ok=True)

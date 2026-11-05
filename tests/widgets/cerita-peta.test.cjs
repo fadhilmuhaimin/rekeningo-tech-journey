@@ -49,7 +49,7 @@ async function petaDari(data) {
 test("peta cerita: lima tahap dari `tahap` dan Tahap 6 dari `proyeksi`, Tahap 6 bertanda proyeksi", async () => {
   const s = await petaDari(CERITA);
   assert.equal(s.length, CERITA.tahap.length + CERITA.proyeksi.length);
-  const proyeksi = s.filter((x) => x.className.includes("is-proyeksi"));
+  const proyeksi = s.filter((x) => (x.className ?? "").includes("is-proyeksi"));
   assert.equal(proyeksi.length, CERITA.proyeksi.length);
   assert.equal(s.at(-1), proyeksi[0]);
 });
@@ -65,7 +65,7 @@ test("peta cerita: Tahap 6 menaut ke halaman Cerita-nya, menghitung halaman dari
   assert.equal(teks(judul), `Tahap ${p.no} · ${p.nama}`);
   const halaman = CERITA.halaman.filter((h) => h.tahap === p.no && !/^T\d/.test(h.id));
   const ada = halaman.filter((h) => h.ada).length;
-  const ringkas = teks(cari(sec, (n) => n.className.includes("bb-peta__user"))[0]);
+  const ringkas = teks(cari(sec, (n) => (n.className ?? "").includes("bb-peta__user"))[0]);
   assert.ok(ringkas.includes(`0 dari ${halaman.length} halaman selesai`), ringkas);
   assert.ok(ringkas.endsWith("proyeksi tanpa lab"), ringkas);
   assert.ok(!ringkas.includes("belum ditulis"));
@@ -73,14 +73,15 @@ test("peta cerita: Tahap 6 menaut ke halaman Cerita-nya, menghitung halaman dari
   const daftar = cari(sec, (n) => n.tag === "li");
   assert.equal(daftar.length, halaman.length);
   assert.equal(daftar.filter((li) => teks(li).includes("segera")).length, halaman.length - ada);
-  assert.ok(teks(cari(sec, (n) => n.className.includes("bb-peta__prd"))[0]).startsWith(`PRD v${p.no}: `));
+  assert.ok(teks(cari(sec, (n) => (n.className ?? "").includes("bb-peta__prd"))[0]).startsWith(`PRD v${p.no}: `));
 });
 
 test("peta cerita: tahap biasa tetap punya diagram dan bukan proyeksi (kontrol)", async () => {
   const s = await petaDari(CERITA);
   for (const sec of s.slice(0, CERITA.tahap.length)) {
-    assert.ok(!sec.className.includes("is-proyeksi"));
+    assert.ok(!(sec.className ?? "").includes("is-proyeksi"));
     assert.equal(cari(sec, (n) => n.tag === "figure").length, 1);
+    assert.equal(cari(sec, (n) => (n.className ?? "").includes("bb-peta__prd")).length, 0, "paragraf PRD hanya untuk tahap proyeksi");
   }
 });
 

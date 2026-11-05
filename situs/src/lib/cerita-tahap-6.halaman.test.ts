@@ -20,6 +20,32 @@ const REG = JSON.parse(baca("situs/data/cerita.json")) as {
 const P = REG.proyeksi[0]!;
 const halaman = (id: string) => REG.halaman.find((h) => h.id === id)!;
 
+// Inventaris negasi halaman (awal kalimat, jumlah kata negasi). Tiap butir ada sumbernya: naskah bagian Latar dan 1 (tiga hal berubah,
+// tokoh baru, Citra dan pihak yang mencoba, Bukan lingkup v6), halaman 5.29 (tiga hal belum diuji, kapasitas belum diukur), dan
+// kalimat definisi label (Ilustrasi bukan hasil sistem). Menambah atau menghapus satu negasi mengubah daftar ini dan menggagalkan tes.
+const NEGASI: (readonly [string, number])[] = [
+  ["Tahap 6 adalah proyeksi tanpa lab, jadi tak satu", 2],
+  ["Ilustrasi adalah contoh atau kejadian cerita, bu", 1],
+  ["1. **Uang melewati mata uang.** Satu jurnal beri", 1],
+  ["2. **Data punya alamat.** Data satu negara harus", 1],
+  ["3. **Koordinasi menjadi beban utama.** 53 orang ", 1],
+  ["Tahap 6 berangkat dari keadaan akhir Tahap 5, bu", 1],
+  ["Menurut [[t5-m51]], tiga hal belum pernah diuji ", 1],
+  ["Kapasitas satu primary, yaitu database yang mene", 1],
+  ["| Pelaporan | 4 | Tanpa nama | laporan Keuangan ", 1],
+  ["Yang tidak berubah:", 1],
+  ["Tim Risiko menggantikan nama \"tim fraud dan comp", 1],
+  ["Tim risk milik Ratih adalah tim bisnis yang mema", 1],
+  ["Ia lima tahun membangun skor penipuan di sistem ", 1],
+  ["Ia menganggap lebih banyak data selalu menaikkan", 1],
+  ["Citra pindah ke negara kedua, dan pihak yang men", 1],
+  ["Selisih pembulatan harus punya akun, dan tidak b", 2],
+  ["| P0 | Tidak berhenti saat satu wilayah hilang |", 1],
+  ["Bukan lingkup v6: negara keempat, kartu fisik, p", 1],
+  ["PRD v6 tidak membawa klaim izin, lisensi, atau k", 1],
+  ["Halaman Tahap 6 memberi tiap kejadian label Ilus", 2],
+];
+
 // ---- alat baca --------------------------------------------------------------------------------------------------------
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 const KATA = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas", "dua belas"];
@@ -62,7 +88,7 @@ const jumlah = (a: number[]) => a.join(" + ");
 describe("naskah dan registry: sumber nilai halaman", () => {
   test("naskah menulis 10.000.000 user terdaftar, 20% aktif, 24 minggu, 28 menjadi 53 orang, dan sebelas tim", () => {
     expect(USER).toBe(10_000_000);
-    expect(NASKAH).toContain(`${titik(USER)} user terdaftar`);
+    expect(/kini menargetkan tiga negara dengan ([\d.]+) user terdaftar/.exec(NASKAH)![1]).toBe(titik(USER));
     expect(AKTIF).toBe(20);
     expect(MINGGU).toBe(24);
     expect(NASKAH).toContain(`Tim naik dari ${LAMA} menjadi ${BARU} orang`);
@@ -175,7 +201,7 @@ describe("Ceritanya: angka dari naskah dan hitungan yang bisa diulang", () => {
   test("tiga hal berubah: ledger 2.7 menulis posting berjumlah nol, enam service dari Tahap 5, dan Asumsi produk di butir data", () => {
     expect(baca("situs/src/content/docs/tahap-2/ledger.mdx")).toContain("jurnal yang posting-nya berjumlah nol");
     expect(halaman("t2-ledger").path).toBe("tahap-2/ledger.md");
-    expect(baca("situs/src/content/docs/tahap-5/modul-ke-service.mdx")).toContain("enam modul menjadi enam service");
+    expect(/^description: (.*)$/m.exec(baca("situs/src/content/docs/tahap-5/modul-ke-service.mdx"))![1]).toContain("memecah enam modul menjadi enam service di Kubernetes");
     expect(NASKAH).toContain("data satu negara harus tinggal di tempat tertentu (Asumsi produk)");
     expect(NASKAH).toContain("transfer antar negara membutuhkan kurs");
     expect(NASKAH).toContain("dan tidak ada orang yang memahami semuanya");
@@ -256,15 +282,19 @@ describe("Tokoh baru dan tokoh lama", () => {
     expect(TOKOH.isi.map((r) => tanpaTanda(r[0]!))).toEqual(["Kirana", "Arga"]);
     const butir = sec.split("\n").filter((b) => b.startsWith("- **"));
     expect(butir).toHaveLength(2);
-    expect(sec).toContain("Tahap 6 punya dua tokoh baru:");
+    expect(sec.split("\n\n")[0]).toBe(`Tahap 6 punya ${KATA[TOKOH.isi.length]} tokoh baru:`);
     const FRASA = [
       ["engineer risiko yang memimpin tim risiko", "lima tahun membangun skor penipuan di sistem lain", "belum pernah memikirkan di mana data boleh tinggal",
         "skor yang menangkap penipuan sebelum uang berpindah", "lebih banyak data selalu menaikkan ketepatan skor, termasuk data yang tidak boleh keluar dari satu wilayah"],
       ["engineer yang memimpin tim wilayah", "pernah memasang integrasi bank di dua negara", "setiap negara terasa seperti satu produk lokal",
         "aturan per negara cukup ditulis sebagai percabangan di kode"],
     ];
+    const kecil = (x: string) => x.charAt(0).toLowerCase() + x.slice(1);
     TOKOH.isi.forEach((r, i) => {
       const nama = tanpaTanda(r[0]!);
+      // Butir halaman = kolom naskah (Siapa, Ingin, Kelemahan) disambung dengan "Ia": tiap kalimat, kata, dan negasi dari naskah.
+      const [s1, s2] = r[1]!.split(/(?<=\.) /).map((x) => x.replace(/\.$/, ""));
+      expect(butir[i]).toBe(`- **${nama}** adalah ${kecil(s1!)}. Ia ${kecil(s2!).replace(", belum", ", dan belum")}. Ia ingin ${kecil(r[2]!.replace(/\.$/, ""))}. Ia ${kecil(r[3]!.replace(/\.$/, ""))}.`);
       expect(norm(butir[i]!).startsWith(`- **${nama.toLowerCase()}** adalah`)).toBe(true);
       for (const f of FRASA[i]!) {
         expect(norm(r.join(" ")), `naskah ${nama}: ${f}`).toContain(f);
@@ -274,6 +304,14 @@ describe("Tokoh baru dan tokoh lama", () => {
   });
   test("tokoh lama: tiap 'X memimpin Y' sama dengan baris tabel tim, dan Maya, Kirana, Arga tidak disebut ulang di sana", () => {
     const k = bagian(MDX, "Tokoh baru").split("\n\n").find((p) => p.startsWith("Tokoh lama tetap ada"))!;
+    const awalLama = NASKAH.indexOf("Tokoh lama tetap:");
+    const urutan = (n: string) => NASKAH.indexOf(`- **${n}**`, awalLama);
+    const pemimpinLama = TIM_HAL.isi.filter((r) => !["Maya", "Kirana", "Arga", "Tanpa nama"].includes(r[2]!)).map((r) => ({ lead: r[2]!, tim: r[0]! })).sort((a, b) => urutan(a.lead) - urutan(b.lead));
+    const kalimat = pemimpinLama.map((x) => `${x.lead} memimpin ${x.tim}`);
+    const harus = `${kalimat.slice(0, -1).join(", ")}, dan ${kalimat.at(-1)}.`;
+    expect(pemimpinLama.every((x) => urutan(x.lead) > awalLama)).toBe(true);
+    expect(k.split(". ")[0] + ".").toBe("Tokoh lama tetap ada, dengan kelemahan yang sama.");
+    expect(k).toBe(`Tokoh lama tetap ada, dengan kelemahan yang sama. ${harus} Nadia masih cenderung mengusulkan solusi yang terlalu berat, kali ini dua wilayah yang melayani data yang sama (aktif-aktif).`);
     const pasang = [...k.matchAll(/(\w+) memimpin ([A-Z][\w ]+?)(?:,| dan (?=\w+ memimpin)|\.)/g)].map((m) => [m[1], m[2]]);
     const lama = TIM_HAL.isi.filter((r) => !["Maya", "Kirana", "Arga", "Tanpa nama"].includes(r[2]!)).map((r) => [r[2], r[0]]);
     expect(pasang.map((p) => p.join("|")).sort()).toEqual(lama.map((p) => p.join("|")).sort());
@@ -284,10 +322,9 @@ describe("Tokoh baru dan tokoh lama", () => {
   test("Citra pindah ke negara kedua dan syarat Pak Hadi sama dengan kutipan naskah", () => {
     const naskah = /\*"(Saya menandatangani laporan per mata uang\.[^"]*)"\*/.exec(NASKAH)![1]!;
     expect(naskah).toBe("Saya menandatangani laporan per mata uang. Selisih pembulatan harus punya akun, dan tidak boleh ada saldo yang berubah tanpa kejadian.");
-    expect(sec).toContain(`Pak Hadi menambah satu syarat: "${naskah}"`);
+    expect(sec.split("\n\n").at(-1)).toBe(`Citra pindah ke negara kedua, dan pihak yang mencoba tetap tidak dikenal. Pak Hadi menambah satu syarat: "${naskah}"`);
     expect(NASKAH).toContain("Citra pindah ke negara kedua");
     expect(NASKAH).toContain("**Pihak yang mencoba** tetap tidak dikenal");
-    expect(sec).toContain("Citra pindah ke negara kedua, dan pihak yang mencoba tetap tidak dikenal.");
   });
 });
 
@@ -309,7 +346,12 @@ describe("Yang diminta PRD v6: baris dan label sama dengan naskah bagian 1", () 
   test("angka dan label tiap baris: yang ada di keterangan naskah (user per negara, RPO, RTO, 50 ms, 11 tim) ada di halaman dengan label yang sama", () => {
     const naskahBaris = (nama: string) => PRD_N.isi.find((r) => r[1] === nama)![2]!;
     const halBaris = (nama: string) => PRD_H.isi.find((r) => r[1] === nama)![2]!;
-    const split = [0.6, 0.25, 0.15].map((p) => titik(USER * p));
+    const draf = /Pembagian user (\d+)%, (\d+)%, (\d+)%\.\*\* Dari ([\d.]+) user terdaftar: ([\d.]+), ([\d.]+), dan ([\d.]+)/.exec(NASKAH)!;
+    const persen = [draf[1], draf[2], draf[3]].map(Number);
+    expect(persen.reduce((a, b) => a + b, 0)).toBe(100);
+    expect(draf[4]).toBe(titik(USER));
+    const split = persen.map((p) => titik((USER * p) / 100));
+    expect([draf[5], draf[6], draf[7]]).toEqual(split);
     expect(naskahBaris("Tiga negara")).toContain(`${split[0]}, ${split[1]}, dan ${split[2]} user`);
     expect(halBaris("Tiga negara")).toContain(`${split[0]}, ${split[1]}, dan ${split[2]} user terdaftar (Asumsi cerita)`);
     expect(split.map((s) => Number(s.replace(/\./g, ""))).reduce((a, b) => a + b, 0)).toBe(USER);
@@ -379,6 +421,13 @@ describe("rujukan, kata, dan label di seluruh halaman", () => {
     for (const k of ["token", "router", "client", "log", "nonce", "replika", "layanan", "pengguna", "kita", "Anda"]) expect(badan, k).not.toMatch(new RegExp(`\\b${k}\\b`, "i"));
     expect(NASKAH).toContain("Kata \"token\", \"router\", \"client\", \"log\", dan \"nonce\" tidak dipakai di naskah ini");
     expect((badan.match(/\bnegara\b/gi) ?? []).length).toBeGreaterThan(0);
+  });
+  test("inventaris negasi: kalimat yang memuat tidak, bukan, belum, tak, tanpa, jangan, atau kecuali dicatat satu per satu (kalimat negatif atau universal berlingkup)", () => {
+    const prosa = MDX.replace(/^---[\s\S]*?\n---/, "").replace(/\{\/\* daftar-tahap \*\/[\s\S]*\{\/\* \/daftar-tahap \*\/\}/, "")
+      .replace(/<figure[\s\S]*?<\/figure>/, "").replace(/<p class="meta">.*<\/p>/, "");
+    const kalimat = prosa.split(/\n+/).flatMap((b) => b.split(/(?<=[.:]) (?=[A-Z"])/));
+    const aktual = kalimat.map((k) => [k.slice(0, 48), (k.match(/\b(tidak|bukan|belum|tak|tanpa|jangan|kecuali)\b/gi) ?? []).length] as const).filter(([, n]) => n > 0);
+    expect(aktual).toEqual(NEGASI);
   });
   test("tanpa nama negara, mata uang, atau merek: tiga negara tidak dinamai dan rupiah tak disebut dengan kode lain", () => {
     expect(NASKAH).toContain("tanpa nama dan tanpa kode mata uang kecuali rupiah");

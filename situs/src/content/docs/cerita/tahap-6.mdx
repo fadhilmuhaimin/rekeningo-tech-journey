@@ -70,9 +70,9 @@ Tim Risiko menggantikan nama "tim fraud dan compliance engineering" di [[t5-jemb
 Tahap 6 punya dua tokoh baru:
 
 - **Kirana** adalah engineer risiko yang memimpin tim Risiko. Ia lima tahun membangun skor penipuan di sistem lain, dan belum pernah memikirkan di mana data boleh tinggal. Ia ingin skor yang menangkap penipuan sebelum uang berpindah. Ia menganggap lebih banyak data selalu menaikkan ketepatan skor, termasuk data yang tidak boleh keluar dari satu wilayah.
-- **Arga** adalah engineer yang memimpin tim Wilayah, dan ia pernah memasang integrasi bank di dua negara. Ia ingin setiap negara terasa seperti satu produk lokal. Ia menganggap aturan per negara cukup ditulis sebagai percabangan di kode.
+- **Arga** adalah engineer yang memimpin tim Wilayah. Ia pernah memasang integrasi bank di dua negara. Ia ingin setiap negara terasa seperti satu produk lokal. Ia menganggap aturan per negara cukup ditulis sebagai percabangan di kode.
 
-Tokoh lama tetap ada, dengan kelemahan yang sama. Raka memimpin Akun, Nadia memimpin Pembayaran, Hendra memimpin Ledger dan Tabungan, Wulan memimpin Merchant, Bayu memimpin Platform, Dewi memimpin SRE, dan Laras memimpin Security. Nadia masih cenderung mengusulkan solusi yang terlalu berat, kali ini dua wilayah yang melayani data yang sama (aktif-aktif).
+Tokoh lama tetap ada, dengan kelemahan yang sama. Raka memimpin Akun, Nadia memimpin Pembayaran, Bayu memimpin Platform, Hendra memimpin Ledger dan Tabungan, Wulan memimpin Merchant, Dewi memimpin SRE, dan Laras memimpin Security. Nadia masih cenderung mengusulkan solusi yang terlalu berat, kali ini dua wilayah yang melayani data yang sama (aktif-aktif).
 
 Citra pindah ke negara kedua, dan pihak yang mencoba tetap tidak dikenal. Pak Hadi menambah satu syarat: "Saya menandatangani laporan per mata uang. Selisih pembulatan harus punya akun, dan tidak boleh ada saldo yang berubah tanpa kejadian."
 
@@ -84,8 +84,8 @@ Isi PRD v6 adalah rencana cerita (Ilustrasi), dan [[t6-prd]] memuat dokumen leng
 |---|---|---|
 | P0 | Tiga negara | 6.000.000, 2.500.000, dan 1.500.000 user terdaftar (Asumsi cerita). Satu app, satu mata uang tiap negara, dan top-up lewat integrasi bank lokal |
 | P0 | Multi-mata uang dengan kurs | Transfer antar negara memakai kurs yang disimpan. Tukar adalah dua jurnal yang terhubung, dan selisih pembulatan punya akun sendiri |
-| P0 | Data per negara | Data identitas dan saldo satu negara tinggal di wilayah negara itu dan pasangan yang diizinkan (Asumsi produk). Database dipisah per negara |
-| P0 | Tidak berhenti saat satu wilayah hilang | Ledger memakai multi-region aktif-pasif: satu wilayah melayani dan pasangannya menunggu. RPO nol, RTO satu wilayah 30 menit, dan RTO satu mesin tetap 15 menit (Asumsi produk) |
+| P0 | Data per negara | Data identitas dan saldo satu negara tinggal di wilayah negara itu dan di wilayah pasangannya yang diizinkan (Asumsi produk). Wilayah pasangan adalah wilayah lain yang menunggu sampai failover. Database dipisah per negara |
+| P0 | Tidak berhenti saat satu wilayah hilang | Ledger memakai multi-region aktif-pasif: satu wilayah melayani, dan wilayah pasangannya menunggu. RPO nol, RTO satu wilayah 30 menit, dan RTO satu mesin tetap 15 menit (Asumsi produk) |
 | P0 | Skor risiko real-time | Tiap pembayaran dan transfer mendapat skor dalam 50 ms (Asumsi). Tim Risiko membangun graf akun-perangkat, yaitu hubungan akun dengan perangkat yang memakainya |
 | P0 | Platform internal | Golden path (jalur bawaan untuk service baru), service catalog (daftar pemilik service), label biaya per tim, dan SLO per tim untuk 11 tim |
 | P1 | Perubahan aman di skala | Rilis bertahap berbasis SLO dengan rollback otomatis, dan chaos testing (percobaan gangguan) berskala kecil |
