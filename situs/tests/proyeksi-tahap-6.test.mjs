@@ -79,12 +79,24 @@ test("registry: nama bagian proyeksi cocok dengan heading naskah, dan setiap hal
   for (const x of t6) assert.ok(bagianT6.some((b) => b.no === x.bagian), `${x.id}: bagian ${x.bagian}`);
 });
 
-test("urutan baca: Tahap 6 belum di urutan baca, jadi halaman Cerita-nya tidak punya tetangga dan Berikutnya 5.32 tidak jatuh ke Tahap 6", () => {
+test("urutan baca: Tahap 6 belum atau sudah di urutan baca, dan halaman Cerita-nya tidak pernah menyela jembatan 5.32 ke 6.1", () => {
   const urut = urutanBaca(d);
-  assert.ok(!urut.some((x) => x.tahap === 6), "Tahap 6 masuk URUT_BACA hanya lewat tugas 6.1 (keputusan 1805)");
-  assert.deepEqual(tetangga(d, d.halaman.find((x) => x.id === "T6")), { prev: null, next: null });
+  const urut6 = urut.filter((x) => x.tahap === 6);
+  const t6c = d.halaman.find((x) => x.id === "T6");
   const sesudah532 = tetangga(d, d.halaman.find((x) => x.id === "t5-jembatan")).next;
-  assert.notEqual(sesudah532?.tahap, 6, "5.32 baru menuju 6.1 lewat tugas 6.1; halaman Cerita tidak boleh menyela jembatan");
+  const prd = d.halaman.find((x) => x.id === "t6-prd");
+  if (urut6.length === 0) {
+    // Keadaan sekarang: Tahap 6 masuk `URUT_BACA` hanya lewat tugas 6.1 (keputusan 1805), jadi T6 tidak punya tetangga.
+    assert.deepEqual(tetangga(d, t6c), { prev: null, next: null });
+    assert.notEqual(sesudah532?.tahap, 6, "5.32 baru menuju 6.1 lewat tugas 6.1");
+  } else {
+    // Sesudah 6.1: T6 (diganti_oleh t6-prd) dilewati bila 6.1 ada, dan Berikutnya dari T6 dan dari 5.32 adalah 6.1.
+    assert.equal(urut6.some((x) => x.id === "T6"), !prd.ada, "T6 di urutan baca tepat bila 6.1 belum ada");
+    if (prd.ada) {
+      assert.equal(tetangga(d, t6c).next.id, "t6-prd");
+      assert.equal(sesudah532.id, "t6-prd", "Berikutnya 5.32 adalah 6.1, bukan halaman Cerita");
+    }
+  }
 });
 
 test("registry: T6 mengikuti pola T5 (Cerita tahap, diganti oleh PRD tahapnya) dan ada tepat sekali", () => {
