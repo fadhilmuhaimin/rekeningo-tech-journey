@@ -561,8 +561,6 @@ describe("diagram Rantai t6-prd-sebelum-sesudah.json", () => {
     expect(rantai.id).toBe("t6-prd-sebelum-sesudah");
     expect(rantai.sumber).toEqual({ jenis: "ilustrasi", teks: "Ringkasan PRD v6" });
     expect(rantai.judul).toBe("Sesudah Tahap 5 dan yang diminta PRD v6");
-    const bentuk = rantai.baris.map((b) => ({ label: b.label, sub: b.sub ?? null, simpul: b.simpul.map((s) => [s.teks, s.sub ?? null, s.nada ?? null]) }));
-    expect(bentuk).toEqual(NILAI_RANTAI);
     expect(rantai.baris.map((b) => b.simpul.length)).toEqual([4, 4]);
     const t = (b: number, s: number) => rantai.baris[b]!.simpul[s]!;
     expect(t(0, 0).sub).toBe(`${id(a5.user)} user`);
@@ -635,6 +633,10 @@ describe("kalimat prosa dan sidik teks halaman", () => {
     expect(baris.filter((b) => b.trim())).toEqual(BARIS_MDX);
     expect(baris.map((b) => (b.trim() ? "#" : "-")).join("")).toBe(BENTUK_MDX);
     expect(mdx.endsWith("\n")).toBe(true);
+  });
+  test("nilai diagram Rantai persis sama dengan sidik", () => {
+    const bentuk = rantai.baris.map((b) => ({ label: b.label, sub: b.sub ?? null, simpul: b.simpul.map((s) => [s.teks, s.sub ?? null, s.nada ?? null]) }));
+    expect(bentuk).toEqual(NILAI_RANTAI);
   });
   test("lima baris riset R6-110 sampai R6-114 persis sama dengan sidik", () => {
     expect(riset6.split("\n").filter((b) => /^\| R6-11[0-4] \|/.test(b))).toEqual(BARIS_RISET);
