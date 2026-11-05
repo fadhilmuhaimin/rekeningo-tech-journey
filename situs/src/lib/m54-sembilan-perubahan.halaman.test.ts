@@ -163,6 +163,8 @@ const canary = 0.01;
 const sampel3 = puncak3 * canary, sampel2 = puncak2 * canary;
 const gagalCanary = (persenGagal / 100) * canary * 100; // 0,02%
 const menitCanary = kejadianSetara * canary; // 0,0044
+const reqPerUser = Number(cocok(bag3, /(\d+) request per user aktif per hari/)[1]);
+const reqPuncak = ((aktif * reqPerUser) / detikHari) * puncakFaktor; // 13.888,9
 const rtoMenit = 15;
 const rtoPersen = (rtoMenit / 43.2) * 100; // 34,7
 const detik1000 = 1000 / sampel3, detik1000b = 1000 / sampel2;
@@ -725,6 +727,124 @@ describe("kata kunci negatif dan universal, bahasa, dan kartu Cek diri", () => {
     expect(soal[4]![3]).toContain("(dokumentasi Google Play, Tidak dijalankan)");
     expect(hitung(kunci, "- [ ] ")).toBe(7);
     expect(hitung(kunci, "https://")).toBe(7);
+  });
+});
+
+
+describe("kunci kemunculan, tautan, judul bagian, sel tabel, dan catatan widget (mutan tanpa sidik)", () => {
+  const kali = (kalimat: string, k: number) => expect(hitung(badan, kalimat), `kemunculan "${kalimat}"`).toBe(k);
+  test("frasa hitungan yang diulang di Paham, ADR, dan Cek diri muncul sebanyak yang dijanjikan, dan tiap nilai turunan punya kalimatnya", () => {
+    kali(`${menitKejadian} × ${id(persenGagal / 100, 2)} = ${id(kejadianSetara, 2)} menit henti penuh, yaitu ${id(kejadianSetara, 2)} ÷ ${id(anggaran, 1)} = ${id(kejadianPersen, 1)}% anggaran (Hitungan atas Ilustrasi)`, 2);
+    kali(`${id(persenGagal, 1)}% × ${canary * 100}% = ${id(gagalCanary, 2)}% pembayaran gagal`, 2);
+    kali(`${id(sampel3, 3)} transaksi per detik`, 3);
+    kali(`1.000 ÷ ${id(sampel3, 3)} = ${id(detik1000, 0)} detik`, 1);
+    kali(`${id(sloPerService * 100, 3)}%`, 3);
+    kali("0,999 dipangkatkan 4 = ", 2);
+    kali(`${mS[5]} menit per ${mS[6]} hari`, 2);
+    kali(`${rilisHari} rilis per hari`, 3);
+    kali(`= ${id(rilisJam, 1)} per jam (Hitungan atas Asumsi cerita)`, 1);
+    kali(`Rilis berjalan ${id(rilisJam, 1)} per jam (Hitungan atas Asumsi cerita)`, 1);
+    kali(`${id(rtoPersen, 1)}%`, 1);
+    kali(`${id(persenBukan, 1)}%`, 1);
+    kali(`${id(burnRate, 1)} kali laju`, 1);
+    kali(`hari ke-${hariKe}`, 8);
+    kali(`${terpakai} menit`, 5);
+    kali(`${terpakai} ÷ ${id(anggaran, 1)}`, 2);
+    kali(`${id(menitCanary, 4)} menit`, 1);
+    kali(`13.888,9 request per detik memakai ${pod30} pod tiap service (Asumsi desain, [[t6-prd]])`, 1);
+    expect(id(reqPuncak, 1)).toBe("13.888,9");
+    expect(id(reqPuncak, 1)).toBe(id(((aktif * reqPerUser) / detikHari) * puncakFaktor, 1));
+    kali(`yaitu ${id(8 / 3, 1)} kali beban Tahap 5`, 1);
+    kali(`1 ÷ ${pod30} = ${id(100 / pod30, 1)}%`, 1);
+    kali(`Paparan itu 1% × ${id(puncak3, 1)} = ${id(sampel3, 3)} transaksi per detik di puncak, dibulatkan ${id(sampel3, 1)} (Hitungan atas Asumsi).`, 1);
+    kali("Alert seperti itu memberi tahu bahwa anggaran terbakar, bukan perubahan mana yang membakarnya (Penalaran).", 1);
+    kali("Selama canary berjalan, pod tambahan membawa pool koneksinya sendiri ke pooler koneksi.", 1);
+  });
+  test("peta tautan: tiap teks tautan menunjuk satu alamat, nomor isu di teks sama dengan alamat, dan tiap tautan prosa ditutup 'Tidak dijalankan'", () => {
+    const LINK: Record<string, string> = {
+      "SRE Workbook: Canarying Releases": "https://sre.google/workbook/canarying-releases/",
+      "SRE Workbook: Example Error Budget Policy": "https://sre.google/workbook/error-budget-policy/",
+      "Principles of Chaos Engineering": "https://principlesofchaos.org/",
+      "isu chaos-mesh #4827": "https://github.com/chaos-mesh/chaos-mesh/issues/4827",
+      "Chaos Mesh: isu #4827": "https://github.com/chaos-mesh/chaos-mesh/issues/4827",
+      "OpenFeature: rilis spesifikasi": "https://github.com/open-feature/spec/releases",
+      "Apple: Release a version update in phases": "https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/",
+      "Google Play: staged rollouts": "https://support.google.com/googleplay/android-developer/answer/6346149",
+    };
+    const semua = [...badan.matchAll(/\[([^\]]+)\]\((https:\/\/[^)]+)\)/g)];
+    expect(semua.length).toBe(7 + 7); // tujuh di prosa Paham, tujuh di Bacaan lanjut
+    for (const m of semua) {
+      expect(LINK[m[1]!], `teks tautan tidak dikenal: ${m[1]}`).toBe(m[2]);
+      const noIsu = m[1]!.match(/#(\d+)/);
+      if (noIsu) expect(m[2]!.endsWith(`/issues/${noIsu[1]}`), m[1]).toBe(true);
+    }
+    for (const m of badan.matchAll(/\]\(https:\/\/[^)]+\), ([^)]*)\)/g)) expect(m[1], m[0]).toMatch(/dibuka 2026-11-06, Tidak dijalankan$/);
+    expect(hitung(kunci, "](https://")).toBe(7);
+    expect(kunci.split("### Bacaan lanjut")[1]!.match(/^- \[/gm)!.length).toBe(7);
+  });
+  test("judul bagian: tingkat dan nama tiap heading per blok, tanpa heading di Mulai dan Coba", () => {
+    const judul = (b: string) => [...b.matchAll(/^(#+) (.+)$/gm)].map((m) => `${m[1]} ${m[2]}`);
+    expect(judul(mulai)).toEqual([]);
+    expect(judul(coba)).toEqual([]);
+    expect(judul(paham)).toEqual(["### Yang dikira", "### Yang sebenarnya", "### Canary: paparan sebanding dengan bobot", "### Pagar di luar deploy: flag, garis waktu, dan aturan skor", "### Kebijakan error budget", "### Chaos testing", "### Untuk app Flutter", "### Yang tidak dijalankan"]);
+    expect(judul(putuskan)).toEqual(["### ADR 63: SLO per service, canary dengan analisis SLO, flag berpemilik, garis waktu, kebijakan error budget, dan percobaan gangguan kecil", "### Sengaja belum dilakukan"]);
+    expect(judul(kunci)).toEqual(["### Cek diri", "### Saat me-review kode AI, cek ini", "### Bacaan lanjut"]);
+    expect(front.split("\n").find((l) => l.startsWith("title:"))).toBe(`title: "${reg.nomor} ${reg.judul.split(" (")[0]}"`);
+  });
+  test("sel tabel ADR 63: tiap kata kunci ada di kolom opsi yang dimaksud (tukar sel antar kolom menggagalkan)", () => {
+    const t1 = putuskan.split("Tabel pertama membandingkan cara membatasi risiko perubahan:")[1]!.split("Tabel kedua membandingkan pengelolaan flag:")[0]!;
+    const t2 = putuskan.split("Tabel kedua membandingkan pengelolaan flag:")[1]!.split("**Keputusan:")[0]!;
+    const baris = (t: string) => t.split("\n").filter((l) => l.startsWith("|") && !l.startsWith("|---") && !l.startsWith("| |")).map(sel);
+    const kunciT1: Record<string, string[]> = {
+      "Cara kerja": ["menyetujui rilis hari itu", "dibekukan tiap hari Kamis", "alert burn rate", "flag yang dinyalakan bertahap", "bobot Gateway API"],
+      Kelebihan: ["Tanpa alat baru", "Sederhana", "Tidak menahan rilis", "Membatasi paparan fitur", "Paparan sebanding bobot"],
+      Kekurangan: ["menunggu satu rapat", "Frekuensi turun", "Alert menyebut kapan", "Kode versi baru tetap berjalan", "Langkah 1% butuh sampel"],
+      "Biaya operasional": ["Waktu 11 wakil", "Rilis menumpuk", "Sama dengan alert", "Flag berkumpul tanpa pemilik", "Plugin Gateway API"],
+      Bukti: ["Penalaran atas M54, Tidak dijalankan", "Penalaran atas M54, Tidak dijalankan", "burn rate 1,7", "Penalaran, Tidak dijalankan", "gateway.txt"],
+    };
+    const kunciT2: Record<string, string[]> = {
+      "Cara kerja": ["SDK OpenFeature", "pemilik dan tanggal kedaluwarsa"],
+      Kelebihan: ["nilai default per pemanggilan", "Tanpa komponen baru"],
+      Kekurangan: ["belum 1.0", "ditulis tangan"],
+      "Biaya operasional": ["mesin evaluasi", "satu cache per pod"],
+      Bukti: ["rilis spesifikasi v0.9.0", "sakelar.txt"],
+    };
+    for (const [t, peta] of [[t1, kunciT1], [t2, kunciT2]] as const) {
+      const rows = baris(t);
+      expect(rows.map((r) => r[0])).toEqual(Object.keys(peta));
+      for (const r of rows) peta[r[0]!]!.forEach((k, c) => expect(r[c + 1], `${r[0]}, kolom ${c + 1}: ${k}`).toContain(k));
+    }
+  });
+  test("catatan widget banding: tiap catatan memuat kata kunci jenis perubahannya dan label sumbernya", () => {
+    const d = bandingMentah as { fitur: { label: string; catatan: Record<string, string> }[] };
+    const kunciWidget: [string, string[], string[]][] = [
+      ["Rilis biasa (deploy)", ["menyetujui atau menunda deploy sebelum rilis", "rapat tidak mengukur dampaknya", "(Penalaran, Ilustrasi)"], ["bobot Gateway API", "Analisis memeriksa SLO", "bobot kembali ke versi lama", "(rancangan, Tidak dijalankan)"]],
+      ["Aturan skor", ["bukan deploy", "catatan tim Risiko", "(Penalaran, Ilustrasi)"], ["garis waktu negara", "pemilik, dan versi", "canary yang sama", "(Asumsi desain)"]],
+      ["Flag", ["Tiga flag berubah dalam 30 menit", "tanpa pemilik dan tanpa tanggal berakhir", "(Penalaran, Ilustrasi)"], ["pemilik dan tanggal kedaluwarsa", "masuk garis waktu", "satu sakelar per database negara", "(rancangan, Tidak dijalankan)"]],
+    ];
+    expect(d.fitur.map((f) => f.label)).toEqual(kunciWidget.map((k) => k[0]));
+    kunciWidget.forEach(([, du, a], i) => {
+      for (const k of du) expect(d.fitur[i]!.catatan.dugaan, k).toContain(k);
+      for (const k of a) expect(d.fitur[i]!.catatan.adr63, k).toContain(k);
+    });
+    expect(coba.match(/<noscript>([\s\S]*?)<\/noscript>/)![1]).toContain("rapat menyetujui deploy sebelum rilis dan tidak mengukur sesudahnya");
+  });
+  test("baris riset: frasa yang diulang di satu baris diulang sebanyak aslinya, dan tiap tautan tepat satu kali di bagian Sumber", () => {
+    const rs = riset6.split("\n").filter((b) => /^\| R6-13[0-4] \|/.test(b));
+    expect(hitung(rs[1]!, "jendela empat minggu")).toBe(2);
+    expect(hitung(rs[0]!, "kegagalan 20% pada canary 5%")).toBe(1);
+    expect(hitung(rs[3]!, "tidak naik otomatis")).toBe(1);
+    expect(rs[3]).toContain("1%, 2%, 5%, 10%, 20%, 50%, 100%; siapa pun");
+    for (const r of rs) expect(hitung(r, "dibuka 2026-11-06") + hitung(r, "`gh api"), r.slice(0, 12)).toBeGreaterThan(0);
+  });
+  test("tiap paragraf prosa unik dan tiap kalimat prosa panjang muncul sekali", () => {
+    const paragraf = badan.split("\n\n").map((p) => p.trim()).filter((p) => p && !/^(\||<|- \[ \]|import)/.test(p));
+    expect(new Set(paragraf).size).toBe(paragraf.length);
+    const kalimat = paragraf.flatMap((p) => p.split(/(?<=[.!?])\s+/)).filter((k) => k.length > 30 && !k.startsWith("- ") && !/^\d\. /.test(k));
+    const ganda = [...new Set(kalimat.filter((k, i) => kalimat.indexOf(k) !== i))];
+    // satu kalimat sengaja diulang: di Paham dan di aturan 4 ADR 63
+    expect(ganda).toEqual(["Aturan skor dihitung sebagai konfigurasi (Asumsi desain)."]);
+    expect(hitung(badan, "Aturan skor dihitung sebagai konfigurasi (Asumsi desain)."), "tepat dua kali").toBe(2);
   });
 });
 
