@@ -37,7 +37,7 @@ Yakin dengan ketiganya? Lompat ke [[berikutnya]].
 
 Setiap kartu menunjukkan satu kejadian. Tebak kalimat yang lahir darinya, lalu buka jawabannya. Tautan di kartu membawa ke halaman kejadian itu.
 
-<WidgetLama nama="kartu" src="data/t5-rekap-kartu.json" />
+<WidgetLama nama="kartu" src="data/t5-rekap-kartu.json" data-maks="16" />
 
 Kartu yang kamu tandai **Ingat** baru muncul lagi sesuai jadwal kotaknya, seperti di [[Kartu]]. Daftar lengkap enam belas kalimat, beserta batas masing-masing, selalu ada di blok Paham.
 
@@ -71,7 +71,7 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* lab memerankan kegagalan tanpa mematikan primary, dan fencing tidak ada di lab. Latihan failover bulanan adalah aturan ADR 48, bukan rekaman. Gangguan 23 menit di cerita adalah Ilustrasi.
 
-4. **Ukuran jarang jadi masalah. Pekerjaan yang membaca semuanya tiap malam, dan data yang tidak boleh dihapus, yang jadi masalah.** Di [[t5-m43]], pemeriksaan malam tanpa snapshot membaca 1.800.000 dari 1.800.000 posting (`snapshot.txt` bagian A, lab t5-partisi). Dari snapshot terakhir ia membaca 150.000, yaitu 8,3% (bagian C). Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B). Di run lab terpisah dengan 28.000 posting per bulan, sesudah satu bulan dilepas dari tabel, pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, dan pemeriksaan dari snapshot menandai 0 (bagian F). Konsep dan ADR 49: [[t5-partisi]].
+4. **Ukuran jarang jadi masalah. Pekerjaan yang membaca semuanya tiap malam, dan data yang tidak boleh dihapus, yang jadi masalah.** Di [[t5-m43]], pemeriksaan malam tanpa snapshot membaca 1.800.000 dari 1.800.000 posting (`snapshot.txt` bagian A, lab t5-partisi). Dari snapshot terakhir ia membaca 150.000, yaitu 8,3% (bagian C). Ledger menolak `DELETE` atas posting dengan SQLSTATE 23001 (`lepas.txt` bagian B). Di run lab terpisah dengan 28.000 posting per bulan, satu bulan dilepas dari tabel. Pemeriksaan tanpa snapshot menandai 10.061 dari 10.288 buku, dan pemeriksaan dari snapshot menandai 0 (bagian F). Konsep dan ADR 49: [[t5-partisi]].
 
    *Dipersempit:* lab memilih 150.000 posting per bulan supaya satu bulan dari 12 sama dengan 8,3%, jadi angka itu bukan temuan lab. Partisi memangkas bacaan dan memudahkan retensi, tetapi tidak menambah kapasitas tulis satu primary.
 
@@ -81,7 +81,7 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* rekaman memecah data, bukan proses. `api-t5` adalah satu proses dengan satu role, jadi pipeline per service, rilis sendiri, dan putusnya transaction lintas service tidak direkam. Pernyataan itu dibaca dari ADR 12 (Tidak dijalankan).
 
-6. **Komponen yang bertukar data besar dan sering rugi bila dipisah lewat jaringan.** Di [[t5-service]], lab t5-gabung menjalankan satu alur skor untuk 400 transaksi. Satu proses melakukan 0 panggilan antar proses per transaksi, dan tiga proses dengan queue melakukan 6 (`panggilan.txt` bagian B, lab t5-gabung). Di rekaman latensi, dengan jeda buatan 10 ms per panggilan, 500 dari 500 transaksi tiga proses melewati batas uji 50 ms, karena batas bawahnya 6 × 10 = 60 ms (`latensi.txt` bagian B). Marcin Kolny menulis pada 22 Maret 2023 bahwa tim Video Quality Analysis di Prime Video memindahkan komponen ke satu proses, dan biaya infrastruktur turun lebih dari 90% (kasus industri, dibaca di halaman asal).
+6. **Komponen yang bertukar data besar dan sering rugi bila dipisah lewat jaringan.** Di [[t5-service]], lab t5-gabung menjalankan satu alur skor untuk 400 transaksi. Satu proses melakukan 0 panggilan antar proses per transaksi, dan tiga proses dengan queue melakukan 6 (`panggilan.txt` bagian B, lab t5-gabung). Di rekaman latensi, jeda buatan 10 ms per panggilan membuat 500 dari 500 transaksi tiga proses melewati batas uji 50 ms. Batas bawahnya 6 × 10 = 60 ms (`latensi.txt` bagian B). Marcin Kolny menulis pada 22 Maret 2023 bahwa tim Video Quality Analysis di Prime Video memindahkan komponen ke satu proses, dan biaya infrastruktur turun lebih dari 90% (kasus industri, dibaca di halaman asal).
 
    *Batas:* lab hanya mengirim 620,14 byte per transaksi tiap arah (`panggilan.txt` bagian D), jadi data besar tidak diperagakan. Kasus Prime Video adalah satu service pemantau milik satu tim, ditulis karyawannya sendiri, dan tidak membuktikan ledger Rekeningo harus digabung. Batas uji 50 ms di lab berbeda dari anggaran lompatan 50 ms di ADR 37, dan p95 satu lompatan antar host belum diukur (Tidak dijalankan).
 
@@ -91,7 +91,7 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* 96,3 per detik dan 83 per detik adalah Hitungan atas Asumsi. Lab tidak mengirim pengumuman ke 1.000.000 HP, dan jumlah 429 tidak direkam sebagai nilai, hanya batasnya (`antrean.txt` bagian B).
 
-8. **Yang dihitung adalah koneksi yang mungkin dipakai saat semua pod menyambung bersamaan, bukan rata-ratanya.** Di [[t5-m46]], 12 client dengan pool 10 meminta 120 koneksi langsung ke PostgreSQL, dan sebagian ditolak dengan kode 53300 pada batas 97 (`pooler.txt` bagian A, lab api-t5). Lewat PgBouncer, 120 koneksi berhasil dan paling banyak 20 sampai ke PostgreSQL (bagian B). Enam service dengan tiga pod dan pool 10 meminta 6 × 3 × 10 = 180 koneksi, sedangkan tersedia 100 − 3 = 97 (100 koneksi, 3 di antaranya cadangan). Pada puncak 1.388,9 request per detik dengan 0,02 detik per request, yang sibuk rata-rata 1.388,9 × 0,02 = 27,8 (Hitungan atas Asumsi). Konsep dan ADR 52: [[t5-pooler]].
+8. **Yang dihitung adalah koneksi yang mungkin dipakai saat semua pod menyambung bersamaan, bukan rata-ratanya.** Di [[t5-m46]], 12 client dengan pool 10 meminta 120 koneksi langsung ke PostgreSQL, dan sebagian ditolak dengan kode 53300 pada batas 97 (`pooler.txt` bagian A, lab api-t5). Lewat PgBouncer, 120 koneksi berhasil dan paling banyak 20 sampai ke PostgreSQL (bagian B). Enam service dengan tiga pod dan pool 10 meminta 6 × 3 × 10 = 180 koneksi. Yang tersedia 100 − 3 = 97 (100 koneksi, 3 di antaranya cadangan). Pada puncak 1.388,9 request per detik dengan 0,02 detik per request, yang sibuk rata-rata 1.388,9 × 0,02 = 27,8 (Hitungan atas Asumsi). Konsep dan ADR 52: [[t5-pooler]].
 
    *Batas:* rekaman bukan latihan failover. Ia memakai satu proses dengan 12 pool, tanpa replica atau pod, dan 180 serta 27,8 adalah Hitungan atas Asumsi. Dua instance PgBouncer dengan enam role dan `default_pool_size` 20 bisa membuka 2 × 6 × 20 = 240 koneksi, sehingga ADR 52 membatasinya dengan `max_db_connections` (Hitungan atas Asumsi dan dokumentasi, Tidak dijalankan).
 
@@ -125,11 +125,11 @@ Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti has
 
    *Batas:* template, pipeline per service, dan Argo CD sungguhan Tidak dijalankan. Lab merekam satu Collector, dan kapasitasnya tidak diukur.
 
-15. **Pilih dengan rumus tiga tahun dan jalan keluar, bukan dengan selera.** Di [[t5-onprem]], model biaya tiga tahun memakai masukan Ilustrasi dalam juta rupiah. Dengan dua orang operasi tambahan di on-prem, cloud lebih hemat 1.730 (20.420 − 18.690). Tanpa orang tambahan, on-prem lebih hemat 1.150, dan satu orang menambah 480 × 3 = 1.440 (480 per orang per tahun, tiga tahun), sehingga urutannya terbalik. ADR 59 tetap di cloud milik PT dan menjaga jalan keluar: manifest tanpa ekstensi satu penyedia dan PostgreSQL dalam bentuk standar.
+15. **Pilih dengan rumus tiga tahun dan jalan keluar, bukan dengan selera.** Di [[t5-onprem]], model biaya tiga tahun memakai masukan Ilustrasi dalam juta rupiah. Dengan dua orang operasi tambahan di on-prem, cloud lebih hemat 1.730 (20.420 − 18.690). Tanpa orang tambahan, on-prem lebih hemat 1.150. Satu orang menambah 480 × 3 = 1.440 (480 per orang per tahun, tiga tahun), sehingga urutannya terbalik. ADR 59 tetap di cloud milik PT dan menjaga jalan keluar: manifest tanpa ekstensi satu penyedia dan PostgreSQL dalam bentuk standar.
 
    *Batas:* semua angka itu Ilustrasi, bukan harga penyedia. Latihan pindah dan izin dari penyedia [perlu verifikasi], dan database dijalankan sendiri atau terkelola belum diputuskan.
 
-16. **Masalah Tahap 5 adalah salinan yang tertinggal dan pekerjaan yang diulang, bukan jumlah request per detik. Kapasitas satu primary belum terukur.** Di [[t5-m51]], uji coba nasional lolos, lalu Sinta datang dengan PRD v6 (Ilustrasi). Puncak 1.388,9 request per detik menjadi 13.888,9 di Tahap 6, dan transaksi uang 69,4 menjadi 694,4 per detik (Hitungan atas Asumsi). Satu rekaman beban di satu laptop menyelesaikan 20.833 permintaan dalam 15 detik, dengan p95 di bawah batas lab 5.000 ms. Di antaranya 2.115 pembayaran, jadi pembayaran di rekaman datang 2.115 ÷ 15 = 141 per detik (Hitungan dari rekaman), bukan 694,4 (`beban.txt` bagian A, lab api-t5).
+16. **Masalah Tahap 5 adalah salinan yang tertinggal dan pekerjaan yang diulang, bukan jumlah request per detik. Kapasitas satu primary belum terukur.** Di [[t5-m51]], uji coba nasional lolos, lalu Sinta datang dengan PRD v6 (Ilustrasi). Puncak 1.388,9 request per detik menjadi 13.888,9 di Tahap 6, dan transaksi uang 69,4 menjadi 694,4 per detik (Hitungan atas Asumsi). Satu rekaman beban di satu laptop menyelesaikan 20.833 permintaan dalam 15 detik, dengan p95 di bawah batas lab 5.000 ms. Di antaranya 2.115 pembayaran, jadi pembayaran datang 2.115 ÷ 15 = 141 per detik (Hitungan dari rekaman), bukan 694,4 (`beban.txt` bagian A, lab api-t5).
 
    *Batas:* rekaman memeriksa batas lab, bukan kapasitas satu primary. Tiga hal yang diminta PRD v6 belum pernah diuji: skor risiko real-time dalam 50 ms antar host, data di dua wilayah, dan 28 orang menjadi lebih dari 50. Dengan 2 transaksi per user aktif, angkanya 46,3 dan 463,0 (Hitungan atas Asumsi).
 
