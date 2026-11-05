@@ -20,7 +20,7 @@ export const ROOT = cariRoot();
 export const LAMA = path.join(ROOT, "situs/lama"); // widget lama, data widget, vendor, ilustrasi
 export const CERITA = path.join(ROOT, "situs/data/cerita.json");
 export const SITE_DOCS = path.join(ROOT, "situs/src/content/docs");
-const URUT_BACA = ["pembuka", 1, 2, 3, 4, 5, "sampingan"]; // "alat" di luar urutan baca
+const URUT_BACA = ["pembuka", 1, 2, 3, 4, 5, 6, "sampingan"]; // "alat" di luar urutan baca
 
 export function muat() {
   const d = JSON.parse(fs.readFileSync(CERITA, "utf8"));
