@@ -96,13 +96,13 @@ Dengan angka M54, andai satu deploy membawa kegagalan 2,0%, langkah 1% membuat 2
 
 Tanpa canary, satu-satunya pembanding adalah sebelum dan sesudah. Bab yang sama menulis bahwa evaluasi sebelum dan sesudah berisiko, karena waktu adalah salah satu sumber perubahan metrik yang terbesar. Pertanyaan Dewi, apa yang berubah dalam 30 menit terakhir, adalah evaluasi sebelum dan sesudah (Penalaran).
 
-Bab itu menyarankan canary bertahap. Tahap kecil memakai metrik yang paling jelas menunjukkan masalah, misalnya permintaan yang gagal, dan tahap lebih besar menambah keyakinan. Bab itu juga menyarankan SLI yang sudah mengukur SLO sebagai titik mulai metrik canary. SLO dipakai sebagai ukuran mutlak, karena canary dan kontrol bisa berubah bersama (sumber yang sama).
+Bab itu menyarankan canary bertahap. Tahap kecil memakai metrik yang paling jelas menunjukkan masalah, misalnya permintaan yang gagal, dan tahap lebih besar menambah keyakinan. Bab itu juga menyarankan SLI, yaitu ukuran mutu yang sudah dipakai untuk menilai SLO, sebagai titik mulai metrik canary. SLO dipakai sebagai ukuran mutlak, karena canary dan kontrol bisa berubah bersama (sumber yang sama).
 
 **Bobot datang dari Gateway API, bukan dari jumlah pod.** [[t5-m49]] merekam bahwa tanpa pengatur lalu lintas, `setWeight: 5` dengan tiga replika memberi 25,0% atau 33,3% pod versi baru. Rekaman lab Tahap 5 untuk satu service, yaitu service kartu, menunjukkan ADR 55 dengan Gateway API:
 
 <Snippet file="labs/t5-rollout/output/gateway.txt" lines="7:11" title="Rekaman lab: labs/t5-rollout/output/gateway.txt, bagian B (bobot 95 dan 5 dengan 3 replika)" />
 
-Satu pod dari empat tetap 25,0% pod, tetapi bobot di HTTPRoute 5 ([[t5-rollout]]). Di Tahap 6, 13.888,9 request per detik memakai 30 pod tiap service (Asumsi desain, [[t6-prd]]). Satu pod di antara 30 adalah 1 ÷ 30 = 3,3%, jadi langkah 1% hanya bisa datang dari bobot (Hitungan atas Asumsi desain).
+Satu pod dari empat tetap 25,0% pod, tetapi bobot di HTTPRoute 5. HTTPRoute adalah objek Gateway API yang memuat bobot tiap Service ([[t5-rollout]]). Di Tahap 6, 13.888,9 request per detik memakai 30 pod tiap service (Asumsi desain, [[t6-prd]]). Satu pod di antara 30 adalah 1 ÷ 30 = 3,3%, jadi langkah 1% hanya bisa datang dari bobot (Hitungan atas Asumsi desain).
 
 Rekaman berikutnya memerankan versi baru yang salah. Analisis menggagalkannya, bobot kembali ke versi lama, dan 100 dari 100 permintaan berikutnya dijawab versi lama:
 
@@ -118,7 +118,7 @@ Tujuh dari sembilan perubahan M54 bukan deploy. Canary menjaga deploy. Perubahan
 
 [[t5-rollout]] menulis satu sakelar, yaitu baris `kartu_aktif` di tabel `sakelar`, dan menunda OpenFeature selama flag aktif hanya satu. Di M54 tiga flag berubah dalam 30 menit, jadi syarat "flag aktif lebih dari satu" di butir 12 ADR 60 terpenuhi (Ilustrasi, [[t5-adr-60]]).
 
-Syarat satunya lagi belum: spesifikasi OpenFeature mencapai 1.0. Rilis spesifikasi terbaru masih v0.9.0, terbit 2026-07-29 ([OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases), dibuka 2026-11-06, Tidak dijalankan). Satu syarat dari dua tidak cukup, jadi pemicunya dibaca ulang di [[t6-adr-69]].
+Syarat satunya lagi belum: spesifikasi OpenFeature mencapai 1.0. Tag rilis spesifikasi yang bernomor versi masih v0.9.0, terbit 2026-07-29. Tag yang lebih baru, `provider-tck/v0.1.0` (2026-10-16), adalah aset uji provider ([OpenFeature: rilis spesifikasi](https://github.com/open-feature/spec/releases), dibuka 2026-11-06, Tidak dijalankan). Satu syarat dari dua tidak cukup, jadi pemicunya dibaca ulang di [[t6-adr-69]].
 
 Database dipisah per negara, dan alasannya dibahas di [[t6-residensi]]. Tabel `sakelar` ikut dipisah, jadi satu sakelar per database mematikan satu fitur di satu negara tanpa menyentuh negara lain (Penalaran, rancangan).
 
@@ -128,7 +128,7 @@ Garis waktu per negara adalah daftar berurut waktu yang memuat deploy, flag, mig
 
 Contoh kebijakan di SRE Workbook, Appendix B, ditulis untuk satu layanan contoh ([SRE Workbook: Example Error Budget Policy](https://sre.google/workbook/error-budget-policy/), dibuka 2026-11-06, Tidak dijalankan). Latarnya menulis bahwa perubahan adalah salah satu sumber besar ketidakstabilan, sekitar 70% dari outage penulis contoh itu. Angka itu dari satu organisasi dan tidak dipakai sebagai angka Rekeningo.
 
-Bila layanan melewati anggaran kegagalan jendela empat minggu terakhir, semua perubahan dan rilis berhenti kecuali masalah P0 dan perbaikan keamanan. Penghentian itu berlaku sampai layanan kembali di dalam SLO (sumber yang sama).
+Bila layanan melewati anggaran kegagalan jendela empat minggu terakhir, semua perubahan dan rilis berhenti kecuali masalah P0, yaitu masalah berprioritas tertinggi, dan perbaikan keamanan. Penghentian itu berlaku sampai layanan kembali di dalam SLO (sumber yang sama).
 
 Contoh yang sama menulis bahwa kebijakan itu bukan hukuman. Ia memberi tim izin untuk fokus sepenuhnya pada keandalan bila data menunjukkan itu lebih penting daripada fitur.
 
@@ -152,7 +152,7 @@ Satu laporan di pelacak Chaos Mesh menulis bahwa pemulihan otomatis NetworkChaos
 Server tidak bisa mengembalikan app yang sudah terpasang di HP user (Penalaran). Dokumentasi kedua toko menulis:
 
 - **Apple:** rilis bertahap tujuh hari untuk perangkat dengan pembaruan otomatis, dengan 1%, 2%, 5%, 10%, 20%, 50%, dan 100% user pada hari 1 sampai 7. Siapa pun tetap bisa mengunduh manual, dan rilis boleh dijeda sampai 30 hari ([Apple: Release a version update in phases](https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases/), dibuka 2026-11-06, Tidak dijalankan).
-- **Google Play:** persentase staged rollout tidak naik otomatis. Sesudah rilis dihentikan, user yang sudah menerimanya tetap di versi itu ([Google Play: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149), dibuka 2026-11-06, Tidak dijalankan).
+- **Google Play:** rilis bertahap bernama staged rollout, dan persentasenya tidak naik otomatis. Sesudah rilis dihentikan, user yang sudah menerimanya tetap di versi itu ([Google Play: staged rollouts](https://support.google.com/googleplay/android-developer/answer/6346149), dibuka 2026-11-06, Tidak dijalankan).
 
 Karena itu rilis app bertahap menjaga paparan dan tidak mengembalikan app. Server tetap harus melayani versi app lama ([[E1]]), dan sakelar di server mematikan fitur tanpa rilis app (Penalaran).
 
