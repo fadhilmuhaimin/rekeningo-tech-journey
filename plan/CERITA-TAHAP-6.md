@@ -23,7 +23,7 @@ Delapan aturan dari pelajaran Tahap 2 sampai 5 dipakai supaya kelas kesalahan la
 3. **Klaim universal dan negatif menyebut lingkupnya.** "Tidak ada X" hanya untuk folder, tahap, atau halaman yang disebut. Kata "setiap", "semua", dan "hanya" dicek terhadap kasus tandingan sebelum ditulis.
 4. **Klaim tentang ADR tahap lain dibaca ke halaman ADR-nya.** Kalimat ADR 52, 56, 58, 59, dan 60 dikutip dari halaman 5.17, 5.25, 5.27, 5.28, dan 5.30 (dibaca 2026-11-06). Kalimat tentang ADR 46 sampai 57 lain berasal dari naskah Tahap 5, dan penulis halaman membuka halaman ADR-nya sebelum mengutip.
 5. **Label tidak lebih kuat daripada sumbernya.** Kata pelunak di sumber (might, often, some, "reasonable minimum") ikut ke kalimat naskah. Kasus industri ditulis dengan batas yang ditulis sumbernya sendiri, dan atribusi mengikuti penulis di byline.
-6. **Satu kata per konsep.** "Wilayah" berarti region, yaitu satu lokasi geografis dengan pusat data. "Negara" berarti satu pasar dengan satu mata uang. "Replica" berarti salinan database, dan "replika" tidak dipakai untuk pod. "Lock" berarti kunci baris di database, dan "KEK" atau "kunci enkripsi" berarti kunci kriptografi. "Golden path" menggantikan "jalan beraspal" di 5.27 (pilihan draf 8). Kata "token", "router", "client", "log", dan "nonce" tidak dipakai di naskah ini, karena tiap kata sudah punya dua arti di Tahap 3 sampai 5. Pengecualiannya dua kutipan halaman Tahap 5 dengan artinya: "client" (koneksi dari pod ke pooler, 5.17) dan "token LSN" (posisi primary di WAL, 5.7).
+6. **Satu kata per konsep.** "Wilayah" berarti region, yaitu satu lokasi geografis dengan pusat data. "Negara" berarti satu pasar dengan satu mata uang. "Replica" berarti salinan database, dan "replika" tidak dipakai untuk pod. "Lock" berarti kunci baris di database, dan "KEK" atau "kunci enkripsi" berarti kunci kriptografi. "Golden path" menggantikan "jalan beraspal" di 5.27 (pilihan draf 8). "Anggaran kegagalan" dan "error budget" berarti hal yang sama (glosarium: Error budget). Naskah ini memakai "anggaran kegagalan" untuk angkanya dan "kebijakan error budget" untuk aturannya. Kata "token", "router", "client", "log", dan "nonce" tidak dipakai di naskah ini, karena tiap kata sudah punya dua arti di Tahap 3 sampai 5. Pengecualiannya dua kutipan halaman Tahap 5 dengan artinya: "client" (koneksi dari pod ke pooler, 5.17) dan "token LSN" (posisi primary di WAL, 5.7).
 7. **Jawaban dan tebakan tidak ditulis di prosa sebelum widget.** Naskah menulis jawaban di kolom "Yang sebenarnya", dan penulis halaman memindahkannya ke widget dan `<noscript>`, bukan ke Inti atau paragraf `aman`.
 8. **Versi "terbaru" dicek pada hari halaman ditulis.** Naskah hampir tidak menyebut nomor versi. Yang dicek ulang 2026-11-06 adalah rilis spesifikasi OpenFeature (v0.9.0, terbit 2026-07-29, lewat API rilis GitHub), SRE Book bab 11, halaman metrik DORA, dan dokumentasi pertukaran mata uang TigerBeetle. Peninjau KONSISTENSI-6 menambah pembacaan teks mentah SRE Workbook (kebijakan error budget), makalah Spanner OSDI 2012, whitepaper AWS tentang disaster recovery, halaman FinOps Foundation, arsip Prime Video, `decimal.go`, edisi spesifikasi GraphQL, dan lima isu GitHub, semuanya 2026-11-06. Sisanya "versi yang dibaca" di RISET-TAHAP-6 (2026-10-25).
 
@@ -37,7 +37,7 @@ Dua puluh pilihan berikut diambil tanpa bertanya, dengan opsi paling aman dan pa
 4. **Transaksi per user aktif per hari: 3, dengan hasil untuk 2 di sebelahnya.** Registry Tahap 5 memakai 2 dan naskah Tahap 2 sampai 5 memakai 3. Registry `proyeksi[0]` tidak punya `asumsi`. Kalkulator 6.2 memakai skenario `tahap: 5` dengan `ubah` seperti 5.29, jadi `proyeksi[0].asumsi` opsional (lihat Catatan untuk `T6-siap`), dan angka registry yang disarankan ada di bagian 3.
 5. **RPO nol dipertahankan, RTO wilayah 30 menit baru.** RPO nol untuk transaksi uang yang sudah dijawab sukses dan RTO 15 menit untuk satu mesin berasal dari PRD v5 (Asumsi produk). PRD v6 menambah RTO untuk hilangnya satu wilayah: 30 menit (Asumsi produk). Pemilik memutuskan angkanya.
 6. **Aktif-pasif dengan standby sinkron di wilayah pasangan 1.000 km.** Pasangan 3.000 km hanya bila daftar izin negara (Asumsi produk) mengizinkan. Aktif-aktif tetap sengaja belum (ADR 69). Naskah ini memilih RPO nol di atas latensi tulis yang lebih rendah. Pratinjau 5.32 menulis "satu wilayah pusat data melayani, wilayah lain menunggu sampai failover". Naskah ini membacanya per negara: tiap negara punya satu wilayah primer dan satu pasangan pasif. Tiga wilayah primer melayani data yang berbeda, dan tak satu pun aktif-aktif atas data yang sama.
-7. **Database per negara, bukan per service.** PROPOSAL menulis "pecah service dengan DB sendiri" dan "database yang dipisah per wilayah" untuk Tahap 6. Tahap 5 memberi tiap service schema dan role sendiri di satu cluster (ADR 50). Naskah ini memisahkan database per negara karena residensi dan mata uang, bukan kapasitas. Butir "database per service" di ADR 60 tetap sengaja belum. Database per negara memenuhi definisi sharding di 5.30 (shard key negara), jadi butir "sharding" tetap sengaja belum hanya untuk pemecahan karena kapasitas di dalam satu negara.
+7. **Database per negara, bukan per service.** PROPOSAL menulis "pecah service dengan DB sendiri" dan "database yang dipisah per wilayah" untuk Tahap 6. Tahap 5 memberi tiap service schema dan role sendiri di satu cluster (ADR 50). Naskah ini memisahkan database per negara karena residensi dan mata uang, bukan kapasitas. Butir "database per service" di ADR 60 tetap sengaja belum. Database per negara memenuhi definisi sharding di 5.30 (shard key negara). Butir "sharding" tetap sengaja belum hanya untuk pemecahan karena kapasitas di dalam satu negara.
 8. **"Golden path", bukan "jalan beraspal".** Halaman 5.27 menulis "jalan beraspal". PROPOSAL, RISET, dan 5.32 menulis golden path. Naskah ini memakai golden path, dan `T6-siap` membuat halaman istilah. Halaman 5.27 tidak diubah.
 9. **Rupiah tetap bulat di ledger.** Dokumentasi payment gateway di R6-10 menulis rupiah sebagai mata uang dua desimal. Ledger Tahap 1 sampai 5 menyimpan rupiah bulat. Naskah ini menyimpan unit terkecil per mata uang dengan eksponen tiap buku (rupiah memakai eksponen 0, Asumsi desain), dan mengonversi hanya di batas dengan pihak luar yang meminta bentuk lain.
 10. **Aturan residensi adalah Asumsi produk.** Data identitas dan saldo satu negara tinggal di wilayah negara itu dan pasangan yang ada di daftar izin negara itu. Naskah tidak menyebut hukum, lisensi, atau negara nyata. Rujukan regulasi di R4-40 tetap [perlu verifikasi] dan tidak masuk cerita.
@@ -58,7 +58,7 @@ Uji coba nasional lolos pada minggu 16 Tahap 5. Rekonsiliasi harian selisih Rp0 
 
 PT Rekeningo (fiktif) kini menargetkan tiga negara dengan 10.000.000 user terdaftar (20% aktif tiap hari, Asumsi) dan 24 minggu (Asumsi cerita). Tim naik dari 28 menjadi 53 orang, dengan satu sampai dua orang baru tiap minggu. Jumlah user naik 10 kali, dan jumlah orang naik 53 ÷ 28 = 1,9 kali (Hitungan atas Asumsi cerita).
 
-Tiga hal berubah sekaligus. Pertama, **uang melewati mata uang**: transfer antar negara membutuhkan kurs, dan jumlah posting di satu jurnal tidak bisa lagi dijumlahkan menjadi nol. Kedua, **data punya alamat**: data satu negara harus tinggal di tempat tertentu (Asumsi produk), sehingga satu database untuk semua tidak lagi menjadi pilihan. Ketiga, **koordinasi menjadi beban utama**: 53 orang dalam 11 tim merilis puluhan kali sehari ke enam service, dan tidak ada orang yang memahami semuanya.
+Tiga hal berubah sekaligus. Pertama, **uang melewati mata uang**: transfer antar negara membutuhkan kurs, dan jumlah posting di satu jurnal tidak bisa lagi dijumlahkan menjadi nol. Kedua, **data punya alamat**: data satu negara harus tinggal di tempat tertentu (Asumsi produk), sehingga satu database untuk semua tidak lagi menjadi pilihan. Ketiga, **koordinasi menjadi beban utama**: 53 orang dalam 11 tim merilis puluhan kali sehari ke enam service Tahap 5 dan service baru, dan tidak ada orang yang memahami semuanya.
 
 Tahap 6 berangkat dari keadaan akhir Tahap 5 seperti ditulis halaman 5.1 sampai 5.32, bukan dari sistem yang sudah dibereskan:
 
@@ -134,7 +134,7 @@ Tokoh lama tetap:
 
 | Prioritas | Fitur | Keterangan |
 | --- | --- | --- |
-| P0 | Tiga negara | 6.000.000, 2.500.000, dan 1.500.000 user (Asumsi cerita). Satu app, satu mata uang per negara |
+| P0 | Tiga negara | 6.000.000, 2.500.000, dan 1.500.000 user (Asumsi cerita). Satu app, satu mata uang per negara, dan top-up lewat integrasi bank lokal tiap negara |
 | P0 | Multi-mata uang dengan kurs | Transfer antar negara memakai kurs yang disimpan. Tiap mata uang punya ledger sendiri, dan tukar adalah dua jurnal yang terhubung. Setiap satuan di setiap mata uang tertelusur ke kejadian |
 | P0 | Data per negara | Data identitas dan saldo satu negara disimpan di wilayah negara itu dan pasangan yang diizinkan (Asumsi produk, tanpa klaim hukum). Database dipisah per negara |
 | P0 | Tidak berhenti saat satu wilayah hilang | Multi-region aktif-pasif untuk ledger. RPO nol untuk uang dan RTO wilayah 30 menit (Asumsi produk). RTO 15 menit untuk satu mesin tetap |
@@ -207,7 +207,7 @@ Dari tabel ini lahir pertanyaan pertama Tahap 6, sebelum satu baris kode: **tiap
 
 Ini jantung Tahap 6. Pertanyaannya dirumuskan di minggu 0, sebelum masalah apa pun muncul. Di Tahap 5 arahnya salinan ke luar. Di Tahap 6 arahnya batas: batas mata uang, batas negara, batas wilayah, dan batas tim.
 
-Tiga hal harus selalu benar, dan semuanya melanjutkan Tahap 5:
+Tiga hal harus selalu benar. Dua pertama melanjutkan Tahap 2 dan 5, dan yang ketiga baru di Tahap 6:
 
 1. Uang bergerak hanya lewat ledger, dan jurnal seimbang per mata uang. Satu jurnal tidak pernah menjumlahkan dua mata uang. Tukar adalah dua jurnal yang terhubung, dan selisih pembulatan masuk akun sendiri (syarat Pak Hadi di PRD v6).
 2. Data satu negara punya satu rumah, yaitu wilayah negara itu dan pasangan yang diizinkan. Uang tidak dibaca dari salinan di luar primary (ADR 45 aturan 2). Salinan, ringkasan, dan sinyal hanya untuk dilihat, bukan untuk memutuskan (syarat Pak Hadi di PRD v5), dengan jarak ketertinggalan dan batas wilayah yang disebut.
@@ -229,9 +229,9 @@ Tidak satu pun baris tabel ini direkam. Kalimat di dalamnya adalah penalaran dar
 
 Halaman ini menanam tiga pertanyaan. Di minggu 1 Pak Hadi bertanya angka mana yang ia tanda tangani bila satu laporan memuat dua mata uang. Laras bertanya siapa yang boleh membuka data negara kedua. Dewi bertanya siapa yang dibangunkan bila pembayaran negara ketiga gagal pukul 03.10. Jawaban Pak Hadi ada di M56, jawaban Laras di halaman Keamanan 13, dan jawaban Dewi di halaman Tim dan infra.
 
-**Yang pembaca lakukan.** Kalkulator di halaman 6.2: pilih skenario Tahap 6, Aktif 10%, atau negara pertama saja, dan lihat puncak request per detik berubah. Lalu baca tabel di atas terisi.
+**Yang pembaca lakukan.** Kalkulator di halaman 6.2: tebak dulu puncak request per detik untuk satu skenario, lalu pilih skenario Tahap 6, Aktif 10%, atau negara pertama saja, dan lihat puncaknya berubah. Sesudah itu baca tabel kejadian di atas: kolomnya menunjukkan hal mana yang rusak.
 
-**Yang dipelajari Raka dengan susah payah.** Pola yang sama muncul lagi di tiap batas. Setiap data diberi rumah, pemilik, dan umur, dan tidak ada yang memutuskan uang dari salinan.
+**Yang dipelajari Raka dengan susah payah.** Pola yang sama muncul lagi di tiap batas. Setiap data diberi rumah, pemilik, dan jarak ketertinggalan, dan tidak ada yang memutuskan uang dari salinan.
 
 ### Angka beban Tahap 6 (Asumsi, rumus ditulis)
 
@@ -280,7 +280,13 @@ Pemicu ADR 60 dibaca ulang dengan angka di atas. "Terpenuhi" berarti halaman Tah
 | 11. Event sourcing penuh | PRD atau auditor meminta keadaan entitas selain saldo pada titik waktu mana pun | Tidak diminta | Tidak diminta. Graf akun-perangkat butuh riwayat sinyal, yang dijawab penyimpanan sinyal append-only (penalaran) | ADR 69 |
 | 12. OpenFeature dan flagd | Spesifikasi mencapai 1.0 dan flag aktif lebih dari satu | v0.9.0, satu flag | v0.9.0 (terbit 2026-07-29, dicek 2026-11-06) dan flag aktif banyak: satu dari dua syarat | ADR 63, ADR 69 |
 
-Dari dua belas butir, dua terpenuhi dan dikerjakan sebagian: butir 1 hanya untuk identitas di template (ADR 61, tanpa mesh penuh), dan butir 2 hanya untuk aktif-pasif (ADR 64, tanpa aktif-aktif). Sepuluh butir tetap tidak dikerjakan: enam belum terukur (butir 3, 4, 5, 7, 8, 9), tiga tidak diminta (butir 6, 10, 11), dan satu belum terpenuhi (butir 12). Kolom "Dibaca" di 5.30 menulis enam belum terukur, tiga tidak diminta, dua belum terpenuhi (butir 1 dan 12), dan satu menunggu PRD v6 (butir 2). ADR 69 memuat dua belas baris bernomor sama dengan ADR 60: butir 3 sampai 12, ditambah bagian butir 1 dan 2 yang tidak dikerjakan (mesh penuh dan aktif-aktif). GraphQL digabung ke baris BFF (butir 5). Aktif-aktif dan GraphQL, dua dari empat butir "ada, dan ini kapan kamu akan butuh" di PROPOSAL, ikut ke ADR 69 dengan pemicunya. Dua butir lain di PROPOSAL, service mesh dan event sourcing penuh, sudah ada di dua belas butir ADR 60. Pemicu event sourcing tidak punya angka, jadi pembacaannya adalah penalaran penulis halaman.
+Dari dua belas butir, dua terpenuhi dan dikerjakan sebagian. Butir 1 hanya untuk identitas di template (ADR 61, tanpa mesh penuh). Butir 2 hanya untuk aktif-pasif (ADR 64, tanpa aktif-aktif).
+
+Sepuluh butir tetap tidak dikerjakan. Enam belum terukur (butir 3, 4, 5, 7, 8, 9), tiga tidak diminta (butir 6, 10, 11), dan satu belum terpenuhi (butir 12). Di Tahap 5, kolom "Dibaca" di 5.30 menulis dua belum terpenuhi (butir 1 dan 12), satu menunggu PRD v6 (butir 2), dan sisanya sama.
+
+ADR 69 memuat dua belas baris bernomor sama dengan ADR 60. Isinya butir 3 sampai 12, ditambah bagian butir 1 dan 2 yang tidak dikerjakan (mesh penuh dan aktif-aktif). GraphQL digabung ke baris BFF (butir 5).
+
+Aktif-aktif dan GraphQL adalah dua dari empat butir "ada, dan ini kapan kamu akan butuh" di PROPOSAL. Dua butir lain, service mesh dan event sourcing penuh, sudah ada di dua belas butir ADR 60. Pemicu event sourcing tidak punya angka, jadi pembacaannya adalah penalaran penulis halaman.
 
 ## 3b. Skema data: apa yang berubah dari Tahap 5 ke Tahap 6
 
@@ -305,7 +311,7 @@ Pertumbuhan skala database Tahap 5 dan 6 memakai rumus naskah Tahap 2: *posting 
 | 5 | 1 juta | 30, dibagi per service | `posting` ±440 juta (438 juta), dipartisi per bulan | ±110 GB (109,5 GB) | Partisi, snapshot saldo, read replica, cicilan, API untuk POS |
 | 6 (proyeksi) | 10 juta | ±30 per negara, tiga database | `posting` ±4,4 miliar (4,38 miliar) | ±1 TB (1.095 GB) | Multi-mata uang dan kurs, database per negara, data per wilayah |
 
-Tabel 3b menulis ukuran Tahap 6 sebagai ±1 TB, mengikuti tabel naskah Tahap 2 dan halaman 5.3, dan bagian 3 menulis 1.095 GB atau ±1,1 TB. Itu satu nilai dengan dua pembulatan (Hitungan atas Asumsi).
+Tabel 3b menulis ukuran Tahap 6 ±1 TB, seperti tabel naskah Tahap 2 dan halaman 5.3. Bagian 3 menulis 1.095 GB atau ±1,1 TB. Itu satu nilai dengan dua pembulatan (Hitungan atas Asumsi).
 
 Pola yang ditanam: di Tahap 6 database tumbuh karena **batas**, bukan fitur atau salinan. Tabel baru sedikit, tetapi tiap tabel lama memperoleh pemilik, negara, dan mata uang.
 
@@ -426,13 +432,15 @@ Catatan untuk `T6-siap`:
 - 6.1 punya prasyarat `t5-jembatan` dan blok "Yang dibuka lagi dari Tahap 5" dengan rumusan di bagian 1. PR yang menambah 6.1 `ada` menambah 6 ke `URUT_BACA` di `situs/tools/registri.mjs` dan mengubah Berikutnya dari 5.32 ke 6.1 (keputusan 1895).
 - Halaman istilah baru: multi-region, golden path, service catalog, chaos testing, data mesh, FinOps, residensi data, dan kebijakan sebagai kode. Akun panas sudah ada di halaman istilah optimistic lock, jadi periksa satu arti. Kata "wilayah" dan "negara" dalam arti naskah ini didaftarkan di `situs/data/arti-istilah.json` bila perlu.
 - Halaman Cerita Tahap 6 (`cerita/tahap-6.mdx`, padanan `cerita/tahap-5.mdx`) belum ada, dan halaman Cerita tahap lain ditulis dari bagian Latar dan PRD naskahnya.
-- Kalkulator 6.2 membaca `tahap[].asumsi`, bukan `proyeksi`. Skenario Tahap 6 ditulis seperti di 5.29 (`tahap: 5` dengan `ubah: {user: 10000000}`), dan "negara pertama saja" adalah `ubah: {user: 6000000}`. `proyeksi[0].asumsi` hanya perlu bila T6-siap melonggarkan skema `.strict()` di `situs/src/lib/registri.ts`, dan `m51-prd-v6.halaman.test.ts` mengunci `proyeksi[0].user` serta baris PROPOSAL Tahap 6. Halaman 6.2 memuat ERD Tahap 5 sebagai keadaan awal tanpa ERD6.
-- `situs/data/templat.json` mengunci urutan blok `masalah` (lima blok) dan `adr` (enam blok), jadi satu halaman tidak bisa memakai keduanya. `T6-siap` menulis "Masalah + ADR" dan "Keamanan + ADR" sebagai jenis `konsep` (lima blok, Putuskan memuat ADR, seperti Keamanan 1 sampai 12), "Konsep + ADR" (6.11) sebagai `adr`, dan "Tim dan infra" sebagai `tim-infra`. Alternatifnya jenis baru di `templat.json` beserta `templat.test.ts`.
+- Kalkulator 6.2 membaca `tahap[].asumsi`, bukan `proyeksi`. Skenario Tahap 6 ditulis seperti di 5.29, yaitu `tahap: 5` dengan `ubah: {user: 10000000}`. "Negara pertama saja" adalah `ubah: {user: 6000000}`. `proyeksi[0].asumsi` hanya perlu bila T6-siap melonggarkan skema `.strict()` di `situs/src/lib/registri.ts`. Tes `m51-prd-v6.halaman.test.ts` mengunci `proyeksi[0].user` dan baris PROPOSAL Tahap 6. Halaman 6.2 memuat ERD Tahap 5 sebagai keadaan awal tanpa ERD6.
+- `situs/data/templat.json` mengunci urutan blok `masalah` (lima blok) dan `adr` (enam blok), jadi satu halaman tidak bisa memakai keduanya. `T6-siap` menulis "Masalah + ADR" dan "Keamanan + ADR" sebagai jenis `konsep`: lima blok, dengan ADR di blok Putuskan, seperti Keamanan 1 sampai 12. "Konsep + ADR" (6.11) ditulis sebagai `adr`, dan "Tim dan infra" sebagai `tim-infra`. Alternatifnya jenis baru di `templat.json` beserta `templat.test.ts`.
 - 6.6 dan 6.7 menyebut daftar izin negara dan database per negara, yang ADR 66 (6.8) tulis. Prasyarat registry tetap halaman sebelumnya, dan rujukan ke depan ditulis "dibahas di 6.8" dengan tautan, bukan sebagai prasyarat.
 
 Halaman 6.2 memakai kalkulator dengan rumus request per detik dari 5.29, dan bukan kalkulator koneksi. Widget banding dan alur memakai data JSON baru yang ditulis penulis halaman, tanpa komponen baru. Bila data tidak cukup mengungkapkan satu kontrol di atas, penulis halaman mencatatnya di badan PR dan tidak menulis widget baru.
 
-Widget banding (`situs/lama/widgets/banding.js`) membuka fitur pertama saat dimuat dan tidak punya tebak bawaan. Widget alur punya `predict` dan satu kotak centang `varian`, kalkulator punya `tebak` dan pilihan skenario, dan kartu punya tebak lalu buka. Karena itu tiap halaman dengan banding memasang tebak lewat lipatan "Tebak dulu" (pola 5.4 dan 5.10) atau widget Tebak sebelum banding, dan jawabannya tidak tertulis di prosa sebelum pembaca memilih. Banding membandingkan dua opsi, mis. sebelum dan sesudah ADR. Untuk 6.11, tiap pilihan kapasitas K adalah satu fitur, dan persentasenya ada di catatan tiap opsi.
+Widget banding (`situs/lama/widgets/banding.js`) membuka fitur pertama saat dimuat dan tidak punya tebak bawaan. Alur punya `predict` dan satu kotak centang `varian`. Kalkulator punya `tebak` dan pilihan skenario, dan kartu punya tebak lalu buka.
+
+Karena itu halaman dengan banding memasang tebak lewat lipatan "Tebak dulu" (pola 5.4 dan 5.10) atau widget Tebak sebelum banding. Jawabannya tidak tertulis di prosa sebelum pembaca memilih. Banding membandingkan dua opsi, mis. sebelum dan sesudah ADR. Untuk 6.11, tiap pilihan kapasitas K adalah satu fitur, dan persentasenya ada di catatan tiap opsi.
 
 Jalur per peran:
 
