@@ -5161,9 +5161,9 @@
         "t6-m52",
         "t5-service"
       ],
-      "menit": 20,
-      "ada": false,
-      "nomor": "6.4"
+      "ada": true,
+      "nomor": "6.4",
+      "menit": 24
     },
     {
       "id": "t6-m54",

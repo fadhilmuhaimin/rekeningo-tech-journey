@@ -1,0 +1,277 @@
+---
+title: "6.4 M53: Laporan tutup buku kosong sesudah migration + ADR 62"
+description: Minggu 6. Hak baca sementara ke schema tim Pembayaran tidak tertulis sebagai contract, jadi satu rename kolom mengosongkan laporan tim Pelaporan. ADR 62 memindahkan pembacaan lintas tim ke API atau event berversi milik pemiliknya, dan laporan resmi Keuangan ke tim Ledger.
+---
+import Blok from "../../../components/Blok.astro";
+import Rantai from "../../../components/Rantai.astro";
+import Snippet from "../../../components/Snippet.astro";
+import WidgetLama from "../../../components/WidgetLama.astro";
+import SkripLama from "../../../components/SkripLama.astro";
+import intiDiagram from "../../../../data/diagram/t6-m53-inti.json";
+
+<p class="meta">Baca 21 menit · coba 3 menit · Prasyarat: [[t6-m52]], [[t5-service]] · Jalur inti</p>
+
+<Blok nama="Mulai" buka>
+
+## Inti
+
+Satu rename kolom mengosongkan laporan karena pembacanya tak tercatat.
+
+<Rantai data={intiDiagram} ringkas />
+
+Hak baca sementara ke schema tim Pembayaran tidak masuk contract mana pun, dan tidak ada tes yang menjalankannya (Ilustrasi). Contract di sini adalah kesepakatan tertulis antara pemilik dan pembaca tentang kolom yang boleh dibaca, ditambah tes yang gagal bila pemilik melanggarnya. Di Tahap 4 bentuknya kontrak kolom antar modul ([[t4-modul]]).
+
+ADR 62 mencabut hak baca lintas schema. Tim lain meminta data lewat API atau event berversi milik pemilik, dan laporan resmi Keuangan dibaca dari API tutup buku tim Ledger.
+
+### Gejala
+
+Rabu minggu 6. Tim Pelaporan menyiapkan laporan Keuangan per negara, dan event dari tim Pembayaran belum ada. Mereka diberi hak baca atas schema pembayaran, sementara saja.
+
+Kamis tim Pembayaran mengganti nama satu kolom lewat migration. Pipeline mereka lulus, dan rilis berjalan seperti biasa.
+
+Jumat pukul 06.00 laporan tutup buku negara kedua kosong. Pak Hadi menunda tanda tangannya satu hari.
+
+*Angka cerita (Ilustrasi):* hari, jam, dan tim berasal dari naskah, bukan dari rekaman. Arti Ilustrasi, Rekaman lab, Asumsi, dan Tidak dijalankan ada di [[A0]].
+
+<details class="question">
+<summary>Sudah tahu? Cek 3 pertanyaan</summary>
+
+1. Query yang masih menyebut nama kolom lama dijalankan sesudah rename. Apa jawaban PostgreSQL di rekaman Tahap 4, dan apakah itu hasil kosong?
+2. Pipeline tim Pembayaran lulus sesudah migration. Apa yang tidak ada di pipeline itu, dan bagaimana Tahap 4 menangkap rename kolom yang sejenis?
+3. ADR 62 mencabut hak baca lintas schema. Apa penggantinya, dan milik siapa laporan yang Pak Hadi tanda tangani?
+
+Yakin dengan ketiganya? Lompat ke [[t6-m54]].
+
+</details>
+
+</Blok>
+
+<Blok nama="Coba" buka aman="Kalau berhenti di sini, kamu sudah menjalankan satu rename kolom dengan dua cara membaca: lewat tabel milik tim lain dan lewat event berversi milik pemiliknya.">
+
+Widget ini mengikuti adegan di blok Mulai. Jalur utama adalah Ilustrasi, dan dua langkahnya meminjam Rekaman lab ([Label sumber](/cara-pakai/#label-sumber)) Tahap 4. Penalaran, Tidak dijalankan berarti kesimpulan dari kalimat yang sudah tertulis tanpa menjalankan apa pun.
+
+Tebak dulu apa jawaban PostgreSQL, lalu tekan Berikutnya atau panah kanan.
+
+<WidgetLama nama="alur" src="data/skenario/t6-m53.json" />
+
+Sesudah langkah terakhir, centang **Ubah satu hal: Pelaporan membaca lewat event berversi, bukan tabel**. Langkah variannya memakai rekaman Tahap 4 dan Tahap 5 hanya untuk dua hal. Pembaca lewat kontrak milik pemilik tetap berhasil, dan role lain ditolak membaca schema pembayaran. Event berversi antar tim Tidak dijalankan.
+
+Query Pelaporan sendiri tidak direkam di repo ini. Widget ini tidak punya layar HP, karena M53 terjadi di antara engineer, bukan di app.
+
+<noscript>
+<p>Tanpa JavaScript, tebakan dan kotak Ubah satu hal tidak tersedia. Jawaban yang tepat: query dengan nama lama dijawab galat kolom tidak ada (42703), bukan hasil kosong, pada rekaman Tahap 4 bagian A (batas.txt).</p>
+<p>Jalur utama: hak baca sementara hari Rabu, rename kolom hari Kamis, pipeline Pembayaran lulus, dan laporan kosong hari Jumat 06.00 (semuanya Ilustrasi). Varian: Pelaporan membaca event versi 1 yang tidak berubah, dan laporan resmi Keuangan dibaca dari API tutup buku tim Ledger (ADR 62, Tidak dijalankan).</p>
+</noscript>
+
+</Blok>
+
+<Blok nama="Paham">
+
+### Kenapa ini ada
+
+Tahap 5 memberi tiap service satu schema dan satu role, dan menghapus foreign key lintas service (ADR 50, [[t5-service]]). Di Tahap 6 ada sebelas tim yang memegang service itu (Asumsi cerita, [[t6-prd]]). Tim Pelaporan adalah tim yang butuh data dari tim lain untuk satu laporan.
+
+### Yang dikira
+
+Dugaan pertama: Pelaporan tidak membaca pengumuman migration. Bayu mengusulkan rapat sinkronisasi migration tiap minggu antar sebelas tim.
+
+Penalaran, Tidak dijalankan: pengumuman hanya sampai ke orang yang diingat pemiliknya. Hak baca sementara itu tidak tercatat di daftar pembaca mana pun milik Pembayaran, jadi pengumuman tidak punya alamat untuk Pelaporan.
+
+Hitungan atas Asumsi cerita berarti hasil rumus dari angka yang tertulis, dengan label masukan terlemahnya. Sebelas tim punya 11 × 10 ÷ 2 = 55 pasang tim. Rapat mingguan menaruh semua pasangan itu dalam satu agenda. Agenda itu tidak ada di sistem mana pun, jadi pipeline tidak bisa membacanya sebelum migration dirilis (Penalaran, Tidak dijalankan).
+
+### Yang sebenarnya
+
+Hak baca lintas schema adalah contract yang tidak tertulis. Ia ada di database, tetapi tidak ada di daftar pembaca, tidak punya tes, dan tidak punya pemilik.
+
+**Yang tertulis di ADR 50.** Aturan 2 di [[t5-service]] memberi tiap service satu schema dan satu role, dan menghapus foreign key lintas service. Aturan 3 menyuruh service lain membaca data ledger lewat API ledger atau meminta jurnal. Daftar periksa review di halaman itu menulis: "Service tidak membaca tabel service lain, dan foreign key lintas service tetap 0."
+
+Kedelapan aturan di halaman itu tidak menulis siapa yang boleh memberi hak baca ke role baru. Aturan itu juga tidak menulis cara memeriksanya selain review (Penalaran, Tidak dijalankan: dibaca dari teks aturan 1 sampai 8). Aturan 3 hanya menyebut data ledger, dan schema pembayaran tidak disebut.
+
+**Yang sudah ada di lab Tahap 5.** Untuk kebanyakan objek, dokumentasi PostgreSQL 17 menulis bahwa hak harus diberikan agar role lain memakainya. Biasanya hanya pemilik objek, atau superuser, yang bisa memberi atau mencabut hak itu ([Privileges](https://www.postgresql.org/docs/17/ddl-priv.html), dibuka 2026-11-06, Tidak dijalankan). Hak yang sudah diberikan dicabut dengan REVOKE, jadi hak sementara berlaku sampai ada yang menjalankannya (Penalaran, Tidak dijalankan).
+
+Di rekaman, PostgreSQL menolak role service lain membaca schema pembayaran secara bawaan. Satu-satunya hak lintas schema adalah kontrak kolom: ledger membaca tiga kolom tabel akun.
+
+<Snippet file="labs/api-t5/output/skema.txt" lines="194:195" title="Rekaman lab Tahap 5: labs/api-t5/output/skema.txt, bagian F (role merchant ditolak membaca schema pembayaran)" />
+
+<Snippet file="labs/api-t5/output/skema.txt" lines="204:206" title="Rekaman lab Tahap 5: labs/api-t5/output/skema.txt, bagian F (kontrak kolom ledger ke akun)" />
+
+Lab memeriksa ini dari katalog PostgreSQL. Kodenya membandingkan hak tiap role dengan himpunan kontrak yang ditulis di kode:
+
+<Snippet file="labs/api-t5/run.py" lines="262:268" lang="python" title="Kode lab: labs/api-t5/run.py (hak role dibaca dari katalog dan dibandingkan dengan kontrak)" />
+
+Pemeriksaan itu berjalan atas enam role service saja. Role ketujuh, misalnya role tim Pelaporan, tidak ada di daftarnya. ADR 50 juga tidak mengharuskan pemeriksaan itu berjalan di pipeline tim (Penalaran, Tidak dijalankan: dibaca dari `run.py` dan teks aturan 1 sampai 8).
+
+**Yang menangkap rename di Tahap 4.** Rename kolom `tingkat`, yang ada di kontrak ledger, gagal di tes kontrak sebelum rilis. Rename kolom `nama`, yang bukan kontrak siapa pun, tidak mematahkan modul lain:
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="81:85" title="Rekaman lab Tahap 4: labs/t4-modul/output/batas.txt, bagian B (rename kolom nama dan kolom kontrak)" />
+
+Tes itu menjalankan query pembaca, dan komentar di kodenya menulis tujuannya: tim yang mengubah kolom tahu sebelum rilis (`batas_test.go`, Dibaca dari kode). Hak baca sementara Pelaporan tidak punya baris kontrak, jadi query-nya tidak ada di pipeline Pembayaran.
+
+**Kenapa ADR 17 tidak cukup.** ADR 17 memecah perubahan skema menjadi tiga rilis, expand, migrate, dan contract, untuk tabel akun, buku, jurnal, dan posting ([[t2-skema-tanpa-downtime]]). Syarat contract di aturan 6 menyebut dua hal: cek data lulus dan server hanya memakai ledger. Pembaca di tim lain tidak disebut.
+
+Bila migration M53 memakai tiga rilis, nama lama bertahan sampai langkah contract, dan laporan Pelaporan baru patah di langkah itu. Itu terjadi kecuali pemilik tahu bahwa Pelaporan membaca kolomnya (Penalaran, Tidak dijalankan).
+
+**Kenapa laporan kosong, bukan galat.** Rekaman Tahap 4 menjawab galat 42703 untuk query dengan nama lama. Laporan yang kosong tanpa galat berarti job mengabaikan galat itu tanpa mencatatnya, atau memetakan kolom menurut nama dan tidak menemukannya (Penalaran, Tidak dijalankan). Cerita tidak menulis sebabnya, jadi laporan kosong tetap Ilustrasi.
+
+Dokumentasi PostgreSQL 17 menulis bahwa RENAME tidak mengubah data tersimpan, dan paragrafnya tidak membahas query milik role lain ([ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html), dibuka 2026-11-06, Tidak dijalankan). ADR 62 mencegah dari sisi lain: pembaca tidak menyebut nama kolom milik tim lain.
+
+**Struktur tim dan struktur sistem.** Menurut Melvin Conway, organisasi yang merancang sistem terpaksa menghasilkan rancangan yang menyalin "communication structures" organisasi itu. Sumbernya makalah di Datamation, April 1968 ([How Do Committees Invent?](https://www.melconway.com/Home/Committees_Paper.html), dibuka 2026-11-06, Tidak dijalankan). Ia juga menulis bahwa tiap delegasi mempersempit pilihan rancangan yang bisa ditempuh, dan bahwa usaha merancang sebaiknya diatur menurut kebutuhan komunikasi.
+
+Kebutuhan komunikasi Pelaporan dengan Pembayaran ada di satu tempat: kolom yang dibaca. Tempat itu tidak ada di sistem, jadi kebutuhan itu pindah ke rapat dan pengumuman (Penalaran, Tidak dijalankan). Makalah itu membahas struktur rancangan pada umumnya, dan kata schema dan database tidak muncul di teksnya.
+
+**Data yang dipakai tim lain adalah produk.** Empat prinsip data mesh menurut Zhamak Dehghani adalah kepemilikan domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer. Sumbernya tulisan 3 Desember 2020 ([Data Mesh Principles and Logical Architecture](https://martinfowler.com/articles/data-mesh-principles.html), dibuka 2026-11-06, Tidak dijalankan). Pemilik produk data bertanggung jawab atas ukuran seperti kualitas data dan lama user mendapat data.
+
+ADR 62 meminjam tiga prinsip pertama dan menukar tata kelola terfederasi dengan tinjauan manusia atas daftar produk data. Penulisnya menulis bahwa keempat prinsip dimaksudkan "collectively necessary and sufficient". Jadi ADR 62 bukan data mesh menurut tulisan itu.
+
+Tulisan itu menulis tentang data analitik, yaitu pandangan data yang teragregasi dan temporal untuk laporan analitik. Ia membedakannya dari data operasional, yaitu keadaan sekarang di database di balik fungsi bisnis.
+
+Tabel schema pembayaran adalah data operasional, dan contoh tulisan itu adalah perusahaan media rekaan, bukan kasus satu perusahaan. Karena itu ADR 62 memakai prinsipnya di luar lingkup yang ditulis penulisnya (Penalaran, Tidak dijalankan).
+
+**Laporan resmi milik tim Ledger.** Aturan Pak Hadi di PRD v5 menulis: "Angka yang saya tanda tangani harus dibaca dari catatan yang sama dengan yang menggerakkan uang. Salinan boleh untuk dilihat, bukan untuk memutuskan." ([[t5-prd]]). Ledger tetap satu-satunya tempat uang bergerak, dan pembayaran meminta jurnal lewat API ledger ([[t4-modul]]).
+
+Tutup buku di Tahap 2 menjumlahkan posting per buku dan memeriksa bahwa semua jurnal seimbang ([[t2-tutup-buku]]). ADR 49 menulis snapshot saldo tiap akhir bulan per buku ([[t5-partisi]]). Laporan resmi karena itu adalah produk milik tim Ledger, dan Pelaporan memakainya lewat API (ADR 62, Asumsi desain, Tidak dijalankan).
+
+### Cara kerjanya
+
+Tabel ini membandingkan dua cara Pelaporan mendapat data. Isinya Penalaran, Tidak dijalankan, kecuali sel yang menyebut rekaman.
+
+| Bagian | Pelaporan membaca tabel | Pelaporan membaca API atau event berversi |
+|---|---|---|
+| Siapa tahu pembacanya | Hak baca ada di database, tanpa daftar pembaca di tim Pembayaran | Katalog mencatat pembaca tiap produk data (ADR 62, Asumsi desain) |
+| Saat pemilik mengganti nama kolom | Query pembaca dijawab galat 42703 (Rekaman lab Tahap 4, bagian A) | Pemilik mengubah kode yang mengirim event, dan versi 1 tetap sama (Asumsi desain). Kontrak modul tetap berhasil di Tahap 4, bagian B (Rekaman lab) |
+| Yang dites pipeline pemilik | Tidak ada tes untuk hak sementara | Tes contract atas bentuk versi 1 (ADR 62, Asumsi desain) |
+
+### Yang tidak direkam
+
+- Hak sementara, role Pelaporan, dan query Pelaporan tidak ada di lab mana pun. Rabu, Kamis, Jumat, dan laporan kosong berasal dari cerita (Ilustrasi).
+- Event berversi, API tutup buku milik tim Ledger, dan katalog produk data belum ada di repo ini (Tidak dijalankan).
+- Pemeriksaan di `run.py` membaca hak dari katalog PostgreSQL, bukan isi query. Lint yang menolak query lintas schema tidak ada di `labs/api-t5` (Tidak dijalankan).
+- Rekaman Tahap 4 memerankan M32 dengan satu schema dan satu role, memakai kode lab yang ditulis seperti uraian cerita. Schema, role, dan pesan galatnya dari PostgreSQL asli, tetapi kodenya bukan kode produksi.
+
+</Blok>
+
+<Blok nama="Putuskan">
+
+### ADR 62: data untuk tim lain lewat API atau event berversi, hak lintas schema dicabut
+
+**Kebutuhan.** M53 menunjukkan laporan Keuangan yang kosong karena hak baca sementara tidak punya pemilik, daftar pembaca, atau tes. PRD v6 menulis data antar domain sebagai P1 ([[t6-prd]]). Aturan Pak Hadi di PRD v5 menulis laporan resmi dari catatan yang sama dengan ledger ([[t5-prd]]). Bebannya bukan alasan: M53 tidak membawa angka beban, dan kapasitas satu primary tetap belum diukur.
+
+**Status:** diterima sesudah M53, minggu 6 Tahap 6. Tahap ini tanpa lab, jadi bukti tiap opsi berlabel Tidak dijalankan atau Hitungan atas Asumsi.
+
+| | A. Replica lintas schema | B. Data warehouse pusat | C. Rapat sinkronisasi migration | D. Database terpisah per service | E. API atau event berversi, hak dicabut |
+|---|---|---|---|---|---|
+| Cara kerja | Pelaporan memakai role baca-saja di replica ([[t5-read-replica]]) | Semua tabel domain disalin ke satu data warehouse pusat, dan laporan dibaca dari sana | Wakil sebelas tim bertemu tiap minggu untuk membahas migration yang akan datang | Tiap service punya database sendiri, dan datanya hanya terbuka lewat API service itu | Pemilik menyediakan API atau event berversi. Hak SELECT lintas schema dicabut, dan pipeline menolak query lintas schema |
+| Kelebihan | Tidak menambah beban primary, dan replica sudah ada | Pembaca tidak menyentuh database service | Tanpa komponen baru | Hak lintas service tidak bisa ada, karena databasenya berbeda | Pemilik tahu pembacanya dan menjaga versi, di satu cluster yang sama |
+| Kekurangan | Replica memutar ulang rekaman perubahan primary, jadi nama kolom dan hak yang sama ikut ke sana. Salinan juga tertinggal | Ketergantungan pindah ke pipeline yang menyalin tabel tiap domain, dan salinan tidak boleh memutuskan uang | Tidak terbaca di sistem. Sebelas tim berarti 55 pasang tim | Enam database tambahan untuk dijaga, padahal pemicunya belum terukur | Pemilik menanggung versi lama, dan tiap produk data butuh perawatan |
+| Biaya operasional | Tidak ada komponen baru, dan M53 terulang | Satu sistem baru dan orang yang menjaganya | Waktu wakil tiap tim tiap minggu | Operasi database bertambah dari satu cluster menjadi enam | Katalog, tes contract, lint, dan pemilik per produk data |
+| Bukti | Penalaran dari ADR 46, Tidak dijalankan | Tidak dijalankan | Hitungan atas Asumsi cerita: 11 × 10 ÷ 2 = 55 | Tidak dijalankan: butir 3 ADR 60 menulis pemicunya belum terukur | Rekaman lab Tahap 4 dan Tahap 5 untuk batas dan kontrak. Event dan API Tidak dijalankan |
+
+**Keputusan: opsi E.** Tujuh aturan:
+
+1. Tiap domain memiliki service, schema, giliran jaga, dan SLO, dan semuanya tercatat di katalog yang dibangun di [[t6-m52]].
+2. Data untuk tim lain hanya lewat API atau event berversi. Tiap produk data punya pemilik, skema, dan kesegaran yang tertulis (Asumsi).
+3. Hak SELECT lintas schema dicabut. Lint di pipeline menolak query yang menyebut schema milik tim lain. Pemeriksaan katalog seperti di lab api-t5 membandingkan hak tiap role dengan daftar contract (Asumsi desain).
+4. Laporan resmi Keuangan dibaca dari API tutup buku milik tim Ledger, yang berasal dari snapshot saldo ADR 49 ([[t5-partisi]]). Event hanya untuk dasbor dan tim lain.
+5. Dari empat prinsip data mesh dipakai kepemilikan domain, data sebagai produk, dan self-serve lewat golden path. Tata kelola berupa tinjauan Security dan Keuangan atas daftar produk data, bukan tata kelola komputasional federasi.
+6. Tidak memasang alat khusus data mesh.
+7. Data yang belum punya event diminta lewat katalog, dan pemilik menjawab dengan jadwal tertulis. Hak baca sementara tidak ada (Asumsi desain).
+
+**Kenapa E, bukan A, B, C, atau D.**
+
+- **A ditolak** karena replica membawa nama kolom dan hak yang sama, jadi M53 terulang di replica. Aturan Pak Hadi di PRD v5 juga menulis salinan boleh untuk dilihat, bukan untuk memutuskan, dan laporan yang ditandatangani termasuk memutuskan ([[t5-prd]]).
+- **B belum** karena data warehouse memindahkan ketergantungan ke pipeline yang membaca tabel, dan salinan tidak boleh memutuskan uang. Opsi ini dibuka lagi di tabel "Kapan keputusan ini salah".
+- **C ditolak** karena rapat tidak terbaca di sistem. Pipeline tidak bisa gagal karena rapat tidak diadakan.
+- **D belum** karena pemicunya di [[t5-adr-60]] belum terukur. Aturan 2 meminjam sisi API dari pola itu, yaitu data tiap service terbuka hanya lewat API service itu, tanpa memisahkan database.
+
+**Kasus industri: Stripe.** Brandur Leach menulis pada 5 Agustus 2017 bahwa pengembang API kehilangan keleluasaan mengubah begitu satu user memakai antarmukanya. Perusahaannya menghindari perubahan yang tidak kompatibel mundur, dan kolom yang sudah ada sebaiknya tetap ada dengan nama dan tipe yang sama. Perubahan tak terhindarkan dibungkus modul perubahan versi, dan hampir seratus upgrade tidak kompatibel mundur terjadi dalam enam tahun ([Stripe: APIs as infrastructure](https://stripe.com/blog/api-versioning), dibuka 2026-11-06).
+
+Batasnya: itu API publik untuk pengembang di luar perusahaan, ditulis karyawan tentang sistemnya sendiri pada 2017. Tulisannya tidak membahas tabel internal antar tim, jadi kasus ini mendukung janji pemilik atas bentuk yang tetap, bukan pencabutan hak baca.
+
+**Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
+
+1. Versi lama menumpuk, karena pembaca tidak pernah pindah. Pencegahannya katalog mencatat pembaca tiap versi dan tanggal akhirnya, dan versi tanpa pembaca dimatikan.
+2. Hak sementara kembali lewat jalan lain, misalnya role baru yang mewarisi role lain. Di lab Tahap 4 satu role proses mewarisi lima role modul ([[t4-modul]]), dan di Tahap 5 satu role proses mewarisi keenam role service ([[t5-m44]]). Pencegahannya aturan 3 dan aturan 7.
+3. Produk data bertambah lebih cepat daripada pemilik yang merawatnya. Pencegahannya katalog menolak produk data tanpa pemilik, skema, dan kesegaran, dengan batas tiga produk per tim (Asumsi).
+
+**Kapan keputusan ini salah.** Tiap baris menulis kejadian yang membuka ADR ini lagi. Satuannya produk data, detik, domain, dan orang.
+
+| Salah saat | Yang diperiksa | Angka sekarang | Dibaca dari |
+|---|---|---|---|
+| Produk data lebih banyak dari yang sanggup dirawat pemiliknya | Produk data per tim | Batas tiga per tim (Asumsi): 11 × 3 = 33 produk untuk 11 tim. Satu tim berisi 4,8 orang rata-rata (53 ÷ 11, Hitungan atas Asumsi cerita) | Katalog |
+| Kesegaran event tertinggal lebih dari 5 detik dari ledger untuk dasbor merchant | Umur event tertua | Pembanding PRD v5: tertinggal paling lama 5 detik dan terlihat paling lambat 35 detik (Asumsi produk, [[t5-prd]]). Belum terukur di Tahap 6 (Tidak dijalankan) | Metrik pemilik event |
+| Satu laporan butuh gabungan lebih dari empat domain tiap hari | Domain per laporan | M53 menyentuh satu schema (Ilustrasi). Bila lebih dari empat domain, pertimbangkan data warehouse (opsi B) | Katalog |
+| Struktur tim berubah sehingga pemilik produk data hilang | Produk data tanpa pemilik | 0 menurut aturan 2 (Asumsi desain) | Katalog |
+
+**Yang akan merevisinya.** Garis waktu perubahan yang memuat migration, flag, dan deploy dibahas di [[t6-m54]]. Akses staf ke data negara lain dibahas di [[t6-residensi]]. Database terpisah per service tetap sengaja belum dan dibahas di [[t6-adr-69]].
+
+### Sengaja belum dilakukan
+
+| Yang ditunda | Kenapa ditunda | Muncul lagi di |
+|---|---|---|
+| Data warehouse pusat | Satu laporan di M53 menyentuh satu schema, dan salinan tidak boleh memutuskan uang | Belum dijadwalkan |
+| Database terpisah per service | Pemicu di ADR 60 belum terukur | [[t6-adr-69]] |
+| Tata kelola komputasional federasi | ADR ini memakai tinjauan manusia atas daftar produk data | Belum dijadwalkan |
+| Alat khusus data mesh | Sebelas tim dan enam service belum menuntutnya (Penalaran, Tidak dijalankan) | Belum dijadwalkan |
+
+</Blok>
+
+<Blok nama="Kunci">
+
+### Cek diri
+
+**1.** Query yang masih menyebut nama kolom lama dijalankan sesudah rename. Apa jawaban PostgreSQL di rekaman Tahap 4, dan kenapa itu bukan hasil kosong?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Galat kolom tidak ada, `column "nama" does not exist` (42703), dari role yang masih berhak membaca tabelnya (`batas.txt` bagian A). Hasil kosong tanpa galat berarti job tidak berhenti pada galat itu. Cerita M53 tidak menulis sebabnya (Ilustrasi).
+
+</details>
+
+**2.** Pipeline tim Pembayaran lulus sesudah migration. Apa yang tidak ada di pipeline itu, dan bagaimana Tahap 4 menangkap rename kolom yang sejenis?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Query Pelaporan tidak ada di dalamnya, karena hak baca sementara tidak punya baris contract. Di Tahap 4, rename kolom `tingkat` yang ada di kontrak ledger gagal di tes kontrak dengan 42703 sebelum rilis (`batas.txt` bagian B).
+
+</details>
+
+**3.** ADR 62 mencabut hak baca lintas schema. Apa penggantinya, dan milik siapa laporan yang Pak Hadi tanda tangani?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Penggantinya API atau event berversi milik pemilik data, dengan pemilik, skema, dan kesegaran tertulis. Laporan resmi Keuangan dibaca dari API tutup buku milik tim Ledger, yang berasal dari snapshot saldo ADR 49. Itu Asumsi desain dan Tidak dijalankan.
+
+</details>
+
+**4.** Replica sudah ada di ADR 46. Kenapa ADR 62 tidak memilihnya untuk Pelaporan?
+
+<details class="success">
+<summary>Jawaban</summary>
+
+Replica memutar ulang rekaman perubahan primary, jadi nama kolom dan hak yang sama ikut ke sana dan M53 terulang (Penalaran, Tidak dijalankan). Aturan Pak Hadi di PRD v5 juga menulis salinan boleh untuk dilihat, bukan untuk memutuskan.
+
+</details>
+
+### Saat me-review kode AI, cek ini
+
+- [ ] Query tidak menyebut awalan schema milik tim lain. Data dari tim lain diminta lewat API atau event.
+- [ ] Migration yang mengganti nama kolom mengecek pembaca kolom itu di katalog, dan memakai expand dan contract seperti ADR 17.
+- [ ] Tidak ada hak SELECT baru lintas schema di migration tanpa baris contract dan tesnya.
+- [ ] Event baru punya versi, pemilik, skema, dan kesegaran tertulis.
+- [ ] Laporan yang Keuangan tanda tangani dibaca dari API tim Ledger, bukan dari tabel tim lain atau replica.
+- [ ] Perubahan yang tidak kompatibel mundur memakai versi event baru, bukan mengubah versi lama.
+
+### Bacaan lanjut
+
+- [Conway: How Do Committees Invent?](https://www.melconway.com/Home/Committees_Paper.html) (Datamation, April 1968)
+- [Dehghani: Data Mesh Principles and Logical Architecture](https://martinfowler.com/articles/data-mesh-principles.html) (3 Desember 2020)
+- [Stripe: APIs as infrastructure, future-proofing Stripe with versioning](https://stripe.com/blog/api-versioning) (5 Agustus 2017)
+- [PostgreSQL 17: ALTER TABLE](https://www.postgresql.org/docs/17/sql-altertable.html)
+- [PostgreSQL 17: Privileges](https://www.postgresql.org/docs/17/ddl-priv.html)
+
+</Blok>
+
+<SkripLama daftar={["hp","alur-core","alur"]} />

@@ -1,0 +1,101 @@
+{
+  "versi": 2,
+  "judul": "Rename kolom Kamis, laporan kosong Jumat",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "catatan": "Jalur utama adalah Ilustrasi: hari, jam, tim, dan laporan kosong berasal dari cerita, bukan dari rekaman. Bentuk pipeline di langkah 3 dan galat 42703 di langkah 4 berasal dari rekaman lab Tahap 4 (labs/t4-modul/output/batas.txt bagian A, PostgreSQL 17.11), yang menirukan M32 dengan satu schema dan satu role. Varian memakai rekaman Tahap 4 bagian B dan rekaman Tahap 5 (labs/api-t5/output/skema.txt bagian F). Event berversi dan API tutup buku milik tim Ledger Tidak dijalankan."
+  },
+  "pengantar": "Tim Pelaporan membaca schema pembayaran lewat hak baca sementara, lalu tim Pembayaran mengganti nama satu kolom. Tebak dulu apa jawaban PostgreSQL, lalu ikuti langkahnya. Sesudah langkah terakhir, centang 'Ubah satu hal'.",
+  "komponen": [
+    { "id": "pembayaran", "label": "Tim Pembayaran" },
+    { "id": "db", "label": "Database negara kedua" },
+    { "id": "pelaporan", "label": "Tim Pelaporan" },
+    { "id": "hadi", "label": "Pak Hadi, Keuangan" }
+  ],
+  "perangkat": [],
+  "layarAwal": {},
+  "predict": {
+    "q": "Kamis migration tim Pembayaran mengganti nama satu kolom, dan pipeline Pembayaran lulus. Pelaporan masih memegang hak baca atas schema itu. Jumat 06.00 job laporan menjalankan query yang menyebut nama lama. Apa jawaban PostgreSQL?",
+    "options": [
+      "Hasil kosong tanpa galat, karena PostgreSQL menganggap kolom yang hilang tidak punya baris",
+      "Galat kolom tidak ada (42703), karena nama lama tidak lagi dikenal di tabel itu",
+      "Hasil terisi, karena PostgreSQL menulis ulang nama lama ke nama baru secara otomatis",
+      "Galat tanpa hak (42501), karena rename kolom mencabut hak baca milik role lain"
+    ],
+    "answer": 1,
+    "varian": false,
+    "explain": "Di rekaman lab Tahap 4, bagian A, query yang menyebut nama lama sesudah rename dijawab column \"nama\" does not exist (42703) oleh role yang masih berhak membaca tabelnya, bukan 42501 dan bukan hasil kosong. Itu kode lab yang menirukan M32 dengan satu schema dan satu role, dan jawabannya dari PostgreSQL asli. Laporan yang kosong tanpa galat berarti job tidak berhenti pada galat itu. Cerita tidak menulis sebabnya, jadi laporan kosong tetap Ilustrasi."
+  },
+  "langkah": [
+    {
+      "dari": "pelaporan",
+      "ke": "db",
+      "judul": "Rabu: Pelaporan mendapat hak baca sementara",
+      "kirim": "hak baca atas schema pembayaran untuk role Pelaporan, karena event belum ada (Ilustrasi)",
+      "jelas": "Hak itu ada di database. Ia bukan bagian dari daftar pembaca di tim Pembayaran, dan tidak ada tes yang menjalankan query Pelaporan (Penalaran, Tidak dijalankan)."
+    },
+    {
+      "dari": "pembayaran",
+      "ke": "db",
+      "judul": "Kamis: migration mengganti nama satu kolom",
+      "kirim": "migration tim Pembayaran: satu kolom di schema pembayaran diganti namanya (Ilustrasi)",
+      "jelas": "Pemilik schema boleh mengubah tabelnya. Dokumentasi PostgreSQL 17 menulis bahwa RENAME tidak mengubah data tersimpan, dan paragrafnya tidak membahas query milik role lain (Tidak dijalankan)."
+    },
+    {
+      "dari": "pembayaran",
+      "judul": "Kamis: pipeline Pembayaran lulus",
+      "kirim": "build, vet, dan tes dengan data tiruan: lulus; query Pelaporan tidak ada di dalamnya (Ilustrasi)",
+      "jelas": "Di rekaman Tahap 4, bagian A, tiga langkah CI lulus tanpa membuka database, dan rename baru gagal di pemeriksaan atas skema nyata yang meniru produksi. Kasus M53 meminjam bentuk itu (Rekaman lab untuk bentuknya, Ilustrasi untuk kasusnya)."
+    },
+    {
+      "dari": "pelaporan",
+      "ke": "db",
+      "judul": "Jumat 06.00: job Pelaporan menyebut nama lama",
+      "kirim": "column \"nama\" does not exist (42703): jawaban PostgreSQL pada rekaman Tahap 4; query Pelaporan sendiri tidak direkam (Ilustrasi)",
+      "jelas": "Jawaban PostgreSQL adalah galat, bukan hasil kosong. Cerita tidak menulis kenapa job tidak berhenti pada galat itu."
+    },
+    {
+      "dari": "pelaporan",
+      "ke": "hadi",
+      "judul": "Jumat 06.00: laporan tutup buku negara kedua kosong",
+      "kirim": "laporan tutup buku negara kedua: kosong; Pak Hadi menunda tanda tangan satu hari (Ilustrasi)",
+      "jelas": "Pemilik tabel tidak tahu ada pembaca, dan pembaca tidak tahu tabelnya berubah. Tidak ada sistem yang menyambungkan keduanya.",
+      "nada": "warn"
+    }
+  ],
+  "varian": {
+    "label": "Pelaporan membaca lewat event berversi, bukan tabel",
+    "mulai": 0,
+    "langkah": [
+      {
+        "dari": "pembayaran",
+        "ke": "pelaporan",
+        "judul": "Pembayaran menyediakan event versi 1",
+        "kirim": "event pembayaran versi 1: kolom, arti, dan kesegaran tertulis; pembacanya tercatat di katalog (ADR 62, Asumsi desain, Tidak dijalankan)",
+        "jelas": "Pelaporan meminta event, bukan hak atas tabel. Katalog mencatat pembacanya, jadi pemilik tahu siapa yang terkena bila ia mengubah sesuatu."
+      },
+      {
+        "dari": "pembayaran",
+        "ke": "db",
+        "judul": "Kamis: migration mengganti nama kolom di tabel",
+        "kirim": "kolom diganti namanya; kode yang mengirim event ikut diubah pemilik; event versi 1 tetap sama (Ilustrasi)",
+        "jelas": "Rekaman Tahap 4, bagian B: sesudah rename oleh pemilik schema dan perubahan kode modulnya sendiri, pembaca lewat kontrak modul tetap berhasil. Itu paket Go di satu proses, bukan event antar tim (Rekaman lab untuk bentuknya, Tidak dijalankan untuk event)."
+      },
+      {
+        "dari": "pelaporan",
+        "ke": "db",
+        "judul": "Hak baca atas tabel tidak ada lagi",
+        "kirim": "role service lain membaca schema pembayaran: permission denied for schema t5_pembayaran (42501), role merchant di lab Tahap 5",
+        "jelas": "Rekaman lab Tahap 5, skema.txt bagian F. Role Pelaporan tidak ada di lab, jadi rekaman itu memakai role merchant. Dengan hak sementara dicabut, Pelaporan berada di keadaan bawaan yang direkam untuk role service lain."
+      },
+      {
+        "dari": "pelaporan",
+        "ke": "hadi",
+        "judul": "Jumat 06.00: laporan terisi",
+        "kirim": "laporan tutup buku dari event versi 1; laporan resmi Keuangan dibaca dari API tutup buku milik tim Ledger (ADR 62, Asumsi desain, Tidak dijalankan)",
+        "jelas": "Laporan Pelaporan untuk dasbor dan tim lain terisi karena event versi 1 tidak berubah. Angka yang Pak Hadi tanda tangani datang dari tim Ledger.",
+        "nada": "good"
+      }
+    ]
+  }
+}

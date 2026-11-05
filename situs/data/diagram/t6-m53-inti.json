@@ -1,0 +1,52 @@
+{
+  "id": "t6-m53-inti",
+  "judul": "Dari hak sementara ke ADR 62",
+  "sumber": {
+    "jenis": "ilustrasi",
+    "teks": "Ilustrasi dan Asumsi desain ADR 62"
+  },
+  "baris": [
+    {
+      "label": "Kejadian",
+      "sub": "cerita, minggu 6",
+      "simpul": [
+        {
+          "teks": "Hak baca sementara",
+          "sub": "tim Pelaporan, schema pembayaran"
+        },
+        {
+          "teks": "Rename kolom",
+          "sub": "migration tim Pembayaran",
+          "nada": "warn"
+        },
+        {
+          "teks": "Laporan kosong",
+          "sub": "Jumat 06.00, negara kedua",
+          "nada": "warn"
+        }
+      ]
+    },
+    {
+      "label": "ADR 62",
+      "sub": "keputusan",
+      "simpul": [
+        {
+          "teks": "API atau event",
+          "sub": "berversi, milik pemilik",
+          "nada": "good"
+        },
+        {
+          "teks": "Hak lintas dicabut",
+          "sub": "schema, lint di pipeline",
+          "nada": "good"
+        },
+        {
+          "teks": "Laporan dari Ledger",
+          "sub": "API tutup buku",
+          "nada": "good"
+        }
+      ]
+    }
+  ],
+  "catatan": "Baris atas adalah kejadian di cerita (Ilustrasi). Baris bawah adalah isi ADR 62 (Asumsi desain): tidak satu pun dijalankan di lab."
+}
