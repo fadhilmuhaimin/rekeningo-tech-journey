@@ -548,6 +548,8 @@ describe("registry cerita.json", () => {
       expect(blok(h.nomor!), `alokasi ${h.nomor}`).toContain(kep(1710 + 4 * (n - 1), 1713 + 4 * (n - 1)));
       expect(blok(h.nomor!), `riset ${h.nomor}`).toContain(`ID riset R6-${110 + 5 * (n - 1)} sampai R6-${114 + 5 * (n - 1)}.`);
       expect(antrean, `judul tugas ${h.nomor}`).toContain(`\n### ${h.nomor} · ${h.judul}\n`);
+      // situs/public/widgets/ dibangkitkan tiap build dan diabaikan git: data widget halaman tidak boleh ditulis ke sana.
+      expect(blok(h.nomor!), `data widget ${h.nomor}`).not.toContain("`situs/public/widgets/data/`");
       expect(dep(h.nomor!), `${h.nomor} butuh T6-siap`).toContain("T6-siap");
       if (n > 1) expect(dep(h.nomor!), `${h.nomor} menunggu 6.${n - 1}`).toContain(`6.${n - 1}`);
     }
