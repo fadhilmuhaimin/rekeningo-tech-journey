@@ -1,5 +1,6 @@
-"""Bukti W1, W5, W6, dan W8 untuk evaluasi tahap (skill evaluasi-tahap, EVAL-2, keputusan 753). Hanya `rantai` untuk tahap
-yang sudah lengkap (1 dan 2) masuk gerbang (`tools/cek_situs.sh`, keputusan 1164); yang lain dijalankan tangan.
+"""Bukti W1, W3, W5, W6, dan W8 untuk evaluasi tahap (skill evaluasi-tahap, EVAL-2, keputusan 753). `rantai` dan `gejala` untuk
+tiap tahap yang lengkap (semua halaman bernomornya ada; Tahap 1 sampai 5 wajib, perintah `lengkap`) masuk gerbang
+(`tools/cek_situs.sh`, keputusan 1164, 1696); yang lain dijalankan tangan.
 
     python3 tools/eval_tahap.py peta  2   # W1: peta halaman naskah lawan registry (nomor, judul, bintang, lab, ada)
     python3 tools/eval_tahap.py coba  2   # W5: blok Coba tiap halaman, komponennya, ada tebakan, ada "ubah satu hal"
@@ -7,13 +8,17 @@ yang sudah lengkap (1 dan 2) masuk gerbang (`tools/cek_situs.sh`, keputusan 1164
     python3 tools/eval_tahap.py adr   2   # W6: opsi, pre-mortem, kapan salah, tautan sumber tiap halaman ADR
     python3 tools/eval_tahap.py rantai 2  # W8: ikuti tautan Berikutnya di situs/dist dari N.1 sampai halaman terakhir tahap
     python3 tools/eval_tahap.py gejala 3  # W3: kalimat definisi (adalah, yaitu, disebut, ...) di dalam adegan blok Gejala halaman masalah
+    python3 tools/eval_tahap.py lengkap   # nomor tahap yang semua halaman bernomornya ada (stdout), ringkasan tahap sebagian (stderr)
 
 Semua perintah membaca berkas di repo (naskah, registry, MDX, situs/dist) dan tidak mengubah apa pun. `rantai` butuh
 `bun run --cwd situs build` lebih dulu. Exit 1 bila ada selisih nyata: W1 nomor, judul, bintang, lab, atau halaman
 "segera"; W6 ADR dengan opsi < 3 atau tanpa pre-mortem atau pre-mortem yang penyebabnya bukan tiga atau tanpa "kapan salah"; W8 halaman 404 atau tautan Berikutnya
 yang hilang, halaman sesudah halaman terakhir yang sudah punya pengganti ada, urutan yang dilalui tidak sama dengan nomor
-tahap itu (halaman terlewat, tertukar, atau rantai berhenti sebelum halaman terakhir), atau tautan "Berikutnya" di akhir
-blok berbeda dari tombol Berikutnya. `coba` hanya mencetak (nilai W5 butuh penilaian: lihat isi widget).
+tahap itu (halaman terlewat, tertukar, atau rantai berhenti sebelum halaman terakhir), halaman yang menyebut prasyarat
+(registry `prasyarat`) sebelum prasyaratnya dilalui, jembatan yang tidak menuju halaman N+1.1 bila N+1.1 sudah ada, atau
+tautan "Berikutnya" di akhir blok berbeda dari tombol Berikutnya; W3 halaman masalah tanpa blok Gejala atau dengan kalimat
+definisi di adegannya (keputusan 1696). `lengkap` selalu exit 0 (gerbang yang menuntut Tahap 1 sampai 5 ada di
+`tools/cek_situs.sh`). `coba` hanya mencetak (nilai W5 butuh penilaian: lihat isi widget).
 """
 import json
 import os
@@ -33,6 +38,10 @@ def registry(n):
 
 def urut(nomor):
     return float(nomor.split(".")[1])
+
+
+def url(h):
+    return "/" + h["path"].replace(".mdx", "").replace(".md", "") + "/"
 
 
 def berkas(h):
@@ -169,6 +178,13 @@ def rantai(n):
             break
         f = dist / sini.strip("/") / "index.html"
         h = por.get(sini, {})
+        # Prasyarat di registry yang bernomor tahap ini harus sudah dilalui Berikutnya sebelum halaman ini; prasyarat di tahap
+        # lain, di halaman lama, atau yang id-nya tidak dikenal di luar rantai ini (sinkron_cerita.py memeriksa id dan urutan registry).
+        for p in h.get("prasyarat", []):
+            q = by.get(p, {})
+            if q.get("tahap") == n and q.get("nomor") and url(q) not in dilihat[:-1]:
+                print(f"   PRASYARAT BELUM DILALUI: {h['nomor']} menyebut prasyarat {q['nomor']}, yang tidak dilalui Berikutnya sebelum halaman ini")
+                masalah += 1
         if not f.exists():
             print(f"{len(dilihat):2d} {h.get('nomor', '-'):>5} {sini} 404 (berkas tidak ada di situs/dist)")
             masalah += 1
@@ -196,6 +212,12 @@ def rantai(n):
             print(f"   sesudah halaman terakhir: {nxt} ada={ada} id={tujuan.get('id')} judul={tujuan.get('judul')!r} halaman lama (penggantinya ada)={lama}")
             if not ada or lama:
                 masalah += 1
+            # Bila halaman pertama tahap berikutnya sudah ada, jembatan harus menuju ke sana, bukan ke halaman sampingan atau
+            # halaman lama (keputusan 1696). Belum ada (mis. 6.1 selama Tahap 6 ditulis): tidak dipaksa ada.
+            depan = registry(n + 1)[0].get(f"{n + 1}.1")
+            if depan and depan.get("ada") and nxt != url(depan):
+                print(f"   JEMBATAN TIDAK MENUJU {n + 1}.1: Berikutnya {nxt}, halaman {n + 1}.1 ada di {url(depan)}")
+                masalah += 1
             sampai = True
             break
         sini = nxt
@@ -220,20 +242,45 @@ def gejala(n):
         if reg[no].get("jenis") != "masalah":
             continue
         t = berkas(reg[no]).read_text(encoding="utf-8")
+        diperiksa = 0
         for nama, _attr, isi in blok(t):
             if nama != "Gejala":
                 continue
+            diperiksa += 1
             adegan = [p.strip() for p in isi.strip().split("\n\n") if p.strip() and not p.strip().startswith(("*", "Arti label"))]
             kalimat = [k for p in adegan for k in re.split(r"(?<=[.!?])\s+", p)]
             hit = [k for k in kalimat if DEFINISI.search(k)]
             salah += 1 if hit else 0
             print(f"{no} | {reg[no]['judul'][:44]} | {len(adegan)} paragraf adegan, {sum(len(p.split()) for p in adegan)} kata | " + ("DEFINISI: " + " / ".join(h[:140] for h in hit) if hit else "ok"))
+        # Pemindai tidak gagal terbuka (analisis-kritis Prosedur E butir 14): halaman masalah tanpa blok Gejala tidak lolos diam-diam.
+        if not diperiksa:
+            print(f"{no} | {reg[no]['judul'][:44]} | TANPA BLOK Gejala: tidak ada yang diperiksa")
+            salah += 1
     return 1 if salah else 0
+
+
+def lengkap():
+    """Nomor tahap yang semua halaman bernomornya `ada`, dipisah spasi di stdout; tahap yang baru sebagian ditulis (mis. Tahap 6
+    selama ditulis) dan tahap tanpa halaman bernomor dicetak di stderr. Gerbang menjalankan `rantai` dan `gejala` untuk tahap yang
+    tercetak dan menuntut Tahap 1 sampai 5 ada di daftar itu (`tools/cek_situs.sh`), jadi tahap yang sudah lengkap tidak diam-diam
+    lepas dari gerbang, dan Tahap 6 ikut terjaga begitu lengkap tanpa ada yang perlu mengingat daftar."""
+    _, d = registry(0)
+    per = {}
+    for x in d["halaman"]:
+        if isinstance(x.get("tahap"), int) and x.get("nomor"):
+            per.setdefault(x["tahap"], []).append(x)
+    penuh = sorted(t for t, hs in per.items() if all(h.get("ada") for h in hs))
+    sebagian = [f"{t} ({sum(1 for h in per[t] if h.get('ada'))} dari {len(per[t])} halaman ada)" for t in sorted(per) if t not in penuh]
+    print("tahap lengkap: " + (" ".join(map(str, penuh)) or "-") + " | tahap sebagian: " + (", ".join(sebagian) or "-"), file=sys.stderr)
+    print(" ".join(map(str, penuh)))
+    return 0
 
 
 PERINTAH = {"peta": peta, "coba": coba, "bocor": bocor, "adr": adr, "rantai": rantai, "gejala": gejala}
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["lengkap"]:
+        sys.exit(lengkap())
     if len(sys.argv) != 3 or sys.argv[1] not in PERINTAH or not sys.argv[2].isdigit():
         print(__doc__)
         sys.exit(2)
