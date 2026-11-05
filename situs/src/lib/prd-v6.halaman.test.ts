@@ -187,7 +187,10 @@ describe("registry, urutan baca, dan kerangka blok", () => {
     const i = urut.findIndex((h) => h.id === "t5-jembatan");
     expect(urut[i]!.nomor).toBe("5.32");
     expect(urut[i + 1]!.nomor).toBe("6.1");
-    expect(urut.filter((h) => h.tahap === 6).map((h) => h.nomor)[0]).toBe("6.1");
+    // Halaman Tahap 6 yang sudah ada di urutan baca = halaman Tahap 6 `ada` di registry, dengan 6.1 paling depan (6.2 dan seterusnya menyusul).
+    const t6 = urut.filter((h) => h.tahap === 6).map((h) => h.nomor);
+    expect(t6[0]).toBe("6.1");
+    expect(t6).toEqual(hal.filter((h) => h.tahap === 6 && h.ada && h.nomor).map((h) => h.nomor));
   });
   test("tujuh blok bernama, templat prd lolos, hanya blok pertama terbuka, dan blok terakhir bernama persis seperti janji 5.32", () => {
     const b = daftarBlok(badan);
