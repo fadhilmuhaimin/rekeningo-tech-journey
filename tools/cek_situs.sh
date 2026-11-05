@@ -80,6 +80,7 @@ if [ "$MODE" != "--ukur" ]; then
   echo "== sinkron registry (prasyarat, nomor, [[ID]], angka asumsi, kartu, indeks)"
   $PY tools/sinkron_cerita.py --check | grep -v "^PERINGATAN" || true
   $PY tools/sinkron_cerita.py --check >/dev/null
+  echo "== uji sinkron registry: Tahap 6 proyeksi tanpa asumsi, tabel daftar-tahap disinkronkan (keputusan 1761)"; $PY tools/test_sinkron_cerita.py | tail -1
 
   echo "== antrean loop otomatis"; $PY tools/antrean.py --check
   echo "== uji pemeriksa alokasi antrean: nomor keputusan dan ID riset tidak bertumpuk (keputusan 1415)"; $PY tools/test_antrean.py | tail -1
