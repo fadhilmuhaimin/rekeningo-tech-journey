@@ -68,7 +68,11 @@ export const Registry = z
         })
         .strict(),
     ),
-    proyeksi: z.array(z.object({ no: z.number(), nama: z.string(), user: z.string(), catatan: z.string(), skala: Skala.optional() }).strict()),
+    // Tahap proyeksi (Tahap 6, konseptual tanpa lab) tidak punya `arsitektur` dan `asumsi`, jadi tidak masuk `tahap` (keputusan
+    // 1800). `naskah` dan `bagian` opsional supaya sidebar dan breadcrumb mengelompokkan halamannya seperti tahap lain (keputusan 1761).
+    proyeksi: z.array(
+      z.object({ no: z.number(), nama: z.string(), user: z.string(), catatan: z.string(), naskah: z.string().optional(), bagian: z.array(Bagian).optional(), skala: Skala.optional() }).strict(),
+    ),
     halaman: z.array(Halaman),
   })
   .strict()
@@ -79,8 +83,8 @@ export const Registry = z
         const ke = h[k];
         if (ke && !ids.has(ke)) ctx.addIssue({ code: "custom", message: `${h.id}.${k} menunjuk ${ke} yang tidak ada` });
       }
-      const t = d.tahap.find((x) => x.no === h.tahap);
-      // Tahap dengan naskah baru: setiap halaman wajib punya bagian, dan halaman baru wajib punya jenis.
+      const t = d.tahap.find((x) => x.no === h.tahap) ?? d.proyeksi.find((x) => x.no === h.tahap);
+      // Tahap (atau proyeksi) dengan naskah baru: setiap halaman wajib punya bagian, dan halaman baru wajib punya jenis.
       if (t?.naskah) {
         if (!h.bagian) ctx.addIssue({ code: "custom", message: `${h.id} di Tahap ${t.no} tanpa bagian` });
         else if (!t.bagian?.some((b) => b.no === h.bagian)) ctx.addIssue({ code: "custom", message: `${h.id}: bagian ${h.bagian} tidak dikenal` });

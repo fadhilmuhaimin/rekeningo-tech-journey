@@ -1,0 +1,103 @@
+---
+title: "Tahap 6 · Regional"
+description: Rekeningo untuk tiga negara dan 10 juta user, dikerjakan 53 orang dalam sebelas tim. Halaman ini memuat tim, tokoh baru, dan isi PRD v6. Tahap 6 tidak punya lab.
+---
+
+<p class="meta">Baca 7 menit · Halaman tahap · Proyeksi tanpa lab</p>
+
+## Inti
+
+Rekeningo melewati batas mata uang, negara, wilayah, dan tim. Tahap 6 adalah proyeksi tanpa lab, jadi tak satu pun angka di halaman ini direkam.
+
+Wilayah berarti region, yaitu satu lokasi geografis dengan pusat data. Negara berarti satu pasar dengan satu mata uang.
+
+## Ceritanya
+
+Minggu 16 Tahap 5 (Ilustrasi). Uji coba nasional lolos ([[t5-m51]]). Sinta lalu membagikan PRD v6 untuk 10 juta user ([[t5-jembatan]]).
+
+PT Rekeningo (fiktif) kini menargetkan tiga negara dengan 10.000.000 user terdaftar. Yang aktif tiap hari 20%, yaitu 2.000.000 user (Asumsi). Pekerjaannya 24 minggu, dan tim naik dari 28 menjadi 53 orang (Asumsi cerita). User naik 10 kali, dan orang naik 53 ÷ 28 = 1,9 kali (Hitungan atas Asumsi cerita).
+
+Ilustrasi adalah contoh atau kejadian cerita, bukan hasil sistem. Asumsi cerita adalah Asumsi yang berupa angka cerita, seperti jumlah orang dan minggu. Hitungan adalah rumus yang ditulis di halaman, dan ia memakai label masukan terlemahnya. Arti semua label ada di [Label sumber](/cara-pakai/#label-sumber).
+
+Tiga hal berubah sekaligus.
+
+1. **Uang melewati mata uang.** Satu jurnal berisi posting yang berjumlah nol ([[t2-ledger]]), padahal transfer antar negara membutuhkan kurs dan dua mata uang tidak bisa dijumlahkan langsung.
+2. **Data punya alamat.** Data satu negara harus tinggal di tempat tertentu (Asumsi produk), jadi satu database untuk semua negara tidak lagi menjadi pilihan.
+3. **Koordinasi menjadi beban utama.** 53 orang dalam 11 tim merilis ke enam service Tahap 5 dan service baru, dan tidak ada orang yang memahami semuanya (Ilustrasi).
+
+Asumsi produk adalah Asumsi yang berupa pilihan produk, seperti aturan tempat data tinggal.
+
+Tahap 6 berangkat dari keadaan akhir Tahap 5, bukan dari sistem yang sudah dibereskan. Menurut [[t5-m51]], tiga hal belum pernah diuji di Tahap 5. Ketiganya adalah skor risiko dalam 50 ms antar host (Asumsi), data di dua wilayah, dan 28 orang menjadi lebih dari 50 (Asumsi cerita). Kapasitas satu primary, yaitu database yang menerima semua tulis, juga belum pernah diukur.
+
+## Sebelas tim
+
+Sebelas tim memegang bagian yang berbeda, dan jumlah orang tiap tim adalah Asumsi cerita:
+
+| Tim | Orang | Pemimpin | Memegang |
+|---|---|---|---|
+| Pembayaran | 5 | Nadia | gateway, top-up bank, kartu virtual |
+| Ledger dan Tabungan | 5 | Hendra | ledger tiap negara, cicilan, tabungan, tukar mata uang |
+| Merchant | 5 | Wulan | merchant, QR, laporan, API untuk POS |
+| Akun | 5 | Raka | app, akun, identitas |
+| Notifikasi | 4 | Maya | pengiriman push, pengumuman |
+| Risiko | 5 | Kirana | skor risiko, graf akun-perangkat, back office bersama tim risk |
+| Wilayah | 5 | Arga | aturan per negara, integrasi bank lokal, residensi data |
+| Pelaporan | 4 | Tanpa nama | laporan Keuangan per negara dan per mata uang |
+| Platform | 6 | Bayu | golden path, service catalog, cluster, pipeline |
+| SRE | 5 | Dewi | SLO, giliran jaga, latihan failover |
+| Security | 4 | Laras | threat model, tinjauan, uji penetrasi lokal |
+
+Delapan tim produk berjumlah 5 + 5 + 5 + 5 + 4 + 5 + 5 + 4 = 38 orang. Tiga tim fungsi (Platform, SRE, dan Security) berjumlah 6 + 5 + 4 = 15 orang. Totalnya 53 orang, dan rata-ratanya 53 ÷ 11 = 4,8 orang per tim (Hitungan atas Asumsi cerita).
+
+Yang tidak berubah: Go di backend, Dart di app, PostgreSQL sebagai source of truth, dan ledger dari [[t2-ledger]].
+
+Tim Risiko menggantikan nama "tim fraud dan compliance engineering" di [[t5-jembatan]], karena Tahap 6 tidak membawa klaim kepatuhan. Tim risk milik Ratih adalah tim bisnis yang memakai back office, bukan tim engineering ini.
+
+## Tokoh baru
+
+Tahap 6 punya dua tokoh baru:
+
+- **Kirana** adalah engineer risiko yang memimpin tim Risiko. Ia lima tahun membangun skor penipuan di sistem lain, dan belum pernah memikirkan di mana data boleh tinggal. Ia ingin skor yang menangkap penipuan sebelum uang berpindah. Ia menganggap lebih banyak data selalu menaikkan ketepatan skor, termasuk data yang tidak boleh keluar dari satu wilayah.
+- **Arga** adalah engineer yang memimpin tim Wilayah, dan ia pernah memasang integrasi bank di dua negara. Ia ingin setiap negara terasa seperti satu produk lokal. Ia menganggap aturan per negara cukup ditulis sebagai percabangan di kode.
+
+Tokoh lama tetap ada, dengan kelemahan yang sama. Raka memimpin Akun, Nadia memimpin Pembayaran, Hendra memimpin Ledger dan Tabungan, Wulan memimpin Merchant, Bayu memimpin Platform, Dewi memimpin SRE, dan Laras memimpin Security. Nadia masih cenderung mengusulkan solusi yang terlalu berat, kali ini dua wilayah yang melayani data yang sama (aktif-aktif).
+
+Citra pindah ke negara kedua, dan pihak yang mencoba tetap tidak dikenal. Pak Hadi menambah satu syarat: "Saya menandatangani laporan per mata uang. Selisih pembulatan harus punya akun, dan tidak boleh ada saldo yang berubah tanpa kejadian."
+
+## Yang diminta PRD v6
+
+Isi PRD v6 adalah rencana cerita (Ilustrasi), dan [[t6-prd]] memuat dokumen lengkapnya. Ringkasannya:
+
+| Prioritas | Isi | Keterangan |
+|---|---|---|
+| P0 | Tiga negara | 6.000.000, 2.500.000, dan 1.500.000 user terdaftar (Asumsi cerita). Satu app, satu mata uang tiap negara, dan top-up lewat integrasi bank lokal |
+| P0 | Multi-mata uang dengan kurs | Transfer antar negara memakai kurs yang disimpan. Tukar adalah dua jurnal yang terhubung, dan selisih pembulatan punya akun sendiri |
+| P0 | Data per negara | Data identitas dan saldo satu negara tinggal di wilayah negara itu dan pasangan yang diizinkan (Asumsi produk). Database dipisah per negara |
+| P0 | Tidak berhenti saat satu wilayah hilang | Ledger memakai multi-region aktif-pasif: satu wilayah melayani dan pasangannya menunggu. RPO nol, RTO satu wilayah 30 menit, dan RTO satu mesin tetap 15 menit (Asumsi produk) |
+| P0 | Skor risiko real-time | Tiap pembayaran dan transfer mendapat skor dalam 50 ms (Asumsi). Tim Risiko membangun graf akun-perangkat, yaitu hubungan akun dengan perangkat yang memakainya |
+| P0 | Platform internal | Golden path (jalur bawaan untuk service baru), service catalog (daftar pemilik service), label biaya per tim, dan SLO per tim untuk 11 tim |
+| P1 | Perubahan aman di skala | Rilis bertahap berbasis SLO dengan rollback otomatis, dan chaos testing (percobaan gangguan) berskala kecil |
+| P1 | Data antar domain | Data yang dipakai tim lain disediakan sebagai produk dengan pemilik (data mesh sederhana) |
+
+Bukan lingkup v6: negara keempat, kartu fisik, pinjaman atau bunga, dan pindah ke aktif-aktif. PRD v6 tidak membawa klaim izin, lisensi, atau kepatuhan regulasi di negara mana pun, dan aturan per negara adalah Asumsi produk.
+
+## Masalah yang muncul
+
+Halaman Tahap 6 memberi tiap kejadian label Ilustrasi, Asumsi, atau Tidak dijalankan, karena tahap ini tidak punya lab.
+
+{/* daftar-tahap */}
+| Masalah | Halaman |
+|---|---|
+| Rekeningo harus melayani user di tiga negara dengan uang dan aturan mereka, tetap hidup bila satu wilayah hilang, dan diubah 53 orang tanpa saling menunggu | 6.1 PRD v6: Rekeningo untuk tiga negara, dan jawaban tebakan 5.32 · *segera* |
+| Dari PRD v6, apa yang berubah di app, backend, dan database, dan kenapa tiap data punya satu rumah dan satu pemilik? | 6.2 Dari fitur ke pekerjaan teknis v6 dan inti: tiap data punya satu rumah · *segera* |
+| Service baru menunggu template dari Platform, dan tim lain menyalin pipeline yang tidak punya pemilik jalur | 6.3 M52: Template service menunggu 17 hari + ADR 61 (platform sebagai produk, golden path, service catalog) · *segera* |
+| Migration satu tim mengosongkan laporan tim lain, karena hak baca lintas schema adalah contract yang tidak tertulis | 6.4 M53: Laporan tutup buku kosong sesudah migration + ADR 62 (kepemilikan domain, data sebagai produk) · *segera* |
+| Pembayaran gagal sesudah banyak perubahan dari beberapa tim, dan tak ada garis waktu atau ukuran yang menunjuk penyebabnya | 6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing) · *segera* |
+| Satu wilayah hilang lebih lama dari RTO wilayah, dan transaksi yang sudah dijawab sukses tidak ada di pasangannya | 6.6 M55: Satu wilayah hilang 47 menit + ADR 64 (multi-region aktif-pasif) · *segera* |
+| Jurnal tukar antar mata uang tidak berjumlah nol, dan selisih pembulatannya tidak punya akun | 6.7 M56: Jurnal tukar yang jumlah postingnya bukan nol + ADR 65 (multi-mata uang) · *segera* |
+| Satu graf akun-perangkat butuh data identitas dari tiga negara, padahal data satu negara harus tinggal di wilayahnya | 6.8 Keamanan 13: Data per negara, kunci per wilayah, fraud lintas negara + ADR 66 · *segera* |
+| Biaya per transaksi naik lebih cepat dari jumlah transaksi, dan skor risiko yang dipecah menjadi tiga service melewati anggaran latensinya | 6.9 M57: Biaya per transaksi naik 1,85 kali + ADR 67 (FinOps, skor risiko satu proses) · *segera* |
+| Giliran jaga per tim membebani tim kecil, dan 53 orang di 11 tim butuh pemilik service yang tercatat dan ukuran yang sama | 6.10 Tim dan infra Tahap 6: giliran jaga lintas tim, pemilik service, DORA + ADR 68 · *segera* |
+| Beban Tahap 6 dihitung dari angka Tahap 5 sebelum memilih komponen, dan dua belas butir yang ditunda ditulis dengan pemicu dan alat ukurnya | 6.11 Estimasi Tahap 6 dan ADR 69: Sengaja belum dilakukan · *segera* |
+| Yang dibawa pembaca keluar dari enam tahap, yang sengaja tidak diceritakan, dan yang belum diukur | 6.12 Penutup: yang dibawa keluar dari enam tahap · *segera* |
+{/* /daftar-tahap */}
