@@ -396,7 +396,7 @@ describe("blok Dari fitur ke pekerjaan: tabel delapan baris sama dengan naskah b
   });
   test("kolom Di app terbagi 3 + 3 + 2 dihitung dari tabel: tampil atau kirim, rilis, dan tanpa perubahan terlihat", () => {
     const app = tabel.slice(1).map((r) => r[1]!);
-    const tanpa = app.filter((c) => c === "Tidak ada perubahan yang terlihat");
+    const tanpa: string[] = app.filter((c) => c === "Tidak ada perubahan yang terlihat");
     const rilis = app.filter((c) => /pipeline|rilis|paket/i.test(c));
     const tampil = app.filter((c) => !tanpa.includes(c) && !rilis.includes(c));
     expect([tampil.length, rilis.length, tanpa.length]).toEqual([3, 3, 2]);
@@ -481,7 +481,7 @@ describe("blok Pertanyaan sebelum kode: tiga hal, versi pertama, tujuh kejadian,
   });
   test("kode M di sel tabel menunjuk halaman yang benar menurut judul registry: M52 sampai M57 dan Keamanan 13", () => {
     const tautan = [...blok.matchAll(/\[\[([^\]|\\]+)\\?\|([^\]]+)\]\]/g)].map((m) => [m[1]!, m[2]!]);
-    const dalamTabel = tautan.filter(([id, teks]) => /^(M\d\d|Keamanan 13)$/.test(teks!));
+    const dalamTabel = tautan.filter(([, teks]) => /^(M\d\d|Keamanan 13)$/.test(teks!));
     expect(dalamTabel.map(([id, teks]) => `${teks}=${id}`)).toEqual(["M56=t6-m56", "Keamanan 13=t6-residensi", "M55=t6-m55", "M53=t6-m53", "M52=t6-m52", "M54=t6-m54", "M57=t6-m57", "M56=t6-m56", "Keamanan 13=t6-residensi"]);
     for (const [id, teks] of dalamTabel) expect(dari(id!).judul.startsWith(`${teks}:`), `${teks} → ${id}`).toBe(true);
   });
