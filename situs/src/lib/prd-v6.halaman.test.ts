@@ -859,6 +859,10 @@ describe("baris riset R6-111 sampai R6-114: nomor halaman, nomor ADR, nomor atur
     di(draf, "naskah", "3. **Tim: 53 orang dalam 11 tim");
     expect(r("R6-114")).toContain(`naskah Tahap 6 pilihan draf 1, 2, dan 3 (tiga negara tanpa nama; ${persenNegara[0]}%, ${persenNegara[1]}%, ${persenNegara[2]}%; ${jumlahTim} orang dalam ${timNaskah.length} tim: ${orangProduk} dan ${orangFungsi})`);
     expect(r("R6-114")).toContain(`blok Yang dibuka lagi dari Tahap ${cerita.tahap[4]!.no} di ${nomor61}`);
+    expect(r("R6-114")).toContain(`dan bagian ${cocok(naskah, /^## (\d+)\. PRD v6/m)[1]}, dibaca`);
+    expect(r("R6-112")).toContain(`menurut peta naskah Tahap ${nomor61.split(".")[0]}, tanpa mengutip isinya`);
+    const tgl = cocok(r("R6-112"), /[Dd]ibaca (\d{4}-\d{2}-\d{2})/)[1]!;
+    for (const x of ["R6-110", "R6-111", "R6-112", "R6-113", "R6-114"]) expect(r(x).match(/\d{4}-\d{2}-\d{2}/g), `tanggal di ${x}`).toEqual(x === "R6-113" ? [tgl, tgl] : [tgl]);
   });
 });
 
@@ -924,7 +928,7 @@ describe("baris riset R6-110 sampai R6-114: ada, urut, lima kolom, tanggal baca,
       const tertulis = num(m[2]!);
       const d = m[2]!.includes(",") ? m[2]!.split(",")[1]!.length : 0;
       // Hasil dibulatkan setengah ke atas ke desimal yang tertulis; pembagian beruntun (mis. ÷ 86.400 × 10) memakai nilai tak terbulat.
-      expect(Math.abs(hasil - tertulis), `${m[0]}`).toBeLessThanOrEqual(0.5 * 10 ** -d + Math.abs(hasil) * 1e-6);
+      expect(Math.abs(hasil - tertulis), `${m[0]}`).toBeLessThanOrEqual(0.5 * 10 ** -d + 1e-9);
     }
     for (const x of ["1,89 (ditulis 1,9)", "4,82 (ditulis 4,8)", "2,33 (ditulis 2,3)", "2,67 (ditulis 2,7)", "277,78 (ditulis 277,8)", "166,67 (ditulis 166,7)", "462,96 (ditulis 463,0)", "6,67 (7 pod)"]) di(r110, "R6-110", x);
     di(r110, "R6-110", "batas 400 pertama terlewati pada 7 pod (420, 2,3 kali)");
