@@ -154,6 +154,13 @@ describe("nilai turunan: sumber dan hitungan itu sendiri", () => {
       "Multi-mata uang dengan kurs, data per negara, dan database per wilayah", `Lebih dari ${timNaskah[2]} developer dalam lebih dari ${timNaskah[3]} tim`,
     ]);
     expect(baris[0]![1]).toBe(`Keadaan terdekat di Tahap ${N5}`);
+    // Baris pemisah tepat di bawah header kedua tabel (menukar header dengan pemisah membuat tabel tanpa header).
+    const semua = badan.split("\n");
+    for (const awal of ["| | PRD v5 |", "| Isi PRD v6 |"]) {
+      const i = semua.findIndex((b) => b.startsWith(awal));
+      expect(semua[i + 1], `pemisah di bawah ${awal}`).toMatch(/^\|(---\|)+$/);
+    }
+    harus("Pecah berarti halaman ADR itu menulis keadaan yang sama dengan satu isi PRD v6. Keadaan itu bisa berupa syarat salah, pemicu, atau hal yang direvisi tahap berikutnya.");
     expect(baris.slice(1).every((x) => x.length === 2)).toBe(true);
   });
   test("PRD v5: empat isi P2 yang ditunda ke v6, dan multi-mata uang bukan lingkup; isi lain PRD v6 tidak ada di baris P2 itu", () => {
