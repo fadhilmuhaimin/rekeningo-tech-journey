@@ -544,7 +544,8 @@ describe("halaman istilah mTLS dan SAN dan glosarium", () => {
     const baris = glosarium.split("\n");
     const i = baris.findIndex((b) => b.startsWith("| **mTLS** (mutual TLS) |"));
     expect(baris[i - 1]!.startsWith("| **Monolith**")).toBe(true);
-    expect(baris[i + 1]!.startsWith("| **MVCC**")).toBe(true);
+    expect(baris[i + 1]!.startsWith("| **Multi-region**")).toBe(true); // istilah Tahap 6 (istilah-tahap-6) disisip urut abjad di antara mTLS dan MVCC
+    expect(baris[i + 2]!.startsWith("| **MVCC**")).toBe(true);
     const j = baris.findIndex((b) => b.startsWith("| **SAN** (Subject Alternative Name) |"));
     expect(baris[j - 1]!.startsWith("| **Saldo cache**")).toBe(true);
     expect(baris[j + 1]!.startsWith("| **Secret manager**")).toBe(true);

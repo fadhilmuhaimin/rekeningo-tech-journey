@@ -1,0 +1,43 @@
+{
+  "istilah": "Service mesh",
+  "sehari_hari": "Service mesh adalah lapisan infrastruktur yang mengurus keamanan, observability, dan lalu lintas antar service lewat proxy di jalur panggilan, tanpa mengubah kode service. Istio, salah satu implementasinya, menyebut mTLS, kebijakan akses, canary, dan pemulihan kegagalan sebagai fiturnya.",
+  "cerita": [
+    {
+      "rujukan": "t5-mtls",
+      "teks": "ADR 53 memilih mTLS di kode Go dan menunda service mesh. Ledger dipanggil tiga service, yaitu satu tujuan kritis."
+    },
+    {
+      "rujukan": "t5-adr-60",
+      "teks": "ADR 60 menulis service mesh penuh sebagai sengaja belum. Pemicunya: lebih dari satu tujuan kritis butuh identitas yang sama."
+    },
+    {
+      "rujukan": "t6-m52",
+      "teks": "Halaman M52 memakai istilah ini saat membahas identitas antar service di template."
+    }
+  ],
+  "mekanisme": [
+    "Proxy berada di jalur panggilan antar service. Istio menawarkan dua mode data plane, ambient dan sidecar.",
+    "Proxy menjalankan mTLS, kontrol akses, pengaturan lalu lintas, dan telemetri, sehingga kode service tidak berubah.",
+    "Pengaturan lalu lintas mencakup pembagian bobot persentase, mis. untuk canary dan staged rollout.",
+    "Satu mesh bisa mencakup lebih dari satu cluster, jaringan, atau runtime, mis. service di Kubernetes atau di VM."
+  ],
+  "stack": null,
+  "jebakan": [
+    "Memakai mesh untuk satu jalur panggilan. Istio menulis bahwa ia menjawab tantangan arsitektur terdistribusi atau microservice, dan ADR 60 menulis pemicunya lebih dari satu tujuan kritis yang butuh identitas sama.",
+    "Mengira mesh selalu berarti sidecar di tiap pod. Istio menawarkan dua mode data plane, ambient dan sidecar.",
+    "Menyamakan mesh dengan Kubernetes. Istio menulis bahwa service di Kubernetes maupun di VM bisa berada dalam satu mesh."
+  ],
+  "terkait": [
+    "mTLS (mutual TLS)",
+    "Traffic router",
+    "Canary"
+  ],
+  "sumber": [
+    {
+      "riset": "R6-172",
+      "judul": "Istio: The Istio service mesh (halaman About)",
+      "url": "https://istio.io/latest/about/service-mesh/",
+      "catatan": "Teks HTML dibuka 2026-11-06; kaki halaman menulis Istio 1.31.3, sama dengan rilis stabil terbaru di GitHub (2026-10-22). Service mesh adalah lapisan infrastruktur untuk zero-trust security, observability, dan pengelolaan lalu lintas tanpa perubahan kode, lewat proxy aplikasi."
+    }
+  ]
+}
