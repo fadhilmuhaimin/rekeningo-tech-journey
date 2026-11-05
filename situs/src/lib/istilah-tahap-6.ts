@@ -140,7 +140,13 @@ export function periksaIstilahT6(m: Masukan): string[] {
   for (const id of ID_RISET_BARU) {
     const n = m.risetT6.split("\n").filter((l) => l.startsWith(`| ${id} |`)).length;
     if (n !== 1) p.push(`${id}: ${n} baris di RISET-TAHAP-6, harus tepat satu`);
-    if (!baris(id).includes(`dibuka ${TANGGAL}`)) p.push(`${id}: baris riset tanpa tanggal akses ${TANGGAL}`);
+    // Tiap alamat yang dikutip halaman istilah dengan ID ini punya satu tanggal akses di barisnya.
+    const alamat = new Set<string>();
+    for (const h of Object.values(m.halaman)) {
+      for (const sm of (h as { sumber?: { riset?: string; url?: string }[] } | null)?.sumber ?? []) if (sm.riset === id && sm.url) alamat.add(sm.url);
+    }
+    const tanggal = baris(id).split(`dibuka ${TANGGAL}`).length - 1;
+    if (tanggal < Math.max(1, alamat.size)) p.push(`${id}: baris riset punya ${tanggal} tanggal akses ${TANGGAL}, dibutuhkan ${Math.max(1, alamat.size)} (satu per alamat yang dikutip)`);
   }
   const urutan = ID_RISET_BARU.map((id) => m.risetT6.indexOf(`| ${id} |`));
   if (urutan.some((v, i) => i > 0 && v <= urutan[i - 1]!)) p.push("baris R6-170 sampai R6-174 tidak urut naik");
@@ -262,9 +268,12 @@ export function periksaIstilahT6(m: Masukan): string[] {
   if (!versiOpa || !JSON.stringify(m.halaman["kebijakan-sebagai-kode"]).includes(`v${versiOpa}`)) p.push(`OPA: versi ${versiOpa} dari R6-174 tak tertulis di halaman istilah`);
   const versiIstio = baris("R6-18").match(/Istio (\d+\.\d+\.\d+)/)?.[1];
   if (!versiIstio || !baris("R6-172").includes(versiIstio) || !JSON.stringify(m.halaman["service-mesh"]).includes(versiIstio)) p.push(`Istio: versi ${versiIstio} dari R6-18 tak sama di R6-172 dan halaman istilah`);
-  const rj = JSON.stringify(m.halaman["rumpun-jaga"]);
-  for (const kata of ["25%", "delapan", "enam"]) {
-    if (!rj.includes(kata) || !baris("R6-15").includes(kata)) p.push(`rumpun-jaga: "${kata}" tidak sama dengan baris R6-15 (SRE Book)`);
+  const rj = HalamanIstilah.safeParse(m.halaman["rumpun-jaga"]);
+  const langkah = rj.success ? (rj.data.mekanisme ?? []) : [];
+  const catatanRj = rj.success ? (rj.data.sumber ?? []).map((x) => x.catatan).join(" ") : "";
+  for (const [kata, bagian] of [["25%", 0], ["delapan", 1], ["enam", 1]] as const) {
+    if (!langkah[bagian]?.includes(kata) || !baris("R6-15").includes(kata)) p.push(`rumpun-jaga: "${kata}" di langkah ${bagian + 1} tidak sama dengan baris R6-15 (SRE Book)`);
+    if (!catatanRj.includes(kata)) p.push(`rumpun-jaga: "${kata}" tidak ada di catatan sumber`);
   }
   if (!baris("R6-174").includes("primary and a secondary on-call rotation")) p.push("R6-174: tanpa kutipan primary and a secondary");
   if (!baris("R6-16").includes("kolaborasi") || !def("FinOps").includes("kolaborasi")) p.push("FinOps: kata kolaborasi tidak sama dengan R6-16");

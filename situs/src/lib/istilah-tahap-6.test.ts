@@ -140,7 +140,7 @@ describe("istilah Tahap 6: mutasi (penjaga harus gagal karena sebab yang diuji)"
     const c = salin();
     c.riset["R6-171"] = c.riset["R6-171"]!.replaceAll("dibuka 2026-11-06", "dibuka 2026-10-25");
     c.risetT6 = c.risetT6.replace(/R6-171 \|[^\n]+/, (x) => x.replaceAll("dibuka 2026-11-06", "dibuka 2026-10-25"));
-    gagal(c, /R6-171: baris riset tanpa tanggal akses/);
+    gagal(c, /R6-171: baris riset punya 0 tanggal akses/);
   });
 
   test("ID riset tampil di teks halaman istilah, kata Anda, label turunan tanpa label", () => {
