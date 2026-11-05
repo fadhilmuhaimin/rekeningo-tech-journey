@@ -34,6 +34,9 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [5.2 Dari fitur ke pekerjaan teknis v5 dan inti: salinan boleh banyak, uang bergerak di satu tempat](/tahap-5/fitur-ke-teknis/) | Tahap 5 | Dari PRD v5, apa yang berubah di app, backend, dan database, dan kenapa salinan boleh banyak tetapi uang bergerak hanya di satu tempat? |
 | [5.31 Yang dibawa keluar dari Tahap 5](/tahap-5/rekap/) | Tahap 5 | Mengingat enam belas konsep Tahap 5 dalam satu kalimat masing-masing |
 | [5.32 Jembatan: pratinjau PRD v6](/tahap-5/jembatan-prd-v6/) | Tahap 5 | Keputusan Tahap 5 mana yang pecah lebih dulu saat PRD v6 datang? |
+| 6.1 PRD v6: Rekeningo untuk tiga negara, dan jawaban tebakan 5.32 · *segera* | Tahap 6 | Rekeningo harus melayani user di tiga negara dengan uang dan aturan mereka, tetap hidup bila satu wilayah hilang, dan diubah 53 orang tanpa saling menunggu |
+| 6.2 Dari fitur ke pekerjaan teknis v6 dan inti: tiap data punya satu rumah · *segera* | Tahap 6 | Dari PRD v6, apa yang berubah di app, backend, dan database, dan kenapa tiap data punya satu rumah dan satu pemilik? |
+| 6.12 Penutup: yang dibawa keluar dari enam tahap · *segera* | Tahap 6 | Yang dibawa pembaca keluar dari enam tahap, yang sengaja tidak diceritakan, dan yang belum diukur |
 
 ## API
 
@@ -87,6 +90,8 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [5.3 Skema data: ERD Tahap 4 → Tahap 5 dan pertumbuhannya](/tahap-5/skema-data/) | Tahap 5 | Tabel mana yang lahir, berubah, dan dibagi per service saat laporan, cicilan, pengumuman, dan mitra POS masuk? |
 | [5.10 M43: Pemeriksaan saldo harian selesai pukul 14.20](/tahap-5/m43-pemeriksaan-saldo/) | Tahap 5 | Pemeriksaan harian yang membaca semua posting tidak selesai sebelum pagi, dan posting lama tidak boleh dihapus |
 | [5.11 Partisi tabel ledger dan snapshot saldo + ADR 49](/tahap-5/partisi-snapshot/) | Tahap 5 | Tabel ledger dipartisi per bulan, saldo akhir bulan dicatat, dan partisi lama dilepas dan diarsipkan, bukan dihapus |
+| 6.4 M53: Laporan tutup buku kosong sesudah migration + ADR 62 (kepemilikan domain, data sebagai produk) · *segera* | Tahap 6 | Migration satu tim mengosongkan laporan tim lain, karena hak baca lintas schema adalah contract yang tidak tertulis |
+| 6.7 M56: Jurnal tukar yang jumlah postingnya bukan nol + ADR 65 (multi-mata uang) · *segera* | Tahap 6 | Jurnal tukar antar mata uang tidak berjumlah nol, dan selisih pembulatannya tidak punya akun |
 
 ## Keamanan
 
@@ -122,6 +127,7 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [5.24 M50: Satu POS mengirim 3.000 permintaan per detik](/tahap-5/m50-satu-pos/) | Tahap 5 | Satu POS mengulang permintaan tanpa batas dan membuat merchant lain mendapat 429 |
 | [5.25 Keamanan 11: Pintu untuk pihak luar, kuota, WAF + ADR 56](/tahap-5/pintu-mitra-waf/) | Tahap 5 | Kuota per mitra, WAF, tanda tangan bertimestamp, dan cakupan kunci di pintu untuk pihak luar |
 | [5.26 Keamanan 12: Arsip dan cadangan, envelope encryption + ADR 57](/tahap-5/arsip-envelope-encryption/) | Tahap 5 | File arsip dan cadangan dienkripsi dengan kunci yang tidak ikut keluar dari database |
+| 6.8 Keamanan 13: Data per negara, kunci per wilayah, fraud lintas negara + ADR 66 · *segera* | Tahap 6 | Satu graf akun-perangkat butuh data identitas dari tiga negara, padahal data satu negara harus tinggal di wilayahnya |
 
 ## Struktur kode
 
@@ -164,6 +170,10 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [5.23 Progressive delivery, GitOps, kill switch + ADR 55](/tahap-5/progressive-delivery/) | Tahap 5 | Rilis bertahap dengan traffic router, GitOps, dan satu sakelar yang dibaca semua pod |
 | [5.27 Tim dan infra Tahap 5: platform, GitOps, OpenTelemetry, SLO + ADR 58](/tahap-5/tim-infra/) | Tahap 5 | Delapan tim dan enam service butuh jalan beraspal, trace lintas service, dan SLO yang memanggil orang dari laju habisnya anggaran kegagalan |
 | [5.28 On-prem lawan cloud + ADR 59](/tahap-5/on-prem-lawan-cloud/) | Tahap 5 | Pilih cloud atau perangkat sendiri dengan rumus biaya tiga tahun dan jalan keluar, bukan dengan selera |
+| 6.3 M52: Template service menunggu 17 hari + ADR 61 (platform sebagai produk, golden path, service catalog) · *segera* | Tahap 6 | Service baru menunggu template dari Platform, dan tim lain menyalin pipeline yang tidak punya pemilik jalur |
+| 6.5 M54: Sembilan perubahan dalam 30 menit + ADR 63 (SLO per tim, error budget, canary, chaos testing) · *segera* | Tahap 6 | Pembayaran gagal sesudah banyak perubahan dari beberapa tim, dan tak ada garis waktu atau ukuran yang menunjuk penyebabnya |
+| 6.6 M55: Satu wilayah hilang 47 menit + ADR 64 (multi-region aktif-pasif) · *segera* | Tahap 6 | Satu wilayah hilang lebih lama dari RTO wilayah, dan transaksi yang sudah dijawab sukses tidak ada di pasangannya |
+| 6.10 Tim dan infra Tahap 6: giliran jaga lintas tim, pemilik service, DORA + ADR 68 · *segera* | Tahap 6 | Giliran jaga per tim membebani tim kecil, dan 53 orang di 11 tim butuh pemilik service yang tercatat dan ukuran yang sama |
 
 ## Skala dan kinerja
 
@@ -250,6 +260,8 @@ Navigasi utama mengikuti tahap cerita. Halaman ini menyusun halaman yang sama pe
 | [5.29 M51: Uji coba nasional lolos, PRD v6 datang, dan estimasi Tahap 5 → 6](/tahap-5/m51-prd-v6/) | Tahap 5 | Uji coba nasional lolos, PRD v6 datang, dan beban Tahap 6 dihitung dari angka Tahap 5 sebelum memilih komponen |
 | [5.30 ADR 60: Sengaja belum dilakukan](/tahap-5/sengaja-belum/) | Tahap 5 | Tergoda memasang service mesh, multi-region, database per service, sharding, dan BFF sebelum angkanya meminta |
 | [Feed dan notifikasi](/d-system-design/d4b-feed-notifikasi/) | Tahap 5 | Notifikasi ke ratusan ribu user sekaligus |
+| 6.9 M57: Biaya per transaksi naik 1,85 kali + ADR 67 (FinOps, skor risiko satu proses) · *segera* | Tahap 6 | Biaya per transaksi naik lebih cepat dari jumlah transaksi, dan skor risiko yang dipecah menjadi tiga service melewati anggaran latensinya |
+| 6.11 Estimasi Tahap 6 dan ADR 69: Sengaja belum dilakukan · *segera* | Tahap 6 | Beban Tahap 6 dihitung dari angka Tahap 5 sebelum memilih komponen, dan dua belas butir yang ditunda ditulis dengan pemicu dan alat ukurnya |
 | [Studi desain: laporan lapangan offline](/d-system-design/d4c-laporan-lapangan-offline/) | Studi sampingan | Aplikasi lapangan harus jalan tanpa sinyal |
 
 ## Bekerja dengan AI
