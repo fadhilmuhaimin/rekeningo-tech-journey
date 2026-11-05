@@ -34,7 +34,7 @@ export const BARIS_MDX: string[] = [
  "<Blok nama=\"Paham\">",
  "### Kenapa ini ada",
  "Konsep Tahap 5 tersebar di tiga puluh halaman, dari [[t5-prd]] sampai [[t5-adr-60]]. Tiga di antaranya, [[t5-fitur-teknis]], [[t5-skema]], dan [[t5-adr-60]], mendukung kalimat di bawah tetapi tidak melahirkan kalimat sendiri.",
- "Untuk ingatan beberapa hari kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-11-05). Karena itu setiap konsep diringkas jadi satu kalimat dan diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya.",
+ "Untuk ingatan 2 hari dan 1 minggu kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang pada siswa yang membaca bahan prosa ([Roediger & Karpicke 2006](https://pubmed.ncbi.nlm.nih.gov/16507066/), dibuka 2026-11-05). Karena itu setiap konsep diringkas jadi satu kalimat dan diikat ke satu kejadian. Halaman ini tidak menjelaskan ulang konsepnya.",
  "Bila halaman asal menulis kalimat naskah dengan batas yang lebih sempit, halaman ini menulis versi halaman asal. Label Dipersempit menulis selisihnya, dan label Batas menulis yang tidak direkam atau tidak dijalankan di halaman asal.",
  "Angka dikutip dari halaman asalnya, dengan label yang sama. Hitungan berarti hasil rumus dari angka yang tertulis di halaman asalnya, berlabel sama dengan masukan terlemahnya. Arti label Rekaman lab, Asumsi, Ilustrasi, Tidak dijalankan, dan [perlu verifikasi] ada di [[A0]].",
  "### Enam belas kalimat",

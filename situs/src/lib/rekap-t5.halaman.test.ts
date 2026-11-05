@@ -845,6 +845,8 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
       "Test-enhanced learning: taking memory tests improves long-term retention", "Distributed practice in verbal recall tasks: A review and quantitative synthesis",
       "tes akhir 5 menit lawan 2 hari dan 1 minggu",
     ]) expect(r260, s).toContain(s);
+    expect(r260).toContain("bahan prosa, peserta siswa, tes akhir 5 menit lawan 2 hari dan 1 minggu");
+    expect(mdx).toContain("Untuk ingatan 2 hari dan 1 minggu kemudian, mengingat kembali jawaban lebih menguatkan daripada belajar ulang pada siswa yang membaca bahan prosa");
     expect(baris("R5-261")).toContain("Enam belas kalimat naskah bagian 5");
     expect(baris("R5-262")).toContain("1.800.000 dari 1.800.000 posting di bagian A");
     expect(baris("R5-264")).toContain("Kolny, 22 Maret 2023");
