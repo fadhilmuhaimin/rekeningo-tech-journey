@@ -712,6 +712,7 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
     expect(butir(8).teks).toContain("Pada puncak 1.388,9 request per detik dengan 0,02 detik per request");
     expect(butir(14).teks).toContain("dengan 720 jam dalam 30 hari");
     expect(24 * 30).toBe(720);
+    expect(Math.round(((2000000 * 60) / 86400) * 10 * 10) / 10).toBe(13888.9);
     expect(butir(15).teks).toContain("480 × 3 = 1.440 (480 per orang per tahun, tiga tahun)");
     expect(butir(4).teks).toContain("Di run lab terpisah dengan 28.000 posting per bulan");
     expect(butir(6).teks).toContain("Batas bawahnya 6 × 10 = 60 ms (`latensi.txt` bagian B)");
@@ -776,6 +777,7 @@ describe("lapisan tanpa kunci baris: angka, label, kutipan, tabel ADR, Mulai, Ku
     [15, "ADR 59 tetap di cloud milik PT dan menjaga jalan keluar", H("t5-onprem"), "tetap di cloud milik PT dan menjaga jalan keluarnya"],
     [15, "sehingga urutannya terbalik", H("t5-onprem"), "urutannya terbalik"],
     [15, "Tanpa orang tambahan, on-prem lebih hemat 1.150", H("t5-onprem"), "on-prem lebih hemat 1.150"],
+    [16, "2.000.000 × 60 ÷ 86.400 × 10 = 13.888,9", H("t5-m51"), "2.000.000 × 60 ÷ 86.400 × 10"],
     [16, "Satu rekaman beban di satu laptop", H("t5-m51"), "di satu laptop"],
     [16, "dalam 15 detik", R("15 detik pada 1388.9"), ""],
     [16, "Tiga hal yang diminta PRD v6 belum pernah diuji", H("t5-m51"), "Tiga hal yang belum pernah diuji"],
