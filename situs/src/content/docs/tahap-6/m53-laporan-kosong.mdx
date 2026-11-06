@@ -103,7 +103,9 @@ Pemeriksaan itu berjalan atas enam role service saja. Role ketujuh, misalnya rol
 
 **Yang menangkap rename di Tahap 4.** Rename kolom `tingkat`, yang ada di kontrak ledger, gagal di tes kontrak sebelum rilis. Rename kolom `nama`, yang bukan kontrak siapa pun, tidak mematahkan modul lain:
 
-<Snippet file="labs/t4-modul/output/batas.txt" lines="81:85" title="Rekaman lab Tahap 4: labs/t4-modul/output/batas.txt, bagian B (rename kolom nama dan kolom kontrak)" />
+<Snippet file="labs/t4-modul/output/batas.txt" lines="81:83" title="Rekaman lab Tahap 4: labs/t4-modul/output/batas.txt, bagian B (rename kolom nama, tidak mematahkan modul lain)" />
+
+<Snippet file="labs/t4-modul/output/batas.txt" lines="85:85" title="Rekaman lab Tahap 4: labs/t4-modul/output/batas.txt, bagian B (rename kolom di kontrak ledger)" />
 
 Tes itu menjalankan query pembaca, dan komentar di kodenya menulis tujuannya: tim yang mengubah kolom tahu sebelum rilis (Tidak dijalankan: dibaca dari komentar di `batas_test.go`). Hak baca sementara Pelaporan tidak punya baris kontrak, jadi query-nya tidak ada di pipeline Pembayaran.
 
