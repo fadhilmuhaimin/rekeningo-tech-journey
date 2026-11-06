@@ -370,6 +370,9 @@ describe("hitungan diturunkan dari angka naskah dan halaman, dibulatkan setengah
     expect(tanpa.length, "Hitungan tanpa 'atas' hanya di definisi").toBe(1);
     expect(badan).toContain("- **Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah.");
     expect(badan).toContain("- **Penalaran:** kesimpulan dari sumber atau angka di halaman, bukan hasil ukuran.");
+    expect(badan).toContain("Penalaran tanpa label lain berarti Tidak dijalankan, karena rekaman tidak mengukurnya.");
+    // tiap Penalaran yang berdiri sendiri memakai arti itu: tanpa pemakaian sebelum definisinya
+    expect(badan.indexOf("(Penalaran)"), "Penalaran dipakai sebelum didefinisikan").toBeGreaterThan(badan.indexOf("- **Penalaran:**"));
     expect(badan).toContain("masing-masing berdampingan dengan salah satu dari lima label sumber");
     for (const m of badan.matchAll(/Hitungan atas ([A-Za-z]+(?: (?:cerita|desain|produk))?)/g)) expect(["Ilustrasi", "Asumsi", "Asumsi cerita", "Asumsi desain"], m[0]).toContain(m[1]);
     expect(badan).not.toMatch(/\(Hitungan\)/);
@@ -875,7 +878,7 @@ const KLAIM: { p: string; s: [string, string][] }[] = [
   { p: "Pertanyaan Dewi menyentuh pertanyaan ketiga di PRD v6, yaitu siapa yang tahu perubahan mana yang merusak ([[t6-prd]]). Halaman ini menjawabnya.", s: [["p61", "Kalau 11 tim merilis tiap jam, siapa yang tahu perubahan mana yang merusak?"]] },
   { p: "Tebak dulu apa yang dijangkau rapat persetujuan rilis harian. Lalu pilih satu jenis perubahan di widget perbandingan, dan lihat simpul mana yang menangkapnya di kedua cara kerja.", s: [["peta", "tebak dulu lewat lipatan, lalu banding"]] },
   { p: "Halaman ini tidak punya Rekaman lab baru, karena Tahap 6 tidak punya lab. Dua label turunan dipakai, dan masing-masing berdampingan dengan salah satu dari lima label sumber:", s: [["cara", "Label sumber"], ["p523", "Labelnya ikut masukan yang paling lemah"]] },
-  { p: "- **Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah.\n- **Penalaran:** kesimpulan dari sumber atau angka di halaman, bukan hasil ukuran.", s: [["p523", "**Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah."], ["p523", "kesimpulan dari kode atau angka di halaman, bukan hasil ukuran"]] },
+  { p: "- **Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah.\n- **Penalaran:** kesimpulan dari sumber atau angka di halaman, bukan hasil ukuran. Penalaran tanpa label lain berarti Tidak dijalankan, karena rekaman tidak mengukurnya.", s: [["p523", "**Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah."], ["p523", "kesimpulan dari kode atau angka di halaman, bukan hasil ukuran"]] },
   { p: "Tujuh: tiga flag, satu aturan skor, satu migration, dan dua perubahan konfigurasi. Itu 7 ÷ 9 = 77,8% dari semua perubahan (Hitungan atas Ilustrasi), dan tidak satu pun dari tujuh itu deploy (Penalaran).", s: [["m54", "dua deploy, tiga flag, satu aturan skor, satu migration, dua perubahan konfigurasi"]] },
   { p: "Dua deploy masuk rapat. Rapat menyetujuinya sebelum rilis dan tidak mengukur dampaknya sesudahnya (Penalaran).", s: [["m54", "rapat persetujuan rilis harian"], ["m54", "rilis bertahap dengan analisis otomatis atas SLO dan rollback otomatis"]] },
   { p: "**Ubah satu hal:** pilih jenis perubahan lain di widget. Simpul yang tersorot berpindah, dan kamu melihat jenis mana yang ditangkap rapat, ditangkap canary, atau hanya tercatat di garis waktu.", s: [["peta", "pembaca memilih kejadian"]] },
@@ -989,6 +992,71 @@ describe("kunci per paragraf prosa dengan frasa sumber (paragraf bersumber, di l
     const baris = badan.split("\n").map((l) => l.trim()).filter((l) => l && !/^(\||<|```|\/>|-{3})/.test(l));
     const ganda = [...new Set(baris.filter((l, i) => baris.indexOf(l) !== i))];
     expect(ganda).toEqual([]);
+  });
+});
+
+describe("kunci frasa klaim dan sel tabel yang lolos mutasi tanpa kunci baris (peninjau 6.5, keputusan 1729)", () => {
+  test("tabel Yang tidak dijalankan: label tiap baris sesuai asalnya, dan Rekaman lab hanya di baris yang memakai rekaman Tahap 5", () => {
+    const tabel = paham.split("### Yang tidak dijalankan")[1]!.split("\n").filter((b) => b.startsWith("|")).slice(2).map(sel);
+    expect(tabel.length).toBe(5);
+    expect(tabel.map((b) => b[2])).toEqual([
+      "Rekaman lab Tahap 5 (sebagian), sisanya Tidak dijalankan",
+      "Tidak dijalankan",
+      "Tidak dijalankan",
+      "Asumsi",
+      "Tidak dijalankan",
+    ]);
+    expect(tabel[0]![0]).toContain(`Canary ${butirAdr.match(/\((\d+%(?:, \d+%)+)\)/)![1]} dengan analisis atas SLO`);
+    expect(tabel[3]![1]).toContain("organisasinya fiktif");
+    expect(tabel.filter((b) => /Rekaman lab/.test(b[2]!)).length).toBe(1);
+  });
+  test("JSON widget: nama kedua cara, SLO 99,9% per 30 hari, dan langkah awal canary diturunkan dari naskah", () => {
+    const d = bandingMentah as { opsi: { nama: string }[]; fitur: { catatan: Record<string, string> }[] };
+    expect(d.opsi[0]!.nama.endsWith("(yang dikira)")).toBe(true);
+    expect(d.opsi[1]!.nama).toBe("ADR 63 (yang dipilih)");
+    expect(JSON.stringify(d.opsi[0])).toContain(`${id(sloService * 100, 1)}% per ${hariSLO} hari`);
+    expect(d.fitur[0]!.catatan.adr63).toContain(`Deploy mulai dari ${canary * 100}% lalu lintas lewat bobot Gateway API`);
+  });
+  test("description: jumlah cara lain sama dengan opsi yang ditolak atau ditunda, yaitu tujuh opsi dikurangi dua yang dipilih", () => {
+    const alasan = putuskan.split("**Kenapa E dan G, bukan yang lain.**")[1]!.split("**Pre-mortem.**")[0]!;
+    const lain = (alasan.match(/^- \*\*[A-G] (ditolak|ditunda)\*\*/gm) ?? []).length;
+    const opsi = putuskan.split("\n").filter((b) => /^\| \| [A-G]\. /.test(b)).flatMap(sel).filter((c) => /^[A-G]\. /.test(c)).length;
+    expect(opsi).toBe(7);
+    expect(lain).toBe(opsi - 2);
+    expect(Object.entries({ satu: 1, dua: 2, tiga: 3, empat: 4, lima: 5, enam: 6 }).find(([, n]) => n === lain)![0]).toBe("lima");
+    expect(front).toContain("ADR 63 menimbang lima cara lain");
+  });
+  test("frasa klaim sumber dan rujukan: tiap kalimat kunci ada di halaman dan di sumbernya (kata, hari, atribusi, ID rujukan)", () => {
+    const hariBeku = cocok(dikira, /bekukan rilis tiap (\w+)/)[1]!;
+    harus(`Pembekuan hari ${hariBeku} memindahkan rilis ke hari lain dan tidak mengurangi risiko tiap rilis (Penalaran).`);
+    // atribusi ke SRE Workbook (bab 16 dan Appendix B), bukan SRE Book
+    expect(barisRiset[0]).toContain("Google SRE Workbook, bab 16");
+    expect(barisRiset[1]).toContain("Google SRE Workbook, Appendix B");
+    harus("SRE Workbook mendefinisikan canary sebagai deployment sebagian dan sementara");
+    expect(barisRiset[0]).toContain("canary adalah deployment sebagian dan sementara");
+    harus("Bab itu menyarankan canary bertahap.");
+    expect(barisRiset[0]).toContain("canary bertahap memakai metrik paling jelas di tahap kecil");
+    harus("dua canary yang bertumpuk mencampur sinyal (SRE Workbook)");
+    expect(barisRiset[0]).toContain("mencampur sinyal");
+    // atribusi baris riset toko aplikasi
+    expect(barisRiset[3]).toContain('Apple, "Release a version update in phases" (developer.apple.com');
+    expect(barisRiset[3]).toContain('Google Play Console Help, "Release app updates with staged rollouts" (support.google.com');
+    // rekaman dan halaman 5.22 dan 5.23: jumlah replika dan ID rujukan
+    expect(t523).toContain("`setWeight: 5` dengan tiga replika memberi bagian pod 25,0% atau 33,3%");
+    harus("[[t5-m49]] merekam bahwa tanpa pengatur lalu lintas, `setWeight: 5` dengan tiga replika memberi 25,0% atau 33,3% pod versi baru.");
+    expect(dari("t5-m49").nomor).toBe("5.22");
+    expect(t523).toContain("[[t5-m49]] merekam dua batas");
+    expect(dari("E1").nomor).toBe("1.33");
+    harus("Server tetap harus melayani versi app lama ([[E1]])");
+    // aturan 2 dan 6 dari butir naskah: langkah canary, staging lebih dulu, kosakata queue
+    const langkah = cocok(butirAdr, /\((\d+%(?:, \d+%)+)\)/)[1]!.split(", ");
+    harus(`dengan langkah ${langkah.slice(0, -1).join(", ")}, dan ${langkah.at(-1)}. Bobot lalu lintas datang dari Gateway API`);
+    expect(butirAdr).toContain("satu percobaan per tim per kuartal, di staging lebih dulu, lalu produksi dengan paparan paling banyak 1% lalu lintas");
+    harus("Chaos testing berjalan satu percobaan per tim per kuartal, di staging lebih dulu, lalu di produksi dengan paparan paling banyak 1% lalu lintas (Asumsi).");
+    expect(sebenarnya).toContain("membuat rapat menjadi queue baru");
+    harus("rapat menjadi queue baru");
+    harus("membentuk queue, seperti tiket Platform");
+    expect(hitung(badan, "antrean")).toBe(0);
   });
 });
 

@@ -24,7 +24,7 @@ export const BARIS_MDX: string[] = [
  "Tebak dulu apa yang dijangkau rapat persetujuan rilis harian. Lalu pilih satu jenis perubahan di widget perbandingan, dan lihat simpul mana yang menangkapnya di kedua cara kerja.",
  "Halaman ini tidak punya Rekaman lab baru, karena Tahap 6 tidak punya lab. Dua label turunan dipakai, dan masing-masing berdampingan dengan salah satu dari lima label sumber:",
  "- **Hitungan:** angka yang dihitung dari angka lain di halaman ini. Labelnya ikut masukan yang paling lemah.",
- "- **Penalaran:** kesimpulan dari sumber atau angka di halaman, bukan hasil ukuran.",
+ "- **Penalaran:** kesimpulan dari sumber atau angka di halaman, bukan hasil ukuran. Penalaran tanpa label lain berarti Tidak dijalankan, karena rekaman tidak mengukurnya.",
  "<details class=\"question\">",
  "<summary>Tebak dulu: rapat persetujuan rilis harian menyetujui deploy sebelum dirilis. Dari sembilan perubahan Kamis itu, berapa yang tidak pernah masuk rapat itu?</summary>",
  "Tujuh: tiga flag, satu aturan skor, satu migration, dan dua perubahan konfigurasi. Itu 7 ÷ 9 = 77,8% dari semua perubahan (Hitungan atas Ilustrasi), dan tidak satu pun dari tujuh itu deploy (Penalaran).",
