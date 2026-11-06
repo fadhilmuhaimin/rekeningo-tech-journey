@@ -7,7 +7,7 @@ import WidgetLama from "../../../components/WidgetLama.astro";
 import Snippet from "../../../components/Snippet.astro";
 import SkripLama from "../../../components/SkripLama.astro";
 
-<p class="meta">Baca 17 menit · coba 3 menit · Prasyarat: [[t6-m54]], [[t5-rpo-rto]] · Jalur inti</p>
+<p class="meta">Baca 19 menit · coba 3 menit · Prasyarat: [[t6-m54]], [[t5-rpo-rto]] · Jalur inti</p>
 
 <Blok nama="Mulai" buka>
 
@@ -21,7 +21,9 @@ Sesudah promosi, Ratih mencocokkan jawaban sukses yang sudah terkirim dengan jur
 
 Sinta membaca garis waktunya. RTO wilayah menulis 30 menit, dan wilayah itu mati 47 menit. Ia bertanya kenapa sistem tidak berpindah sendiri.
 
-*Angka cerita:* pukul 03.40, 47 menit, dan sekitar 63 transaksi berlabel Ilustrasi, yaitu contoh dari naskah dan bukan hasil sistem. Angka 63 datang dari jeda 1,5 detik pada laju rata-rata negara pertama. Lajunya 69,4 × 60% = 41,7 transaksi uang per detik, jadi 1,5 × 41,7 = 62,55 (Hitungan atas Ilustrasi dan Asumsi). Itu batas atas, karena pukul 03.40 lebih sepi dari rata-rata.
+*Angka cerita:* pukul 03.40, 47 menit, dan sekitar 63 transaksi berlabel Ilustrasi, yaitu contoh dari naskah dan bukan hasil sistem. Angka 63 datang dari jeda 1,5 detik pada laju rata-rata negara pertama. Lajunya 69,4 × 60% = 41,7 transaksi uang per detik, dari nilai tepat 41,667.
+
+Hitungannya 1,5 × 41,7 = 62,55, dan dari nilai tepat 62,5. Keduanya dibulatkan ke 63 (Hitungan atas Ilustrasi dan Asumsi). Itu batas atas, karena pukul 03.40 lebih sepi dari rata-rata.
 
 Angka 69,4 dan 60% berasal dari [[t6-fitur-teknis]], dan RTO wilayah 30 menit berlabel Asumsi produk ([[t6-prd]]). Kelima label sumber dijelaskan di [Label sumber](/cara-pakai/#label-sumber).
 
@@ -65,7 +67,7 @@ Keduanya menjawab pertanyaan Sinta dengan menyingkirkan manusia dari langkah pin
 
 **Replica asinkron kehilangan data sebanding dengan jedanya.** Dokumentasi PostgreSQL 17 menulis bahwa jumlah data yang hilang sebanding dengan replication delay saat failover ([PostgreSQL 17: replikasi sinkron](https://www.postgresql.org/docs/17/warm-standby.html), dibuka 2026-11-06). Di M55 jedanya 1,5 detik dan lajunya 41,7 per detik, jadi sekitar 63 transaksi hilang (Hitungan atas Ilustrasi dan Asumsi).
 
-Pada jeda 1 detik di puncak, negara terbesar kehilangan 416,7 transaksi (2 transaksi: 277,8). Bila seluruh transaksi lewat satu primary, hasilnya 694 (463). Tahap 5, satu negara dan jeda 1 detik, memberi 69 ([[t5-m42]]). Jeda 5 detik mengalikan semuanya 5 kali (Hitungan atas Asumsi).
+Pada jeda 1 detik di puncak, negara terbesar kehilangan 416,7 transaksi: 60% dari 694,4, dari nilai tepat 416,667 (2 transaksi: 277,8). Bila seluruh transaksi lewat satu primary, hasilnya 694 (463). Tahap 5, satu negara dan jeda 1 detik, memberi 69 (46) ([[t5-m42]]). Jeda 5 detik mengalikan semuanya 5 kali (Hitungan atas Asumsi).
 
 **Aktif-aktif membayar RTT di tiap commit.** *RTT* (round-trip time) adalah waktu satu pesan pergi dan pulang antara dua tempat. Sinyal di serat optik merambat ±200.000 km per detik, kira-kira dua pertiga kecepatan cahaya (Asumsi). Jadi RTT = 2 × jarak ÷ kecepatan, dan hasilnya batas bawah fisik tanpa peralatan jaringan.
 
@@ -74,13 +76,13 @@ Pada jeda 1 detik di puncak, negara terbesar kehilangan 416,7 transaksi (2 trans
 | 1.000 km | 10 ms | 100 per detik | 35% | 23% |
 | 3.000 km | 30 ms | 33,3 per detik | 104% | 69% |
 
-Tabel ini Hitungan atas Asumsi, kecuali kolom batas satu akun yang Penalaran [perlu verifikasi]. Merchant besar menerima 5% dari puncak 694,4 transaksi uang di tiga negara, jadi 34,7 per detik (Asumsi cerita). Akun yang dimaksud satu baris yang diubah tiap pembayaran ke merchant itu.
+Tabel ini Hitungan atas Asumsi, kecuali kolom batas satu akun yang Penalaran [perlu verifikasi]. Merchant besar menerima 5% dari puncak 694,4 transaksi uang di tiga negara, jadi 34,7 per detik, dari nilai tepat 34,722 (Asumsi cerita). Dengan 2 transaksi nilai tepatnya 23,148. Akun yang dimaksud satu baris yang diubah tiap pembayaran ke merchant itu.
 
 Alasan batas itu ada di dua sumber. Dokumentasi PostgreSQL 17 menulis bahwa waktu tunggu minimum sebuah commit adalah RTT antara primary dan standby. Ia menulis juga bahwa transaction lock tetap ditahan sampai pengiriman dikonfirmasi ([PostgreSQL 17: replikasi sinkron](https://www.postgresql.org/docs/17/warm-standby.html), dibuka 2026-11-06, Tidak dijalankan). Kode PostgreSQL 17.11 menulis hal yang sama di komentar fungsi `RecordTransactionCommit`: saat menunggu standby, transaksi masih tampak berjalan dan `continue to hold locks` (`src/backend/access/transam/xact.c`, dibuka 2026-11-06).
 
-Bila transaksi berikutnya ke baris yang sama menunggu lock itu, satu baris menerima paling banyak satu commit per RTT. Itu penalaran dari dua sumber di atas. Batas per baris belum pernah diukur di repo ini [perlu verifikasi].
+Bila transaksi berikutnya ke baris yang sama menunggu lock itu, satu baris menerima paling banyak satu commit per RTT. Itu penalaran dari dua sumber di atas. Batas per baris belum diukur [perlu verifikasi].
 
-**Konsistensi kuat lintas wilayah punya harga yang sama bagi perancang mana pun.** Makalah Spanner (Corbett dkk., OSDI 2012) menulis bahwa F1 memakai lima replika di Amerika Serikat. Penulisnya menulis juga bahwa kebanyakan aplikasi lain "will probably" mereplikasi data ke 3 sampai 5 datacenter di satu wilayah geografis. Aplikasi itu memilih latensi lebih rendah daripada ketersediaan lebih tinggi, selama selamat dari 1 atau 2 kegagalan datacenter ([Spanner: Google's Globally-Distributed Database](https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf), dibuka 2026-11-06).
+**Konsistensi kuat lintas wilayah punya harga yang sama bagi perancang mana pun.** Makalah Spanner (Corbett dkk., OSDI 2012) menulis bahwa F1 memakai lima replica di Amerika Serikat. Penulisnya menulis juga bahwa kebanyakan aplikasi lain "will probably" mereplikasi data ke 3 sampai 5 datacenter di satu wilayah geografis. Aplikasi itu memilih latensi lebih rendah daripada ketersediaan lebih tinggi, selama selamat dari 1 atau 2 kegagalan datacenter ([Spanner: Google's Globally-Distributed Database](https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf), dibuka 2026-11-06).
 
 Itu perkiraan penulisnya untuk infrastruktur Google, yang memakai jam GPS dan jam atom. Ia bukan pedoman untuk sistem tanpa jam itu, dan bukan bukti untuk Rekeningo (Tidak dijalankan). Dokumentasi AWS menulis aktif-aktif sebagai pendekatan pemulihan bencana yang paling kompleks dan paling besar biayanya. Waktu pemulihannya dapat hampir nol untuk kebanyakan bencana bila teknologi dan implementasinya tepat ([AWS: Disaster recovery options in the cloud](https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html), dibuka 2026-11-06, Tidak dijalankan).
 
@@ -155,7 +157,7 @@ Pak Hadi meminta tiap rupiah tertelusur, jadi baris itu butuh pemilik. ADR 48 ti
 3. Alert menyala bila jumlah standby sinkron yang terhubung kurang dari dua. Keadaannya dibaca dari `pg_stat_replication`. Bila satu standby putus, SRE menurunkan jumlah di daftar, memuat ulang konfigurasi, dan mencatatnya sebagai insiden. Jaminan RPO nol berhenti selama itu. Keputusan itu dalam RTO 15 menit memakai 15 ÷ 43,2 = 34,7% anggaran, seperti ADR 48.
 4. Replica asinkron untuk laporan tetap boleh di wilayah mana pun dan tidak masuk daftar sinkron ([[t5-read-replica]]).
 5. Failover wilayah diputuskan manusia, yaitu SRE, dan langkahnya diotomatiskan seperti satu tombol. Fencing lebih dulu: primary lama dan relay outbox-nya dimatikan sebelum pasangan dipromosikan. ADR 48 aturan 3 tetap untuk satu mesin di dalam satu wilayah.
-6. Sesudah promosi, pasangan menjadi primary tanpa standby, yaitu keadaan degenerate di dokumentasi PostgreSQL. SRE mengosongkan daftar sebelum menerima lalu lintas, karena daftar yang menyebut standby yang tidak ada menahan semua COMMIT. RPO nol tidak berlaku sampai standby baru terpasang dan daftar diisi lagi, dan itu dicatat sebagai insiden.
+6. Sesudah promosi, pasangan menjadi primary tanpa standby, yaitu keadaan degenerate di dokumentasi PostgreSQL. SRE mengosongkan daftar sebelum menerima lalu lintas, karena daftar yang menyebut standby yang tidak ada menahan COMMIT transaksi tulis. RPO nol tidak berlaku sampai standby baru terpasang dan daftar diisi lagi, dan itu dicatat sebagai insiden.
 7. SRE melatih failover wilayah tiap kuartal dan mencatat waktunya terhadap RTO wilayah 30 menit (Asumsi produk). Latihan satu mesin tiap bulan dari ADR 48 tetap berjalan.
 8. Dua hal tetap terbuka. Aturan 8 ADR 47 berlaku sesudah failover wilayah: bacaan tampil dibaca dari primary baru selama jendela posisi WAL (Asumsi, belum diuji [perlu verifikasi]). Efek samping dari primary lama belum punya aturan sejak ADR 48. Aturan 5 menjaga primary lama dan relay-nya tidak melayani sampai dibangun ulang. ADR ini tidak menentukan siapa mencocokkan jurnal dan baris outbox yang hanya ada di primary lama.
 
@@ -168,14 +170,14 @@ Pak Hadi meminta tiap rupiah tertelusur, jadi baris itu butuh pemilik. ADR 48 ti
 - **E ditunda.** ADR 59 menjaga jalan keluar dan menolak fitur yang hanya ada di satu penyedia. Produksi database dijalankan sendiri atau terkelola belum diputuskan ([[t5-onprem]]).
 - **F ditolak untuk wilayah.** Alarm palsu memindahkan negara tanpa perlu, dan rekaman Tahap 5 menunjukkan dua primary tanpa fencing. ADR 48 aturan 3 tetap memakai alat dengan fencing untuk satu mesin.
 
-**Kasus industri: Spanner.** Makalah itu menulis F1 dengan lima replika di Amerika Serikat. Ia juga menulis bahwa kebanyakan aplikasi lain "will probably" memakai 3 sampai 5 datacenter di satu wilayah geografis, karena memilih latensi lebih rendah.
+**Kasus industri: Spanner.** Makalah itu menulis F1 dengan lima replica di Amerika Serikat. Ia juga menulis bahwa kebanyakan aplikasi lain "will probably" memakai 3 sampai 5 datacenter di satu wilayah geografis, karena memilih latensi lebih rendah.
 
 Batasnya: perkiraan penulis untuk infrastruktur Google dengan jam GPS dan jam atom, tahun 2012. Itu satu sistem dan satu makalah, bukan bukti untuk pembayaran Rekeningo (Tidak dijalankan).
 
 **Pre-mortem.** Bayangkan keputusan ini gagal 6 bulan lagi. Tiga penyebab yang paling mungkin:
 
 1. Jaringan ke pasangan putus padahal wilayah utama sehat. COMMIT menunggu, dan pembayaran negara itu berhenti sampai SRE menurunkan daftar. Pencegahannya aturan 3: alert, runbook, dan keputusan dalam RTO 15 menit. Harganya, RPO nol berhenti selama daftar turun.
-2. Failover wilayah dipicu karena alarm palsu, atau dijalankan tanpa fencing. Hasilnya dua primary dengan riwayat berbeda, seperti `promosi.txt` bagian A. Pencegahannya aturan 5 dan latihan tiap kuartal. Latihan yang tidak dijalankan membuat RTO wilayah tidak pernah terukur.
+2. Failover wilayah dipicu karena alarm palsu, atau dijalankan tanpa fencing. Hasilnya dua primary dengan riwayat berbeda, seperti `promosi.txt` bagian A. Pencegahannya aturan 5 dan latihan tiap kuartal. Tanpa latihan, RTO wilayah tidak terukur.
 3. Primary lama pulih dan efek sampingnya lolos: notifikasi atau baris outbox untuk pembayaran yang tidak ada di primary baru. Pencegahannya hanya sebagian, yaitu aturan 5 dan 6 menjaga primary lama dari lalu lintas. Aturan untuk baris yang hanya ada di sana masih terbuka (aturan 8).
 
 **Kapan keputusan ini salah.**
@@ -260,7 +262,7 @@ Pertama, replica itu asinkron, jadi COMMIT tidak menunggunya. Aturan 1 meminta p
 
 ### Bacaan lanjut
 
-- [PostgreSQL 17: log-shipping standby dan replikasi sinkron](https://www.postgresql.org/docs/17/warm-standby.html) · [synchronous_standby_names](https://www.postgresql.org/docs/17/runtime-config-replication.html) · [failover](https://www.postgresql.org/docs/17/warm-standby-failover.html)
+- [PostgreSQL 17: standby dan replikasi sinkron](https://www.postgresql.org/docs/17/warm-standby.html) · [synchronous_standby_names](https://www.postgresql.org/docs/17/runtime-config-replication.html) · [failover](https://www.postgresql.org/docs/17/warm-standby-failover.html)
 - [AWS: Disaster recovery options in the cloud](https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html)
 - [Spanner: Google's Globally-Distributed Database (OSDI 2012)](https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf)
 
