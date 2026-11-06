@@ -531,7 +531,7 @@ window.ISTILAH = {
   "n": "6.4 M53",
   "s": "istilah-data-mesh",
   "t": "Data mesh",
-  "u": null
+  "u": "tahap-6/m53-laporan-kosong/"
  },
  "Database": {
   "b": "B2.1",
@@ -1698,7 +1698,7 @@ window.ISTILAH = {
   "n": "6.4 M53",
   "s": "istilah-produk-data",
   "t": "Produk data",
-  "u": null
+  "u": "tahap-6/m53-laporan-kosong/"
  },
  "Promosi": {
   "b": "t5-rpo-rto",
@@ -2745,7 +2745,7 @@ window.ISTILAH = {
   "n": "6.4 M53",
   "s": "istilah-data-mesh",
   "t": "Data mesh",
-  "u": null
+  "u": "tahap-6/m53-laporan-kosong/"
  },
  "database": {
   "b": "B2.1",
@@ -3586,7 +3586,7 @@ window.ISTILAH = {
   "n": "6.4 M53",
   "s": "istilah-produk-data",
   "t": "Produk data",
-  "u": null
+  "u": "tahap-6/m53-laporan-kosong/"
  },
  "promosi": {
   "b": "t5-rpo-rto",

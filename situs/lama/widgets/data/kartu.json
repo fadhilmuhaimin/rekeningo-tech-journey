@@ -4496,6 +4496,38 @@
   "jawab": "Dengan fan-out saat baca, promo hilang dari semua feed begitu dihapus dari tabel promo. Dengan fan-out saat tulis, baris di setiap feed pengikut juga harus dihapus, dan push yang sudah terkirim tidak bisa ditarik. Ini alasan lain untuk menunda push promo beberapa menit."
  },
  {
+  "id": "t6-m53-1",
+  "halaman": "t6-m53",
+  "judul": "6.4 M53: Laporan tutup buku kosong sesudah migration + ADR 62 (kepemilikan domain, data sebagai produk)",
+  "url": "tahap-6/m53-laporan-kosong/",
+  "tanya": "Query yang masih menyebut nama kolom lama dijalankan sesudah rename. Apa jawaban PostgreSQL di rekaman Tahap 4, dan kenapa itu bukan hasil kosong?",
+  "jawab": "Galat kolom tidak ada, `column \"nama\" does not exist` (42703), dari role yang masih berhak membaca tabelnya (`batas.txt` bagian A). Hasil kosong tanpa galat berarti job tidak berhenti pada galat itu. Cerita M53 tidak menulis sebabnya (Ilustrasi)."
+ },
+ {
+  "id": "t6-m53-2",
+  "halaman": "t6-m53",
+  "judul": "6.4 M53: Laporan tutup buku kosong sesudah migration + ADR 62 (kepemilikan domain, data sebagai produk)",
+  "url": "tahap-6/m53-laporan-kosong/",
+  "tanya": "Pipeline tim Pembayaran lulus sesudah migration. Apa yang tidak ada di pipeline itu, dan bagaimana Tahap 4 menangkap rename kolom yang sejenis?",
+  "jawab": "Query Pelaporan tidak ada di dalamnya, karena hak baca sementara tidak punya baris contract. Di Tahap 4, rename kolom `tingkat` yang ada di kontrak ledger gagal di tes kontrak dengan 42703 sebelum rilis (`batas.txt` bagian B)."
+ },
+ {
+  "id": "t6-m53-3",
+  "halaman": "t6-m53",
+  "judul": "6.4 M53: Laporan tutup buku kosong sesudah migration + ADR 62 (kepemilikan domain, data sebagai produk)",
+  "url": "tahap-6/m53-laporan-kosong/",
+  "tanya": "ADR 62 mencabut hak baca lintas schema. Apa penggantinya, dan milik siapa laporan yang Pak Hadi tanda tangani?",
+  "jawab": "Penggantinya API atau event berversi milik pemilik data, dengan pemilik, skema, dan kesegaran tertulis. Laporan resmi Keuangan dibaca dari API tutup buku milik tim Ledger, yang berasal dari snapshot saldo ADR 49. Itu Asumsi desain dan Tidak dijalankan."
+ },
+ {
+  "id": "t6-m53-4",
+  "halaman": "t6-m53",
+  "judul": "6.4 M53: Laporan tutup buku kosong sesudah migration + ADR 62 (kepemilikan domain, data sebagai produk)",
+  "url": "tahap-6/m53-laporan-kosong/",
+  "tanya": "Replica sudah ada di ADR 46. Kenapa ADR 62 tidak memilihnya untuk Pelaporan?",
+  "jawab": "Replica memutar ulang rekaman perubahan primary, jadi nama kolom dan hak yang sama ikut ke sana dan M53 terulang (Penalaran, Tidak dijalankan). Aturan Pak Hadi di PRD v5 juga menulis salinan boleh untuk dilihat, bukan untuk memutuskan."
+ },
+ {
   "id": "D4c-1",
   "halaman": "D4c",
   "judul": "Studi desain: laporan lapangan offline",

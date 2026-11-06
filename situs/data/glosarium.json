@@ -589,7 +589,7 @@
   "d": "Pendekatan data analitik dengan empat prinsip: data dimiliki domain, data sebagai produk, infrastruktur data self-serve, dan tata kelola terfederasi yang dijalankan komputer.",
   "b": "t6-m53",
   "n": "6.4 M53",
-  "u": null,
+  "u": "/tahap-6/m53-laporan-kosong/",
   "s": "istilah-data-mesh",
   "h": "/istilah/data-mesh/"
  },
@@ -1687,7 +1687,7 @@
   "d": "Data yang disediakan satu domain untuk tim lain dan dirawat seperti produk, dengan pemakainya diperlakukan seperti pelanggan. Dalam data mesh, istilah ini untuk data analitik.",
   "b": "t6-m53",
   "n": "6.4 M53",
-  "u": null,
+  "u": "/tahap-6/m53-laporan-kosong/",
   "s": "istilah-produk-data",
   "h": null
  },
