@@ -1055,6 +1055,11 @@ describe("kunci frasa klaim dan sel tabel yang lolos mutasi tanpa kunci baris (p
     harus("Chaos testing berjalan satu percobaan per tim per kuartal, di staging lebih dulu, lalu di produksi dengan paparan paling banyak 1% lalu lintas (Asumsi).");
     expect(sebenarnya).toContain("membuat rapat menjadi queue baru");
     harus("rapat menjadi queue baru");
+    // asal 0,1% (batas SLO), jeda yang tidak mutlak, dan kata antarmuka di tabel opsi F (peninjau 6.5)
+    harus(`Pada kegagalan ${id((1 - sloService) * 100, 1)}%, yaitu batas SLO ${id(sloService * 100, 1)}%, satu kegagalan rata-rata butuh 1.000 transaksi.`);
+    harus("Jeda yang lebih pendek lebih sering meloloskan versi yang salah.");
+    harus("Satu antarmuka evaluasi flag dengan nilai default per pemanggilan (spesifikasi v0.9.0)");
+    expect(badan).not.toMatch(/\bAPI evaluasi flag/);
     harus("membentuk queue, seperti tiket Platform");
     expect(hitung(badan, "antrean")).toBe(0);
   });
