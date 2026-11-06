@@ -5218,9 +5218,9 @@
         "t6-m54",
         "t5-rpo-rto"
       ],
-      "menit": 20,
-      "ada": false,
-      "nomor": "6.6"
+      "ada": true,
+      "nomor": "6.6",
+      "menit": 20
     },
     {
       "id": "t6-m56",

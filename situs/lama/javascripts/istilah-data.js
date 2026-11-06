@@ -54,7 +54,7 @@ window.ISTILAH = {
   "n": "6.6 M55",
   "s": "istilah-akun-panas",
   "t": "Akun panas",
-  "u": null
+  "u": "tahap-6/m55-wilayah-hilang/"
  },
  "Akun selisih pembulatan": {
   "b": "t6-m56",
@@ -1152,7 +1152,7 @@ window.ISTILAH = {
   "n": "6.6 M55",
   "s": "istilah-kuorum",
   "t": "Kuorum",
-  "u": null
+  "u": "tahap-6/m55-wilayah-hilang/"
  },
  "LSN": {
   "b": "t5-lag",
@@ -1370,7 +1370,7 @@ window.ISTILAH = {
   "n": "6.6 M55",
   "s": "istilah-multi-region",
   "t": "Multi-region",
-  "u": null
+  "u": "tahap-6/m55-wilayah-hilang/"
  },
  "N+1": {
   "b": "t2-n-plus-1",
@@ -1606,7 +1606,7 @@ window.ISTILAH = {
   "n": "6.6 M55",
   "s": "istilah-pasangan-wilayah",
   "t": "Pasangan wilayah",
-  "u": null
+  "u": "tahap-6/m55-wilayah-hilang/"
  },
  "Passkey": {
   "b": "t3-xss-csrf",
@@ -2419,7 +2419,7 @@ window.ISTILAH = {
   "n": "6.6 M55",
   "s": "istilah-akun-panas",
   "t": "Akun panas",
-  "u": null
+  "u": "tahap-6/m55-wilayah-hilang/"
  },
  "akun selisih pembulatan": {
   "b": "t6-m56",
@@ -3164,7 +3164,7 @@ window.ISTILAH = {
   "n": "6.6 M55",
   "s": "istilah-kuorum",
   "t": "Kuorum",
-  "u": null
+  "u": "tahap-6/m55-wilayah-hilang/"
  },
  "last-write-wins": {
   "b": "t3-offline",
@@ -3350,7 +3350,7 @@ window.ISTILAH = {
   "n": "6.6 M55",
   "s": "istilah-multi-region",
   "t": "Multi-region",
-  "u": null
+  "u": "tahap-6/m55-wilayah-hilang/"
  },
  "mutual TLS": {
   "b": "t5-mtls",
@@ -3520,7 +3520,7 @@ window.ISTILAH = {
   "n": "6.6 M55",
   "s": "istilah-pasangan-wilayah",
   "t": "Pasangan wilayah",
-  "u": null
+  "u": "tahap-6/m55-wilayah-hilang/"
  },
  "passkey": {
   "b": "t3-xss-csrf",

@@ -4496,6 +4496,46 @@
   "jawab": "Dengan fan-out saat baca, promo hilang dari semua feed begitu dihapus dari tabel promo. Dengan fan-out saat tulis, baris di setiap feed pengikut juga harus dihapus, dan push yang sudah terkirim tidak bisa ditarik. Ini alasan lain untuk menunda push promo beberapa menit."
  },
  {
+  "id": "t6-m55-1",
+  "halaman": "t6-m55",
+  "judul": "6.6 M55: Satu wilayah hilang 47 menit + ADR 64 (multi-region aktif-pasif)",
+  "url": "tahap-6/m55-wilayah-hilang/",
+  "tanya": "Satu standby ada di wilayah yang sama dengan primary dan satu di wilayah pasangan, keduanya di `ANY 1 (lokal, pasangan)`. Wilayah utama hilang. Apakah RPO nol terjaga?",
+  "jawab": "Belum tentu. `ANY 1` melepas commit begitu salah satu standby menjawab. Standby lokal bisa menjawab sendiri, dan ia hilang bersama wilayahnya. ADR 64 memakai `ANY 2` supaya pasangan wajib ikut (Penalaran, Tidak dijalankan)."
+ },
+ {
+  "id": "t6-m55-2",
+  "halaman": "t6-m55",
+  "judul": "6.6 M55: Satu wilayah hilang 47 menit + ADR 64 (multi-region aktif-pasif)",
+  "url": "tahap-6/m55-wilayah-hilang/",
+  "tanya": "Merchant besar menerima 34,7 jurnal per detik. Hitung persen batas satu akun pada 1.000 km dan pada 3.000 km. Jarak mana yang ADR 64 tolak untuknya?",
+  "jawab": "RTT 10 ms memberi batas 100 per detik, jadi 34,7 ÷ 100 = 35%. RTT 30 ms memberi batas 33,3, jadi 34,7 ÷ 33,3 = 104%. Jarak 3.000 km ditolak untuknya: ia melewati batas dan alert 50% (Hitungan atas Asumsi)."
+ },
+ {
+  "id": "t6-m55-3",
+  "halaman": "t6-m55",
+  "judul": "6.6 M55: Satu wilayah hilang 47 menit + ADR 64 (multi-region aktif-pasif)",
+  "url": "tahap-6/m55-wilayah-hilang/",
+  "tanya": "ADR 48 memakai alat dengan fencing untuk failover. Kenapa ADR 64 menyerahkan failover wilayah kepada manusia?",
+  "jawab": "Memindahkan satu wilayah karena alarm palsu menimbulkan kehilangan ketersediaan dan data, menurut dokumentasi AWS. Karena itu keputusannya manusia, dan langkahnya tetap diotomatiskan. ADR 48 aturan 3 hanya untuk satu mesin di dalam satu wilayah."
+ },
+ {
+  "id": "t6-m55-4",
+  "halaman": "t6-m55",
+  "judul": "6.6 M55: Satu wilayah hilang 47 menit + ADR 64 (multi-region aktif-pasif)",
+  "url": "tahap-6/m55-wilayah-hilang/",
+  "tanya": "Lab Tahap 5 merekam lima jurnal 201 yang tidak ada di node baru. Apa dua penyebabnya, dan aturan ADR 64 mana yang menutup masing-masing?",
+  "jawab": "Pertama, replica itu asinkron, jadi COMMIT tidak menunggunya. Aturan 1 meminta pasangan menjawab sebelum jawaban terkirim. Kedua, primary lama tidak dihentikan, dan aturan 5 meminta fencing lebih dulu (Penalaran, Tidak dijalankan)."
+ },
+ {
+  "id": "t6-m55-5",
+  "halaman": "t6-m55",
+  "judul": "6.6 M55: Satu wilayah hilang 47 menit + ADR 64 (multi-region aktif-pasif)",
+  "url": "tahap-6/m55-wilayah-hilang/",
+  "tanya": "Berapa persen anggaran 43,2 menit yang terpakai oleh 47 menit, dan berapa menit di atas RTO wilayah?",
+  "jawab": "47 ÷ 43,2 = 108,8%, dan 47 − 30 = 17 menit di atas RTO wilayah 30 menit (Hitungan atas Ilustrasi dan Asumsi)."
+ },
+ {
   "id": "D4c-1",
   "halaman": "D4c",
   "judul": "Studi desain: laporan lapangan offline",

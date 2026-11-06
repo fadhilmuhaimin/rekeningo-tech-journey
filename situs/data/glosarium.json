@@ -175,7 +175,7 @@
   "d": "Akun yang menerima tulisan jauh lebih sering daripada akun lain, mis. akun merchant besar, sehingga banyak tulisan bersaing untuk baris yang sama.",
   "b": "t6-m55",
   "n": "6.6 M55",
-  "u": null,
+  "u": "/tahap-6/m55-wilayah-hilang/",
   "s": "istilah-akun-panas",
   "h": null
  },
@@ -1147,7 +1147,7 @@
   "d": "Jumlah anggota paling sedikit dari satu kelompok yang harus menjawab sebelum sebuah aksi dianggap selesai, mis. n standby pada ANY n di PostgreSQL.",
   "b": "t6-m55",
   "n": "6.6 M55",
-  "u": null,
+  "u": "/tahap-6/m55-wilayah-hilang/",
   "s": "istilah-kuorum",
   "h": "/istilah/kuorum/"
  },
@@ -1372,7 +1372,7 @@
   "d": "Menjalankan satu sistem di lebih dari satu wilayah (region), yaitu lokasi geografis dengan pusat data. Pada aktif-pasif satu wilayah melayani dan lainnya menunggu failover; pada aktif-aktif semua melayani.",
   "b": "t6-m55",
   "n": "6.6 M55",
-  "u": null,
+  "u": "/tahap-6/m55-wilayah-hilang/",
   "s": "istilah-multi-region",
   "h": "/istilah/multi-region/"
  },
@@ -1588,7 +1588,7 @@
   "d": "Wilayah kedua yang dipasangkan dengan satu wilayah utama sebagai tempat salinan dan tujuan failover-nya. Ini nama pilihan Rekeningo, bukan istilah baku.",
   "b": "t6-m55",
   "n": "6.6 M55",
-  "u": null,
+  "u": "/tahap-6/m55-wilayah-hilang/",
   "s": "istilah-pasangan-wilayah",
   "h": null
  },
