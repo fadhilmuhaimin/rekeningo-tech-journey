@@ -1,0 +1,63 @@
+{
+  "id": "t6-fitur-kalkulator",
+  "judul": "Beban di jam paling ramai, Tahap 5 dan Tahap 6",
+  "sumber": {
+    "jenis": "asumsi",
+    "teks": "Asumsi naskah dari cerita.json. Angka 10.000.000 user dan negara pertama 6.000.000 user (60%) adalah Asumsi cerita, bukan pengukuran."
+  },
+  "skenario": [
+    { "label": "Tahap 5", "tahap": 5 },
+    {
+      "label": "Tahap 6",
+      "tahap": 5,
+      "ubah": {
+        "user": 10000000
+      }
+    },
+    {
+      "label": "Aktif 10%",
+      "tahap": 5,
+      "ubah": {
+        "user": 10000000,
+        "aktif": 10
+      }
+    },
+    {
+      "label": "Negara pertama",
+      "tahap": 5,
+      "ubah": {
+        "user": 6000000
+      }
+    }
+  ],
+  "awal": 0,
+  "tebak": {
+    "q": "Tahap 5 punya 1.000.000 user dan puncak 1.388,9 request per detik. Negara pertama punya 6.000.000 dari 10.000.000 user di Tahap 6, dan persen aktif, request per user, dan faktor puncaknya sama dengan Tahap 5. Berapa kali puncak Tahap 5 yang ia hasilkan sendiri?",
+    "pilihan": [
+      "10 kali",
+      "3 kali",
+      "6 kali",
+      "0,6 kali"
+    ],
+    "jawaban": 2,
+    "skenario": 3,
+    "alasan": "Negara pertama punya 6.000.000 user, 6 kali Tahap 5. Persen aktif, request per user, dan faktor puncak tetap, jadi puncaknya 6 kali Tahap 5: 8.333,3 request per detik, yaitu 60% dari 13.888,9 di Tahap 6. Database per negara membagi beban, tetapi negara terbesar tetap 6 kali beban Tahap 5."
+  },
+  "label": {
+    "sumber": "Asumsi",
+    "tebakDulu": "Tebak dulu:",
+    "lanjut": "Sekarang pilih skenario “Negara pertama” di atas tabel.",
+    "ubah": "Skenario",
+    "asumsi": "asumsi",
+    "detik": "detik",
+    "ms": "ms",
+    "baris": {
+      "user": "User terdaftar",
+      "dau": "User aktif per hari",
+      "reqHari": "Request per hari",
+      "rata": "Rata-rata, request per detik",
+      "puncak": "Puncak, request per detik"
+    },
+    "kesimpulan": "Di jam paling ramai, puncaknya kira-kira {puncak} request per detik, satu request tiap {jarak}."
+  }
+}
