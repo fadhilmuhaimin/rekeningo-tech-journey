@@ -333,10 +333,14 @@ describe("rekaman Tahap 4 dan Tahap 5 dan kode lab: rentang Snippet, huruf bagia
     expect(batasBaris[lNama]).toContain("modul akun membaca nama_tampil: berhasil");
     expect(batasBaris[lNama + 1]).toContain("kontrak kolom ledger (id, tingkat, status): berhasil; tidak ada modul lain yang menyentuh kolom nama");
     expect(batasBaris[lSebelumRename - 1]).toContain('column "nama" does not exist (42703)');
-    expect(badan).toContain(`<Snippet file="labs/t4-modul/output/batas.txt" lines="${lNama}:${lKontrak}"`);
-    expect(badan).toContain("bagian B (rename kolom nama dan kolom kontrak)");
+    // peninjau: baris "--- PASS: Test..." (nama tes lab) di antara kedua rename tidak ikut tampil, jadi rentangnya dipecah dua
+    expect(batasBaris[lNama + 2]).toMatch(/^--- PASS: Test/);
+    expect(badan).toContain(`<Snippet file="labs/t4-modul/output/batas.txt" lines="${lNama}:${lNama + 2}"`);
+    expect(badan).toContain(`<Snippet file="labs/t4-modul/output/batas.txt" lines="${lKontrak}:${lKontrak}"`);
+    expect(badan).toContain("bagian B (rename kolom nama, tidak mematahkan modul lain)");
+    expect(badan).toContain("bagian B (rename kolom di kontrak ledger)");
     expect(hitung(badan, "bagian A")).toBe(3);
-    expect(hitung(badan, "bagian B")).toBe(3);
+    expect(hitung(badan, "bagian B")).toBe(4);
     expect(batasBaris[2]).toContain("make -C labs/t4-modul run");
     expect(batasBaris.slice(lSebelumRename, lSebelumRename + 8).join("\n")).toContain("kodenya bukan rekaman kode produksi");
   });
@@ -359,7 +363,7 @@ describe("rekaman Tahap 4 dan Tahap 5 dan kode lab: rentang Snippet, huruf bagia
     expect(hitung(badan, "bagian F")).toBe(2);
     // peninjau: judul Snippet menurunkan tahap dari folder lab (api-t5 = 5, t4-modul = 4) dan jenis dari ekstensi
     const snippet = [...badan.matchAll(/<Snippet file="(labs\/[^"]+)"[^>]* title="([^"]+)"/g)].map((m) => ({ file: m[1]!, title: m[2]! }));
-    expect(snippet).toHaveLength(4);
+    expect(snippet).toHaveLength(5);
     for (const s of snippet) {
       const tahap = cari(/^labs\/(?:api-)?t(\d)/, s.file, "tahap dari folder lab")[1]!;
       expect(s.title.startsWith(s.file.endsWith(".txt") ? `Rekaman lab Tahap ${tahap}: ${s.file}` : `Kode lab: ${s.file}`), `judul Snippet: ${s.title}`).toBe(true);
@@ -402,6 +406,15 @@ describe("rekaman Tahap 4 dan Tahap 5 dan kode lab: rentang Snippet, huruf bagia
     const kena = berkas.filter((f) => /\b(tim|role|schema) Pelaporan\b|\bt\d_pelaporan\b/i.test(fs.readFileSync(path.join(akar, f), "utf8")));
     expect(kena).toEqual([]);
     expect(badan).toContain("Hak sementara, role Pelaporan, dan query Pelaporan tidak ada di lab mana pun.");
+  });
+  test("baris yang tampil lewat Snippet tanpa nama tes lab, ID riset, nomor PR, atau nomor keputusan (peninjau; aturan riset-tahap)", () => {
+    const daftar = [...badan.matchAll(/<Snippet file="([^"]+)" lines="(\d+):(\d+)"/g)].map((m) => ({ file: m[1]!, a: Number(m[2]), b: Number(m[3]) }));
+    expect(daftar).toHaveLength(5);
+    for (const s of daftar) {
+      const tampil = baca(s.file).split("\n").slice(s.a - 1, s.b);
+      expect(tampil.length).toBe(s.b - s.a + 1);
+      for (const l of tampil) expect(l, `${s.file}:${s.a}-${s.b}`).not.toMatch(/\bTest[A-Z]\w+|\bR\d-\d+\b|\bPR \d{3}\b|\bkeputusan \d{3,4}\b|^\s*(#|\/\/)\s*(---|Ilustrasi mekanisme)/);
+    }
   });
   test("klaim negatif berlingkup: run.py membaca hak dari katalog, bukan isi query, dan labs/api-t5 tidak punya lint query lintas schema", () => {
     const pyApi = fs.readdirSync(path.join(akar, "labs/api-t5")).filter((f) => f.endsWith(".py")).map((f) => baca(`labs/api-t5/${f}`)).join("\n");
@@ -510,7 +523,7 @@ describe("sumber luar: tautan, tanggal buka, kutipan, dan baris riset R6-125 sam
   });
   test("baris R6-129: sumber internal menyebut baris rekaman dan kode yang dipakai Snippet", () => {
     const b = baris[4]!;
-    expect(b).toContain(`baris 21 sampai 24 (bagian A) dan ${lNama} sampai ${lKontrak} (bagian B`);
+    expect(b).toContain(`baris 21 sampai 24 (bagian A), ${lNama} sampai ${lNama + 2}, dan ${lKontrak} (bagian B`);
     expect(b).toContain(`baris ${lMerchant} sampai ${lMerchant + 1} dan ${lKontrakKolom} sampai ${lNamaDitolak + 1} (bagian F)`);
     expect(b).toContain(`baris ${lLuar} sampai ${lHarapKontrak}`);
     expect(b).toContain("TestRenameKolomKontrakTerdeteksiDiCI");
